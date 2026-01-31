@@ -25,6 +25,9 @@ export interface Challenge {
   difficulty_actual?: number; // 1-5
   points_awarded?: number;
   reflection_note?: string;
+  reflection_hardest_moment?: string;
+  reflection_push_through?: string;
+  reflection_next_time?: string;
   created_at: string;
   completed_at?: string;
   description?: string;

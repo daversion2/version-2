@@ -95,6 +95,19 @@ export const getChallengeById = async (
   return { id: snap.id, ...snap.data() } as Challenge;
 };
 
+export const saveReflectionAnswers = async (
+  userId: string,
+  challengeId: string,
+  answers: {
+    reflection_hardest_moment?: string;
+    reflection_push_through?: string;
+    reflection_next_time?: string;
+  }
+) => {
+  const ref = doc(db, 'users', userId, 'challenges', challengeId);
+  await updateDoc(ref, answers);
+};
+
 export const getAllChallenges = async (userId: string): Promise<Challenge[]> => {
   const snap = await getDocs(query(challengesRef(userId)));
   return snap.docs

@@ -104,6 +104,30 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
           <Text style={styles.fieldValue}>{challenge.reflection_note}</Text>
         </Card>
       ) : null}
+
+      {(challenge.reflection_hardest_moment || challenge.reflection_push_through || challenge.reflection_next_time) ? (
+        <Card style={styles.card}>
+          <Text style={styles.fieldLabel}>Post-Challenge Reflection</Text>
+          {challenge.reflection_hardest_moment ? (
+            <View style={styles.reflectionItem}>
+              <Text style={styles.reflectionQuestion}>What was the hardest moment, and what were you telling yourself then?</Text>
+              <Text style={styles.fieldValue}>{challenge.reflection_hardest_moment}</Text>
+            </View>
+          ) : null}
+          {challenge.reflection_push_through ? (
+            <View style={styles.reflectionItem}>
+              <Text style={styles.reflectionQuestion}>What helped you push through — or what would have helped?</Text>
+              <Text style={styles.fieldValue}>{challenge.reflection_push_through}</Text>
+            </View>
+          ) : null}
+          {challenge.reflection_next_time ? (
+            <View style={styles.reflectionItem}>
+              <Text style={styles.reflectionQuestion}>What's one rule or adjustment you'll apply next time?</Text>
+              <Text style={styles.fieldValue}>{challenge.reflection_next_time}</Text>
+            </View>
+          ) : null}
+        </Card>
+      ) : null}
     </ScrollView>
   );
 };
@@ -155,5 +179,14 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray,
     lineHeight: 20,
+  },
+  reflectionItem: {
+    marginBottom: Spacing.sm,
+  },
+  reflectionQuestion: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.dark,
+    marginBottom: 2,
   },
 });
