@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "neuro-nudge",
-    "slug": "neuro-nudge",
+    "slug": "neuro-nudge-v2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -28,6 +28,18 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f82ccb32-f09c-4330-b911-0c84a5623f55"
+      }
+    },
+    "owner": "jonnymcfadden1528s-organization",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f82ccb32-f09c-4330-b911-0c84a5623f55"
+    }
   }
 }
