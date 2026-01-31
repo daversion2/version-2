@@ -16,7 +16,7 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, Nudge, Category } from '../../types';
 import { getActiveChallenge } from '../../services/challenges';
-import { getActiveHabits, logHabitCompletion } from '../../services/habits';
+import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts } from '../../services/habits';
 import { getUserCategories } from '../../services/categories';
 import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
@@ -32,6 +32,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
+  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
 
   const getCatColor = useCallback((catName: string) => {
     const cat = categories.find((c) => c.name === catName);
@@ -49,6 +50,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveChallenge(challenge);
       setHabits(habitList);
       setCategories(cats);
+      // Load weekly counts separately so a missing index doesn't block the rest
+      try {
+        const counts = await getWeeklyCompletionCounts(user.uid);
+        setWeeklyCounts(counts);
+      } catch (err) {
+        console.warn('Weekly counts query failed (composite index may be needed):', err);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -76,6 +84,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       await logHabitCompletion(user.uid, completingHabit.id, difficulty);
       setCompletingHabit(null);
       showAlert('Logged', 'Habit completed.');
+      try {
+        const counts = await getWeeklyCompletionCounts(user.uid);
+        setWeeklyCounts(counts);
+      } catch (err) {
+        console.warn('Weekly counts refresh failed:', err);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -147,31 +161,41 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           />
         </Card>
       ) : (
-        habits.map((habit) => (
-          <TouchableOpacity
-            key={habit.id}
-            onPress={() => handleHabitTap(habit)}
-            activeOpacity={0.7}
-          >
-            <Card style={styles.habitCard}>
-              <View style={styles.habitRow}>
-                <Ionicons
-                  name="radio-button-off"
-                  size={24}
-                  color={Colors.primary}
-                />
-                <View style={styles.habitInfo}>
-                  <Text style={styles.habitName}>{habit.name}</Text>
-                  <View style={[styles.catBadge, { backgroundColor: getCatColor(habit.category_id) + '20' }]}>
-                    <Text style={[styles.catBadgeText, { color: getCatColor(habit.category_id) }]}>
-                      {habit.category_id}
-                    </Text>
+        habits.map((habit) => {
+          const done = weeklyCounts[habit.id] || 0;
+          const target = habit.target_count_per_week;
+          const isComplete = done >= target;
+          return (
+            <TouchableOpacity
+              key={habit.id}
+              onPress={() => handleHabitTap(habit)}
+              activeOpacity={0.7}
+            >
+              <Card style={styles.habitCard}>
+                <View style={styles.habitRow}>
+                  <Ionicons
+                    name={isComplete ? 'checkmark-circle' : 'radio-button-off'}
+                    size={24}
+                    color={isComplete ? Colors.secondary : Colors.primary}
+                  />
+                  <View style={styles.habitInfo}>
+                    <Text style={styles.habitName}>{habit.name}</Text>
+                    <View style={styles.habitMeta}>
+                      <View style={[styles.catBadge, { backgroundColor: getCatColor(habit.category_id) + '20' }]}>
+                        <Text style={[styles.catBadgeText, { color: getCatColor(habit.category_id) }]}>
+                          {habit.category_id}
+                        </Text>
+                      </View>
+                      <Text style={styles.progressText}>
+                        {done} / {target} this week
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
-        ))
+              </Card>
+            </TouchableOpacity>
+          );
+        })
       )}
       <HabitCompletionModal
         visible={!!completingHabit}
@@ -255,6 +279,17 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primary,
     fontSize: FontSizes.md,
     color: Colors.dark,
+  },
+  habitMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  progressText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
   },
   catBadge: {
     paddingHorizontal: Spacing.sm + 2,

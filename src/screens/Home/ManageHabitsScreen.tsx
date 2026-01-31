@@ -28,11 +28,13 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCatIdx, setSelectedCatIdx] = useState(0);
+  const [timesPerWeek, setTimesPerWeek] = useState(3);
 
   // Edit mode state
   const [editingHabit, setEditingHabit] = useState<Nudge | null>(null);
   const [editName, setEditName] = useState('');
   const [editCatIdx, setEditCatIdx] = useState(0);
+  const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
   const [editLoading, setEditLoading] = useState(false);
 
   const load = async () => {
@@ -60,8 +62,10 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
       await createHabit(user.uid, {
         name: newName.trim(),
         category_id: categories[selectedCatIdx]?.name || 'Uncategorized',
+        target_count_per_week: timesPerWeek,
       });
       setNewName('');
+      setTimesPerWeek(3);
       setShowForm(false);
       await load();
     } catch (e: any) {
@@ -76,6 +80,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
     setEditName(habit.name);
     const catIdx = categories.findIndex((c) => c.name === habit.category_id);
     setEditCatIdx(catIdx >= 0 ? catIdx : 0);
+    setEditTimesPerWeek(habit.target_count_per_week);
     setShowForm(false);
   };
 
@@ -96,6 +101,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
       await updateHabit(user.uid, editingHabit.id, {
         name: editName.trim(),
         category_id: categories[editCatIdx]?.name || 'Uncategorized',
+        target_count_per_week: editTimesPerWeek,
       } as Partial<Nudge>);
       cancelEdit();
       await load();
@@ -154,6 +160,23 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
+          <Text style={styles.catLabel}>Times per week</Text>
+          <View style={styles.catRow}>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <TouchableOpacity
+                key={n}
+                onPress={() => setTimesPerWeek(n)}
+                style={[
+                  styles.freqChip,
+                  timesPerWeek === n && styles.freqChipActive,
+                ]}
+              >
+                <Text style={[styles.freqChipText, timesPerWeek === n && { color: Colors.white }]}>
+                  {n}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           <View style={styles.formButtons}>
             <Button title="Add" onPress={handleAdd} loading={loading} style={{ flex: 1 }} />
             <Button
@@ -200,6 +223,23 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
+          <Text style={styles.catLabel}>Times per week</Text>
+          <View style={styles.catRow}>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <TouchableOpacity
+                key={n}
+                onPress={() => setEditTimesPerWeek(n)}
+                style={[
+                  styles.freqChip,
+                  editTimesPerWeek === n && styles.freqChipActive,
+                ]}
+              >
+                <Text style={[styles.freqChipText, editTimesPerWeek === n && { color: Colors.white }]}>
+                  {n}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           <View style={styles.formButtons}>
             <Button title="Save" onPress={handleSaveEdit} loading={editLoading} style={{ flex: 1 }} />
             <Button
@@ -221,10 +261,17 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.habitRow}>
               <View style={styles.habitInfo}>
                 <Text style={styles.habitName}>{item.name}</Text>
-                <View style={[styles.badge, { backgroundColor: getCatColor(item.category_id) + '20' }]}>
-                  <Text style={[styles.badgeText, { color: getCatColor(item.category_id) }]}>
-                    {item.category_id}
-                  </Text>
+                <View style={styles.badgeRow}>
+                  <View style={[styles.badge, { backgroundColor: getCatColor(item.category_id) + '20' }]}>
+                    <Text style={[styles.badgeText, { color: getCatColor(item.category_id) }]}>
+                      {item.category_id}
+                    </Text>
+                  </View>
+                  <View style={[styles.badge, { backgroundColor: Colors.primary + '15' }]}>
+                    <Text style={[styles.badgeText, { color: Colors.primary }]}>
+                      {item.target_count_per_week}x/week
+                    </Text>
+                  </View>
                 </View>
               </View>
               <View style={styles.actions}>
@@ -318,6 +365,27 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     padding: Spacing.xs,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  freqChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  freqChipActive: {
+    backgroundColor: Colors.primary,
+  },
+  freqChipText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
   empty: {
     fontFamily: Fonts.secondary,

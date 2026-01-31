@@ -40,6 +40,7 @@ export interface Nudge {
   category_id: string;
   is_active: boolean;
   created_by_user: boolean;
+  target_count_per_week: number; // 1–7
 }
 
 export interface CompletionLog {
@@ -50,6 +51,7 @@ export interface CompletionLog {
   points: number;
   difficulty: number;
   date: string;
+  completed_at?: string; // ISO 8601 timestamp
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';
