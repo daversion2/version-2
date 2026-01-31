@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -13,20 +14,19 @@ import {
   getCategoryBreakdown,
   CategoryStat,
 } from '../../services/progress';
-import { CompletionLog } from '../../types';
 import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
 
 const TIME_FILTERS = ['Today', '7 Days', '30 Days', 'All Time'] as const;
 
 export const ProgressScreen: React.FC = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [wpq, setWpq] = useState(0);
   const [streak, setStreak] = useState(0);
   const [points, setPoints] = useState(0);
   const [filter, setFilter] = useState<(typeof TIME_FILTERS)[number]>('7 Days');
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [dayLogs, setDayLogs] = useState<CompletionLog[]>([]);
   const [categoryData, setCategoryData] = useState<CategoryStat[]>([]);
 
   const getStartDate = (f: string) => {
@@ -79,11 +79,9 @@ export const ProgressScreen: React.FC = () => {
     }, [loadData])
   );
 
-  const onDayPress = async (day: DateData) => {
-    if (!user) return;
+  const onDayPress = (day: DateData) => {
     setSelectedDay(day.dateString);
-    const logs = await getCompletionLogs(user.uid, day.dateString, day.dateString);
-    setDayLogs(logs);
+    navigation.navigate('DayDetail', { date: day.dateString });
   };
 
   return (
@@ -153,24 +151,6 @@ export const ProgressScreen: React.FC = () => {
         style={styles.calendar}
       />
 
-      {/* Day Detail */}
-      {selectedDay && (
-        <Card style={styles.dayCard}>
-          <Text style={styles.dayTitle}>{selectedDay}</Text>
-          {dayLogs.length === 0 ? (
-            <Text style={styles.dayEmpty}>No activity this day.</Text>
-          ) : (
-            dayLogs.map((log) => (
-              <View key={log.id} style={styles.logRow}>
-                <Text style={styles.logType}>
-                  {log.type === 'challenge' ? 'Challenge' : 'Habit'}
-                </Text>
-                <Text style={styles.logPoints}>{log.points} pts</Text>
-              </View>
-            ))
-          )}
-        </Card>
-      )}
     </ScrollView>
   );
 };
@@ -247,34 +227,5 @@ const styles = StyleSheet.create({
   calendar: {
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
-  },
-  dayCard: { marginTop: Spacing.sm },
-  dayTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    marginBottom: Spacing.sm,
-  },
-  dayEmpty: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-  },
-  logRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  logType: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  logPoints: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
   },
 });

@@ -6,6 +6,52 @@ import {
 import { db } from './firebase';
 import { CompletionLog, Challenge, Nudge } from '../types';
 
+export interface EnrichedCompletionLog extends CompletionLog {
+  name: string;
+  category_id: string;
+}
+
+export const getCompletionLogsWithNames = async (
+  userId: string,
+  date: string
+): Promise<EnrichedCompletionLog[]> => {
+  const habitsRef = collection(db, 'users', userId, 'habits');
+
+  const [logSnap, challengeSnap, habitSnap] = await Promise.all([
+    getDocs(query(logsRef(userId))),
+    getDocs(query(challengesRef(userId))),
+    getDocs(query(habitsRef)),
+  ]);
+
+  const challengeMap = new Map<string, { name: string; category_id: string }>();
+  challengeSnap.docs.forEach((d) => {
+    const data = d.data() as Challenge;
+    challengeMap.set(d.id, { name: data.name, category_id: data.category_id });
+  });
+
+  const habitMap = new Map<string, { name: string; category_id: string }>();
+  habitSnap.docs.forEach((d) => {
+    const data = d.data() as Nudge;
+    habitMap.set(d.id, { name: data.name, category_id: data.category_id });
+  });
+
+  return logSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as CompletionLog))
+    .filter((log) => log.date === date)
+    .map((log) => {
+      const ref =
+        log.type === 'challenge'
+          ? challengeMap.get(log.reference_id)
+          : habitMap.get(log.reference_id);
+      return {
+        ...log,
+        name: ref?.name || 'Unknown',
+        category_id: ref?.category_id || '',
+      };
+    })
+    .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
+};
+
 export interface CategoryStat {
   category: string;
   points: number;

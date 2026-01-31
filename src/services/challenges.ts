@@ -3,6 +3,7 @@ import {
   doc,
   addDoc,
   updateDoc,
+  getDoc,
   query,
   where,
   getDocs,
@@ -82,6 +83,16 @@ export const getPastChallenges = async (userId: string): Promise<Challenge[]> =>
     .filter((c) => ['completed', 'failed', 'archived'].includes(c.status))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 50);
+};
+
+export const getChallengeById = async (
+  userId: string,
+  challengeId: string
+): Promise<Challenge | null> => {
+  const ref = doc(db, 'users', userId, 'challenges', challengeId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as Challenge;
 };
 
 export const getAllChallenges = async (userId: string): Promise<Challenge[]> => {
