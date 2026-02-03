@@ -13,10 +13,14 @@ import {
   registerForPushNotifications,
 } from '../../services/notifications';
 import { showAlert, showConfirm } from '../../utils/alert';
+import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
+import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 export const SettingsScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough, restartWalkthrough } = useWalkthrough();
+  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
 
   const handleEnableNotifications = async () => {
     const token = await registerForPushNotifications();
@@ -56,6 +60,18 @@ export const SettingsScreen: React.FC = () => {
         </Card>
       </TouchableOpacity>
 
+      {/* Tutorial */}
+      <Card style={styles.card}>
+        <Text style={styles.label}>Tutorial</Text>
+        <Text style={styles.desc}>Revisit the guided walkthrough of the app.</Text>
+        <Button
+          title="Replay Tutorial"
+          onPress={restartWalkthrough}
+          variant="outline"
+          style={{ marginTop: Spacing.md }}
+        />
+      </Card>
+
       {/* Notifications */}
       <Card style={styles.card}>
         <Text style={styles.label}>Notifications</Text>
@@ -77,6 +93,18 @@ export const SettingsScreen: React.FC = () => {
         variant="outline"
         style={styles.logout}
       />
+
+      {isMyStep && (
+        <WalkthroughOverlay
+          visible
+          stepText={currentStepConfig?.text || ''}
+          stepNumber={currentStep}
+          totalSteps={WALKTHROUGH_STEPS.length}
+          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
+          onNext={nextStep}
+          onSkip={skipWalkthrough}
+        />
+      )}
     </View>
   );
 };

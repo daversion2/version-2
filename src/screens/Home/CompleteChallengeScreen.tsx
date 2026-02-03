@@ -16,12 +16,16 @@ import { completeChallenge, saveReflectionAnswers } from '../../services/challen
 import { Challenge } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
+import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
+import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 type Props = NativeStackScreenProps<any, 'CompleteChallenge'>;
 
 export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const challenge = route.params?.challenge as Challenge;
+  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
+  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'CompleteChallenge';
 
   const [result, setResult] = useState<'completed' | 'failed' | null>(null);
   const [difficulty, setDifficulty] = useState(3);
@@ -136,6 +140,18 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         disabled={!result}
         style={{ marginTop: Spacing.md }}
       />
+
+      {isMyStep && (
+        <WalkthroughOverlay
+          visible
+          stepText={currentStepConfig?.text || ''}
+          stepNumber={currentStep}
+          totalSteps={WALKTHROUGH_STEPS.length}
+          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
+          onNext={nextStep}
+          onSkip={skipWalkthrough}
+        />
+      )}
     </ScrollView>
   );
 };

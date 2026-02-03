@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,17 +22,29 @@ import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
+import { useWalkthrough } from '../../context/WalkthroughContext';
+import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
+import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
+  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
+
+  const challengeBtnRef = useRef<View>(null);
+  const habitsAddRef = useRef<View>(null);
+  const habitAreaRef = useRef<View>(null);
+  const [spotlightLayout, setSpotlightLayout] = useState<SpotlightLayout | null>(null);
+
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
+
+  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'HomeScreen';
 
   const getCatColor = useCallback((catName: string) => {
     const cat = categories.find((c) => c.name === catName);
@@ -50,7 +62,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveChallenge(challenge);
       setHabits(habitList);
       setCategories(cats);
-      // Load weekly counts separately so a missing index doesn't block the rest
       try {
         const counts = await getWeeklyCompletionCounts(user.uid);
         setWeeklyCounts(counts);
@@ -67,6 +78,30 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       loadData();
     }, [loadData])
   );
+
+  // Measure the target ref for the current walkthrough step
+  useEffect(() => {
+    if (!isMyStep || !currentStepConfig?.target) {
+      setSpotlightLayout(null);
+      return;
+    }
+    const refMap: Record<string, React.RefObject<View | null>> = {
+      challengeBtn: challengeBtnRef,
+      habitsAdd: habitsAddRef,
+      habitArea: habitAreaRef,
+    };
+    const ref = refMap[currentStepConfig.target];
+    if (!ref?.current) return;
+
+    const timer = setTimeout(() => {
+      ref.current?.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          setSpotlightLayout({ x, y, width, height });
+        }
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [isMyStep, currentStepConfig, currentStep]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -134,66 +169,77 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       ) : (
         <Card>
           <Text style={styles.noChallenge}>No active challenge</Text>
-          <Button
-            title="Start Today's Challenge"
-            onPress={() => navigation.navigate('StartChallenge')}
-            style={{ marginTop: Spacing.md }}
-          />
+          <View ref={challengeBtnRef} collapsable={false}>
+            <Button
+              title="Start Today's Challenge"
+              onPress={() => navigation.navigate('StartChallenge')}
+              style={{ marginTop: Spacing.md }}
+            />
+          </View>
         </Card>
       )}
 
       {/* Habits Section */}
       <View style={styles.habitsHeader}>
         <Text style={styles.sectionTitle}>Habits</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('ManageHabits')}>
-          <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
-        </TouchableOpacity>
+        <View ref={habitsAddRef} collapsable={false}>
+          <TouchableOpacity onPress={() => navigation.navigate('ManageHabits')}>
+            <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {habits.length === 0 ? (
-        <Card>
-          <Text style={styles.noChallenge}>No habits yet</Text>
-          <Button
-            title="Add a Habit"
-            onPress={() => navigation.navigate('ManageHabits')}
-            variant="outline"
-            style={{ marginTop: Spacing.md }}
-          />
-        </Card>
+        <View ref={habitAreaRef} collapsable={false}>
+          <Card>
+            <Text style={styles.noChallenge}>No habits yet</Text>
+            <Button
+              title="Add a Habit"
+              onPress={() => navigation.navigate('ManageHabits')}
+              variant="outline"
+              style={{ marginTop: Spacing.md }}
+            />
+          </Card>
+        </View>
       ) : (
-        habits.map((habit) => {
+        habits.map((habit, index) => {
           const done = weeklyCounts[habit.id] || 0;
           const target = habit.target_count_per_week;
           const isComplete = done >= target;
           return (
-            <TouchableOpacity
+            <View
               key={habit.id}
-              onPress={() => handleHabitTap(habit)}
-              activeOpacity={0.7}
+              ref={index === 0 ? habitAreaRef : undefined}
+              collapsable={false}
             >
-              <Card style={styles.habitCard}>
-                <View style={styles.habitRow}>
-                  <Ionicons
-                    name={isComplete ? 'checkmark-circle' : 'radio-button-off'}
-                    size={24}
-                    color={isComplete ? Colors.secondary : Colors.primary}
-                  />
-                  <View style={styles.habitInfo}>
-                    <Text style={styles.habitName}>{habit.name}</Text>
-                    <View style={styles.habitMeta}>
-                      <View style={[styles.catBadge, { backgroundColor: getCatColor(habit.category_id) + '20' }]}>
-                        <Text style={[styles.catBadgeText, { color: getCatColor(habit.category_id) }]}>
-                          {habit.category_id}
+              <TouchableOpacity
+                onPress={() => handleHabitTap(habit)}
+                activeOpacity={0.7}
+              >
+                <Card style={styles.habitCard}>
+                  <View style={styles.habitRow}>
+                    <Ionicons
+                      name={isComplete ? 'checkmark-circle' : 'radio-button-off'}
+                      size={24}
+                      color={isComplete ? Colors.secondary : Colors.primary}
+                    />
+                    <View style={styles.habitInfo}>
+                      <Text style={styles.habitName}>{habit.name}</Text>
+                      <View style={styles.habitMeta}>
+                        <View style={[styles.catBadge, { backgroundColor: getCatColor(habit.category_id) + '20' }]}>
+                          <Text style={[styles.catBadgeText, { color: getCatColor(habit.category_id) }]}>
+                            {habit.category_id}
+                          </Text>
+                        </View>
+                        <Text style={styles.progressText}>
+                          {done} / {target} this week
                         </Text>
                       </View>
-                      <Text style={styles.progressText}>
-                        {done} / {target} this week
-                      </Text>
                     </View>
                   </View>
-                </View>
-              </Card>
-            </TouchableOpacity>
+                </Card>
+              </TouchableOpacity>
+            </View>
           );
         })
       )}
@@ -203,6 +249,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
       />
+      {isMyStep && (
+        <WalkthroughOverlay
+          visible
+          spotlightLayout={currentStepConfig?.target ? spotlightLayout : undefined}
+          stepText={currentStepConfig?.text || ''}
+          stepNumber={currentStep}
+          totalSteps={WALKTHROUGH_STEPS.length}
+          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
+          onNext={nextStep}
+          onSkip={skipWalkthrough}
+        />
+      )}
     </ScrollView>
   );
 };

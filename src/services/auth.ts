@@ -14,6 +14,8 @@ export const signUp = async (email: string, password: string) => {
     id: cred.user.uid,
     email,
     created_at: new Date().toISOString(),
+    has_completed_onboarding: false,
+    has_completed_walkthrough: false,
   });
   return cred.user;
 };

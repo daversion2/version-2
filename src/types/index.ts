@@ -4,6 +4,8 @@ export interface User {
   id: string;
   email: string;
   created_at: string;
+  has_completed_onboarding?: boolean;
+  has_completed_walkthrough?: boolean;
 }
 
 export interface Category {

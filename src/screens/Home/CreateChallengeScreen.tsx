@@ -19,11 +19,16 @@ import { getUserCategories } from '../../services/categories';
 import { TouchableOpacity } from 'react-native';
 import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
+import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
+import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
 
 export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
+  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
+  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'CreateChallenge';
+
   const [name, setName] = useState('');
   const [categoryIdx, setCategoryIdx] = useState(0);
   const [difficulty, setDifficulty] = useState(3);
@@ -40,6 +45,17 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
       getUserCategories(user.uid).then(setCategories);
     }
   }, [user]);
+
+  // Pre-fill fields when in walkthrough mode
+  useEffect(() => {
+    if (isMyStep) {
+      setName('Placeholder challenge name');
+      setDescription('Placeholder description');
+      setSuccessCriteria('Placeholder success criteria');
+      setWhy('Placeholder reason');
+      setDifficulty(3);
+    }
+  }, [isMyStep]);
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -155,6 +171,18 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
           style={{ marginTop: Spacing.md }}
         />
       </ScrollView>
+
+      {isMyStep && (
+        <WalkthroughOverlay
+          visible
+          stepText={currentStepConfig?.text || ''}
+          stepNumber={currentStep}
+          totalSteps={WALKTHROUGH_STEPS.length}
+          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
+          onNext={nextStep}
+          onSkip={skipWalkthrough}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };

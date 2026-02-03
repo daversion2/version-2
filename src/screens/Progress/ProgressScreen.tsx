@@ -15,12 +15,16 @@ import {
   CategoryStat,
 } from '../../services/progress';
 import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
+import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
+import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 const TIME_FILTERS = ['Today', '7 Days', '30 Days', 'All Time'] as const;
 
 export const ProgressScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
+  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Progress';
   const [wpq, setWpq] = useState(0);
   const [streak, setStreak] = useState(0);
   const [points, setPoints] = useState(0);
@@ -151,6 +155,17 @@ export const ProgressScreen: React.FC = () => {
         style={styles.calendar}
       />
 
+      {isMyStep && (
+        <WalkthroughOverlay
+          visible
+          stepText={currentStepConfig?.text || ''}
+          stepNumber={currentStep}
+          totalSteps={WALKTHROUGH_STEPS.length}
+          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
+          onNext={nextStep}
+          onSkip={skipWalkthrough}
+        />
+      )}
     </ScrollView>
   );
 };

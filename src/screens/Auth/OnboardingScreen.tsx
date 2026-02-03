@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
+import { useAuth } from '../../context/AuthContext';
+import { markOnboardingComplete } from '../../services/users';
 
 const { width } = Dimensions.get('window');
 
@@ -21,16 +22,18 @@ const steps = [
   },
 ];
 
-type Props = NativeStackScreenProps<any, 'Onboarding'>;
-
-export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
+export const OnboardingScreen: React.FC = () => {
+  const { user, refreshProfile } = useAuth();
   const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
 
-  const next = () => {
+  const next = async () => {
     if (step < steps.length - 1) {
       setStep(step + 1);
-    } else {
-      navigation.replace('Main' as any);
+    } else if (user) {
+      setSaving(true);
+      await markOnboardingComplete(user.uid);
+      await refreshProfile();
     }
   };
 
@@ -56,6 +59,7 @@ export const OnboardingScreen: React.FC<Props> = ({ navigation }) => {
       <Button
         title={step < steps.length - 1 ? 'Next' : "Let's Go"}
         onPress={next}
+        disabled={saving}
         style={styles.button}
       />
     </View>

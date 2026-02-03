@@ -17,11 +17,16 @@ import { getActiveHabits, createHabit, updateHabit } from '../../services/habits
 import { Nudge, Category } from '../../types';
 import { getUserCategories } from '../../services/categories';
 import { showAlert, showConfirm } from '../../utils/alert';
+import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
+import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 type Props = NativeStackScreenProps<any, 'ManageHabits'>;
 
 export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
+  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
+  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'ManageHabits';
+
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
@@ -50,6 +55,18 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     load();
   }, [user]);
+
+  // Pre-fill form when in walkthrough mode
+  useEffect(() => {
+    if (isMyStep && categories.length > 0) {
+      setShowForm(true);
+      setNewName('Workout');
+      // Select Physical category if available
+      const physIdx = categories.findIndex((c) => c.name === 'Physical');
+      setSelectedCatIdx(physIdx >= 0 ? physIdx : 0);
+      setTimesPerWeek(5);
+    }
+  }, [isMyStep, categories]);
 
   const handleAdd = async () => {
     if (!newName.trim()) {
@@ -289,6 +306,18 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.empty}>No active habits.</Text>
         }
       />
+
+      {isMyStep && (
+        <WalkthroughOverlay
+          visible
+          stepText={currentStepConfig?.text || ''}
+          stepNumber={currentStep}
+          totalSteps={WALKTHROUGH_STEPS.length}
+          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
+          onNext={nextStep}
+          onSkip={skipWalkthrough}
+        />
+      )}
     </View>
   );
 };
