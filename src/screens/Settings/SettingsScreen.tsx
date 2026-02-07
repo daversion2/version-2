@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
@@ -57,7 +57,7 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.screen}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
       <Text style={styles.heading}>Settings</Text>
 
       {/* Profile */}
@@ -132,7 +132,7 @@ export const SettingsScreen: React.FC = () => {
           onSkip={skipWalkthrough}
         />
       )}
-    </View>
+    </ScrollView>
   );
 };
 
@@ -140,7 +140,10 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Colors.lightGray,
+  },
+  scrollContent: {
     padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
   },
   heading: {
     fontFamily: Fonts.primaryBold,

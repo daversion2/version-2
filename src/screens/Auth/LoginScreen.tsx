@@ -6,12 +6,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
-import { signIn } from '../../services/auth';
+import { signIn, resetPassword } from '../../services/auth';
+import { showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'Login'>;
 
@@ -34,6 +36,22 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       setError(e.message || 'Login failed.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      showAlert('Email Required', 'Please enter your email address first.');
+      return;
+    }
+    try {
+      await resetPassword(email.trim());
+      showAlert(
+        'Check Your Email',
+        'If an account exists with this email, you will receive a password reset link.'
+      );
+    } catch (e: any) {
+      showAlert('Error', e.message || 'Could not send reset email.');
     }
   };
 
@@ -65,6 +83,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             secureTextEntry
             placeholder="Your password"
           />
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.forgotPassword}>Forgot Password?</Text>
+          </TouchableOpacity>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <Button title="Sign In" onPress={handleLogin} loading={loading} />
@@ -103,6 +124,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   form: { gap: Spacing.xs },
+  forgotPassword: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    textAlign: 'right',
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
   error: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
