@@ -32,9 +32,15 @@ import { useWalkthrough } from '../../context/WalkthroughContext';
 import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsPopup } from '../../components/common/PointsPopup';
-import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
+
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
@@ -193,7 +199,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
       >
-      <ScreenHeader showGreeting />
+      <Text style={styles.greeting}>{getGreeting()}</Text>
 
       {/* Challenge Section */}
       <Text style={styles.sectionTitle}>Today's Challenge</Text>
@@ -323,6 +329,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  greeting: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xxl,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xl,

@@ -16,7 +16,6 @@ import {
 import { showAlert, showConfirm } from '../../utils/alert';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
-import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 export const SettingsScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
@@ -59,8 +58,6 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
-      <ScreenHeader title="Settings" />
-
       {/* Profile */}
       <Card style={styles.card}>
         <Text style={styles.label}>Account</Text>

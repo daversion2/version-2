@@ -1,9 +1,12 @@
 import React from 'react';
+import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ProgressScreen } from '../screens/Progress/ProgressScreen';
 import { DayDetailScreen } from '../screens/Progress/DayDetailScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
+
+const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
 
 const Stack = createNativeStackNavigator();
 
@@ -19,7 +22,12 @@ export const ProgressStack: React.FC = () => (
     <Stack.Screen
       name="ProgressScreen"
       component={ProgressScreen}
-      options={{ title: 'Progress' }}
+      options={{
+        title: 'Progress',
+        headerLeft: () => (
+          <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
+        ),
+      }}
     />
     <Stack.Screen
       name="DayDetail"
@@ -33,3 +41,10 @@ export const ProgressStack: React.FC = () => (
     />
   </Stack.Navigator>
 );
+
+const styles = StyleSheet.create({
+  headerLogo: {
+    width: 36,
+    height: 36,
+  },
+});

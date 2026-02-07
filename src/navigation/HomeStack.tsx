@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/Home/HomeScreen';
 import { StartChallengeScreen } from '../screens/Home/StartChallengeScreen';
@@ -7,6 +8,8 @@ import { PastChallengesScreen } from '../screens/Home/PastChallengesScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
+
+const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
 
 const Stack = createNativeStackNavigator();
 
@@ -22,7 +25,12 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="HomeScreen"
       component={HomeScreen}
-      options={{ headerShown: false }}
+      options={{
+        title: 'Home',
+        headerLeft: () => (
+          <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
+        ),
+      }}
     />
     <Stack.Screen
       name="StartChallenge"
@@ -51,3 +59,10 @@ export const HomeStack: React.FC = () => (
     />
   </Stack.Navigator>
 );
+
+const styles = StyleSheet.create({
+  headerLogo: {
+    width: 36,
+    height: 36,
+  },
+});
