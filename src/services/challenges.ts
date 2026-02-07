@@ -38,8 +38,13 @@ export const createChallenge = async (
   const existing = await getActiveChallenge(userId);
   if (existing) throw new Error('An active challenge already exists.');
 
+  // Filter out undefined values as Firestore doesn't accept them
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => value !== undefined)
+  );
+
   const docRef = await addDoc(challengesRef(userId), {
-    ...data,
+    ...cleanData,
     user_id: userId,
     status: 'active' as ChallengeStatus,
     created_at: new Date().toISOString(),

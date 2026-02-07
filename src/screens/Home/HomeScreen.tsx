@@ -18,6 +18,12 @@ import { Challenge, Nudge, Category } from '../../types';
 import { getActiveChallenge } from '../../services/challenges';
 import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts } from '../../services/habits';
 import { getUserCategories } from '../../services/categories';
+import {
+  calculateHabitPoints,
+  updateWillpowerStats,
+  getWillpowerStats,
+  getStreakMultiplier,
+} from '../../services/willpower';
 import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
@@ -117,8 +123,36 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (!user || !completingHabit) return;
     try {
       await logHabitCompletion(user.uid, completingHabit.id, difficulty);
+
+      // Calculate and award willpower points
+      const difficultyNum = difficulty === 'easy' ? 1 : 2;
+      const stats = await getWillpowerStats(user.uid);
+      const pointsEarned = calculateHabitPoints(difficultyNum, stats.currentStreak);
+      const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
+
       setCompletingHabit(null);
-      showAlert('Logged', 'Habit completed.');
+
+      // Build points message with multiplier info
+      const multiplier = getStreakMultiplier(stats.currentStreak);
+      let pointsMessage = `You earned ${pointsEarned} Willpower Point${pointsEarned !== 1 ? 's' : ''}!`;
+      if (multiplier > 1) {
+        pointsMessage += `\n(${multiplier}x streak bonus applied)`;
+      }
+
+      // Show streak milestone pop-up first if new tier reached
+      if (updateResult.newTierReached && updateResult.tierInfo) {
+        showAlert(
+          'Streak Milestone!',
+          `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`
+        );
+        // Show points alert after a short delay
+        setTimeout(() => {
+          showAlert('Habit Logged', pointsMessage);
+        }, 500);
+      } else {
+        showAlert('Habit Logged', pointsMessage);
+      }
+
       try {
         const counts = await getWeeklyCompletionCounts(user.uid);
         setWeeklyCounts(counts);

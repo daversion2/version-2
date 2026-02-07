@@ -6,6 +6,12 @@ export interface User {
   created_at: string;
   has_completed_onboarding?: boolean;
   has_completed_walkthrough?: boolean;
+  expoPushToken?: string;
+  timezone?: string; // IANA timezone e.g. "America/New_York"
+  // Willpower Bank
+  totalWillpowerPoints?: number;
+  currentStreak?: number;
+  lastActivityDate?: string; // YYYY-MM-DD format for streak tracking
 }
 
 export interface Category {

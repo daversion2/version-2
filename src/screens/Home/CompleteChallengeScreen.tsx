@@ -13,6 +13,13 @@ import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
 import { completeChallenge, saveReflectionAnswers } from '../../services/challenges';
+import {
+  calculateChallengePoints,
+  calculateFailedChallengePoints,
+  updateWillpowerStats,
+  getWillpowerStats,
+  getStreakMultiplier,
+} from '../../services/willpower';
 import { Challenge } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
@@ -53,11 +60,44 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       if (Object.keys(answers).length > 0) {
         await saveReflectionAnswers(user.uid, challenge.id, answers);
       }
-      showAlert(
-        result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
-        `You earned ${difficulty} point${difficulty > 1 ? 's' : ''}.`,
-        () => navigation.popToTop()
-      );
+
+      // Calculate and award willpower points
+      const hasReflection = Object.keys(answers).length > 0;
+      const stats = await getWillpowerStats(user.uid);
+      const pointsEarned =
+        result === 'completed'
+          ? calculateChallengePoints(difficulty, stats.currentStreak, hasReflection)
+          : calculateFailedChallengePoints(stats.currentStreak, hasReflection);
+
+      const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
+
+      // Build points message with multiplier info
+      const multiplier = getStreakMultiplier(stats.currentStreak);
+      let pointsMessage = `You earned ${pointsEarned} Willpower Point${pointsEarned !== 1 ? 's' : ''}!`;
+      if (multiplier > 1) {
+        pointsMessage += `\n(${multiplier}x streak bonus applied)`;
+      }
+
+      // Show streak milestone pop-up first if new tier reached
+      if (updateResult.newTierReached && updateResult.tierInfo) {
+        showAlert(
+          'Streak Milestone!',
+          `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`,
+          () => {
+            showAlert(
+              result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
+              pointsMessage,
+              () => navigation.popToTop()
+            );
+          }
+        );
+      } else {
+        showAlert(
+          result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
+          pointsMessage,
+          () => navigation.popToTop()
+        );
+      }
     } catch (e: any) {
       showAlert('Error', e.message);
     } finally {

@@ -23,14 +23,21 @@ export const SettingsScreen: React.FC = () => {
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
 
   const handleEnableNotifications = async () => {
-    const token = await registerForPushNotifications();
-    if (!token) {
-      showAlert('Notifications', 'Could not enable notifications. Check device settings.');
-      return;
+    try {
+      console.log('Enable notifications pressed, user:', user?.uid);
+      const token = await registerForPushNotifications(user?.uid);
+      console.log('Token received:', token);
+      if (!token) {
+        showAlert('Notifications', 'Could not enable notifications. Check device settings.');
+        return;
+      }
+      await scheduleMorningReminder();
+      await scheduleEveningReminder();
+      showAlert('Notifications', 'Reminders enabled! Token saved for push notifications.');
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      showAlert('Error', `Failed to enable notifications: ${error}`);
     }
-    await scheduleMorningReminder();
-    await scheduleEveningReminder();
-    showAlert('Notifications', 'Morning and evening reminders enabled.');
   };
 
   const handleLogout = () => {

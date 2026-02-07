@@ -14,6 +14,7 @@ import {
   getCategoryBreakdown,
   CategoryStat,
 } from '../../services/progress';
+import { getWillpowerStats, getSuckFactorTier } from '../../services/willpower';
 import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
@@ -33,6 +34,23 @@ export const ProgressScreen: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<CategoryStat[]>([]);
 
+  // Willpower Bank state
+  const [willpowerStats, setWillpowerStats] = useState({
+    totalPoints: 0,
+    currentStreak: 0,
+    multiplier: 1,
+    level: 1,
+    title: 'Beginner Mind',
+    progressToNextLevel: 0,
+    pointsToNextLevel: 50 as number | null,
+  });
+
+  // Suck Factor state
+  const [suckFactor, setSuckFactor] = useState({
+    tier: 'Comfort Zone',
+    description: 'Starting with manageable challenges',
+  });
+
   const getStartDate = (f: string) => {
     const d = new Date();
     if (f === 'Today') return d.toISOString().split('T')[0];
@@ -49,13 +67,16 @@ export const ProgressScreen: React.FC = () => {
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    const [w, s, allLogs] = await Promise.all([
+    const [w, s, allLogs, wpStats] = await Promise.all([
       calculateWPQ(user.uid),
       calculateStreak(user.uid),
       getCompletionLogs(user.uid),
+      getWillpowerStats(user.uid),
     ]);
     setWpq(w);
     setStreak(s);
+    setWillpowerStats(wpStats);
+    setSuckFactor(getSuckFactorTier(w));
 
     // Points and category breakdown for selected filter
     const start = getStartDate(filter);
@@ -90,22 +111,46 @@ export const ProgressScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      {/* WPQ Card */}
-      <Card style={styles.wpqCard}>
-        <Text style={styles.wpqLabel}>Willpower Quotient</Text>
-        <Text style={styles.wpqValue}>{wpq.toFixed(1)}</Text>
-        <Text style={styles.wpqSub}>Average difficulty over last 10 days</Text>
+      {/* Willpower Bank Card */}
+      <Card style={styles.willpowerCard}>
+        <Text style={styles.levelLabel}>Level {willpowerStats.level}</Text>
+        <Text style={styles.titleValue}>{willpowerStats.title}</Text>
+        <Text style={styles.pointsLabel}>
+          {willpowerStats.totalPoints} Willpower Points
+        </Text>
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${willpowerStats.progressToNextLevel * 100}%` },
+              ]}
+            />
+          </View>
+          {willpowerStats.pointsToNextLevel !== null && (
+            <Text style={styles.progressText}>
+              {willpowerStats.pointsToNextLevel} pts to next level
+            </Text>
+          )}
+        </View>
       </Card>
 
       {/* Stats Row */}
       <View style={styles.statsRow}>
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{streak}</Text>
+          <Text style={styles.statValue}>{willpowerStats.currentStreak}</Text>
           <Text style={styles.statLabel}>Day Streak</Text>
+          {willpowerStats.multiplier > 1 && (
+            <Text style={styles.multiplierBadge}>
+              {willpowerStats.multiplier}x bonus
+            </Text>
+          )}
         </Card>
         <Card style={styles.statCard}>
-          <Text style={styles.statValue}>{points}</Text>
-          <Text style={styles.statLabel}>Points</Text>
+          <Text style={styles.suckFactorTier}>{suckFactor.tier}</Text>
+          <Text style={styles.statLabel}>Suck Factor</Text>
+          <Text style={styles.suckFactorDesc}>{suckFactor.description}</Text>
         </Card>
       </View>
 
@@ -173,27 +218,52 @@ export const ProgressScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
-  wpqCard: {
+  willpowerCard: {
     backgroundColor: Colors.primary,
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  wpqLabel: {
+  levelLabel: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.white,
     opacity: 0.8,
   },
-  wpqValue: {
+  titleValue: {
     fontFamily: Fonts.accent,
-    fontSize: 48,
+    fontSize: FontSizes.xxl,
     color: Colors.white,
+    marginTop: Spacing.xs,
   },
-  wpqSub: {
+  pointsLabel: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.white,
+    marginTop: Spacing.sm,
+  },
+  progressContainer: {
+    width: '100%',
+    marginTop: Spacing.md,
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.secondary,
+    borderRadius: 4,
+  },
+  progressText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.white,
-    opacity: 0.7,
+    opacity: 0.8,
+    marginTop: Spacing.xs,
   },
   statsRow: {
     flexDirection: 'row',
@@ -210,6 +280,26 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.gray,
+  },
+  multiplierBadge: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
+    marginTop: Spacing.xs,
+  },
+  suckFactorTier: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    textAlign: 'center',
+  },
+  suckFactorDesc: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    opacity: 0.8,
   },
   filterRow: {
     flexDirection: 'row',
