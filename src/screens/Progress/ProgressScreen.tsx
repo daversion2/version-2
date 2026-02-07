@@ -18,6 +18,7 @@ import { getWillpowerStats, getSuckFactorTier } from '../../services/willpower';
 import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 const TIME_FILTERS = ['Today', '7 Days', '30 Days', 'All Time'] as const;
 
@@ -111,6 +112,8 @@ export const ProgressScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <ScreenHeader />
+
       {/* Willpower Bank Card */}
       <Card style={styles.willpowerCard}>
         <Text style={styles.levelLabel}>Level {willpowerStats.level}</Text>

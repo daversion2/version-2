@@ -11,6 +11,7 @@ import { getUserCategories } from '../../services/categories';
 import { Challenge, Category } from '../../types';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 export const ChallengesScreen: React.FC = () => {
   const { user } = useAuth();
@@ -83,6 +84,7 @@ export const ChallengesScreen: React.FC = () => {
       renderItem={renderItem}
       ListHeaderComponent={
         <>
+          <ScreenHeader />
           <View style={styles.statsGrid}>
             <Card style={styles.statCard}>
               <Text style={styles.statValue}>{stats.avgDifficulty}</Text>

@@ -32,6 +32,7 @@ import { useWalkthrough } from '../../context/WalkthroughContext';
 import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsPopup } from '../../components/common/PointsPopup';
+import { ScreenHeader } from '../../components/common/ScreenHeader';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -192,6 +193,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
       >
+      <ScreenHeader showGreeting />
+
       {/* Challenge Section */}
       <Text style={styles.sectionTitle}>Today's Challenge</Text>
 
