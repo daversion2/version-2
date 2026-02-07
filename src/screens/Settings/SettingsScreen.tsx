@@ -7,6 +7,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
+import { resetOnboarding } from '../../services/users';
 import {
   scheduleMorningReminder,
   scheduleEveningReminder,
@@ -17,10 +18,21 @@ import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughCont
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 export const SettingsScreen: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const navigation = useNavigation<any>();
   const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough, restartWalkthrough } = useWalkthrough();
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
+
+  const handleReplayOnboarding = async () => {
+    if (!user) return;
+    try {
+      await resetOnboarding(user.uid);
+      await refreshProfile();
+    } catch (error) {
+      console.error('Error resetting onboarding:', error);
+      showAlert('Error', 'Failed to reset onboarding.');
+    }
+  };
 
   const handleEnableNotifications = async () => {
     try {
@@ -70,13 +82,21 @@ export const SettingsScreen: React.FC = () => {
       {/* Tutorial */}
       <Card style={styles.card}>
         <Text style={styles.label}>Tutorial</Text>
-        <Text style={styles.desc}>Revisit the guided walkthrough of the app.</Text>
-        <Button
-          title="Replay Tutorial"
-          onPress={restartWalkthrough}
-          variant="outline"
-          style={{ marginTop: Spacing.md }}
-        />
+        <Text style={styles.desc}>Revisit the intro or guided walkthrough of the app.</Text>
+        <View style={styles.buttonRow}>
+          <Button
+            title="Replay Intro"
+            onPress={handleReplayOnboarding}
+            variant="outline"
+            style={styles.halfButton}
+          />
+          <Button
+            title="Replay Tutorial"
+            onPress={restartWalkthrough}
+            variant="outline"
+            style={styles.halfButton}
+          />
+        </View>
       </Card>
 
       {/* Notifications */}
@@ -151,6 +171,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  halfButton: {
+    flex: 1,
   },
   logout: { marginTop: Spacing.lg },
 });

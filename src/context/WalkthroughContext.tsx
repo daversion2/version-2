@@ -3,40 +3,10 @@ import { NavigationContainerRef } from '@react-navigation/native';
 import { useAuth } from './AuthContext';
 import { markWalkthroughComplete } from '../services/users';
 import { createHabit } from '../services/habits';
-import { Challenge } from '../types';
+import { WALKTHROUGH_STEPS, MOCK_CHALLENGE, WalkthroughStep } from '../constants/walkthrough';
 
-export interface WalkthroughStep {
-  screen: string;
-  text: string;
-  target?: string; // ref key for spotlight; omit for full-screen overlay
-}
-
-export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
-  { screen: 'HomeScreen', target: 'challengeBtn', text: 'This is where you start a new challenge' },
-  { screen: 'StartChallenge', text: 'You can create a new challenge or select a previous one' },
-  { screen: 'CreateChallenge', text: 'Provide the details of your challenge' },
-  { screen: 'CompleteChallenge', text: "Once you've completed your challenge, mark it as success or failure, rate the actual difficulty, and answer the reflection questions" },
-  { screen: 'HomeScreen', target: 'habitsAdd', text: 'Commit to regular activities to build healthy habits' },
-  { screen: 'ManageHabits', text: 'Create a habit, select a category, and commit to completing x times per week' },
-  { screen: 'HomeScreen', target: 'habitArea', text: 'Your habits appear below challenges on the home screen. Tap to complete. Rate the difficulty.' },
-  { screen: 'Challenges', text: 'View all your past challenges and reflect on key insights' },
-  { screen: 'Progress', text: 'Track your streaks, points, and activity over time' },
-  { screen: 'Settings', text: 'Customize your categories to fit your needs' },
-];
-
-export const MOCK_CHALLENGE: Challenge = {
-  id: 'walkthrough-mock',
-  user_id: '',
-  name: 'Placeholder challenge name',
-  category_id: 'Physical',
-  date: new Date().toISOString().split('T')[0],
-  difficulty_expected: 3,
-  status: 'active',
-  created_at: new Date().toISOString(),
-  description: 'Placeholder description',
-  success_criteria: 'Placeholder success criteria',
-  why: 'Placeholder reason',
-};
+// Re-export for backwards compatibility
+export { WALKTHROUGH_STEPS, MOCK_CHALLENGE, WalkthroughStep };
 
 interface WalkthroughContextType {
   isWalkthroughActive: boolean;

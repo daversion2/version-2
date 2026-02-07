@@ -11,6 +11,10 @@ export const markOnboardingComplete = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_completed_onboarding: true }, { merge: true });
 };
 
+export const resetOnboarding = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_completed_onboarding: false }, { merge: true });
+};
+
 export const markWalkthroughComplete = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_completed_walkthrough: true }, { merge: true });
 };

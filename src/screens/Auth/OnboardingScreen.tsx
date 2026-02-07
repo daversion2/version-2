@@ -1,26 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { ONBOARDING_STEPS } from '../../constants/onboarding';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { markOnboardingComplete } from '../../services/users';
 
 const { width } = Dimensions.get('window');
 
-const steps = [
-  {
-    title: 'Challenge Yourself Daily',
-    body: 'Pick one challenge each day that pushes you outside your comfort zone.',
-  },
-  {
-    title: 'Build Habits That Stick',
-    body: 'Track repeatable actions alongside your challenges to build lasting discipline.',
-  },
-  {
-    title: 'Track Your Growth',
-    body: 'Your Willpower Quotient (WPQ) measures your effort over time. Keep moving forward.',
-  },
-];
+const steps = ONBOARDING_STEPS;
 
 export const OnboardingScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
