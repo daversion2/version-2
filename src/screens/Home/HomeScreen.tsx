@@ -31,6 +31,7 @@ import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough } from '../../context/WalkthroughContext';
 import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
+import { PointsPopup } from '../../components/common/PointsPopup';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -49,6 +50,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
+  const [showPointsPopup, setShowPointsPopup] = useState(false);
+  const [earnedPoints, setEarnedPoints] = useState(0);
+  const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
+
+  const handlePopupComplete = useCallback(() => {
+    setShowPointsPopup(false);
+    if (pendingAlert) {
+      pendingAlert();
+      setPendingAlert(null);
+    }
+  }, [pendingAlert]);
 
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'HomeScreen';
 
@@ -139,19 +151,26 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         pointsMessage += `\n(${multiplier}x streak bonus applied)`;
       }
 
-      // Show streak milestone pop-up first if new tier reached
-      if (updateResult.newTierReached && updateResult.tierInfo) {
-        showAlert(
-          'Streak Milestone!',
-          `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`
-        );
-        // Show points alert after a short delay
-        setTimeout(() => {
+      // Show points popup animation first
+      setEarnedPoints(pointsEarned);
+      setShowPointsPopup(true);
+
+      // Prepare alerts to show after popup animation completes
+      const showAlerts = () => {
+        if (updateResult.newTierReached && updateResult.tierInfo) {
+          showAlert(
+            'Streak Milestone!',
+            `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`
+          );
+          setTimeout(() => {
+            showAlert('Habit Logged', pointsMessage);
+          }, 500);
+        } else {
           showAlert('Habit Logged', pointsMessage);
-        }, 500);
-      } else {
-        showAlert('Habit Logged', pointsMessage);
-      }
+        }
+      };
+
+      setPendingAlert(() => showAlerts);
 
       try {
         const counts = await getWeeklyCompletionCounts(user.uid);
@@ -165,41 +184,38 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
-      }
-    >
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+        }
+      >
       {/* Challenge Section */}
       <Text style={styles.sectionTitle}>Today's Challenge</Text>
 
       {activeChallenge ? (
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate('CompleteChallenge', { challenge: activeChallenge })
-          }
-          activeOpacity={0.8}
+        <Card
+          style={styles.challengeCard}
+          onPress={() => navigation.navigate('CompleteChallenge', { challenge: activeChallenge })}
         >
-          <Card style={styles.challengeCard}>
-            <View style={styles.challengeHeader}>
-              <Text style={styles.challengeName}>{activeChallenge.name}</Text>
-              <View style={styles.diffBadge}>
-                <Text style={styles.diffText}>{activeChallenge.difficulty_expected}</Text>
-              </View>
+          <View style={styles.challengeHeader}>
+            <Text style={styles.challengeName}>{activeChallenge.name}</Text>
+            <View style={styles.diffBadge}>
+              <Text style={styles.diffText}>{activeChallenge.difficulty_expected}</Text>
             </View>
-            {activeChallenge.description ? (
-              <Text style={styles.challengeDesc}>{activeChallenge.description}</Text>
-            ) : null}
-            {activeChallenge.deadline ? (
-              <View style={{ marginTop: Spacing.sm }}>
-                <CountdownTimer deadline={activeChallenge.deadline} variant="compact" />
-              </View>
-            ) : null}
-            <Text style={styles.tapHint}>Tap to complete</Text>
-          </Card>
-        </TouchableOpacity>
+          </View>
+          {activeChallenge.description ? (
+            <Text style={styles.challengeDesc}>{activeChallenge.description}</Text>
+          ) : null}
+          {activeChallenge.deadline ? (
+            <View style={{ marginTop: Spacing.sm }}>
+              <CountdownTimer deadline={activeChallenge.deadline} variant="compact" />
+            </View>
+          ) : null}
+          <Text style={styles.tapHint}>Tap to complete</Text>
+        </Card>
       ) : (
         <Card>
           <Text style={styles.noChallenge}>No active challenge</Text>
@@ -246,33 +262,28 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               ref={index === 0 ? habitAreaRef : undefined}
               collapsable={false}
             >
-              <TouchableOpacity
-                onPress={() => handleHabitTap(habit)}
-                activeOpacity={0.7}
-              >
-                <Card style={styles.habitCard}>
-                  <View style={styles.habitRow}>
-                    <Ionicons
-                      name={isComplete ? 'checkmark-circle' : 'radio-button-off'}
-                      size={24}
-                      color={isComplete ? Colors.secondary : Colors.primary}
-                    />
-                    <View style={styles.habitInfo}>
-                      <Text style={styles.habitName}>{habit.name}</Text>
-                      <View style={styles.habitMeta}>
-                        <View style={[styles.catBadge, { backgroundColor: getCatColor(habit.category_id) + '20' }]}>
-                          <Text style={[styles.catBadgeText, { color: getCatColor(habit.category_id) }]}>
-                            {habit.category_id}
-                          </Text>
-                        </View>
-                        <Text style={styles.progressText}>
-                          {done} / {target} this week
+              <Card style={styles.habitCard} onPress={() => handleHabitTap(habit)}>
+                <View style={styles.habitRow}>
+                  <Ionicons
+                    name={isComplete ? 'checkmark-circle' : 'radio-button-off'}
+                    size={24}
+                    color={isComplete ? Colors.secondary : Colors.primary}
+                  />
+                  <View style={styles.habitInfo}>
+                    <Text style={styles.habitName}>{habit.name}</Text>
+                    <View style={styles.habitMeta}>
+                      <View style={[styles.catBadge, { backgroundColor: getCatColor(habit.category_id) + '20' }]}>
+                        <Text style={[styles.catBadgeText, { color: getCatColor(habit.category_id) }]}>
+                          {habit.category_id}
                         </Text>
                       </View>
+                      <Text style={styles.progressText}>
+                        {done} / {target} this week
+                      </Text>
                     </View>
                   </View>
-                </Card>
-              </TouchableOpacity>
+                </View>
+              </Card>
             </View>
           );
         })
@@ -295,12 +306,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           onSkip={skipWalkthrough}
         />
       )}
-    </ScrollView>
+      </ScrollView>
+      <PointsPopup
+        points={earnedPoints}
+        visible={showPointsPopup}
+        onComplete={handlePopupComplete}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
+  scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
   sectionTitle: {
     fontFamily: Fonts.primaryBold,

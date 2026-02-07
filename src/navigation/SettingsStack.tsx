@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { ManageCategoriesScreen } from '../screens/Settings/ManageCategoriesScreen';
+import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator();
@@ -24,6 +25,11 @@ export const SettingsStack: React.FC = () => (
       name="ManageCategories"
       component={ManageCategoriesScreen}
       options={{ title: 'Categories' }}
+    />
+    <Stack.Screen
+      name="HowItWorks"
+      component={HowItWorksScreen}
+      options={{ title: 'How It Works' }}
     />
   </Stack.Navigator>
 );

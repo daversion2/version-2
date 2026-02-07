@@ -148,9 +148,9 @@ export const ProgressScreen: React.FC = () => {
           )}
         </Card>
         <Card style={styles.statCard}>
-          <Text style={styles.suckFactorTier}>{suckFactor.tier}</Text>
+          <Text style={styles.statValue}>{wpq.toFixed(1)}</Text>
           <Text style={styles.statLabel}>Suck Factor</Text>
-          <Text style={styles.suckFactorDesc}>{suckFactor.description}</Text>
+          <Text style={styles.suckFactorTier}>{suckFactor.tier}</Text>
         </Card>
       </View>
 

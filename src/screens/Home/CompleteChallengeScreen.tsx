@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import { PointsPopup } from '../../components/common/PointsPopup';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -40,6 +41,17 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [reflectionPush, setReflectionPush] = useState('');
   const [reflectionNextTime, setReflectionNextTime] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPointsPopup, setShowPointsPopup] = useState(false);
+  const [earnedPoints, setEarnedPoints] = useState(0);
+  const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
+
+  const handlePopupComplete = useCallback(() => {
+    setShowPointsPopup(false);
+    if (pendingAlert) {
+      pendingAlert();
+      setPendingAlert(null);
+    }
+  }, [pendingAlert]);
 
   const handleSubmit = async () => {
     if (!result) {
@@ -78,26 +90,34 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         pointsMessage += `\n(${multiplier}x streak bonus applied)`;
       }
 
-      // Show streak milestone pop-up first if new tier reached
-      if (updateResult.newTierReached && updateResult.tierInfo) {
-        showAlert(
-          'Streak Milestone!',
-          `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`,
-          () => {
-            showAlert(
-              result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
-              pointsMessage,
-              () => navigation.popToTop()
-            );
-          }
-        );
-      } else {
-        showAlert(
-          result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
-          pointsMessage,
-          () => navigation.popToTop()
-        );
-      }
+      // Show points popup animation first
+      setEarnedPoints(pointsEarned);
+      setShowPointsPopup(true);
+
+      // Prepare the alert to show after popup animation completes
+      const showAlerts = () => {
+        if (updateResult.newTierReached && updateResult.tierInfo) {
+          showAlert(
+            'Streak Milestone!',
+            `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`,
+            () => {
+              showAlert(
+                result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
+                pointsMessage,
+                () => navigation.popToTop()
+              );
+            }
+          );
+        } else {
+          showAlert(
+            result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
+            pointsMessage,
+            () => navigation.popToTop()
+          );
+        }
+      };
+
+      setPendingAlert(() => showAlerts);
     } catch (e: any) {
       showAlert('Error', e.message);
     } finally {
@@ -106,11 +126,12 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   };
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
       <Card style={styles.challengeCard}>
         <Text style={styles.challengeName}>{challenge.name}</Text>
         <Text style={styles.meta}>
@@ -192,12 +213,19 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           onSkip={skipWalkthrough}
         />
       )}
-    </ScrollView>
+      </ScrollView>
+      <PointsPopup
+        points={earnedPoints}
+        visible={showPointsPopup}
+        onComplete={handlePopupComplete}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
+  scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
   challengeCard: {
     borderLeftWidth: 4,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
@@ -67,17 +67,26 @@ export const SettingsScreen: React.FC = () => {
       </Card>
 
       {/* Categories */}
-      <TouchableOpacity onPress={() => navigation.navigate('ManageCategories')} activeOpacity={0.7}>
-        <Card style={styles.card}>
-          <View style={styles.navRow}>
-            <View>
-              <Text style={styles.label}>Categories</Text>
-              <Text style={styles.desc}>Add or remove challenge and habit categories</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+      <Card style={styles.card} onPress={() => navigation.navigate('ManageCategories')}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>Categories</Text>
+            <Text style={styles.desc}>Add or remove challenge and habit categories</Text>
           </View>
-        </Card>
-      </TouchableOpacity>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
+      {/* How It Works */}
+      <Card style={styles.card} onPress={() => navigation.navigate('HowItWorks')}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>How It Works</Text>
+            <Text style={styles.desc}>Learn how the Willpower Bank and points system work</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
 
       {/* Tutorial */}
       <Card style={styles.card}>
