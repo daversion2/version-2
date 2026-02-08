@@ -21,7 +21,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app does not use the camera.",
         "NSPhotoLibraryUsageDescription": "This app does not access your photos.",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -44,7 +46,8 @@
           "icon": "./assets/Neuro-Nudge_Logo_Blue.png",
           "color": "#217180"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

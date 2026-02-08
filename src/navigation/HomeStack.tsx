@@ -16,10 +16,13 @@ const Stack = createNativeStackNavigator();
 export const HomeStack: React.FC = () => (
   <Stack.Navigator
     screenOptions={{
-      headerStyle: { backgroundColor: Colors.white },
+      headerStyle: { backgroundColor: '#FBFBFB' },
       headerTintColor: Colors.primary,
       headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg },
       headerBackButtonDisplayMode: 'minimal',
+      headerShadowVisible: false,
+      headerTransparent: false,
+      headerBlurEffect: undefined,
     }}
   >
     <Stack.Screen
