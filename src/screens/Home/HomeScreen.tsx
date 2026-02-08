@@ -138,10 +138,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setCompletingHabit(habit);
   };
 
-  const handleHabitComplete = async (difficulty: HabitDifficulty) => {
+  const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string) => {
     if (!user || !completingHabit) return;
     try {
-      await logHabitCompletion(user.uid, completingHabit.id, difficulty);
+      await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes);
 
       // Calculate and award willpower points
       const difficultyNum = difficulty === 'easy' ? 1 : 2;

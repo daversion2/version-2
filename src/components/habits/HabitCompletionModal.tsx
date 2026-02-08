@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   Pressable,
+  TextInput,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
@@ -13,7 +14,7 @@ import { Button } from '../common/Button';
 interface Props {
   visible: boolean;
   habitName: string;
-  onSubmit: (difficulty: 'easy' | 'challenging') => void;
+  onSubmit: (difficulty: 'easy' | 'challenging', notes?: string) => void;
   onCancel: () => void;
 }
 
@@ -24,15 +25,18 @@ export const HabitCompletionModal: React.FC<Props> = ({
   onCancel,
 }) => {
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
+  const [notes, setNotes] = useState('');
 
   const handleSubmit = () => {
     if (!selected) return;
-    onSubmit(selected);
+    onSubmit(selected, notes.trim() || undefined);
     setSelected(null);
+    setNotes('');
   };
 
   const handleCancel = () => {
     setSelected(null);
+    setNotes('');
     onCancel();
   };
 
@@ -76,6 +80,16 @@ export const HabitCompletionModal: React.FC<Props> = ({
               </Text>
             </TouchableOpacity>
           </View>
+
+          <TextInput
+            style={styles.notesInput}
+            placeholder="Add notes (optional)"
+            placeholderTextColor={Colors.gray}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            maxLength={500}
+          />
 
           <View style={styles.actions}>
             <Button
@@ -160,6 +174,18 @@ const styles = StyleSheet.create({
   },
   optionTextActive: {
     color: Colors.white,
+  },
+  notesInput: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    minHeight: 60,
+    textAlignVertical: 'top',
   },
   actions: {
     flexDirection: 'row',

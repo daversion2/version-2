@@ -71,23 +71,25 @@ export const updateHabit = async (
 };
 
 /**
- * Log a habit completion with optional backdating
+ * Log a habit completion with optional backdating and notes
  * @param userId - User ID
  * @param habitId - Habit ID
  * @param difficulty - 'easy' (1 pt) or 'challenging' (2 pts)
  * @param date - Optional YYYY-MM-DD date string for backdating (defaults to today)
+ * @param notes - Optional notes for this completion
  */
 export const logHabitCompletion = async (
   userId: string,
   habitId: string,
   difficulty: HabitDifficulty,
-  date?: string
+  date?: string,
+  notes?: string
 ) => {
   const points = difficulty === 'easy' ? 1 : 2;
   const now = new Date();
   const logDate = date || now.toISOString().split('T')[0];
 
-  await addDoc(logsRef(userId), {
+  const logData: Record<string, any> = {
     user_id: userId,
     type: 'nudge',
     reference_id: habitId,
@@ -95,7 +97,14 @@ export const logHabitCompletion = async (
     difficulty: points,
     date: logDate,
     completed_at: now.toISOString(), // Actual time logged
-  });
+  };
+
+  // Only add notes if provided and non-empty
+  if (notes && notes.trim()) {
+    logData.notes = notes.trim();
+  }
+
+  await addDoc(logsRef(userId), logData);
 };
 
 /**

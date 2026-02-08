@@ -8,6 +8,7 @@ import {
   Pressable,
   FlatList,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
@@ -18,7 +19,7 @@ interface Props {
   date: string;
   habits: Nudge[];
   loading?: boolean;
-  onSubmit: (habitId: string, habitName: string, difficulty: HabitDifficulty) => void;
+  onSubmit: (habitId: string, habitName: string, difficulty: HabitDifficulty, notes?: string) => void;
   onCancel: () => void;
 }
 
@@ -32,23 +33,26 @@ export const BackdateHabitModal: React.FC<Props> = ({
 }) => {
   const [selectedHabit, setSelectedHabit] = useState<Nudge | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<HabitDifficulty | null>(null);
+  const [notes, setNotes] = useState('');
 
   // Reset selection when modal opens/closes
   useEffect(() => {
     if (!visible) {
       setSelectedHabit(null);
       setSelectedDifficulty(null);
+      setNotes('');
     }
   }, [visible]);
 
   const handleSubmit = () => {
     if (!selectedHabit || !selectedDifficulty) return;
-    onSubmit(selectedHabit.id, selectedHabit.name, selectedDifficulty);
+    onSubmit(selectedHabit.id, selectedHabit.name, selectedDifficulty, notes.trim() || undefined);
   };
 
   const handleCancel = () => {
     setSelectedHabit(null);
     setSelectedDifficulty(null);
+    setNotes('');
     onCancel();
   };
 
@@ -151,6 +155,16 @@ export const BackdateHabitModal: React.FC<Props> = ({
                       </Text>
                     </TouchableOpacity>
                   </View>
+
+                  <TextInput
+                    style={styles.notesInput}
+                    placeholder="Add notes (optional)"
+                    placeholderTextColor={Colors.gray}
+                    value={notes}
+                    onChangeText={setNotes}
+                    multiline
+                    maxLength={500}
+                  />
                 </>
               )}
             </>
@@ -273,6 +287,18 @@ const styles = StyleSheet.create({
   },
   difficultyTextActive: {
     color: Colors.white,
+  },
+  notesInput: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    minHeight: 60,
+    textAlignVertical: 'top',
   },
   actions: {
     flexDirection: 'row',

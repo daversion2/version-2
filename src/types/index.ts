@@ -63,6 +63,7 @@ export interface CompletionLog {
   difficulty: number;
   date: string;
   completed_at?: string; // ISO 8601 timestamp
+  notes?: string; // Optional notes for this completion
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';

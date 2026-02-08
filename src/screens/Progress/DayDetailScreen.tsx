@@ -82,12 +82,13 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
   const handleAddBackdatedHabit = async (
     habitId: string,
     habitName: string,
-    difficulty: HabitDifficulty
+    difficulty: HabitDifficulty,
+    notes?: string
   ) => {
     if (!user) return;
     try {
       // Log the habit completion with the backdated date
-      await logHabitCompletion(user.uid, habitId, difficulty, date);
+      await logHabitCompletion(user.uid, habitId, difficulty, date, notes);
       // Update willpower stats
       const points = difficulty === 'easy' ? 1 : 2;
       await updateWillpowerStats(user.uid, points);
@@ -192,6 +193,10 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
             </Text>
           )}
         </View>
+
+        {item.notes && (
+          <Text style={styles.notesText}>{item.notes}</Text>
+        )}
 
         {/* Edit/Delete buttons for yesterday only */}
         {isEditable && (
@@ -344,6 +349,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+  },
+  notesText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    fontStyle: 'italic',
+    marginTop: Spacing.xs,
   },
   editActions: {
     flexDirection: 'row',
