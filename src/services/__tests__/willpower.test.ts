@@ -7,7 +7,15 @@ import {
   getStreakTierInfo,
   getSuckFactorTier,
   hasReflection,
+  subtractWillpowerPoints,
+  adjustWillpowerPoints,
+  recalculateUserStats,
 } from '../willpower';
+import {
+  addMockDocument,
+  getMockDB,
+  resetMockDB,
+} from '../__mocks__/firestore';
 
 describe('Willpower Service', () => {
   describe('getStreakMultiplier', () => {
@@ -241,6 +249,227 @@ describe('Willpower Service', () => {
         reflection_push_through: 'Thought 2',
         reflection_next_time: 'Thought 3',
       })).toBe(true);
+    });
+  });
+
+  describe('subtractWillpowerPoints', () => {
+    const userId = 'test-user-123';
+
+    beforeEach(() => {
+      resetMockDB();
+    });
+
+    it('subtracts points from user total', async () => {
+      addMockDocument('users', userId, {
+        totalWillpowerPoints: 100,
+      });
+
+      const result = await subtractWillpowerPoints(userId, 25);
+
+      expect(result).toBe(75);
+      const db = getMockDB();
+      expect(db.users?.[userId]?.data.totalWillpowerPoints).toBe(75);
+    });
+
+    it('does not allow negative points (floors at 0)', async () => {
+      addMockDocument('users', userId, {
+        totalWillpowerPoints: 10,
+      });
+
+      const result = await subtractWillpowerPoints(userId, 25);
+
+      expect(result).toBe(0);
+      const db = getMockDB();
+      expect(db.users?.[userId]?.data.totalWillpowerPoints).toBe(0);
+    });
+
+    it('handles user with no existing points', async () => {
+      addMockDocument('users', userId, {});
+
+      const result = await subtractWillpowerPoints(userId, 10);
+
+      expect(result).toBe(0);
+    });
+
+    it('handles new user (no document)', async () => {
+      const result = await subtractWillpowerPoints(userId, 10);
+
+      expect(result).toBe(0);
+    });
+
+    it('subtracts exact amount when sufficient points', async () => {
+      addMockDocument('users', userId, {
+        totalWillpowerPoints: 50,
+      });
+
+      const result = await subtractWillpowerPoints(userId, 50);
+
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('adjustWillpowerPoints', () => {
+    const userId = 'test-user-123';
+
+    beforeEach(() => {
+      resetMockDB();
+    });
+
+    it('adds positive delta to points', async () => {
+      addMockDocument('users', userId, {
+        totalWillpowerPoints: 100,
+      });
+
+      const result = await adjustWillpowerPoints(userId, 15);
+
+      expect(result).toBe(115);
+      const db = getMockDB();
+      expect(db.users?.[userId]?.data.totalWillpowerPoints).toBe(115);
+    });
+
+    it('subtracts negative delta from points', async () => {
+      addMockDocument('users', userId, {
+        totalWillpowerPoints: 100,
+      });
+
+      const result = await adjustWillpowerPoints(userId, -20);
+
+      expect(result).toBe(80);
+    });
+
+    it('does not go below 0 with negative delta', async () => {
+      addMockDocument('users', userId, {
+        totalWillpowerPoints: 10,
+      });
+
+      const result = await adjustWillpowerPoints(userId, -25);
+
+      expect(result).toBe(0);
+    });
+
+    it('handles 0 delta (no change)', async () => {
+      addMockDocument('users', userId, {
+        totalWillpowerPoints: 100,
+      });
+
+      const result = await adjustWillpowerPoints(userId, 0);
+
+      expect(result).toBe(100);
+    });
+
+    it('handles new user with positive delta', async () => {
+      const result = await adjustWillpowerPoints(userId, 10);
+
+      expect(result).toBe(10);
+    });
+  });
+
+  describe('recalculateUserStats', () => {
+    const userId = 'test-user-123';
+
+    beforeEach(() => {
+      resetMockDB();
+    });
+
+    it('returns 0 streak when no completion logs exist', async () => {
+      const result = await recalculateUserStats(userId);
+
+      expect(result.newStreak).toBe(0);
+      expect(result.lastActivityDate).toBeNull();
+    });
+
+    it('calculates streak from consecutive days', async () => {
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+      const todayStr = today.toISOString().split('T')[0];
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
+        date: todayStr,
+        points: 1,
+      });
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-2', {
+        date: yesterdayStr,
+        points: 2,
+      });
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-3', {
+        date: twoDaysAgoStr,
+        points: 1,
+      });
+
+      const result = await recalculateUserStats(userId);
+
+      expect(result.newStreak).toBe(3);
+      expect(result.lastActivityDate).toBe(todayStr);
+    });
+
+    it('breaks streak when there is a gap', async () => {
+      const today = new Date();
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      const todayStr = today.toISOString().split('T')[0];
+      const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
+        date: todayStr,
+        points: 1,
+      });
+
+      // Gap of 2 days
+      addMockDocument(`users/${userId}/completionLogs`, 'log-2', {
+        date: threeDaysAgoStr,
+        points: 1,
+      });
+
+      const result = await recalculateUserStats(userId);
+
+      expect(result.newStreak).toBe(1); // Only today counts
+    });
+
+    it('updates user document with new streak', async () => {
+      const today = new Date().toISOString().split('T')[0];
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
+        date: today,
+        points: 1,
+      });
+
+      await recalculateUserStats(userId);
+
+      const db = getMockDB();
+      expect(db.users?.[userId]?.data.currentStreak).toBe(1);
+      expect(db.users?.[userId]?.data.lastActivityDate).toBe(today);
+    });
+
+    it('handles multiple logs on same day as single day', async () => {
+      const today = new Date().toISOString().split('T')[0];
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
+        date: today,
+        points: 1,
+      });
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-2', {
+        date: today,
+        points: 2,
+      });
+
+      addMockDocument(`users/${userId}/completionLogs`, 'log-3', {
+        date: today,
+        points: 1,
+      });
+
+      const result = await recalculateUserStats(userId);
+
+      expect(result.newStreak).toBe(1); // Still just 1 day
     });
   });
 });

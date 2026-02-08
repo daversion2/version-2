@@ -1,21 +1,25 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
+import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
-import { getChallengeById } from '../../services/challenges';
+import { getChallengeById, deleteChallenge } from '../../services/challenges';
 import { getUserCategories } from '../../services/categories';
 import { Challenge, Category } from '../../types';
+import { showConfirm, showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'ChallengeDetail'>;
 
 export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
   const { challengeId } = route.params as { challengeId: string };
   const { user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [categoryName, setCategoryName] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -31,6 +35,42 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
       })();
     }, [user, challengeId])
   );
+
+  const handleDelete = () => {
+    if (!user || !challenge) return;
+
+    // Cannot delete active challenge
+    if (challenge.status === 'active') {
+      showAlert('Cannot Delete', 'You cannot delete an active challenge. Complete or fail it first.');
+      return;
+    }
+
+    const pointsText = challenge.points_awarded
+      ? `This will remove ${challenge.points_awarded} points from your Willpower Bank.`
+      : '';
+
+    showConfirm(
+      'Delete Challenge',
+      `Delete "${challenge.name}"? ${pointsText}`,
+      async () => {
+        setIsDeleting(true);
+        try {
+          const result = await deleteChallenge(user.uid, challengeId);
+          showAlert(
+            'Challenge Deleted',
+            result.pointsRemoved > 0
+              ? `Removed ${result.pointsRemoved} points from your Willpower Bank.`
+              : 'Challenge has been deleted.',
+            () => navigation.goBack()
+          );
+        } catch (error) {
+          showAlert('Error', 'Failed to delete challenge. Please try again.');
+          setIsDeleting(false);
+        }
+      },
+      'Delete'
+    );
+  };
 
   if (!challenge) {
     return (
@@ -128,6 +168,17 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
           ) : null}
         </Card>
       ) : null}
+
+      {challenge.status !== 'active' && (
+        <Button
+          title="Delete Challenge"
+          variant="outline"
+          onPress={handleDelete}
+          loading={isDeleting}
+          disabled={isDeleting}
+          style={styles.deleteButton}
+        />
+      )}
     </ScrollView>
   );
 };
@@ -188,5 +239,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.dark,
     marginBottom: 2,
+  },
+  deleteButton: {
+    marginTop: Spacing.lg,
+    borderColor: Colors.fail,
   },
 });

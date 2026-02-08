@@ -10,7 +10,9 @@ import {
   orderBy,
   limit,
   Timestamp,
+  deleteDoc,
 } from 'firebase/firestore';
+import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats } from './willpower';
 import { db } from './firebase';
 import { Challenge, ChallengeStatus, CompletionLog } from '../types';
 
@@ -118,4 +120,103 @@ export const getAllChallenges = async (userId: string): Promise<Challenge[]> => 
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() } as Challenge))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
+};
+
+// Delete a challenge and its associated completion log, subtract points
+export const deleteChallenge = async (
+  userId: string,
+  challengeId: string
+): Promise<{ pointsRemoved: number }> => {
+  // 1. Get challenge to find points_awarded
+  const challengeRef = doc(db, 'users', userId, 'challenges', challengeId);
+  const challengeSnap = await getDoc(challengeRef);
+
+  if (!challengeSnap.exists()) {
+    throw new Error('Challenge not found');
+  }
+
+  const challenge = challengeSnap.data() as Challenge;
+
+  // Cannot delete active challenge
+  if (challenge.status === 'active') {
+    throw new Error('Cannot delete an active challenge');
+  }
+
+  const pointsAwarded = challenge.points_awarded || 0;
+
+  // 2. Find and delete associated CompletionLog
+  const logQ = query(
+    logsRef(userId),
+    where('type', '==', 'challenge'),
+    where('reference_id', '==', challengeId)
+  );
+  const logSnap = await getDocs(logQ);
+
+  // Delete all matching logs (should be at most one)
+  for (const logDoc of logSnap.docs) {
+    await deleteDoc(logDoc.ref);
+  }
+
+  // 3. Delete challenge document
+  await deleteDoc(challengeRef);
+
+  // 4. Subtract points from user's total
+  if (pointsAwarded > 0) {
+    await subtractWillpowerPoints(userId, pointsAwarded);
+  }
+
+  // 5. Recalculate streak
+  await recalculateUserStats(userId);
+
+  return { pointsRemoved: pointsAwarded };
+};
+
+// Update challenge difficulty for previous day editing
+export const updateChallengeCompletion = async (
+  userId: string,
+  challengeId: string,
+  newDifficultyActual: number
+): Promise<{ pointsDelta: number; newPoints: number }> => {
+  // 1. Get current challenge
+  const challengeRef = doc(db, 'users', userId, 'challenges', challengeId);
+  const challengeSnap = await getDoc(challengeRef);
+
+  if (!challengeSnap.exists()) {
+    throw new Error('Challenge not found');
+  }
+
+  const challenge = challengeSnap.data() as Challenge;
+  const oldPoints = challenge.points_awarded || 0;
+
+  // New points = new difficulty (base points are difficulty_actual)
+  const newPoints = newDifficultyActual;
+  const pointsDelta = newPoints - oldPoints;
+
+  // 2. Update challenge document
+  await updateDoc(challengeRef, {
+    difficulty_actual: newDifficultyActual,
+    points_awarded: newPoints,
+  });
+
+  // 3. Update CompletionLog entry
+  const logQ = query(
+    logsRef(userId),
+    where('type', '==', 'challenge'),
+    where('reference_id', '==', challengeId)
+  );
+  const logSnap = await getDocs(logQ);
+
+  for (const logDoc of logSnap.docs) {
+    await updateDoc(logDoc.ref, {
+      points: newPoints,
+      difficulty: newDifficultyActual,
+    });
+  }
+
+  // 4. Adjust user's totalWillpowerPoints
+  if (pointsDelta !== 0) {
+    await adjustWillpowerPoints(userId, pointsDelta);
+  }
+
+  return { pointsDelta, newPoints };
 };

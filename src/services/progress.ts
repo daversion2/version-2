@@ -2,7 +2,12 @@ import {
   collection,
   query,
   getDocs,
+  doc,
+  getDoc,
+  deleteDoc,
+  updateDoc,
 } from 'firebase/firestore';
+import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
 import { db } from './firebase';
 import { CompletionLog, Challenge, Nudge } from '../types';
 
@@ -190,4 +195,54 @@ export const getCategoryBreakdown = async (
   return Array.from(stats.entries())
     .map(([category, data]) => ({ category, ...data }))
     .sort((a, b) => b.points - a.points);
+};
+
+// Delete a completion log by ID (for habit deletions)
+export const deleteCompletionLog = async (
+  userId: string,
+  logId: string
+): Promise<{ pointsRemoved: number }> => {
+  const logRef = doc(db, 'users', userId, 'completionLogs', logId);
+  const logSnap = await getDoc(logRef);
+
+  if (!logSnap.exists()) {
+    throw new Error('Completion log not found');
+  }
+
+  const logData = logSnap.data() as CompletionLog;
+  const points = logData.points || 0;
+
+  // Delete the log
+  await deleteDoc(logRef);
+
+  // Subtract points from user's total
+  if (points > 0) {
+    await subtractWillpowerPoints(userId, points);
+  }
+
+  // Recalculate streak
+  await recalculateUserStats(userId);
+
+  return { pointsRemoved: points };
+};
+
+// Update a completion log (for editing points/difficulty)
+export const updateCompletionLog = async (
+  userId: string,
+  logId: string,
+  data: Partial<CompletionLog>
+): Promise<void> => {
+  const logRef = doc(db, 'users', userId, 'completionLogs', logId);
+  await updateDoc(logRef, data);
+};
+
+// Get a single completion log by ID
+export const getCompletionLogById = async (
+  userId: string,
+  logId: string
+): Promise<CompletionLog | null> => {
+  const logRef = doc(db, 'users', userId, 'completionLogs', logId);
+  const snap = await getDoc(logRef);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as CompletionLog;
 };

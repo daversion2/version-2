@@ -70,21 +70,31 @@ export const updateHabit = async (
   await updateDoc(ref, data);
 };
 
+/**
+ * Log a habit completion with optional backdating
+ * @param userId - User ID
+ * @param habitId - Habit ID
+ * @param difficulty - 'easy' (1 pt) or 'challenging' (2 pts)
+ * @param date - Optional YYYY-MM-DD date string for backdating (defaults to today)
+ */
 export const logHabitCompletion = async (
   userId: string,
   habitId: string,
-  difficulty: HabitDifficulty
+  difficulty: HabitDifficulty,
+  date?: string
 ) => {
   const points = difficulty === 'easy' ? 1 : 2;
   const now = new Date();
+  const logDate = date || now.toISOString().split('T')[0];
+
   await addDoc(logsRef(userId), {
     user_id: userId,
     type: 'nudge',
     reference_id: habitId,
     points,
     difficulty: points,
-    date: now.toISOString().split('T')[0],
-    completed_at: now.toISOString(),
+    date: logDate,
+    completed_at: now.toISOString(), // Actual time logged
   });
 };
 
@@ -111,4 +121,31 @@ export const getWeeklyCompletionCounts = async (
   });
 
   return counts;
+};
+
+/**
+ * Returns active habits that have NOT been logged for a specific date.
+ * Useful for showing available habits to backdate.
+ */
+export const getUnloggedHabitsForDate = async (
+  userId: string,
+  date: string
+): Promise<Nudge[]> => {
+  // Get all active habits
+  const activeHabits = await getActiveHabits(userId);
+
+  // Get all habit logs for the specified date
+  const q = query(logsRef(userId), where('type', '==', 'nudge'));
+  const snap = await getDocs(q);
+
+  const loggedHabitIds = new Set<string>();
+  snap.docs.forEach((d) => {
+    const data = d.data();
+    if (data.date === date) {
+      loggedHabitIds.add(data.reference_id as string);
+    }
+  });
+
+  // Return habits not logged for that date
+  return activeHabits.filter((habit) => !loggedHabitIds.has(habit.id));
 };

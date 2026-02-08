@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, query } from 'firebase/firestore';
 import { db } from './firebase';
 import { WILLPOWER_LEVELS, STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
 
@@ -254,4 +254,85 @@ export const getSuckFactorTier = (wpq: number): {
     return { tier: 'Steady Builder', description: 'Building strength with balanced challenges' };
   }
   return { tier: 'Comfort Zone', description: 'Starting with manageable challenges' };
+};
+
+// Subtract points from user's willpower total (for deletions/modifications)
+export const subtractWillpowerPoints = async (
+  userId: string,
+  pointsToSubtract: number
+): Promise<number> => {
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+  const userData = userSnap.exists() ? userSnap.data() : {};
+
+  const currentTotal = userData.totalWillpowerPoints || 0;
+  const newTotal = Math.max(0, currentTotal - pointsToSubtract);
+
+  await setDoc(userRef, { totalWillpowerPoints: newTotal }, { merge: true });
+  return newTotal;
+};
+
+// Adjust willpower points by a delta (positive or negative)
+export const adjustWillpowerPoints = async (
+  userId: string,
+  delta: number
+): Promise<number> => {
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+  const userData = userSnap.exists() ? userSnap.data() : {};
+
+  const currentTotal = userData.totalWillpowerPoints || 0;
+  const newTotal = Math.max(0, currentTotal + delta);
+
+  await setDoc(userRef, { totalWillpowerPoints: newTotal }, { merge: true });
+  return newTotal;
+};
+
+// Recalculate user streak from completion logs
+export const recalculateUserStats = async (userId: string): Promise<{
+  newStreak: number;
+  lastActivityDate: string | null;
+}> => {
+  const logsRef = collection(db, 'users', userId, 'completionLogs');
+  const snap = await getDocs(query(logsRef));
+
+  if (snap.empty) {
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, { currentStreak: 0, lastActivityDate: null }, { merge: true });
+    return { newStreak: 0, lastActivityDate: null };
+  }
+
+  // Get unique dates sorted descending
+  const dates = [
+    ...new Set(snap.docs.map((d) => d.data().date as string)),
+  ].sort().reverse();
+
+  // Calculate streak
+  let streak = 0;
+  const today = new Date();
+
+  for (let i = 0; i < dates.length; i++) {
+    const expected = new Date(today);
+    expected.setDate(expected.getDate() - i);
+    const expectedStr = expected.toISOString().split('T')[0];
+    if (dates[i] === expectedStr) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  const lastActivityDate = dates[0] || null;
+
+  const userRef = doc(db, 'users', userId);
+  await setDoc(
+    userRef,
+    {
+      currentStreak: streak,
+      lastActivityDate,
+    },
+    { merge: true }
+  );
+
+  return { newStreak: streak, lastActivityDate };
 };
