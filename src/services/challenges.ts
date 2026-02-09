@@ -119,14 +119,10 @@ export const getChallengeById = async (
 export const saveReflectionAnswers = async (
   userId: string,
   challengeId: string,
-  answers: {
-    reflection_hardest_moment?: string;
-    reflection_push_through?: string;
-    reflection_next_time?: string;
-  }
+  reflectionNote: string
 ) => {
   const ref = doc(db, 'users', userId, 'challenges', challengeId);
-  await updateDoc(ref, answers);
+  await updateDoc(ref, { reflection_note: reflectionNote });
 };
 
 export const getAllChallenges = async (userId: string): Promise<Challenge[]> => {

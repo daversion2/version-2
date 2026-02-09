@@ -140,7 +140,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
 
       {challenge.reflection_note ? (
         <Card style={styles.card}>
-          <Text style={styles.fieldLabel}>Reflection</Text>
+          <Text style={styles.fieldLabel}>Post-Challenge Journaling</Text>
           <Text style={styles.fieldValue}>{challenge.reflection_note}</Text>
         </Card>
       ) : null}

@@ -4,7 +4,10 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
+  Modal,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
@@ -38,9 +41,8 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
   const [result, setResult] = useState<'completed' | 'failed' | null>(null);
   const [difficulty, setDifficulty] = useState(3);
-  const [reflectionHardest, setReflectionHardest] = useState('');
-  const [reflectionPush, setReflectionPush] = useState('');
-  const [reflectionNextTime, setReflectionNextTime] = useState('');
+  const [journalEntry, setJournalEntry] = useState('');
+  const [showPrompts, setShowPrompts] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
@@ -84,16 +86,13 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         status: result,
         difficulty_actual: difficulty,
       });
-      const answers: Record<string, string> = {};
-      if (reflectionHardest.trim()) answers.reflection_hardest_moment = reflectionHardest.trim();
-      if (reflectionPush.trim()) answers.reflection_push_through = reflectionPush.trim();
-      if (reflectionNextTime.trim()) answers.reflection_next_time = reflectionNextTime.trim();
-      if (Object.keys(answers).length > 0) {
-        await saveReflectionAnswers(user.uid, challenge.id, answers);
+      const trimmedJournal = journalEntry.trim();
+      if (trimmedJournal) {
+        await saveReflectionAnswers(user.uid, challenge.id, trimmedJournal);
       }
 
       // Calculate and award willpower points
-      const hasReflection = Object.keys(answers).length > 0;
+      const hasReflection = trimmedJournal.length > 0;
       const stats = await getWillpowerStats(user.uid);
       const pointsEarned =
         result === 'completed'
@@ -186,32 +185,57 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         onChange={setDifficulty}
       />
 
-      {/* Reflection */}
-      <Text style={styles.sectionLabel}>Reflection (optional)</Text>
+      {/* Journaling */}
+      <View style={styles.journalHeader}>
+        <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Journaling</Text>
+        <TouchableOpacity
+          onPress={() => setShowPrompts(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="information-circle-outline" size={22} color={Colors.primary} />
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.journalSubtext}>Optional — earns bonus points</Text>
       <InputField
-        label="What was the hardest moment, and what were you telling yourself then?"
-        value={reflectionHardest}
-        onChangeText={setReflectionHardest}
-        placeholder="Your thoughts..."
+        label=""
+        value={journalEntry}
+        onChangeText={setJournalEntry}
+        placeholder="Reflect on your experience..."
         multiline
-        numberOfLines={3}
+        numberOfLines={6}
+        style={styles.journalInput}
       />
-      <InputField
-        label="What helped you push through — or what would have helped?"
-        value={reflectionPush}
-        onChangeText={setReflectionPush}
-        placeholder="Your thoughts..."
-        multiline
-        numberOfLines={3}
-      />
-      <InputField
-        label="What's one rule or adjustment you'll apply next time?"
-        value={reflectionNextTime}
-        onChangeText={setReflectionNextTime}
-        placeholder="Your thoughts..."
-        multiline
-        numberOfLines={3}
-      />
+
+      {/* Prompts Modal */}
+      <Modal
+        visible={showPrompts}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPrompts(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPrompts(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Journaling Prompts</Text>
+            <Text style={styles.modalSubtitle}>Consider reflecting on:</Text>
+            <View style={styles.promptList}>
+              <Text style={styles.promptItem}>• What was the hardest moment, and what were you telling yourself then?</Text>
+              <Text style={styles.promptItem}>• What helped you push through — or what would have helped?</Text>
+              <Text style={styles.promptItem}>• What's one rule or adjustment you'll apply next time?</Text>
+              <Text style={styles.promptItem}>• How do you feel now compared to before?</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => setShowPrompts(false)}
+            >
+              <Text style={styles.modalCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Button
         title="Submit"
@@ -284,5 +308,69 @@ const styles = StyleSheet.create({
   resultBtn: { flex: 1 },
   cancelBtn: {
     marginTop: Spacing.lg,
+  },
+  journalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  journalSubtext: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.sm,
+  },
+  journalInput: {
+    minHeight: 120,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: Spacing.lg,
+    width: '100%',
+    maxWidth: 340,
+  },
+  modalTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.dark,
+    marginBottom: Spacing.xs,
+  },
+  modalSubtitle: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.md,
+  },
+  promptList: {
+    gap: Spacing.sm,
+  },
+  promptItem: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 20,
+  },
+  modalClose: {
+    marginTop: Spacing.lg,
+    alignSelf: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+  },
+  modalCloseText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.white,
   },
 });
