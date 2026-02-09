@@ -50,6 +50,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const challengeBtnRef = useRef<View>(null);
   const habitsAddRef = useRef<View>(null);
   const habitAreaRef = useRef<View>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const [spotlightLayout, setSpotlightLayout] = useState<SpotlightLayout | null>(null);
 
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
@@ -129,13 +130,22 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const ref = refMap[currentStepConfig.target];
     if (!ref?.current) return;
 
+    // First, scroll to top for challengeBtn, or scroll down a bit for habits
+    if (currentStepConfig.target === 'challengeBtn') {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    } else if (currentStepConfig.target === 'habitsAdd' || currentStepConfig.target === 'habitArea') {
+      // Scroll down to make habits section visible
+      scrollViewRef.current?.scrollTo({ y: 150, animated: false });
+    }
+
+    // Wait for scroll and layout to settle, then measure
     const timer = setTimeout(() => {
       ref.current?.measureInWindow((x, y, width, height) => {
         if (width > 0 && height > 0) {
           setSpotlightLayout({ x, y, width, height });
         }
       });
-    }, 500);
+    }, 600);
     return () => clearTimeout(timer);
   }, [isMyStep, currentStepConfig, currentStep]);
 
@@ -204,6 +214,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.screen}>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.content}
         refreshControl={

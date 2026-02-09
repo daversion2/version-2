@@ -13,7 +13,7 @@ export const ONBOARDING_STEPS = [
     body: 'Every challenge and habit earns you Willpower Points. Level up from Beginner Mind to Willpower Legend. Keep your streak alive for bonus multipliers.',
   },
   {
-    title: 'Embrace the Suck',
-    body: "Your Suck Factor shows how hard you're pushing. Comfort Zone? Challenge Seeker? Limit Pusher? The harder you go, the more you grow.",
+    title: 'Embrace Discomfort',
+    body: "Your Suck Factor shows how hard you're pushing. Comfort Zone? Challenge Seeker? Limit Pusher? More discomfort = More growth.",
   },
 ];
