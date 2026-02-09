@@ -83,6 +83,20 @@ export const completeChallenge = async (
   });
 };
 
+/**
+ * Cancel an active challenge without any penalty.
+ * No points are awarded or deducted, and streak is not affected.
+ */
+export const cancelChallenge = async (
+  userId: string,
+  challengeId: string
+): Promise<void> => {
+  const ref = doc(db, 'users', userId, 'challenges', challengeId);
+  await updateDoc(ref, {
+    status: 'cancelled' as ChallengeStatus,
+  });
+};
+
 export const getPastChallenges = async (userId: string): Promise<Challenge[]> => {
   const snap = await getDocs(query(challengesRef(userId)));
   return snap.docs

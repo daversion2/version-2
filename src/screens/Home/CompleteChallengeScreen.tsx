@@ -13,7 +13,8 @@ import { Button } from '../../components/common/Button';
 import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
-import { completeChallenge, saveReflectionAnswers } from '../../services/challenges';
+import { completeChallenge, saveReflectionAnswers, cancelChallenge } from '../../services/challenges';
+import { showConfirm } from '../../utils/alert';
 import {
   calculateChallengePoints,
   calculateFailedChallengePoints,
@@ -52,6 +53,24 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       setPendingAlert(null);
     }
   }, [pendingAlert]);
+
+  const handleCancel = () => {
+    if (!user) return;
+    showConfirm(
+      'Cancel Challenge',
+      'Are you sure you want to cancel this challenge? You will not be penalized.',
+      async () => {
+        try {
+          await cancelChallenge(user.uid, challenge.id);
+          showAlert('Challenge Cancelled', 'You can start a new challenge anytime.');
+          navigation.popToTop();
+        } catch (e: any) {
+          showAlert('Error', e.message);
+        }
+      },
+      'Yes, Cancel'
+    );
+  };
 
   const handleSubmit = async () => {
     if (!result) {
@@ -202,6 +221,13 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         style={{ marginTop: Spacing.md }}
       />
 
+      <Button
+        title="Cancel Challenge"
+        onPress={handleCancel}
+        variant="outline"
+        style={styles.cancelBtn}
+      />
+
       {isMyStep && (
         <WalkthroughOverlay
           visible
@@ -256,4 +282,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   resultBtn: { flex: 1 },
+  cancelBtn: {
+    marginTop: Spacing.lg,
+  },
 });

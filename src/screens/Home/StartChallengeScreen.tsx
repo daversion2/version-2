@@ -30,6 +30,13 @@ export const StartChallengeScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.btn}
       />
 
+      <Button
+        title="Browse Challenge Library"
+        onPress={() => navigation.navigate('ChallengeLibrary')}
+        variant="outline"
+        style={styles.btn}
+      />
+
       {isMyStep && (
         <WalkthroughOverlay
           visible

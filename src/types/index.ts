@@ -20,7 +20,7 @@ export interface Category {
   color: string;
 }
 
-export type ChallengeStatus = 'active' | 'completed' | 'failed' | 'archived';
+export type ChallengeStatus = 'active' | 'completed' | 'failed' | 'archived' | 'cancelled';
 
 export interface Challenge {
   id: string;
@@ -67,6 +67,17 @@ export interface CompletionLog {
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';
+
+// Public challenge library template
+export interface LibraryChallenge {
+  id: string;
+  name: string;
+  category: string; // Category name (Physical, Mental, etc.)
+  difficulty: number; // 1-5 suggested difficulty
+  description?: string;
+  success_criteria?: string;
+  why?: string;
+}
 
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
   { name: 'Physical', color: '#217180' },
