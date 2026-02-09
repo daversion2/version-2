@@ -16,7 +16,8 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, Nudge, Category } from '../../types';
 import { getActiveChallenge } from '../../services/challenges';
-import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts } from '../../services/habits';
+import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
+import { HabitStreakInfo } from '../../types';
 import { getUserCategories } from '../../services/categories';
 import {
   calculateHabitPoints,
@@ -57,6 +58,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
+  const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
@@ -92,6 +94,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setWeeklyCounts(counts);
       } catch (err) {
         console.warn('Weekly counts query failed (composite index may be needed):', err);
+      }
+      // Fetch streaks for all habits
+      if (habitList.length > 0) {
+        try {
+          const streaks = await getHabitsStreaks(user.uid, habitList.map((h) => h.id));
+          setHabitStreaks(streaks);
+        } catch (err) {
+          console.warn('Habit streaks query failed:', err);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -265,6 +276,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           const done = weeklyCounts[habit.id] || 0;
           const target = habit.target_count_per_week;
           const isComplete = done >= target;
+          const streak = habitStreaks[habit.id]?.currentStreak || 0;
           return (
             <View
               key={habit.id}
@@ -279,7 +291,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     color={isComplete ? Colors.secondary : Colors.primary}
                   />
                   <View style={styles.habitInfo}>
-                    <Text style={styles.habitName}>{habit.name}</Text>
+                    <View style={styles.habitNameRow}>
+                      <Text style={styles.habitName}>{habit.name}</Text>
+                      {streak > 1 && (
+                        <View style={styles.streakBadge}>
+                          <Ionicons name="flame" size={14} color={Colors.secondary} />
+                          <Text style={styles.streakText}>{streak}</Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.habitMeta}>
                       <View style={[styles.catBadge, { backgroundColor: getCatColor(habit.category_id) + '20' }]}>
                         <Text style={[styles.catBadgeText, { color: getCatColor(habit.category_id) }]}>
@@ -291,6 +311,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                       </Text>
                     </View>
                   </View>
+                  <TouchableOpacity
+                    style={styles.reportBtn}
+                    onPress={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="stats-chart" size={20} color={Colors.primary} />
+                  </TouchableOpacity>
                 </View>
               </Card>
             </View>
@@ -395,15 +422,35 @@ const styles = StyleSheet.create({
   habitRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   habitInfo: {
     flex: 1,
+    gap: Spacing.xs,
+  },
+  habitNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    flexWrap: 'wrap',
   },
   habitName: {
     fontFamily: Fonts.primary,
     fontSize: FontSizes.md,
     color: Colors.dark,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: Colors.secondary + '15',
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  streakText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
+  },
+  reportBtn: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.sm,
   },
   habitMeta: {
     flexDirection: 'row',

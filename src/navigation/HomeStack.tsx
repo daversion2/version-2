@@ -8,6 +8,7 @@ import { PastChallengesScreen } from '../screens/Home/PastChallengesScreen';
 import { ChallengeLibraryScreen } from '../screens/Home/ChallengeLibraryScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
+import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -65,6 +66,11 @@ export const HomeStack: React.FC = () => (
       name="ManageHabits"
       component={ManageHabitsScreen}
       options={{ title: 'Habits' }}
+    />
+    <Stack.Screen
+      name="HabitDetail"
+      component={HabitDetailScreen}
+      options={{ title: 'Habit Details' }}
     />
   </Stack.Navigator>
 );

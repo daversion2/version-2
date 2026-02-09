@@ -86,3 +86,22 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
   { name: 'Professional', color: '#656565' },
   { name: 'Creative', color: '#217180' },
 ];
+
+// Habit streak information
+export interface HabitStreakInfo {
+  habitId: string;
+  currentStreak: number; // Consecutive days with at least one completion
+  longestStreak: number;
+}
+
+// Aggregated habit statistics for detail screen
+export interface HabitStats {
+  habitId: string;
+  currentStreak: number;
+  longestStreak: number;
+  totalCompletions: number;
+  totalPoints: number;
+  firstCompletionDate: string | null; // YYYY-MM-DD or null if never completed
+  weeklyTrend: number[]; // Last 8 weeks completion counts (oldest to newest)
+  completionsByDate: Record<string, number>; // YYYY-MM-DD -> count for calendar heat map
+}
