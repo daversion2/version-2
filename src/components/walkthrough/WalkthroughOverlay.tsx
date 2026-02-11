@@ -147,8 +147,9 @@ const styles = StyleSheet.create({
   },
   fullBackdrop: {
     backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',      // Changed from 'center'                                                                                                    
+    alignItems: 'center',                                                                                                                                        
+    paddingBottom: 40,               // Add some spacing from the bottom edge   
   },
   cutoutBorder: {
     position: 'absolute',

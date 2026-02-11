@@ -33,6 +33,9 @@ import { useWalkthrough } from '../../context/WalkthroughContext';
 import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsPopup } from '../../components/common/PointsPopup';
+import { PointsAlertModal } from '../../components/common/PointsAlertModal';
+import { LevelUpPopup } from '../../components/common/LevelUpPopup';
+import { shouldShowPointsAlert } from '../../services/alertPreferences';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -63,6 +66,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
+  const [pointsAlertVisible, setPointsAlertVisible] = useState(false);
+  const [pointsAlertTitle, setPointsAlertTitle] = useState('');
+  const [pointsAlertMessage, setPointsAlertMessage] = useState('');
+  const [levelUpVisible, setLevelUpVisible] = useState(false);
+  const [levelUpLevel, setLevelUpLevel] = useState(0);
+  const [levelUpTitle, setLevelUpTitle] = useState('');
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -184,17 +193,35 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setShowPointsPopup(true);
 
       // Prepare alerts to show after popup animation completes
-      const showAlerts = () => {
+      const showAlerts = async () => {
+        // Show level-up popup first if new level reached
+        if (updateResult.newLevelReached && updateResult.levelInfo) {
+          setLevelUpLevel(updateResult.levelInfo.level);
+          setLevelUpTitle(updateResult.levelInfo.title);
+          setLevelUpVisible(true);
+          return; // Other alerts will be shown after level-up is dismissed
+        }
+
         if (updateResult.newTierReached && updateResult.tierInfo) {
           showAlert(
             'Streak Milestone!',
             `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`
           );
-          setTimeout(() => {
-            showAlert('Habit Logged', pointsMessage);
+          setTimeout(async () => {
+            const shouldShow = await shouldShowPointsAlert();
+            if (shouldShow) {
+              setPointsAlertTitle('Habit Logged');
+              setPointsAlertMessage(pointsMessage);
+              setPointsAlertVisible(true);
+            }
           }, 500);
         } else {
-          showAlert('Habit Logged', pointsMessage);
+          const shouldShow = await shouldShowPointsAlert();
+          if (shouldShow) {
+            setPointsAlertTitle('Habit Logged');
+            setPointsAlertMessage(pointsMessage);
+            setPointsAlertVisible(true);
+          }
         }
       };
 
@@ -358,6 +385,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         points={earnedPoints}
         visible={showPointsPopup}
         onComplete={handlePopupComplete}
+      />
+      <PointsAlertModal
+        visible={pointsAlertVisible}
+        title={pointsAlertTitle}
+        message={pointsAlertMessage}
+        onDismiss={() => setPointsAlertVisible(false)}
+      />
+      <LevelUpPopup
+        visible={levelUpVisible}
+        level={levelUpLevel}
+        title={levelUpTitle}
+        onContinue={() => setLevelUpVisible(false)}
       />
     </View>
   );

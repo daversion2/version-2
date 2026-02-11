@@ -147,6 +147,8 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
           value={successCriteria}
           onChangeText={setSuccessCriteria}
           placeholder="How will you know you succeeded?"
+          multiline
+          numberOfLines={3}
         />
 
         <InputField
@@ -154,6 +156,8 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
           value={why}
           onChangeText={setWhy}
           placeholder="Why is this important to you?"
+          multiline
+          numberOfLines={3}
         />
 
         <DateTimePicker

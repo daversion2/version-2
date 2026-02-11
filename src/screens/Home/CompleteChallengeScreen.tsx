@@ -30,6 +30,9 @@ import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
+import { PointsAlertModal } from '../../components/common/PointsAlertModal';
+import { LevelUpPopup } from '../../components/common/LevelUpPopup';
+import { shouldShowPointsAlert } from '../../services/alertPreferences';
 
 type Props = NativeStackScreenProps<any, 'CompleteChallenge'>;
 
@@ -47,6 +50,12 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
+  const [pointsAlertVisible, setPointsAlertVisible] = useState(false);
+  const [pointsAlertTitle, setPointsAlertTitle] = useState('');
+  const [pointsAlertMessage, setPointsAlertMessage] = useState('');
+  const [levelUpVisible, setLevelUpVisible] = useState(false);
+  const [levelUpLevel, setLevelUpLevel] = useState(0);
+  const [levelUpTitle, setLevelUpTitle] = useState('');
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -113,25 +122,41 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       setShowPointsPopup(true);
 
       // Prepare the alert to show after popup animation completes
-      const showAlerts = () => {
+      const showAlerts = async () => {
+        const alertTitle = result === 'completed' ? 'Challenge Complete' : 'Challenge Logged';
+
+        // Show level-up popup first if new level reached
+        if (updateResult.newLevelReached && updateResult.levelInfo) {
+          setLevelUpLevel(updateResult.levelInfo.level);
+          setLevelUpTitle(updateResult.levelInfo.title);
+          setLevelUpVisible(true);
+          return; // Navigation will happen when level-up is dismissed
+        }
+
         if (updateResult.newTierReached && updateResult.tierInfo) {
           showAlert(
             'Streak Milestone!',
             `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`,
-            () => {
-              showAlert(
-                result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
-                pointsMessage,
-                () => navigation.popToTop()
-              );
+            async () => {
+              const shouldShow = await shouldShowPointsAlert();
+              if (shouldShow) {
+                setPointsAlertTitle(alertTitle);
+                setPointsAlertMessage(pointsMessage);
+                setPointsAlertVisible(true);
+              } else {
+                navigation.popToTop();
+              }
             }
           );
         } else {
-          showAlert(
-            result === 'completed' ? 'Challenge Complete' : 'Challenge Logged',
-            pointsMessage,
-            () => navigation.popToTop()
-          );
+          const shouldShow = await shouldShowPointsAlert();
+          if (shouldShow) {
+            setPointsAlertTitle(alertTitle);
+            setPointsAlertMessage(pointsMessage);
+            setPointsAlertVisible(true);
+          } else {
+            navigation.popToTop();
+          }
         }
       };
 
@@ -269,6 +294,24 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         visible={showPointsPopup}
         onComplete={handlePopupComplete}
       />
+      <PointsAlertModal
+        visible={pointsAlertVisible}
+        title={pointsAlertTitle}
+        message={pointsAlertMessage}
+        onDismiss={() => {
+          setPointsAlertVisible(false);
+          navigation.popToTop();
+        }}
+      />
+      <LevelUpPopup
+        visible={levelUpVisible}
+        level={levelUpLevel}
+        title={levelUpTitle}
+        onContinue={() => {
+          setLevelUpVisible(false);
+          navigation.popToTop();
+        }}
+      />
     </View>
   );
 };
@@ -324,6 +367,7 @@ const styles = StyleSheet.create({
   },
   journalInput: {
     minHeight: 120,
+    backgroundColor: Colors.white,
   },
   modalOverlay: {
     flex: 1,

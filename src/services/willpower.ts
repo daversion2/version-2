@@ -120,6 +120,8 @@ export const updateWillpowerStats = async (
   multiplier: number;
   newTierReached: boolean;
   tierInfo: { multiplier: number; tierName: string; minDays: number } | null;
+  newLevelReached: boolean;
+  levelInfo: { level: number; title: string } | null;
 }> => {
   const userRef = doc(db, 'users', userId);
   const userSnap = await getDoc(userRef);
@@ -161,7 +163,12 @@ export const updateWillpowerStats = async (
   const newTierReached = newMultiplier > oldMultiplier;
   const tierInfo = newTierReached ? getStreakTierInfo(newStreak) : null;
 
+  // Check for level up
+  const oldLevelInfo = getLevelInfo(totalPoints);
   const newTotal = totalPoints + pointsToAdd;
+  const newLevelInfo = getLevelInfo(newTotal);
+  const newLevelReached = newLevelInfo.level > oldLevelInfo.level;
+  const levelInfo = newLevelReached ? { level: newLevelInfo.level, title: newLevelInfo.title } : null;
 
   await setDoc(
     userRef,
@@ -173,7 +180,7 @@ export const updateWillpowerStats = async (
     { merge: true }
   );
 
-  return { newTotal, newStreak, multiplier: newMultiplier, newTierReached, tierInfo };
+  return { newTotal, newStreak, multiplier: newMultiplier, newTierReached, tierInfo, newLevelReached, levelInfo };
 };
 
 // Get user's willpower stats
