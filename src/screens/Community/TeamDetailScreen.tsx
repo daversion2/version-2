@@ -15,12 +15,11 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getTeamById,
   getTeamMembers,
-  getTeamMemberActivitySummary,
+  getTodayTeamActivityFeed,
   getWeeklyTeamActivityCounts,
   getTeamStats,
 } from '../../services/teams';
-import { getUser } from '../../services/users';
-import { Team, TeamMember, TeamMemberActivitySummary } from '../../types';
+import { Team, TeamMember, TeamActivityFeedItem } from '../../types';
 
 type RouteParams = {
   TeamDetail: { teamId: string };
@@ -37,7 +36,7 @@ export const TeamDetailScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [activitySummary, setActivitySummary] = useState<TeamMemberActivitySummary[]>([]);
+  const [activityFeed, setActivityFeed] = useState<TeamActivityFeedItem[]>([]);
   const [weeklyActivity, setWeeklyActivity] = useState<number[]>([]);
   const [stats, setStats] = useState<{
     combinedStreak: number;
@@ -54,32 +53,9 @@ export const TeamDetailScreen: React.FC = () => {
         const teamMembers = await getTeamMembers(teamId);
         setMembers(teamMembers);
 
-        // Get user streaks for activity summary
-        const userStreaks: Record<string, number> = {};
-        for (const member of teamMembers) {
-          try {
-            const userData = await getUser(member.user_id);
-            userStreaks[member.user_id] = userData?.currentStreak || 0;
-          } catch {
-            userStreaks[member.user_id] = 0;
-          }
-        }
-
-        const summary = await getTeamMemberActivitySummary(teamId, userStreaks);
-        // Sort: active members first, then by activity time
-        summary.sort((a, b) => {
-          if (a.has_activity_today !== b.has_activity_today) {
-            return a.has_activity_today ? -1 : 1;
-          }
-          if (a.last_activity_time && b.last_activity_time) {
-            return (
-              new Date(b.last_activity_time).getTime() -
-              new Date(a.last_activity_time).getTime()
-            );
-          }
-          return 0;
-        });
-        setActivitySummary(summary);
+        // Get activity feed (individual items sorted by time)
+        const feed = await getTodayTeamActivityFeed(teamId);
+        setActivityFeed(feed);
 
         const weekly = await getWeeklyTeamActivityCounts(teamId);
         setWeeklyActivity(weekly);
@@ -138,7 +114,8 @@ export const TeamDetailScreen: React.FC = () => {
     );
   }
 
-  const activeTodayCount = activitySummary.filter((m) => m.has_activity_today).length;
+  // Count unique users who have activity today
+  const activeTodayCount = new Set(activityFeed.map((a) => a.user_id)).size;
 
   return (
     <ScrollView
@@ -180,77 +157,40 @@ export const TeamDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Today's Activity */}
+      {/* Today's Activity Feed */}
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>Today's Activity</Text>
 
-        {activitySummary.map((member) => (
-          <View key={member.user_id} style={styles.memberRow}>
-            <View style={styles.memberLeft}>
-              <View
-                style={[
-                  styles.activityIndicator,
-                  member.has_activity_today
-                    ? styles.activityActive
-                    : styles.activityInactive,
-                ]}
-              >
-                {member.has_activity_today ? (
+        {activityFeed.length === 0 ? (
+          <Text style={styles.emptyFeedText}>No activity yet today</Text>
+        ) : (
+          activityFeed.map((activity) => (
+            <View key={activity.id} style={styles.feedRow}>
+              <View style={styles.memberLeft}>
+                <View style={[styles.activityIndicator, styles.activityActive]}>
                   <Ionicons name="checkmark" size={14} color={Colors.white} />
-                ) : (
-                  <Ionicons name="remove" size={14} color={Colors.white} />
-                )}
-              </View>
-              <View style={styles.memberInfo}>
-                <Text style={styles.memberName}>
-                  {member.display_name}
-                  {member.user_id === user?.uid && (
-                    <Text style={styles.youBadge}> (You)</Text>
-                  )}
-                </Text>
-                {member.has_activity_today ? (
+                </View>
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberName}>
+                    {activity.display_name}
+                    {activity.user_id === user?.uid && (
+                      <Text style={styles.youBadge}> (You)</Text>
+                    )}
+                  </Text>
                   <Text style={styles.memberActivity}>
-                    {member.challenge_completed && (
-                      <>
-                        Completed a{' '}
-                        <Text style={styles.categoryHighlight}>
-                          {member.challenge_category}
-                        </Text>{' '}
-                        challenge
-                      </>
-                    )}
-                    {member.challenge_completed && member.habits_completed > 0 && ' + '}
-                    {member.habits_completed > 0 && (
-                      <>
-                        {member.habits_completed} habit
-                        {member.habits_completed !== 1 ? 's' : ''}
-                      </>
-                    )}
-                    {!member.challenge_completed && member.habits_completed > 0 && (
-                      <>
-                        Completed {member.habits_completed} habit
-                        {member.habits_completed !== 1 ? 's' : ''}
-                      </>
-                    )}
+                    Completed a {activity.type} ·{' '}
+                    <Text style={styles.categoryHighlight}>
+                      {activity.category_name}
+                    </Text>
                   </Text>
-                ) : (
-                  <Text style={styles.memberInactiveText}>
-                    {member.current_streak > 0 ? (
-                      <>🔥 {member.current_streak} day streak</>
-                    ) : (
-                      'Nothing yet today'
-                    )}
-                  </Text>
-                )}
+                </View>
               </View>
-            </View>
-            {member.last_activity_time && (
               <Text style={styles.activityTime}>
-                {formatActivityTime(member.last_activity_time)}
+                {formatActivityTime(activity.created_at)}
               </Text>
-            )}
-          </View>
-        ))}
+            </View>
+          ))
+        )}
       </Card>
 
       {/* This Week */}
@@ -390,6 +330,21 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     color: Colors.dark,
     marginBottom: Spacing.md,
+  },
+  feedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  emptyFeedText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
   },
   memberRow: {
     flexDirection: 'row',

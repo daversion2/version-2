@@ -18,6 +18,7 @@ import {
   TeamMember,
   TeamActivity,
   TeamMemberActivitySummary,
+  TeamActivityFeedItem,
 } from '../types';
 
 // Teams are stored in a top-level collection since they're shared across users
@@ -333,6 +334,40 @@ export const getTodayTeamActivity = async (
   const q = query(teamActivityRef(teamId), where('date', '==', todayStr));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as TeamActivity));
+};
+
+/**
+ * Get today's activity as a feed (individual items with display names)
+ * Sorted by most recent first
+ */
+export const getTodayTeamActivityFeed = async (
+  teamId: string
+): Promise<TeamActivityFeedItem[]> => {
+  const members = await getTeamMembers(teamId);
+  const todayActivity = await getTodayTeamActivity(teamId);
+
+  // Create a map of user_id -> display_name
+  const displayNames: Record<string, string> = {};
+  members.forEach((m) => {
+    displayNames[m.user_id] = m.display_name;
+  });
+
+  // Map activities to feed items and sort by time (most recent first)
+  const feedItems: TeamActivityFeedItem[] = todayActivity
+    .map((activity) => ({
+      id: activity.id,
+      user_id: activity.user_id,
+      display_name: displayNames[activity.user_id] || 'Unknown',
+      type: activity.type,
+      category_name: activity.category_name,
+      created_at: activity.created_at,
+    }))
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+  return feedItems;
 };
 
 /**

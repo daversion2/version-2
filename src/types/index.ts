@@ -168,6 +168,16 @@ export interface TeamMemberActivitySummary {
   current_streak: number;
 }
 
+// Individual activity item for feed display
+export interface TeamActivityFeedItem {
+  id: string;
+  user_id: string;
+  display_name: string;
+  type: TeamActivityType;
+  category_name: string;
+  created_at: string;
+}
+
 // --- Inspiration Feed ---
 
 export type DifficultyTier = 'moderate' | 'hard' | 'very_hard';
