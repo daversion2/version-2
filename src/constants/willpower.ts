@@ -3,9 +3,9 @@
 
 export const WILLPOWER_LEVELS = [
   { level: 1, pointsRequired: 0, title: 'Beginner Mind' },
-  { level: 2, pointsRequired: 20, title: 'Badass in Training' },
-  { level: 3, pointsRequired: 50, title: 'Committment and Consistent' },
-  { level: 4, pointsRequired: 150, title: 'Challenger' },
+  { level: 2, pointsRequired: 20, title: 'Beast Mode' },
+  { level: 3, pointsRequired: 50, title: 'Committed and Consistent' },
+  { level: 4, pointsRequired: 150, title: 'Badass in Training' },
   { level: 5, pointsRequired: 300, title: 'Willpower Warrior' },
   { level: 6, pointsRequired: 500, title: 'Grit Machine' },
   { level: 7, pointsRequired: 750, title: 'Resilient AF' },
