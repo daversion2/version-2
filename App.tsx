@@ -3,10 +3,16 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { AuthProvider } from './src/context/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync();
+
+// Configure Google Sign-In
+GoogleSignin.configure({
+  webClientId: '439501865821-fftpekgkpkblrr68uqemt0kvmih2ipkc.apps.googleusercontent.com', // Get this from Firebase Console
+});
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = React.useState(false);

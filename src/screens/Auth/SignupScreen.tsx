@@ -11,7 +11,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
-import { signUp } from '../../services/auth';
+import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
+import { signUp, signInWithGoogle } from '../../services/auth';
 
 type Props = NativeStackScreenProps<any, 'Signup'>;
 
@@ -20,6 +21,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSignup = async () => {
@@ -43,6 +45,18 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
       setError(e.message || 'Signup failed.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+    } catch (e: any) {
+      setError(e.message || 'Google sign up failed.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -85,6 +99,18 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
           <Button title="Create Account" onPress={handleSignup} loading={loading} />
 
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <GoogleSignInButton
+            onPress={handleGoogleSignIn}
+            loading={googleLoading}
+            disabled={loading}
+          />
+
           <Button
             title="Back to Login"
             onPress={() => navigation.goBack()}
@@ -125,5 +151,21 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginHorizontal: Spacing.md,
   },
 });

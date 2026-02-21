@@ -12,7 +12,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
-import { signIn, resetPassword } from '../../services/auth';
+import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
+import { signIn, resetPassword, signInWithGoogle } from '../../services/auth';
 import { showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'Login'>;
@@ -21,6 +22,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
@@ -36,6 +38,18 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
       setError(e.message || 'Login failed.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      await signInWithGoogle();
+    } catch (e: any) {
+      setError(e.message || 'Google sign in failed.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -90,6 +104,18 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
           <Button title="Sign In" onPress={handleLogin} loading={loading} />
 
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <GoogleSignInButton
+            onPress={handleGoogleSignIn}
+            loading={googleLoading}
+            disabled={loading}
+          />
+
           <Button
             title="Create Account"
             onPress={() => navigation.navigate('Signup')}
@@ -138,5 +164,21 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginHorizontal: Spacing.md,
   },
 });

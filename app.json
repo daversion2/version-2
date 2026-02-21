@@ -16,6 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.neuronudge.neuronudge",
       "buildNumber": "1",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -50,7 +51,8 @@
           "color": "#217180"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "eas": {
