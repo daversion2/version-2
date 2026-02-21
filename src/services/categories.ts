@@ -44,7 +44,7 @@ export const getUserCategories = async (userId: string): Promise<Category[]> => 
 
 export const addCategory = async (
   userId: string,
-  data: { name: string; color: string }
+  data: { name: string; color: string; icon: string }
 ): Promise<string> => {
   const existing = await getUserCategories(userId);
   if (existing.length >= MAX_CATEGORIES) {
@@ -55,6 +55,17 @@ export const addCategory = async (
   }
   const docRef = await addDoc(categoriesRef(userId), data);
   return docRef.id;
+};
+
+/**
+ * Get a category by name
+ */
+export const getCategoryByName = async (
+  userId: string,
+  categoryName: string
+): Promise<Category | null> => {
+  const categories = await getUserCategories(userId);
+  return categories.find((c) => c.name === categoryName) || null;
 };
 
 export const deleteCategory = async (userId: string, categoryId: string) => {

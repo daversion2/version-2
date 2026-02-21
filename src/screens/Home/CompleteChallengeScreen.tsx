@@ -32,6 +32,7 @@ import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughCont
 import { getUserTeam, logTeamActivity } from '../../services/teams';
 import { createFeedEntry } from '../../services/inspirationFeed';
 import { getUser } from '../../services/users';
+import { getCategoryByName } from '../../services/categories';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
@@ -129,13 +130,15 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           if (optedIn && challenge.category_id) {
             // Note: challenge.category_id contains the category name (e.g., "Physical")
             const categoryName = challenge.category_id;
+            const category = await getCategoryByName(user.uid, categoryName);
             await createFeedEntry(
               user.uid,
               categoryName,
               categoryName,
               difficulty,
               challenge.name,
-              true
+              true,
+              category?.icon
             );
           }
         } catch (feedErr) {

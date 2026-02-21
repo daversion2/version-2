@@ -19,14 +19,6 @@ import {
 } from '../../services/inspirationFeed';
 import { InspirationFeedEntry, DifficultyTier } from '../../types';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  Physical: 'fitness',
-  Mental: 'brain',
-  Social: 'chatbubbles',
-  Professional: 'briefcase',
-  Creative: 'color-palette',
-};
-
 const DIFFICULTY_COLORS: Record<DifficultyTier, string> = {
   moderate: Colors.primary,
   hard: Colors.secondary,
@@ -64,7 +56,7 @@ export const InspirationFeedScreen: React.FC = () => {
   };
 
   const renderEntry = ({ item }: { item: InspirationFeedEntry }) => {
-    const iconName = CATEGORY_ICONS[item.category_name] || 'flash';
+    const iconName = item.category_icon || 'flash';
     const difficultyColor = DIFFICULTY_COLORS[item.difficulty_tier];
     const difficultyLabel = getDifficultyTierDisplay(item.difficulty_tier);
     const isOwnEntry = item.user_id === user?.uid;

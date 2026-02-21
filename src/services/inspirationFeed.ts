@@ -56,7 +56,8 @@ export const createFeedEntry = async (
   categoryName: string,
   difficulty: number,
   challengeName: string,
-  shareTeaser: boolean = true
+  shareTeaser: boolean = true,
+  categoryIcon?: string
 ): Promise<string | null> => {
   // Only include difficulty 3+ challenges
   const tier = getDifficultyTier(difficulty);
@@ -70,6 +71,7 @@ export const createFeedEntry = async (
     user_id: userId,
     category_id: categoryId,
     category_name: categoryName,
+    category_icon: categoryIcon,
     difficulty_tier: tier,
     completed_at: now.toISOString(),
     display_timestamp: displayTimestamp.toISOString(),

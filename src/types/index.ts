@@ -24,6 +24,7 @@ export interface Category {
   id: string;
   name: string;
   color: string;
+  icon: string;
 }
 
 export type ChallengeStatus = 'active' | 'completed' | 'failed' | 'archived' | 'cancelled';
@@ -86,11 +87,11 @@ export interface LibraryChallenge {
 }
 
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
-  { name: 'Physical', color: '#217180' },
-  { name: 'Mental', color: '#FF5B02' },
-  { name: 'Social', color: '#2B2B2B' },
-  { name: 'Professional', color: '#656565' },
-  { name: 'Creative', color: '#217180' },
+  { name: 'Physical', color: '#217180', icon: 'fitness' },
+  { name: 'Mental', color: '#FF5B02', icon: 'bulb-outline' },
+  { name: 'Social', color: '#2B2B2B', icon: 'chatbubbles' },
+  { name: 'Professional', color: '#656565', icon: 'briefcase' },
+  { name: 'Creative', color: '#217180', icon: 'color-palette' },
 ];
 
 // Habit streak information
@@ -189,6 +190,7 @@ export interface InspirationFeedEntry {
   user_id: string; // For filtering (not displayed)
   category_id: string;
   category_name: string;
+  category_icon?: string;
   difficulty_tier: DifficultyTier;
   challenge_teaser?: string; // First 50 chars if opted in
   completed_at: string;

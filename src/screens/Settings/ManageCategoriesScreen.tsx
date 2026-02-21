@@ -11,6 +11,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
+import { IconPickerModal } from '../../components/common/IconPickerModal';
 import { useAuth } from '../../context/AuthContext';
 import { getUserCategories, addCategory, deleteCategory } from '../../services/categories';
 import { Category } from '../../types';
@@ -29,6 +30,8 @@ export const ManageCategoriesScreen: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
+  const [selectedIcon, setSelectedIcon] = useState('flash');
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -49,8 +52,9 @@ export const ManageCategoriesScreen: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      await addCategory(user.uid, { name: newName.trim(), color: selectedColor });
+      await addCategory(user.uid, { name: newName.trim(), color: selectedColor, icon: selectedIcon });
       setNewName('');
+      setSelectedIcon('flash');
       setShowForm(false);
       await load();
     } catch (e: any) {
@@ -88,6 +92,19 @@ export const ManageCategoriesScreen: React.FC = () => {
             onChangeText={setNewName}
             placeholder="e.g. Spiritual"
           />
+          <Text style={styles.colorLabel}>Icon</Text>
+          <TouchableOpacity
+            style={styles.iconSelector}
+            onPress={() => setShowIconPicker(true)}
+          >
+            <View style={styles.iconPreview}>
+              <Ionicons name={selectedIcon as any} size={24} color={Colors.primary} />
+            </View>
+            <Text style={styles.iconSelectorText}>
+              {selectedIcon.replace(/-/g, ' ')}
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+          </TouchableOpacity>
           <Text style={styles.colorLabel}>Color</Text>
           <View style={styles.colorRow}>
             {COLOR_OPTIONS.map((c) => (
@@ -128,7 +145,9 @@ export const ManageCategoriesScreen: React.FC = () => {
         renderItem={({ item }) => (
           <Card style={styles.catCard}>
             <View style={styles.catRow}>
-              <View style={[styles.catDot, { backgroundColor: item.color }]} />
+              <View style={[styles.catIconContainer, { backgroundColor: item.color }]}>
+                <Ionicons name={(item.icon || 'flash') as any} size={14} color={Colors.white} />
+              </View>
               <Text style={styles.catName}>{item.name}</Text>
               <TouchableOpacity onPress={() => handleDelete(item)}>
                 <Ionicons name="trash-outline" size={20} color={Colors.gray} />
@@ -139,6 +158,13 @@ export const ManageCategoriesScreen: React.FC = () => {
         ListEmptyComponent={
           <Text style={styles.empty}>No categories.</Text>
         }
+      />
+
+      <IconPickerModal
+        visible={showIconPicker}
+        selectedIcon={selectedIcon}
+        onSelect={setSelectedIcon}
+        onClose={() => setShowIconPicker(false)}
       />
     </View>
   );
@@ -166,6 +192,30 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginBottom: Spacing.sm,
   },
+  iconSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.lightGray,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  iconPreview: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  iconSelectorText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    textTransform: 'capitalize',
+  },
   colorRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -189,10 +239,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
   },
-  catDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  catIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   catName: {
     fontFamily: Fonts.primary,
