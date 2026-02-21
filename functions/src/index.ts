@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentUpdated, onDocumentCreated } from "firebase-functions/v2/firestore";
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
 
 admin.initializeApp();
@@ -229,6 +229,105 @@ export const onChallengeFailure = onDocumentUpdated(
       console.log(`Sent encouragement to user ${userId} after challenge failure`);
     } else {
       console.log("Status change condition not met");
+    }
+  }
+);
+
+// ============================================
+// 4. Team Activity Notification
+// Triggers when a team member completes a challenge or habit
+// Sends push notifications to other team members who have opted in
+// ============================================
+export const sendTeamActivityNotification = onDocumentCreated(
+  "teams/{teamId}/activity/{activityId}",
+  async (event) => {
+    console.log("sendTeamActivityNotification triggered");
+
+    const activity = event.data?.data();
+    const teamId = event.params.teamId;
+
+    if (!activity) {
+      console.log("No activity data found");
+      return;
+    }
+
+    console.log("Activity:", activity);
+
+    // Get the completing user's username
+    const completingUserDoc = await db.collection("users").doc(activity.user_id).get();
+    const completingUserData = completingUserDoc.data();
+    const username = completingUserData?.username || "A teammate";
+
+    console.log(`User ${username} completed a ${activity.type}`);
+
+    // Get all team members
+    const membersSnapshot = await db
+      .collection("teams")
+      .doc(teamId)
+      .collection("members")
+      .get();
+
+    const notifications: ExpoPushMessage[] = [];
+
+    for (const memberDoc of membersSnapshot.docs) {
+      const member = memberDoc.data();
+
+      // Skip the user who completed the activity
+      if (member.user_id === activity.user_id) {
+        console.log(`Skipping notification for completing user ${member.user_id}`);
+        continue;
+      }
+
+      // Check notification preference based on activity type
+      const settingsKey = activity.type === "challenge"
+        ? "challenge_completions"
+        : "habit_completions";
+
+      if (!member.notification_settings?.[settingsKey]) {
+        console.log(`User ${member.user_id} has ${settingsKey} notifications disabled`);
+        continue;
+      }
+
+      // Get member's push token
+      const userDoc = await db.collection("users").doc(member.user_id).get();
+      const userData = userDoc.data();
+      const pushToken = userData?.expoPushToken;
+
+      if (!pushToken) {
+        console.log(`No push token for user ${member.user_id}`);
+        continue;
+      }
+
+      if (!Expo.isExpoPushToken(pushToken)) {
+        console.log(`Invalid push token for user ${member.user_id}`);
+        continue;
+      }
+
+      // Build message without category
+      const activityType = activity.type === "challenge" ? "challenge" : "habit";
+      const title = "Team Activity";
+      const body = `${username} just completed a ${activityType}!`;
+
+      notifications.push({
+        to: pushToken,
+        sound: "default",
+        title,
+        body,
+      });
+
+      console.log(`Queued notification for user ${member.user_id}`);
+    }
+
+    // Send all notifications
+    if (notifications.length > 0) {
+      console.log(`Sending ${notifications.length} notifications`);
+      const chunks = expo.chunkPushNotifications(notifications);
+      for (const chunk of chunks) {
+        await expo.sendPushNotificationsAsync(chunk);
+      }
+      console.log("All team activity notifications sent");
+    } else {
+      console.log("No notifications to send");
     }
   }
 );

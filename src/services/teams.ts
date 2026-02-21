@@ -325,6 +325,55 @@ export const updateMember = async (
   await updateDoc(snap.docs[0].ref, data);
 };
 
+/**
+ * Update a specific notification setting for a team member
+ */
+export const updateMemberNotificationSetting = async (
+  teamId: string,
+  userId: string,
+  setting: 'challenge_completions' | 'habit_completions' | 'daily_reminders',
+  value: boolean
+): Promise<void> => {
+  const memberQuery = query(
+    teamMembersRef(teamId),
+    where('user_id', '==', userId)
+  );
+  const snap = await getDocs(memberQuery);
+  if (snap.empty) throw new Error('Member not found');
+
+  const memberDoc = snap.docs[0];
+  const currentSettings = memberDoc.data().notification_settings || {};
+
+  await updateDoc(memberDoc.ref, {
+    notification_settings: {
+      ...currentSettings,
+      [setting]: value,
+    },
+  });
+};
+
+/**
+ * Get a team member's notification settings
+ */
+export const getMemberNotificationSettings = async (
+  teamId: string,
+  userId: string
+): Promise<TeamMember['notification_settings'] | null> => {
+  const memberQuery = query(
+    teamMembersRef(teamId),
+    where('user_id', '==', userId)
+  );
+  const snap = await getDocs(memberQuery);
+  if (snap.empty) return null;
+
+  const member = snap.docs[0].data() as TeamMember;
+  return member.notification_settings || {
+    challenge_completions: true,
+    habit_completions: true,
+    daily_reminders: true,
+  };
+};
+
 // ============================================================================
 // TEAM ACTIVITY OPERATIONS
 // ============================================================================
