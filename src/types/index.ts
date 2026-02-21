@@ -310,3 +310,14 @@ export interface UserCommunityFields {
   inspiration_feed_opt_in: boolean; // Default true
   submission_ban_until?: string; // ISO timestamp if rate-limited
 }
+
+// --- Fun Facts ---
+
+export interface FunFact {
+  id: string;
+  fact: string;
+  sourceUrl?: string;
+  sourceTitle?: string;
+  order: number; // For rotation (dayOfYear % totalFacts)
+  created_at: string;
+}

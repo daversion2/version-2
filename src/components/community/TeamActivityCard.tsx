@@ -86,9 +86,10 @@ export const TeamActivityCard: React.FC<TeamActivityCardProps> = ({ team, summar
             </Text>
             {member.has_activity_today && (
               <Text style={styles.activityPreview} numberOfLines={1}>
-                {member.challenge_completed
-                  ? `${member.challenge_category} challenge`
-                  : `${member.habits_completed} habit${member.habits_completed !== 1 ? 's' : ''}`}
+                {(() => {
+                  const activityCount = member.habits_completed + (member.challenge_completed ? 1 : 0);
+                  return `${activityCount}x ${activityCount === 1 ? 'activity' : 'activities'}`;
+                })()}
               </Text>
             )}
           </View>

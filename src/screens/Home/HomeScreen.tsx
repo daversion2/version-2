@@ -38,6 +38,10 @@ import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { shouldShowPointsAlert } from '../../services/alertPreferences';
 import { TeamActivityCard } from '../../components/community/TeamActivityCard';
+import { FunFactButton } from '../../components/home/FunFactButton';
+import { FunFactModal } from '../../components/home/FunFactModal';
+import { getTodaysFunFact } from '../../services/funFacts';
+import { FunFact } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -76,6 +80,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [levelUpVisible, setLevelUpVisible] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState(0);
   const [levelUpTitle, setLevelUpTitle] = useState('');
+  const [funFact, setFunFact] = useState<FunFact | null>(null);
+  const [funFactModalVisible, setFunFactModalVisible] = useState(false);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -95,16 +101,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [challenge, habitList, cats, userTeam] = await Promise.all([
+      const [challenge, habitList, cats, userTeam, todaysFact] = await Promise.all([
         getActiveChallenge(user.uid),
         getActiveHabits(user.uid),
         getUserCategories(user.uid),
         getUserTeam(user.uid),
+        getTodaysFunFact(),
       ]);
       setActiveChallenge(challenge);
       setHabits(habitList);
       setCategories(cats);
       setTeam(userTeam);
+      setFunFact(todaysFact);
 
       // Fetch team activity summary if user has a team
       if (userTeam) {
@@ -287,6 +295,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       >
       <Text style={styles.greeting}>{getGreeting()}</Text>
 
+      {/* Neuroscience Fun Fact */}
+      {funFact && (
+        <FunFactButton onPress={() => setFunFactModalVisible(true)} />
+      )}
+
       {/* Team Activity Card */}
       {team && <TeamActivityCard team={team} summary={teamSummary} />}
 
@@ -437,6 +450,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         level={levelUpLevel}
         title={levelUpTitle}
         onContinue={() => setLevelUpVisible(false)}
+      />
+      <FunFactModal
+        visible={funFactModalVisible}
+        funFact={funFact}
+        onClose={() => setFunFactModalVisible(false)}
       />
     </View>
   );
