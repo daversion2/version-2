@@ -40,10 +40,6 @@ export const submitChallenge = async (
     variations?: string;
   }
 ): Promise<string> => {
-  // Check eligibility
-  if (userLevel < 3) {
-    throw new Error('You must be Level 3 or higher to submit challenges');
-  }
 
   // Check if user has been banned from submitting
   // (This would require checking the user document, handled at calling level)
@@ -163,10 +159,6 @@ export const canSubmitChallenge = async (
   userLevel: number,
   challengeId: string
 ): Promise<{ canSubmit: boolean; reason?: string }> => {
-  if (userLevel < 3) {
-    return { canSubmit: false, reason: 'Reach Level 3 to submit challenges' };
-  }
-
   // Check if already submitted
   const existing = await getDocs(
     query(

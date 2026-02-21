@@ -3,6 +3,7 @@ import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ChallengesScreen } from '../screens/Challenges/ChallengesScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
+import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -35,6 +36,11 @@ export const ChallengesStack: React.FC = () => (
       name="ChallengeDetail"
       component={ChallengeDetailScreen}
       options={{ title: 'Challenge' }}
+    />
+    <Stack.Screen
+      name="SubmitChallenge"
+      component={SubmitChallengeScreen}
+      options={{ title: 'Submit to Library' }}
     />
   </Stack.Navigator>
 );

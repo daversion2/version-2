@@ -17,7 +17,7 @@ import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { useAuth } from '../../context/AuthContext';
 import { submitChallenge, canSubmitChallenge } from '../../services/submissions';
 import { getChallengeById } from '../../services/challenges';
-import { getCategory } from '../../services/categories';
+import { getUserCategories } from '../../services/categories';
 import { getLevelFromPoints } from '../../services/willpower';
 import { Challenge, Category } from '../../types';
 import { showAlert } from '../../utils/alert';
@@ -67,9 +67,10 @@ export const SubmitChallengeScreen: React.FC = () => {
         setDifficulty(challengeData.difficulty_actual || challengeData.difficulty_expected);
         setSuccessCriteria(challengeData.success_criteria || '');
 
-        // Load category
-        const categoryData = await getCategory(user.uid, challengeData.category_id);
-        setCategory(categoryData);
+        // Load category - category_id contains the category name
+        const categories = await getUserCategories(user.uid);
+        const categoryData = categories.find(c => c.name === challengeData.category_id || c.id === challengeData.category_id);
+        setCategory(categoryData || null);
 
         // Check eligibility
         const userLevel = getLevelFromPoints(userProfile.totalWillpowerPoints || 0);
