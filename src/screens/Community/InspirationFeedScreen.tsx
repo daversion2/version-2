@@ -67,13 +67,21 @@ export const InspirationFeedScreen: React.FC = () => {
     const iconName = CATEGORY_ICONS[item.category_name] || 'flash';
     const difficultyColor = DIFFICULTY_COLORS[item.difficulty_tier];
     const difficultyLabel = getDifficultyTierDisplay(item.difficulty_tier);
+    const isOwnEntry = item.user_id === user?.uid;
 
     return (
       <Card style={styles.entryCard}>
         <View style={styles.entryHeader}>
-          <View style={styles.categoryBadge}>
-            <Ionicons name={iconName as any} size={16} color={Colors.primary} />
-            <Text style={styles.categoryText}>{item.category_name}</Text>
+          <View style={styles.headerLeft}>
+            <View style={styles.categoryBadge}>
+              <Ionicons name={iconName as any} size={16} color={Colors.primary} />
+              <Text style={styles.categoryText}>{item.category_name}</Text>
+            </View>
+            {isOwnEntry && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>You</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.timeText}>
             {formatRelativeTime(item.display_timestamp)}
@@ -82,7 +90,7 @@ export const InspirationFeedScreen: React.FC = () => {
 
         <View style={styles.entryContent}>
           <Text style={styles.entryText}>
-            Someone completed a{' '}
+            {isOwnEntry ? 'You' : 'Someone'} completed a{' '}
             <Text style={[styles.difficultyText, { color: difficultyColor }]}>
               {difficultyLabel}
             </Text>{' '}
@@ -182,6 +190,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: Spacing.sm,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  youBadge: {
+    backgroundColor: Colors.secondary + '20',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  youBadgeText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
   },
   categoryBadge: {
     flexDirection: 'row',

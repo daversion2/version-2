@@ -102,9 +102,7 @@ export const getInspirationFeed = async (
   const entries = snap.docs
     .map((d) => ({ id: d.id, ...d.data() } as InspirationFeedEntry))
     // Filter out expired entries
-    .filter((e) => e.expires_at > now)
-    // Filter out current user's entries
-    .filter((e) => e.user_id !== currentUserId);
+    .filter((e) => e.expires_at > now);
 
   // Shuffle the array for privacy (random order prevents identification)
   const shuffled = entries.sort(() => Math.random() - 0.5);
