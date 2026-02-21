@@ -7,6 +7,9 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
   return snap.exists() ? (snap.data() as User) : null;
 };
 
+// Alias for getUser
+export const getUser = getUserProfile;
+
 export const markOnboardingComplete = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_completed_onboarding: true }, { merge: true });
 };

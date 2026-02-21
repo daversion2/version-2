@@ -86,6 +86,28 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* Team */}
+      <Card style={styles.card} onPress={() => navigation.navigate('Team')}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>My Team</Text>
+            <Text style={styles.desc}>Join or create an accountability team</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
+      {/* My Submissions */}
+      <Card style={styles.card} onPress={() => navigation.navigate('MySubmissions')}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>My Submissions</Text>
+            <Text style={styles.desc}>Track challenges you've submitted to the library</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
       {/* Tutorial */}
       <Card style={styles.card}>
         <Text style={styles.label}>Tutorial</Text>

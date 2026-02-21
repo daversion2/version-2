@@ -2,6 +2,11 @@ import { doc, getDoc, setDoc, collection, getDocs, query } from 'firebase/firest
 import { db } from './firebase';
 import { WILLPOWER_LEVELS, STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
 
+// Get level number from total points (convenience wrapper around getLevelInfo)
+export const getLevelFromPoints = (totalPoints: number): number => {
+  return getLevelInfo(totalPoints).level;
+};
+
 // Get the streak multiplier based on current streak days
 export const getStreakMultiplier = (streakDays: number): number => {
   const tier = STREAK_MULTIPLIERS.find(

@@ -12,6 +12,10 @@ export interface User {
   totalWillpowerPoints?: number;
   currentStreak?: number;
   lastActivityDate?: string; // YYYY-MM-DD format for streak tracking
+  // Community features
+  team_id?: string;
+  inspiration_feed_opt_in?: boolean; // Default true
+  submission_ban_until?: string; // ISO timestamp if rate-limited
 }
 
 export interface Category {
@@ -104,4 +108,186 @@ export interface HabitStats {
   firstCompletionDate: string | null; // YYYY-MM-DD or null if never completed
   weeklyTrend: number[]; // Last 8 weeks completion counts (oldest to newest)
   completionsByDate: Record<string, number>; // YYYY-MM-DD -> count for calendar heat map
+}
+
+// ============================================================================
+// COMMUNITY FEATURES
+// ============================================================================
+
+// --- Teams (Accountability Groups) ---
+
+export type TeamStatus = 'active' | 'archived';
+
+export interface Team {
+  id: string;
+  name: string;
+  invite_code: string; // 6-char uppercase alphanumeric
+  creator_id: string;
+  member_ids: string[]; // Array of user IDs
+  created_at: string;
+  status: TeamStatus;
+  settings: {
+    max_members: number; // Default 5
+  };
+}
+
+export interface TeamMember {
+  id: string;
+  user_id: string;
+  display_name: string;
+  joined_at: string;
+  notification_settings: {
+    challenge_completions: boolean;
+    habit_completions: boolean;
+    daily_reminders: boolean;
+  };
+}
+
+export type TeamActivityType = 'challenge' | 'habit';
+
+export interface TeamActivity {
+  id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  type: TeamActivityType;
+  category_id: string;
+  category_name: string;
+  habit_count?: number; // If type is 'habit', how many
+  created_at: string;
+}
+
+// Aggregated view of a team member's daily activity (for display)
+export interface TeamMemberActivitySummary {
+  user_id: string;
+  display_name: string;
+  has_activity_today: boolean;
+  challenge_completed: boolean;
+  challenge_category?: string;
+  habits_completed: number;
+  last_activity_time?: string; // ISO timestamp
+  current_streak: number;
+}
+
+// --- Inspiration Feed ---
+
+export type DifficultyTier = 'moderate' | 'hard' | 'very_hard';
+
+export interface InspirationFeedEntry {
+  id: string;
+  user_id: string; // For filtering (not displayed)
+  category_id: string;
+  category_name: string;
+  difficulty_tier: DifficultyTier;
+  challenge_teaser?: string; // First 50 chars if opted in
+  completed_at: string;
+  display_timestamp: string; // Jittered for privacy
+  expires_at: string; // 48 hours after completion
+}
+
+// --- User-Submitted Challenges ---
+
+export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn';
+
+export interface ChallengeSubmission {
+  id: string;
+  user_id: string;
+  user_level: number;
+  original_challenge_id: string; // User's own challenge they're submitting
+
+  // Submission content
+  name: string;
+  category_id: string;
+  category_name: string;
+  difficulty_suggested: number; // 1-5
+  description: string;
+  success_criteria?: string;
+  tips?: string;
+  variations?: string;
+
+  // Status tracking
+  status: SubmissionStatus;
+  submitted_at: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  rejection_reason?: string;
+
+  // If approved, link to library entry
+  library_challenge_id?: string;
+}
+
+// Extended library challenge with community features
+export interface LibraryChallengeExtended extends LibraryChallenge {
+  // Source tracking
+  source: 'system' | 'user_submitted';
+  submitted_by_level?: number;
+  submitted_at?: string;
+  submission_status?: SubmissionStatus;
+  approved_at?: string;
+  approved_by?: string;
+
+  // Additional submission details
+  tips?: string;
+  variations?: string;
+
+  // Community stats
+  times_attempted: number;
+  times_completed: number;
+  average_difficulty: number; // Calculated from completions
+  review_count: number;
+  recommendation_rate: number; // Percentage who would recommend
+}
+
+// --- Challenge Reviews ---
+
+export type OverallExperience = 'positive' | 'neutral' | 'challenging';
+export type DifficultyAccuracy = 'easier' | 'about_right' | 'harder';
+
+export interface ChallengeReview {
+  id: string;
+  library_challenge_id: string;
+  user_id: string;
+  user_level: number; // Level at time of review
+  completion_id: string; // Link to user's completion
+
+  // Review content
+  overall_experience: OverallExperience;
+  difficulty_accuracy: DifficultyAccuracy;
+  what_made_it_hard?: string;
+  tips_for_success?: string;
+  would_recommend: boolean;
+
+  // Metadata
+  created_at: string;
+  updated_at?: string;
+  helpful_count: number;
+  reported: boolean;
+  hidden: boolean; // Admin can hide
+}
+
+export interface ReviewVote {
+  id: string;
+  review_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+// Aggregated review stats for display on library challenges
+export interface ChallengeReviewStats {
+  library_challenge_id: string;
+  total_reviews: number;
+  recommendation_rate: number; // Percentage who would recommend
+  difficulty_accuracy: {
+    easier: number;
+    about_right: number;
+    harder: number;
+  };
+  average_experience_score: number; // 1-3 (challenging=1, neutral=2, positive=3)
+}
+
+// --- Extended User type with community fields ---
+
+export interface UserCommunityFields {
+  team_id?: string;
+  inspiration_feed_opt_in: boolean; // Default true
+  submission_ban_until?: string; // ISO timestamp if rate-limited
 }

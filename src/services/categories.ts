@@ -2,6 +2,7 @@ import {
   collection,
   query,
   getDocs,
+  getDoc,
   addDoc,
   deleteDoc,
   doc,
@@ -13,6 +14,19 @@ const MAX_CATEGORIES = 8;
 
 const categoriesRef = (userId: string) =>
   collection(db, 'users', userId, 'categories');
+
+/**
+ * Get a single category by ID
+ */
+export const getCategory = async (
+  userId: string,
+  categoryId: string
+): Promise<Category | null> => {
+  const ref = doc(db, 'users', userId, 'categories', categoryId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as Category;
+};
 
 export const getUserCategories = async (userId: string): Promise<Category[]> => {
   const snap = await getDocs(query(categoriesRef(userId)));

@@ -29,6 +29,7 @@ import { Challenge } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
+import { getUserTeam, logTeamActivity } from '../../services/teams';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
@@ -98,6 +99,22 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       const trimmedJournal = journalEntry.trim();
       if (trimmedJournal) {
         await saveReflectionAnswers(user.uid, challenge.id, trimmedJournal);
+      }
+
+      // Log team activity if user is in a team
+      try {
+        const team = await getUserTeam(user.uid);
+        if (team) {
+          await logTeamActivity(
+            team.id,
+            user.uid,
+            'challenge',
+            challenge.category_id || '',
+            challenge.category_id || ''
+          );
+        }
+      } catch (teamErr) {
+        console.warn('Failed to log team activity:', teamErr);
       }
 
       // Calculate and award willpower points

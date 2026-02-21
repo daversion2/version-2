@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
 import { ChallengesStack } from './ChallengesStack';
 import { ProgressStack } from './ProgressStack';
+import { CommunityStack } from './CommunityStack';
 import { SettingsStack } from './SettingsStack';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
@@ -17,6 +18,8 @@ export const MainTabs: React.FC = () => (
         if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
         else if (route.name === 'Challenges')
           iconName = focused ? 'trophy' : 'trophy-outline';
+        else if (route.name === 'Community')
+          iconName = focused ? 'people' : 'people-outline';
         else if (route.name === 'Progress')
           iconName = focused ? 'bar-chart' : 'bar-chart-outline';
         else if (route.name === 'Settings')
@@ -38,6 +41,7 @@ export const MainTabs: React.FC = () => (
   >
     <Tab.Screen name="Home" component={HomeStack} />
     <Tab.Screen name="Challenges" component={ChallengesStack} />
+    <Tab.Screen name="Community" component={CommunityStack} />
     <Tab.Screen name="Progress" component={ProgressStack} />
     <Tab.Screen
       name="Settings"
