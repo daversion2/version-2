@@ -14,11 +14,12 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category } from '../../types';
+import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary } from '../../types';
 import { getActiveChallenge } from '../../services/challenges';
 import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
 import { HabitStreakInfo } from '../../types';
 import { getUserCategories } from '../../services/categories';
+import { getUserTeam, logTeamActivity, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
 import {
   calculateHabitPoints,
   updateWillpowerStats,
@@ -30,7 +31,6 @@ import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough } from '../../context/WalkthroughContext';
-import { getUserTeam, logTeamActivity } from '../../services/teams';
 import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsPopup } from '../../components/common/PointsPopup';
@@ -65,7 +65,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
-  const [teamRefreshKey, setTeamRefreshKey] = useState(0);
+  const [team, setTeam] = useState<Team | null>(null);
+  const [teamSummary, setTeamSummary] = useState<TeamMemberActivitySummary[]>([]);
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
@@ -94,14 +95,29 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [challenge, habitList, cats] = await Promise.all([
+      const [challenge, habitList, cats, userTeam] = await Promise.all([
         getActiveChallenge(user.uid),
         getActiveHabits(user.uid),
         getUserCategories(user.uid),
+        getUserTeam(user.uid),
       ]);
       setActiveChallenge(challenge);
       setHabits(habitList);
       setCategories(cats);
+      setTeam(userTeam);
+
+      // Fetch team activity summary if user has a team
+      if (userTeam) {
+        try {
+          const summary = await getTeamMemberActivitySummaryOptimized(userTeam.id);
+          setTeamSummary(summary);
+        } catch (err) {
+          console.warn('Team activity summary failed:', err);
+        }
+      } else {
+        setTeamSummary([]);
+      }
+
       try {
         const counts = await getWeeklyCompletionCounts(user.uid);
         setWeeklyCounts(counts);
@@ -125,7 +141,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadData();
-      setTeamRefreshKey((prev) => prev + 1);
     }, [loadData])
   );
 
@@ -178,9 +193,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes);
 
       // Log team activity if user is in a team
-      try {
-        const team = await getUserTeam(user.uid);
-        if (team) {
+      if (team) {
+        try {
           await logTeamActivity(
             team.id,
             user.uid,
@@ -188,9 +202,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             completingHabit.category_id,
             completingHabit.category_id
           );
+          // Refresh team summary after logging activity
+          const summary = await getTeamMemberActivitySummaryOptimized(team.id);
+          setTeamSummary(summary);
+        } catch (teamErr) {
+          console.warn('Failed to log team activity:', teamErr);
         }
-      } catch (teamErr) {
-        console.warn('Failed to log team activity:', teamErr);
       }
 
       // Calculate and award willpower points
@@ -253,9 +270,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       } catch (err) {
         console.warn('Weekly counts refresh failed:', err);
       }
-
-      // Refresh team activity card
-      setTeamRefreshKey((prev) => prev + 1);
     } catch (e) {
       console.error(e);
     }
@@ -274,7 +288,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <Text style={styles.greeting}>{getGreeting()}</Text>
 
       {/* Team Activity Card */}
-      <TeamActivityCard key={teamRefreshKey} />
+      {team && <TeamActivityCard team={team} summary={teamSummary} />}
 
       {/* Challenge Section */}
       <Text style={styles.sectionTitle}>Today's Challenge</Text>

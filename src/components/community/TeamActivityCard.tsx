@@ -1,74 +1,20 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
 import { useAuth } from '../../context/AuthContext';
-import {
-  getUserTeam,
-  getTeamMemberActivitySummary,
-  getTeamMembers,
-} from '../../services/teams';
-import { getUser } from '../../services/users';
 import { Team, TeamMemberActivitySummary } from '../../types';
 
-export const TeamActivityCard: React.FC = () => {
+interface TeamActivityCardProps {
+  team: Team;
+  summary: TeamMemberActivitySummary[];
+}
+
+export const TeamActivityCard: React.FC<TeamActivityCardProps> = ({ team, summary }) => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
-  const [loading, setLoading] = useState(true);
-  const [team, setTeam] = useState<Team | null>(null);
-  const [summary, setSummary] = useState<TeamMemberActivitySummary[]>([]);
-
-  const loadData = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const userTeam = await getUserTeam(user.uid);
-      setTeam(userTeam);
-
-      if (userTeam) {
-        const members = await getTeamMembers(userTeam.id);
-
-        // Get user streaks
-        const userStreaks: Record<string, number> = {};
-        for (const member of members) {
-          try {
-            const userData = await getUser(member.user_id);
-            userStreaks[member.user_id] = userData?.currentStreak || 0;
-          } catch {
-            userStreaks[member.user_id] = 0;
-          }
-        }
-
-        const activitySummary = await getTeamMemberActivitySummary(
-          userTeam.id,
-          userStreaks
-        );
-        setSummary(activitySummary);
-      }
-    } catch (error) {
-      console.error('Error loading team activity:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData])
-  );
-
-  // Also load on mount to handle remounts from key changes
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Don't render if no team or still loading
-  if (loading || !team) {
-    return null;
-  }
 
   const activeToday = summary.filter((m) => m.has_activity_today).length;
   const totalMembers = summary.length;

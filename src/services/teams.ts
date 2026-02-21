@@ -476,9 +476,10 @@ export const getTeamActivityRange = async (
  */
 export const getTeamMemberActivitySummary = async (
   teamId: string,
-  userStreaks: Record<string, number> // userId -> currentStreak
+  userStreaks: Record<string, number>, // userId -> currentStreak
+  prefetchedMembers?: TeamMember[] // Optional: pass already-fetched members to avoid duplicate call
 ): Promise<TeamMemberActivitySummary[]> => {
-  const members = await getTeamMembers(teamId);
+  const members = prefetchedMembers ?? await getTeamMembers(teamId);
   const todayActivity = await getTodayTeamActivity(teamId);
 
   // Group activity by user
@@ -517,6 +518,76 @@ export const getTeamMemberActivitySummary = async (
       habits_completed: totalHabits,
       last_activity_time: lastActivityTime,
       current_streak: userStreaks[member.user_id] || 0,
+    };
+  });
+};
+
+/**
+ * Optimized version that fetches all data in parallel with minimal Firestore calls
+ * - Fetches members (without usernames) and today's activity in parallel
+ * - Then fetches all user data (for both usernames AND streaks) in a single parallel batch
+ */
+export const getTeamMemberActivitySummaryOptimized = async (
+  teamId: string
+): Promise<TeamMemberActivitySummary[]> => {
+  // Step 1: Fetch members list and today's activity in parallel
+  // Use raw member docs to avoid the extra username fetch in getTeamMembers
+  const [membersSnap, todayActivity] = await Promise.all([
+    getDocs(teamMembersRef(teamId)),
+    getTodayTeamActivity(teamId),
+  ]);
+
+  const members = membersSnap.docs.map((d) => ({ id: d.id, ...d.data() } as TeamMember));
+
+  // Step 2: Fetch all user data in parallel (one call per user, but we only do it once)
+  const userIds = members.map((m) => m.user_id);
+  const userData: Record<string, User | null> = {};
+
+  await Promise.all(
+    userIds.map(async (userId) => {
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDoc(userRef);
+      userData[userId] = userSnap.exists() ? (userSnap.data() as User) : null;
+    })
+  );
+
+  // Group activity by user
+  const activityByUser: Record<string, TeamActivity[]> = {};
+  todayActivity.forEach((a) => {
+    if (!activityByUser[a.user_id]) activityByUser[a.user_id] = [];
+    activityByUser[a.user_id].push(a);
+  });
+
+  return members.map((member) => {
+    const user = userData[member.user_id];
+    const userActivity = activityByUser[member.user_id] || [];
+    const challengeActivity = userActivity.find((a) => a.type === 'challenge');
+    const habitActivities = userActivity.filter((a) => a.type === 'habit');
+    const totalHabits = habitActivities.reduce(
+      (sum, a) => sum + (a.habit_count || 1),
+      0
+    );
+
+    // Find most recent activity time
+    let lastActivityTime: string | undefined;
+    if (userActivity.length > 0) {
+      const sorted = userActivity.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      lastActivityTime = sorted[0].created_at;
+    }
+
+    return {
+      user_id: member.user_id,
+      display_name: member.display_name,
+      username: user?.username,
+      has_activity_today: userActivity.length > 0,
+      challenge_completed: !!challengeActivity,
+      challenge_category: challengeActivity?.category_name,
+      habits_completed: totalHabits,
+      last_activity_time: lastActivityTime,
+      current_streak: user?.currentStreak || 0,
     };
   });
 };
