@@ -118,7 +118,7 @@ const fetchUsernames = async (userIds: string[]): Promise<Record<string, string 
 /**
  * Get inspiration feed entries for display
  * Excludes the current user's entries and expired entries
- * Returns shuffled (not chronological) to protect privacy
+ * Returns sorted by most recent first
  */
 export const getInspirationFeed = async (
   currentUserId: string,
@@ -144,11 +144,13 @@ export const getInspirationFeed = async (
     username: usernames[entry.user_id] || entry.username,
   }));
 
-  // Shuffle the array for privacy (random order prevents identification)
-  const shuffled = entriesWithUsernames.sort(() => Math.random() - 0.5);
+  // Sort by most recent first (using completed_at timestamp)
+  const sorted = entriesWithUsernames.sort(
+    (a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime()
+  );
 
   // Return limited number of entries
-  return shuffled.slice(0, maxEntries);
+  return sorted.slice(0, maxEntries);
 };
 
 /**
