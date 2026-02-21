@@ -16,6 +16,8 @@ export interface User {
   team_id?: string;
   inspiration_feed_opt_in?: boolean; // Default true
   submission_ban_until?: string; // ISO timestamp if rate-limited
+  // Admin
+  is_admin?: boolean;
 }
 
 export interface Category {

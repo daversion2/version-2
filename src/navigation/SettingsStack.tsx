@@ -10,6 +10,7 @@ import { JoinTeamScreen } from '../screens/Community/JoinTeamScreen';
 import { TeamDetailScreen } from '../screens/Community/TeamDetailScreen';
 import { MySubmissionsScreen } from '../screens/Community/MySubmissionsScreen';
 import { PrivacySettingsScreen } from '../screens/Settings/PrivacySettingsScreen';
+import { AdminSubmissionsScreen } from '../screens/Settings/AdminSubmissionsScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -77,6 +78,11 @@ export const SettingsStack: React.FC = () => (
       name="PrivacySettings"
       component={PrivacySettingsScreen}
       options={{ title: 'Privacy' }}
+    />
+    <Stack.Screen
+      name="AdminSubmissions"
+      component={AdminSubmissionsScreen}
+      options={{ title: 'Review Submissions' }}
     />
   </Stack.Navigator>
 );

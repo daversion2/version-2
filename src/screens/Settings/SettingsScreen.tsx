@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
-import { resetOnboarding } from '../../services/users';
+import { resetOnboarding, getUser } from '../../services/users';
 import {
   scheduleMorningReminder,
   scheduleEveningReminder,
@@ -22,6 +22,20 @@ export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough, restartWalkthrough } = useWalkthrough();
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) return;
+      try {
+        const userData = await getUser(user.uid);
+        setIsAdmin(userData?.is_admin === true);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const handleReplayOnboarding = async () => {
     if (!user) return;
@@ -118,6 +132,19 @@ export const SettingsScreen: React.FC = () => {
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
       </Card>
+
+      {/* Admin - only visible to admins */}
+      {isAdmin && (
+        <Card style={styles.card} onPress={() => navigation.navigate('AdminSubmissions')}>
+          <View style={styles.navRow}>
+            <View>
+              <Text style={styles.label}>Review Submissions</Text>
+              <Text style={styles.desc}>Approve or reject community challenge submissions</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+          </View>
+        </Card>
+      )}
 
       {/* Tutorial */}
       <Card style={styles.card}>
