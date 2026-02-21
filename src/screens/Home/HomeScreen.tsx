@@ -30,12 +30,14 @@ import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough } from '../../context/WalkthroughContext';
+import { getUserTeam, logTeamActivity } from '../../services/teams';
 import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { shouldShowPointsAlert } from '../../services/alertPreferences';
+import { TeamActivityCard } from '../../components/community/TeamActivityCard';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -63,6 +65,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
+  const [teamRefreshKey, setTeamRefreshKey] = useState(0);
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
@@ -122,6 +125,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       loadData();
+      setTeamRefreshKey((prev) => prev + 1);
     }, [loadData])
   );
 
@@ -172,6 +176,22 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (!user || !completingHabit) return;
     try {
       await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes);
+
+      // Log team activity if user is in a team
+      try {
+        const team = await getUserTeam(user.uid);
+        if (team) {
+          await logTeamActivity(
+            team.id,
+            user.uid,
+            'habit',
+            completingHabit.category_id,
+            completingHabit.category_id
+          );
+        }
+      } catch (teamErr) {
+        console.warn('Failed to log team activity:', teamErr);
+      }
 
       // Calculate and award willpower points
       const difficultyNum = difficulty === 'easy' ? 1 : 2;
@@ -233,6 +253,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       } catch (err) {
         console.warn('Weekly counts refresh failed:', err);
       }
+
+      // Refresh team activity card
+      setTeamRefreshKey((prev) => prev + 1);
     } catch (e) {
       console.error(e);
     }
@@ -249,6 +272,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       >
       <Text style={styles.greeting}>{getGreeting()}</Text>
+
+      {/* Team Activity Card */}
+      <TeamActivityCard key={teamRefreshKey} />
 
       {/* Challenge Section */}
       <Text style={styles.sectionTitle}>Today's Challenge</Text>
