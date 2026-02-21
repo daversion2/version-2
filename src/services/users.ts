@@ -37,3 +37,10 @@ export const savePushTokenAndTimezone = async (
 ): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { expoPushToken: token, timezone }, { merge: true });
 };
+
+export const updateInspirationFeedOptIn = async (
+  userId: string,
+  optIn: boolean
+): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { inspiration_feed_opt_in: optIn }, { merge: true });
+};

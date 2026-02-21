@@ -108,6 +108,17 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* Privacy */}
+      <Card style={styles.card} onPress={() => navigation.navigate('PrivacySettings')}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>Privacy</Text>
+            <Text style={styles.desc}>Control how your activity is shared</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
       {/* Tutorial */}
       <Card style={styles.card}>
         <Text style={styles.label}>Tutorial</Text>

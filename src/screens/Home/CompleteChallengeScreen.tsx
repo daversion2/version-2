@@ -30,6 +30,8 @@ import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { getUserTeam, logTeamActivity } from '../../services/teams';
+import { createFeedEntry } from '../../services/inspirationFeed';
+import { getUser } from '../../services/users';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
@@ -115,6 +117,30 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         }
       } catch (teamErr) {
         console.warn('Failed to log team activity:', teamErr);
+      }
+
+      // Add to inspiration feed if completed and difficulty 3+
+      if (result === 'completed' && difficulty >= 3) {
+        try {
+          const userData = await getUser(user.uid);
+          // Default to opted in if not explicitly set
+          const optedIn = userData?.inspiration_feed_opt_in !== false;
+
+          if (optedIn && challenge.category_id) {
+            // Note: challenge.category_id contains the category name (e.g., "Physical")
+            const categoryName = challenge.category_id;
+            await createFeedEntry(
+              user.uid,
+              categoryName,
+              categoryName,
+              difficulty,
+              challenge.name,
+              true
+            );
+          }
+        } catch (feedErr) {
+          console.warn('Failed to create inspiration feed entry:', feedErr);
+        }
       }
 
       // Calculate and award willpower points

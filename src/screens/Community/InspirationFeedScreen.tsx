@@ -7,11 +7,10 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import {
   getInspirationFeed,
@@ -36,7 +35,6 @@ const DIFFICULTY_COLORS: Record<DifficultyTier, string> = {
 
 export const InspirationFeedScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [entries, setEntries] = useState<InspirationFeedEntry[]>([]);
@@ -63,13 +61,6 @@ export const InspirationFeedScreen: React.FC = () => {
   const handleRefresh = () => {
     setRefreshing(true);
     loadFeed();
-  };
-
-  const handleTrySimilar = (entry: InspirationFeedEntry) => {
-    // Navigate to challenge library filtered by category
-    navigation.navigate('ChallengeLibrary', {
-      filterCategory: entry.category_name,
-    });
   };
 
   const renderEntry = ({ item }: { item: InspirationFeedEntry }) => {
@@ -102,13 +93,6 @@ export const InspirationFeedScreen: React.FC = () => {
             <Text style={styles.teaserText}>"{item.challenge_teaser}"</Text>
           )}
         </View>
-
-        <Button
-          title="Try Something Similar"
-          onPress={() => handleTrySimilar(item)}
-          variant="outline"
-          style={styles.tryButton}
-        />
       </Card>
     );
   };
@@ -238,9 +222,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: Spacing.sm,
     lineHeight: 20,
-  },
-  tryButton: {
-    marginTop: Spacing.xs,
   },
   emptyState: {
     alignItems: 'center',
