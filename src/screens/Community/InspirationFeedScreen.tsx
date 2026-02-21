@@ -82,7 +82,7 @@ export const InspirationFeedScreen: React.FC = () => {
 
         <View style={styles.entryContent}>
           <Text style={styles.entryText}>
-            {isOwnEntry ? 'You' : 'Someone'} completed a{' '}
+            {isOwnEntry ? 'You' : (item.username || 'Someone')} completed a{' '}
             <Text style={[styles.difficultyText, { color: difficultyColor }]}>
               {difficultyLabel}
             </Text>{' '}

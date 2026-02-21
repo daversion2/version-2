@@ -19,6 +19,7 @@ import {
   TeamActivity,
   TeamMemberActivitySummary,
   TeamActivityFeedItem,
+  User,
 } from '../types';
 
 // Teams are stored in a top-level collection since they're shared across users
@@ -46,6 +47,27 @@ const generateInviteCode = (): string => {
 const getTodayStr = (): string => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
+/**
+ * Fetch usernames for a list of user IDs
+ * Returns a map of userId -> username
+ */
+const fetchUsernames = async (userIds: string[]): Promise<Record<string, string | undefined>> => {
+  const usernames: Record<string, string | undefined> = {};
+
+  // Fetch users in parallel
+  const userPromises = userIds.map(async (userId) => {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const userData = userSnap.data() as User;
+      usernames[userId] = userData.username;
+    }
+  });
+
+  await Promise.all(userPromises);
+  return usernames;
 };
 
 // ============================================================================
@@ -268,11 +290,21 @@ export const removeMember = async (
 };
 
 /**
- * Get all members of a team
+ * Get all members of a team (with usernames)
  */
 export const getTeamMembers = async (teamId: string): Promise<TeamMember[]> => {
   const snap = await getDocs(teamMembersRef(teamId));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as TeamMember));
+  const members = snap.docs.map((d) => ({ id: d.id, ...d.data() } as TeamMember));
+
+  // Fetch usernames for all members
+  const userIds = members.map((m) => m.user_id);
+  const usernames = await fetchUsernames(userIds);
+
+  // Add usernames to members
+  return members.map((m) => ({
+    ...m,
+    username: usernames[m.user_id],
+  }));
 };
 
 /**
@@ -337,7 +369,7 @@ export const getTodayTeamActivity = async (
 };
 
 /**
- * Get today's activity as a feed (individual items with display names)
+ * Get today's activity as a feed (individual items with display names and usernames)
  * Sorted by most recent first
  */
 export const getTodayTeamActivityFeed = async (
@@ -346,10 +378,12 @@ export const getTodayTeamActivityFeed = async (
   const members = await getTeamMembers(teamId);
   const todayActivity = await getTodayTeamActivity(teamId);
 
-  // Create a map of user_id -> display_name
+  // Create maps of user_id -> display_name and user_id -> username
   const displayNames: Record<string, string> = {};
+  const usernames: Record<string, string | undefined> = {};
   members.forEach((m) => {
     displayNames[m.user_id] = m.display_name;
+    usernames[m.user_id] = m.username;
   });
 
   // Map activities to feed items and sort by time (most recent first)
@@ -358,6 +392,7 @@ export const getTodayTeamActivityFeed = async (
       id: activity.id,
       user_id: activity.user_id,
       display_name: displayNames[activity.user_id] || 'Unknown',
+      username: usernames[activity.user_id],
       type: activity.type,
       category_name: activity.category_name,
       created_at: activity.created_at,
@@ -426,6 +461,7 @@ export const getTeamMemberActivitySummary = async (
     return {
       user_id: member.user_id,
       display_name: member.display_name,
+      username: member.username,
       has_activity_today: userActivity.length > 0,
       challenge_completed: !!challengeActivity,
       challenge_category: challengeActivity?.category_name,

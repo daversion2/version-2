@@ -172,7 +172,7 @@ export const TeamDetailScreen: React.FC = () => {
                 </View>
                 <View style={styles.memberInfo}>
                   <Text style={styles.memberName}>
-                    {activity.display_name}
+                    {activity.username || activity.display_name}
                     {activity.user_id === user?.uid && (
                       <Text style={styles.youBadge}> (You)</Text>
                     )}
@@ -242,7 +242,7 @@ export const TeamDetailScreen: React.FC = () => {
               <Ionicons name="person" size={16} color={Colors.white} />
             </View>
             <Text style={styles.memberListName}>
-              {member.display_name}
+              {member.username || member.display_name}
               {member.user_id === team.creator_id && (
                 <Text style={styles.creatorBadge}> (Creator)</Text>
               )}

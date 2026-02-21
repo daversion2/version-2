@@ -3,6 +3,7 @@
 export interface User {
   id: string;
   email: string;
+  username?: string;
   created_at: string;
   has_completed_onboarding?: boolean;
   has_completed_walkthrough?: boolean;
@@ -138,6 +139,7 @@ export interface TeamMember {
   id: string;
   user_id: string;
   display_name: string;
+  username?: string; // Fetched from User document for display
   joined_at: string;
   notification_settings: {
     challenge_completions: boolean;
@@ -163,6 +165,7 @@ export interface TeamActivity {
 export interface TeamMemberActivitySummary {
   user_id: string;
   display_name: string;
+  username?: string; // User's username for display
   has_activity_today: boolean;
   challenge_completed: boolean;
   challenge_category?: string;
@@ -176,6 +179,7 @@ export interface TeamActivityFeedItem {
   id: string;
   user_id: string;
   display_name: string;
+  username?: string; // User's username for display
   type: TeamActivityType;
   category_name: string;
   created_at: string;
@@ -188,6 +192,7 @@ export type DifficultyTier = 'moderate' | 'hard' | 'very_hard';
 export interface InspirationFeedEntry {
   id: string;
   user_id: string; // For filtering (not displayed)
+  username?: string;
   category_id: string;
   category_name: string;
   category_icon?: string;

@@ -135,7 +135,7 @@ export const TeamActivityCard: React.FC = () => {
               ]}
               numberOfLines={1}
             >
-              {member.display_name}
+              {member.username || member.display_name}
               {member.user_id === user?.uid ? ' (You)' : ''}
             </Text>
             {member.has_activity_today && (

@@ -5,12 +5,13 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   orderBy,
   limit,
   deleteDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { InspirationFeedEntry, DifficultyTier } from '../types';
+import { InspirationFeedEntry, DifficultyTier, User } from '../types';
 
 // Inspiration feed is a top-level collection shared across all users
 const feedRef = () => collection(db, 'inspirationFeed');
@@ -57,7 +58,8 @@ export const createFeedEntry = async (
   difficulty: number,
   challengeName: string,
   shareTeaser: boolean = true,
-  categoryIcon?: string
+  categoryIcon?: string,
+  username?: string
 ): Promise<string | null> => {
   // Only include difficulty 3+ challenges
   const tier = getDifficultyTier(difficulty);
@@ -69,6 +71,7 @@ export const createFeedEntry = async (
 
   const entryData: Omit<InspirationFeedEntry, 'id'> = {
     user_id: userId,
+    username: username,
     category_id: categoryId,
     category_name: categoryName,
     category_icon: categoryIcon,
@@ -85,6 +88,31 @@ export const createFeedEntry = async (
 
   const docRef = await addDoc(feedRef(), entryData);
   return docRef.id;
+};
+
+/**
+ * Fetch usernames for a list of user IDs
+ * Returns a map of userId -> username
+ */
+const fetchUsernames = async (userIds: string[]): Promise<Record<string, string | undefined>> => {
+  const usernames: Record<string, string | undefined> = {};
+  const uniqueIds = [...new Set(userIds)];
+
+  const userPromises = uniqueIds.map(async (userId) => {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data() as User;
+        usernames[userId] = userData.username;
+      }
+    } catch {
+      // Ignore errors for individual user fetches
+    }
+  });
+
+  await Promise.all(userPromises);
+  return usernames;
 };
 
 /**
@@ -106,8 +134,18 @@ export const getInspirationFeed = async (
     // Filter out expired entries
     .filter((e) => e.expires_at > now);
 
+  // Fetch usernames for all entries (to get current usernames and fill in missing ones)
+  const userIds = entries.map((e) => e.user_id);
+  const usernames = await fetchUsernames(userIds);
+
+  // Add/update usernames to entries
+  const entriesWithUsernames = entries.map((entry) => ({
+    ...entry,
+    username: usernames[entry.user_id] || entry.username,
+  }));
+
   // Shuffle the array for privacy (random order prevents identification)
-  const shuffled = entries.sort(() => Math.random() - 0.5);
+  const shuffled = entriesWithUsernames.sort(() => Math.random() - 0.5);
 
   // Return limited number of entries
   return shuffled.slice(0, maxEntries);

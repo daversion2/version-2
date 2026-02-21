@@ -202,7 +202,7 @@ export const TeamScreen: React.FC = () => {
               <Ionicons name="person" size={16} color={Colors.white} />
             </View>
             <Text style={styles.memberName}>
-              {member.display_name}
+              {member.username || member.display_name}
               {member.user_id === team.creator_id && (
                 <Text style={styles.creatorBadge}> (Creator)</Text>
               )}

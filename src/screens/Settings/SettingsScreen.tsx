@@ -23,18 +23,20 @@ export const SettingsScreen: React.FC = () => {
   const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough, restartWalkthrough } = useWalkthrough();
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
   const [isAdmin, setIsAdmin] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const loadUserData = async () => {
       if (!user) return;
       try {
         const userData = await getUser(user.uid);
         setIsAdmin(userData?.is_admin === true);
+        setUsername(userData?.username || null);
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('Error loading user data:', error);
       }
     };
-    checkAdmin();
+    loadUserData();
   }, [user]);
 
   const handleReplayOnboarding = async () => {
@@ -73,9 +75,15 @@ export const SettingsScreen: React.FC = () => {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
       {/* Profile */}
-      <Card style={styles.card}>
-        <Text style={styles.label}>Account</Text>
-        <Text style={styles.email}>{user?.email || 'Not signed in'}</Text>
+      <Card style={styles.card} onPress={() => navigation.navigate('EditProfile')}>
+        <View style={styles.navRow}>
+          <View style={styles.profileInfo}>
+            <Text style={styles.label}>Profile</Text>
+            {username && <Text style={styles.username}>@{username}</Text>}
+            <Text style={styles.email}>{user?.email || 'Not signed in'}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
       </Card>
 
       {/* Categories */}
@@ -228,8 +236,17 @@ const styles = StyleSheet.create({
   },
   email: {
     fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.gray,
+  },
+  username: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    marginBottom: Spacing.xs,
+  },
+  profileInfo: {
+    flex: 1,
   },
   desc: {
     fontFamily: Fonts.secondary,

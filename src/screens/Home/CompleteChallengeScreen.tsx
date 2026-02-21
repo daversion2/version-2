@@ -138,7 +138,8 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
               difficulty,
               challenge.name,
               true,
-              category?.icon
+              category?.icon,
+              userData?.username
             );
           }
         } catch (feedErr) {
