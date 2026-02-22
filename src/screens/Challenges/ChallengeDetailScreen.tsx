@@ -7,9 +7,8 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { getChallengeById, deleteChallenge, getChallengeRepeatStats } from '../../services/challenges';
-import { getUserCategories } from '../../services/categories';
 import { canSubmitChallenge } from '../../services/submissions';
-import { Challenge, Category, ChallengeRepeatStats } from '../../types';
+import { Challenge, ChallengeRepeatStats } from '../../types';
 import { showConfirm, showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'ChallengeDetail'>;
@@ -32,9 +31,8 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
         const c = await getChallengeById(user.uid, challengeId);
         setChallenge(c);
         if (c) {
-          const cats = await getUserCategories(user.uid);
-          const cat = cats.find((ct: Category) => ct.id === c.category_id);
-          setCategoryName(cat?.name || 'Unknown');
+          // category_id actually stores the category name, not ID
+          setCategoryName(c.category_id || 'Uncategorized');
 
           // Fetch repeat stats for this challenge name
           const stats = await getChallengeRepeatStats(user.uid, c.name);

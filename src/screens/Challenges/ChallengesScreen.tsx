@@ -7,8 +7,7 @@ import { Card } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
 import { getPastChallenges } from '../../services/challenges';
 import { getChallengeSummaryStats, ChallengeSummaryStats } from '../../services/challengeStats';
-import { getUserCategories } from '../../services/categories';
-import { Challenge, Category } from '../../types';
+import { Challenge } from '../../types';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
@@ -24,22 +23,17 @@ export const ChallengesScreen: React.FC = () => {
     successRate: 0,
   });
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [categoryMap, setCategoryMap] = useState<Map<string, string>>(new Map());
 
   useFocusEffect(
     useCallback(() => {
       if (!user) return;
       (async () => {
-        const [s, c, cats] = await Promise.all([
+        const [s, c] = await Promise.all([
           getChallengeSummaryStats(user.uid),
           getPastChallenges(user.uid),
-          getUserCategories(user.uid),
         ]);
         setStats(s);
         setChallenges(c);
-        const map = new Map<string, string>();
-        cats.forEach((cat: Category) => map.set(cat.id, cat.name));
-        setCategoryMap(map);
       })();
     }, [user])
   );
@@ -59,7 +53,7 @@ export const ChallengesScreen: React.FC = () => {
           </View>
           <View style={styles.itemMeta}>
             <Text style={styles.metaText}>
-              {categoryMap.get(item.category_id) || 'Unknown'}
+              {item.category_id || 'Uncategorized'}
             </Text>
             <Text style={styles.metaText}>{item.date}</Text>
             <Text style={[styles.metaText, { color: statusColor }]}>
