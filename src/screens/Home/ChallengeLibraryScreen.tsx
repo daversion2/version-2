@@ -51,6 +51,7 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
   // Detail modal state
   const [selectedChallenge, setSelectedChallenge] = useState<LibraryChallenge | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [isCreatingChallenge, setIsCreatingChallenge] = useState(false);
 
   // Build current filters object
   const currentFilters: ChallengeFilters = {
@@ -91,7 +92,8 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
 
   // Handle using a challenge with selected duration
   const handleUseChallenge = async (challenge: LibraryChallenge, duration: number) => {
-    if (!user) return;
+    if (!user || isCreatingChallenge) return;
+    setIsCreatingChallenge(true);
     try {
       const isExtended = duration > 1;
 
@@ -117,9 +119,12 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
         what_youll_learn: challenge.what_youll_learn,
         common_resistance: challenge.common_resistance,
       });
+      setDetailModalVisible(false);
       navigation.popToTop();
     } catch (e: any) {
       showAlert('Error', e.message);
+    } finally {
+      setIsCreatingChallenge(false);
     }
   };
 
@@ -246,6 +251,7 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
         challenge={selectedChallenge}
         onClose={() => setDetailModalVisible(false)}
         onUseChallenge={handleUseChallenge}
+        isCreating={isCreatingChallenge}
       />
     </View>
   );

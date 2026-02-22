@@ -58,6 +58,7 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
   // Detail modal state
   const [selectedChallenge, setSelectedChallenge] = useState<LibraryChallenge | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [isCreatingChallenge, setIsCreatingChallenge] = useState(false);
 
   // Set navigation title
   useEffect(() => {
@@ -98,7 +99,8 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
 
   // Handle using a challenge with selected duration
   const handleUseChallenge = async (challenge: LibraryChallenge, duration: number) => {
-    if (!user) return;
+    if (!user || isCreatingChallenge) return;
+    setIsCreatingChallenge(true);
     try {
       const isExtended = duration > 1;
 
@@ -124,9 +126,12 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
         what_youll_learn: challenge.what_youll_learn,
         common_resistance: challenge.common_resistance,
       });
+      setDetailModalVisible(false);
       navigation.popToTop();
     } catch (e: any) {
       showAlert('Error', e.message);
+    } finally {
+      setIsCreatingChallenge(false);
     }
   };
 
@@ -241,6 +246,7 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
         challenge={selectedChallenge}
         onClose={() => setDetailModalVisible(false)}
         onUseChallenge={handleUseChallenge}
+        isCreating={isCreatingChallenge}
       />
     </View>
   );

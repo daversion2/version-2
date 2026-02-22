@@ -77,6 +77,12 @@ export function getCurrentDayNumber(startDate: string): number {
   today.setHours(0, 0, 0, 0);
   const diffTime = today.getTime() - start.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  // Guard against future start dates - return 0 if challenge hasn't started yet
+  if (diffDays < 0) {
+    return 0;
+  }
+
   return diffDays + 1; // Day 1 is the start date
 }
 
@@ -497,6 +503,25 @@ export const updateChallenge = async (
     duration_days?: number;
   }
 ): Promise<void> => {
+  // Input validation
+  if (updates.name !== undefined && updates.name.trim() === '') {
+    throw new Error('Challenge name cannot be empty');
+  }
+
+  if (updates.difficulty_expected !== undefined) {
+    if (!Number.isInteger(updates.difficulty_expected) ||
+        updates.difficulty_expected < 1 ||
+        updates.difficulty_expected > 5) {
+      throw new Error('Difficulty must be a number between 1 and 5');
+    }
+  }
+
+  if (updates.duration_days !== undefined) {
+    if (!Number.isInteger(updates.duration_days) || updates.duration_days < 1) {
+      throw new Error('Duration must be a positive number of days');
+    }
+  }
+
   const challengeRef = doc(db, 'users', userId, 'challenges', challengeId);
   const challengeSnap = await getDoc(challengeRef);
 
@@ -514,7 +539,7 @@ export const updateChallenge = async (
   // Build update object, filtering out undefined values
   const updateData: Partial<Challenge> = {};
 
-  if (updates.name !== undefined) updateData.name = updates.name;
+  if (updates.name !== undefined) updateData.name = updates.name.trim();
   if (updates.category_id !== undefined) updateData.category_id = updates.category_id;
   if (updates.difficulty_expected !== undefined) updateData.difficulty_expected = updates.difficulty_expected;
   if (updates.description !== undefined) updateData.description = updates.description;
@@ -524,7 +549,9 @@ export const updateChallenge = async (
   // Handle deadline (can be set to null to remove)
   if (updates.deadline !== undefined) {
     if (updates.deadline === null) {
-      // Remove deadline - set to empty string (Firestore doesn't support deleting fields easily)
+      // Remove deadline by setting to undefined (will be filtered out, effectively removing the field)
+      // For Firestore, we use deleteField() equivalent by not including it in the update
+      // Since we can't easily delete, we set to empty string which is handled as "no deadline" in UI
       updateData.deadline = '';
     } else {
       updateData.deadline = updates.deadline;

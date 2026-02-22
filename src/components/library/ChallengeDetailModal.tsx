@@ -33,7 +33,8 @@ interface ChallengeDetailModalProps {
   visible: boolean;
   challenge: LibraryChallenge | null;
   onClose: () => void;
-  onUseChallenge: (challenge: LibraryChallenge, duration: number) => void;
+  onUseChallenge: (challenge: LibraryChallenge, duration: number) => Promise<void>;
+  isCreating?: boolean;
 }
 
 export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
@@ -41,6 +42,7 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
   challenge,
   onClose,
   onUseChallenge,
+  isCreating = false,
 }) => {
   const [showExamplesModal, setShowExamplesModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
@@ -79,9 +81,9 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
     return timeCategory?.description ?? '';
   };
 
-  const handleUseChallenge = () => {
-    onUseChallenge(challenge, selectedDuration);
-    onClose();
+  const handleUseChallenge = async () => {
+    await onUseChallenge(challenge, selectedDuration);
+    // Note: onClose is called by parent after successful creation
   };
 
   return (
@@ -273,12 +275,17 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
           )}
 
           <TouchableOpacity
-            style={styles.useButton}
+            style={[styles.useButton, isCreating && styles.useButtonDisabled]}
             onPress={handleUseChallenge}
             activeOpacity={0.8}
+            disabled={isCreating}
           >
             <Text style={styles.useButtonText}>
-              {selectedDuration === 1 ? 'Start Challenge' : `Start ${selectedDuration}-Day Challenge`}
+              {isCreating
+                ? 'Starting...'
+                : selectedDuration === 1
+                  ? 'Start Challenge'
+                  : `Start ${selectedDuration}-Day Challenge`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -491,6 +498,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
     alignItems: 'center',
+  },
+  useButtonDisabled: {
+    opacity: 0.6,
   },
   useButtonText: {
     fontFamily: Fonts.primaryBold,

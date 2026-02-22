@@ -49,17 +49,22 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     if (user) {
-      getUserCategories(user.uid).then((cats) => {
-        // Filter to only show the core three domains (Physical, Social, Mind)
-        const coreCats = cats.filter(c => coreDomainNames.includes(c.name));
-        setCategories(coreCats);
+      getUserCategories(user.uid)
+        .then((cats) => {
+          // Filter to only show the core three domains (Physical, Social, Mind)
+          const coreCats = cats.filter(c => coreDomainNames.includes(c.name));
+          setCategories(coreCats);
 
-        // Set initial category index based on challenge's category
-        if (challenge?.category_id) {
-          const idx = coreCats.findIndex(c => c.name === challenge.category_id);
-          if (idx >= 0) setCategoryIdx(idx);
-        }
-      });
+          // Set initial category index based on challenge's category
+          if (challenge?.category_id) {
+            const idx = coreCats.findIndex(c => c.name === challenge.category_id);
+            if (idx >= 0) setCategoryIdx(idx);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load categories:', err);
+          showAlert('Error', 'Failed to load categories. Please try again.');
+        });
     }
   }, [user, challenge?.category_id]);
 
