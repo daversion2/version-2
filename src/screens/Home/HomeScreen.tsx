@@ -332,6 +332,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                 </View>
               )}
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  navigation.navigate('EditChallenge', { challenge: activeChallenge });
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="pencil" size={18} color={Colors.gray} />
+              </TouchableOpacity>
               <View style={styles.diffBadge}>
                 <Text style={styles.diffText}>{activeChallenge.difficulty_expected}</Text>
               </View>
@@ -368,7 +378,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.extendedCard}
             onPress={() => navigation.navigate('ExtendedChallengeProgress', { challenge: extendedChallenge })}
           >
-            <Text style={styles.challengeName}>{extendedChallenge.name}</Text>
+            <View style={styles.extendedHeader}>
+              <Text style={styles.challengeName}>{extendedChallenge.name}</Text>
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  navigation.navigate('EditChallenge', { challenge: extendedChallenge });
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="pencil" size={18} color={Colors.gray} />
+              </TouchableOpacity>
+            </View>
             <Text style={styles.extendedDayInfo}>
               Day {Math.min(getCurrentDayNumber(extendedChallenge.start_date), extendedChallenge.milestones.length)} of {extendedChallenge.milestones.length}
             </Text>
@@ -546,6 +568,11 @@ const styles = StyleSheet.create({
   },
   challengeCard: { borderLeftWidth: 4, borderLeftColor: Colors.secondary },
   extendedCard: { borderLeftWidth: 4, borderLeftColor: Colors.primary },
+  extendedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   extendedDayInfo: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
@@ -585,6 +612,9 @@ const styles = StyleSheet.create({
   actionBadgeText: {
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.xs,
+  },
+  editBtn: {
+    padding: Spacing.xs,
   },
   challengeName: {
     fontFamily: Fonts.primaryBold,

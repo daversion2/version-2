@@ -5,25 +5,40 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 interface Props {
   value: number;
   onChange: (days: number) => void;
+  minDays?: number; // Minimum selectable days (for editing with completed milestones)
 }
 
 const PRESET_DURATIONS = [3, 7, 14, 21, 30];
 
-export const DurationSelector: React.FC<Props> = ({ value, onChange }) => (
+export const DurationSelector: React.FC<Props> = ({ value, onChange, minDays = 3 }) => (
   <View style={styles.container}>
     <Text style={styles.label}>How many days?</Text>
     <View style={styles.row}>
-      {PRESET_DURATIONS.map((days) => (
-        <TouchableOpacity
-          key={days}
-          style={[styles.chip, value === days && styles.selected]}
-          onPress={() => onChange(days)}
-        >
-          <Text style={[styles.chipText, value === days && styles.selectedText]}>
-            {days}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {PRESET_DURATIONS.map((days) => {
+        const isDisabled = days < minDays;
+        return (
+          <TouchableOpacity
+            key={days}
+            style={[
+              styles.chip,
+              value === days && styles.selected,
+              isDisabled && styles.disabled,
+            ]}
+            onPress={() => !isDisabled && onChange(days)}
+            disabled={isDisabled}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                value === days && styles.selectedText,
+                isDisabled && styles.disabledText,
+              ]}
+            >
+              {days}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
     <View style={styles.infoBox}>
       <Text style={styles.infoText}>
@@ -66,6 +81,13 @@ const styles = StyleSheet.create({
   },
   selectedText: {
     color: Colors.white,
+  },
+  disabled: {
+    opacity: 0.4,
+    borderColor: Colors.border,
+  },
+  disabledText: {
+    color: Colors.gray,
   },
   infoBox: {
     marginTop: Spacing.md,

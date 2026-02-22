@@ -89,10 +89,12 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   }, [loadData]);
 
-  // Handle using a challenge
-  const handleUseChallenge = async (challenge: LibraryChallenge) => {
+  // Handle using a challenge with selected duration
+  const handleUseChallenge = async (challenge: LibraryChallenge, duration: number) => {
     if (!user) return;
     try {
+      const isExtended = duration > 1;
+
       await createChallenge(user.uid, {
         name: challenge.name,
         category_id: challenge.category,
@@ -101,6 +103,9 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
         description: challenge.description,
         success_criteria: challenge.success_criteria,
         why: challenge.why,
+        // Challenge type based on duration
+        challenge_type: isExtended ? 'extended' : 'daily',
+        ...(isExtended ? { duration_days: duration } : {}),
         // Library metadata
         library_challenge_id: challenge.id,
         barrier_type: challenge.barrier_type,

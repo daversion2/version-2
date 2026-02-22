@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -139,7 +140,16 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Card style={styles.headerCard}>
-        <Text style={styles.challengeName}>{challenge.name}</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.challengeName}>{challenge.name}</Text>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => navigation.navigate('EditChallenge', { challenge })}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="pencil" size={18} color={Colors.gray} />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.dayInfo}>
           Day {Math.min(currentDay, totalMilestones)} of {totalMilestones}
         </Text>
@@ -189,10 +199,19 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  editBtn: {
+    padding: Spacing.xs,
+  },
   challengeName: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xl,
     color: Colors.dark,
+    flex: 1,
   },
   dayInfo: {
     fontFamily: Fonts.secondary,

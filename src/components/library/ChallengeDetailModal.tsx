@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,11 +19,21 @@ import {
 } from '../../constants/challengeLibrary';
 import { InfoModal } from './InfoModal';
 
+// Duration options: 1 = today only, others = multi-day
+const DURATION_OPTIONS = [
+  { value: 1, label: 'Today' },
+  { value: 3, label: '3' },
+  { value: 7, label: '7' },
+  { value: 14, label: '14' },
+  { value: 21, label: '21' },
+  { value: 30, label: '30' },
+];
+
 interface ChallengeDetailModalProps {
   visible: boolean;
   challenge: LibraryChallenge | null;
   onClose: () => void;
-  onUseChallenge: (challenge: LibraryChallenge) => void;
+  onUseChallenge: (challenge: LibraryChallenge, duration: number) => void;
 }
 
 export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
@@ -34,6 +44,14 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
 }) => {
   const [showExamplesModal, setShowExamplesModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(1); // Default to "Today"
+
+  // Reset duration when modal opens with a new challenge
+  useEffect(() => {
+    if (visible) {
+      setSelectedDuration(1);
+    }
+  }, [visible, challenge?.id]);
 
   if (!challenge) return null;
 
@@ -62,7 +80,7 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
   };
 
   const handleUseChallenge = () => {
-    onUseChallenge(challenge);
+    onUseChallenge(challenge, selectedDuration);
     onClose();
   };
 
@@ -221,15 +239,46 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
           </View>
         </ScrollView>
 
-        {/* Use This Challenge Button */}
+        {/* Duration Selector & Use Button */}
         <View style={styles.footer}>
+          {/* Duration Selector */}
+          <Text style={styles.durationLabel}>How long do you want to commit?</Text>
+          <View style={styles.durationRow}>
+            {DURATION_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.durationChip,
+                  selectedDuration === option.value && styles.durationChipSelected,
+                  option.value === 1 && styles.durationChipToday,
+                  option.value === 1 && selectedDuration === 1 && styles.durationChipTodaySelected,
+                ]}
+                onPress={() => setSelectedDuration(option.value)}
+              >
+                <Text
+                  style={[
+                    styles.durationChipText,
+                    selectedDuration === option.value && styles.durationChipTextSelected,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {selectedDuration > 1 && (
+            <Text style={styles.durationHint}>
+              You'll check in each day. Every day completed earns points!
+            </Text>
+          )}
+
           <TouchableOpacity
             style={styles.useButton}
             onPress={handleUseChallenge}
             activeOpacity={0.8}
           >
             <Text style={styles.useButtonText}>
-              {LIBRARY_UI_TEXT.detailUseThisChallengeButton}
+              {selectedDuration === 1 ? 'Start Challenge' : `Start ${selectedDuration}-Day Challenge`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -390,6 +439,52 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+  },
+  durationLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  durationChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    minWidth: 44,
+    alignItems: 'center',
+  },
+  durationChipSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  durationChipToday: {
+    paddingHorizontal: Spacing.lg,
+  },
+  durationChipTodaySelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  durationChipText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  durationChipTextSelected: {
+    color: Colors.white,
+  },
+  durationHint: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginBottom: Spacing.md,
   },
   useButton: {
     backgroundColor: Colors.primary,

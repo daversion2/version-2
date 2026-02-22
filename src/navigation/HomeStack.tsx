@@ -13,6 +13,7 @@ import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
 import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
 import { WriteReviewScreen } from '../screens/Community/WriteReviewScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
+import { EditChallengeScreen } from '../screens/Home/EditChallengeScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -95,6 +96,11 @@ export const HomeStack: React.FC = () => (
       name="ExtendedChallengeProgress"
       component={ExtendedChallengeProgressScreen}
       options={{ title: 'Challenge Progress' }}
+    />
+    <Stack.Screen
+      name="EditChallenge"
+      component={EditChallengeScreen}
+      options={{ title: 'Edit Challenge' }}
     />
   </Stack.Navigator>
 );

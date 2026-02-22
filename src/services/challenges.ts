@@ -68,7 +68,10 @@ export function areAllMilestonesComplete(milestones: ChallengeMilestone[]): bool
 
 // Calculate current day of extended challenge
 export function getCurrentDayNumber(startDate: string): number {
-  const start = new Date(startDate);
+  // Parse the date string as local timezone by splitting and creating date manually
+  // This avoids timezone issues where "2026-02-22" is parsed as UTC midnight
+  const [year, month, day] = startDate.split('-').map(Number);
+  const start = new Date(year, month - 1, day); // month is 0-indexed
   const today = new Date();
   start.setHours(0, 0, 0, 0);
   today.setHours(0, 0, 0, 0);
@@ -471,6 +474,114 @@ export function getRepeatMilestone(completions: number): number | null {
   const milestones = [5, 10, 25, 50, 100, 250, 500, 1000];
   return milestones.includes(completions) ? completions : null;
 }
+
+// ============================================================================
+// UPDATE ACTIVE CHALLENGE
+// ============================================================================
+
+/**
+ * Update an active challenge's editable fields.
+ * For extended challenges, if duration_days changes, milestones are regenerated.
+ */
+export const updateChallenge = async (
+  userId: string,
+  challengeId: string,
+  updates: {
+    name?: string;
+    category_id?: string;
+    difficulty_expected?: number;
+    description?: string;
+    success_criteria?: string;
+    why?: string;
+    deadline?: string | null;
+    duration_days?: number;
+  }
+): Promise<void> => {
+  const challengeRef = doc(db, 'users', userId, 'challenges', challengeId);
+  const challengeSnap = await getDoc(challengeRef);
+
+  if (!challengeSnap.exists()) {
+    throw new Error('Challenge not found');
+  }
+
+  const challenge = challengeSnap.data() as Challenge;
+
+  // Can only edit active challenges
+  if (challenge.status !== 'active') {
+    throw new Error('Can only edit active challenges');
+  }
+
+  // Build update object, filtering out undefined values
+  const updateData: Partial<Challenge> = {};
+
+  if (updates.name !== undefined) updateData.name = updates.name;
+  if (updates.category_id !== undefined) updateData.category_id = updates.category_id;
+  if (updates.difficulty_expected !== undefined) updateData.difficulty_expected = updates.difficulty_expected;
+  if (updates.description !== undefined) updateData.description = updates.description;
+  if (updates.success_criteria !== undefined) updateData.success_criteria = updates.success_criteria;
+  if (updates.why !== undefined) updateData.why = updates.why;
+
+  // Handle deadline (can be set to null to remove)
+  if (updates.deadline !== undefined) {
+    if (updates.deadline === null) {
+      // Remove deadline - set to empty string (Firestore doesn't support deleting fields easily)
+      updateData.deadline = '';
+    } else {
+      updateData.deadline = updates.deadline;
+    }
+  }
+
+  // Handle duration change for extended challenges
+  if (updates.duration_days !== undefined && challenge.challenge_type === 'extended') {
+    const currentDuration = challenge.duration_days || 0;
+    const newDuration = updates.duration_days;
+
+    if (newDuration !== currentDuration) {
+      // Check how many milestones have been completed
+      const completedMilestones = challenge.milestones?.filter(m => m.completed) || [];
+
+      if (newDuration < completedMilestones.length) {
+        throw new Error(`Cannot reduce duration below completed days (${completedMilestones.length} days completed)`);
+      }
+
+      // Preserve existing milestones and add/remove as needed
+      const existingMilestones = challenge.milestones || [];
+      let newMilestones: ChallengeMilestone[];
+
+      if (newDuration > currentDuration) {
+        // Add new milestones
+        const additionalMilestones = Array.from(
+          { length: newDuration - currentDuration },
+          (_, i) => ({
+            id: `day-${currentDuration + i + 1}`,
+            day_number: currentDuration + i + 1,
+            completed: false,
+          })
+        );
+        newMilestones = [...existingMilestones, ...additionalMilestones];
+      } else {
+        // Remove milestones from the end (only uncompleted ones)
+        newMilestones = existingMilestones.slice(0, newDuration);
+      }
+
+      updateData.milestones = newMilestones;
+      updateData.duration_days = newDuration;
+
+      // Recalculate end_date
+      if (challenge.start_date) {
+        const startDate = new Date(challenge.start_date);
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + newDuration - 1);
+        updateData.end_date = endDate.toISOString().split('T')[0];
+      }
+    }
+  }
+
+  // Only update if there are changes
+  if (Object.keys(updateData).length > 0) {
+    await updateDoc(challengeRef, updateData);
+  }
+};
 
 // ============================================================================
 // BARRIER TYPE ANALYTICS
