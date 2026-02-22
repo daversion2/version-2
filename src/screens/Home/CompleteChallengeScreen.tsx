@@ -52,6 +52,8 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [failureReflection, setFailureReflection] = useState('');
   const [showPrompts, setShowPrompts] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resistanceExpanded, setResistanceExpanded] = useState(false);
+  const [learningExpanded, setLearningExpanded] = useState(false);
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
@@ -265,6 +267,35 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         <CountdownTimer deadline={challenge.deadline} variant="full" />
       ) : null}
 
+      {/* Common Resistance Section - helps with motivation before completing */}
+      {challenge.common_resistance && challenge.common_resistance.length > 0 && !result && (
+        <View style={styles.collapsibleSection}>
+          <TouchableOpacity
+            style={styles.collapsibleHeader}
+            onPress={() => setResistanceExpanded(!resistanceExpanded)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.collapsibleTitle}>Feeling Resistance?</Text>
+            <Ionicons
+              name={resistanceExpanded ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={Colors.primary}
+            />
+          </TouchableOpacity>
+          {resistanceExpanded && (
+            <View style={styles.collapsibleContent}>
+              <Text style={styles.collapsibleSubtitle}>Common thoughts that come up:</Text>
+              {challenge.common_resistance.map((resistance, index) => (
+                <Text key={index} style={styles.resistanceItem}>• "{resistance}"</Text>
+              ))}
+              <Text style={styles.encouragementText}>
+                These thoughts are normal. Do it anyway.
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Success / Fail */}
       <Text style={styles.sectionLabel}>How did it go?</Text>
       <View style={styles.resultRow}>
@@ -314,6 +345,35 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       {/* Journaling - shown only when result is 'completed' */}
       {result === 'completed' && (
         <>
+          {/* What You'll Learn Section - reinforcement after completion */}
+          {challenge.what_youll_learn && (
+            <View style={styles.collapsibleSection}>
+              <TouchableOpacity
+                style={styles.collapsibleHeader}
+                onPress={() => setLearningExpanded(!learningExpanded)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.collapsibleTitle}>What You Just Learned</Text>
+                <Ionicons
+                  name={learningExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={Colors.success}
+                />
+              </TouchableOpacity>
+              {learningExpanded && (
+                <View style={styles.collapsibleContent}>
+                  <Text style={styles.learningText}>{challenge.what_youll_learn}</Text>
+                  {challenge.neuroscience_explanation && (
+                    <>
+                      <Text style={styles.neuroscienceLabel}>The Science:</Text>
+                      <Text style={styles.neuroscienceText}>{challenge.neuroscience_explanation}</Text>
+                    </>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
           <View style={styles.journalHeader}>
             <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Journaling</Text>
             <TouchableOpacity
@@ -612,5 +672,67 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
     color: Colors.white,
+  },
+  collapsibleSection: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    overflow: 'hidden',
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  collapsibleTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+  },
+  collapsibleContent: {
+    padding: Spacing.md,
+    paddingTop: 0,
+  },
+  collapsibleSubtitle: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.sm,
+  },
+  resistanceItem: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    fontStyle: 'italic',
+    marginBottom: Spacing.xs,
+    lineHeight: 20,
+  },
+  encouragementText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    marginTop: Spacing.sm,
+  },
+  learningText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 22,
+  },
+  neuroscienceLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+  },
+  neuroscienceText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
 });

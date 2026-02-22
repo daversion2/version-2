@@ -16,6 +16,11 @@ import {
 import { showAlert, showConfirm } from '../../utils/alert';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
+import {
+  seedChallengeLibrary,
+  clearChallengeLibrary,
+  getChallengeLibraryCount,
+} from '../../utils/seedChallengeLibrary';
 
 export const SettingsScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
@@ -24,6 +29,8 @@ export const SettingsScreen: React.FC = () => {
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [libraryCount, setLibraryCount] = useState<number | null>(null);
+  const [seedingLibrary, setSeedingLibrary] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -32,6 +39,12 @@ export const SettingsScreen: React.FC = () => {
         const userData = await getUser(user.uid);
         setIsAdmin(userData?.is_admin === true);
         setUsername(userData?.username || null);
+
+        // Load library count for admin
+        if (userData?.is_admin) {
+          const count = await getChallengeLibraryCount();
+          setLibraryCount(count);
+        }
       } catch (error) {
         console.error('Error loading user data:', error);
       }
@@ -70,6 +83,41 @@ export const SettingsScreen: React.FC = () => {
 
   const handleLogout = () => {
     showConfirm('Sign Out', 'Are you sure?', logOut, 'Sign Out');
+  };
+
+  const handleSeedLibrary = async () => {
+    setSeedingLibrary(true);
+    try {
+      const count = await seedChallengeLibrary();
+      setLibraryCount(await getChallengeLibraryCount());
+      showAlert('Success', `Added ${count} challenges to the library.`);
+    } catch (error) {
+      console.error('Error seeding library:', error);
+      showAlert('Error', 'Failed to seed challenge library.');
+    } finally {
+      setSeedingLibrary(false);
+    }
+  };
+
+  const handleClearLibrary = () => {
+    showConfirm(
+      'Clear Library',
+      'This will delete all challenges from the library. Are you sure?',
+      async () => {
+        setSeedingLibrary(true);
+        try {
+          const count = await clearChallengeLibrary();
+          setLibraryCount(0);
+          showAlert('Cleared', `Removed ${count} challenges from the library.`);
+        } catch (error) {
+          console.error('Error clearing library:', error);
+          showAlert('Error', 'Failed to clear challenge library.');
+        } finally {
+          setSeedingLibrary(false);
+        }
+      },
+      'Clear All'
+    );
   };
 
   return (
@@ -143,15 +191,43 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Admin - only visible to admins */}
       {isAdmin && (
-        <Card style={styles.card} onPress={() => navigation.navigate('AdminSubmissions')}>
-          <View style={styles.navRow}>
-            <View>
-              <Text style={styles.label}>Review Submissions</Text>
-              <Text style={styles.desc}>Approve or reject community challenge submissions</Text>
+        <>
+          <Card style={styles.card} onPress={() => navigation.navigate('AdminSubmissions')}>
+            <View style={styles.navRow}>
+              <View>
+                <Text style={styles.label}>Review Submissions</Text>
+                <Text style={styles.desc}>Approve or reject community challenge submissions</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-          </View>
-        </Card>
+          </Card>
+
+          <Card style={styles.card}>
+            <Text style={styles.label}>Challenge Library</Text>
+            <Text style={styles.desc}>
+              Manage the challenge library database.
+              {libraryCount !== null ? ` Currently ${libraryCount} challenges.` : ''}
+            </Text>
+            <View style={styles.buttonRow}>
+              <Button
+                title="Seed Library"
+                onPress={handleSeedLibrary}
+                variant="secondary"
+                loading={seedingLibrary}
+                disabled={seedingLibrary}
+                style={styles.halfButton}
+              />
+              <Button
+                title="Clear Library"
+                onPress={handleClearLibrary}
+                variant="outline"
+                loading={seedingLibrary}
+                disabled={seedingLibrary}
+                style={styles.halfButton}
+              />
+            </View>
+          </Card>
+        </>
       )}
 
       {/* Tutorial */}

@@ -170,6 +170,42 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
         </Card>
       ) : null}
 
+      {/* Educational Content Section - from library challenges */}
+      {(challenge.neuroscience_explanation || challenge.what_youll_learn) && (
+        <Card style={styles.card}>
+          <Text style={styles.sectionHeader}>The Science Behind It</Text>
+          {challenge.neuroscience_explanation && (
+            <View style={styles.educationalItem}>
+              <Text style={styles.fieldLabel}>Neuroscience</Text>
+              <Text style={styles.fieldValue}>{challenge.neuroscience_explanation}</Text>
+            </View>
+          )}
+          {challenge.psychological_benefit && (
+            <View style={styles.educationalItem}>
+              <Text style={styles.fieldLabel}>Psychological Benefit</Text>
+              <Text style={styles.fieldValue}>{challenge.psychological_benefit}</Text>
+            </View>
+          )}
+          {challenge.what_youll_learn && (
+            <View style={styles.educationalItem}>
+              <Text style={styles.fieldLabel}>What You Learned</Text>
+              <Text style={styles.fieldValue}>{challenge.what_youll_learn}</Text>
+            </View>
+          )}
+        </Card>
+      )}
+
+      {/* Common Resistance Section */}
+      {challenge.common_resistance && challenge.common_resistance.length > 0 && (
+        <Card style={styles.card}>
+          <Text style={styles.fieldLabel}>Common Resistance</Text>
+          <Text style={styles.resistanceSubtext}>Thoughts you may have overcome:</Text>
+          {challenge.common_resistance.map((resistance, index) => (
+            <Text key={index} style={styles.resistanceItem}>• "{resistance}"</Text>
+          ))}
+        </Card>
+      )}
+
       {challenge.reflection_note ? (
         <Card style={styles.card}>
           <Text style={styles.fieldLabel}>Post-Challenge Journaling</Text>
@@ -330,5 +366,28 @@ const styles = StyleSheet.create({
   deleteButton: {
     marginTop: Spacing.lg,
     borderColor: Colors.fail,
+  },
+  sectionHeader: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    marginBottom: Spacing.md,
+  },
+  educationalItem: {
+    marginBottom: Spacing.md,
+  },
+  resistanceSubtext: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginBottom: Spacing.sm,
+  },
+  resistanceItem: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    fontStyle: 'italic',
+    marginBottom: Spacing.xs,
+    lineHeight: 20,
   },
 });

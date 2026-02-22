@@ -81,6 +81,18 @@ export interface Challenge {
 
   // Failure reflection field
   failure_reflection?: string;  // "What got in the way?" response
+
+  // Library metadata (optional, populated when selected from library)
+  library_challenge_id?: string;
+  barrier_type?: BarrierType;
+  action_type?: ActionType;
+  time_category?: TimeCategory;
+
+  // Educational content (copied from library at selection time)
+  neuroscience_explanation?: string;
+  psychological_benefit?: string;
+  what_youll_learn?: string;
+  common_resistance?: string[];
 }
 
 export interface Nudge {
@@ -107,23 +119,71 @@ export interface CompletionLog {
 
 export type HabitDifficulty = 'easy' | 'challenging';
 
+// =============================================================================
+// CHALLENGE LIBRARY TYPES
+// =============================================================================
+
+// Barrier types - psychological categories for organizing challenges
+export type BarrierType =
+  | 'comfort-zone'
+  | 'delayed-gratification'
+  | 'discipline'
+  | 'ego'
+  | 'energy-drainer';
+
+// Time categories - how long challenges take
+export type TimeCategory = 'quick-win' | 'ritual' | 'deep-work' | 'all-day';
+
+// Action types - whether you do something or resist something
+export type ActionType = 'resist' | 'complete';
+
+// Challenge variation - easier/harder alternatives
+export interface ChallengeVariation {
+  label: string; // e.g., "Easier", "Harder", "Advanced"
+  description: string; // e.g., "30 seconds instead of 60"
+}
+
 // Public challenge library template
 export interface LibraryChallenge {
   id: string;
   name: string;
-  category: string; // Category name (Physical, Mental, etc.)
+  category: string; // Life domain: Physical, Social, Mind
   difficulty: number; // 1-5 suggested difficulty
   description?: string;
   success_criteria?: string;
   why?: string;
+
+  // Organization & Filtering (optional for backward compatibility)
+  barrier_type?: BarrierType;
+  time_required_minutes?: number;
+  time_category?: TimeCategory;
+  beginner_friendly?: boolean;
+  action_type?: ActionType;
+
+  // Educational Context (optional for backward compatibility)
+  neuroscience_explanation?: string;
+  psychological_benefit?: string;
+  what_youll_learn?: string;
+  common_resistance?: string[];
+
+  // Examples & Social Proof (optional)
+  real_world_examples?: string[];
+  completion_count?: number;
+  average_actual_difficulty?: number;
+
+  // Variations - easier/harder alternatives (optional)
+  variations?: ChallengeVariation[];
+
+  // Progressive Pathways (optional, for future use)
+  related_challenge_ids?: string[];
+  next_level_challenge_ids?: string[];
+  prerequisite_challenge_ids?: string[];
 }
 
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
   { name: 'Physical', color: '#217180', icon: 'fitness' },
-  { name: 'Mental', color: '#FF5B02', icon: 'bulb-outline' },
-  { name: 'Social', color: '#2B2B2B', icon: 'chatbubbles' },
-  { name: 'Professional', color: '#656565', icon: 'briefcase' },
-  { name: 'Creative', color: '#217180', icon: 'color-palette' },
+  { name: 'Social', color: '#FF5B02', icon: 'chatbubbles' },
+  { name: 'Mind', color: '#7B1FA2', icon: 'bulb-outline' },
 ];
 
 // Habit streak information
@@ -277,7 +337,7 @@ export interface LibraryChallengeExtended extends LibraryChallenge {
 
   // Additional submission details
   tips?: string;
-  variations?: string;
+  variations_text?: string; // Free-text variations for user submissions
 
   // Community stats
   times_attempted: number;

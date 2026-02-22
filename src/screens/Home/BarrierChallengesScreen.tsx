@@ -8,52 +8,66 @@ import {
   RefreshControl,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import {
-  getLibraryChallenges,
-  getBarrierTypeCounts,
-  getBeginnerChallenges,
+  getChallengesByBarrier,
+  groupChallengesByDifficulty,
   ChallengeFilters,
 } from '../../services/challengeLibrary';
 import { createChallenge } from '../../services/challenges';
 import { LibraryChallenge, TimeCategory, BarrierType } from '../../types';
 import { showAlert } from '../../utils/alert';
 import {
-  BARRIER_TYPES_LIST,
+  BARRIER_TYPES,
   LIBRARY_UI_TEXT,
 } from '../../constants/challengeLibrary';
 import {
   FilterChipBar,
-  BarrierTypeCard,
   LibraryChallengeCard,
   ChallengeDetailModal,
 } from '../../components/library';
 
-type Props = NativeStackScreenProps<any, 'ChallengeLibrary'>;
+type Props = NativeStackScreenProps<any, 'BarrierChallenges'>;
 
-export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
+export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { barrierType, initialTimeCategory, initialLifeDomain } = route.params as {
+    barrierType: BarrierType;
+    initialTimeCategory?: TimeCategory | null;
+    initialLifeDomain?: string | null;
+  };
+
   const { user } = useAuth();
+  const barrierConfig = BARRIER_TYPES[barrierType];
 
   // Loading states
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   // Data states
-  const [allChallenges, setAllChallenges] = useState<LibraryChallenge[]>([]);
-  const [beginnerChallenges, setBeginnerChallenges] = useState<LibraryChallenge[]>([]);
-  const [barrierCounts, setBarrierCounts] = useState<Record<string, number>>({});
+  const [challenges, setChallenges] = useState<LibraryChallenge[]>([]);
 
-  // Filter states
-  const [selectedTimeCategory, setSelectedTimeCategory] = useState<TimeCategory | null>(null);
-  const [selectedLifeDomain, setSelectedLifeDomain] = useState<string | null>(null);
+  // Filter states (inherit from previous screen if available)
+  const [selectedTimeCategory, setSelectedTimeCategory] = useState<TimeCategory | null>(
+    initialTimeCategory ?? null
+  );
+  const [selectedLifeDomain, setSelectedLifeDomain] = useState<string | null>(
+    initialLifeDomain ?? null
+  );
 
   // Detail modal state
   const [selectedChallenge, setSelectedChallenge] = useState<LibraryChallenge | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
+  // Set navigation title
+  useEffect(() => {
+    navigation.setOptions({
+      title: barrierConfig?.name ?? 'Challenges',
+    });
+  }, [navigation, barrierConfig]);
+
   // Build current filters object
-  const currentFilters: ChallengeFilters = {
+  const currentFilters: Omit<ChallengeFilters, 'barrierType'> = {
     timeCategory: selectedTimeCategory,
     category: selectedLifeDomain,
   };
@@ -61,20 +75,13 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
   // Load data
   const loadData = useCallback(async () => {
     try {
-      const [challenges, counts, beginners] = await Promise.all([
-        getLibraryChallenges(currentFilters),
-        getBarrierTypeCounts(currentFilters),
-        getBeginnerChallenges(currentFilters),
-      ]);
-
-      setAllChallenges(challenges);
-      setBarrierCounts(counts);
-      setBeginnerChallenges(beginners.slice(0, 5)); // Limit to 5 beginner challenges
+      const result = await getChallengesByBarrier(barrierType, currentFilters);
+      setChallenges(result);
     } catch (err) {
-      console.error('Failed to load challenge library:', err);
-      showAlert('Error', 'Failed to load challenge library');
+      console.error('Failed to load challenges:', err);
+      showAlert('Error', 'Failed to load challenges');
     }
-  }, [selectedTimeCategory, selectedLifeDomain]);
+  }, [barrierType, selectedTimeCategory, selectedLifeDomain]);
 
   // Initial load
   useEffect(() => {
@@ -124,15 +131,6 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
     setDetailModalVisible(true);
   };
 
-  // Handle tapping a barrier type card
-  const handleBarrierPress = (barrierType: BarrierType) => {
-    navigation.navigate('BarrierChallenges', {
-      barrierType,
-      initialTimeCategory: selectedTimeCategory,
-      initialLifeDomain: selectedLifeDomain,
-    });
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -141,7 +139,34 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const hasNoResults = allChallenges.length === 0;
+  // Group challenges by difficulty
+  const grouped = groupChallengesByDifficulty(challenges);
+  const hasNoResults = challenges.length === 0;
+
+  const renderChallengeSection = (
+    title: string,
+    sectionChallenges: LibraryChallenge[]
+  ) => {
+    if (sectionChallenges.length === 0) return null;
+
+    return (
+      <View style={styles.challengeSection}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <View style={styles.challengeList}>
+          {sectionChallenges.map((challenge) => (
+            <View key={challenge.id} style={styles.challengeCardWrapper}>
+              <LibraryChallengeCard
+                challenge={challenge}
+                onPress={() => handleChallengePress(challenge)}
+                showBarrierType={false}
+                showDescription
+              />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -153,13 +178,19 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
-        <Text style={styles.heading}>{LIBRARY_UI_TEXT.screenTitle}</Text>
-        <Text style={styles.subtitle}>{LIBRARY_UI_TEXT.screenSubtitle}</Text>
+        {/* Barrier Description */}
+        {barrierConfig && (
+          <Text style={styles.barrierDescription}>
+            {barrierConfig.shortDescription}
+          </Text>
+        )}
 
-        {/* Quick Filters */}
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Filters */}
         <View style={styles.filtersSection}>
-          <Text style={styles.filterLabel}>{LIBRARY_UI_TEXT.quickFiltersLabel}</Text>
+          <Text style={styles.filterLabel}>Filter by:</Text>
           <FilterChipBar
             selectedTimeCategory={selectedTimeCategory}
             selectedLifeDomain={selectedLifeDomain}
@@ -171,68 +202,32 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
         {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Barrier Type Cards Section */}
-        <Text style={styles.sectionTitle}>{LIBRARY_UI_TEXT.barrierSectionTitle}</Text>
-        <View style={styles.barrierGrid}>
-          {BARRIER_TYPES_LIST.map((barrier) => (
-            <View key={barrier.id} style={styles.barrierCardWrapper}>
-              <BarrierTypeCard
-                barrier={barrier}
-                count={barrierCounts[barrier.id] || 0}
-                onPress={() => handleBarrierPress(barrier.id as BarrierType)}
-              />
-            </View>
-          ))}
-        </View>
-
-        {/* Divider */}
-        <View style={styles.divider} />
-
-        {/* Browse All Link */}
-        <Text style={styles.browseAllText}>{LIBRARY_UI_TEXT.browseAllLink}</Text>
-
-        {/* Beginner Friendly Section */}
-        {beginnerChallenges.length > 0 && (
-          <View style={styles.challengeSection}>
-            <Text style={styles.sectionTitle}>{LIBRARY_UI_TEXT.beginnerSectionTitle}</Text>
-            <View style={styles.challengeList}>
-              {beginnerChallenges.map((challenge) => (
-                <View key={challenge.id} style={styles.challengeCardWrapper}>
-                  <LibraryChallengeCard
-                    challenge={challenge}
-                    onPress={() => handleChallengePress(challenge)}
-                    showDescription
-                  />
-                </View>
-              ))}
-            </View>
+        {hasNoResults ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>{LIBRARY_UI_TEXT.emptyStateTitle}</Text>
+            <Text style={styles.emptyText}>{LIBRARY_UI_TEXT.emptyStateMessage}</Text>
           </View>
+        ) : (
+          <>
+            {/* Beginner Section */}
+            {renderChallengeSection(
+              LIBRARY_UI_TEXT.difficultyBeginnerHeader,
+              grouped.beginner
+            )}
+
+            {/* Moderate Section */}
+            {renderChallengeSection(
+              LIBRARY_UI_TEXT.difficultyModerateHeader,
+              grouped.moderate
+            )}
+
+            {/* Advanced Section */}
+            {renderChallengeSection(
+              LIBRARY_UI_TEXT.difficultyAdvancedHeader,
+              grouped.advanced
+            )}
+          </>
         )}
-
-        {/* All Challenges Section */}
-        <View style={styles.challengeSection}>
-          <Text style={styles.sectionTitle}>
-            {LIBRARY_UI_TEXT.allChallengesTitle} ({allChallenges.length})
-          </Text>
-
-          {hasNoResults ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>{LIBRARY_UI_TEXT.emptyStateTitle}</Text>
-              <Text style={styles.emptyText}>{LIBRARY_UI_TEXT.emptyStateMessage}</Text>
-            </View>
-          ) : (
-            <View style={styles.challengeList}>
-              {allChallenges.map((challenge) => (
-                <View key={challenge.id} style={styles.challengeCardWrapper}>
-                  <LibraryChallengeCard
-                    challenge={challenge}
-                    onPress={() => handleChallengePress(challenge)}
-                  />
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
       </ScrollView>
 
       {/* Challenge Detail Modal */}
@@ -263,22 +258,22 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Spacing.xxl,
   },
-  heading: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-  },
-  subtitle: {
+  barrierDescription: {
     fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     color: Colors.gray,
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    paddingTop: Spacing.md,
+    fontStyle: 'italic',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.md,
   },
   filtersSection: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   filterLabel: {
     fontFamily: Fonts.secondaryBold,
@@ -289,11 +284,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.md,
+  challengeSection: {
+    marginTop: Spacing.md,
   },
   sectionTitle: {
     fontFamily: Fonts.primaryBold,
@@ -301,27 +293,6 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
-  },
-  barrierGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  barrierCardWrapper: {
-    width: '48%',
-    marginBottom: Spacing.xs,
-  },
-  browseAllText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  challengeSection: {
-    marginTop: Spacing.sm,
   },
   challengeList: {
     paddingHorizontal: Spacing.lg,

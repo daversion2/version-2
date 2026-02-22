@@ -6,6 +6,7 @@ import { StartChallengeScreen } from '../screens/Home/StartChallengeScreen';
 import { CreateChallengeScreen } from '../screens/Home/CreateChallengeScreen';
 import { PastChallengesScreen } from '../screens/Home/PastChallengesScreen';
 import { ChallengeLibraryScreen } from '../screens/Home/ChallengeLibraryScreen';
+import { BarrierChallengesScreen } from '../screens/Home/BarrierChallengesScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
 import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
@@ -59,6 +60,11 @@ export const HomeStack: React.FC = () => (
       name="ChallengeLibrary"
       component={ChallengeLibraryScreen}
       options={{ title: 'Challenge Library' }}
+    />
+    <Stack.Screen
+      name="BarrierChallenges"
+      component={BarrierChallengesScreen}
+      options={{ title: 'Challenges' }}
     />
     <Stack.Screen
       name="CompleteChallenge"

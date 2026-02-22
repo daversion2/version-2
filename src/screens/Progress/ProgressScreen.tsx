@@ -14,6 +14,9 @@ import {
   getCategoryBreakdown,
   CategoryStat,
 } from '../../services/progress';
+import { getChallengesByBarrierType } from '../../services/challenges';
+import { BARRIER_TYPES } from '../../constants/challengeLibrary';
+import { BarrierType } from '../../types';
 import { getWillpowerStats, getSuckFactorTier } from '../../services/willpower';
 import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
@@ -33,6 +36,13 @@ export const ProgressScreen: React.FC = () => {
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<CategoryStat[]>([]);
+  const [barrierCounts, setBarrierCounts] = useState<Record<BarrierType, number>>({
+    'comfort-zone': 0,
+    'delayed-gratification': 0,
+    'discipline': 0,
+    'ego': 0,
+    'energy-drainer': 0,
+  });
 
   // Willpower Bank state
   const [willpowerStats, setWillpowerStats] = useState({
@@ -80,12 +90,14 @@ export const ProgressScreen: React.FC = () => {
 
     // Points and category breakdown for selected filter
     const start = getStartDate(filter);
-    const [p, cats] = await Promise.all([
+    const [p, cats, barriers] = await Promise.all([
       getTotalPoints(user.uid, start),
       getCategoryBreakdown(user.uid, start),
+      getChallengesByBarrierType(user.uid, start),
     ]);
     setPoints(p);
     setCategoryData(cats);
+    setBarrierCounts(barriers);
 
     // Mark calendar
     const marks: Record<string, any> = {};
@@ -173,6 +185,33 @@ export const ProgressScreen: React.FC = () => {
 
       {/* Category Breakdown */}
       <CategoryBarChart data={categoryData} />
+
+      {/* Barrier Type Breakdown */}
+      {Object.values(barrierCounts).some(count => count > 0) && (
+        <>
+          <Text style={styles.sectionTitle}>Challenges by Type</Text>
+          <Card style={styles.barrierCard}>
+            {Object.entries(barrierCounts)
+              .filter(([_, count]) => count > 0)
+              .sort(([, a], [, b]) => b - a)
+              .map(([type, count]) => {
+                const barrierConfig = BARRIER_TYPES[type];
+                if (!barrierConfig) return null;
+                return (
+                  <View key={type} style={styles.barrierRow}>
+                    <View style={styles.barrierInfo}>
+                      <Text style={styles.barrierIcon}>{barrierConfig.icon}</Text>
+                      <Text style={styles.barrierName}>{barrierConfig.shortName}</Text>
+                    </View>
+                    <View style={styles.barrierCountBadge}>
+                      <Text style={styles.barrierCount}>{count}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+          </Card>
+        </>
+      )}
 
       {/* Calendar */}
       <Text style={styles.sectionTitle}>Activity Calendar</Text>
@@ -332,5 +371,40 @@ const styles = StyleSheet.create({
   calendar: {
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
+  },
+  barrierCard: {
+    marginBottom: Spacing.lg,
+  },
+  barrierRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  barrierInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  barrierIcon: {
+    fontSize: 20,
+  },
+  barrierName: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  barrierCountBadge: {
+    backgroundColor: Colors.primary + '20',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  barrierCount: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
 });

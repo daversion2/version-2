@@ -247,7 +247,7 @@ export const approveSubmission = async (
     approved_at: new Date().toISOString(),
     approved_by: adminId,
     tips: finalData.tips,
-    variations: finalData.variations,
+    variations_text: finalData.variations, // Free-text variations from user submission
     times_attempted: 0,
     times_completed: 0,
     average_difficulty: finalData.difficulty_suggested,

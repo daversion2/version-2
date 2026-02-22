@@ -43,6 +43,7 @@ import { FunFactButton } from '../../components/home/FunFactButton';
 import { FunFactModal } from '../../components/home/FunFactModal';
 import { getTodaysFunFact } from '../../services/funFacts';
 import { FunFact } from '../../types';
+import { ACTION_TYPES } from '../../constants/challengeLibrary';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -317,8 +318,23 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.challengeHeader}>
             <Text style={styles.challengeName}>{activeChallenge.name}</Text>
-            <View style={styles.diffBadge}>
-              <Text style={styles.diffText}>{activeChallenge.difficulty_expected}</Text>
+            <View style={styles.badgeRow}>
+              {activeChallenge.action_type && (
+                <View style={[
+                  styles.actionBadge,
+                  { backgroundColor: activeChallenge.action_type === 'resist' ? Colors.secondary + '20' : Colors.primary + '20' }
+                ]}>
+                  <Text style={[
+                    styles.actionBadgeText,
+                    { color: activeChallenge.action_type === 'resist' ? Colors.secondary : Colors.primary }
+                  ]}>
+                    {ACTION_TYPES[activeChallenge.action_type]?.icon} {ACTION_TYPES[activeChallenge.action_type]?.label}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.diffBadge}>
+                <Text style={styles.diffText}>{activeChallenge.difficulty_expected}</Text>
+              </View>
             </View>
           </View>
           {activeChallenge.description ? (
@@ -555,6 +571,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  actionBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  actionBadgeText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
   },
   challengeName: {
     fontFamily: Fonts.primaryBold,

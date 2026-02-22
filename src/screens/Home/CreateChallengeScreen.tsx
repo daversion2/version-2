@@ -14,7 +14,7 @@ import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { createChallenge } from '../../services/challenges';
-import { Category, ChallengeType } from '../../types';
+import { Category, ChallengeType, DEFAULT_CATEGORIES } from '../../types';
 import { getUserCategories } from '../../services/categories';
 import { TouchableOpacity } from 'react-native';
 import { showAlert } from '../../utils/alert';
@@ -45,9 +45,16 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
   const [challengeType, setChallengeType] = useState<ChallengeType>('daily');
   const [durationDays, setDurationDays] = useState(7);
 
+  // Core domain names (Physical, Social, Mind)
+  const coreDomainNames = DEFAULT_CATEGORIES.map(c => c.name);
+
   useEffect(() => {
     if (user) {
-      getUserCategories(user.uid).then(setCategories);
+      getUserCategories(user.uid).then((cats) => {
+        // Filter to only show the core three domains (Physical, Social, Mind)
+        const coreCats = cats.filter(c => coreDomainNames.includes(c.name));
+        setCategories(coreCats);
+      });
     }
   }, [user]);
 
