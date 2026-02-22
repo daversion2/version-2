@@ -30,6 +30,27 @@ export interface Category {
 
 export type ChallengeStatus = 'active' | 'completed' | 'failed' | 'archived' | 'cancelled';
 
+export type ChallengeType = 'daily' | 'extended';
+
+export interface ChallengeMilestone {
+  id: string;
+  day_number: number;
+  completed: boolean;
+  completed_at?: string;
+  succeeded?: boolean;  // true = kept challenge, false = broke it
+  note?: string;
+}
+
+export interface ChallengeRepeatStats {
+  id: string;
+  name: string;
+  total_completions: number;
+  total_attempts: number;
+  first_completed_at?: string;
+  last_completed_at?: string;
+  challenge_ids: string[];
+}
+
 export interface Challenge {
   id: string;
   user_id: string;
@@ -50,6 +71,16 @@ export interface Challenge {
   success_criteria?: string;
   why?: string;
   deadline?: string; // ISO 8601 timestamp, optional
+
+  // Extended challenge fields
+  challenge_type?: ChallengeType;  // Optional for backwards compat, defaults to 'daily'
+  duration_days?: number;
+  milestones?: ChallengeMilestone[];
+  start_date?: string;
+  end_date?: string;
+
+  // Failure reflection field
+  failure_reflection?: string;  // "What got in the way?" response
 }
 
 export interface Nudge {

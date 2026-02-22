@@ -6,10 +6,10 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
-import { getChallengeById, deleteChallenge } from '../../services/challenges';
+import { getChallengeById, deleteChallenge, getChallengeRepeatStats } from '../../services/challenges';
 import { getUserCategories } from '../../services/categories';
 import { canSubmitChallenge } from '../../services/submissions';
-import { Challenge, Category } from '../../types';
+import { Challenge, Category, ChallengeRepeatStats } from '../../types';
 import { showConfirm, showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'ChallengeDetail'>;
@@ -23,6 +23,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);
   const [submitReason, setSubmitReason] = useState<string | undefined>();
+  const [repeatStats, setRepeatStats] = useState<ChallengeRepeatStats | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -34,6 +35,10 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
           const cats = await getUserCategories(user.uid);
           const cat = cats.find((ct: Category) => ct.id === c.category_id);
           setCategoryName(cat?.name || 'Unknown');
+
+          // Fetch repeat stats for this challenge name
+          const stats = await getChallengeRepeatStats(user.uid, c.name);
+          setRepeatStats(stats);
 
           // Check if challenge can be submitted to library
           if (c.status === 'completed') {
@@ -106,6 +111,25 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
           <Text style={styles.badgeText}>{categoryName}</Text>
         </View>
       </View>
+
+      {/* Repeat Stats */}
+      {repeatStats && repeatStats.total_completions > 0 && (
+        <Card style={styles.repeatStatsCard}>
+          <View style={styles.repeatStatsRow}>
+            <Text style={styles.repeatIcon}>🔄</Text>
+            <View style={styles.repeatStatsContent}>
+              <Text style={styles.repeatStatsTitle}>
+                Completed {repeatStats.total_completions} time{repeatStats.total_completions !== 1 ? 's' : ''}
+              </Text>
+              {repeatStats.first_completed_at && repeatStats.last_completed_at && (
+                <Text style={styles.repeatStatsDates}>
+                  First: {repeatStats.first_completed_at.split('T')[0]} · Last: {repeatStats.last_completed_at.split('T')[0]}
+                </Text>
+              )}
+            </View>
+          </View>
+        </Card>
+      )}
 
       <Card style={styles.card}>
         <Row label="Date" value={challenge.date} />
@@ -227,7 +251,33 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     marginBottom: Spacing.sm,
   },
-  badgeRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
+  badgeRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  repeatStatsCard: {
+    marginBottom: Spacing.lg,
+    backgroundColor: Colors.white,
+  },
+  repeatStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  repeatIcon: {
+    fontSize: 24,
+    marginRight: Spacing.sm,
+  },
+  repeatStatsContent: {
+    flex: 1,
+  },
+  repeatStatsTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+  },
+  repeatStatsDates: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 2,
+  },
   badge: {
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.md,

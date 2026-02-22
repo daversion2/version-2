@@ -16,7 +16,7 @@ import { Button } from '../../components/common/Button';
 import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
-import { completeChallenge, saveReflectionAnswers, cancelChallenge } from '../../services/challenges';
+import { completeChallenge, saveReflectionAnswers, cancelChallenge, getChallengeRepeatStats, getRepeatMilestone } from '../../services/challenges';
 import { showConfirm } from '../../utils/alert';
 import {
   calculateChallengePoints,
@@ -49,6 +49,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [result, setResult] = useState<'completed' | 'failed' | null>(null);
   const [difficulty, setDifficulty] = useState(3);
   const [journalEntry, setJournalEntry] = useState('');
+  const [failureReflection, setFailureReflection] = useState('');
   const [showPrompts, setShowPrompts] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPointsPopup, setShowPointsPopup] = useState(false);
@@ -60,6 +61,8 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [levelUpVisible, setLevelUpVisible] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState(0);
   const [levelUpTitle, setLevelUpTitle] = useState('');
+  const [repeatMilestoneVisible, setRepeatMilestoneVisible] = useState(false);
+  const [repeatMilestoneCount, setRepeatMilestoneCount] = useState(0);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -95,12 +98,18 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     if (!user) return;
     setLoading(true);
     try {
+      const trimmedJournal = journalEntry.trim();
+      const trimmedFailureReflection = failureReflection.trim();
+
       await completeChallenge(user.uid, challenge.id, {
         status: result,
         difficulty_actual: difficulty,
+        reflection_note: result === 'completed' ? trimmedJournal : undefined,
+        failure_reflection: result === 'failed' ? trimmedFailureReflection : undefined,
       });
-      const trimmedJournal = journalEntry.trim();
-      if (trimmedJournal) {
+
+      // Save reflection answers for completed challenges
+      if (result === 'completed' && trimmedJournal) {
         await saveReflectionAnswers(user.uid, challenge.id, trimmedJournal);
       }
 
@@ -147,8 +156,24 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         }
       }
 
+      // Check for repeat milestone (5, 10, 25, 50, 100)
+      let repeatMilestone: number | null = null;
+      if (result === 'completed') {
+        try {
+          const repeatStats = await getChallengeRepeatStats(user.uid, challenge.name);
+          if (repeatStats) {
+            repeatMilestone = getRepeatMilestone(repeatStats.total_completions);
+          }
+        } catch (err) {
+          console.warn('Failed to get repeat stats:', err);
+        }
+      }
+
       // Calculate and award willpower points
-      const hasReflection = trimmedJournal.length > 0;
+      // Check EITHER reflection (success journal OR failure reflection)
+      const hasReflection = result === 'completed'
+        ? trimmedJournal.length > 0
+        : trimmedFailureReflection.length > 0;
       const stats = await getWillpowerStats(user.uid);
       const pointsEarned =
         result === 'completed'
@@ -171,6 +196,13 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       // Prepare the alert to show after popup animation completes
       const showAlerts = async () => {
         const alertTitle = result === 'completed' ? 'Challenge Complete' : 'Challenge Logged';
+
+        // Show repeat milestone first if applicable
+        if (repeatMilestone) {
+          setRepeatMilestoneCount(repeatMilestone);
+          setRepeatMilestoneVisible(true);
+          return; // Navigation will happen when milestone is dismissed
+        }
 
         // Show level-up popup first if new level reached
         if (updateResult.newLevelReached && updateResult.levelInfo) {
@@ -257,26 +289,52 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         onChange={setDifficulty}
       />
 
-      {/* Journaling */}
-      <View style={styles.journalHeader}>
-        <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Journaling</Text>
-        <TouchableOpacity
-          onPress={() => setShowPrompts(true)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="information-circle-outline" size={22} color={Colors.primary} />
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.journalSubtext}>Optional — earns bonus points</Text>
-      <InputField
-        label=""
-        value={journalEntry}
-        onChangeText={setJournalEntry}
-        placeholder="Reflect on your experience..."
-        multiline
-        numberOfLines={6}
-        style={styles.journalInput}
-      />
+      {/* Failure Reflection - shown only when result is 'failed' */}
+      {result === 'failed' && (
+        <View style={styles.failureReflectionSection}>
+          <Text style={styles.sectionLabel}>What got in the way?</Text>
+          <Text style={styles.reflectionSubtext}>
+            Understanding obstacles helps you overcome them next time.
+          </Text>
+          <InputField
+            label=""
+            value={failureReflection}
+            onChangeText={setFailureReflection}
+            placeholder="I got distracted by..."
+            multiline
+            numberOfLines={4}
+            style={styles.journalInput}
+          />
+          <Text style={styles.optionalText}>
+            Optional — no judgment, just learning
+          </Text>
+        </View>
+      )}
+
+      {/* Journaling - shown only when result is 'completed' */}
+      {result === 'completed' && (
+        <>
+          <View style={styles.journalHeader}>
+            <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Journaling</Text>
+            <TouchableOpacity
+              onPress={() => setShowPrompts(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="information-circle-outline" size={22} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.journalSubtext}>Optional — earns bonus points</Text>
+          <InputField
+            label=""
+            value={journalEntry}
+            onChangeText={setJournalEntry}
+            placeholder="Reflect on your experience..."
+            multiline
+            numberOfLines={6}
+            style={styles.journalInput}
+          />
+        </>
+      )}
 
       {/* Prompts Modal */}
       <Modal
@@ -359,6 +417,36 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           navigation.popToTop();
         }}
       />
+
+      {/* Repeat Milestone Celebration Modal */}
+      <Modal
+        visible={repeatMilestoneVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setRepeatMilestoneVisible(false);
+          navigation.popToTop();
+        }}
+      >
+        <View style={styles.milestoneOverlay}>
+          <View style={styles.milestoneContent}>
+            <Text style={styles.milestoneEmoji}>🎉</Text>
+            <Text style={styles.milestoneTitle}>Challenge Complete!</Text>
+            <Text style={styles.milestoneMessage}>
+              You've now completed "{challenge.name}" {repeatMilestoneCount} times!
+            </Text>
+            <TouchableOpacity
+              style={styles.milestoneButton}
+              onPress={() => {
+                setRepeatMilestoneVisible(false);
+                navigation.popToTop();
+              }}
+            >
+              <Text style={styles.milestoneButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -412,6 +500,22 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginBottom: Spacing.sm,
   },
+  failureReflectionSection: {
+    marginTop: Spacing.lg,
+  },
+  reflectionSubtext: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.sm,
+  },
+  optionalText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    fontStyle: 'italic',
+    marginTop: Spacing.xs,
+  },
   journalInput: {
     minHeight: 120,
     backgroundColor: Colors.white,
@@ -460,6 +564,51 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modalCloseText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.white,
+  },
+  milestoneOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  milestoneContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: Spacing.xl,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+  },
+  milestoneEmoji: {
+    fontSize: 56,
+    marginBottom: Spacing.md,
+  },
+  milestoneTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xl,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+    textAlign: 'center',
+  },
+  milestoneMessage: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.gray,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+    lineHeight: 22,
+  },
+  milestoneButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: 12,
+  },
+  milestoneButtonText: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
     color: Colors.white,

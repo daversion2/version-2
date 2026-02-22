@@ -10,8 +10,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
-import { getPastChallenges, createChallenge } from '../../services/challenges';
-import { Challenge } from '../../types';
+import { getPastChallenges, createChallenge, getChallengeRepeatStats } from '../../services/challenges';
+import { Challenge, ChallengeRepeatStats } from '../../types';
 import { showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'PastChallenges'>;
@@ -20,12 +20,30 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [repeatStatsMap, setRepeatStatsMap] = useState<Record<string, ChallengeRepeatStats>>({});
 
   useEffect(() => {
     if (!user) return;
-    getPastChallenges(user.uid)
-      .then(setChallenges)
-      .finally(() => setLoading(false));
+    (async () => {
+      const pastChallenges = await getPastChallenges(user.uid);
+      setChallenges(pastChallenges);
+
+      // Fetch repeat stats for unique challenge names
+      const uniqueNames = [...new Set(pastChallenges.map(c => c.name))];
+      const statsMap: Record<string, ChallengeRepeatStats> = {};
+
+      await Promise.all(
+        uniqueNames.map(async (name) => {
+          const stats = await getChallengeRepeatStats(user.uid, name);
+          if (stats) {
+            statsMap[name.toLowerCase().trim()] = stats;
+          }
+        })
+      );
+
+      setRepeatStatsMap(statsMap);
+      setLoading(false);
+    })();
   }, [user]);
 
   const reuse = async (c: Challenge) => {
@@ -46,16 +64,26 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const renderItem = ({ item }: { item: Challenge }) => (
-    <TouchableOpacity onPress={() => reuse(item)} activeOpacity={0.7}>
-      <Card style={styles.card}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.meta}>
-          {item.category_id} — Difficulty: {item.difficulty_expected}
-        </Text>
-      </Card>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: { item: Challenge }) => {
+    const stats = repeatStatsMap[item.name.toLowerCase().trim()];
+    const completionCount = stats?.total_completions || 0;
+
+    return (
+      <TouchableOpacity onPress={() => reuse(item)} activeOpacity={0.7}>
+        <Card style={styles.card}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.meta}>
+            {item.category_id} — Difficulty: {item.difficulty_expected}
+          </Text>
+          {completionCount > 0 && (
+            <Text style={styles.repeatCount}>
+              Completed {completionCount} time{completionCount !== 1 ? 's' : ''}
+            </Text>
+          )}
+        </Card>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -102,6 +130,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.gray,
+    marginTop: Spacing.xs,
+  },
+  repeatCount: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
     marginTop: Spacing.xs,
   },
   empty: {

@@ -15,7 +15,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary } from '../../types';
-import { getActiveChallenge } from '../../services/challenges';
+import { getActiveChallenge, getActiveExtendedChallenge, getCurrentDayNumber } from '../../services/challenges';
 import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
 import { HabitStreakInfo } from '../../types';
 import { getUserCategories } from '../../services/categories';
@@ -30,6 +30,7 @@ import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
+import { ProgressBar } from '../../components/challenge/ProgressBar';
 import { useWalkthrough } from '../../context/WalkthroughContext';
 import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
@@ -63,6 +64,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [spotlightLayout, setSpotlightLayout] = useState<SpotlightLayout | null>(null);
 
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
+  const [extendedChallenge, setExtendedChallenge] = useState<Challenge | null>(null);
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -101,14 +103,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [challenge, habitList, cats, userTeam, todaysFact] = await Promise.all([
+      const [challenge, extended, habitList, cats, userTeam, todaysFact] = await Promise.all([
         getActiveChallenge(user.uid),
+        getActiveExtendedChallenge(user.uid),
         getActiveHabits(user.uid),
         getUserCategories(user.uid),
         getUserTeam(user.uid),
         getTodaysFunFact(),
       ]);
       setActiveChallenge(challenge);
+      setExtendedChallenge(extended);
       setHabits(habitList);
       setCategories(cats);
       setTeam(userTeam);
@@ -340,6 +344,53 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </Card>
       )}
 
+      {/* Extended Challenge Section */}
+      {extendedChallenge && extendedChallenge.milestones && extendedChallenge.start_date && (
+        <>
+          <Text style={styles.sectionTitle}>Extended Challenge</Text>
+          <Card
+            style={styles.extendedCard}
+            onPress={() => navigation.navigate('ExtendedChallengeProgress', { challenge: extendedChallenge })}
+          >
+            <Text style={styles.challengeName}>{extendedChallenge.name}</Text>
+            <Text style={styles.extendedDayInfo}>
+              Day {Math.min(getCurrentDayNumber(extendedChallenge.start_date), extendedChallenge.milestones.length)} of {extendedChallenge.milestones.length}
+            </Text>
+            <ProgressBar
+              progress={extendedChallenge.milestones.filter(m => m.completed).length / extendedChallenge.milestones.length}
+              showPercentage={false}
+            />
+            {(() => {
+              const currentDay = getCurrentDayNumber(extendedChallenge.start_date!);
+              const todayMilestone = extendedChallenge.milestones?.find(m => m.day_number === currentDay);
+              const checkedInToday = todayMilestone?.completed;
+              return (
+                <View style={styles.checkInStatus}>
+                  <Ionicons
+                    name={checkedInToday ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={18}
+                    color={checkedInToday ? Colors.success : Colors.gray}
+                  />
+                  <Text style={[styles.checkInText, checkedInToday && styles.checkInDone]}>
+                    {checkedInToday ? 'Checked in today!' : "Today's check-in: Not done"}
+                  </Text>
+                </View>
+              );
+            })()}
+            <Button
+              title={(() => {
+                const currentDay = getCurrentDayNumber(extendedChallenge.start_date!);
+                const todayMilestone = extendedChallenge.milestones?.find(m => m.day_number === currentDay);
+                return todayMilestone?.completed ? 'View Progress' : 'Check In Now';
+              })()}
+              variant="outline"
+              onPress={() => navigation.navigate('ExtendedChallengeProgress', { challenge: extendedChallenge })}
+              style={{ marginTop: Spacing.sm }}
+            />
+          </Card>
+        </>
+      )}
+
       {/* Habits Section */}
       <View style={styles.habitsHeader}>
         <Text style={styles.sectionTitle}>Habits</Text>
@@ -478,6 +529,28 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   challengeCard: { borderLeftWidth: 4, borderLeftColor: Colors.secondary },
+  extendedCard: { borderLeftWidth: 4, borderLeftColor: Colors.primary },
+  extendedDayInfo: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  checkInStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  checkInText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+  },
+  checkInDone: {
+    color: Colors.success,
+  },
   challengeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -14,13 +14,16 @@ import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { createChallenge } from '../../services/challenges';
-import { Category } from '../../types';
+import { Category, ChallengeType } from '../../types';
 import { getUserCategories } from '../../services/categories';
 import { TouchableOpacity } from 'react-native';
 import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
+import { ChallengeTypeSelector } from '../../components/challenge/ChallengeTypeSelector';
+import { DurationSelector } from '../../components/challenge/DurationSelector';
+import { MilestonePreview } from '../../components/challenge/MilestonePreview';
 
 type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
 
@@ -39,6 +42,8 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
   const [deadlineTime, setDeadlineTime] = useState('');
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [challengeType, setChallengeType] = useState<ChallengeType>('daily');
+  const [durationDays, setDurationDays] = useState(7);
 
   useEffect(() => {
     if (user) {
@@ -70,10 +75,13 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
         category_id: categories[categoryIdx]?.name || 'Uncategorized',
         date: new Date().toISOString().split('T')[0],
         difficulty_expected: difficulty,
+        challenge_type: challengeType,
+        ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),
         ...(description.trim() ? { description: description.trim() } : {}),
         ...(successCriteria.trim() ? { success_criteria: successCriteria.trim() } : {}),
         ...(why.trim() ? { why: why.trim() } : {}),
-        ...(deadlineDate ? { deadline: new Date(`${deadlineDate}T${deadlineTime || '23:59'}`).toISOString() } : {}),
+        // Only include deadline for daily challenges (extended uses end_date automatically)
+        ...(challengeType === 'daily' && deadlineDate ? { deadline: new Date(`${deadlineDate}T${deadlineTime || '23:59'}`).toISOString() } : {}),
       });
       navigation.popToTop();
     } catch (e: any) {
@@ -95,11 +103,28 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
       >
         <Text style={styles.heading}>New Challenge</Text>
 
+        <ChallengeTypeSelector
+          value={challengeType}
+          onChange={setChallengeType}
+        />
+
+        {challengeType === 'extended' && (
+          <>
+            <DurationSelector
+              value={durationDays}
+              onChange={setDurationDays}
+            />
+            <MilestonePreview durationDays={durationDays} />
+          </>
+        )}
+
         <InputField
           label="Name *"
           value={name}
           onChangeText={setName}
-          placeholder="e.g. Cold shower for 2 minutes"
+          placeholder={challengeType === 'extended'
+            ? "e.g. No social media for 7 days"
+            : "e.g. Cold shower for 2 minutes"}
         />
 
         {/* Category Picker */}
@@ -160,13 +185,16 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
           numberOfLines={3}
         />
 
-        <DateTimePicker
-          label="Deadline (optional)"
-          date={deadlineDate}
-          time={deadlineTime}
-          onDateChange={setDeadlineDate}
-          onTimeChange={setDeadlineTime}
-        />
+        {/* Only show deadline for daily challenges - extended uses end_date automatically */}
+        {challengeType === 'daily' && (
+          <DateTimePicker
+            label="Deadline (optional)"
+            date={deadlineDate}
+            time={deadlineTime}
+            onDateChange={setDeadlineDate}
+            onTimeChange={setDeadlineTime}
+          />
+        )}
 
         <Button
           title="Start Challenge"
