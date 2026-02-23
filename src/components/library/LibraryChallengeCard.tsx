@@ -9,22 +9,22 @@ import {
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { LibraryChallenge } from '../../types';
 import {
-  BARRIER_TYPES,
   TIME_CATEGORIES,
   ACTION_TYPES,
+  ACTION_CATEGORIES,
 } from '../../constants/challengeLibrary';
 
 interface LibraryChallengeCardProps {
   challenge: LibraryChallenge;
   onPress: () => void;
-  showBarrierType?: boolean;
+  showActionType?: boolean;
   showDescription?: boolean;
 }
 
 export const LibraryChallengeCard: React.FC<LibraryChallengeCardProps> = ({
   challenge,
   onPress,
-  showBarrierType = true,
+  showActionType = true,
   showDescription = false,
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
@@ -47,15 +47,15 @@ export const LibraryChallengeCard: React.FC<LibraryChallengeCardProps> = ({
     }).start();
   };
 
-  const barrierType = challenge.barrier_type
-    ? BARRIER_TYPES[challenge.barrier_type]
-    : null;
   const timeCategory = challenge.time_category
     ? TIME_CATEGORIES[challenge.time_category]
     : null;
   const actionType = challenge.action_type
     ? ACTION_TYPES[challenge.action_type]
     : null;
+  // Map action_type to display category for styling
+  const actionCategoryKey = challenge.action_type === 'complete' ? 'start' : 'stop';
+  const actionCategory = ACTION_CATEGORIES[actionCategoryKey];
 
   const getTimeDisplay = (): string => {
     if (challenge.time_required_minutes) {
@@ -90,10 +90,10 @@ export const LibraryChallengeCard: React.FC<LibraryChallengeCardProps> = ({
 
         {/* Metadata row */}
         <View style={styles.metadataRow}>
-          {showBarrierType && barrierType && (
-            <View style={[styles.badge, { backgroundColor: barrierType.color }]}>
-              <Text style={[styles.badgeText, { color: barrierType.accentColor }]}>
-                {barrierType.shortName}
+          {showActionType && actionType && actionCategory && (
+            <View style={[styles.actionBadge, { backgroundColor: actionCategory.color }]}>
+              <Text style={[styles.actionBadgeText, { color: actionCategory.accentColor }]}>
+                {actionCategory.icon} {actionCategory.name}
               </Text>
             </View>
           )}
@@ -105,14 +105,6 @@ export const LibraryChallengeCard: React.FC<LibraryChallengeCardProps> = ({
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{getTimeDisplay()}</Text>
           </View>
-
-          {actionType && (
-            <View style={styles.actionBadge}>
-              <Text style={styles.actionBadgeText}>
-                {actionType.icon} {actionType.label}
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Description (optional) */}

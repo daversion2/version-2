@@ -12,20 +12,20 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useAuth } from '../../context/AuthContext';
 import {
   getLibraryChallenges,
-  getBarrierTypeCounts,
+  getActionTypeCounts,
   getBeginnerChallenges,
   ChallengeFilters,
 } from '../../services/challengeLibrary';
 import { createChallenge } from '../../services/challenges';
-import { LibraryChallenge, TimeCategory, BarrierType } from '../../types';
+import { LibraryChallenge, TimeCategory, ActionType } from '../../types';
 import { showAlert } from '../../utils/alert';
 import {
-  BARRIER_TYPES_LIST,
+  ACTION_CATEGORIES_LIST,
   LIBRARY_UI_TEXT,
 } from '../../constants/challengeLibrary';
 import {
   FilterChipBar,
-  BarrierTypeCard,
+  ActionCategoryCard,
   LibraryChallengeCard,
   ChallengeDetailModal,
 } from '../../components/library';
@@ -42,7 +42,7 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
   // Data states
   const [allChallenges, setAllChallenges] = useState<LibraryChallenge[]>([]);
   const [beginnerChallenges, setBeginnerChallenges] = useState<LibraryChallenge[]>([]);
-  const [barrierCounts, setBarrierCounts] = useState<Record<string, number>>({});
+  const [actionCounts, setActionCounts] = useState<Record<string, number>>({});
 
   // Filter states
   const [selectedTimeCategory, setSelectedTimeCategory] = useState<TimeCategory | null>(null);
@@ -64,12 +64,12 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const [challenges, counts, beginners] = await Promise.all([
         getLibraryChallenges(currentFilters),
-        getBarrierTypeCounts(currentFilters),
+        getActionTypeCounts(currentFilters),
         getBeginnerChallenges(currentFilters),
       ]);
 
       setAllChallenges(challenges);
-      setBarrierCounts(counts);
+      setActionCounts(counts);
       setBeginnerChallenges(beginners.slice(0, 5)); // Limit to 5 beginner challenges
     } catch (err) {
       console.error('Failed to load challenge library:', err);
@@ -134,10 +134,10 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
     setDetailModalVisible(true);
   };
 
-  // Handle tapping a barrier type card
-  const handleBarrierPress = (barrierType: BarrierType) => {
-    navigation.navigate('BarrierChallenges', {
-      barrierType,
+  // Handle tapping an action category card (Start/Stop)
+  const handleActionCategoryPress = (actionType: ActionType) => {
+    navigation.navigate('ActionChallenges', {
+      actionType,
       initialTimeCategory: selectedTimeCategory,
       initialLifeDomain: selectedLifeDomain,
     });
@@ -181,15 +181,15 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
         {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Barrier Type Cards Section */}
-        <Text style={styles.sectionTitle}>{LIBRARY_UI_TEXT.barrierSectionTitle}</Text>
-        <View style={styles.barrierGrid}>
-          {BARRIER_TYPES_LIST.map((barrier) => (
-            <View key={barrier.id} style={styles.barrierCardWrapper}>
-              <BarrierTypeCard
-                barrier={barrier}
-                count={barrierCounts[barrier.id] || 0}
-                onPress={() => handleBarrierPress(barrier.id as BarrierType)}
+        {/* Action Category Cards Section (Start/Stop) */}
+        <Text style={styles.sectionTitle}>{LIBRARY_UI_TEXT.actionSectionTitle}</Text>
+        <View style={styles.actionGrid}>
+          {ACTION_CATEGORIES_LIST.map((category) => (
+            <View key={category.id} style={styles.actionCardWrapper}>
+              <ActionCategoryCard
+                category={category}
+                count={actionCounts[category.id] || 0}
+                onPress={() => handleActionCategoryPress(category.id === 'start' ? 'complete' : 'resist')}
               />
             </View>
           ))}
@@ -313,13 +313,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
   },
-  barrierGrid: {
+  actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
   },
-  barrierCardWrapper: {
+  actionCardWrapper: {
     width: '48%',
     marginBottom: Spacing.xs,
   },

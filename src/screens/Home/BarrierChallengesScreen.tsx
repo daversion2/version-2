@@ -11,15 +11,15 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import {
-  getChallengesByBarrier,
+  getChallengesByActionType,
   groupChallengesByDifficulty,
   ChallengeFilters,
 } from '../../services/challengeLibrary';
 import { createChallenge } from '../../services/challenges';
-import { LibraryChallenge, TimeCategory, BarrierType } from '../../types';
+import { LibraryChallenge, TimeCategory, ActionType } from '../../types';
 import { showAlert } from '../../utils/alert';
 import {
-  BARRIER_TYPES,
+  ACTION_CATEGORIES,
   LIBRARY_UI_TEXT,
 } from '../../constants/challengeLibrary';
 import {
@@ -28,17 +28,19 @@ import {
   ChallengeDetailModal,
 } from '../../components/library';
 
-type Props = NativeStackScreenProps<any, 'BarrierChallenges'>;
+type Props = NativeStackScreenProps<any, 'ActionChallenges'>;
 
-export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { barrierType, initialTimeCategory, initialLifeDomain } = route.params as {
-    barrierType: BarrierType;
+export const ActionChallengesScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { actionType, initialTimeCategory, initialLifeDomain } = route.params as {
+    actionType: ActionType;
     initialTimeCategory?: TimeCategory | null;
     initialLifeDomain?: string | null;
   };
 
   const { user } = useAuth();
-  const barrierConfig = BARRIER_TYPES[barrierType];
+  // Map action_type to display category
+  const categoryKey = actionType === 'complete' ? 'start' : 'stop';
+  const categoryConfig = ACTION_CATEGORIES[categoryKey];
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -63,12 +65,12 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
   // Set navigation title
   useEffect(() => {
     navigation.setOptions({
-      title: barrierConfig?.name ?? 'Challenges',
+      title: categoryConfig?.name ?? 'Challenges',
     });
-  }, [navigation, barrierConfig]);
+  }, [navigation, categoryConfig]);
 
   // Build current filters object
-  const currentFilters: Omit<ChallengeFilters, 'barrierType'> = {
+  const currentFilters: Omit<ChallengeFilters, 'actionType'> = {
     timeCategory: selectedTimeCategory,
     category: selectedLifeDomain,
   };
@@ -76,13 +78,13 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
   // Load data
   const loadData = useCallback(async () => {
     try {
-      const result = await getChallengesByBarrier(barrierType, currentFilters);
+      const result = await getChallengesByActionType(actionType, currentFilters);
       setChallenges(result);
     } catch (err) {
       console.error('Failed to load challenges:', err);
       showAlert('Error', 'Failed to load challenges');
     }
-  }, [barrierType, selectedTimeCategory, selectedLifeDomain]);
+  }, [actionType, selectedTimeCategory, selectedLifeDomain]);
 
   // Initial load
   useEffect(() => {
@@ -168,7 +170,7 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
               <LibraryChallengeCard
                 challenge={challenge}
                 onPress={() => handleChallengePress(challenge)}
-                showBarrierType={false}
+                showActionType={false}
                 showDescription
               />
             </View>
@@ -188,10 +190,10 @@ export const BarrierChallengesScreen: React.FC<Props> = ({ route, navigation }) 
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Barrier Description */}
-        {barrierConfig && (
-          <Text style={styles.barrierDescription}>
-            {barrierConfig.shortDescription}
+        {/* Category Description */}
+        {categoryConfig && (
+          <Text style={styles.categoryDescription}>
+            {categoryConfig.shortDescription}
           </Text>
         )}
 
@@ -269,7 +271,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Spacing.xxl,
   },
-  barrierDescription: {
+  categoryDescription: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.gray,
@@ -331,3 +333,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 });
+
+// Keep BarrierChallengesScreen as an alias for backward compatibility
+export const BarrierChallengesScreen = ActionChallengesScreen;

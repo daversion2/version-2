@@ -7,16 +7,16 @@ import {
   Animated,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { BarrierTypeConfig, LIBRARY_UI_TEXT } from '../../constants/challengeLibrary';
+import { ActionCategoryConfig, LIBRARY_UI_TEXT } from '../../constants/challengeLibrary';
 
-interface BarrierTypeCardProps {
-  barrier: BarrierTypeConfig;
+interface ActionCategoryCardProps {
+  category: ActionCategoryConfig;
   count: number;
   onPress: () => void;
 }
 
-export const BarrierTypeCard: React.FC<BarrierTypeCardProps> = ({
-  barrier,
+export const ActionCategoryCard: React.FC<ActionCategoryCardProps> = ({
+  category,
   count,
   onPress,
 }) => {
@@ -49,28 +49,31 @@ export const BarrierTypeCard: React.FC<BarrierTypeCardProps> = ({
       <Animated.View
         style={[
           styles.card,
-          { backgroundColor: barrier.color, transform: [{ scale }] },
+          { backgroundColor: category.color, transform: [{ scale }] },
         ]}
       >
         <View style={styles.header}>
-          <Text style={styles.icon}>{barrier.icon}</Text>
-          <Text style={[styles.name, { color: barrier.accentColor }]}>
-            {barrier.name}
+          <Text style={styles.icon}>{category.icon}</Text>
+          <Text style={[styles.name, { color: category.accentColor }]}>
+            {category.name}
           </Text>
         </View>
 
-        <Text style={styles.description}>{barrier.shortDescription}</Text>
+        <Text style={styles.description}>{category.shortDescription}</Text>
 
         <View style={styles.footer}>
-          <Text style={[styles.count, { color: barrier.accentColor }]}>
-            {count} {LIBRARY_UI_TEXT.barrierCardChallengesLabel}
+          <Text style={[styles.count, { color: category.accentColor }]}>
+            {count} {LIBRARY_UI_TEXT.actionCardChallengesLabel}
           </Text>
-          <Text style={[styles.arrow, { color: barrier.accentColor }]}>→</Text>
+          <Text style={[styles.arrow, { color: category.accentColor }]}>→</Text>
         </View>
       </Animated.View>
     </Pressable>
   );
 };
+
+// Keep BarrierTypeCard as an alias for backward compatibility
+export const BarrierTypeCard = ActionCategoryCard;
 
 const styles = StyleSheet.create({
   card: {

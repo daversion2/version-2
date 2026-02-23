@@ -14,9 +14,9 @@ import {
   getCategoryBreakdown,
   CategoryStat,
 } from '../../services/progress';
-import { getChallengesByBarrierType } from '../../services/challenges';
-import { BARRIER_TYPES } from '../../constants/challengeLibrary';
-import { BarrierType } from '../../types';
+import { getChallengesByActionType } from '../../services/challenges';
+import { ACTION_CATEGORIES } from '../../constants/challengeLibrary';
+import { ActionType } from '../../types';
 import { getWillpowerStats, getSuckFactorTier } from '../../services/willpower';
 import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
@@ -36,12 +36,9 @@ export const ProgressScreen: React.FC = () => {
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<CategoryStat[]>([]);
-  const [barrierCounts, setBarrierCounts] = useState<Record<BarrierType, number>>({
-    'comfort-zone': 0,
-    'delayed-gratification': 0,
-    'discipline': 0,
-    'ego': 0,
-    'energy-drainer': 0,
+  const [actionTypeCounts, setActionTypeCounts] = useState<Record<ActionType, number>>({
+    'complete': 0,
+    'resist': 0,
   });
 
   // Willpower Bank state
@@ -90,14 +87,14 @@ export const ProgressScreen: React.FC = () => {
 
     // Points and category breakdown for selected filter
     const start = getStartDate(filter);
-    const [p, cats, barriers] = await Promise.all([
+    const [p, cats, actionTypes] = await Promise.all([
       getTotalPoints(user.uid, start),
       getCategoryBreakdown(user.uid, start),
-      getChallengesByBarrierType(user.uid, start),
+      getChallengesByActionType(user.uid, start),
     ]);
     setPoints(p);
     setCategoryData(cats);
-    setBarrierCounts(barriers);
+    setActionTypeCounts(actionTypes);
 
     // Mark calendar
     const marks: Record<string, any> = {};
@@ -186,25 +183,26 @@ export const ProgressScreen: React.FC = () => {
       {/* Category Breakdown */}
       <CategoryBarChart data={categoryData} />
 
-      {/* Barrier Type Breakdown */}
-      {Object.values(barrierCounts).some(count => count > 0) && (
+      {/* Action Type Breakdown (Start/Stop) */}
+      {Object.values(actionTypeCounts).some(count => count > 0) && (
         <>
           <Text style={styles.sectionTitle}>Challenges by Type</Text>
-          <Card style={styles.barrierCard}>
-            {Object.entries(barrierCounts)
+          <Card style={styles.actionTypeCard}>
+            {Object.entries(actionTypeCounts)
               .filter(([_, count]) => count > 0)
               .sort(([, a], [, b]) => b - a)
               .map(([type, count]) => {
-                const barrierConfig = BARRIER_TYPES[type];
-                if (!barrierConfig) return null;
+                const categoryKey = type === 'complete' ? 'start' : 'stop';
+                const actionConfig = ACTION_CATEGORIES[categoryKey];
+                if (!actionConfig) return null;
                 return (
-                  <View key={type} style={styles.barrierRow}>
-                    <View style={styles.barrierInfo}>
-                      <Text style={styles.barrierIcon}>{barrierConfig.icon}</Text>
-                      <Text style={styles.barrierName}>{barrierConfig.shortName}</Text>
+                  <View key={type} style={styles.actionTypeRow}>
+                    <View style={styles.actionTypeInfo}>
+                      <Text style={styles.actionTypeIcon}>{actionConfig.icon}</Text>
+                      <Text style={styles.actionTypeName}>{actionConfig.name}</Text>
                     </View>
-                    <View style={styles.barrierCountBadge}>
-                      <Text style={styles.barrierCount}>{count}</Text>
+                    <View style={[styles.actionTypeCountBadge, { backgroundColor: actionConfig.color }]}>
+                      <Text style={[styles.actionTypeCount, { color: actionConfig.accentColor }]}>{count}</Text>
                     </View>
                   </View>
                 );
@@ -372,10 +370,10 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
   },
-  barrierCard: {
+  actionTypeCard: {
     marginBottom: Spacing.lg,
   },
-  barrierRow: {
+  actionTypeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -383,28 +381,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  barrierInfo: {
+  actionTypeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  barrierIcon: {
+  actionTypeIcon: {
     fontSize: 20,
   },
-  barrierName: {
+  actionTypeName: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.dark,
   },
-  barrierCountBadge: {
-    backgroundColor: Colors.primary + '20',
+  actionTypeCountBadge: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
   },
-  barrierCount: {
+  actionTypeCount: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.sm,
-    color: Colors.primary,
   },
 });

@@ -4,22 +4,67 @@
 // for the Challenge Library. Edit this file to change copy without touching components.
 
 // =============================================================================
-// BARRIER TYPES
+// ACTION CATEGORIES (Primary Browse)
 // =============================================================================
-// These are the psychological barrier categories that organize challenges.
-// Edit names, descriptions, icons, and colors here.
+// These are the two primary ways to browse challenges: Start (do) or Stop (resist).
+// This replaces the previous barrier types system.
 
-export interface BarrierTypeConfig {
+export interface ActionCategoryConfig {
   id: string;
-  name: string; // Full display name
-  shortName: string; // For compact displays (e.g., filter chips)
+  name: string; // Display name
+  shortName: string; // For compact displays
   icon: string; // Emoji icon
   shortDescription: string; // One-line description shown on cards
   longDescription: string; // Extended description for info modals
-  color: string; // Background color for cards (use light/pastel colors)
+  color: string; // Background color for cards
   accentColor: string; // Darker accent for text/borders
 }
 
+export const ACTION_CATEGORIES: Record<string, ActionCategoryConfig> = {
+  start: {
+    id: 'start',
+    name: 'Start',
+    shortName: 'Start',
+    icon: '⚡',
+    shortDescription: 'Things I need to do but don\'t want to',
+    longDescription:
+      'Challenges that push you to take action on things you\'ve been avoiding. These build your ability to do hard things even when you don\'t feel like it.',
+    color: '#E8F5E9', // Light green
+    accentColor: '#2E7D32',
+  },
+  stop: {
+    id: 'stop',
+    name: 'Stop',
+    shortName: 'Stop',
+    icon: '✋',
+    shortDescription: 'Activities I want to abstain from',
+    longDescription:
+      'Challenges that help you resist temptations and break unwanted habits. These strengthen your ability to say no and exercise self-control.',
+    color: '#FFF3E0', // Light orange
+    accentColor: '#E65100',
+  },
+};
+
+// Helper to get action categories as an array (for mapping in components)
+export const ACTION_CATEGORIES_LIST = Object.values(ACTION_CATEGORIES);
+
+// =============================================================================
+// BARRIER TYPES (DEPRECATED - kept for backward compatibility)
+// =============================================================================
+// These are no longer used for browsing but kept for existing data.
+
+export interface BarrierTypeConfig {
+  id: string;
+  name: string;
+  shortName: string;
+  icon: string;
+  shortDescription: string;
+  longDescription: string;
+  color: string;
+  accentColor: string;
+}
+
+// @deprecated - Use ACTION_CATEGORIES instead
 export const BARRIER_TYPES: Record<string, BarrierTypeConfig> = {
   'comfort-zone': {
     id: 'comfort-zone',
@@ -29,7 +74,7 @@ export const BARRIER_TYPES: Record<string, BarrierTypeConfig> = {
     shortDescription: 'Things that feel scary or uncomfortable',
     longDescription:
       'Challenges that push you outside your comfort zone. These train your nervous system to handle discomfort and reduce anxiety over time.',
-    color: '#E8F5E9', // Light green
+    color: '#E8F5E9',
     accentColor: '#2E7D32',
   },
   'delayed-gratification': {
@@ -40,7 +85,7 @@ export const BARRIER_TYPES: Record<string, BarrierTypeConfig> = {
     shortDescription: 'Resisting immediate pleasure for long-term benefit',
     longDescription:
       'Challenges that require you to say "no" to instant rewards. These strengthen your ability to prioritize future outcomes over present temptations.',
-    color: '#FFF3E0', // Light orange
+    color: '#FFF3E0',
     accentColor: '#E65100',
   },
   discipline: {
@@ -51,7 +96,7 @@ export const BARRIER_TYPES: Record<string, BarrierTypeConfig> = {
     shortDescription: 'Repetitive tasks requiring consistency',
     longDescription:
       'Challenges that build habits through consistent action. These train your ability to follow through even when motivation is low.',
-    color: '#E3F2FD', // Light blue
+    color: '#E3F2FD',
     accentColor: '#1565C0',
   },
   ego: {
@@ -62,7 +107,7 @@ export const BARRIER_TYPES: Record<string, BarrierTypeConfig> = {
     shortDescription: 'Things that humble you or risk embarrassment',
     longDescription:
       'Challenges that confront your fear of judgment or failure. These reduce the power of ego and increase resilience to criticism.',
-    color: '#F3E5F5', // Light purple
+    color: '#F3E5F5',
     accentColor: '#7B1FA2',
   },
   'energy-drainer': {
@@ -73,12 +118,12 @@ export const BARRIER_TYPES: Record<string, BarrierTypeConfig> = {
     shortDescription: 'Boring or tedious things you avoid',
     longDescription:
       'Challenges that are mundane but important. These train you to do necessary work even when it\'s not exciting or stimulating.',
-    color: '#ECEFF1', // Light gray-blue
+    color: '#ECEFF1',
     accentColor: '#455A64',
   },
 };
 
-// Helper to get barrier types as an array (for mapping in components)
+// @deprecated - Use ACTION_CATEGORIES_LIST instead
 export const BARRIER_TYPES_LIST = Object.values(BARRIER_TYPES);
 
 // =============================================================================
@@ -208,15 +253,15 @@ export interface ActionTypeConfig {
 export const ACTION_TYPES: Record<string, ActionTypeConfig> = {
   complete: {
     id: 'complete',
-    label: 'Complete',
-    icon: '✅',
-    description: 'Actively do something',
+    label: 'Start',
+    icon: '⚡',
+    description: 'Things I need to do but don\'t want to',
   },
   resist: {
     id: 'resist',
-    label: 'Resist',
-    icon: '🚫',
-    description: 'Resist temptation or avoid doing something',
+    label: 'Stop',
+    icon: '✋',
+    description: 'Activities I want to abstain from',
   },
 };
 
@@ -255,9 +300,9 @@ export const LIBRARY_UI_TEXT = {
   allTimeLabel: 'All',
   allCategoryLabel: 'All',
 
-  // Barrier section
-  barrierSectionTitle: 'Browse by What Holds You Back',
-  barrierCardChallengesLabel: 'challenges',
+  // Action category section (Start/Stop)
+  actionSectionTitle: 'What do you want to work on?',
+  actionCardChallengesLabel: 'challenges',
 
   // Challenge list sections
   beginnerSectionTitle: '🌱 Beginner Friendly',

@@ -1,9 +1,10 @@
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
-import { LibraryChallenge, BarrierType, TimeCategory } from '../types';
+import { LibraryChallenge, BarrierType, TimeCategory, ActionType } from '../types';
 import {
   TIME_CATEGORIES,
   BARRIER_TYPES,
+  ACTION_CATEGORIES,
   SAMPLE_CHALLENGES,
   getTimeCategoryFromMinutes,
 } from '../constants/challengeLibrary';
@@ -22,7 +23,8 @@ const libraryRef = collection(db, 'challengeLibrary');
 // =============================================================================
 
 export interface ChallengeFilters {
-  barrierType?: BarrierType | null;
+  actionType?: ActionType | null; // Primary filter: 'complete' (Start) or 'resist' (Stop)
+  barrierType?: BarrierType | null; // @deprecated - kept for backward compatibility
   timeCategory?: TimeCategory | null;
   category?: string | null; // Life domain (Physical, Mental, etc.)
   beginnerFriendly?: boolean;
@@ -61,7 +63,12 @@ const applyFilters = (
   if (!filters) return challenges;
 
   return challenges.filter((c) => {
-    // Filter by barrier type
+    // Filter by action type (primary filter for Start/Stop)
+    if (filters.actionType && c.action_type !== filters.actionType) {
+      return false;
+    }
+
+    // Filter by barrier type (deprecated but kept for compatibility)
     if (filters.barrierType && c.barrier_type !== filters.barrierType) {
       return false;
     }
@@ -121,7 +128,22 @@ export const getLibraryChallenges = async (
 };
 
 /**
+ * Get challenges filtered by action type (Start/Stop)
+ * This is the primary filter for browsing challenges.
+ */
+export const getChallengesByActionType = async (
+  actionType: ActionType,
+  additionalFilters?: Omit<ChallengeFilters, 'actionType'>
+): Promise<LibraryChallenge[]> => {
+  return getLibraryChallenges({
+    ...additionalFilters,
+    actionType,
+  });
+};
+
+/**
  * Get challenges filtered by barrier type
+ * @deprecated Use getChallengesByActionType instead
  */
 export const getChallengesByBarrier = async (
   barrierType: BarrierType,
@@ -217,9 +239,37 @@ export const getLibraryCategories = async (): Promise<string[]> => {
 // =============================================================================
 
 /**
+ * Get count of challenges per action type (Start/Stop)
+ * Returns a map with keys 'start' and 'stop' -> count
+ * Respects any active filters (time, category)
+ */
+export const getActionTypeCounts = async (
+  filters?: Omit<ChallengeFilters, 'actionType'>
+): Promise<Record<string, number>> => {
+  const challenges = await getLibraryChallenges(filters);
+
+  const counts: Record<string, number> = {
+    start: 0, // Maps to action_type 'complete'
+    stop: 0,  // Maps to action_type 'resist'
+  };
+
+  // Count challenges per action type
+  challenges.forEach((c) => {
+    if (c.action_type === 'complete') {
+      counts.start++;
+    } else if (c.action_type === 'resist') {
+      counts.stop++;
+    }
+  });
+
+  return counts;
+};
+
+/**
  * Get count of challenges per barrier type
  * Returns a map of barrier_type -> count
  * Respects any active filters (time, category)
+ * @deprecated Use getActionTypeCounts instead
  */
 export const getBarrierTypeCounts = async (
   filters?: Omit<ChallengeFilters, 'barrierType'>

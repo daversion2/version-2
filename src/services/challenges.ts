@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats } from './willpower';
 import { db } from './firebase';
-import { Challenge, ChallengeStatus, CompletionLog, ChallengeMilestone, ChallengeRepeatStats } from '../types';
+import { Challenge, ChallengeStatus, CompletionLog, ChallengeMilestone, ChallengeRepeatStats, ActionType } from '../types';
 
 const challengesRef = (userId: string) =>
   collection(db, 'users', userId, 'challenges');
@@ -654,6 +654,47 @@ export const getChallengesByBarrierType = async (
     // Count by barrier type (only if barrier_type is set)
     if (challenge.barrier_type && challenge.barrier_type in counts) {
       counts[challenge.barrier_type]++;
+    }
+  }
+
+  return counts;
+};
+
+/**
+ * Get count of completed challenges grouped by action type (Start/Stop)
+ * @param userId User's ID
+ * @param startDate Optional start date filter (YYYY-MM-DD)
+ * @param endDate Optional end date filter (YYYY-MM-DD)
+ */
+export const getChallengesByActionType = async (
+  userId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<Record<ActionType, number>> => {
+  // Initialize counts for action types
+  const counts: Record<ActionType, number> = {
+    'complete': 0,
+    'resist': 0,
+  };
+
+  // Query all completed challenges
+  const q = query(
+    challengesRef(userId),
+    where('status', '==', 'completed')
+  );
+
+  const snap = await getDocs(q);
+  const challenges = snap.docs.map(d => d.data() as Challenge);
+
+  // Filter by date range if provided and count by action type
+  for (const challenge of challenges) {
+    // Apply date filters if provided
+    if (startDate && challenge.date < startDate) continue;
+    if (endDate && challenge.date > endDate) continue;
+
+    // Count by action type (only if action_type is set)
+    if (challenge.action_type && challenge.action_type in counts) {
+      counts[challenge.action_type]++;
     }
   }
 
