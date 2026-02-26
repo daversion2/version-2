@@ -1,17 +1,27 @@
 /**
+ * Format a Date as YYYY-MM-DD in the device's local timezone
+ */
+const toLocalDateString = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
  * Check if a date string (YYYY-MM-DD) represents yesterday
  */
 export const isYesterday = (dateStr: string): boolean => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return dateStr === yesterday.toISOString().split('T')[0];
+  return dateStr === toLocalDateString(yesterday);
 };
 
 /**
  * Check if a date string (YYYY-MM-DD) represents today
  */
 export const isToday = (dateStr: string): boolean => {
-  return dateStr === new Date().toISOString().split('T')[0];
+  return dateStr === toLocalDateString(new Date());
 };
 
 /**
@@ -20,14 +30,14 @@ export const isToday = (dateStr: string): boolean => {
 export const getYesterdayString = (): string => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday.toISOString().split('T')[0];
+  return toLocalDateString(yesterday);
 };
 
 /**
  * Get today's date as YYYY-MM-DD string
  */
 export const getTodayString = (): string => {
-  return new Date().toISOString().split('T')[0];
+  return toLocalDateString(new Date());
 };
 
 /**
