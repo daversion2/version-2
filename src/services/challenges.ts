@@ -78,9 +78,11 @@ export function getCurrentDayNumber(startDate: string): number {
   const diffTime = today.getTime() - start.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-  // Guard against future start dates - return 0 if challenge hasn't started yet
+  // Guard against future start dates - return 1 as minimum since active
+  // challenges should always be at least on day 1 (handles edge cases from
+  // timezone drift where diffDays could be -1)
   if (diffDays < 0) {
-    return 0;
+    return 1;
   }
 
   return diffDays + 1; // Day 1 is the start date
@@ -107,11 +109,14 @@ export const createChallenge = async (
   // For extended challenges, auto-generate milestones
   if (challengeType === 'extended' && data.duration_days) {
     challengeData.milestones = generateMilestones(data.duration_days);
-    challengeData.start_date = new Date().toISOString().split('T')[0];
+    // Use local date to avoid timezone mismatch (toISOString() returns UTC which
+    // can be a day ahead in US timezones, causing getCurrentDayNumber to return 0)
+    const now = new Date();
+    challengeData.start_date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     // Calculate end_date
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + data.duration_days - 1);
-    challengeData.end_date = endDate.toISOString().split('T')[0];
+    challengeData.end_date = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
   }
 
   // Filter out undefined values as Firestore doesn't accept them
@@ -335,6 +340,7 @@ export const completeMilestone = async (
   challengeId: string,
   dayNumber: number,
   succeeded: boolean,
+  points: number,
   note?: string
 ): Promise<void> => {
   const challengeRef = doc(db, 'users', userId, 'challenges', challengeId);
@@ -348,6 +354,7 @@ export const completeMilestone = async (
         completed: true,
         completed_at: new Date().toISOString(),
         succeeded,
+        points_awarded: points,
       };
       // Only add note if it has a value (Firestore doesn't accept undefined)
       if (note) {
@@ -374,11 +381,11 @@ export const completeExtendedChallenge = async (
   const challenge = await getChallengeById(userId, challengeId);
   if (!challenge) throw new Error('Challenge not found');
 
-  // Calculate points based on milestones completed
+  // Calculate points: sum of daily points awarded + completion bonus
   const completedMilestones = challenge.milestones?.filter(m => m.completed && m.succeeded) || [];
-  const totalMilestones = challenge.milestones?.length || 1;
+  const dailyPointsTotal = completedMilestones.reduce((sum, m) => sum + (m.points_awarded || 1), 0);
   const completionBonus = result.status === 'completed' ? result.difficulty_actual : 0;
-  const points = completedMilestones.length + completionBonus;
+  const points = dailyPointsTotal + completionBonus;
 
   const ref = doc(db, 'users', userId, 'challenges', challengeId);
 
