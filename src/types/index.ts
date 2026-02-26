@@ -38,6 +38,7 @@ export interface ChallengeMilestone {
   completed: boolean;
   completed_at?: string;
   succeeded?: boolean;  // true = kept challenge, false = broke it
+  points_awarded?: number; // 1-5 points chosen by user at daily check-in
   note?: string;
 }
 

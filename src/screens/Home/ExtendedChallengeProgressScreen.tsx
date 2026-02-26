@@ -62,14 +62,14 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
     setCheckInModalVisible(true);
   };
 
-  const handleCheckIn = async (succeeded: boolean, note?: string) => {
+  const handleCheckIn = async (succeeded: boolean, points: number, note?: string) => {
     if (!user) return;
 
     try {
-      await completeMilestone(user.uid, challenge.id, selectedDay, succeeded, note);
+      await completeMilestone(user.uid, challenge.id, selectedDay, succeeded, points, note);
 
-      // Award 1 point for daily check-in
-      await updateWillpowerStats(user.uid, 1);
+      // Award the chosen points for daily check-in
+      await updateWillpowerStats(user.uid, points);
 
       // Refresh challenge data
       const refreshed = await getChallengeById(user.uid, challenge.id);
@@ -83,7 +83,7 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
         } else {
           showAlert(
             'Day Checked In!',
-            `You earned 1 Willpower Point for checking in.`
+            `You earned ${points} Willpower ${points === 1 ? 'Point' : 'Points'} for checking in.`
           );
         }
       }

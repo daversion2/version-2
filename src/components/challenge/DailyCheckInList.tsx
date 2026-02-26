@@ -68,6 +68,11 @@ export const DailyCheckInList: React.FC<Props> = ({
                   <Text style={styles.dateText}>{getDateForDay(milestone.day_number)}</Text>
                 )}
               </View>
+              {milestone.completed && milestone.points_awarded != null && (
+                <Text style={styles.pointsBadge}>
+                  +{milestone.points_awarded}
+                </Text>
+              )}
               {canCheckIn && (
                 <TouchableOpacity
                   style={styles.checkInButton}
@@ -144,6 +149,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.sm,
     color: Colors.white,
+  },
+  pointsBadge: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    marginRight: Spacing.xs,
   },
   noteText: {
     fontFamily: Fonts.secondary,

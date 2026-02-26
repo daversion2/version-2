@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
+import * as Localization from 'expo-localization';
 import { subscribeToAuth } from '../services/auth';
-import { getUserProfile } from '../services/users';
+import { getUserProfile, saveTimezone } from '../services/users';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -26,6 +27,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (u) {
         const profile = await getUserProfile(u.uid);
         setUserProfile(profile);
+
+        // Sync timezone on every app launch — keeps it current if user travels
+        // or if it was never set (e.g. user never enabled notifications)
+        const deviceTimezone = Localization.getCalendars()[0]?.timeZone;
+        if (deviceTimezone && deviceTimezone !== profile?.timezone) {
+          saveTimezone(u.uid, deviceTimezone).catch(() => {});
+        }
       } else {
         setUserProfile(null);
       }
