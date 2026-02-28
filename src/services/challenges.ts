@@ -27,14 +27,13 @@ export const getActiveChallenge = async (userId: string): Promise<Challenge | nu
   const q = query(
     challengesRef(userId),
     where('status', '==', 'active'),
-    limit(1)
   );
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  const challenge = { id: snap.docs[0].id, ...snap.docs[0].data() } as Challenge;
-  // Filter to daily challenges only (or challenges without type for backwards compat)
-  if (challenge.challenge_type === 'extended') return null;
-  return challenge;
+  // Find the first daily (or untyped) challenge, skipping any extended ones
+  const dailyDoc = snap.docs.find(d => d.data().challenge_type !== 'extended');
+  if (!dailyDoc) return null;
+  return { id: dailyDoc.id, ...dailyDoc.data() } as Challenge;
 };
 
 // Get active extended challenge (separate from daily)
