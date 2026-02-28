@@ -281,6 +281,8 @@ export interface TeamActivityFeedItem {
 
 export type DifficultyTier = 'moderate' | 'hard' | 'very_hard';
 
+export type FeedEntryType = 'challenge_completion' | 'streak_milestone' | 'level_up' | 'repeat_milestone';
+
 export interface InspirationFeedEntry {
   id: string;
   user_id: string; // For filtering (not displayed)
@@ -293,6 +295,25 @@ export interface InspirationFeedEntry {
   completed_at: string;
   display_timestamp: string; // Jittered for privacy
   expires_at: string; // 48 hours after completion
+  // Engagement features
+  entry_type?: FeedEntryType; // Defaults to 'challenge_completion' for backward compat
+  completion_message?: string; // Optional 150-char post-completion message
+  streak_tier?: string; // e.g., "On Fire", "Legendary"
+  streak_days?: number; // Current streak count at time of entry
+  willpower_level?: number; // User's level at time of entry
+  willpower_title?: string; // e.g., "Grit Machine"
+  // Milestone entry fields
+  milestone_value?: number; // e.g., 50 (for "completed 50 times")
+  milestone_challenge_name?: string; // e.g., "Cold Shower" (for repeat milestones)
+  // Fist bump tracking (count only visible to entry owner)
+  fist_bump_count?: number;
+}
+
+export interface FistBump {
+  id: string;
+  feed_entry_id: string;
+  sender_id: string;
+  created_at: string;
 }
 
 // --- User-Submitted Challenges ---

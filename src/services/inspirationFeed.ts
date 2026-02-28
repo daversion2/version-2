@@ -9,12 +9,15 @@ import {
   orderBy,
   limit,
   deleteDoc,
+  updateDoc,
+  increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { InspirationFeedEntry, DifficultyTier, User } from '../types';
+import { InspirationFeedEntry, DifficultyTier, FeedEntryType, FistBump, User } from '../types';
 
 // Inspiration feed is a top-level collection shared across all users
 const feedRef = () => collection(db, 'inspirationFeed');
+const fistBumpsRef = () => collection(db, 'fistBumps');
 
 /**
  * Map actual difficulty (1-5) to display tier
@@ -59,7 +62,11 @@ export const createFeedEntry = async (
   challengeName: string,
   shareTeaser: boolean = true,
   categoryIcon?: string,
-  username?: string
+  username?: string,
+  streakTier?: string,
+  streakDays?: number,
+  willpowerLevel?: number,
+  willpowerTitle?: string
 ): Promise<string | null> => {
   // Only include difficulty 3+ challenges
   const tier = getDifficultyTier(difficulty);
@@ -79,12 +86,60 @@ export const createFeedEntry = async (
     completed_at: now.toISOString(),
     display_timestamp: displayTimestamp.toISOString(),
     expires_at: expiresAt.toISOString(),
+    entry_type: 'challenge_completion',
+    streak_tier: streakTier,
+    streak_days: streakDays,
+    willpower_level: willpowerLevel,
+    willpower_title: willpowerTitle,
+    fist_bump_count: 0,
   };
 
   // Only include teaser if user opted in
   if (shareTeaser) {
     entryData.challenge_teaser = createTeaser(challengeName);
   }
+
+  const docRef = await addDoc(feedRef(), entryData);
+  return docRef.id;
+};
+
+/**
+ * Create a milestone feed entry (streak tier, level up, or repeat milestone)
+ * Same privacy model as challenge entries: jittered timestamp, 48-hour expiry
+ */
+export const createMilestoneFeedEntry = async (
+  userId: string,
+  username: string | undefined,
+  entryType: FeedEntryType,
+  milestoneValue?: number,
+  milestoneChallengeName?: string,
+  streakDays?: number,
+  streakTier?: string,
+  willpowerLevel?: number,
+  willpowerTitle?: string
+): Promise<string | null> => {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const displayTimestamp = jitterTimestamp(now);
+
+  const entryData: Omit<InspirationFeedEntry, 'id'> = {
+    user_id: userId,
+    username: username,
+    category_id: '',
+    category_name: '',
+    difficulty_tier: 'moderate', // Placeholder, not displayed for milestones
+    completed_at: now.toISOString(),
+    display_timestamp: displayTimestamp.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    entry_type: entryType,
+    streak_tier: streakTier,
+    streak_days: streakDays,
+    willpower_level: willpowerLevel,
+    willpower_title: willpowerTitle,
+    milestone_value: milestoneValue,
+    milestone_challenge_name: milestoneChallengeName,
+    fist_bump_count: 0,
+  };
 
   const docRef = await addDoc(feedRef(), entryData);
   return docRef.id;
@@ -210,6 +265,104 @@ export const getActiveFeedCount = async (): Promise<number> => {
     const data = d.data() as InspirationFeedEntry;
     return data.expires_at > now;
   }).length;
+};
+
+/**
+ * Update a feed entry with a completion message
+ * Called after user optionally writes a message post-completion
+ */
+export const updateFeedEntryMessage = async (
+  entryId: string,
+  message: string
+): Promise<void> => {
+  const trimmed = message.trim().substring(0, 150);
+  if (!trimmed) return;
+  const entryRef = doc(db, 'inspirationFeed', entryId);
+  await updateDoc(entryRef, { completion_message: trimmed });
+};
+
+// ============================================================================
+// FIST BUMP OPERATIONS
+// ============================================================================
+
+/**
+ * Send a fist bump on a feed entry
+ * One bump per user per entry — checks for existing bump first
+ */
+export const sendFistBump = async (
+  feedEntryId: string,
+  senderId: string
+): Promise<boolean> => {
+  // Check if already bumped
+  const q = query(
+    fistBumpsRef(),
+    where('feed_entry_id', '==', feedEntryId),
+    where('sender_id', '==', senderId)
+  );
+  const existing = await getDocs(q);
+  if (!existing.empty) return false; // Already bumped
+
+  await addDoc(fistBumpsRef(), {
+    feed_entry_id: feedEntryId,
+    sender_id: senderId,
+    created_at: new Date().toISOString(),
+  });
+
+  // Increment count on the feed entry
+  const entryRef = doc(db, 'inspirationFeed', feedEntryId);
+  await updateDoc(entryRef, { fist_bump_count: increment(1) });
+  return true;
+};
+
+/**
+ * Remove a fist bump from a feed entry
+ */
+export const removeFistBump = async (
+  feedEntryId: string,
+  senderId: string
+): Promise<boolean> => {
+  const q = query(
+    fistBumpsRef(),
+    where('feed_entry_id', '==', feedEntryId),
+    where('sender_id', '==', senderId)
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return false;
+
+  for (const document of snap.docs) {
+    await deleteDoc(document.ref);
+  }
+
+  // Decrement count on the feed entry (floor at 0)
+  const entryRef = doc(db, 'inspirationFeed', feedEntryId);
+  await updateDoc(entryRef, { fist_bump_count: increment(-1) });
+  return true;
+};
+
+/**
+ * Get which feed entry IDs a user has fist-bumped
+ * Used to set initial toggle state when loading the feed
+ */
+export const getUserFistBumps = async (
+  userId: string,
+  entryIds: string[]
+): Promise<Set<string>> => {
+  if (entryIds.length === 0) return new Set();
+
+  const q = query(
+    fistBumpsRef(),
+    where('sender_id', '==', userId)
+  );
+  const snap = await getDocs(q);
+
+  const bumpedEntryIds = new Set<string>();
+  for (const document of snap.docs) {
+    const data = document.data();
+    if (entryIds.includes(data.feed_entry_id)) {
+      bumpedEntryIds.add(data.feed_entry_id);
+    }
+  }
+  return bumpedEntryIds;
 };
 
 /**
