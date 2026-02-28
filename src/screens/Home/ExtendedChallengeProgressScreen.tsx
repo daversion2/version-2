@@ -18,8 +18,9 @@ import {
   areAllMilestonesComplete,
 } from '../../services/challenges';
 import { updateWillpowerStats } from '../../services/willpower';
-import { Challenge } from '../../types';
+import { Challenge, BuddyChallenge, ChallengeMilestone } from '../../types';
 import { showAlert, showConfirm } from '../../utils/alert';
+import { getBuddyChallengeById, sendNudge, getPartnerChallengeStatus, getPartnerChallengeMilestones } from '../../services/buddyChallenge';
 
 type Props = NativeStackScreenProps<any, 'ExtendedChallengeProgress'>;
 
@@ -31,6 +32,10 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
   const [loading, setLoading] = useState(false);
   const [checkInModalVisible, setCheckInModalVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0);
+  const [partnerStatus, setPartnerStatus] = useState<string | null>(null);
+  const [partnerUsername, setPartnerUsername] = useState<string | undefined>(undefined);
+  const [partnerMilestones, setPartnerMilestones] = useState<ChallengeMilestone[] | null>(null);
+  const [nudgeSending, setNudgeSending] = useState(false);
 
   // Refresh challenge data when screen gains focus
   useFocusEffect(
@@ -39,6 +44,27 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
       (async () => {
         const refreshed = await getChallengeById(user.uid, passedChallenge.id);
         if (refreshed) setChallenge(refreshed);
+
+        // Load buddy challenge status and partner milestones
+        if (refreshed?.is_buddy_challenge && refreshed?.buddy_challenge_id) {
+          try {
+            const [status, partnerData] = await Promise.all([
+              getPartnerChallengeStatus(user.uid, refreshed.buddy_challenge_id),
+              refreshed.challenge_type === 'extended'
+                ? getPartnerChallengeMilestones(user.uid, refreshed.buddy_challenge_id)
+                : Promise.resolve(null),
+            ]);
+            if (status) {
+              setPartnerStatus(status.status);
+              setPartnerUsername(status.username);
+            }
+            if (partnerData?.milestones) {
+              setPartnerMilestones(partnerData.milestones);
+            }
+          } catch {
+            // Ignore buddy status errors
+          }
+        }
       })();
     }, [user, passedChallenge?.id])
   );
@@ -160,6 +186,110 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
         label={`${completedMilestones}/${totalMilestones} days`}
       />
 
+      {/* Buddy Challenge Status */}
+      {challenge.is_buddy_challenge && partnerStatus && (
+        <Card style={styles.buddyCard}>
+          <View style={styles.buddyRow}>
+            <Ionicons name="people" size={20} color={Colors.primary} />
+            <View style={styles.buddyInfo}>
+              <Text style={styles.buddyLabel}>
+                Buddy: {partnerUsername || challenge.buddy_partner_username || 'Teammate'}
+              </Text>
+              <Text style={styles.buddyStatus}>
+                Status: {partnerStatus === 'active' ? 'In Progress' : partnerStatus === 'completed' ? 'Completed' : partnerStatus}
+              </Text>
+            </View>
+            {partnerStatus === 'active' && challenge.buddy_challenge_id && (
+              <TouchableOpacity
+                style={styles.nudgeBtn}
+                onPress={async () => {
+                  if (!user || !challenge.buddy_challenge_id) return;
+                  setNudgeSending(true);
+                  try {
+                    const result = await sendNudge(user.uid, challenge.buddy_challenge_id);
+                    if (result.success) {
+                      showAlert('Nudge Sent!', `${partnerUsername || 'Your teammate'} will get a notification.`);
+                    } else {
+                      showAlert('Already Nudged', result.reason || 'Try again tomorrow.');
+                    }
+                  } catch {
+                    showAlert('Error', 'Failed to send nudge.');
+                  } finally {
+                    setNudgeSending(false);
+                  }
+                }}
+                disabled={nudgeSending}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.nudgeBtnText}>
+                  {nudgeSending ? '...' : 'Nudge'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Partner's daily check-in progress */}
+          {partnerMilestones && partnerMilestones.length > 0 && (
+            <View style={styles.partnerProgress}>
+              <Text style={styles.partnerProgressTitle}>
+                {partnerUsername || 'Teammate'}'s Progress
+              </Text>
+              <View style={styles.partnerDaysRow}>
+                {partnerMilestones.map((m) => {
+                  const isToday = m.day_number === currentDay;
+                  return (
+                    <View
+                      key={m.id}
+                      style={[
+                        styles.partnerDayDot,
+                        m.completed && m.succeeded && styles.partnerDaySuccess,
+                        m.completed && !m.succeeded && styles.partnerDayFailed,
+                        !m.completed && isToday && styles.partnerDayCurrent,
+                      ]}
+                    >
+                      <Text style={[
+                        styles.partnerDayText,
+                        m.completed && styles.partnerDayTextCompleted,
+                      ]}>
+                        {m.day_number}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+              {(() => {
+                const todayMilestone = partnerMilestones.find(m => m.day_number === currentDay);
+                if (todayMilestone?.completed) {
+                  return (
+                    <View style={styles.partnerTodayStatus}>
+                      <Ionicons
+                        name={todayMilestone.succeeded ? 'checkmark-circle' : 'close-circle'}
+                        size={16}
+                        color={todayMilestone.succeeded ? Colors.success : Colors.fail}
+                      />
+                      <Text style={[
+                        styles.partnerTodayText,
+                        { color: todayMilestone.succeeded ? Colors.success : Colors.fail },
+                      ]}>
+                        {todayMilestone.succeeded ? 'Checked in today' : 'Missed today'}
+                      </Text>
+                    </View>
+                  );
+                }
+                return (
+                  <View style={styles.partnerTodayStatus}>
+                    <Ionicons name="time-outline" size={16} color={Colors.gray} />
+                    <Text style={styles.partnerTodayText}>
+                      Hasn't checked in today
+                    </Text>
+                  </View>
+                );
+              })()}
+            </View>
+          )}
+        </Card>
+      )}
+
       <DailyCheckInList
         milestones={challenge.milestones}
         currentDayNumber={currentDay}
@@ -222,5 +352,96 @@ const styles = StyleSheet.create({
   endButton: {
     marginTop: Spacing.xl,
     borderColor: Colors.gray,
+  },
+  buddyCard: {
+    marginBottom: Spacing.md,
+  },
+  buddyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  buddyInfo: {
+    flex: 1,
+  },
+  buddyLabel: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  buddyStatus: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 2,
+  },
+  nudgeBtn: {
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  nudgeBtnText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.white,
+  },
+  partnerProgress: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  partnerProgressTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+  },
+  partnerDaysRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  partnerDayDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.lightGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  partnerDaySuccess: {
+    backgroundColor: Colors.success + '20',
+    borderColor: Colors.success,
+  },
+  partnerDayFailed: {
+    backgroundColor: Colors.fail + '20',
+    borderColor: Colors.fail,
+  },
+  partnerDayCurrent: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
+  },
+  partnerDayText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  partnerDayTextCompleted: {
+    color: Colors.dark,
+  },
+  partnerTodayStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  partnerTodayText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
   },
 });

@@ -6,8 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
 import { getPastChallenges, createChallenge, getChallengeRepeatStats } from '../../services/challenges';
@@ -64,31 +65,67 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handleInviteBuddy = (c: Challenge) => {
+    if (!user) return;
+    if (!user.team_id) {
+      showAlert('No Team', 'Join or create a team first to invite a teammate.');
+      return;
+    }
+    const challengeType = c.challenge_type || 'daily';
+    navigation.navigate('BuddyPickPartner', {
+      challengeData: {
+        name: c.name,
+        category_id: c.category_id,
+        challenge_type: challengeType,
+        difficulty_expected: c.difficulty_expected,
+        ...(challengeType === 'extended' && c.duration_days ? { duration_days: c.duration_days } : {}),
+        description: c.description,
+        success_criteria: c.success_criteria,
+        why: c.why,
+      },
+    });
+  };
+
   const renderItem = ({ item }: { item: Challenge }) => {
     const stats = repeatStatsMap[item.name.toLowerCase().trim()];
     const completionCount = stats?.total_completions || 0;
 
     return (
-      <TouchableOpacity onPress={() => reuse(item)} activeOpacity={0.7}>
-        <Card style={styles.card}>
-          <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.meta}>
-            {item.category_id} — Difficulty: {item.difficulty_expected}
+      <Card style={styles.card}>
+        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.meta}>
+          {item.category_id} — Difficulty: {item.difficulty_expected}
+        </Text>
+        {completionCount > 0 && (
+          <Text style={styles.repeatCount}>
+            Completed {completionCount} time{completionCount !== 1 ? 's' : ''}
           </Text>
-          {completionCount > 0 && (
-            <Text style={styles.repeatCount}>
-              Completed {completionCount} time{completionCount !== 1 ? 's' : ''}
-            </Text>
-          )}
-        </Card>
-      </TouchableOpacity>
+        )}
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={styles.reuseBtn}
+            onPress={() => reuse(item)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.reuseBtnText}>Start Solo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buddyBtn}
+            onPress={() => handleInviteBuddy(item)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="people" size={14} color={Colors.primary} />
+            <Text style={styles.buddyBtnText}>With Teammate</Text>
+          </TouchableOpacity>
+        </View>
+      </Card>
     );
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Past Challenges</Text>
-      <Text style={styles.subtitle}>Tap to re-use as today's challenge</Text>
+      <Text style={styles.subtitle}>Re-use a past challenge solo or with a teammate</Text>
       {!loading && challenges.length === 0 ? (
         <Text style={styles.empty}>No past challenges yet.</Text>
       ) : (
@@ -137,6 +174,39 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.primary,
     marginTop: Spacing.xs,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  reuseBtn: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  reuseBtnText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.white,
+  },
+  buddyBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  buddyBtnText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
   empty: {
     fontFamily: Fonts.secondary,

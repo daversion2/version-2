@@ -28,7 +28,8 @@ import {
   getStreakTierInfo,
   getLevelInfo,
 } from '../../services/willpower';
-import { Challenge } from '../../types';
+import { Challenge, BuddyChallenge } from '../../types';
+import { onBuddyChallengeUserComplete } from '../../services/buddyChallenge';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
@@ -225,6 +226,24 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
       const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
 
+      // Handle buddy challenge completion
+      let buddyBonusPoints = 0;
+      let buddyBothComplete = false;
+      if (challenge.is_buddy_challenge && challenge.buddy_challenge_id) {
+        try {
+          const buddyResult = await onBuddyChallengeUserComplete(
+            user.uid,
+            challenge.buddy_challenge_id,
+            result,
+            pointsEarned,
+          );
+          buddyBothComplete = buddyResult.bothComplete;
+          buddyBonusPoints = buddyResult.bonusPoints;
+        } catch (buddyErr) {
+          console.warn('Failed to update buddy challenge:', buddyErr);
+        }
+      }
+
       // Create milestone feed entries (fire-and-forget)
       try {
         const userData = await getUser(user.uid);
@@ -280,13 +299,31 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       if (multiplier > 1) {
         pointsMessage += `\n(${multiplier}x streak bonus applied)`;
       }
+      if (buddyBothComplete && buddyBonusPoints > 0) {
+        pointsMessage += `\n+${buddyBonusPoints} Buddy Bonus!`;
+      }
 
-      // Show points popup animation first
-      setEarnedPoints(pointsEarned);
+      // Show points popup animation first (include buddy bonus in display)
+      setEarnedPoints(pointsEarned + buddyBonusPoints);
       setShowPointsPopup(true);
 
       // Prepare the alert to show after popup animation completes
       const showAlerts = async () => {
+        // Show buddy-specific alerts first
+        if (challenge.is_buddy_challenge && result === 'completed') {
+          if (buddyBothComplete) {
+            showAlert(
+              'Buddy Bonus!',
+              `You and ${challenge.buddy_partner_username || 'your teammate'} both crushed it!\n\n+${buddyBonusPoints} bonus points earned!`
+            );
+          } else {
+            showAlert(
+              'Waiting for Partner',
+              `Your partner hasn't finished yet. They can see you did it!`
+            );
+          }
+        }
+
         const alertTitle = result === 'completed' ? 'Challenge Complete' : 'Challenge Logged';
 
         // Show repeat milestone first if applicable

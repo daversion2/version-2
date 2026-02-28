@@ -14,6 +14,8 @@ import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScree
 import { WriteReviewScreen } from '../screens/Community/WriteReviewScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
 import { EditChallengeScreen } from '../screens/Home/EditChallengeScreen';
+import { BuddyPickPartnerScreen } from '../screens/Home/BuddyPickPartnerScreen';
+import { BuddyInvitesScreen } from '../screens/Home/BuddyInvitesScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -101,6 +103,16 @@ export const HomeStack: React.FC = () => (
       name="EditChallenge"
       component={EditChallengeScreen}
       options={{ title: 'Edit Challenge' }}
+    />
+    <Stack.Screen
+      name="BuddyPickPartner"
+      component={BuddyPickPartnerScreen}
+      options={{ title: 'Pick a Teammate' }}
+    />
+    <Stack.Screen
+      name="BuddyInvites"
+      component={BuddyInvitesScreen}
+      options={{ title: 'Buddy Invites' }}
     />
   </Stack.Navigator>
 );

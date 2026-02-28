@@ -249,8 +249,69 @@ export const InspirationFeedScreen: React.FC = () => {
     );
   };
 
+  const renderBuddyCompletionEntry = (item: InspirationFeedEntry) => {
+    const isOwnEntry = item.user_id === user?.uid;
+    const inviterName = item.buddy_inviter_username || 'Someone';
+    const partnerName = item.buddy_partner_username || 'their buddy';
+    const challengeName = item.buddy_challenge_name || 'a challenge';
+    const hasBumped = bumpedEntries.has(item.id);
+    const bumpCount = item.fist_bump_count || 0;
+
+    return (
+      <Card style={{ ...styles.entryCard, ...styles.buddyCard }}>
+        <View style={styles.entryHeader}>
+          <View style={styles.headerLeft}>
+            <View style={styles.buddyBadge}>
+              <Ionicons name="people" size={16} color={Colors.secondary} />
+              <Text style={styles.buddyBadgeText}>Buddy Challenge</Text>
+            </View>
+            {isOwnEntry && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>You</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.timeText}>
+            {formatRelativeTime(item.display_timestamp)}
+          </Text>
+        </View>
+
+        <View style={styles.entryContent}>
+          <Text style={styles.entryText}>
+            {inviterName} and {partnerName} crushed "{challengeName}" together!
+          </Text>
+        </View>
+
+        <View style={styles.entryFooter}>
+          <View style={styles.badgeRow} />
+          {!isOwnEntry ? (
+            <TouchableOpacity
+              style={styles.fistBumpButton}
+              onPress={() => handleFistBump(item.id)}
+              disabled={bumpingInProgress.has(item.id)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={{ fontSize: 18, opacity: hasBumped ? 0.4 : 1 }}>🤜</Text>
+              <Text style={styles.fistBumpLabel}>
+                {hasBumped ? 'bumped!' : 'fist bump'}
+              </Text>
+            </TouchableOpacity>
+          ) : bumpCount > 0 ? (
+            <Text style={styles.inspiredText}>
+              {bumpCount} {bumpCount === 1 ? 'person' : 'people'} inspired
+            </Text>
+          ) : null}
+        </View>
+      </Card>
+    );
+  };
+
   const renderEntry = ({ item }: { item: InspirationFeedEntry }) => {
     const entryType = item.entry_type || 'challenge_completion';
+
+    if (entryType === 'buddy_completion') {
+      return renderBuddyCompletionEntry(item);
+    }
 
     if (entryType !== 'challenge_completion') {
       return renderMilestoneEntry(item);
@@ -508,6 +569,25 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.primary,
+  },
+  // Buddy completion card styles
+  buddyCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.secondary,
+  },
+  buddyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.secondary + '15',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    gap: 4,
+  },
+  buddyBadgeText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
   },
   // Milestone card styles
   milestoneCard: {

@@ -14,8 +14,10 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary } from '../../types';
-import { getActiveChallenge, getActiveExtendedChallenge, getCurrentDayNumber } from '../../services/challenges';
+import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge } from '../../types';
+import { getActiveChallenges, getActiveExtendedChallenges, getCurrentDayNumber } from '../../services/challenges';
+import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
+import { BuddyChallengeStatusBadge } from '../../components/challenge/BuddyChallengeStatusBadge';
 import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
 import { HabitStreakInfo } from '../../types';
 import { getUserCategories } from '../../services/categories';
@@ -64,8 +66,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const [spotlightLayout, setSpotlightLayout] = useState<SpotlightLayout | null>(null);
 
-  const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
-  const [extendedChallenge, setExtendedChallenge] = useState<Challenge | null>(null);
+  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
+  const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
+  const [pendingInvites, setPendingInvites] = useState(0);
+  const [buddyChallenges, setBuddyChallenges] = useState<BuddyChallenge[]>([]);
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -104,16 +108,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [challenge, extended, habitList, cats, userTeam, todaysFact] = await Promise.all([
-        getActiveChallenge(user.uid),
-        getActiveExtendedChallenge(user.uid),
+      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies] = await Promise.all([
+        getActiveChallenges(user.uid),
+        getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
         getUserCategories(user.uid),
         getUserTeam(user.uid),
         getTodaysFunFact(),
+        getPendingInviteCount(user.uid),
+        getActiveBuddyChallenges(user.uid),
       ]);
-      setActiveChallenge(challenge);
-      setExtendedChallenge(extended);
+      setActiveChallenges(dailyChallenges);
+      setExtendedChallenges(extChallenges);
+      setPendingInvites(inviteCount);
+      setBuddyChallenges(activeBuddies);
       setHabits(habitList);
       setCategories(cats);
       setTeam(userTeam);
@@ -308,55 +316,89 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       {/* Team Activity Card */}
       {team && <TeamActivityCard team={team} summary={teamSummary} />}
 
-      {/* Challenge Section */}
-      <Text style={styles.sectionTitle}>Today's Challenge</Text>
-
-      {activeChallenge ? (
+      {/* Buddy Challenge Invites Banner */}
+      {pendingInvites > 0 && (
         <Card
-          style={styles.challengeCard}
-          onPress={() => navigation.navigate('CompleteChallenge', { challenge: activeChallenge })}
+          style={styles.inviteBanner}
+          onPress={() => navigation.navigate('BuddyInvites')}
         >
-          <View style={styles.challengeHeader}>
-            <Text style={styles.challengeName}>{activeChallenge.name}</Text>
-            <View style={styles.badgeRow}>
-              {activeChallenge.action_type && (
-                <View style={[
-                  styles.actionBadge,
-                  { backgroundColor: activeChallenge.action_type === 'resist' ? Colors.secondary + '20' : Colors.primary + '20' }
-                ]}>
-                  <Text style={[
-                    styles.actionBadgeText,
-                    { color: activeChallenge.action_type === 'resist' ? Colors.secondary : Colors.primary }
-                  ]}>
-                    {ACTION_TYPES[activeChallenge.action_type]?.icon} {ACTION_TYPES[activeChallenge.action_type]?.label}
-                  </Text>
-                </View>
-              )}
-              <TouchableOpacity
-                style={styles.editBtn}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  navigation.navigate('EditChallenge', { challenge: activeChallenge });
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="pencil" size={18} color={Colors.gray} />
-              </TouchableOpacity>
-              <View style={styles.diffBadge}>
-                <Text style={styles.diffText}>{activeChallenge.difficulty_expected}</Text>
-              </View>
-            </View>
+          <View style={styles.inviteRow}>
+            <Ionicons name="people" size={20} color={Colors.secondary} />
+            <Text style={styles.inviteText}>
+              {pendingInvites} buddy challenge invite{pendingInvites > 1 ? 's' : ''}
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
           </View>
-          {activeChallenge.description ? (
-            <Text style={styles.challengeDesc}>{activeChallenge.description}</Text>
-          ) : null}
-          {activeChallenge.deadline ? (
-            <View style={{ marginTop: Spacing.sm }}>
-              <CountdownTimer deadline={activeChallenge.deadline} variant="compact" />
-            </View>
-          ) : null}
-          <Text style={styles.tapHint}>Tap to complete</Text>
         </Card>
+      )}
+
+      {/* Challenge Section */}
+      <Text style={styles.sectionTitle}>Today's Challenges</Text>
+
+      {activeChallenges.length > 0 ? (
+        activeChallenges.map((challenge) => {
+          const buddyInfo = challenge.is_buddy_challenge && challenge.buddy_challenge_id
+            ? buddyChallenges.find(b => b.id === challenge.buddy_challenge_id)
+            : null;
+          const partnerStatus = buddyInfo
+            ? (challenge.user_id === buddyInfo.inviter_id ? buddyInfo.partner_status : buddyInfo.inviter_status)
+            : null;
+
+          return (
+            <Card
+              key={challenge.id}
+              style={styles.challengeCard}
+              onPress={() => navigation.navigate('CompleteChallenge', { challenge })}
+            >
+              <View style={styles.challengeHeader}>
+                <Text style={styles.challengeName}>{challenge.name}</Text>
+                <View style={styles.badgeRow}>
+                  {challenge.action_type && (
+                    <View style={[
+                      styles.actionBadge,
+                      { backgroundColor: challenge.action_type === 'resist' ? Colors.secondary + '20' : Colors.primary + '20' }
+                    ]}>
+                      <Text style={[
+                        styles.actionBadgeText,
+                        { color: challenge.action_type === 'resist' ? Colors.secondary : Colors.primary }
+                      ]}>
+                        {ACTION_TYPES[challenge.action_type]?.icon} {ACTION_TYPES[challenge.action_type]?.label}
+                      </Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.editBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      navigation.navigate('EditChallenge', { challenge });
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="pencil" size={18} color={Colors.gray} />
+                  </TouchableOpacity>
+                  <View style={styles.diffBadge}>
+                    <Text style={styles.diffText}>{challenge.difficulty_expected}</Text>
+                  </View>
+                </View>
+              </View>
+              {challenge.is_buddy_challenge && partnerStatus && (
+                <BuddyChallengeStatusBadge
+                  partnerUsername={challenge.buddy_partner_username}
+                  partnerStatus={partnerStatus}
+                />
+              )}
+              {challenge.description ? (
+                <Text style={styles.challengeDesc}>{challenge.description}</Text>
+              ) : null}
+              {challenge.deadline ? (
+                <View style={{ marginTop: Spacing.sm }}>
+                  <CountdownTimer deadline={challenge.deadline} variant="compact" />
+                </View>
+              ) : null}
+              <Text style={styles.tapHint}>Tap to complete</Text>
+            </Card>
+          );
+        })
       ) : (
         <Card>
           <Text style={styles.noChallenge}>No active challenge</Text>
@@ -371,38 +413,53 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       {/* Extended Challenge Section */}
-      {extendedChallenge && extendedChallenge.milestones && extendedChallenge.start_date && (
+      {extendedChallenges.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Extended Challenge</Text>
-          <Card
-            style={styles.extendedCard}
-            onPress={() => navigation.navigate('ExtendedChallengeProgress', { challenge: extendedChallenge })}
-          >
-            <View style={styles.extendedHeader}>
-              <Text style={styles.challengeName}>{extendedChallenge.name}</Text>
-              <TouchableOpacity
-                style={styles.editBtn}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  navigation.navigate('EditChallenge', { challenge: extendedChallenge });
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          <Text style={styles.sectionTitle}>Extended Challenges</Text>
+          {extendedChallenges.map((extendedChallenge) => {
+            if (!extendedChallenge.milestones || !extendedChallenge.start_date) return null;
+            const buddyInfo = extendedChallenge.is_buddy_challenge && extendedChallenge.buddy_challenge_id
+              ? buddyChallenges.find(b => b.id === extendedChallenge.buddy_challenge_id)
+              : null;
+            const partnerStatus = buddyInfo
+              ? (extendedChallenge.user_id === buddyInfo.inviter_id ? buddyInfo.partner_status : buddyInfo.inviter_status)
+              : null;
+            const currentDay = getCurrentDayNumber(extendedChallenge.start_date);
+            const todayMilestone = extendedChallenge.milestones.find(m => m.day_number === currentDay);
+            const checkedInToday = todayMilestone?.completed;
+
+            return (
+              <Card
+                key={extendedChallenge.id}
+                style={styles.extendedCard}
+                onPress={() => navigation.navigate('ExtendedChallengeProgress', { challenge: extendedChallenge })}
               >
-                <Ionicons name="pencil" size={18} color={Colors.gray} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.extendedDayInfo}>
-              Day {Math.min(getCurrentDayNumber(extendedChallenge.start_date), extendedChallenge.milestones.length)} of {extendedChallenge.milestones.length}
-            </Text>
-            <ProgressBar
-              progress={extendedChallenge.milestones.filter(m => m.completed).length / extendedChallenge.milestones.length}
-              showPercentage={false}
-            />
-            {(() => {
-              const currentDay = getCurrentDayNumber(extendedChallenge.start_date!);
-              const todayMilestone = extendedChallenge.milestones?.find(m => m.day_number === currentDay);
-              const checkedInToday = todayMilestone?.completed;
-              return (
+                <View style={styles.extendedHeader}>
+                  <Text style={styles.challengeName}>{extendedChallenge.name}</Text>
+                  <TouchableOpacity
+                    style={styles.editBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      navigation.navigate('EditChallenge', { challenge: extendedChallenge });
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="pencil" size={18} color={Colors.gray} />
+                  </TouchableOpacity>
+                </View>
+                {extendedChallenge.is_buddy_challenge && partnerStatus && (
+                  <BuddyChallengeStatusBadge
+                    partnerUsername={extendedChallenge.buddy_partner_username}
+                    partnerStatus={partnerStatus}
+                  />
+                )}
+                <Text style={styles.extendedDayInfo}>
+                  Day {Math.min(currentDay, extendedChallenge.milestones.length)} of {extendedChallenge.milestones.length}
+                </Text>
+                <ProgressBar
+                  progress={extendedChallenge.milestones.filter(m => m.completed).length / extendedChallenge.milestones.length}
+                  showPercentage={false}
+                />
                 <View style={styles.checkInStatus}>
                   <Ionicons
                     name={checkedInToday ? 'checkmark-circle' : 'ellipse-outline'}
@@ -413,19 +470,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     {checkedInToday ? 'Checked in today!' : "Today's check-in: Not done"}
                   </Text>
                 </View>
-              );
-            })()}
-            <Button
-              title={(() => {
-                const currentDay = getCurrentDayNumber(extendedChallenge.start_date!);
-                const todayMilestone = extendedChallenge.milestones?.find(m => m.day_number === currentDay);
-                return todayMilestone?.completed ? 'View Progress' : 'Check In Now';
-              })()}
-              variant="outline"
-              onPress={() => navigation.navigate('ExtendedChallengeProgress', { challenge: extendedChallenge })}
-              style={{ marginTop: Spacing.sm }}
-            />
-          </Card>
+                <Button
+                  title={checkedInToday ? 'View Progress' : 'Check In Now'}
+                  variant="outline"
+                  onPress={() => navigation.navigate('ExtendedChallengeProgress', { challenge: extendedChallenge })}
+                  style={{ marginTop: Spacing.sm }}
+                />
+              </Card>
+            );
+          })}
         </>
       )}
 
@@ -566,8 +619,24 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     marginTop: Spacing.md,
   },
-  challengeCard: { borderLeftWidth: 4, borderLeftColor: Colors.secondary },
-  extendedCard: { borderLeftWidth: 4, borderLeftColor: Colors.primary },
+  inviteBanner: {
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.secondary,
+    marginBottom: Spacing.sm,
+  },
+  inviteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  inviteText: {
+    flex: 1,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  challengeCard: { borderLeftWidth: 4, borderLeftColor: Colors.secondary, marginBottom: Spacing.sm },
+  extendedCard: { borderLeftWidth: 4, borderLeftColor: Colors.primary, marginBottom: Spacing.sm },
   extendedHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

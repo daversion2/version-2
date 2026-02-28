@@ -146,6 +146,42 @@ export const createMilestoneFeedEntry = async (
 };
 
 /**
+ * Create a shared feed entry when both buddy challenge partners complete.
+ * "[inviter] and [partner] crushed [challenge] together"
+ */
+export const createBuddyCompletionFeedEntry = async (
+  inviterId: string,
+  inviterUsername: string | undefined,
+  partnerUsername: string | undefined,
+  challengeName: string,
+  categoryId: string,
+  categoryName: string,
+): Promise<string | null> => {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const displayTimestamp = jitterTimestamp(now);
+
+  const entryData: Omit<InspirationFeedEntry, 'id'> = {
+    user_id: inviterId,
+    username: inviterUsername,
+    category_id: categoryId,
+    category_name: categoryName,
+    difficulty_tier: 'moderate',
+    completed_at: now.toISOString(),
+    display_timestamp: displayTimestamp.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    entry_type: 'buddy_completion',
+    buddy_inviter_username: inviterUsername,
+    buddy_partner_username: partnerUsername,
+    buddy_challenge_name: challengeName,
+    fist_bump_count: 0,
+  };
+
+  const docRef = await addDoc(feedRef(), entryData);
+  return docRef.id;
+};
+
+/**
  * Fetch usernames for a list of user IDs
  * Returns a map of userId -> username
  */

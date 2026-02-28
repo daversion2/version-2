@@ -79,6 +79,11 @@ export const calculateFailedChallengePoints = (
   return Math.round(basePoints * multiplier) + reflectionBonus;
 };
 
+// Calculate the buddy bonus delta (extra points when both partners complete)
+export const calculateBuddyBonusPoints = (basePoints: number): number => {
+  return Math.round(basePoints * POINTS.BUDDY_BONUS_MULTIPLIER) - basePoints;
+};
+
 // Calculate points for a completed habit
 export const calculateHabitPoints = (
   difficulty: number,

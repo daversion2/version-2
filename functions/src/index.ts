@@ -331,3 +331,159 @@ export const sendTeamActivityNotification = onDocumentCreated(
     }
   }
 );
+
+// ============================================
+// 5. Buddy Challenge Invite Notification
+// Triggers when a new buddy challenge is created (status=pending)
+// Notifies the partner that they've been invited
+// ============================================
+export const sendBuddyChallengeInvite = onDocumentCreated(
+  "buddyChallenges/{buddyChallengeId}",
+  async (event) => {
+    console.log("sendBuddyChallengeInvite triggered");
+
+    const data = event.data?.data();
+    if (!data) {
+      console.log("No buddy challenge data found");
+      return;
+    }
+
+    // Only notify on pending invites
+    if (data.status !== "pending") {
+      console.log("Buddy challenge status is not pending, skipping");
+      return;
+    }
+
+    const partnerId = data.partner_id;
+    const inviterUsername = data.inviter_username || "A teammate";
+    const challengeName = data.challenge_name || "a challenge";
+
+    // Get partner's push token
+    const partnerDoc = await db.collection("users").doc(partnerId).get();
+    const partnerData = partnerDoc.data();
+
+    if (!partnerData?.expoPushToken) {
+      console.log(`No push token for partner ${partnerId}`);
+      return;
+    }
+
+    await sendPushNotification(
+      partnerData.expoPushToken,
+      "Buddy Challenge Invite!",
+      `${inviterUsername} wants to do "${challengeName}" with you!`
+    );
+
+    console.log(`Sent buddy challenge invite notification to partner ${partnerId}`);
+  }
+);
+
+// ============================================
+// 6. Buddy Challenge Nudge Notification
+// Triggers when a nudge field is updated on a buddy challenge
+// ============================================
+export const sendBuddyChallengeNudge = onDocumentUpdated(
+  "buddyChallenges/{buddyChallengeId}",
+  async (event) => {
+    const beforeData = event.data?.before.data();
+    const afterData = event.data?.after.data();
+
+    if (!beforeData || !afterData) return;
+
+    // Detect nudge from inviter (field changed)
+    const inviterNudged =
+      beforeData.last_nudge_by_inviter !== afterData.last_nudge_by_inviter &&
+      afterData.last_nudge_by_inviter;
+
+    // Detect nudge from partner (field changed)
+    const partnerNudged =
+      beforeData.last_nudge_by_partner !== afterData.last_nudge_by_partner &&
+      afterData.last_nudge_by_partner;
+
+    if (!inviterNudged && !partnerNudged) return;
+
+    // Determine who to notify
+    const targetUserId = inviterNudged ? afterData.partner_id : afterData.inviter_id;
+    const senderUsername = inviterNudged
+      ? (afterData.inviter_username || "Your buddy")
+      : (afterData.partner_username || "Your buddy");
+
+    // Get target's push token
+    const targetDoc = await db.collection("users").doc(targetUserId).get();
+    const targetData = targetDoc.data();
+
+    if (!targetData?.expoPushToken) {
+      console.log(`No push token for nudge target ${targetUserId}`);
+      return;
+    }
+
+    await sendPushNotification(
+      targetData.expoPushToken,
+      "Buddy Nudge!",
+      `${senderUsername} sent you a nudge. You've got this!`
+    );
+
+    console.log(`Sent nudge notification to ${targetUserId}`);
+  }
+);
+
+// ============================================
+// 7. Buddy Challenge Both Complete Notification
+// Triggers when buddy challenge status changes to 'completed'
+// Notifies both users that they both crushed it
+// ============================================
+export const sendBuddyBothComplete = onDocumentUpdated(
+  "buddyChallenges/{buddyChallengeId}",
+  async (event) => {
+    const beforeData = event.data?.before.data();
+    const afterData = event.data?.after.data();
+
+    if (!beforeData || !afterData) return;
+
+    // Only trigger when status changes TO 'completed'
+    if (beforeData.status === "completed" || afterData.status !== "completed") return;
+
+    const challengeName = afterData.challenge_name || "a challenge";
+    const inviterId = afterData.inviter_id;
+    const partnerId = afterData.partner_id;
+
+    // Fetch both users' push tokens in parallel
+    const [inviterDoc, partnerDoc] = await Promise.all([
+      db.collection("users").doc(inviterId).get(),
+      db.collection("users").doc(partnerId).get(),
+    ]);
+
+    const inviterData = inviterDoc.data();
+    const partnerData = partnerDoc.data();
+
+    const title = "Buddy Challenge Complete!";
+    const body = `You both crushed "${challengeName}"! Check out your reflections.`;
+
+    const notifications: ExpoPushMessage[] = [];
+
+    if (inviterData?.expoPushToken && Expo.isExpoPushToken(inviterData.expoPushToken)) {
+      notifications.push({
+        to: inviterData.expoPushToken,
+        sound: "default",
+        title,
+        body,
+      });
+    }
+
+    if (partnerData?.expoPushToken && Expo.isExpoPushToken(partnerData.expoPushToken)) {
+      notifications.push({
+        to: partnerData.expoPushToken,
+        sound: "default",
+        title,
+        body,
+      });
+    }
+
+    if (notifications.length > 0) {
+      const chunks = expo.chunkPushNotifications(notifications);
+      for (const chunk of chunks) {
+        await expo.sendPushNotificationsAsync(chunk);
+      }
+      console.log(`Sent both-complete notifications for buddy challenge ${event.params.buddyChallengeId}`);
+    }
+  }
+);

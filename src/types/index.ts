@@ -94,6 +94,68 @@ export interface Challenge {
   psychological_benefit?: string;
   what_youll_learn?: string;
   common_resistance?: string[];
+
+  // Buddy challenge fields
+  buddy_challenge_id?: string;
+  is_buddy_challenge?: boolean;
+  buddy_partner_id?: string;
+  buddy_partner_username?: string;
+}
+
+// --- Buddy Challenges ---
+
+export type BuddyChallengeStatus = 'pending' | 'active' | 'completed' | 'declined' | 'abandoned';
+
+export interface BuddyChallenge {
+  id: string;
+  inviter_id: string;
+  inviter_username?: string;
+  partner_id: string;
+  partner_username?: string;
+  team_id: string;
+  // Challenge details (copied at invite time)
+  challenge_name: string;
+  challenge_type: ChallengeType;
+  category_id: string;
+  difficulty_expected: number;
+  duration_days?: number;
+  description?: string;
+  success_criteria?: string;
+  why?: string;
+  // Library metadata
+  library_challenge_id?: string;
+  barrier_type?: BarrierType;
+  action_type?: ActionType;
+  time_category?: TimeCategory;
+  neuroscience_explanation?: string;
+  psychological_benefit?: string;
+  what_youll_learn?: string;
+  common_resistance?: string[];
+  // Challenge doc references
+  inviter_challenge_id?: string;
+  partner_challenge_id?: string;
+  // Status
+  status: BuddyChallengeStatus;
+  inviter_status: 'active' | 'completed' | 'failed' | 'cancelled';
+  partner_status: 'pending' | 'active' | 'completed' | 'failed' | 'declined' | 'cancelled';
+  // Timestamps
+  created_at: string;
+  accepted_at?: string;
+  completed_at?: string;
+  // Rewards
+  buddy_bonus_applied: boolean;
+  feed_entry_id?: string;
+  // Nudge tracking
+  last_nudge_by_inviter?: string;
+  last_nudge_by_partner?: string;
+}
+
+export interface DuoStreak {
+  id: string;
+  user_ids: [string, string];
+  challenges_completed: number;
+  last_completed_at?: string;
+  first_completed_at?: string;
 }
 
 export interface Nudge {
@@ -281,7 +343,7 @@ export interface TeamActivityFeedItem {
 
 export type DifficultyTier = 'moderate' | 'hard' | 'very_hard';
 
-export type FeedEntryType = 'challenge_completion' | 'streak_milestone' | 'level_up' | 'repeat_milestone';
+export type FeedEntryType = 'challenge_completion' | 'streak_milestone' | 'level_up' | 'repeat_milestone' | 'buddy_completion';
 
 export interface InspirationFeedEntry {
   id: string;
@@ -305,6 +367,10 @@ export interface InspirationFeedEntry {
   // Milestone entry fields
   milestone_value?: number; // e.g., 50 (for "completed 50 times")
   milestone_challenge_name?: string; // e.g., "Cold Shower" (for repeat milestones)
+  // Buddy challenge fields
+  buddy_inviter_username?: string;
+  buddy_partner_username?: string;
+  buddy_challenge_name?: string;
   // Fist bump tracking (count only visible to entry owner)
   fist_bump_count?: number;
 }

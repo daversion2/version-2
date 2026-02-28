@@ -51,6 +51,29 @@ export const getActiveExtendedChallenge = async (
   return { id: snap.docs[0].id, ...snap.docs[0].data() } as Challenge;
 };
 
+// Get all active daily challenges (for multi-challenge support)
+export const getActiveChallenges = async (userId: string): Promise<Challenge[]> => {
+  const q = query(
+    challengesRef(userId),
+    where('status', '==', 'active'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as Challenge))
+    .filter(c => c.challenge_type !== 'extended');
+};
+
+// Get all active extended challenges (for multi-challenge support)
+export const getActiveExtendedChallenges = async (userId: string): Promise<Challenge[]> => {
+  const q = query(
+    challengesRef(userId),
+    where('status', '==', 'active'),
+    where('challenge_type', '==', 'extended'),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Challenge));
+};
+
 // Auto-generate milestones for duration
 export function generateMilestones(durationDays: number): ChallengeMilestone[] {
   return Array.from({ length: durationDays }, (_, i) => ({
@@ -91,16 +114,7 @@ export const createChallenge = async (
   userId: string,
   data: Omit<Challenge, 'id' | 'user_id' | 'status' | 'created_at'>
 ): Promise<string> => {
-  // Check for existing active challenge based on type
   const challengeType = data.challenge_type || 'daily';
-
-  if (challengeType === 'daily') {
-    const existing = await getActiveChallenge(userId);
-    if (existing) throw new Error('An active daily challenge already exists.');
-  } else if (challengeType === 'extended') {
-    const existingExtended = await getActiveExtendedChallenge(userId);
-    if (existingExtended) throw new Error('An active extended challenge already exists.');
-  }
 
   // Prepare challenge data
   let challengeData: Record<string, unknown> = { ...data };

@@ -34,6 +34,7 @@ interface ChallengeDetailModalProps {
   challenge: LibraryChallenge | null;
   onClose: () => void;
   onUseChallenge: (challenge: LibraryChallenge, duration: number) => Promise<void>;
+  onInviteBuddy?: (challenge: LibraryChallenge, duration: number) => void;
   isCreating?: boolean;
 }
 
@@ -42,6 +43,7 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
   challenge,
   onClose,
   onUseChallenge,
+  onInviteBuddy,
   isCreating = false,
 }) => {
   const [showExamplesModal, setShowExamplesModal] = useState(false);
@@ -288,6 +290,17 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
                   : `Start ${selectedDuration}-Day Challenge`}
             </Text>
           </TouchableOpacity>
+
+          {onInviteBuddy && (
+            <TouchableOpacity
+              style={styles.buddyButton}
+              onPress={() => onInviteBuddy(challenge, selectedDuration)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="people" size={18} color={Colors.primary} />
+              <Text style={styles.buddyButtonText}>Do It With a Teammate</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Examples Modal */}
@@ -506,6 +519,22 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
     color: Colors.white,
+  },
+  buddyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+  },
+  buddyButtonText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.primary,
   },
   modalListItem: {
     fontFamily: Fonts.secondary,
