@@ -131,6 +131,11 @@ export const InspirationFeedScreen: React.FC = () => {
         accentColor = Colors.primary;
         milestoneText = `${displayName} completed "${item.milestone_challenge_name}" for the ${item.milestone_value}${getOrdinalSuffix(item.milestone_value || 0)} time!`;
         break;
+      case 'program_completion':
+        milestoneIcon = 'ribbon';
+        accentColor = '#217180';
+        milestoneText = `${displayName} completed the ${item.program_name || 'program'}${item.program_duration_days ? ` (${item.program_duration_days} days)` : ''}!`;
+        break;
     }
 
     return (

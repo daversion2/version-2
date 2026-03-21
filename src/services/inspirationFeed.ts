@@ -13,7 +13,7 @@ import {
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { InspirationFeedEntry, DifficultyTier, FeedEntryType, FistBump, User } from '../types';
+import { InspirationFeedEntry, DifficultyTier, FeedEntryType, FistBump, User, ProgramMode } from '../types';
 
 // Inspiration feed is a top-level collection shared across all users
 const feedRef = () => collection(db, 'inspirationFeed');
@@ -174,6 +174,41 @@ export const createBuddyCompletionFeedEntry = async (
     buddy_inviter_username: inviterUsername,
     buddy_partner_username: partnerUsername,
     buddy_challenge_name: challengeName,
+    fist_bump_count: 0,
+  };
+
+  const docRef = await addDoc(feedRef(), entryData);
+  return docRef.id;
+};
+
+/**
+ * Create a feed entry when a user completes a program.
+ * Includes program-specific fields for richer display.
+ */
+export const createProgramCompletionFeedEntry = async (
+  userId: string,
+  username: string | undefined,
+  programName: string,
+  programDurationDays: number,
+  programMode: ProgramMode,
+): Promise<string | null> => {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const displayTimestamp = jitterTimestamp(now);
+
+  const entryData: Omit<InspirationFeedEntry, 'id'> = {
+    user_id: userId,
+    username: username,
+    category_id: '',
+    category_name: '',
+    difficulty_tier: 'very_hard',
+    completed_at: now.toISOString(),
+    display_timestamp: displayTimestamp.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    entry_type: 'program_completion',
+    program_name: programName,
+    program_duration_days: programDurationDays,
+    program_mode: programMode,
     fist_bump_count: 0,
   };
 

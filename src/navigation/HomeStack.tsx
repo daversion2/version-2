@@ -16,6 +16,11 @@ import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallen
 import { EditChallengeScreen } from '../screens/Home/EditChallengeScreen';
 import { BuddyPickPartnerScreen } from '../screens/Home/BuddyPickPartnerScreen';
 import { BuddyInvitesScreen } from '../screens/Home/BuddyInvitesScreen';
+import { ProgramDiscoveryScreen } from '../screens/Home/ProgramDiscoveryScreen';
+import { ProgramDetailScreen } from '../screens/Home/ProgramDetailScreen';
+import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
+import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
+import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -113,6 +118,31 @@ export const HomeStack: React.FC = () => (
       name="BuddyInvites"
       component={BuddyInvitesScreen}
       options={{ title: 'Buddy Invites' }}
+    />
+    <Stack.Screen
+      name="ProgramDiscovery"
+      component={ProgramDiscoveryScreen}
+      options={{ title: 'Programs' }}
+    />
+    <Stack.Screen
+      name="ProgramDetail"
+      component={ProgramDetailScreen}
+      options={{ title: '' }}
+    />
+    <Stack.Screen
+      name="ProgramDashboard"
+      component={ProgramDashboardScreen}
+      options={{ title: 'My Program' }}
+    />
+    <Stack.Screen
+      name="ProgramCompletion"
+      component={ProgramCompletionScreen}
+      options={{ title: '', headerShown: false }}
+    />
+    <Stack.Screen
+      name="ProgramFailed"
+      component={ProgramFailedScreen}
+      options={{ title: '', headerShown: false }}
     />
   </Stack.Navigator>
 );

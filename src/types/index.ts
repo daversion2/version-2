@@ -19,6 +19,8 @@ export interface User {
   submission_ban_until?: string; // ISO timestamp if rate-limited
   // Admin
   is_admin?: boolean;
+  // Programs
+  active_program_id?: string; // Denormalized enrollment ID for fast home screen check
 }
 
 export interface Category {
@@ -171,7 +173,7 @@ export interface Nudge {
 export interface CompletionLog {
   id: string;
   user_id: string;
-  type: 'challenge' | 'nudge';
+  type: 'challenge' | 'nudge' | 'program';
   reference_id: string;
   points: number;
   difficulty: number;
@@ -343,7 +345,7 @@ export interface TeamActivityFeedItem {
 
 export type DifficultyTier = 'moderate' | 'hard' | 'very_hard';
 
-export type FeedEntryType = 'challenge_completion' | 'streak_milestone' | 'level_up' | 'repeat_milestone' | 'buddy_completion';
+export type FeedEntryType = 'challenge_completion' | 'streak_milestone' | 'level_up' | 'repeat_milestone' | 'buddy_completion' | 'program_completion';
 
 export interface InspirationFeedEntry {
   id: string;
@@ -371,6 +373,10 @@ export interface InspirationFeedEntry {
   buddy_inviter_username?: string;
   buddy_partner_username?: string;
   buddy_challenge_name?: string;
+  // Program completion fields
+  program_name?: string;
+  program_duration_days?: number;
+  program_mode?: ProgramMode;
   // Fist bump tracking (count only visible to entry owner)
   fist_bump_count?: number;
 }
@@ -499,4 +505,142 @@ export interface FunFact {
   sourceTitle?: string;
   order: number; // For rotation (dayOfYear % totalFacts)
   created_at: string;
+}
+
+// ============================================================================
+// PROGRAMS
+// ============================================================================
+
+export type ProgramMode = 'cold_turkey' | 'gradual_build';
+
+export type ProgramStatus = 'active' | 'completed' | 'failed' | 'abandoned';
+
+export type ProgramId =
+  | 'phone_detox'
+  | 'diet_reset'
+  | 'cold_exposure'
+  | 'digital_minimalism'
+  | 'morning_discipline';
+
+/** Single day's content within a program variant. */
+export interface ProgramDay {
+  day_number: number;               // 1-based
+  challenge_name: string;
+  challenge_description: string;
+  success_criteria: string;
+  difficulty: number;               // 1-5 expected difficulty
+  category: string;                 // 'Physical' | 'Mind' | 'Social'
+  educational_title: string;
+  educational_content: string;
+  neuroscience_note?: string;
+  tip?: string;
+}
+
+/** Master program definition. Stored in top-level `programs` collection. */
+export interface ProgramTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;                 // Primary category: 'Physical' | 'Mind' | 'Social'
+  duration_days: number;            // 21 or 30
+  grace_days: number;               // 21->2, 30->3
+  icon: string;                     // Ionicons name
+  color: string;                    // Accent color for this program
+  order: number;                    // Display order in catalog
+
+  // Content for each mode
+  cold_turkey_days: ProgramDay[];
+  gradual_build_days: ProgramDay[];
+
+  // Mode descriptions for UI
+  cold_turkey_description: string;
+  gradual_build_description: string;
+  recommended_mode: ProgramMode;
+
+  // Completion reward
+  completion_badge_name: string;
+  completion_bonus_points: number;
+
+  // Habit conversion suggestions
+  suggested_habits: {
+    name: string;
+    category: string;
+    target_count_per_week: number;
+  }[];
+
+  // Monetization readiness
+  is_premium: boolean;
+
+  // Coach-ready fields
+  assignable_by_coach: boolean;
+
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
+
+/** User's progress through a program. Stored in users/{userId}/programEnrollments/. */
+export interface ProgramEnrollment {
+  id: string;
+  user_id: string;
+  program_id: string;
+  program_name: string;             // Denormalized for display
+  mode: ProgramMode;
+  status: ProgramStatus;
+
+  // Timeline
+  start_date: string;               // YYYY-MM-DD
+  end_date: string;                 // YYYY-MM-DD
+  duration_days: number;
+  completed_at?: string;
+
+  // Progress tracking
+  milestones: ProgramMilestone[];
+
+  // Grace days
+  grace_days_allowed: number;
+  grace_days_used: number;
+  missed_days: number[];            // Array of day_numbers missed
+
+  // Points
+  total_points_earned: number;
+  completion_bonus_earned?: number;
+
+  // Habit conversion tracking
+  habits_created_from_program?: string[];
+
+  // Coach-ready fields
+  assigned_by?: string;             // userId of coach (null = self-enrolled)
+  assigned_at?: string;
+
+  // Metadata
+  created_at: string;
+}
+
+/** Per-day tracking within a program enrollment. */
+export interface ProgramMilestone {
+  id: string;                       // 'day-{number}'
+  day_number: number;
+  completed: boolean;
+  completed_at?: string;
+  succeeded?: boolean;              // true = did challenge, false = missed/failed
+  points_awarded?: number;          // 1-5 from effort rating
+  note?: string;
+  is_grace_day?: boolean;           // true if counted as a grace day
+  educational_content_viewed?: boolean;
+}
+
+/** Earned on program completion. Stored in users/{userId}/programBadges/. */
+export interface ProgramBadge {
+  id: string;
+  user_id: string;
+  program_id: string;
+  program_name: string;
+  enrollment_id: string;
+  badge_name: string;
+  mode: ProgramMode;
+  duration_days: number;
+  days_succeeded: number;
+  total_points_earned: number;
+  earned_at: string;
 }

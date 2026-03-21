@@ -1,0 +1,166 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================================================================
+    // USER DATA — users/{userId}/**
+    // Only the authenticated owner can read/write their own data.
+    // ========================================================================
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Subcollections: challenges, habits, completionLogs, categories, challengeStats
+      match /{subcollection}/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Allow authenticated users to query the users collection
+    // (needed for username availability checks and team member lookups)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+    }
+
+    // ========================================================================
+    // TEAMS — teams/{teamId}/**
+    // Members can read; authenticated users can create; members can update.
+    // ========================================================================
+    match /teams/{teamId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+                    && request.auth.uid in resource.data.member_ids;
+
+      // Team subcollections: members, activity
+      match /{subcollection}/{docId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+    }
+
+    // ========================================================================
+    // BUDDY CHALLENGES — buddyChallenges/{docId}
+    // Participants (inviter or partner) can read/write.
+    // Authenticated users can create (inviter sets themselves).
+    // ========================================================================
+    match /buddyChallenges/{docId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null
+                  && (request.auth.uid == resource.data.inviter_id
+                      || request.auth.uid == resource.data.partner_id);
+      allow update: if request.auth != null
+                    && (request.auth.uid == resource.data.inviter_id
+                        || request.auth.uid == resource.data.partner_id);
+    }
+
+    // ========================================================================
+    // DUO STREAKS — duoStreaks/{docId}
+    // Participants can read/write.
+    // ========================================================================
+    match /duoStreaks/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ========================================================================
+    // CHALLENGE LIBRARY — challengeLibrary/{docId}
+    // All authenticated users can read.
+    // Only admins can write (is_admin flag on user doc).
+    // ========================================================================
+    match /challengeLibrary/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+    }
+
+    // ========================================================================
+    // PROGRAMS — programs/{docId}
+    // All authenticated users can read.
+    // Only admins can write.
+    // ========================================================================
+    match /programs/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+    }
+
+    // ========================================================================
+    // FUN FACTS — funFacts/{docId}
+    // All authenticated users can read.
+    // Only admins can write.
+    // ========================================================================
+    match /funFacts/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+    }
+
+    // ========================================================================
+    // CHALLENGE SUBMISSIONS — challengeSubmissions/{docId}
+    // Authenticated users can create and read their own.
+    // Admins can read all and update (approve/reject).
+    // ========================================================================
+    match /challengeSubmissions/{docId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null
+                  && (request.auth.uid == resource.data.user_id
+                      || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true);
+      allow update: if request.auth != null
+                    && (request.auth.uid == resource.data.user_id
+                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true);
+    }
+
+    // ========================================================================
+    // INSPIRATION FEED — inspirationFeed/{docId}
+    // All authenticated users can read and create.
+    // Only the entry owner or admins can update/delete.
+    // ========================================================================
+    match /inspirationFeed/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+                            && (request.auth.uid == resource.data.user_id
+                                || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true);
+    }
+
+    // ========================================================================
+    // FIST BUMPS — fistBumps/{docId}
+    // All authenticated users can read and create.
+    // Only the sender can delete their own bump.
+    // ========================================================================
+    match /fistBumps/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.sender_id;
+    }
+
+    // ========================================================================
+    // CHALLENGE REVIEWS — challengeReviews/{docId}
+    // All authenticated users can read (non-hidden filtered client-side).
+    // Users can create and manage their own reviews.
+    // Admins can update (hide/unhide).
+    // ========================================================================
+    match /challengeReviews/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+                    && (request.auth.uid == resource.data.user_id
+                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true);
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.user_id;
+    }
+
+    // ========================================================================
+    // REVIEW VOTES — reviewVotes/{docId}
+    // All authenticated users can read and create.
+    // Only the voter can delete their own vote.
+    // ========================================================================
+    match /reviewVotes/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null
+                    && request.auth.uid == resource.data.user_id;
+    }
+  }
+}
