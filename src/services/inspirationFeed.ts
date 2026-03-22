@@ -20,6 +20,20 @@ const feedRef = () => collection(db, 'inspirationFeed');
 const fistBumpsRef = () => collection(db, 'fistBumps');
 
 /**
+ * Strip undefined values from an object before writing to Firestore.
+ * Firestore rejects undefined values unless ignoreUndefinedProperties is set.
+ */
+const stripUndefined = <T extends Record<string, any>>(obj: T): T => {
+  const cleaned = {} as T;
+  for (const key of Object.keys(obj) as (keyof T)[]) {
+    if (obj[key] !== undefined) {
+      cleaned[key] = obj[key];
+    }
+  }
+  return cleaned;
+};
+
+/**
  * Map actual difficulty (1-5) to display tier
  * Only difficulties 3+ are shown in the feed
  */
@@ -99,7 +113,7 @@ export const createFeedEntry = async (
     entryData.challenge_teaser = createTeaser(challengeName);
   }
 
-  const docRef = await addDoc(feedRef(), entryData);
+  const docRef = await addDoc(feedRef(), stripUndefined(entryData));
   return docRef.id;
 };
 
@@ -141,7 +155,7 @@ export const createMilestoneFeedEntry = async (
     fist_bump_count: 0,
   };
 
-  const docRef = await addDoc(feedRef(), entryData);
+  const docRef = await addDoc(feedRef(), stripUndefined(entryData));
   return docRef.id;
 };
 
@@ -177,7 +191,7 @@ export const createBuddyCompletionFeedEntry = async (
     fist_bump_count: 0,
   };
 
-  const docRef = await addDoc(feedRef(), entryData);
+  const docRef = await addDoc(feedRef(), stripUndefined(entryData));
   return docRef.id;
 };
 
@@ -212,7 +226,7 @@ export const createProgramCompletionFeedEntry = async (
     fist_bump_count: 0,
   };
 
-  const docRef = await addDoc(feedRef(), entryData);
+  const docRef = await addDoc(feedRef(), stripUndefined(entryData));
   return docRef.id;
 };
 

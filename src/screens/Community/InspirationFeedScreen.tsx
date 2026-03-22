@@ -16,7 +16,6 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getInspirationFeed,
   formatRelativeTime,
-  getDifficultyTierDisplay,
   sendFistBump,
   removeFistBump,
   getUserFistBumps,
@@ -29,8 +28,28 @@ const DIFFICULTY_COLORS: Record<DifficultyTier, string> = {
   very_hard: '#9B2C2C',
 };
 
-// Streak tiers that are worth showing (skip "Starting" and "Building Momentum")
-const NOTABLE_STREAK_TIERS = ['On Fire', 'Unstoppable', 'Legendary'];
+const DIFFICULTY_LABELS: Record<DifficultyTier, string> = {
+  moderate: 'Moderate',
+  hard: 'Hard',
+  very_hard: 'Very Hard',
+};
+
+// Deterministic verb picker based on entry ID
+const CHALLENGE_VERBS = ['crushed', 'powered through', 'conquered', 'locked in', 'completed'];
+const getVerb = (id: string): string => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i);
+    hash |= 0;
+  }
+  return CHALLENGE_VERBS[Math.abs(hash) % CHALLENGE_VERBS.length];
+};
+
+const getOrdinalSuffix = (n: number): string => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+};
 
 export const InspirationFeedScreen: React.FC = () => {
   const { user } = useAuth();
@@ -48,13 +67,11 @@ export const InspirationFeedScreen: React.FC = () => {
       const feedEntries = await getInspirationFeed(user.uid, 50);
       setEntries(feedEntries);
 
-      // Calculate total fist bumps received on the user's own entries
       const ownBumps = feedEntries
         .filter((e) => e.user_id === user.uid)
         .reduce((sum, e) => sum + (e.fist_bump_count || 0), 0);
       setTotalBumpsReceived(ownBumps);
 
-      // Fetch which entries the current user has fist-bumped
       const entryIds = feedEntries.map((e) => e.id);
       const bumped = await getUserFistBumps(user.uid, entryIds);
       setBumpedEntries(bumped);
@@ -107,168 +124,275 @@ export const InspirationFeedScreen: React.FC = () => {
     }
   }, [user, bumpedEntries, bumpingInProgress]);
 
-  const renderMilestoneEntry = (item: InspirationFeedEntry) => {
+  // ============================================================================
+  // SHARED: Fist bump footer
+  // ============================================================================
+
+  const renderFistBumpFooter = (item: InspirationFeedEntry) => {
     const isOwnEntry = item.user_id === user?.uid;
-    const displayName = isOwnEntry ? 'You' : (item.username || 'Someone');
-
-    let milestoneText = '';
-    let milestoneIcon: string = 'trophy';
-    let accentColor = Colors.primary;
-
-    switch (item.entry_type) {
-      case 'streak_milestone':
-        milestoneIcon = 'flame';
-        accentColor = Colors.secondary;
-        milestoneText = `${displayName} hit a ${item.streak_days}-day streak! ${item.streak_tier}!`;
-        break;
-      case 'level_up':
-        milestoneIcon = 'arrow-up-circle';
-        accentColor = '#7B1FA2'; // Purple
-        milestoneText = `${displayName} reached Level ${item.willpower_level}: ${item.willpower_title}!`;
-        break;
-      case 'repeat_milestone':
-        milestoneIcon = 'repeat';
-        accentColor = Colors.primary;
-        milestoneText = `${displayName} completed "${item.milestone_challenge_name}" for the ${item.milestone_value}${getOrdinalSuffix(item.milestone_value || 0)} time!`;
-        break;
-      case 'program_completion':
-        milestoneIcon = 'ribbon';
-        accentColor = '#217180';
-        milestoneText = `${displayName} completed the ${item.program_name || 'program'}${item.program_duration_days ? ` (${item.program_duration_days} days)` : ''}!`;
-        break;
-    }
+    const hasBumped = bumpedEntries.has(item.id);
+    const bumpCount = item.fist_bump_count || 0;
 
     return (
-      <Card style={{ ...styles.entryCard, ...styles.milestoneCard, borderLeftColor: accentColor }}>
-        <View style={styles.entryHeader}>
-          <View style={styles.headerLeft}>
-            <View style={[styles.milestoneBadge, { backgroundColor: accentColor + '15' }]}>
-              <Ionicons name={milestoneIcon as any} size={16} color={accentColor} />
-              <Text style={[styles.milestoneBadgeText, { color: accentColor }]}>Milestone</Text>
-            </View>
-            {isOwnEntry && (
-              <View style={styles.youBadge}>
-                <Text style={styles.youBadgeText}>You</Text>
-              </View>
-            )}
+      <View style={styles.entryFooter}>
+        {bumpCount > 0 && (
+          <View style={styles.bumpCountRow}>
+            <Text style={styles.bumpCountText}>
+              {bumpCount} {bumpCount === 1 ? 'fist bump' : 'fist bumps'}
+            </Text>
           </View>
-          <Text style={styles.timeText}>
-            {formatRelativeTime(item.display_timestamp)}
-          </Text>
-        </View>
-
-        <Text style={styles.milestoneText}>{milestoneText}</Text>
-      </Card>
+        )}
+        {!isOwnEntry ? (
+          <TouchableOpacity
+            style={[styles.fistBumpButton, hasBumped && styles.fistBumpButtonBumped]}
+            onPress={() => handleFistBump(item.id)}
+            disabled={bumpingInProgress.has(item.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={{ fontSize: 16 }}>{'\uD83E\uDD1C'}</Text>
+            <Text style={[styles.fistBumpLabel, hasBumped && styles.fistBumpLabelBumped]}>
+              {hasBumped ? 'Bumped!' : 'Fist Bump'}
+            </Text>
+          </TouchableOpacity>
+        ) : bumpCount > 0 ? (
+          <View style={styles.inspiredRow}>
+            <Ionicons name="heart" size={12} color={Colors.primary} />
+            <Text style={styles.inspiredText}>You inspired others</Text>
+          </View>
+        ) : null}
+      </View>
     );
   };
+
+  // ============================================================================
+  // CHALLENGE COMPLETION — category accent, teaser as headline, difficulty pill
+  // ============================================================================
 
   const renderChallengeEntry = (item: InspirationFeedEntry) => {
     const iconName = item.category_icon || 'flash';
     const difficultyColor = DIFFICULTY_COLORS[item.difficulty_tier];
-    const difficultyLabel = getDifficultyTierDisplay(item.difficulty_tier);
+    const difficultyLabel = DIFFICULTY_LABELS[item.difficulty_tier];
     const isOwnEntry = item.user_id === user?.uid;
-    const showStreakBadge = item.streak_tier && NOTABLE_STREAK_TIERS.includes(item.streak_tier);
-    const hasBumped = bumpedEntries.has(item.id);
-    const bumpCount = item.fist_bump_count || 0;
+    const displayName = isOwnEntry ? 'You' : (item.username || 'Someone');
+    const verb = getVerb(item.id);
+    const hasStreak = item.streak_days && item.streak_days >= 7;
 
     return (
-      <Card style={styles.entryCard}>
-        {/* Header row */}
+      <Card style={{ ...styles.entryCard, borderLeftWidth: 4, borderLeftColor: difficultyColor }}>
+        {/* Header */}
         <View style={styles.entryHeader}>
           <View style={styles.headerLeft}>
-            <View style={styles.categoryBadge}>
-              <Ionicons name={iconName as any} size={16} color={Colors.primary} />
-              <Text style={styles.categoryText}>{item.category_name}</Text>
+            <View style={[styles.iconCircle, { backgroundColor: difficultyColor + '12' }]}>
+              <Ionicons name={iconName as any} size={16} color={difficultyColor} />
             </View>
+            <Text style={styles.headerName}>{displayName}</Text>
             {isOwnEntry && (
               <View style={styles.youBadge}>
                 <Text style={styles.youBadgeText}>You</Text>
               </View>
             )}
           </View>
-          <Text style={styles.timeText}>
-            {formatRelativeTime(item.display_timestamp)}
-          </Text>
+          <Text style={styles.timeText}>{formatRelativeTime(item.display_timestamp)}</Text>
         </View>
 
         {/* Main content */}
-        <View style={styles.entryContent}>
-          <Text style={styles.entryText}>
-            {isOwnEntry ? 'You' : (item.username || 'Someone')} completed a{' '}
-            <Text style={[styles.difficultyText, { color: difficultyColor }]}>
-              {difficultyLabel}
-            </Text>{' '}
-            challenge
-          </Text>
-
-          {item.challenge_teaser && (
-            <Text style={styles.teaserText}>"{item.challenge_teaser}"</Text>
-          )}
-
-          {/* Completion message */}
-          {item.completion_message && (
-            <Text style={styles.completionMessage}>"{item.completion_message}"</Text>
-          )}
-        </View>
-
-        {/* Footer: badges + fist bump */}
-        <View style={styles.entryFooter}>
-          <View style={styles.badgeRow}>
-            {/* Streak badge */}
-            {showStreakBadge && (
-              <View style={styles.streakBadge}>
-                <Ionicons name="flame" size={12} color={Colors.secondary} />
-                <Text style={styles.streakBadgeText}>{item.streak_tier}</Text>
-              </View>
-            )}
-            {/* Level badge */}
-            {item.willpower_level && item.willpower_level >= 2 && (
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelBadgeText}>
-                  Lv.{item.willpower_level} {item.willpower_title}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Fist bump button (not on own entries) or inspired count (on own entries) */}
-          {!isOwnEntry ? (
-            <TouchableOpacity
-              style={styles.fistBumpButton}
-              onPress={() => handleFistBump(item.id)}
-              disabled={bumpingInProgress.has(item.id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={{ fontSize: 18, opacity: hasBumped ? 0.4 : 1 }}>🤜</Text>
-              <Text style={styles.fistBumpLabel}>
-                {hasBumped ? 'bumped!' : 'fist bump'}
+        <View style={styles.entryBody}>
+          {item.challenge_teaser ? (
+            <>
+              <Text style={styles.challengeHeadline}>"{item.challenge_teaser}"</Text>
+              <Text style={styles.challengeSubtext}>
+                {displayName} {verb} this{hasStreak ? ` on a ${item.streak_days}-day streak` : ''}
               </Text>
-            </TouchableOpacity>
-          ) : bumpCount > 0 ? (
-            <Text style={styles.inspiredText}>
-              {bumpCount} {bumpCount === 1 ? 'person' : 'people'} inspired
+            </>
+          ) : (
+            <Text style={styles.challengeSubtext}>
+              {displayName} {verb} a challenge{hasStreak ? ` on a ${item.streak_days}-day streak` : ''}
             </Text>
-          ) : null}
+          )}
+
+          {item.completion_message && (
+            <View style={styles.messageBox}>
+              <Text style={styles.messageText}>"{item.completion_message}"</Text>
+            </View>
+          )}
         </View>
+
+        {/* Badges row */}
+        <View style={styles.badgeRow}>
+          <View style={[styles.difficultyPill, { backgroundColor: difficultyColor + '15' }]}>
+            <Text style={[styles.difficultyPillText, { color: difficultyColor }]}>
+              {difficultyLabel}
+            </Text>
+          </View>
+          {item.category_name && (
+            <View style={styles.categoryPill}>
+              <Text style={styles.categoryPillText}>{item.category_name}</Text>
+            </View>
+          )}
+          {item.willpower_level && item.willpower_level >= 3 && (
+            <View style={styles.levelPill}>
+              <Text style={styles.levelPillText}>Lv.{item.willpower_level}</Text>
+            </View>
+          )}
+        </View>
+
+        {renderFistBumpFooter(item)}
       </Card>
     );
   };
 
-  const renderBuddyCompletionEntry = (item: InspirationFeedEntry) => {
+  // ============================================================================
+  // STREAK MILESTONE — warm tones, big number, flame icon
+  // ============================================================================
+
+  const renderStreakEntry = (item: InspirationFeedEntry) => {
+    const isOwnEntry = item.user_id === user?.uid;
+    const displayName = isOwnEntry ? 'You' : (item.username || 'Someone');
+    const streakVerb = isOwnEntry ? 'are' : 'is';
+
+    return (
+      <Card style={{ ...styles.entryCard, backgroundColor: '#FFF8F0' }}>
+        <View style={styles.entryHeader}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.iconCircle, { backgroundColor: Colors.secondary + '20' }]}>
+              <Ionicons name="flame" size={18} color={Colors.secondary} />
+            </View>
+            <Text style={styles.headerName}>{displayName}</Text>
+            {isOwnEntry && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>You</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.timeText}>{formatRelativeTime(item.display_timestamp)}</Text>
+        </View>
+
+        <View style={styles.milestoneCenter}>
+          <Text style={[styles.bigNumber, { color: Colors.secondary }]}>{item.streak_days}</Text>
+          <Text style={styles.bigNumberLabel}>day streak</Text>
+          {item.streak_tier && (
+            <View style={[styles.tierBadge, { backgroundColor: Colors.secondary + '15' }]}>
+              <Ionicons name="flame" size={12} color={Colors.secondary} />
+              <Text style={[styles.tierBadgeText, { color: Colors.secondary }]}>{item.streak_tier}</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.milestoneNarrative}>
+          {displayName} {streakVerb} on fire — {item.streak_days} days straight!
+        </Text>
+
+        {renderFistBumpFooter(item)}
+      </Card>
+    );
+  };
+
+  // ============================================================================
+  // LEVEL UP — purple theme, big level number, title badge
+  // ============================================================================
+
+  const renderLevelUpEntry = (item: InspirationFeedEntry) => {
+    const isOwnEntry = item.user_id === user?.uid;
+    const displayName = isOwnEntry ? 'You' : (item.username || 'Someone');
+    const purple = '#7B1FA2';
+
+    return (
+      <Card style={{ ...styles.entryCard, backgroundColor: '#F9F0FF' }}>
+        <View style={styles.entryHeader}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.iconCircle, { backgroundColor: purple + '20' }]}>
+              <Ionicons name="arrow-up-circle" size={18} color={purple} />
+            </View>
+            <Text style={styles.headerName}>{displayName}</Text>
+            {isOwnEntry && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>You</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.timeText}>{formatRelativeTime(item.display_timestamp)}</Text>
+        </View>
+
+        <View style={styles.milestoneCenter}>
+          <Text style={[styles.bigNumber, { color: purple }]}>Lv.{item.willpower_level}</Text>
+          {item.willpower_title && (
+            <View style={[styles.tierBadge, { backgroundColor: purple + '15' }]}>
+              <Ionicons name="star" size={12} color={purple} />
+              <Text style={[styles.tierBadgeText, { color: purple }]}>{item.willpower_title}</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.milestoneNarrative}>
+          {displayName} just leveled up to Level {item.willpower_level}!
+        </Text>
+
+        {renderFistBumpFooter(item)}
+      </Card>
+    );
+  };
+
+  // ============================================================================
+  // REPEAT MILESTONE — dedication theme, count featured
+  // ============================================================================
+
+  const renderRepeatEntry = (item: InspirationFeedEntry) => {
+    const isOwnEntry = item.user_id === user?.uid;
+    const displayName = isOwnEntry ? 'You' : (item.username || 'Someone');
+
+    return (
+      <Card style={{ ...styles.entryCard, borderLeftWidth: 4, borderLeftColor: Colors.primary }}>
+        <View style={styles.entryHeader}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.iconCircle, { backgroundColor: Colors.primary + '15' }]}>
+              <Ionicons name="repeat" size={16} color={Colors.primary} />
+            </View>
+            <Text style={styles.headerName}>{displayName}</Text>
+            {isOwnEntry && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>You</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.timeText}>{formatRelativeTime(item.display_timestamp)}</Text>
+        </View>
+
+        <View style={styles.repeatBody}>
+          <View style={styles.repeatCountBox}>
+            <Text style={[styles.repeatCount, { color: Colors.primary }]}>{item.milestone_value}x</Text>
+          </View>
+          <View style={styles.repeatTextBox}>
+            <Text style={styles.challengeHeadline}>"{item.milestone_challenge_name}"</Text>
+            <Text style={styles.repeatSubtext}>
+              {displayName} completed this for the {item.milestone_value}{getOrdinalSuffix(item.milestone_value || 0)} time — that's dedication
+            </Text>
+          </View>
+        </View>
+
+        {renderFistBumpFooter(item)}
+      </Card>
+    );
+  };
+
+  // ============================================================================
+  // BUDDY COMPLETION — partnership visual
+  // ============================================================================
+
+  const renderBuddyEntry = (item: InspirationFeedEntry) => {
     const isOwnEntry = item.user_id === user?.uid;
     const inviterName = item.buddy_inviter_username || 'Someone';
     const partnerName = item.buddy_partner_username || 'their buddy';
     const challengeName = item.buddy_challenge_name || 'a challenge';
-    const hasBumped = bumpedEntries.has(item.id);
-    const bumpCount = item.fist_bump_count || 0;
 
     return (
-      <Card style={{ ...styles.entryCard, ...styles.buddyCard }}>
+      <Card style={{ ...styles.entryCard, borderLeftWidth: 4, borderLeftColor: Colors.secondary }}>
         <View style={styles.entryHeader}>
           <View style={styles.headerLeft}>
-            <View style={styles.buddyBadge}>
+            <View style={[styles.iconCircle, { backgroundColor: Colors.secondary + '15' }]}>
               <Ionicons name="people" size={16} color={Colors.secondary} />
-              <Text style={styles.buddyBadgeText}>Buddy Challenge</Text>
+            </View>
+            <View style={[styles.typeBadge, { backgroundColor: Colors.secondary + '12' }]}>
+              <Text style={[styles.typeBadgeText, { color: Colors.secondary }]}>Buddy Challenge</Text>
             </View>
             {isOwnEntry && (
               <View style={styles.youBadge}>
@@ -276,53 +400,94 @@ export const InspirationFeedScreen: React.FC = () => {
               </View>
             )}
           </View>
-          <Text style={styles.timeText}>
-            {formatRelativeTime(item.display_timestamp)}
+          <Text style={styles.timeText}>{formatRelativeTime(item.display_timestamp)}</Text>
+        </View>
+
+        <View style={styles.entryBody}>
+          <Text style={styles.challengeHeadline}>"{challengeName}"</Text>
+          <Text style={styles.challengeSubtext}>
+            <Text style={styles.boldName}>{inviterName}</Text> & <Text style={styles.boldName}>{partnerName}</Text> crushed this one together
           </Text>
         </View>
 
-        <View style={styles.entryContent}>
-          <Text style={styles.entryText}>
-            {inviterName} and {partnerName} crushed "{challengeName}" together!
-          </Text>
-        </View>
-
-        <View style={styles.entryFooter}>
-          <View style={styles.badgeRow} />
-          {!isOwnEntry ? (
-            <TouchableOpacity
-              style={styles.fistBumpButton}
-              onPress={() => handleFistBump(item.id)}
-              disabled={bumpingInProgress.has(item.id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={{ fontSize: 18, opacity: hasBumped ? 0.4 : 1 }}>🤜</Text>
-              <Text style={styles.fistBumpLabel}>
-                {hasBumped ? 'bumped!' : 'fist bump'}
-              </Text>
-            </TouchableOpacity>
-          ) : bumpCount > 0 ? (
-            <Text style={styles.inspiredText}>
-              {bumpCount} {bumpCount === 1 ? 'person' : 'people'} inspired
-            </Text>
-          ) : null}
-        </View>
+        {renderFistBumpFooter(item)}
       </Card>
     );
   };
 
+  // ============================================================================
+  // PROGRAM COMPLETION — most celebratory, ribbon icon
+  // ============================================================================
+
+  const renderProgramEntry = (item: InspirationFeedEntry) => {
+    const isOwnEntry = item.user_id === user?.uid;
+    const displayName = isOwnEntry ? 'You' : (item.username || 'Someone');
+    const modeLabel = item.program_mode === 'cold_turkey' ? 'Cold Turkey' : 'Gradual Build';
+
+    return (
+      <Card style={{ ...styles.entryCard, backgroundColor: '#F0FAFA' }}>
+        <View style={styles.entryHeader}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.iconCircle, { backgroundColor: Colors.primary + '20' }]}>
+              <Ionicons name="ribbon" size={18} color={Colors.primary} />
+            </View>
+            <View style={[styles.typeBadge, { backgroundColor: Colors.primary + '12' }]}>
+              <Text style={[styles.typeBadgeText, { color: Colors.primary }]}>Program Complete</Text>
+            </View>
+            {isOwnEntry && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>You</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.timeText}>{formatRelativeTime(item.display_timestamp)}</Text>
+        </View>
+
+        <View style={styles.milestoneCenter}>
+          <Ionicons name="trophy" size={36} color={Colors.primary} />
+          <Text style={[styles.programName, { color: Colors.primary }]}>{item.program_name}</Text>
+          <View style={styles.badgeRow}>
+            {item.program_duration_days && (
+              <View style={[styles.categoryPill, { backgroundColor: Colors.primary + '12' }]}>
+                <Text style={[styles.categoryPillText, { color: Colors.primary }]}>{item.program_duration_days} days</Text>
+              </View>
+            )}
+            <View style={[styles.categoryPill, { backgroundColor: Colors.primary + '12' }]}>
+              <Text style={[styles.categoryPillText, { color: Colors.primary }]}>{modeLabel}</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.milestoneNarrative}>
+          {displayName} conquered {item.program_name} — {item.program_duration_days} days of {modeLabel}!
+        </Text>
+
+        {renderFistBumpFooter(item)}
+      </Card>
+    );
+  };
+
+  // ============================================================================
+  // ENTRY ROUTER
+  // ============================================================================
+
   const renderEntry = ({ item }: { item: InspirationFeedEntry }) => {
     const entryType = item.entry_type || 'challenge_completion';
 
-    if (entryType === 'buddy_completion') {
-      return renderBuddyCompletionEntry(item);
+    switch (entryType) {
+      case 'streak_milestone':
+        return renderStreakEntry(item);
+      case 'level_up':
+        return renderLevelUpEntry(item);
+      case 'repeat_milestone':
+        return renderRepeatEntry(item);
+      case 'buddy_completion':
+        return renderBuddyEntry(item);
+      case 'program_completion':
+        return renderProgramEntry(item);
+      default:
+        return renderChallengeEntry(item);
     }
-
-    if (entryType !== 'challenge_completion') {
-      return renderMilestoneEntry(item);
-    }
-
-    return renderChallengeEntry(item);
   };
 
   const renderEmpty = () => (
@@ -356,7 +521,7 @@ export const InspirationFeedScreen: React.FC = () => {
       {totalBumpsReceived > 0 && !bannerDismissed && (
         <View style={styles.bumpBanner}>
           <View style={styles.bumpBannerContent}>
-            <Text style={styles.bumpBannerEmoji}>🤜</Text>
+            <Text style={styles.bumpBannerEmoji}>{'\uD83E\uDD1C'}</Text>
             <Text style={styles.bumpBannerText}>
               Your challenges inspired {totalBumpsReceived} {totalBumpsReceived === 1 ? 'person' : 'people'}!
             </Text>
@@ -385,23 +550,9 @@ export const InspirationFeedScreen: React.FC = () => {
   );
 };
 
-const getOrdinalSuffix = (n: number): string => {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
-};
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.lightGray,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.lightGray,
-  },
+  screen: { flex: 1, backgroundColor: Colors.lightGray },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.lightGray },
   headerSection: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
@@ -410,17 +561,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightGray,
   },
-  headerTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xxl,
-    color: Colors.dark,
-  },
-  headerSubtitle: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-    marginTop: Spacing.xs,
-  },
+  headerTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xxl, color: Colors.dark },
+  headerSubtitle: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray, marginTop: Spacing.xs },
   bumpBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -431,209 +573,162 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.primary + '20',
   },
-  bumpBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  bumpBannerEmoji: {
-    fontSize: 20,
-    marginRight: Spacing.sm,
-  },
-  bumpBannerText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    flex: 1,
-  },
-  listContent: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-  },
-  entryCard: {
-    marginBottom: Spacing.md,
-  },
+  bumpBannerContent: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  bumpBannerEmoji: { fontSize: 20, marginRight: Spacing.sm },
+  bumpBannerText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.primary, flex: 1 },
+  listContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+
+  // ---- Shared card styles ----
+  entryCard: { marginBottom: Spacing.md },
   entryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  headerLeft: {
-    flexDirection: 'row',
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flex: 1 },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
-    gap: Spacing.xs,
+    justifyContent: 'center',
   },
+  headerName: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  timeText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
   youBadge: {
     backgroundColor: Colors.secondary + '20',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
     borderRadius: BorderRadius.sm,
   },
-  youBadgeText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
-    color: Colors.secondary,
-  },
-  categoryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  categoryText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    marginLeft: Spacing.xs,
-  },
-  timeText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-  },
-  entryContent: {
-    marginBottom: Spacing.sm,
-  },
-  entryText: {
-    fontFamily: Fonts.secondary,
+  youBadgeText: { fontFamily: Fonts.secondaryBold, fontSize: 10, color: Colors.secondary },
+  typeBadge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.full },
+  typeBadgeText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
+
+  // ---- Challenge entry ----
+  entryBody: { marginBottom: Spacing.md },
+  challengeHeadline: {
+    fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
     color: Colors.dark,
-    lineHeight: 24,
+    lineHeight: 22,
+    marginBottom: Spacing.xs,
   },
-  difficultyText: {
-    fontFamily: Fonts.secondaryBold,
-    textTransform: 'uppercase',
-  },
-  teaserText: {
+  challengeSubtext: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.gray,
-    fontStyle: 'italic',
-    marginTop: Spacing.sm,
     lineHeight: 20,
   },
-  completionMessage: {
+  boldName: { fontFamily: Fonts.secondaryBold, color: Colors.dark },
+  messageBox: {
+    backgroundColor: Colors.lightGray,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  messageText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.dark,
-    marginTop: Spacing.sm,
-    lineHeight: 20,
     fontStyle: 'italic',
+    lineHeight: 20,
   },
-  // Footer with badges and fist bump
+  badgeRow: { flexDirection: 'row', gap: Spacing.xs, flexWrap: 'wrap', marginBottom: Spacing.sm },
+  difficultyPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  difficultyPillText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
+  categoryPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary + '10',
+  },
+  categoryPillText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.primary },
+  levelPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray + '15',
+  },
+  levelPillText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
+
+  // ---- Milestone-style center block (streak, level up, program) ----
+  milestoneCenter: { alignItems: 'center', paddingVertical: Spacing.md },
+  bigNumber: { fontFamily: Fonts.primaryBold, fontSize: 40, marginBottom: 2 },
+  bigNumberLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
+  tierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    marginTop: Spacing.sm,
+  },
+  tierBadgeText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
+  milestoneNarrative: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.sm,
+  },
+  programName: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, marginTop: Spacing.xs },
+
+  // ---- Repeat milestone ----
+  repeatBody: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.md },
+  repeatCountBox: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  repeatCount: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl },
+  repeatTextBox: { flex: 1 },
+  repeatSubtext: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    lineHeight: 18,
+  },
+
+  // ---- Fist bump footer ----
   entryFooter: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: Spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  badgeRow: {
+  bumpCountRow: { flexDirection: 'row', alignItems: 'center' },
+  bumpCountText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
+  fistBumpButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    flexShrink: 1,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.secondary + '12',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-    gap: 3,
-  },
-  streakBadgeText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
-    color: Colors.secondary,
-  },
-  levelBadge: {
-    backgroundColor: Colors.gray + '15',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  levelBadgeText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-  },
-  fistBumpButton: {
-    padding: Spacing.xs,
-    alignItems: 'center',
-  },
-  fistBumpLabel: {
-    fontFamily: Fonts.secondary,
-    fontSize: 10,
-    color: Colors.gray,
-    marginTop: 1,
-  },
-  inspiredText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.primary,
-  },
-  // Buddy completion card styles
-  buddyCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.secondary,
-  },
-  buddyBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.secondary + '15',
-    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-    gap: 4,
-  },
-  buddyBadgeText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.secondary,
-  },
-  // Milestone card styles
-  milestoneCard: {
-    borderLeftWidth: 4,
-  },
-  milestoneBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-    gap: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  milestoneBadgeText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-  },
-  milestoneText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    lineHeight: 24,
-  },
-  // Empty state
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xxl,
-    paddingHorizontal: Spacing.lg,
-  },
-  emptyTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  emptyDesc: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
+  fistBumpButtonBumped: { backgroundColor: Colors.primary + '08', borderColor: Colors.primary + '30' },
+  fistBumpLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
+  fistBumpLabelBumped: { color: Colors.primary },
+  inspiredRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  inspiredText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.primary },
+
+  // ---- Empty state ----
+  emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl, paddingHorizontal: Spacing.lg },
+  emptyTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, color: Colors.dark, marginTop: Spacing.lg, marginBottom: Spacing.sm },
+  emptyDesc: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray, textAlign: 'center', lineHeight: 24 },
 });

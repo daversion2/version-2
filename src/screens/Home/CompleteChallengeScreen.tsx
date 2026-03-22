@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -70,29 +70,32 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [repeatMilestoneVisible, setRepeatMilestoneVisible] = useState(false);
   const [repeatMilestoneCount, setRepeatMilestoneCount] = useState(0);
   const [feedEntryId, setFeedEntryId] = useState<string | null>(null);
+  const feedEntryIdRef = useRef<string | null>(null);
   const [showMessagePrompt, setShowMessagePrompt] = useState(false);
   const [completionMessage, setCompletionMessage] = useState('');
 
   // Navigate home, or show the message prompt first if a feed entry was created
+  // Uses ref instead of state to avoid stale closure when called from pending alert callbacks
   const navigateHome = useCallback(() => {
-    if (feedEntryId) {
+    if (feedEntryIdRef.current) {
       setShowMessagePrompt(true);
     } else {
       navigation.popToTop();
     }
-  }, [feedEntryId, navigation]);
+  }, [navigation]);
 
   const handleShareMessage = useCallback(async () => {
-    if (feedEntryId && completionMessage.trim()) {
+    const currentEntryId = feedEntryIdRef.current;
+    if (currentEntryId && completionMessage.trim()) {
       try {
-        await updateFeedEntryMessage(feedEntryId, completionMessage);
+        await updateFeedEntryMessage(currentEntryId, completionMessage);
       } catch (err) {
         console.warn('Failed to save completion message:', err);
       }
     }
     setShowMessagePrompt(false);
     navigation.popToTop();
-  }, [feedEntryId, completionMessage, navigation]);
+  }, [completionMessage, navigation]);
 
   const handleSkipMessage = useCallback(() => {
     setShowMessagePrompt(false);
@@ -212,6 +215,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
               currentLevelInfo.title
             );
             if (entryId) {
+              feedEntryIdRef.current = entryId;
               setFeedEntryId(entryId);
             }
           }
