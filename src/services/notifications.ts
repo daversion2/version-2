@@ -67,30 +67,3 @@ export const registerForPushNotifications = async (userId?: string): Promise<str
   }
 };
 
-export const scheduleMorningReminder = async () => {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Neuro-Nudge',
-      body: "Time to set today's challenge. Keep moving forward.",
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 8,
-      minute: 0,
-    },
-  });
-};
-
-export const scheduleEveningReminder = async () => {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Neuro-Nudge',
-      body: "Don't forget to complete your challenge today.",
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 20,
-      minute: 0,
-    },
-  });
-};

@@ -8,11 +8,7 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
 import { resetOnboarding, getUser } from '../../services/users';
-import {
-  scheduleMorningReminder,
-  scheduleEveningReminder,
-  registerForPushNotifications,
-} from '../../services/notifications';
+import { registerForPushNotifications } from '../../services/notifications';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
@@ -57,8 +53,6 @@ export const SettingsScreen: React.FC = () => {
         showAlert('Notifications', 'Could not enable notifications. Check device settings.');
         return;
       }
-      await scheduleMorningReminder();
-      await scheduleEveningReminder();
       showAlert('Notifications', 'Reminders enabled! Token saved for push notifications.');
     } catch (error) {
       console.error('Error enabling notifications:', error);
