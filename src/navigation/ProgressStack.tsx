@@ -4,6 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ProgressScreen } from '../screens/Progress/ProgressScreen';
 import { DayDetailScreen } from '../screens/Progress/DayDetailScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
+import { ReflectionDetailScreen } from '../screens/Progress/ReflectionDetailScreen';
+import { ReflectionEntryScreen } from '../screens/Progress/ReflectionEntryScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -41,6 +43,16 @@ export const ProgressStack: React.FC = () => (
       name="ChallengeDetail"
       component={ChallengeDetailScreen}
       options={{ title: 'Challenge' }}
+    />
+    <Stack.Screen
+      name="ReflectionDetail"
+      component={ReflectionDetailScreen}
+      options={{ title: 'Reflection' }}
+    />
+    <Stack.Screen
+      name="ReflectionEntry"
+      component={ReflectionEntryScreen}
+      options={{ title: 'Reflection Entry' }}
     />
   </Stack.Navigator>
 );

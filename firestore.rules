@@ -10,7 +10,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
 
-      // Subcollections: challenges, habits, completionLogs, categories, challengeStats
+      // Subcollections: challenges, habits, completionLogs, categories, challengeStats, reflections
       match /{subcollection}/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }

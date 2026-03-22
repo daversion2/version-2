@@ -21,6 +21,7 @@ import { ProgramDetailScreen } from '../screens/Home/ProgramDetailScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
+import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -143,6 +144,11 @@ export const HomeStack: React.FC = () => (
       name="ProgramFailed"
       component={ProgramFailedScreen}
       options={{ title: '', headerShown: false }}
+    />
+    <Stack.Screen
+      name="NightlyReflection"
+      component={NightlyReflectionScreen}
+      options={{ title: 'Nightly Reflection' }}
     />
   </Stack.Navigator>
 );

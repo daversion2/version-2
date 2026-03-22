@@ -47,6 +47,9 @@ import { FunFactModal } from '../../components/home/FunFactModal';
 import { getTodaysFunFact } from '../../services/funFacts';
 import { FunFact } from '../../types';
 import { ACTION_TYPES } from '../../constants/challengeLibrary';
+import { NightlyReflectionBanner } from '../../components/home/NightlyReflectionBanner';
+import { hasReflectedToday, getReflection } from '../../services/reflections';
+import { ReflectionGrade } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -94,6 +97,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
   const [programDayNumber, setProgramDayNumber] = useState(0);
   const [programCheckedIn, setProgramCheckedIn] = useState(false);
+  const [showReflectionBanner, setShowReflectionBanner] = useState(false);
+  const [reflectedToday, setReflectedToday] = useState(false);
+  const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -179,6 +185,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         } catch (err) {
           console.warn('Habit streaks query failed:', err);
         }
+      }
+
+      // Check nightly reflection status
+      try {
+        const reflected = await hasReflectedToday(user.uid);
+        setReflectedToday(reflected);
+        if (reflected) {
+          const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+          const todayReflection = await getReflection(user.uid, todayStr);
+          setTodaysGrade(todayReflection?.grade);
+        }
+        // Show prominent banner at 8pm+, always show at least the compact version
+        setShowReflectionBanner(true);
+      } catch (err) {
+        console.warn('Reflection check failed:', err);
       }
     } catch (e) {
       console.error(e);
@@ -337,6 +358,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       {/* Neuroscience Fun Fact */}
       {funFact && (
         <FunFactButton onPress={() => setFunFactModalVisible(true)} />
+      )}
+
+      {/* Nightly Reflection Banner */}
+      {showReflectionBanner && (
+        <NightlyReflectionBanner
+          hasReflected={reflectedToday}
+          todaysGrade={todaysGrade}
+          onPress={() => navigation.navigate('NightlyReflection')}
+        />
       )}
 
       {/* Team Activity Card */}

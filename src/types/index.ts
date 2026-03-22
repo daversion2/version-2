@@ -21,6 +21,9 @@ export interface User {
   is_admin?: boolean;
   // Programs
   active_program_id?: string; // Denormalized enrollment ID for fast home screen check
+  // Nightly Reflection
+  last_reflection_date?: string; // YYYY-MM-DD
+  reflection_streak?: number;
 }
 
 export interface Category {
@@ -643,4 +646,55 @@ export interface ProgramBadge {
   days_succeeded: number;
   total_points_earned: number;
   earned_at: string;
+}
+
+// ============================================================================
+// NIGHTLY REFLECTION
+// ============================================================================
+
+export type ReflectionGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+
+export interface DailySummaryChallenge {
+  name: string;
+  difficulty?: number;
+}
+
+export interface DailySummaryHabit {
+  name: string;
+  target: number;
+  done: number;
+}
+
+export interface DailySummary {
+  completed_challenges: DailySummaryChallenge[];
+  missed_challenges: { name: string }[];
+  completed_habits: DailySummaryHabit[];
+  missed_habits: DailySummaryHabit[];
+  optional_habits: { name: string; remaining: number }[];
+  program_status?: {
+    name: string;
+    checked_in: boolean;
+    day_number?: number;
+  };
+}
+
+export interface DailyReflection {
+  id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  grade: ReflectionGrade;
+  prompt_went_well?: string;
+  prompt_hardest?: string;
+  prompt_tomorrow?: string;
+  daily_summary: DailySummary;
+  created_at: string;
+}
+
+export interface ReflectionStats {
+  totalReflections: number;
+  averageGrade: number; // 1-5 (F=1, D=2, C=3, B=4, A=5)
+  averageGradeLetter: ReflectionGrade;
+  currentStreak: number;
+  longestStreak: number;
+  gradeDistribution: Record<ReflectionGrade, number>;
 }

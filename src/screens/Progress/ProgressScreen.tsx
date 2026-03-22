@@ -19,6 +19,9 @@ import { ACTION_CATEGORIES } from '../../constants/challengeLibrary';
 import { ActionType } from '../../types';
 import { getWillpowerStats, getSuckFactorTier } from '../../services/willpower';
 import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
+import { ReflectionSummaryCard } from '../../components/progress/ReflectionSummaryCard';
+import { getReflections, getReflectionStats } from '../../services/reflections';
+import { ReflectionGrade, ReflectionStats as ReflectionStatsType } from '../../types';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
@@ -51,6 +54,10 @@ export const ProgressScreen: React.FC = () => {
     progressToNextLevel: 0,
     pointsToNextLevel: 50 as number | null,
   });
+
+  // Reflection state
+  const [reflectionStats, setReflectionStats] = useState<ReflectionStatsType | null>(null);
+  const [mostRecentGrade, setMostRecentGrade] = useState<ReflectionGrade | null>(null);
 
   // Suck Factor state
   const [suckFactor, setSuckFactor] = useState({
@@ -95,6 +102,21 @@ export const ProgressScreen: React.FC = () => {
     setPoints(p);
     setCategoryData(cats);
     setActionTypeCounts(actionTypes);
+
+    // Load reflection stats (30-day average)
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const rStats = await getReflectionStats(user.uid, thirtyDaysAgo.toISOString().split('T')[0]);
+      setReflectionStats(rStats);
+
+      const recentReflections = await getReflections(user.uid);
+      if (recentReflections.length > 0) {
+        setMostRecentGrade(recentReflections[0].grade);
+      }
+    } catch (err) {
+      console.warn('Reflection stats failed:', err);
+    }
 
     // Mark calendar
     const marks: Record<string, any> = {};
@@ -162,6 +184,14 @@ export const ProgressScreen: React.FC = () => {
           <Text style={styles.suckFactorTier}>{suckFactor.tier}</Text>
         </Card>
       </View>
+
+      {/* Reflection Summary */}
+      <ReflectionSummaryCard
+        mostRecentGrade={mostRecentGrade}
+        averageGradeLetter={reflectionStats?.totalReflections ? reflectionStats.averageGradeLetter : null}
+        journalingStreak={reflectionStats?.currentStreak ?? 0}
+        onPress={() => navigation.navigate('ReflectionDetail')}
+      />
 
       {/* Time Filter */}
       <View style={styles.filterRow}>
