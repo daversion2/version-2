@@ -14,8 +14,6 @@ import {
   DailySummary,
   ReflectionGrade,
   ReflectionStats,
-  Challenge,
-  Nudge,
   CompletionLog,
 } from '../types';
 import { getActiveChallenges, getActiveExtendedChallenges, getCurrentDayNumber } from './challenges';
@@ -180,14 +178,19 @@ export const buildDailySummary = async (
     }
   }
 
-  return {
+  const summary: DailySummary = {
     completed_challenges: completedChallenges,
     missed_challenges: missedChallenges,
     completed_habits: completedHabits,
     missed_habits: missedHabits,
     optional_habits: optionalHabits,
-    program_status: programStatus,
   };
+
+  if (programStatus) {
+    summary.program_status = programStatus;
+  }
+
+  return summary;
 };
 
 // ============================================================================
