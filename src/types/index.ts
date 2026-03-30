@@ -698,3 +698,15 @@ export interface ReflectionStats {
   longestStreak: number;
   gradeDistribution: Record<ReflectionGrade, number>;
 }
+
+export interface JournalSearchResult {
+  id: string;
+  source: 'reflection' | 'challenge';
+  date: string;
+  matchedText: string;
+  matchedField: string;
+  contextLabel: string;
+  grade?: ReflectionGrade;
+  difficulty?: number;
+  status?: 'completed' | 'failed';
+}

@@ -15,8 +15,9 @@ import {
   ReflectionGrade,
   ReflectionStats,
   CompletionLog,
+  JournalSearchResult,
 } from '../types';
-import { getActiveChallenges, getActiveExtendedChallenges, getCurrentDayNumber } from './challenges';
+import { getActiveChallenges, getActiveExtendedChallenges, getCurrentDayNumber, getPastChallenges } from './challenges';
 import { getActiveHabits, getCurrentWeekBounds } from './habits';
 import { getActiveEnrollment, getTodaysProgramContent } from './programs';
 
@@ -397,4 +398,76 @@ export const getReflectionStats = async (
     longestStreak: streak.longest,
     gradeDistribution: distribution,
   };
+};
+
+// ============================================================================
+// JOURNAL SEARCH
+// ============================================================================
+
+const REFLECTION_FIELDS = [
+  { key: 'prompt_went_well' as const, label: 'What went well' },
+  { key: 'prompt_hardest' as const, label: 'What was hardest' },
+  { key: 'prompt_tomorrow' as const, label: 'Plan for tomorrow' },
+];
+
+const CHALLENGE_FIELDS = [
+  { key: 'reflection_note' as const, label: 'Post-challenge journal' },
+  { key: 'failure_reflection' as const, label: 'What got in the way' },
+];
+
+export const searchJournalEntries = async (
+  userId: string,
+  searchQuery: string,
+  cachedReflections?: DailyReflection[],
+): Promise<JournalSearchResult[]> => {
+  const q = searchQuery.toLowerCase().trim();
+  if (q.length < 2) return [];
+
+  const [reflections, challenges] = await Promise.all([
+    cachedReflections ? Promise.resolve(cachedReflections) : getReflections(userId),
+    getPastChallenges(userId),
+  ]);
+
+  const results: JournalSearchResult[] = [];
+
+  // Search reflections
+  for (const r of reflections) {
+    for (const field of REFLECTION_FIELDS) {
+      const text = r[field.key];
+      if (text && text.toLowerCase().includes(q)) {
+        results.push({
+          id: r.id,
+          source: 'reflection',
+          date: r.date,
+          matchedText: text,
+          matchedField: field.label,
+          contextLabel: 'Daily Reflection',
+          grade: r.grade,
+        });
+        break; // one result per reflection, prioritize first matching field
+      }
+    }
+  }
+
+  // Search challenge journals
+  for (const c of challenges) {
+    for (const field of CHALLENGE_FIELDS) {
+      const text = c[field.key];
+      if (text && text.toLowerCase().includes(q)) {
+        results.push({
+          id: c.id,
+          source: 'challenge',
+          date: c.date || c.completed_at?.split('T')[0] || c.created_at.split('T')[0],
+          matchedText: text,
+          matchedField: field.label,
+          contextLabel: c.name,
+          difficulty: c.difficulty_actual || c.difficulty_expected,
+          status: c.status as 'completed' | 'failed',
+        });
+        break;
+      }
+    }
+  }
+
+  return results.sort((a, b) => b.date.localeCompare(a.date));
 };
