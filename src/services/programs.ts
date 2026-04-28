@@ -105,7 +105,8 @@ function getTodayLocal(): string {
 export const enrollInProgram = async (
   userId: string,
   programId: string,
-  mode: ProgramMode
+  mode: ProgramMode,
+  goalIds?: string[]
 ): Promise<string> => {
   // Check no active enrollment exists
   const existing = await getActiveEnrollment(userId);
@@ -135,6 +136,7 @@ export const enrollInProgram = async (
     grace_days_used: 0,
     missed_days: [],
     total_points_earned: 0,
+    ...(goalIds && goalIds.length > 0 ? { goal_ids: goalIds } : {}),
     created_at: new Date().toISOString(),
   };
 

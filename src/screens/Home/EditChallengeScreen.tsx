@@ -21,6 +21,7 @@ import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
+import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
 type Props = NativeStackScreenProps<any, 'EditChallenge'>;
 
@@ -43,6 +44,7 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [durationDays, setDurationDays] = useState(challenge?.duration_days || 7);
+  const [goalIds, setGoalIds] = useState<string[]>(challenge?.goal_ids || []);
 
   const isExtended = challenge?.challenge_type === 'extended';
   const completedMilestones = challenge?.milestones?.filter(m => m.completed).length || 0;
@@ -116,6 +118,8 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
       if (isExtended) {
         updates.duration_days = durationDays;
       }
+
+      updates.goal_ids = goalIds;
 
       await updateChallenge(user.uid, challenge.id, updates);
       navigation.goBack();
@@ -247,6 +251,8 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
             onTimeChange={setDeadlineTime}
           />
         )}
+
+        <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
 
         {/* Show library source if applicable */}
         {challenge.library_challenge_id && (

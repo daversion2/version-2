@@ -13,6 +13,7 @@ import {
   HabitStreakInfo,
   FunFact,
   ReflectionGrade,
+  Goal,
 } from '../../../types';
 
 export interface HomeData {
@@ -32,6 +33,7 @@ export interface HomeData {
   programDayNumber: number;
   programCheckedIn: boolean;
   microGoals: MicroGoal[];
+  goals: Goal[];
   showReflectionBanner: boolean;
   reflectedToday: boolean;
   todaysGrade: ReflectionGrade | undefined;

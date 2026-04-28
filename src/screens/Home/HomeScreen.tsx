@@ -9,7 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal } from '../../types';
+import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
@@ -41,6 +41,7 @@ import { FunFact } from '../../types';
 import { CleanSweepPopup } from '../../components/home/CleanSweepPopup';
 import { getTodaysMicroGoals, createMicroGoal, completeMicroGoal, deleteMicroGoal } from '../../services/microGoals';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
+import { getActiveGoals } from '../../services/goals';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -91,6 +92,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
+  const [goals, setGoals] = useState<Goal[]>([]);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -110,7 +112,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, todaysMG] = await Promise.all([
+      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, todaysMG, activeGoals] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
@@ -121,10 +123,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         getActiveBuddyChallenges(user.uid),
         getActiveEnrollment(user.uid),
         getTodaysMicroGoals(user.uid),
+        getActiveGoals(user.uid),
       ]);
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
       setMicroGoals(todaysMG);
+      setGoals(activeGoals);
       setPendingInvites(inviteCount);
       setBuddyChallenges(activeBuddies);
       setHabits(habitList);
@@ -416,6 +420,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     programDayNumber,
     programCheckedIn,
     microGoals,
+    goals,
     showReflectionBanner,
     reflectedToday,
     todaysGrade,

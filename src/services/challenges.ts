@@ -521,6 +521,7 @@ export const updateChallenge = async (
     why?: string;
     deadline?: string | null;
     duration_days?: number;
+    goal_ids?: string[];
   }
 ): Promise<void> => {
   // Input validation

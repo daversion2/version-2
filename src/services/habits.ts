@@ -51,7 +51,7 @@ export const getActiveHabits = async (userId: string): Promise<Nudge[]> => {
 
 export const createHabit = async (
   userId: string,
-  data: { name: string; category_id: string; target_count_per_week: number }
+  data: { name: string; category_id: string; target_count_per_week: number; goal_ids?: string[] }
 ): Promise<string> => {
   const docRef = await addDoc(habitsRef(userId), {
     ...data,

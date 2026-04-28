@@ -115,6 +115,9 @@ export interface Challenge {
   is_buddy_challenge?: boolean;
   buddy_partner_id?: string;
   buddy_partner_username?: string;
+
+  // Goal tagging
+  goal_ids?: string[];
 }
 
 // --- Buddy Challenges ---
@@ -181,6 +184,7 @@ export interface Nudge {
   is_active: boolean;
   created_by_user: boolean;
   target_count_per_week: number; // 1–7
+  goal_ids?: string[];
 }
 
 export interface CompletionLog {
@@ -216,6 +220,7 @@ export interface MicroGoal {
   points_awarded?: number;
   created_at: string;             // ISO 8601
   order: number;                  // Display order (0-4)
+  goal_ids?: string[];
 }
 
 // =============================================================================
@@ -655,6 +660,9 @@ export interface ProgramEnrollment {
   assigned_by?: string;             // userId of coach (null = self-enrolled)
   assigned_at?: string;
 
+  // Goal tagging
+  goal_ids?: string[];
+
   // Metadata
   created_at: string;
 }
@@ -753,6 +761,26 @@ export interface JournalSearchResult {
   grade?: ReflectionGrade;
   difficulty?: number;
   status?: 'completed' | 'failed';
+}
+
+// ============================================================================
+// GOALS
+// ============================================================================
+
+export type GoalStatus = 'active' | 'completed' | 'not_completed' | 'archived';
+
+export interface Goal {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  status: GoalStatus;
+  start_date: string;        // YYYY-MM-DD
+  end_date: string;           // YYYY-MM-DD
+  completed_at?: string;      // ISO 8601
+  manual_progress: number;    // 0-100
+  created_at: string;         // ISO 8601
+  updated_at?: string;        // ISO 8601
 }
 
 // ============================================================================

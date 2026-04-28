@@ -25,6 +25,9 @@ import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
 import { CreateMicroGoalScreen } from '../screens/Home/CreateMicroGoalScreen';
 import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
+import { CreateGoalScreen } from '../screens/Home/CreateGoalScreen';
+import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
+import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -170,6 +173,21 @@ export const HomeStack: React.FC = () => (
       name="CustomizeHome"
       component={CustomizeHomeScreen}
       options={{ title: 'Customize Home' }}
+    />
+    <Stack.Screen
+      name="CreateGoal"
+      component={CreateGoalScreen}
+      options={{ title: 'New Goal' }}
+    />
+    <Stack.Screen
+      name="GoalDashboard"
+      component={GoalDashboardScreen}
+      options={{ title: '' }}
+    />
+    <Stack.Screen
+      name="EditGoal"
+      component={EditGoalScreen}
+      options={{ title: 'Edit Goal' }}
     />
   </Stack.Navigator>
 );

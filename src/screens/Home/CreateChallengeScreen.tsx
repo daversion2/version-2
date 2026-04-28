@@ -26,6 +26,7 @@ import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOver
 import { ChallengeTypeSelector } from '../../components/challenge/ChallengeTypeSelector';
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
+import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
 type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
 
@@ -46,6 +47,7 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [challengeType, setChallengeType] = useState<ChallengeType>('daily');
   const [durationDays, setDurationDays] = useState(7);
+  const [goalIds, setGoalIds] = useState<string[]>([]);
 
   // Core domain names (Physical, Social, Mind)
   const coreDomainNames = DEFAULT_CATEGORIES.map(c => c.name);
@@ -91,6 +93,7 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
         ...(why.trim() ? { why: why.trim() } : {}),
         // Only include deadline for daily challenges (extended uses end_date automatically)
         ...(challengeType === 'daily' && deadlineDate ? { deadline: new Date(`${deadlineDate}T${deadlineTime || '23:59'}`).toISOString() } : {}),
+        ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
       });
       navigation.popToTop();
     } catch (e: any) {
@@ -204,6 +207,8 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
             onTimeChange={setDeadlineTime}
           />
         )}
+
+        <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
 
         <Button
           title="Start Challenge"

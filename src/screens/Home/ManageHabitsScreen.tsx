@@ -19,6 +19,7 @@ import { getUserCategories } from '../../services/categories';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
+import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
 type Props = NativeStackScreenProps<any, 'ManageHabits'>;
 
@@ -34,6 +35,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCatIdx, setSelectedCatIdx] = useState(0);
   const [timesPerWeek, setTimesPerWeek] = useState(3);
+  const [goalIds, setGoalIds] = useState<string[]>([]);
 
   // Edit mode state
   const [editingHabit, setEditingHabit] = useState<Nudge | null>(null);
@@ -41,6 +43,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const [editCatIdx, setEditCatIdx] = useState(0);
   const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
   const [editLoading, setEditLoading] = useState(false);
+  const [editGoalIds, setEditGoalIds] = useState<string[]>([]);
 
   const load = async () => {
     if (!user) return;
@@ -80,9 +83,11 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
         name: newName.trim(),
         category_id: categories[selectedCatIdx]?.name || 'Uncategorized',
         target_count_per_week: timesPerWeek,
+        ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
       });
       setNewName('');
       setTimesPerWeek(3);
+      setGoalIds([]);
       setShowForm(false);
       await load();
     } catch (e: any) {
@@ -98,6 +103,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
     const catIdx = categories.findIndex((c) => c.name === habit.category_id);
     setEditCatIdx(catIdx >= 0 ? catIdx : 0);
     setEditTimesPerWeek(habit.target_count_per_week);
+    setEditGoalIds(habit.goal_ids || []);
     setShowForm(false);
   };
 
@@ -119,6 +125,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
         name: editName.trim(),
         category_id: categories[editCatIdx]?.name || 'Uncategorized',
         target_count_per_week: editTimesPerWeek,
+        goal_ids: editGoalIds,
       } as Partial<Nudge>);
       cancelEdit();
       await load();
@@ -194,6 +201,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
+          <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
           <View style={styles.formButtons}>
             <Button title="Add" onPress={handleAdd} loading={loading} style={{ flex: 1 }} />
             <Button
@@ -257,6 +265,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
+          <GoalTagPicker selectedGoalIds={editGoalIds} onChange={setEditGoalIds} />
           <View style={styles.formButtons}>
             <Button title="Save" onPress={handleSaveEdit} loading={editLoading} style={{ flex: 1 }} />
             <Button

@@ -19,6 +19,7 @@ import { getActiveChallenges, getActiveExtendedChallenges } from '../../services
 import { createMicroGoal, getTodaysCount } from '../../services/microGoals';
 import { MICRO_GOAL_CONSTANTS } from '../../constants/microGoals';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
 type Props = NativeStackScreenProps<any, 'CreateMicroGoal'>;
 
@@ -50,6 +51,7 @@ export const CreateMicroGoalScreen: React.FC<Props> = ({ navigation }) => {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(false);
   const [todaysCount, setTodaysCount] = useState(0);
+  const [goalIds, setGoalIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -81,6 +83,7 @@ export const CreateMicroGoalScreen: React.FC<Props> = ({ navigation }) => {
         deadline: toHHMM(deadlineDate),
         linked_challenge_id: selectedChallenge?.id,
         linked_challenge_name: selectedChallenge?.name,
+        ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
       });
       navigation.goBack();
     } catch (e: any) {
@@ -208,6 +211,8 @@ export const CreateMicroGoalScreen: React.FC<Props> = ({ navigation }) => {
             })}
           </View>
         )}
+
+        <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
 
         <Button
           title="Create Sprint"

@@ -72,6 +72,7 @@ export const createMicroGoal = async (
     deadline: string; // HH:MM
     linked_challenge_id?: string;
     linked_challenge_name?: string;
+    goal_ids?: string[];
   }
 ): Promise<string> => {
   const today = getTodayStr();
@@ -89,6 +90,7 @@ export const createMicroGoal = async (
     status: 'active' as MicroGoalStatus,
     linked_challenge_id: data.linked_challenge_id || null,
     linked_challenge_name: data.linked_challenge_name || null,
+    goal_ids: data.goal_ids || [],
     created_at: new Date().toISOString(),
     order: currentCount,
   });

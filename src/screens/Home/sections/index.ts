@@ -10,6 +10,7 @@ import { DailyChallengesSection } from './DailyChallengesSection';
 import { SprintsSection } from './SprintsSection';
 import { ExtendedChallengesSection } from './ExtendedChallengesSection';
 import { HabitsSection } from './HabitsSection';
+import { GoalsSection } from './GoalsSection';
 
 export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   greeting: GreetingSection,
@@ -18,6 +19,7 @@ export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   team_activity: TeamActivitySection,
   buddy_invites: BuddyInvitesSection,
   programs: ProgramSection,
+  goals: GoalsSection,
   daily_challenges: DailyChallengesSection,
   sprints: SprintsSection,
   extended_challenges: ExtendedChallengesSection,
