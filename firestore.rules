@@ -76,12 +76,34 @@ service cloud.firestore {
     // ========================================================================
     // PROGRAMS — programs/{docId}
     // All authenticated users can read.
-    // Only admins can write.
+    // Admins can do anything.
+    // Coaches can create their own programs and update/delete only their own.
     // ========================================================================
     match /programs/{docId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+      allow create: if request.auth != null
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_coach == true
+                    && request.resource.data.creator_id == request.auth.uid;
+      allow update, delete: if request.auth != null
+                            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_coach == true
+                            && resource.data.creator_id == request.auth.uid;
+    }
+
+    // ========================================================================
+    // COACH APPLICATIONS — coachApplications/{docId}
+    // Any authenticated user can create (submit application).
+    // Users can read their own applications; admins can read all.
+    // Only admins can update (approve/reject).
+    // ========================================================================
+    match /coachApplications/{docId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null
+                  && (request.auth.uid == resource.data.user_id
+                      || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true);
+      allow update: if request.auth != null
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
     }
 
     // ========================================================================

@@ -73,7 +73,6 @@ For users who don't know where to start:
 ## Phase 2: Deeper Reflection & Journaling (Weeks 2-3)
 
 ### 2.1 Enhanced Reflection Prompts
-Replace surface-level questions with growth-oriented prompts:
 
 **After completing a challenge:**
 - "What surprised you about doing this?"

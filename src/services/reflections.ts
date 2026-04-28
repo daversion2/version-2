@@ -20,6 +20,7 @@ import {
 import { getActiveChallenges, getActiveExtendedChallenges, getCurrentDayNumber, getPastChallenges } from './challenges';
 import { getActiveHabits, getCurrentWeekBounds } from './habits';
 import { getActiveEnrollment, getTodaysProgramContent } from './programs';
+import { getMicroGoalSummary } from './microGoals';
 
 // ============================================================================
 // COLLECTION REFERENCES
@@ -72,11 +73,13 @@ export const buildDailySummary = async (
     activeExtendedChallenges,
     activeHabits,
     activeEnrollment,
+    microGoalData,
   ] = await Promise.all([
     getActiveChallenges(userId),
     getActiveExtendedChallenges(userId),
     getActiveHabits(userId),
     getActiveEnrollment(userId),
+    getMicroGoalSummary(userId, date),
   ]);
 
   // Get today's completion logs for habits
@@ -189,6 +192,14 @@ export const buildDailySummary = async (
 
   if (programStatus) {
     summary.program_status = programStatus;
+  }
+
+  if (microGoalData.completed.length > 0 || microGoalData.missed.length > 0) {
+    summary.micro_goals = {
+      completed: microGoalData.completed,
+      missed: microGoalData.missed,
+      clean_sweep: microGoalData.cleanSweep,
+    };
   }
 
   return summary;

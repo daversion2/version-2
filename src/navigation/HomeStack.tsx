@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/Home/HomeScreen';
 import { StartChallengeScreen } from '../screens/Home/StartChallengeScreen';
@@ -22,6 +23,8 @@ import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
+import { CreateMicroGoalScreen } from '../screens/Home/CreateMicroGoalScreen';
+import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -43,12 +46,20 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="HomeScreen"
       component={HomeScreen}
-      options={{
+      options={({ navigation }) => ({
         title: 'Home',
         headerLeft: () => (
           <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
         ),
-      }}
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('CustomizeHome')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="options-outline" size={22} color={Colors.primary} />
+          </TouchableOpacity>
+        ),
+      })}
     />
     <Stack.Screen
       name="StartChallenge"
@@ -149,6 +160,16 @@ export const HomeStack: React.FC = () => (
       name="NightlyReflection"
       component={NightlyReflectionScreen}
       options={{ title: 'Nightly Reflection' }}
+    />
+    <Stack.Screen
+      name="CreateMicroGoal"
+      component={CreateMicroGoalScreen}
+      options={{ title: 'New Sprint' }}
+    />
+    <Stack.Screen
+      name="CustomizeHome"
+      component={CustomizeHomeScreen}
+      options={{ title: 'Customize Home' }}
     />
   </Stack.Navigator>
 );

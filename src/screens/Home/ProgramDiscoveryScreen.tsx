@@ -25,7 +25,7 @@ export const ProgramDiscoveryScreen: React.FC<Props> = ({ navigation }) => {
       try {
         let data = await getAllPrograms();
         // Auto-seed missing programs
-        if (data.length < 5) {
+        if (data.length < 6) {
           console.log('Seeding missing programs...');
           await seedPrograms();
           data = await getAllPrograms();

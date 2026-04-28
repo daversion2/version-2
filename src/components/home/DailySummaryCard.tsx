@@ -13,12 +13,14 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
   const hasCompleted =
     summary.completed_challenges.length > 0 ||
     summary.completed_habits.length > 0 ||
-    summary.program_status?.checked_in;
+    summary.program_status?.checked_in ||
+    (summary.micro_goals?.completed.length ?? 0) > 0;
 
   const hasMissed =
     summary.missed_challenges.length > 0 ||
     summary.missed_habits.length > 0 ||
-    (summary.program_status && !summary.program_status.checked_in);
+    (summary.program_status && !summary.program_status.checked_in) ||
+    (summary.micro_goals?.missed.length ?? 0) > 0;
 
   const hasOptional = summary.optional_habits.length > 0;
 
@@ -48,6 +50,16 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
               {summary.program_status.name} — Day {summary.program_status.day_number} checked in
             </Text>
           )}
+          {summary.micro_goals?.completed.map((g, i) => (
+            <Text key={`mg-c-${i}`} style={styles.item}>
+              Sprint: {g.description}
+            </Text>
+          ))}
+          {summary.micro_goals?.clean_sweep && (
+            <Text key="clean-sweep" style={[styles.item, { color: Colors.secondary, fontFamily: Fonts.secondaryBold }]}>
+              Clean Sweep bonus earned!
+            </Text>
+          )}
         </View>
       )}
 
@@ -71,6 +83,11 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
               {summary.program_status.name} — Day {summary.program_status.day_number} not checked in
             </Text>
           )}
+          {summary.micro_goals?.missed.map((g, i) => (
+            <Text key={`mg-m-${i}`} style={styles.item}>
+              Sprint: {g.description} (missed)
+            </Text>
+          ))}
         </View>
       )}
 

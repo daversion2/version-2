@@ -13,12 +13,13 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { LibraryChallenge, FunFact } from '../types';
+import { LibraryChallenge, FunFact, CoachProfile, CoachApplication, User } from '../types';
 
 // Collection references
 const libraryRef = () => collection(db, 'challengeLibrary');
 const funFactsRef = () => collection(db, 'funFacts');
 const usersRef = () => collection(db, 'users');
+const coachApplicationsRef = () => collection(db, 'coachApplications');
 
 // ============================================================================
 // LIBRARY CHALLENGE CRUD
@@ -262,4 +263,83 @@ export const getTodaysChallengeCount = async (): Promise<number> => {
   }
 
   return count;
+};
+
+// ============================================================================
+// COACH MANAGEMENT (admin only)
+// ============================================================================
+
+export const approveCoach = async (
+  userId: string,
+  profile: CoachProfile
+): Promise<void> => {
+  const ref = doc(db, 'users', userId);
+  await updateDoc(ref, {
+    is_coach: true,
+    coach_profile: profile,
+  });
+};
+
+export const revokeCoach = async (userId: string): Promise<void> => {
+  const ref = doc(db, 'users', userId);
+  await updateDoc(ref, {
+    is_coach: false,
+    coach_profile: null,
+  });
+};
+
+export const getAllCoaches = async (): Promise<User[]> => {
+  const q = query(usersRef(), where('is_coach', '==', true));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as User));
+};
+
+export const getPendingCoachApplications = async (): Promise<CoachApplication[]> => {
+  const q = query(coachApplicationsRef(), where('status', '==', 'pending'));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as CoachApplication))
+    .sort((a, b) => a.submitted_at.localeCompare(b.submitted_at));
+};
+
+export const reviewCoachApplication = async (
+  applicationId: string,
+  approved: boolean,
+  adminUserId: string,
+  rejectionReason?: string
+): Promise<void> => {
+  const ref = doc(db, 'coachApplications', applicationId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Application not found');
+
+  const application = snap.data() as CoachApplication;
+  const now = new Date().toISOString();
+
+  if (approved) {
+    // Approve: update application status and set coach role on user
+    await updateDoc(ref, {
+      status: 'approved',
+      reviewed_at: now,
+      reviewed_by: adminUserId,
+    });
+
+    await approveCoach(application.user_id, {
+      display_name: application.display_name,
+      bio: application.bio,
+      credentials: application.credentials,
+      website_url: application.website_url,
+      approved_at: now,
+    });
+  } else {
+    // Reject: update application status with reason
+    const updates: Record<string, unknown> = {
+      status: 'rejected',
+      reviewed_at: now,
+      reviewed_by: adminUserId,
+    };
+    if (rejectionReason) {
+      updates.rejection_reason = rejectionReason;
+    }
+    await updateDoc(ref, updates);
+  }
 };

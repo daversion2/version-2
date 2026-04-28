@@ -93,74 +93,78 @@ export const morningChallengeReminder = onSchedule(
     const usersSnapshot = await db.collection("users").get();
 
     for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      const pushToken = userData.expoPushToken;
-      const timezone = userData.timezone || "America/New_York";
+      try {
+        const userData = userDoc.data();
+        const pushToken = userData.expoPushToken;
+        const timezone = userData.timezone || "America/New_York";
 
-      if (!pushToken) continue;
+        if (!pushToken) continue;
 
-      // Check if it's 8 AM in user's timezone
-      const currentHour = getHourInTimezone(timezone);
-      if (currentHour !== 8) continue;
+        // Check if it's 8 AM in user's timezone
+        const currentHour = getHourInTimezone(timezone);
+        if (currentHour !== 8) continue;
 
-      const today = getDateInTimezone(timezone);
+        const today = getDateInTimezone(timezone);
 
-      // Priority 1: Active program
-      const enrollmentSnapshot = await db
-        .collection("users")
-        .doc(userDoc.id)
-        .collection("programEnrollments")
-        .where("status", "==", "active")
-        .limit(1)
-        .get();
+        // Priority 1: Active program
+        const enrollmentSnapshot = await db
+          .collection("users")
+          .doc(userDoc.id)
+          .collection("programEnrollments")
+          .where("status", "==", "active")
+          .limit(1)
+          .get();
 
-      if (!enrollmentSnapshot.empty) {
-        const enrollment = enrollmentSnapshot.docs[0].data();
-        const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
-        await sendPushNotification(
-          pushToken,
-          `Day ${dayNumber} of ${enrollment.program_name}`,
-          "Time to check in for today's challenge."
-        );
-        console.log(`Sent morning program reminder to user ${userDoc.id} (Day ${dayNumber})`);
-        continue;
-      }
+        if (!enrollmentSnapshot.empty) {
+          const enrollment = enrollmentSnapshot.docs[0].data();
+          const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
+          await sendPushNotification(
+            pushToken,
+            `Day ${dayNumber} of ${enrollment.program_name}`,
+            "Time to check in for today's challenge."
+          );
+          console.log(`Sent morning program reminder to user ${userDoc.id} (Day ${dayNumber})`);
+          continue;
+        }
 
-      // Priority 2: Active habits
-      const habitsSnapshot = await db
-        .collection("users")
-        .doc(userDoc.id)
-        .collection("habits")
-        .where("is_active", "==", true)
-        .get();
+        // Priority 2: Active habits
+        const habitsSnapshot = await db
+          .collection("users")
+          .doc(userDoc.id)
+          .collection("habits")
+          .where("is_active", "==", true)
+          .get();
 
-      if (!habitsSnapshot.empty) {
-        const habitCount = habitsSnapshot.size;
-        await sendPushNotification(
-          pushToken,
-          "Keep Building",
-          `You have ${habitCount} habit${habitCount === 1 ? "" : "s"} to work on today. Keep building momentum.`
-        );
-        console.log(`Sent morning habit reminder to user ${userDoc.id} (${habitCount} habits)`);
-        continue;
-      }
+        if (!habitsSnapshot.empty) {
+          const habitCount = habitsSnapshot.size;
+          await sendPushNotification(
+            pushToken,
+            "Keep Building",
+            `You have ${habitCount} habit${habitCount === 1 ? "" : "s"} to work on today. Keep building momentum.`
+          );
+          console.log(`Sent morning habit reminder to user ${userDoc.id} (${habitCount} habits)`);
+          continue;
+        }
 
-      // Priority 3: Fallback — challenge reminder
-      const challengesSnapshot = await db
-        .collection("users")
-        .doc(userDoc.id)
-        .collection("challenges")
-        .where("date", "==", today)
-        .limit(1)
-        .get();
+        // Priority 3: Fallback — challenge reminder
+        const challengesSnapshot = await db
+          .collection("users")
+          .doc(userDoc.id)
+          .collection("challenges")
+          .where("date", "==", today)
+          .limit(1)
+          .get();
 
-      if (challengesSnapshot.empty) {
-        await sendPushNotification(
-          pushToken,
-          "Start Your Challenge",
-          "You haven't set today's challenge yet. What will you conquer today?"
-        );
-        console.log(`Sent morning challenge reminder to user ${userDoc.id} (${timezone})`);
+        if (challengesSnapshot.empty) {
+          await sendPushNotification(
+            pushToken,
+            "Start Your Challenge",
+            "You haven't set today's challenge yet. What will you conquer today?"
+          );
+          console.log(`Sent morning challenge reminder to user ${userDoc.id} (${timezone})`);
+        }
+      } catch (error) {
+        console.error(`Error processing morning reminder for user ${userDoc.id}:`, error);
       }
     }
   }
@@ -181,128 +185,133 @@ export const eveningChallengeReminder = onSchedule(
     const usersSnapshot = await db.collection("users").get();
 
     for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      const pushToken = userData.expoPushToken;
-      const timezone = userData.timezone || "America/New_York";
+      try {
+        const userData = userDoc.data();
+        const pushToken = userData.expoPushToken;
+        const timezone = userData.timezone || "America/New_York";
 
-      if (!pushToken) continue;
+        if (!pushToken) continue;
 
-      // Check if it's 8 PM (20:00) in user's timezone
-      const currentHour = getHourInTimezone(timezone);
-      if (currentHour !== 20) continue;
+        // Check if it's 8 PM (20:00) in user's timezone
+        const currentHour = getHourInTimezone(timezone);
+        if (currentHour !== 20) continue;
 
-      const today = getDateInTimezone(timezone);
+        const today = getDateInTimezone(timezone);
 
-      // Priority 1: Active program
-      const enrollmentSnapshot = await db
-        .collection("users")
-        .doc(userDoc.id)
-        .collection("programEnrollments")
-        .where("status", "==", "active")
-        .limit(1)
-        .get();
-
-      if (!enrollmentSnapshot.empty) {
-        const enrollment = enrollmentSnapshot.docs[0].data();
-        const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
-        const percentComplete = Math.round(
-          (dayNumber / enrollment.duration_days) * 100
-        );
-        const milestones = enrollment.milestones || [];
-        const todayMilestone = milestones.find(
-          (m: { day_number: number }) => m.day_number === dayNumber
-        );
-
-        if (todayMilestone?.completed) {
-          const daysRemaining = enrollment.duration_days - dayNumber;
-          await sendPushNotification(
-            pushToken,
-            "Amazing Work Today!",
-            `Day ${dayNumber} of ${enrollment.program_name} — done! ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} to go.`
-          );
-          console.log(`Sent evening program congrats to user ${userDoc.id} (Day ${dayNumber})`);
-        } else {
-          await sendPushNotification(
-            pushToken,
-            `Complete Day ${dayNumber}`,
-            `Don't forget Day ${dayNumber} of ${enrollment.program_name}. You're ${percentComplete}% through!`
-          );
-          console.log(`Sent evening program reminder to user ${userDoc.id} (Day ${dayNumber})`);
-        }
-        continue;
-      }
-
-      // Priority 2: Active habits
-      const habitsSnapshot = await db
-        .collection("users")
-        .doc(userDoc.id)
-        .collection("habits")
-        .where("is_active", "==", true)
-        .get();
-
-      if (!habitsSnapshot.empty) {
-        const totalHabits = habitsSnapshot.size;
-
-        // Count unique habits completed today
-        const logsSnapshot = await db
+        // Priority 1: Active program
+        const enrollmentSnapshot = await db
           .collection("users")
           .doc(userDoc.id)
-          .collection("completionLogs")
-          .where("date", "==", today)
-          .where("type", "==", "nudge")
+          .collection("programEnrollments")
+          .where("status", "==", "active")
+          .limit(1)
           .get();
 
-        const completedHabitIds = new Set(
-          logsSnapshot.docs.map((d) => d.data().reference_id)
-        );
-        const remaining = totalHabits - completedHabitIds.size;
+        if (!enrollmentSnapshot.empty) {
+          const enrollment = enrollmentSnapshot.docs[0].data();
+          const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
+          const percentComplete = Math.round(
+            (dayNumber / enrollment.duration_days) * 100
+          );
+          const milestones = enrollment.milestones || [];
+          const todayMilestone = milestones.find(
+            (m: { day_number: number }) => m.day_number === dayNumber
+          );
 
-        if (remaining > 0) {
-          await sendPushNotification(
-            pushToken,
-            "Finish Strong",
-            `You still have ${remaining} habit${remaining === 1 ? "" : "s"} left today. Finish strong.`
-          );
-          console.log(`Sent evening habit reminder to user ${userDoc.id} (${remaining} remaining)`);
-        } else {
-          await sendPushNotification(
-            pushToken,
-            "All Habits Logged!",
-            "All habits logged today. Nice consistency."
-          );
-          console.log(`Sent evening habit congrats to user ${userDoc.id}`);
+          if (todayMilestone?.completed) {
+            const daysRemaining = enrollment.duration_days - dayNumber;
+            await sendPushNotification(
+              pushToken,
+              "Amazing Work Today!",
+              `Day ${dayNumber} of ${enrollment.program_name} — done! ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} to go.`
+            );
+            console.log(`Sent evening program congrats to user ${userDoc.id} (Day ${dayNumber})`);
+          } else {
+            await sendPushNotification(
+              pushToken,
+              `Complete Day ${dayNumber}`,
+              `Don't forget Day ${dayNumber} of ${enrollment.program_name}. You're ${percentComplete}% through!`
+            );
+            console.log(`Sent evening program reminder to user ${userDoc.id} (Day ${dayNumber})`);
+          }
+          continue;
         }
-        continue;
-      }
 
-      // Priority 3: Fallback — challenge logic
-      const challengesSnapshot = await db
-        .collection("users")
-        .doc(userDoc.id)
-        .collection("challenges")
-        .where("date", "==", today)
-        .get();
+        // Priority 2: Active habits
+        const habitsSnapshot = await db
+          .collection("users")
+          .doc(userDoc.id)
+          .collection("habits")
+          .where("is_active", "==", true)
+          .get();
 
-      if (challengesSnapshot.empty) continue;
+        if (!habitsSnapshot.empty) {
+          const totalHabits = habitsSnapshot.size;
 
-      for (const challengeDoc of challengesSnapshot.docs) {
-        const challenge = challengeDoc.data();
+          // Count unique habits completed today (single-field query + client-side filter)
+          const logsSnapshot = await db
+            .collection("users")
+            .doc(userDoc.id)
+            .collection("completionLogs")
+            .where("date", "==", today)
+            .get();
 
-        if (challenge.status === "active") {
-          await sendPushNotification(
-            pushToken,
-            "Complete Your Challenge",
-            "Don't forget to complete your challenge today. You've got this!"
+          const completedHabitIds = new Set(
+            logsSnapshot.docs
+              .filter((d) => d.data().type === "nudge")
+              .map((d) => d.data().reference_id)
           );
-          console.log(`Sent evening challenge reminder to user ${userDoc.id} (${timezone})`);
-        } else if (challenge.status === "completed") {
-          await sendPushNotification(
-            pushToken,
-            "Amazing Work Today!",
-            "You crushed your challenge! Keep the momentum going tomorrow."
-          );
-          console.log(`Sent evening challenge congrats to user ${userDoc.id} (${timezone})`);
+          const remaining = totalHabits - completedHabitIds.size;
+
+          if (remaining > 0) {
+            await sendPushNotification(
+              pushToken,
+              "Finish Strong",
+              `You still have ${remaining} habit${remaining === 1 ? "" : "s"} left today. Finish strong.`
+            );
+            console.log(`Sent evening habit reminder to user ${userDoc.id} (${remaining} remaining)`);
+          } else {
+            await sendPushNotification(
+              pushToken,
+              "All Habits Logged!",
+              "All habits logged today. Nice consistency."
+            );
+            console.log(`Sent evening habit congrats to user ${userDoc.id}`);
+          }
+          continue;
         }
+
+        // Priority 3: Fallback — challenge logic
+        const challengesSnapshot = await db
+          .collection("users")
+          .doc(userDoc.id)
+          .collection("challenges")
+          .where("date", "==", today)
+          .get();
+
+        if (challengesSnapshot.empty) continue;
+
+        for (const challengeDoc of challengesSnapshot.docs) {
+          const challenge = challengeDoc.data();
+
+          if (challenge.status === "active") {
+            await sendPushNotification(
+              pushToken,
+              "Complete Your Challenge",
+              "Don't forget to complete your challenge today. You've got this!"
+            );
+            console.log(`Sent evening challenge reminder to user ${userDoc.id} (${timezone})`);
+          } else if (challenge.status === "completed") {
+            await sendPushNotification(
+              pushToken,
+              "Amazing Work Today!",
+              "You crushed your challenge! Keep the momentum going tomorrow."
+            );
+            console.log(`Sent evening challenge congrats to user ${userDoc.id} (${timezone})`);
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing evening reminder for user ${userDoc.id}:`, error);
       }
     }
   }
