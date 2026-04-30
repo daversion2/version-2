@@ -14,7 +14,19 @@ export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callb
 
   return (
     <>
-      <Text style={styles.sectionTitle}>Today's Challenges</Text>
+      <Card style={styles.headerCard}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerIcon}>
+            <Ionicons name="flame-outline" size={28} color={Colors.white} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Growth Challenges</Text>
+            <Text style={styles.headerSubtitle}>
+              Challenge yourself and reflect on what you learn
+            </Text>
+          </View>
+        </View>
+      </Card>
 
       {activeChallenges.length > 0 ? (
         activeChallenges.map((challenge) => {
@@ -97,12 +109,34 @@ export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callb
 };
 
 const styles = StyleSheet.create({
-  sectionTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
+  headerCard: {
+    backgroundColor: Colors.secondary,
     marginBottom: Spacing.md,
     marginTop: Spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.white + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.white,
+  },
+  headerSubtitle: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.white + 'CC',
+    marginTop: 2,
   },
   challengeCard: {
     borderLeftWidth: 4,

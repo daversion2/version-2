@@ -33,33 +33,44 @@ export const MicroGoalSection: React.FC<MicroGoalSectionProps> = ({
 
   return (
     <View style={styles.wrapper}>
-      {/* Section Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerLeft}
-          onPress={() => setCollapsed(!collapsed)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.sectionTitle}>Today's Sprints</Text>
-          {totalCount > 0 && (
-            <View style={styles.countPill}>
-              <Text style={styles.countText}>{completedCount}/{totalCount}</Text>
+      {/* Section Header Card */}
+      <Card style={styles.headerCard}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerIcon}>
+            <Ionicons name="flash-outline" size={28} color={Colors.white} />
+          </View>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => setCollapsed(!collapsed)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.headerTitleRow}>
+              <Text style={styles.headerTitle}>Quick Wins</Text>
+              {totalCount > 0 && (
+                <View style={styles.countPill}>
+                  <Text style={styles.countText}>{completedCount}/{totalCount}</Text>
+                </View>
+              )}
             </View>
-          )}
-          <Ionicons
-            name={collapsed ? 'chevron-down' : 'chevron-up'}
-            size={18}
-            color={Colors.gray}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={onPressMore}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="ellipsis-horizontal" size={20} color={Colors.gray} />
-        </TouchableOpacity>
-      </View>
+            <Text style={styles.headerSubtitle}>
+              Set a quick goal with a deadline to get moving
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={onPressMore}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color={Colors.white + '80'} />
+            </TouchableOpacity>
+            <Ionicons
+              name={collapsed ? 'chevron-down' : 'chevron-up'}
+              size={18}
+              color={Colors.white + '80'}
+            />
+          </View>
+        </View>
+      </Card>
 
       {/* Collapsible Content */}
       {!collapsed && (
@@ -96,24 +107,46 @@ const styles = StyleSheet.create({
   wrapper: {
     marginTop: Spacing.md,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  headerCard: {
+    backgroundColor: Colors.primary,
     marginBottom: Spacing.sm,
   },
-  headerLeft: {
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.white + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  sectionTitle: {
+  headerTitle: {
     fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
+    fontSize: FontSizes.lg,
+    color: Colors.white,
+  },
+  headerSubtitle: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.white + 'CC',
+    marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   countPill: {
-    backgroundColor: Colors.primary + '20',
+    backgroundColor: Colors.white + '20',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
@@ -121,7 +154,7 @@ const styles = StyleSheet.create({
   countText: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xs,
-    color: Colors.primary,
+    color: Colors.white,
   },
   card: {
     marginBottom: Spacing.sm,
