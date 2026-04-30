@@ -214,8 +214,6 @@ export interface MicroGoal {
   date: string;                   // YYYY-MM-DD
   deadline: string;               // HH:MM (24hr format)
   status: MicroGoalStatus;
-  linked_challenge_id?: string;
-  linked_challenge_name?: string; // Denormalized for display
   completed_at?: string;          // ISO 8601
   points_awarded?: number;
   created_at: string;             // ISO 8601

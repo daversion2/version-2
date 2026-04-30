@@ -104,14 +104,6 @@ export const MicroGoalCard: React.FC<MicroGoalCardProps> = ({
             </View>
           )}
 
-          {microGoal.linked_challenge_name && (
-            <View style={styles.linkBadge}>
-              <Ionicons name="link-outline" size={12} color={Colors.gray} />
-              <Text style={styles.linkText} numberOfLines={1}>
-                {microGoal.linked_challenge_name}
-              </Text>
-            </View>
-          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -167,16 +159,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.xs,
     color: Colors.secondary,
-  },
-  linkBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    maxWidth: '50%',
-  },
-  linkText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
   },
 });

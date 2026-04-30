@@ -70,8 +70,6 @@ export const createMicroGoal = async (
   data: {
     description: string;
     deadline: string; // HH:MM
-    linked_challenge_id?: string;
-    linked_challenge_name?: string;
     goal_ids?: string[];
   }
 ): Promise<string> => {
@@ -88,8 +86,6 @@ export const createMicroGoal = async (
     date: today,
     deadline: data.deadline,
     status: 'active' as MicroGoalStatus,
-    linked_challenge_id: data.linked_challenge_id || null,
-    linked_challenge_name: data.linked_challenge_name || null,
     goal_ids: data.goal_ids || [],
     created_at: new Date().toISOString(),
     order: currentCount,
