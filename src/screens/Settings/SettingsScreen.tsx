@@ -89,6 +89,17 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* Reward Messages */}
+      <Card style={styles.card} onPress={() => navigation.navigate('ManageRewardMessages')}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>Reward Messages</Text>
+            <Text style={styles.desc}>Choose or create the messages you see after completing a challenge</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
       {/* How It Works */}
       <Card style={styles.card} onPress={() => navigation.navigate('HowItWorks')}>
         <View style={styles.navRow}>

@@ -14,6 +14,7 @@ import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
 import { CoachApplicationScreen } from '../screens/Settings/CoachApplicationScreen';
 import { CoachDashboardScreen } from '../screens/Settings/CoachDashboardScreen';
 import { CoachProgramEditScreen } from '../screens/Settings/CoachProgramEditScreen';
+import { ManageRewardMessagesScreen } from '../screens/Settings/ManageRewardMessagesScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -46,6 +47,11 @@ export const SettingsStack: React.FC = () => (
       name="ManageCategories"
       component={ManageCategoriesScreen}
       options={{ title: 'Categories' }}
+    />
+    <Stack.Screen
+      name="ManageRewardMessages"
+      component={ManageRewardMessagesScreen}
+      options={{ title: 'Reward Messages' }}
     />
     <Stack.Screen
       name="HowItWorks"

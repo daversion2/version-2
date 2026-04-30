@@ -12,6 +12,7 @@ import {
   limit,
   Timestamp,
   deleteDoc,
+  getCountFromServer,
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats } from './willpower';
 import { db } from './firebase';
@@ -787,4 +788,27 @@ export const getBarrierTypeStreak = async (
   }
 
   return streak;
+};
+
+// ============================================================================
+// CUMULATIVE COMPLETION COUNT (for reward narrative line)
+// ============================================================================
+
+/**
+ * Get total number of challenge completions for a user.
+ * Uses getCountFromServer for efficiency (no document downloads).
+ */
+export const getTotalCompletionCount = async (userId: string): Promise<number> => {
+  const q = query(
+    logsRef(userId),
+    where('type', '==', 'challenge')
+  );
+  try {
+    const snapshot = await getCountFromServer(q);
+    return snapshot.data().count;
+  } catch (err) {
+    console.warn('Failed to get completion count via server, falling back to getDocs:', err);
+    const snap = await getDocs(q);
+    return snap.size;
+  }
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,10 @@ import {
   Dimensions,
   TextInput,
   ActivityIndicator,
+  ScrollView,
+  TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ONBOARDING_STEPS } from '../../constants/onboarding';
 import { Button } from '../../components/common/Button';
@@ -17,6 +20,8 @@ import {
   validateUsername,
   checkUsernameAvailable,
 } from '../../services/users';
+import { getActiveRewardMessages, RewardMessage } from '../../services/rewardMessages';
+import { seedUserRewardMessagesFromGlobals } from '../../services/userRewardMessages';
 
 const { width } = Dimensions.get('window');
 
@@ -29,10 +34,19 @@ export const OnboardingScreen: React.FC = () => {
   const [username, setUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [globalMessages, setGlobalMessages] = useState<RewardMessage[]>([]);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
 
   const currentStep = steps[step];
   const isUsernameStep = currentStep.type === 'username';
+  const isRewardMessagesStep = currentStep.type === 'rewardMessages';
   const isLastStep = step === steps.length - 1;
+
+  useEffect(() => {
+    getActiveRewardMessages()
+      .then(setGlobalMessages)
+      .catch((err) => console.warn('Failed to load reward messages for onboarding:', err));
+  }, []);
 
   const validateAndCheckUsername = async (): Promise<boolean> => {
     const trimmed = username.trim();
@@ -62,8 +76,33 @@ export const OnboardingScreen: React.FC = () => {
     }
   };
 
+  const toggleMessageSelection = (id: string) => {
+    setSelectedMessageIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const next = async () => {
-    if (isUsernameStep) {
+    if (isRewardMessagesStep) {
+      // Seed selected messages to user's pool
+      if (user && selectedMessageIds.size > 0) {
+        setSaving(true);
+        try {
+          await seedUserRewardMessagesFromGlobals(user.uid, Array.from(selectedMessageIds));
+        } catch (error) {
+          console.warn('Failed to seed reward messages:', error);
+        } finally {
+          setSaving(false);
+        }
+      }
+      setStep(step + 1);
+    } else if (isUsernameStep) {
       // Validate username before proceeding
       const isValid = await validateAndCheckUsername();
       if (!isValid) return;
@@ -92,7 +131,9 @@ export const OnboardingScreen: React.FC = () => {
     }
   };
 
-  const isNextDisabled = saving || checkingUsername || (isUsernameStep && username.trim().length < 3);
+  const isNextDisabled = saving || checkingUsername
+    || (isUsernameStep && username.trim().length < 3)
+    || (isRewardMessagesStep && selectedMessageIds.size < 3);
 
   return (
     <View style={styles.container}>
@@ -126,6 +167,36 @@ export const OnboardingScreen: React.FC = () => {
               </Text>
             )}
           </View>
+        )}
+
+        {isRewardMessagesStep && (
+          <ScrollView
+            style={styles.messagesContainer}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.hintText}>
+              Pick at least 3 ({selectedMessageIds.size} selected)
+            </Text>
+            {globalMessages.map((msg) => {
+              const isSelected = selectedMessageIds.has(msg.id);
+              return (
+                <TouchableOpacity
+                  key={msg.id}
+                  style={[styles.messageChip, isSelected && styles.messageChipSelected]}
+                  onPress={() => toggleMessageSelection(msg.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.messageChipText, isSelected && styles.messageChipTextSelected]}>
+                    {msg.text}
+                  </Text>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         )}
       </View>
 
@@ -216,6 +287,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.sm,
     opacity: 0.7,
+  },
+  messagesContainer: {
+    width: width - Spacing.lg * 2,
+    maxHeight: 320,
+    marginTop: Spacing.md,
+  },
+  messagesContent: {
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  messageChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  messageChipSelected: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderColor: Colors.white,
+  },
+  messageChipText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.white,
+    opacity: 0.8,
+    lineHeight: 20,
+  },
+  messageChipTextSelected: {
+    opacity: 1,
+    fontFamily: Fonts.secondaryBold,
   },
   dots: {
     flexDirection: 'row',

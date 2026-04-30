@@ -2,7 +2,7 @@
 export interface OnboardingStep {
   title: string;
   body: string;
-  type?: 'info' | 'username';
+  type?: 'info' | 'username' | 'rewardMessages';
 }
 
 // Onboarding steps shown to new users
@@ -26,6 +26,11 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: 'Safety First',
     body: 'While the whole purpose of this app is to get outside your comfort zone, NEVER do anything that will be truly harmful to yourself or others. Always use common sense and prioritize safety.',
+  },
+  {
+    title: 'Pick Your Reward Messages',
+    body: 'These messages show up when you complete a challenge. Pick the ones that hit hardest — you can always change them later in Settings.',
+    type: 'rewardMessages',
   },
   {
     title: 'Create Your Username',

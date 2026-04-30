@@ -9,7 +9,6 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PointsPopup } from '../../components/common/PointsPopup';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -17,7 +16,7 @@ import { Button } from '../../components/common/Button';
 import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
-import { completeChallenge, saveReflectionAnswers, cancelChallenge, getChallengeRepeatStats, getRepeatMilestone } from '../../services/challenges';
+import { completeChallenge, saveReflectionAnswers, cancelChallenge, getChallengeRepeatStats, getRepeatMilestone, getTotalCompletionCount } from '../../services/challenges';
 import { showConfirm } from '../../utils/alert';
 import {
   calculateChallengePoints,
@@ -38,9 +37,10 @@ import { createFeedEntry, createMilestoneFeedEntry, updateFeedEntryMessage } fro
 import { getUser } from '../../services/users';
 import { getCategoryByName } from '../../services/categories';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
-import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
-import { shouldShowPointsAlert } from '../../services/alertPreferences';
+import { RewardMoment } from '../../components/reward/RewardMoment';
+import { getPersonalizedRewardMessage } from '../../services/userRewardMessages';
+import { triggerMilestoneHaptic } from '../../utils/haptics';
 
 type Props = NativeStackScreenProps<any, 'CompleteChallenge'>;
 
@@ -58,17 +58,23 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [loading, setLoading] = useState(false);
   const [resistanceExpanded, setResistanceExpanded] = useState(false);
   const [learningExpanded, setLearningExpanded] = useState(false);
-  const [showPointsPopup, setShowPointsPopup] = useState(false);
-  const [earnedPoints, setEarnedPoints] = useState(0);
-  const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
-  const [pointsAlertVisible, setPointsAlertVisible] = useState(false);
-  const [pointsAlertTitle, setPointsAlertTitle] = useState('');
-  const [pointsAlertMessage, setPointsAlertMessage] = useState('');
+  // Reward moment state
+  const [rewardVisible, setRewardVisible] = useState(false);
+  const [rewardMessage, setRewardMessage] = useState('');
+  const [narrativeLine, setNarrativeLine] = useState('');
+  const [rewardPoints, setRewardPoints] = useState(0);
+  const [rewardStreakMultiplier, setRewardStreakMultiplier] = useState(1);
+  const [rewardBuddyBonus, setRewardBuddyBonus] = useState(0);
+  const [rewardResult, setRewardResult] = useState<'completed' | 'failed'>('completed');
+  const [rewardRepeatMilestone, setRewardRepeatMilestone] = useState<number | null>(null);
+
+  // Milestone alerts (fire after reward moment)
   const [levelUpVisible, setLevelUpVisible] = useState(false);
   const [levelUpLevel, setLevelUpLevel] = useState(0);
   const [levelUpTitle, setLevelUpTitle] = useState('');
-  const [repeatMilestoneVisible, setRepeatMilestoneVisible] = useState(false);
-  const [repeatMilestoneCount, setRepeatMilestoneCount] = useState(0);
+  const [pendingLevelUp, setPendingLevelUp] = useState<{ level: number; title: string } | null>(null);
+  const [pendingStreakTier, setPendingStreakTier] = useState<{ streak: number; tierName: string; multiplier: number } | null>(null);
+
   const [feedEntryId, setFeedEntryId] = useState<string | null>(null);
   const feedEntryIdRef = useRef<string | null>(null);
   const [showMessagePrompt, setShowMessagePrompt] = useState(false);
@@ -102,13 +108,31 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     navigation.popToTop();
   }, [navigation]);
 
-  const handlePopupComplete = useCallback(() => {
-    setShowPointsPopup(false);
-    if (pendingAlert) {
-      pendingAlert();
-      setPendingAlert(null);
+  const handleRewardDismiss = useCallback(() => {
+    setRewardVisible(false);
+
+    // Fire milestone alerts in sequence after reward moment
+    if (pendingLevelUp) {
+      triggerMilestoneHaptic();
+      setLevelUpLevel(pendingLevelUp.level);
+      setLevelUpTitle(pendingLevelUp.title);
+      setLevelUpVisible(true);
+      return;
     }
-  }, [pendingAlert]);
+
+    if (pendingStreakTier) {
+      triggerMilestoneHaptic();
+      showAlert(
+        'Streak Milestone!',
+        `${pendingStreakTier.streak}-Day Streak: ${pendingStreakTier.tierName}!\n\nYou're now earning ${pendingStreakTier.multiplier}x points on all activities!`,
+        () => navigateHome()
+      );
+      setPendingStreakTier(null);
+      return;
+    }
+
+    navigateHome();
+  }, [pendingLevelUp, pendingStreakTier, navigateHome]);
 
   const handleCancel = () => {
     if (!user) return;
@@ -297,82 +321,70 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         console.warn('Failed to create milestone feed entry:', milestoneErr);
       }
 
-      // Build points message with multiplier info
+      // --- Prepare reward moment ---
       const multiplier = getStreakMultiplier(stats.currentStreak);
-      let pointsMessage = `You earned ${pointsEarned} Willpower Point${pointsEarned !== 1 ? 's' : ''}!`;
-      if (multiplier > 1) {
-        pointsMessage += `\n(${multiplier}x streak bonus applied)`;
+
+      // Fetch personalized reward message (user pool → global fallback → hardcoded)
+      let messageText = 'One more proof point.';
+      try {
+        const msg = await getPersonalizedRewardMessage(user!.uid);
+        messageText = msg.text;
+      } catch (err) {
+        console.warn('Failed to fetch reward message:', err);
       }
-      if (buddyBothComplete && buddyBonusPoints > 0) {
-        pointsMessage += `\n+${buddyBonusPoints} Buddy Bonus!`;
+
+      // Compute narrative line
+      let narrativeText = '';
+      try {
+        const totalCount = await getTotalCompletionCount(user.uid);
+        const streakDays = updateResult.newStreak;
+        if (totalCount === 1) {
+          narrativeText = 'Challenge 1. The first of many.';
+        } else if (streakDays >= 7) {
+          narrativeText = `Day ${streakDays} of doing hard things.`;
+        } else {
+          narrativeText = `Challenge ${totalCount}. Still here.`;
+        }
+      } catch (err) {
+        console.warn('Failed to compute narrative line:', err);
       }
 
-      // Show points popup animation first (include buddy bonus in display)
-      setEarnedPoints(pointsEarned + buddyBonusPoints);
-      setShowPointsPopup(true);
+      // Store pending milestones for after reward moment
+      if (updateResult.newLevelReached && updateResult.levelInfo) {
+        setPendingLevelUp({ level: updateResult.levelInfo.level, title: updateResult.levelInfo.title });
+      }
+      if (updateResult.newTierReached && updateResult.tierInfo) {
+        setPendingStreakTier({
+          streak: updateResult.newStreak,
+          tierName: updateResult.tierInfo.tierName,
+          multiplier: updateResult.tierInfo.multiplier,
+        });
+      }
 
-      // Prepare the alert to show after popup animation completes
-      const showAlerts = async () => {
-        // Show buddy-specific alerts first
-        if (challenge.is_buddy_challenge && result === 'completed') {
-          if (buddyBothComplete) {
-            showAlert(
-              'Buddy Bonus!',
-              `You and ${challenge.buddy_partner_username || 'your teammate'} both crushed it!\n\n+${buddyBonusPoints} bonus points earned!`
-            );
-          } else {
-            showAlert(
-              'Waiting for Partner',
-              `Your partner hasn't finished yet. They can see you did it!`
-            );
-          }
-        }
-
-        const alertTitle = result === 'completed' ? 'Challenge Complete' : 'Challenge Logged';
-
-        // Show repeat milestone first if applicable
-        if (repeatMilestone) {
-          setRepeatMilestoneCount(repeatMilestone);
-          setRepeatMilestoneVisible(true);
-          return; // Navigation will happen when milestone is dismissed
-        }
-
-        // Show level-up popup first if new level reached
-        if (updateResult.newLevelReached && updateResult.levelInfo) {
-          setLevelUpLevel(updateResult.levelInfo.level);
-          setLevelUpTitle(updateResult.levelInfo.title);
-          setLevelUpVisible(true);
-          return; // Navigation will happen when level-up is dismissed
-        }
-
-        if (updateResult.newTierReached && updateResult.tierInfo) {
+      // Show buddy alert first if applicable
+      if (challenge.is_buddy_challenge && result === 'completed') {
+        if (buddyBothComplete) {
           showAlert(
-            'Streak Milestone!',
-            `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`,
-            async () => {
-              const shouldShow = await shouldShowPointsAlert();
-              if (shouldShow) {
-                setPointsAlertTitle(alertTitle);
-                setPointsAlertMessage(pointsMessage);
-                setPointsAlertVisible(true);
-              } else {
-                navigateHome();
-              }
-            }
+            'Buddy Bonus!',
+            `You and ${challenge.buddy_partner_username || 'your teammate'} both crushed it!\n\n+${buddyBonusPoints} bonus points earned!`
           );
         } else {
-          const shouldShow = await shouldShowPointsAlert();
-          if (shouldShow) {
-            setPointsAlertTitle(alertTitle);
-            setPointsAlertMessage(pointsMessage);
-            setPointsAlertVisible(true);
-          } else {
-            navigateHome();
-          }
+          showAlert(
+            'Waiting for Partner',
+            `Your partner hasn't finished yet. They can see you did it!`
+          );
         }
-      };
+      }
 
-      setPendingAlert(() => showAlerts);
+      // Show unified reward moment
+      setRewardMessage(messageText);
+      setNarrativeLine(narrativeText);
+      setRewardPoints(pointsEarned + buddyBonusPoints);
+      setRewardStreakMultiplier(multiplier);
+      setRewardBuddyBonus(buddyBonusPoints);
+      setRewardResult(result);
+      setRewardRepeatMilestone(repeatMilestone);
+      setRewardVisible(true);
     } catch (e: any) {
       showAlert('Error', e.message);
     } finally {
@@ -585,19 +597,16 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         />
       )}
       </ScrollView>
-      <PointsPopup
-        points={earnedPoints}
-        visible={showPointsPopup}
-        onComplete={handlePopupComplete}
-      />
-      <PointsAlertModal
-        visible={pointsAlertVisible}
-        title={pointsAlertTitle}
-        message={pointsAlertMessage}
-        onDismiss={() => {
-          setPointsAlertVisible(false);
-          navigateHome();
-        }}
+      <RewardMoment
+        visible={rewardVisible}
+        message={rewardMessage}
+        narrativeLine={narrativeLine}
+        pointsEarned={rewardPoints}
+        streakMultiplier={rewardStreakMultiplier}
+        buddyBonusPoints={rewardBuddyBonus > 0 ? rewardBuddyBonus : undefined}
+        challengeResult={rewardResult}
+        repeatMilestone={rewardRepeatMilestone}
+        onDismiss={handleRewardDismiss}
       />
       <LevelUpPopup
         visible={levelUpVisible}
@@ -605,39 +614,19 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         title={levelUpTitle}
         onContinue={() => {
           setLevelUpVisible(false);
-          navigateHome();
+          if (pendingStreakTier) {
+            triggerMilestoneHaptic();
+            showAlert(
+              'Streak Milestone!',
+              `${pendingStreakTier.streak}-Day Streak: ${pendingStreakTier.tierName}!\n\nYou're now earning ${pendingStreakTier.multiplier}x points on all activities!`,
+              () => navigateHome()
+            );
+            setPendingStreakTier(null);
+          } else {
+            navigateHome();
+          }
         }}
       />
-
-      {/* Repeat Milestone Celebration Modal */}
-      <Modal
-        visible={repeatMilestoneVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          setRepeatMilestoneVisible(false);
-          navigateHome();
-        }}
-      >
-        <View style={styles.milestoneOverlay}>
-          <View style={styles.milestoneContent}>
-            <Text style={styles.milestoneEmoji}>🎉</Text>
-            <Text style={styles.milestoneTitle}>Challenge Complete!</Text>
-            <Text style={styles.milestoneMessage}>
-              You've now completed "{challenge.name}" {repeatMilestoneCount} times!
-            </Text>
-            <TouchableOpacity
-              style={styles.milestoneButton}
-              onPress={() => {
-                setRepeatMilestoneVisible(false);
-                navigateHome();
-              }}
-            >
-              <Text style={styles.milestoneButtonText}>Continue</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* Completion Message Prompt Modal */}
       <Modal
@@ -816,10 +805,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 320,
     alignItems: 'center',
-  },
-  milestoneEmoji: {
-    fontSize: 56,
-    marginBottom: Spacing.md,
   },
   milestoneTitle: {
     fontFamily: Fonts.primaryBold,

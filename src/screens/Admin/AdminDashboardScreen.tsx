@@ -16,6 +16,7 @@ import { Card } from '../../components/common/Card';
 import { getUserStats, getLibraryStats, getPendingCoachApplications } from '../../services/admin';
 import { getSubmissionStats, getPendingSubmissions } from '../../services/submissions';
 import { reseedPrograms } from '../../utils/seedPrograms';
+import { seedRewardMessages } from '../../utils/seedRewardMessages';
 import { ChallengeSubmission } from '../../types';
 
 export const AdminDashboardScreen: React.FC = () => {
@@ -42,6 +43,7 @@ export const AdminDashboardScreen: React.FC = () => {
   const [recentSubmissions, setRecentSubmissions] = useState<ChallengeSubmission[]>([]);
   const [pendingCoachApps, setPendingCoachApps] = useState(0);
   const [reseeding, setReseeding] = useState(false);
+  const [seedingMessages, setSeedingMessages] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -100,6 +102,19 @@ export const AdminDashboardScreen: React.FC = () => {
         },
       ]
     );
+  };
+
+  const handleSeedRewardMessages = async () => {
+    setSeedingMessages(true);
+    try {
+      const count = await seedRewardMessages();
+      Alert.alert('Success', `Seeded ${count} new reward messages.`);
+    } catch (error) {
+      console.error('Error seeding reward messages:', error);
+      Alert.alert('Error', 'Failed to seed reward messages.');
+    } finally {
+      setSeedingMessages(false);
+    }
   };
 
   if (loading) {
@@ -212,6 +227,20 @@ export const AdminDashboardScreen: React.FC = () => {
           )}
           <Text style={styles.actionText}>
             {reseeding ? 'Reseeding...' : 'Reseed Programs'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionCard, seedingMessages && { opacity: 0.6 }]}
+          onPress={handleSeedRewardMessages}
+          disabled={seedingMessages}
+        >
+          {seedingMessages ? (
+            <ActivityIndicator size={32} color={Colors.primary} />
+          ) : (
+            <Ionicons name="chatbubble-ellipses" size={32} color={Colors.primary} />
+          )}
+          <Text style={styles.actionText}>
+            {seedingMessages ? 'Seeding...' : 'Seed Messages'}
           </Text>
         </TouchableOpacity>
       </View>
