@@ -17,6 +17,7 @@ import { getUserStats, getLibraryStats, getPendingCoachApplications } from '../.
 import { getSubmissionStats, getPendingSubmissions } from '../../services/submissions';
 import { reseedPrograms } from '../../utils/seedPrograms';
 import { seedRewardMessages } from '../../utils/seedRewardMessages';
+import { seedNeuroscienceTidbits } from '../../utils/seedTidbits';
 import { ChallengeSubmission } from '../../types';
 
 export const AdminDashboardScreen: React.FC = () => {
@@ -44,6 +45,7 @@ export const AdminDashboardScreen: React.FC = () => {
   const [pendingCoachApps, setPendingCoachApps] = useState(0);
   const [reseeding, setReseeding] = useState(false);
   const [seedingMessages, setSeedingMessages] = useState(false);
+  const [seedingTidbits, setSeedingTidbits] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -114,6 +116,19 @@ export const AdminDashboardScreen: React.FC = () => {
       Alert.alert('Error', 'Failed to seed reward messages.');
     } finally {
       setSeedingMessages(false);
+    }
+  };
+
+  const handleSeedTidbits = async () => {
+    setSeedingTidbits(true);
+    try {
+      const count = await seedNeuroscienceTidbits();
+      Alert.alert('Success', `Seeded ${count} new neuroscience tidbits.`);
+    } catch (error) {
+      console.error('Error seeding tidbits:', error);
+      Alert.alert('Error', 'Failed to seed tidbits.');
+    } finally {
+      setSeedingTidbits(false);
     }
   };
 
@@ -244,6 +259,29 @@ export const AdminDashboardScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
+      <View style={[styles.actionsRow, { marginTop: Spacing.md }]}>
+        <TouchableOpacity
+          style={[styles.actionCard, seedingTidbits && { opacity: 0.6 }]}
+          onPress={handleSeedTidbits}
+          disabled={seedingTidbits}
+        >
+          {seedingTidbits ? (
+            <ActivityIndicator size={32} color={Colors.primary} />
+          ) : (
+            <Ionicons name="flash" size={32} color={Colors.primary} />
+          )}
+          <Text style={styles.actionText}>
+            {seedingTidbits ? 'Seeding...' : 'Seed Tidbits'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => navigation.navigate('AdminTidbitEdit', { mode: 'create' })}
+        >
+          <Ionicons name="flash-outline" size={32} color={Colors.primary} />
+          <Text style={styles.actionText}>Add Tidbit</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Management Links */}
       <Text style={styles.sectionTitle}>Manage</Text>
@@ -279,6 +317,16 @@ export const AdminDashboardScreen: React.FC = () => {
         <View style={styles.linkRow}>
           <Ionicons name="sparkles" size={24} color={Colors.primary} />
           <Text style={styles.linkText}>Fun Facts</Text>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+      <Card
+        style={styles.linkCard}
+        onPress={() => navigation.navigate('AdminTidbits')}
+      >
+        <View style={styles.linkRow}>
+          <Ionicons name="flash" size={24} color={Colors.primary} />
+          <Text style={styles.linkText}>Neuroscience Tidbits</Text>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
       </Card>

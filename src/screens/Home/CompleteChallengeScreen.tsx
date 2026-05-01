@@ -39,7 +39,15 @@ import { getCategoryByName } from '../../services/categories';
 import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { RewardMoment } from '../../components/reward/RewardMoment';
+import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { getPersonalizedRewardMessage } from '../../services/userRewardMessages';
+import {
+  selectTidbitForCompletion,
+  recordTidbitShown,
+  recordLearnMoreTap,
+  buildTidbitContext,
+} from '../../services/neuroscienceTidbits';
+import { NeuroscienceTidbit } from '../../types';
 import { triggerMilestoneHaptic } from '../../utils/haptics';
 
 type Props = NativeStackScreenProps<any, 'CompleteChallenge'>;
@@ -67,6 +75,9 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [rewardBuddyBonus, setRewardBuddyBonus] = useState(0);
   const [rewardResult, setRewardResult] = useState<'completed' | 'failed'>('completed');
   const [rewardRepeatMilestone, setRewardRepeatMilestone] = useState<number | null>(null);
+  const [rewardTidbit, setRewardTidbit] = useState<NeuroscienceTidbit | null>(null);
+  const [learnMoreVisible, setLearnMoreVisible] = useState(false);
+  const [learnMoreTidbit, setLearnMoreTidbit] = useState<NeuroscienceTidbit | null>(null);
 
   // Milestone alerts (fire after reward moment)
   const [levelUpVisible, setLevelUpVisible] = useState(false);
@@ -335,8 +346,9 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
       // Compute narrative line
       let narrativeText = '';
+      let totalCount = 0;
       try {
-        const totalCount = await getTotalCompletionCount(user.uid);
+        totalCount = await getTotalCompletionCount(user.uid);
         const streakDays = updateResult.newStreak;
         if (totalCount === 1) {
           narrativeText = 'Challenge 1. The first of many.';
@@ -348,6 +360,27 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       } catch (err) {
         console.warn('Failed to compute narrative line:', err);
       }
+
+      // Fetch neuroscience tidbit (success only)
+      let tidbit: NeuroscienceTidbit | null = null;
+      if (result === 'completed') {
+        try {
+          const tidbitContext = buildTidbitContext(challenge, {
+            totalCount,
+            streakDays: updateResult.newStreak,
+            difficulty,
+            repeatMilestone,
+            previousStreak: stats.currentStreak,
+          });
+          tidbit = await selectTidbitForCompletion(user.uid, tidbitContext);
+          if (tidbit) {
+            await recordTidbitShown(user.uid, tidbit.id);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch neuroscience tidbit:', err);
+        }
+      }
+      setRewardTidbit(tidbit);
 
       // Store pending milestones for after reward moment
       if (updateResult.newLevelReached && updateResult.levelInfo) {
@@ -606,8 +639,21 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         buddyBonusPoints={rewardBuddyBonus > 0 ? rewardBuddyBonus : undefined}
         challengeResult={rewardResult}
         repeatMilestone={rewardRepeatMilestone}
+        tidbit={rewardResult === 'completed' ? rewardTidbit : null}
+        onLearnMore={(t) => {
+          setLearnMoreTidbit(t);
+          setLearnMoreVisible(true);
+          recordLearnMoreTap(user!.uid, t.id).catch(console.warn);
+        }}
         onDismiss={handleRewardDismiss}
       />
+      {learnMoreTidbit && (
+        <TidbitLearnMore
+          visible={learnMoreVisible}
+          tidbit={learnMoreTidbit}
+          onClose={() => setLearnMoreVisible(false)}
+        />
+      )}
       <LevelUpPopup
         visible={levelUpVisible}
         level={levelUpLevel}

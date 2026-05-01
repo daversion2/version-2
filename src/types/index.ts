@@ -544,6 +544,29 @@ export interface FunFact {
   created_at: string;
 }
 
+// --- Neuroscience Tidbits ---
+
+export type TidbitContextType = 'challenge_type' | 'category' | 'state' | 'generic';
+
+export interface NeuroscienceTidbit {
+  id: string;
+  text: string;                    // 2-3 sentences, ~8s read
+  extended_text: string;           // 2-3 paragraphs for "learn more"
+  context_type: TidbitContextType;
+  context_value: string;           // e.g. 'workout', 'physical', 'comeback', 'generic'
+  active: boolean;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ShownTidbit {
+  id: string;
+  tidbit_id: string;
+  shown_at: string;
+  tapped_learn_more: boolean;
+}
+
 // ============================================================================
 // PROGRAMS
 // ============================================================================

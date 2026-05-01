@@ -7,7 +7,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
-import { resetOnboarding, getUser } from '../../services/users';
+import { resetOnboarding, getUser, clearUserAccount } from '../../services/users';
 import { registerForPushNotifications } from '../../services/notifications';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
@@ -19,6 +19,7 @@ export const SettingsScreen: React.FC = () => {
   const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough, restartWalkthrough } = useWalkthrough();
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
   const [username, setUsername] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -58,6 +59,28 @@ export const SettingsScreen: React.FC = () => {
       console.error('Error enabling notifications:', error);
       showAlert('Error', `Failed to enable notifications: ${error}`);
     }
+  };
+
+  const handleClearAccount = () => {
+    showConfirm(
+      'Clear Account',
+      'This will delete ALL your data (challenges, habits, streaks, points, reflections, etc.) and restart from scratch. Your login stays the same. This cannot be undone.',
+      async () => {
+        if (!user) return;
+        setClearing(true);
+        try {
+          const result = await clearUserAccount(user.uid);
+          await refreshProfile();
+          showAlert('Account Cleared', `Deleted ${result.deletedDocs} documents. You'll see onboarding again on next launch.`);
+        } catch (error) {
+          console.error('Error clearing account:', error);
+          showAlert('Error', 'Failed to clear account. Try again.');
+        } finally {
+          setClearing(false);
+        }
+      },
+      'Clear Everything'
+    );
   };
 
   const handleLogout = () => {
@@ -211,6 +234,16 @@ export const SettingsScreen: React.FC = () => {
           style={{ marginTop: Spacing.md }}
         />
       </Card>
+
+      {/* Clear Account (dev tool) */}
+      <Button
+        title={clearing ? 'Clearing...' : 'Clear Account'}
+        onPress={handleClearAccount}
+        variant="outline"
+        disabled={clearing}
+        loading={clearing}
+        style={{ marginTop: Spacing.lg }}
+      />
 
       {/* Sign Out */}
       <Button

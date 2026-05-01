@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, deleteField } from 'firebase/firestore';
 import { db } from './firebase';
 import { User } from '../types';
 
@@ -141,4 +141,74 @@ export const updateUsername = async (
     },
     { merge: true }
   );
+};
+
+// ============================================================================
+// CLEAR ACCOUNT (dev/testing tool)
+// ============================================================================
+
+const USER_SUBCOLLECTIONS = [
+  'habits',
+  'challenges',
+  'completionLogs',
+  'categories',
+  'reflections',
+  'goals',
+  'microGoals',
+  'programEnrollments',
+  'programBadges',
+  'rewardMessages',
+  'challengeStats',
+];
+
+const deleteSubcollection = async (userId: string, subcollectionName: string): Promise<number> => {
+  const ref = collection(db, 'users', userId, subcollectionName);
+  const snap = await getDocs(query(ref));
+  let count = 0;
+  for (const d of snap.docs) {
+    await deleteDoc(d.ref);
+    count++;
+  }
+  return count;
+};
+
+/**
+ * Clear all user data and reset to fresh state (preserves auth + email + admin/coach status).
+ * Deletes all subcollections and resets user doc fields.
+ * After this, the user will see onboarding again.
+ */
+export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: number }> => {
+  let totalDeleted = 0;
+
+  // Delete all subcollections
+  for (const sub of USER_SUBCOLLECTIONS) {
+    const count = await deleteSubcollection(userId, sub);
+    totalDeleted += count;
+  }
+
+  // Reset user document fields (preserve email, created_at, is_admin, is_coach, coach_profile)
+  await setDoc(
+    doc(db, 'users', userId),
+    {
+      username: deleteField(),
+      username_lowercase: deleteField(),
+      has_completed_onboarding: false,
+      has_completed_walkthrough: false,
+      totalWillpowerPoints: 0,
+      currentStreak: 0,
+      lastActivityDate: deleteField(),
+      team_id: deleteField(),
+      inspiration_feed_opt_in: true,
+      submission_ban_until: deleteField(),
+      active_program_id: deleteField(),
+      last_reflection_date: deleteField(),
+      reflection_streak: 0,
+      home_layout: deleteField(),
+      expoPushToken: deleteField(),
+      timezone: deleteField(),
+    },
+    { merge: true }
+  );
+
+  return { deletedDocs: totalDeleted };
 };
