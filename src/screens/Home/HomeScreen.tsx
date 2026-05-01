@@ -45,7 +45,9 @@ import { getActiveGoals } from '../../services/goals';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
-import { HomeData, HomeCallbacks, HomeRefs } from './sections/types';
+import { HomeData, HomeCallbacks, HomeRefs, WillpowerStatsData } from './sections/types';
+import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/homeLayout';
+import { ZoneHeader } from '../../components/home/ZoneHeader';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -93,6 +95,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -112,7 +115,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, todaysMG, activeGoals] = await Promise.all([
+      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, todaysMG, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
@@ -124,6 +127,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         getActiveEnrollment(user.uid),
         getTodaysMicroGoals(user.uid),
         getActiveGoals(user.uid),
+        getWillpowerStats(user.uid),
       ]);
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
@@ -136,6 +140,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setTeam(userTeam);
       setFunFact(todaysFact);
       setActiveProgram(enrollment);
+      setWillpowerStats(wpStats);
 
       // Load program day content and check for missed days
       if (enrollment) {
@@ -403,6 +408,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     [userProfile?.home_layout]
   );
 
+  const zonedLayout = useMemo(() => {
+    const visibleItems = layout.filter(item => item.visible);
+    return ZONE_CONFIG.map(zone => {
+      const zoneItems = visibleItems.filter(
+        item => SECTION_TO_ZONE[item.id as HomeSectionId] === zone.id
+      );
+      return { zone, items: zoneItems };
+    }).filter(group => group.items.length > 0);
+  }, [layout]);
+
   const homeData: HomeData = {
     activeChallenges,
     extendedChallenges,
@@ -424,12 +439,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     showReflectionBanner,
     reflectedToday,
     todaysGrade,
+    willpowerStats,
   };
 
   const homeCallbacks: HomeCallbacks = {
     onNavigate: (screen: string, params?: any) => {
       if (screen === '__funFactModal') {
         setFunFactModalVisible(true);
+        return;
+      }
+      if (screen === '__progressTab') {
+        navigation.getParent()?.navigate('Progress');
         return;
       }
       navigation.navigate(screen as any, params);
@@ -458,20 +478,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
       >
-        {layout
-          .filter(item => item.visible)
-          .map(item => {
-            const Section = SECTION_REGISTRY[item.id];
-            if (!Section) return null;
-            return (
-              <Section
-                key={item.id}
-                data={homeData}
-                callbacks={homeCallbacks}
-                refs={homeRefs}
-              />
-            );
-          })}
+        {zonedLayout.map((group) => (
+          <React.Fragment key={group.zone.id}>
+            {group.zone.id !== 'welcome_status' && (
+              <ZoneHeader label={group.zone.label} icon={group.zone.icon} />
+            )}
+            {group.items.map(item => {
+              const Section = SECTION_REGISTRY[item.id];
+              if (!Section) return null;
+              return (
+                <Section
+                  key={item.id}
+                  data={homeData}
+                  callbacks={homeCallbacks}
+                  refs={homeRefs}
+                />
+              );
+            })}
+          </React.Fragment>
+        ))}
 
       <HabitCompletionModal
         visible={!!completingHabit}

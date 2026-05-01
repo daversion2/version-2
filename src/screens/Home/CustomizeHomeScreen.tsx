@@ -5,7 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useAuth } from '../../context/AuthContext';
 import { HomeLayoutItem } from '../../types';
 import { resolveLayout, saveHomeLayout } from '../../services/homeLayout';
-import { DEFAULT_HOME_LAYOUT, SECTION_LABELS, SECTION_ICONS, HomeSectionId } from '../../constants/homeLayout';
+import { DEFAULT_HOME_LAYOUT, SECTION_LABELS, SECTION_ICONS, ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/homeLayout';
 
 export const CustomizeHomeScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
@@ -16,6 +16,15 @@ export const CustomizeHomeScreen: React.FC = () => {
   );
   const [layout, setLayout] = useState<HomeLayoutItem[]>(initialLayout);
   const [saving, setSaving] = useState(false);
+
+  const zonedLayout = useMemo(() => {
+    return ZONE_CONFIG.map(zone => ({
+      zone,
+      items: layout.filter(item =>
+        SECTION_TO_ZONE[item.id as HomeSectionId] === zone.id
+      ),
+    }));
+  }, [layout]);
 
   const persist = async (newLayout: HomeLayoutItem[]) => {
     if (!user || saving) return;
@@ -33,23 +42,47 @@ export const CustomizeHomeScreen: React.FC = () => {
     }
   };
 
-  const toggleVisibility = (index: number) => {
+  const toggleVisibility = (globalIndex: number) => {
     const next = [...layout];
-    next[index] = { ...next[index], visible: !next[index].visible };
+    next[globalIndex] = { ...next[globalIndex], visible: !next[globalIndex].visible };
     persist(next);
   };
 
-  const moveUp = (index: number) => {
-    if (index <= 0) return;
+  const moveUp = (globalIndex: number) => {
+    const item = layout[globalIndex];
+    const zoneId = SECTION_TO_ZONE[item.id as HomeSectionId];
+
+    // Find the previous item in the same zone
+    let prevIndex = -1;
+    for (let i = globalIndex - 1; i >= 0; i--) {
+      if (SECTION_TO_ZONE[layout[i].id as HomeSectionId] === zoneId) {
+        prevIndex = i;
+        break;
+      }
+    }
+    if (prevIndex === -1) return;
+
     const next = [...layout];
-    [next[index - 1], next[index]] = [next[index], next[index - 1]];
+    [next[prevIndex], next[globalIndex]] = [next[globalIndex], next[prevIndex]];
     persist(next);
   };
 
-  const moveDown = (index: number) => {
-    if (index >= layout.length - 1) return;
+  const moveDown = (globalIndex: number) => {
+    const item = layout[globalIndex];
+    const zoneId = SECTION_TO_ZONE[item.id as HomeSectionId];
+
+    // Find the next item in the same zone
+    let nextIndex = -1;
+    for (let i = globalIndex + 1; i < layout.length; i++) {
+      if (SECTION_TO_ZONE[layout[i].id as HomeSectionId] === zoneId) {
+        nextIndex = i;
+        break;
+      }
+    }
+    if (nextIndex === -1) return;
+
     const next = [...layout];
-    [next[index], next[index + 1]] = [next[index + 1], next[index]];
+    [next[globalIndex], next[nextIndex]] = [next[nextIndex], next[globalIndex]];
     persist(next);
   };
 
@@ -60,71 +93,82 @@ export const CustomizeHomeScreen: React.FC = () => {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
       <Text style={styles.subtitle}>
-        Choose which sections appear on your Home screen and arrange them in the order you prefer.
+        Toggle sections on or off and reorder them within each zone.
       </Text>
 
-      {layout.map((item, index) => {
-        const id = item.id as HomeSectionId;
-        const label = SECTION_LABELS[id] || item.id;
-        const iconName = SECTION_ICONS[id] || 'square-outline';
-        const isFirst = index === 0;
-        const isLast = index === layout.length - 1;
-
-        return (
-          <View key={item.id} style={styles.row}>
-            {/* Reorder arrows */}
-            <View style={styles.arrowColumn}>
-              <TouchableOpacity
-                onPress={() => moveUp(index)}
-                disabled={isFirst || saving}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons
-                  name="chevron-up"
-                  size={22}
-                  color={isFirst ? Colors.lightGray : Colors.primary}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => moveDown(index)}
-                disabled={isLast || saving}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons
-                  name="chevron-down"
-                  size={22}
-                  color={isLast ? Colors.lightGray : Colors.primary}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Section info */}
-            <View style={styles.sectionInfo}>
-              <Ionicons
-                name={iconName as any}
-                size={20}
-                color={item.visible ? Colors.dark : Colors.gray}
-              />
-              <Text style={[styles.sectionLabel, !item.visible && styles.sectionLabelHidden]}>
-                {label}
-              </Text>
-            </View>
-
-            {/* Visibility toggle */}
-            <TouchableOpacity
-              onPress={() => toggleVisibility(index)}
-              disabled={saving}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name={item.visible ? 'eye' : 'eye-off'}
-                size={22}
-                color={item.visible ? Colors.primary : Colors.gray}
-              />
-            </TouchableOpacity>
+      {zonedLayout.map(({ zone, items }) => (
+        <View key={zone.id}>
+          {/* Zone header */}
+          <View style={styles.zoneHeader}>
+            <Ionicons name={zone.icon as any} size={18} color={Colors.primary} />
+            <Text style={styles.zoneLabel}>{zone.label}</Text>
           </View>
-        );
-      })}
+
+          {items.map((item, zoneIndex) => {
+            const globalIndex = layout.findIndex(l => l.id === item.id);
+            const id = item.id as HomeSectionId;
+            const label = SECTION_LABELS[id] || item.id;
+            const iconName = SECTION_ICONS[id] || 'square-outline';
+            const isFirstInZone = zoneIndex === 0;
+            const isLastInZone = zoneIndex === items.length - 1;
+
+            return (
+              <View key={item.id} style={styles.row}>
+                {/* Reorder arrows */}
+                <View style={styles.arrowColumn}>
+                  <TouchableOpacity
+                    onPress={() => moveUp(globalIndex)}
+                    disabled={isFirstInZone || saving}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name="chevron-up"
+                      size={22}
+                      color={isFirstInZone ? Colors.lightGray : Colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => moveDown(globalIndex)}
+                    disabled={isLastInZone || saving}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name="chevron-down"
+                      size={22}
+                      color={isLastInZone ? Colors.lightGray : Colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Section info */}
+                <View style={styles.sectionInfo}>
+                  <Ionicons
+                    name={iconName as any}
+                    size={20}
+                    color={item.visible ? Colors.dark : Colors.gray}
+                  />
+                  <Text style={[styles.sectionLabel, !item.visible && styles.sectionLabelHidden]}>
+                    {label}
+                  </Text>
+                </View>
+
+                {/* Visibility toggle */}
+                <TouchableOpacity
+                  onPress={() => toggleVisibility(globalIndex)}
+                  disabled={saving}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={item.visible ? 'eye' : 'eye-off'}
+                    size={22}
+                    color={item.visible ? Colors.primary : Colors.gray}
+                  />
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
+      ))}
 
       <TouchableOpacity
         style={styles.resetButton}
@@ -153,6 +197,19 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginBottom: Spacing.lg,
     lineHeight: 20,
+  },
+  zoneHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
+  zoneLabel: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.primary,
   },
   row: {
     flexDirection: 'row',

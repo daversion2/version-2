@@ -11,19 +11,21 @@ import { SprintsSection } from './SprintsSection';
 import { ExtendedChallengesSection } from './ExtendedChallengesSection';
 import { HabitsSection } from './HabitsSection';
 import { GoalsSection } from './GoalsSection';
+import { WillpowerSummarySection } from './WillpowerSummarySection';
 
 export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   greeting: GreetingSection,
-  fun_fact: FunFactSection,
-  reflection_banner: ReflectionBannerSection,
-  team_activity: TeamActivitySection,
-  buddy_invites: BuddyInvitesSection,
-  programs: ProgramSection,
   goals: GoalsSection,
+  willpower_summary: WillpowerSummarySection,
   daily_challenges: DailyChallengesSection,
   sprints: SprintsSection,
-  extended_challenges: ExtendedChallengesSection,
   habits: HabitsSection,
+  programs: ProgramSection,
+  extended_challenges: ExtendedChallengesSection,
+  buddy_invites: BuddyInvitesSection,
+  team_activity: TeamActivitySection,
+  reflection_banner: ReflectionBannerSection,
+  fun_fact: FunFactSection,
 };
 
 export { HomeSectionProps } from './types';

@@ -16,6 +16,16 @@ import {
   Goal,
 } from '../../../types';
 
+export interface WillpowerStatsData {
+  totalPoints: number;
+  currentStreak: number;
+  multiplier: number;
+  level: number;
+  title: string;
+  progressToNextLevel: number;
+  pointsToNextLevel: number | null;
+}
+
 export interface HomeData {
   activeChallenges: Challenge[];
   extendedChallenges: Challenge[];
@@ -37,6 +47,7 @@ export interface HomeData {
   showReflectionBanner: boolean;
   reflectedToday: boolean;
   todaysGrade: ReflectionGrade | undefined;
+  willpowerStats: WillpowerStatsData | null;
 }
 
 export interface HomeCallbacks {

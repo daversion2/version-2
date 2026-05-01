@@ -1,12 +1,13 @@
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { HomeLayoutItem } from '../types';
-import { DEFAULT_HOME_LAYOUT, SECTION_IDS } from '../constants/homeLayout';
+import { DEFAULT_HOME_LAYOUT, SECTION_IDS, ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../constants/homeLayout';
 
 /**
- * Merges a saved layout with the known section set.
- * - Preserves saved order and visibility
- * - Appends any new sections not in saved (visible by default)
+ * Merges a saved layout with the known section set, grouped by zone.
+ * - Groups sections into their assigned zones
+ * - Preserves within-zone order and visibility from saved layout
+ * - Inserts new sections at their default position within the zone
  * - Drops saved IDs no longer in the known set
  */
 export const resolveLayout = (saved: HomeLayoutItem[] | undefined): HomeLayoutItem[] => {
@@ -15,20 +16,38 @@ export const resolveLayout = (saved: HomeLayoutItem[] | undefined): HomeLayoutIt
   const knownIds = new Set<string>(SECTION_IDS);
   const seenIds = new Set<string>();
 
-  // Keep saved items that are still known
-  const resolved: HomeLayoutItem[] = [];
+  // Build a map of saved items (preserving visibility)
+  const savedMap = new Map<string, HomeLayoutItem>();
   for (const item of saved) {
     if (knownIds.has(item.id) && !seenIds.has(item.id)) {
-      resolved.push({ id: item.id, visible: item.visible });
+      savedMap.set(item.id, { id: item.id, visible: item.visible });
       seenIds.add(item.id);
     }
   }
 
-  // Append any new sections not in saved layout
-  for (const id of SECTION_IDS) {
-    if (!seenIds.has(id)) {
-      resolved.push({ id, visible: true });
+  // Build resolved layout zone by zone
+  const resolved: HomeLayoutItem[] = [];
+
+  for (const zone of ZONE_CONFIG) {
+    // Get saved items that belong to this zone, in their saved order
+    const savedZoneItems: HomeLayoutItem[] = [];
+    for (const item of saved) {
+      if (
+        zone.sectionIds.includes(item.id as HomeSectionId) &&
+        savedMap.has(item.id)
+      ) {
+        savedZoneItems.push(savedMap.get(item.id)!);
+      }
     }
+
+    // Append any new sections for this zone not in saved
+    for (const sectionId of zone.sectionIds) {
+      if (!seenIds.has(sectionId)) {
+        savedZoneItems.push({ id: sectionId, visible: true });
+      }
+    }
+
+    resolved.push(...savedZoneItems);
   }
 
   return resolved;
