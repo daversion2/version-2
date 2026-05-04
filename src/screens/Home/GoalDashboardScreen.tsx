@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,18 +16,18 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
-import { ProgressBar } from '../../components/challenge/ProgressBar';
 import { useAuth } from '../../context/AuthContext';
 import {
   getGoalById,
-  updateGoal,
   completeGoal,
   markGoalNotCompleted,
   extendGoal,
   isGoalExpired,
   getItemsForGoal,
+  computeGoalFollowThrough,
 } from '../../services/goals';
-import { Goal, Challenge, Nudge, MicroGoal, ProgramEnrollment } from '../../types';
+import { getCompletionLogs } from '../../services/progress';
+import { Goal, GoalFollowThrough, Challenge, Nudge, MicroGoal, ProgramEnrollment } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'GoalDashboard'>;
 
@@ -48,6 +48,23 @@ const getDaysRemaining = (endDate: string): number => {
 const toYYYYMMDD = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+// Build a set of dates (YYYY-MM-DD) that had activity for this goal's items
+const getActivityDates = async (
+  userId: string,
+  itemIds: Set<string>,
+  startDate: string,
+  endDate: string
+): Promise<Set<string>> => {
+  const logs = await getCompletionLogs(userId, startDate, endDate);
+  const dates = new Set<string>();
+  for (const log of logs) {
+    if (itemIds.has(log.reference_id)) {
+      dates.add(log.date);
+    }
+  }
+  return dates;
+};
+
 export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const goalId = route.params?.goalId as string;
@@ -58,7 +75,8 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [microGoals, setMicroGoals] = useState<MicroGoal[]>([]);
   const [programEnrollments, setProgramEnrollments] = useState<ProgramEnrollment[]>([]);
-  const [progress, setProgress] = useState(0);
+  const [followThrough, setFollowThrough] = useState<GoalFollowThrough | null>(null);
+  const [activityDates, setActivityDates] = useState<Set<string>>(new Set());
   const [showExtendPicker, setShowExtendPicker] = useState(false);
   const [extendDate, setExtendDate] = useState(new Date());
 
@@ -66,19 +84,41 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!user || !goalId) return;
     setLoading(true);
     try {
-      const [goalData, items] = await Promise.all([
+      const [goalData, items, ft] = await Promise.all([
         getGoalById(user.uid, goalId),
         getItemsForGoal(user.uid, goalId),
+        computeGoalFollowThrough(user.uid, goalId),
       ]);
       if (goalData) {
         setGoal(goalData);
-        setProgress(goalData.manual_progress);
         navigation.setOptions({ title: goalData.name });
       }
       setChallenges(items.challenges);
       setHabits(items.habits);
       setMicroGoals(items.microGoals);
       setProgramEnrollments(items.programEnrollments);
+      setFollowThrough(ft);
+
+      // Build item IDs for calendar query
+      const itemIds = new Set<string>([
+        ...items.challenges.map(c => c.id),
+        ...items.habits.map(h => h.id),
+        ...items.microGoals.map(mg => mg.id),
+        ...items.programEnrollments.map(pe => pe.id),
+      ]);
+
+      if (itemIds.size > 0) {
+        const now = new Date();
+        const fourWeeksAgo = new Date(now);
+        fourWeeksAgo.setDate(now.getDate() - 27);
+        const dates = await getActivityDates(
+          user.uid,
+          itemIds,
+          toYYYYMMDD(fourWeeksAgo),
+          toYYYYMMDD(now)
+        );
+        setActivityDates(dates);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -89,17 +129,6 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const totalTaggedItems = challenges.length + habits.length + microGoals.length + programEnrollments.length;
-
-  const handleProgressSave = async (value: number) => {
-    if (!user || !goal) return;
-    const rounded = Math.round(value);
-    setProgress(rounded);
-    try {
-      await updateGoal(user.uid, goal.id, { manual_progress: rounded });
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleComplete = () => {
     Alert.alert(
@@ -177,6 +206,27 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const expired = isGoalExpired(goal);
   const daysRemaining = getDaysRemaining(goal.end_date);
   const isActive = goal.status === 'active';
+  const ftPct = followThrough ? Math.round(followThrough.followThroughRate * 100) : 0;
+
+  // Compute per-item breakdown
+  const challengesCompleted = challenges.filter(c => c.status === 'completed').length;
+  const challengesTotal = challenges.length;
+  const habitsWeekKept = followThrough?.currentWeekKept ?? 0;
+  const habitsWeekTarget = followThrough?.currentWeekCommitments ?? 0;
+
+  // Build last 28 days for calendar
+  const calendarDays: { date: string; label: string; active: boolean }[] = [];
+  const now = new Date();
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const dateStr = toYYYYMMDD(d);
+    calendarDays.push({
+      date: dateStr,
+      label: String(d.getDate()),
+      active: activityDates.has(dateStr),
+    });
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -194,10 +244,89 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       )}
 
+      {/* Identity statement */}
+      {goal.identity_statement && (
+        <Card style={styles.identityCard}>
+          <Text style={styles.identityQuote}>
+            {`"${goal.identity_statement}"`}
+          </Text>
+          <Text style={styles.identityLabel}>Who you're becoming</Text>
+        </Card>
+      )}
+
       {/* Description */}
       {goal.description ? (
         <Text style={styles.description}>{goal.description}</Text>
       ) : null}
+
+      {/* Follow-through rate — replaces manual progress */}
+      <Card style={styles.followThroughCard}>
+        <Text style={styles.followThroughPct}>
+          {ftPct}%
+        </Text>
+        <Text style={styles.followThroughLabel}>Follow-Through Rate</Text>
+        {followThrough && followThrough.totalCommitments > 0 && (
+          <Text style={styles.followThroughDetail}>
+            {followThrough.keptCommitments}/{followThrough.totalCommitments} commitments kept
+          </Text>
+        )}
+
+        {/* Per-item breakdown */}
+        <View style={styles.breakdownContainer}>
+          {challengesTotal > 0 && (
+            <View style={styles.breakdownRow}>
+              <Ionicons name="flash-outline" size={16} color={Colors.secondary} />
+              <Text style={styles.breakdownText}>
+                Challenges: {challengesCompleted}/{challengesTotal} completed
+              </Text>
+            </View>
+          )}
+          {habits.length > 0 && (
+            <View style={styles.breakdownRow}>
+              <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
+              <Text style={styles.breakdownText}>
+                Habits this week: {habitsWeekKept}/{habitsWeekTarget}
+              </Text>
+            </View>
+          )}
+          {programEnrollments.length > 0 && (
+            <View style={styles.breakdownRow}>
+              <Ionicons name="rocket-outline" size={16} color={Colors.primary} />
+              <Text style={styles.breakdownText}>
+                Programs: {programEnrollments.length} enrolled
+              </Text>
+            </View>
+          )}
+        </View>
+      </Card>
+
+      {/* Commitment calendar */}
+      <Card>
+        <Text style={styles.calendarTitle}>Last 28 Days</Text>
+        <View style={styles.calendarGrid}>
+          {calendarDays.map((day) => (
+            <View
+              key={day.date}
+              style={[
+                styles.calendarDay,
+                day.active && styles.calendarDayActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.calendarDayText,
+                  day.active && styles.calendarDayTextActive,
+                ]}
+              >
+                {day.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.calendarFooter}>
+          {activityDates.size} active day{activityDates.size !== 1 ? 's' : ''}
+        </Text>
+      </Card>
 
       {/* Timeline */}
       <Card style={styles.timelineCard}>
@@ -221,28 +350,43 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </Card>
 
-      {/* Progress */}
-      <Card>
-        <Text style={styles.sectionTitle}>Progress</Text>
-        <ProgressBar progress={progress / 100} label="Manual Progress" />
-        {isActive && (
-          <View style={styles.sliderRow}>
-            <TouchableOpacity onPress={() => handleProgressSave(Math.max(0, progress - 10))}>
-              <Ionicons name="remove-circle-outline" size={28} color={Colors.primary} />
-            </TouchableOpacity>
-            <Text style={styles.progressValue}>{progress}%</Text>
-            <TouchableOpacity onPress={() => handleProgressSave(Math.min(100, progress + 10))}>
-              <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
-            </TouchableOpacity>
+      {/* CBT Data Cards */}
+      {goal.deeper_why && (
+        <Card style={styles.cbtCard}>
+          <View style={styles.cbtHeader}>
+            <Ionicons name="heart-outline" size={18} color={Colors.primary} />
+            <Text style={styles.cbtTitle}>Your Deeper Why</Text>
           </View>
-        )}
-        <View style={styles.activityCount}>
-          <Ionicons name="layers-outline" size={18} color={Colors.gray} />
-          <Text style={styles.activityCountText}>
-            {totalTaggedItems} tagged {totalTaggedItems === 1 ? 'item' : 'items'}
+          <Text style={styles.cbtContent}>{goal.deeper_why}</Text>
+        </Card>
+      )}
+
+      {goal.inner_voice_challenge && goal.inner_voice_response && (
+        <Card style={styles.cbtCard}>
+          <View style={styles.cbtHeader}>
+            <Ionicons name="chatbubbles-outline" size={18} color={Colors.secondary} />
+            <Text style={styles.cbtTitle}>Inner Voice</Text>
+          </View>
+          <Text style={styles.cbtChallenge}>
+            {`"${goal.inner_voice_challenge}"`}
           </Text>
-        </View>
-      </Card>
+          <Text style={styles.cbtResponse}>
+            Your response: {`"${goal.inner_voice_response}"`}
+          </Text>
+        </Card>
+      )}
+
+      {goal.confidence_baseline != null && (
+        <Card style={styles.cbtCard}>
+          <View style={styles.cbtHeader}>
+            <Ionicons name="trending-up-outline" size={18} color={Colors.primary} />
+            <Text style={styles.cbtTitle}>Confidence Baseline</Text>
+          </View>
+          <Text style={styles.cbtContent}>
+            You started at {goal.confidence_baseline}/10. Look at your follow-through now.
+          </Text>
+        </Card>
+      )}
 
       {/* Tagged Challenges */}
       {challenges.length > 0 && (
@@ -443,13 +587,109 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.sm,
   },
+  identityCard: {
+    backgroundColor: Colors.primary + '10',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+    marginBottom: Spacing.md,
+  },
+  identityQuote: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    fontStyle: 'italic',
+    lineHeight: 24,
+  },
+  identityLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    marginTop: Spacing.xs,
+  },
   description: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.gray,
     marginBottom: Spacing.md,
   },
+  followThroughCard: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  followThroughPct: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: 48,
+    color: Colors.primary,
+  },
+  followThroughLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.xs,
+  },
+  followThroughDetail: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  breakdownContainer: {
+    width: '100%',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGray,
+    gap: Spacing.sm,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  breakdownText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  calendarTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  calendarDay: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.lightGray,
+  },
+  calendarDayActive: {
+    backgroundColor: Colors.primary,
+  },
+  calendarDayText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  calendarDayTextActive: {
+    color: Colors.white,
+    fontFamily: Fonts.secondaryBold,
+  },
+  calendarFooter: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
   timelineCard: {
+    marginTop: Spacing.md,
     marginBottom: Spacing.md,
   },
   timelineRow: {
@@ -479,40 +719,44 @@ const styles = StyleSheet.create({
   expiredText: {
     color: Colors.secondary,
   },
+  cbtCard: {
+    marginBottom: Spacing.sm,
+  },
+  cbtHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  cbtTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+  },
+  cbtContent: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 22,
+  },
+  cbtChallenge: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
+    fontStyle: 'italic',
+    marginBottom: Spacing.xs,
+  },
+  cbtResponse: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
   sectionTitle: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.lg,
     color: Colors.dark,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
-  },
-  sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  progressValue: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.primary,
-    minWidth: 50,
-    textAlign: 'center',
-  },
-  activityCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightGray,
-  },
-  activityCountText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
   },
   itemCard: {
     marginBottom: Spacing.sm,

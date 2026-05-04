@@ -9,7 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal } from '../../types';
+import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal, GoalFollowThrough } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
@@ -41,7 +41,8 @@ import { FunFact } from '../../types';
 import { CleanSweepPopup } from '../../components/home/CleanSweepPopup';
 import { getTodaysMicroGoals, createMicroGoal, completeMicroGoal, deleteMicroGoal } from '../../services/microGoals';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
-import { getActiveGoals } from '../../services/goals';
+import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
+import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -96,6 +97,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
+  const [goalFollowThrough, setGoalFollowThrough] = useState<Record<string, GoalFollowThrough>>({});
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -115,6 +117,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
+      // Run lazy goals migration before loading data
+      const didMigrate = await runGoalsMigration(user.uid);
+      if (didMigrate) {
+        showAlert(
+          'Goals Update',
+          'Your existing challenges, habits, and programs have been organized under a "General" goal. You can reassign them to specific goals anytime.'
+        );
+      }
+
       const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, todaysMG, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
@@ -141,6 +152,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setFunFact(todaysFact);
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
+
+      // Compute follow-through for each goal
+      if (activeGoals.length > 0) {
+        try {
+          const ftEntries = await Promise.all(
+            activeGoals.map(async (g) => {
+              const ft = await computeGoalFollowThrough(user.uid, g.id);
+              return [g.id, ft] as const;
+            })
+          );
+          setGoalFollowThrough(Object.fromEntries(ftEntries));
+        } catch (err) {
+          console.warn('Follow-through computation failed:', err);
+        }
+      }
 
       // Load program day content and check for missed days
       if (enrollment) {
@@ -440,6 +466,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     reflectedToday,
     todaysGrade,
     willpowerStats,
+    goalFollowThrough,
   };
 
   const homeCallbacks: HomeCallbacks = {
@@ -460,6 +487,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     onMicroGoalAdd: handleMicroGoalAdd,
     onMicroGoalPressMore: () => navigation.navigate('CreateMicroGoal' as any),
     getCatColor,
+    onGoalTap: (goalId: string) => navigation.navigate('GoalDashboard' as any, { goalId }),
   };
 
   const homeRefs: HomeRefs = {
@@ -480,7 +508,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       >
         {zonedLayout.map((group) => (
           <React.Fragment key={group.zone.id}>
-            {group.zone.id !== 'welcome_status' && (
+            {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
               <ZoneHeader label={group.zone.label} icon={group.zone.icon} />
             )}
             {group.items.map(item => {

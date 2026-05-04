@@ -14,6 +14,7 @@ import {
   FunFact,
   ReflectionGrade,
   Goal,
+  GoalFollowThrough,
 } from '../../../types';
 
 export interface WillpowerStatsData {
@@ -48,6 +49,7 @@ export interface HomeData {
   reflectedToday: boolean;
   todaysGrade: ReflectionGrade | undefined;
   willpowerStats: WillpowerStatsData | null;
+  goalFollowThrough: Record<string, GoalFollowThrough>;
 }
 
 export interface HomeCallbacks {
@@ -58,6 +60,7 @@ export interface HomeCallbacks {
   onMicroGoalAdd: (description: string, deadline: string) => Promise<void>;
   onMicroGoalPressMore: () => void;
   getCatColor: (catName: string) => string;
+  onGoalTap?: (goalId: string) => void;
 }
 
 export interface HomeRefs {

@@ -9,12 +9,16 @@ import { GRADE_COLORS } from './GradeSelector';
 interface NightlyReflectionBannerProps {
   hasReflected: boolean;
   todaysGrade?: ReflectionGrade;
+  todaysActionCount?: number;
+  goalCount?: number;
   onPress: () => void;
 }
 
 export const NightlyReflectionBanner: React.FC<NightlyReflectionBannerProps> = ({
   hasReflected,
   todaysGrade,
+  todaysActionCount = 0,
+  goalCount = 0,
   onPress,
 }) => {
   const isEvening = new Date().getHours() >= 20;
@@ -34,7 +38,12 @@ export const NightlyReflectionBanner: React.FC<NightlyReflectionBannerProps> = (
     );
   }
 
-  // After 8pm — prominent dark banner
+  // Build recap subtitle
+  const recapText = todaysActionCount > 0
+    ? `${todaysActionCount} action${todaysActionCount !== 1 ? 's' : ''} completed across ${goalCount} goal${goalCount !== 1 ? 's' : ''}`
+    : 'Add to today\'s story';
+
+  // After 8pm — prominent dark banner with recap framing
   if (isEvening) {
     return (
       <Card style={styles.prominentCard} onPress={onPress}>
@@ -43,8 +52,8 @@ export const NightlyReflectionBanner: React.FC<NightlyReflectionBannerProps> = (
             <Ionicons name="moon-outline" size={24} color={Colors.white} />
           </View>
           <View style={styles.textWrap}>
-            <Text style={styles.prominentTitle}>How did your day go?</Text>
-            <Text style={styles.prominentSubtitle}>Take a moment to reflect</Text>
+            <Text style={styles.prominentTitle}>Today's Recap</Text>
+            <Text style={styles.prominentSubtitle}>{recapText}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.white + '80'} />
         </View>
@@ -52,12 +61,12 @@ export const NightlyReflectionBanner: React.FC<NightlyReflectionBannerProps> = (
     );
   }
 
-  // Before 8pm — subtle card so there's always an entry point
+  // Before 8pm — subtle card
   return (
     <Card style={styles.subtleCard} onPress={onPress}>
       <View style={styles.row}>
         <Ionicons name="journal-outline" size={20} color={Colors.primary} />
-        <Text style={styles.subtleText}>Daily Reflection</Text>
+        <Text style={styles.subtleText}>Today's Recap</Text>
         <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
       </View>
     </Card>

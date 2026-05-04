@@ -27,6 +27,7 @@ import { ChallengeTypeSelector } from '../../components/challenge/ChallengeTypeS
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
+import { SHOW_COMMUNITY } from '../../constants/featureFlags';
 
 type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
 
@@ -76,6 +77,10 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
   const handleCreate = async () => {
     if (!name.trim()) {
       showAlert('Required', 'Please enter a challenge name.');
+      return;
+    }
+    if (goalIds.length === 0) {
+      showAlert('Required', 'Please select at least one goal for this challenge.');
       return;
     }
     if (!user) return;
@@ -208,7 +213,12 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
           />
         )}
 
-        <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
+        <GoalTagPicker
+          selectedGoalIds={goalIds}
+          onChange={setGoalIds}
+          required
+          onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
+        />
 
         <Button
           title="Start Challenge"
@@ -217,38 +227,40 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
           style={{ marginTop: Spacing.md }}
         />
 
-        <TouchableOpacity
-          style={styles.buddyButton}
-          onPress={async () => {
-            if (!name.trim()) {
-              showAlert('Required', 'Please enter a challenge name first.');
-              return;
-            }
-            // Check if user has a team
-            if (!user) return;
-            const team = await getUserTeam(user.uid);
-            if (!team) {
-              showAlert('No Team', 'You need to be on a team to do buddy challenges.');
-              return;
-            }
-            navigation.navigate('BuddyPickPartner', {
-              challengeData: {
-                name: name.trim(),
-                category_id: categories[categoryIdx]?.name || 'Uncategorized',
-                challenge_type: challengeType,
-                difficulty_expected: difficulty,
-                ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),
-                ...(description.trim() ? { description: description.trim() } : {}),
-                ...(successCriteria.trim() ? { success_criteria: successCriteria.trim() } : {}),
-                ...(why.trim() ? { why: why.trim() } : {}),
-              },
-            });
-          }}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="people" size={18} color={Colors.primary} />
-          <Text style={styles.buddyButtonText}>Do It With a Teammate</Text>
-        </TouchableOpacity>
+        {SHOW_COMMUNITY && (
+          <TouchableOpacity
+            style={styles.buddyButton}
+            onPress={async () => {
+              if (!name.trim()) {
+                showAlert('Required', 'Please enter a challenge name first.');
+                return;
+              }
+              // Check if user has a team
+              if (!user) return;
+              const team = await getUserTeam(user.uid);
+              if (!team) {
+                showAlert('No Team', 'You need to be on a team to do buddy challenges.');
+                return;
+              }
+              navigation.navigate('BuddyPickPartner', {
+                challengeData: {
+                  name: name.trim(),
+                  category_id: categories[categoryIdx]?.name || 'Uncategorized',
+                  challenge_type: challengeType,
+                  difficulty_expected: difficulty,
+                  ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),
+                  ...(description.trim() ? { description: description.trim() } : {}),
+                  ...(successCriteria.trim() ? { success_criteria: successCriteria.trim() } : {}),
+                  ...(why.trim() ? { why: why.trim() } : {}),
+                },
+              });
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="people" size={18} color={Colors.primary} />
+            <Text style={styles.buddyButtonText}>Do It With a Teammate</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {isMyStep && (

@@ -10,6 +10,8 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { getRandomRewardMessage, getActiveRewardMessages } from './rewardMessages';
+import { getActiveGoals, computeGoalFollowThrough } from './goals';
+import { Goal } from '../types';
 
 export interface UserRewardMessage {
   id: string;
@@ -137,15 +139,70 @@ export const seedUserRewardMessagesFromGlobals = async (
 };
 
 /**
+ * Generate identity-framing messages from the user's goal CBT data.
+ * These are generated on-the-fly, not stored in Firestore.
+ */
+const generateIdentityMessages = async (userId: string): Promise<string[]> => {
+  const messages: string[] = [];
+  try {
+    const goals = await getActiveGoals(userId);
+    for (const goal of goals) {
+      // Identity statement (Q16)
+      if (goal.identity_statement) {
+        messages.push(
+          `You said you're becoming "${goal.identity_statement}". This is proof.`
+        );
+      }
+      // Inner voice counter-argument (Q6)
+      if (goal.inner_voice_challenge && goal.inner_voice_response) {
+        messages.push(
+          `Your inner voice said "${goal.inner_voice_challenge}". You said "${goal.inner_voice_response}". You were right.`
+        );
+      }
+      // Confidence baseline (Q3)
+      if (goal.confidence_baseline) {
+        messages.push(
+          `You started at ${goal.confidence_baseline}/10 confidence. Look at you now.`
+        );
+      }
+      // Follow-through stats
+      try {
+        const ft = await computeGoalFollowThrough(userId, goal.id);
+        if (ft.totalCommitments >= 3) {
+          const pct = Math.round(ft.followThroughRate * 100);
+          messages.push(
+            `${goal.name}: ${ft.keptCommitments}/${ft.totalCommitments} commitments kept. ${pct}% follow-through.`
+          );
+        }
+      } catch {
+        // Skip if follow-through fails
+      }
+    }
+  } catch {
+    // Return empty if goals fail to load
+  }
+  return messages;
+};
+
+/**
  * Get a personalized reward message for the user.
- * - If user has messages: weighted random (favorites 3x weight)
- * - If user pool is empty: falls back to global getRandomRewardMessage()
- * Returns { text: string } or falls back to hardcoded default.
+ * - 40% chance: identity-framing message from goal CBT data
+ * - Otherwise: weighted random from user pool (favorites 3x weight)
+ * - Falls back to global pool, then hardcoded default.
  */
 export const getPersonalizedRewardMessage = async (
   userId: string
 ): Promise<{ text: string }> => {
   try {
+    // 40% chance of identity-framing message
+    if (Math.random() < 0.4) {
+      const identityMessages = await generateIdentityMessages(userId);
+      if (identityMessages.length > 0) {
+        const pick = identityMessages[Math.floor(Math.random() * identityMessages.length)];
+        return { text: pick };
+      }
+    }
+
     const messages = await getUserRewardMessages(userId);
 
     if (messages.length > 0) {
@@ -160,6 +217,13 @@ export const getPersonalizedRewardMessage = async (
       }
       const pick = weighted[Math.floor(Math.random() * weighted.length)];
       return { text: pick.text };
+    }
+
+    // Fall back to identity messages if no pool messages
+    const identityMessages = await generateIdentityMessages(userId);
+    if (identityMessages.length > 0) {
+      const pick = identityMessages[Math.floor(Math.random() * identityMessages.length)];
+      return { text: pick };
     }
 
     // Fall back to global pool

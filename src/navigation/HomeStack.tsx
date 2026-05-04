@@ -26,6 +26,7 @@ import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen
 import { CreateMicroGoalScreen } from '../screens/Home/CreateMicroGoalScreen';
 import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
 import { CreateGoalScreen } from '../screens/Home/CreateGoalScreen';
+import { GoalOnboardingFlow } from '../screens/Home/GoalOnboardingFlow';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
@@ -176,7 +177,12 @@ export const HomeStack: React.FC = () => (
     />
     <Stack.Screen
       name="CreateGoal"
-      component={CreateGoalScreen}
+      component={GoalOnboardingFlow}
+      options={{ title: 'New Goal' }}
+    />
+    <Stack.Screen
+      name="GoalOnboardingFlow"
+      component={GoalOnboardingFlow}
       options={{ title: 'New Goal' }}
     />
     <Stack.Screen

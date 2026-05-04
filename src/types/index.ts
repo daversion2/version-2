@@ -802,6 +802,32 @@ export interface Goal {
   manual_progress: number;    // 0-100
   created_at: string;         // ISO 8601
   updated_at?: string;        // ISO 8601
+
+  // CBT Goal Onboarding fields (Phase 1.1)
+  deeper_why?: string;
+  confidence_baseline?: number;          // 1-10
+  negative_story?: string;
+  past_attempt_story?: string;
+  inner_voice_challenge?: string;
+  inner_voice_response?: string;
+  good_week_description?: string;
+  minimum_action?: string;
+  bonus_actions?: string[];
+  triggers?: string[];
+  trigger_substitutes?: string[];
+  environment_changes?: string;
+  recovery_plan?: string;
+  identity_statement?: string;
+  support_person?: string;
+  cognitive_distortions?: string[];
+}
+
+export interface GoalFollowThrough {
+  totalCommitments: number;
+  keptCommitments: number;
+  followThroughRate: number;       // 0-1
+  currentWeekCommitments: number;
+  currentWeekKept: number;
 }
 
 // ============================================================================

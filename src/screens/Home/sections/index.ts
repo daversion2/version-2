@@ -12,9 +12,14 @@ import { ExtendedChallengesSection } from './ExtendedChallengesSection';
 import { HabitsSection } from './HabitsSection';
 import { GoalsSection } from './GoalsSection';
 import { WillpowerSummarySection } from './WillpowerSummarySection';
+import { GoalActionsSection } from './GoalActionsSection';
+import { IdentitySummarySection } from './IdentitySummarySection';
 
 export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   greeting: GreetingSection,
+  goal_actions: GoalActionsSection,
+  identity_summary: IdentitySummarySection,
+  // Legacy sections (kept for backward compat with custom layouts)
   goals: GoalsSection,
   willpower_summary: WillpowerSummarySection,
   daily_challenges: DailyChallengesSection,

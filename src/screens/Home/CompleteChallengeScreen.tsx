@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,8 +27,9 @@ import {
   getStreakTierInfo,
   getLevelInfo,
 } from '../../services/willpower';
-import { Challenge, BuddyChallenge } from '../../types';
+import { Challenge, BuddyChallenge, Goal, GoalFollowThrough } from '../../types';
 import { onBuddyChallengeUserComplete } from '../../services/buddyChallenge';
+import { getGoalById, computeGoalFollowThrough } from '../../services/goals';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
@@ -90,6 +91,26 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const feedEntryIdRef = useRef<string | null>(null);
   const [showMessagePrompt, setShowMessagePrompt] = useState(false);
   const [completionMessage, setCompletionMessage] = useState('');
+
+  // Goal context for the banner
+  const [goalContext, setGoalContext] = useState<{ name: string; ft: GoalFollowThrough } | null>(null);
+  const [promptsExpanded, setPromptsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!user || !challenge.goal_ids?.length) return;
+    const goalId = challenge.goal_ids[0];
+    (async () => {
+      try {
+        const [goal, ft] = await Promise.all([
+          getGoalById(user.uid, goalId),
+          computeGoalFollowThrough(user.uid, goalId),
+        ]);
+        if (goal) setGoalContext({ name: goal.name, ft });
+      } catch (err) {
+        console.warn('Failed to load goal context:', err);
+      }
+    })();
+  }, [user, challenge.goal_ids]);
 
   // Navigate home, or show the message prompt first if a feed entry was created
   // Uses ref instead of state to avoid stale closure when called from pending alert callbacks
@@ -344,18 +365,23 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         console.warn('Failed to fetch reward message:', err);
       }
 
-      // Compute narrative line
+      // Compute narrative line — goal-centric framing
       let narrativeText = '';
       let totalCount = 0;
       try {
         totalCount = await getTotalCompletionCount(user.uid);
-        const streakDays = updateResult.newStreak;
-        if (totalCount === 1) {
+        // Use goal context if available for identity-framing
+        if (goalContext) {
+          const kept = goalContext.ft.keptCommitments + 1; // +1 for this completion
+          const total = goalContext.ft.totalCommitments + 1;
+          narrativeText = `${goalContext.name}: ${kept}/${total} commitments kept. You're building proof.`;
+        } else if (totalCount === 1) {
           narrativeText = 'Challenge 1. The first of many.';
-        } else if (streakDays >= 7) {
-          narrativeText = `Day ${streakDays} of doing hard things.`;
         } else {
-          narrativeText = `Challenge ${totalCount}. Still here.`;
+          const streakDays = updateResult.newStreak;
+          narrativeText = streakDays >= 7
+            ? `Day ${streakDays} of doing hard things.`
+            : `Challenge ${totalCount}. Still here.`;
         }
       } catch (err) {
         console.warn('Failed to compute narrative line:', err);
@@ -552,14 +578,32 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
           <View style={styles.journalHeader}>
             <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Journaling</Text>
-            <TouchableOpacity
-              onPress={() => setShowPrompts(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="information-circle-outline" size={22} color={Colors.primary} />
-            </TouchableOpacity>
           </View>
           <Text style={styles.journalSubtext}>Optional — earns bonus points</Text>
+
+          {/* Inline prompts (collapsed by default) */}
+          <TouchableOpacity
+            style={styles.inlinePromptsToggle}
+            onPress={() => setPromptsExpanded(!promptsExpanded)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
+            <Text style={styles.inlinePromptsLabel}>Need inspiration?</Text>
+            <Ionicons
+              name={promptsExpanded ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={Colors.primary}
+            />
+          </TouchableOpacity>
+          {promptsExpanded && (
+            <View style={styles.inlinePromptsList}>
+              <Text style={styles.promptItem}>• What was the hardest moment, and what were you telling yourself then?</Text>
+              <Text style={styles.promptItem}>• What helped you push through — or what would have helped?</Text>
+              <Text style={styles.promptItem}>• What's one rule or adjustment you'll apply next time?</Text>
+              <Text style={styles.promptItem}>• How do you feel now compared to before?</Text>
+            </View>
+          )}
+
           <InputField
             label=""
             value={journalEntry}
@@ -572,36 +616,24 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         </>
       )}
 
-      {/* Prompts Modal */}
-      <Modal
-        visible={showPrompts}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowPrompts(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowPrompts(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Journaling Prompts</Text>
-            <Text style={styles.modalSubtitle}>Consider reflecting on:</Text>
-            <View style={styles.promptList}>
-              <Text style={styles.promptItem}>• What was the hardest moment, and what were you telling yourself then?</Text>
-              <Text style={styles.promptItem}>• What helped you push through — or what would have helped?</Text>
-              <Text style={styles.promptItem}>• What's one rule or adjustment you'll apply next time?</Text>
-              <Text style={styles.promptItem}>• How do you feel now compared to before?</Text>
+      {/* Goal Context Banner */}
+      {goalContext && (
+        <Card style={styles.goalContextBanner}>
+          <View style={styles.goalContextRow}>
+            <Ionicons name="flag" size={18} color={Colors.primary} />
+            <View style={styles.goalContextInfo}>
+              <Text style={styles.goalContextTitle}>
+                This counts toward {goalContext.name}
+              </Text>
+              <Text style={styles.goalContextStats}>
+                {goalContext.ft.keptCommitments}/{goalContext.ft.totalCommitments} commitments kept
+                {goalContext.ft.totalCommitments > 0 &&
+                  ` (${Math.round(goalContext.ft.followThroughRate * 100)}%)`}
+              </Text>
             </View>
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setShowPrompts(false)}
-            >
-              <Text style={styles.modalCloseText}>Got it</Text>
-            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </Modal>
+        </Card>
+      )}
 
       <Button
         title="Submit"
@@ -972,5 +1004,52 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.md,
     color: Colors.gray,
+  },
+  // Inline prompts
+  inlinePromptsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  inlinePromptsLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    flex: 1,
+  },
+  inlinePromptsList: {
+    backgroundColor: Colors.primary + '08',
+    borderRadius: 12,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  // Goal context banner
+  goalContextBanner: {
+    backgroundColor: Colors.primary + '10',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+    marginTop: Spacing.md,
+  },
+  goalContextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  goalContextInfo: {
+    flex: 1,
+  },
+  goalContextTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  goalContextStats: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    marginTop: 2,
   },
 });

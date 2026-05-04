@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
+import { HABIT_PROMPTS, getRandomPrompt } from '../../constants/microPrompts';
 
 interface Props {
   visible: boolean;
@@ -26,6 +27,12 @@ export const HabitCompletionModal: React.FC<Props> = ({
 }) => {
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
   const [notes, setNotes] = useState('');
+
+  // Rotate prompt each time the modal opens with a new habit
+  const microPrompt = useMemo(
+    () => getRandomPrompt(HABIT_PROMPTS),
+    [habitName, visible]
+  );
 
   const handleSubmit = () => {
     if (!selected) return;
@@ -83,12 +90,12 @@ export const HabitCompletionModal: React.FC<Props> = ({
 
           <TextInput
             style={styles.notesInput}
-            placeholder="Add notes (optional)"
+            placeholder={microPrompt}
             placeholderTextColor={Colors.gray}
             value={notes}
             onChangeText={setNotes}
             multiline
-            maxLength={500}
+            maxLength={200}
           />
 
           <View style={styles.actions}>

@@ -9,6 +9,7 @@ import { SettingsStack } from './SettingsStack';
 import { AdminStack } from './AdminStack';
 import { useAuth } from '../context/AuthContext';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { SHOW_COMMUNITY } from '../constants/featureFlags';
 
 const Tab = createBottomTabNavigator();
 
@@ -49,7 +50,9 @@ export const MainTabs: React.FC = () => {
     >
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Challenges" component={ChallengesStack} />
-      <Tab.Screen name="Community" component={CommunityStack} />
+      {SHOW_COMMUNITY && (
+        <Tab.Screen name="Community" component={CommunityStack} />
+      )}
       <Tab.Screen name="Progress" component={ProgressStack} />
       <Tab.Screen
         name="Settings"

@@ -49,10 +49,14 @@ export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleStartProgram = async () => {
     if (!user || !program || !selectedMode) return;
+    if (goalIds.length === 0) {
+      showAlert('Required', 'Please select at least one goal for this program.');
+      return;
+    }
 
     setEnrolling(true);
     try {
-      await enrollInProgram(user.uid, program.id, selectedMode, goalIds.length > 0 ? goalIds : undefined);
+      await enrollInProgram(user.uid, program.id, selectedMode, goalIds);
       navigation.popToTop();
     } catch (err: any) {
       showAlert('Cannot Start Program', err.message || 'Something went wrong.');
@@ -195,7 +199,12 @@ export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         <BenefitRow icon="heart-outline" text={`${program.grace_days} grace day${program.grace_days !== 1 ? 's' : ''} if life gets in the way`} color={program.color} />
       </Card>
 
-      <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
+      <GoalTagPicker
+        selectedGoalIds={goalIds}
+        onChange={setGoalIds}
+        required
+        onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
+      />
 
       {/* Start Button */}
       <Button

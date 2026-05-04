@@ -9,11 +9,15 @@ import { Goal } from '../../types';
 interface GoalTagPickerProps {
   selectedGoalIds: string[];
   onChange: (ids: string[]) => void;
+  required?: boolean;
+  onCreateGoal?: () => void;
 }
 
 export const GoalTagPicker: React.FC<GoalTagPickerProps> = ({
   selectedGoalIds,
   onChange,
+  required = false,
+  onCreateGoal,
 }) => {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -26,16 +30,43 @@ export const GoalTagPicker: React.FC<GoalTagPickerProps> = ({
       .finally(() => setLoading(false));
   }, [user]);
 
+  const label = required ? 'Which goal is this for?' : 'Link to Goals';
+
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.label}>Link to Goals</Text>
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>{label}</Text>
+          {required && <Text style={styles.requiredIndicator}>Required</Text>}
+        </View>
         <ActivityIndicator size="small" color={Colors.primary} />
       </View>
     );
   }
 
-  if (goals.length === 0) return null;
+  if (goals.length === 0) {
+    if (!required) return null;
+    return (
+      <View style={styles.container}>
+        <View style={styles.labelRow}>
+          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.requiredIndicator}>Required</Text>
+        </View>
+        <View style={styles.emptyState}>
+          <Ionicons name="flag-outline" size={20} color={Colors.gray} />
+          <Text style={styles.emptyText}>
+            You need at least one goal — create one to get started
+          </Text>
+          {onCreateGoal && (
+            <TouchableOpacity style={styles.createGoalButton} onPress={onCreateGoal}>
+              <Ionicons name="add-circle" size={18} color={Colors.primary} />
+              <Text style={styles.createGoalText}>Create Goal</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   const toggleGoal = (goalId: string) => {
     if (selectedGoalIds.includes(goalId)) {
@@ -47,7 +78,10 @@ export const GoalTagPicker: React.FC<GoalTagPickerProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Link to Goals</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {required && <Text style={styles.requiredIndicator}>Required</Text>}
+      </View>
       <View style={styles.chipRow}>
         {goals.map(goal => {
           const selected = selectedGoalIds.includes(goal.id);
@@ -78,11 +112,21 @@ const styles = StyleSheet.create({
   container: {
     marginTop: Spacing.md,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
   label: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.sm,
     color: Colors.dark,
-    marginBottom: Spacing.sm,
+  },
+  requiredIndicator: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
   },
   chipRow: {
     flexDirection: 'row',
@@ -111,5 +155,36 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: Colors.white,
+  },
+  emptyState: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  emptyText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    textAlign: 'center',
+  },
+  createGoalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary + '15',
+    marginTop: Spacing.xs,
+  },
+  createGoalText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
 });

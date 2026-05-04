@@ -1,29 +1,44 @@
 import { HomeLayoutItem } from '../types';
 
 export const SECTION_IDS = [
-  // Zone 1: Welcome & Status
+  // Zone 1: Welcome
   'greeting',
-  'goals',
-  'willpower_summary',
-  // Zone 2: Today's Focus
-  'daily_challenges',
+  // Zone 2: Your Goals + Today's Actions
+  'goal_actions',
+  // Zone 3: Momentum
   'sprints',
-  'habits',
-  // Zone 3: Ongoing Progress
-  'programs',
-  'extended_challenges',
-  // Zone 4: Social & Extras
-  'buddy_invites',
-  'team_activity',
+  // Zone 4: Reflect & Learn
+  'identity_summary',
   'reflection_banner',
   'fun_fact',
+  // Legacy (kept for backward compat with custom layouts)
+  'goals',
+  'willpower_summary',
+  'daily_challenges',
+  'habits',
+  'programs',
+  'extended_challenges',
+  'buddy_invites',
+  'team_activity',
 ] as const;
 
 export type HomeSectionId = (typeof SECTION_IDS)[number];
 
+const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
+  // Legacy sections hidden from default layout
+  'goals',
+  'willpower_summary',
+  'daily_challenges',
+  'habits',
+  'programs',
+  'extended_challenges',
+  'buddy_invites',
+  'team_activity',
+]);
+
 export const DEFAULT_HOME_LAYOUT: HomeLayoutItem[] = SECTION_IDS.map(id => ({
   id,
-  visible: true,
+  visible: !HIDDEN_SECTIONS.has(id),
 }));
 
 export interface ZoneDefinition {
@@ -35,28 +50,35 @@ export interface ZoneDefinition {
 
 export const ZONE_CONFIG: ZoneDefinition[] = [
   {
-    id: 'welcome_status',
-    label: 'Welcome & Status',
+    id: 'welcome',
+    label: 'Welcome',
     icon: 'sunny-outline',
-    sectionIds: ['greeting', 'goals', 'willpower_summary'],
+    sectionIds: ['greeting'],
   },
   {
-    id: 'todays_focus',
-    label: "Today's Focus",
-    icon: 'flame-outline',
-    sectionIds: ['daily_challenges', 'sprints', 'habits'],
+    id: 'goals_actions',
+    label: "Your Goals + Today's Actions",
+    icon: 'flag-outline',
+    sectionIds: ['goal_actions'],
   },
   {
-    id: 'ongoing_progress',
-    label: 'Ongoing Progress',
-    icon: 'trending-up-outline',
-    sectionIds: ['programs', 'extended_challenges'],
+    id: 'momentum',
+    label: 'Momentum',
+    icon: 'flash-outline',
+    sectionIds: ['sprints'],
   },
   {
-    id: 'social_extras',
-    label: 'Social & Extras',
-    icon: 'people-outline',
-    sectionIds: ['buddy_invites', 'team_activity', 'reflection_banner', 'fun_fact'],
+    id: 'reflect_learn',
+    label: 'Reflect & Learn',
+    icon: 'sparkles-outline',
+    sectionIds: ['identity_summary', 'reflection_banner', 'fun_fact'],
+  },
+  // Legacy zone for backward compat with custom layouts
+  {
+    id: 'legacy',
+    label: 'More',
+    icon: 'grid-outline',
+    sectionIds: ['goals', 'willpower_summary', 'daily_challenges', 'habits', 'programs', 'extended_challenges', 'buddy_invites', 'team_activity'],
   },
 ];
 
@@ -69,30 +91,36 @@ for (const zone of ZONE_CONFIG) {
 
 export const SECTION_LABELS: Record<HomeSectionId, string> = {
   greeting: 'Greeting',
+  goal_actions: 'Goals & Actions',
+  sprints: "Today's Sprints",
+  identity_summary: 'Identity Summary',
+  reflection_banner: 'Nightly Reflection',
+  fun_fact: 'Fun Fact',
+  // Legacy
   goals: 'Goals',
   willpower_summary: 'Willpower Summary',
   daily_challenges: "Today's Challenges",
-  sprints: "Today's Sprints",
   habits: 'Habits',
   programs: 'Programs',
   extended_challenges: 'Extended Challenges',
   buddy_invites: 'Buddy Invites',
   team_activity: 'Team Activity',
-  reflection_banner: 'Nightly Reflection',
-  fun_fact: 'Fun Fact',
 };
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
   greeting: 'sunny-outline',
+  goal_actions: 'flag-outline',
+  sprints: 'timer-outline',
+  identity_summary: 'sparkles-outline',
+  reflection_banner: 'moon-outline',
+  fun_fact: 'bulb-outline',
+  // Legacy
   goals: 'flag-outline',
   willpower_summary: 'shield-outline',
   daily_challenges: 'flash-outline',
-  sprints: 'timer-outline',
   habits: 'repeat-outline',
   programs: 'rocket-outline',
   extended_challenges: 'trending-up-outline',
   buddy_invites: 'person-add-outline',
   team_activity: 'people-outline',
-  reflection_banner: 'moon-outline',
-  fun_fact: 'bulb-outline',
 };
