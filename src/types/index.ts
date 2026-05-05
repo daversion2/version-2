@@ -762,6 +762,7 @@ export interface DailyReflection {
   prompt_went_well?: string;
   prompt_hardest?: string;
   prompt_tomorrow?: string;
+  prompt_why_connection?: string;
   daily_summary: DailySummary;
   created_at: string;
 }

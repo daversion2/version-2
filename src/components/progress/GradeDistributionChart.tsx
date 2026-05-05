@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
 import { ReflectionGrade } from '../../types';
-import { GRADE_COLORS } from '../home/GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../home/GradeSelector';
 
 interface GradeDistributionChartProps {
   distribution: Record<ReflectionGrade, number>;
@@ -26,7 +26,7 @@ export const GradeDistributionChart: React.FC<GradeDistributionChartProps> = ({ 
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Grade Distribution</Text>
+      <Text style={styles.title}>Alignment Distribution</Text>
       {GRADE_ORDER.map((grade) => {
         const count = distribution[grade];
         const width = (count / maxCount) * 100;
@@ -35,7 +35,7 @@ export const GradeDistributionChart: React.FC<GradeDistributionChartProps> = ({ 
         return (
           <View key={grade} style={styles.row}>
             <View style={[styles.gradeBadge, { backgroundColor: color }]}>
-              <Text style={styles.gradeText}>{grade}</Text>
+              <Text style={styles.gradeText}>{GRADE_LABELS[grade]}</Text>
             </View>
             <View style={styles.barContainer}>
               <View
@@ -77,15 +77,15 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   gradeBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 80,
+    paddingVertical: 4,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   gradeText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 10,
     color: Colors.white,
   },
   barContainer: {

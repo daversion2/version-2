@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
@@ -16,11 +17,12 @@ import { useAuth } from '../../context/AuthContext';
 import { DailySummary, ReflectionGrade, DailyReflection } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
 import { showAlert } from '../../utils/alert';
+import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
 
 type Props = NativeStackScreenProps<any, 'NightlyReflection'>;
 
 export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -32,9 +34,18 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [wentWell, setWentWell] = useState('');
   const [hardest, setHardest] = useState('');
   const [tomorrow, setTomorrow] = useState('');
+  const [whyReflection, setWhyReflection] = useState('');
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  // Rotate Why-connection prompt daily (stable per day)
+  const todaysWhyPrompt = useMemo(() => {
+    const dayOfYear = Math.floor(
+      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+    );
+    return WHY_REFLECTION_PROMPTS[dayOfYear % WHY_REFLECTION_PROMPTS.length];
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -52,6 +63,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         setWentWell(existing.prompt_went_well || '');
         setHardest(existing.prompt_hardest || '');
         setTomorrow(existing.prompt_tomorrow || '');
+        setWhyReflection(existing.prompt_why_connection || '');
       }
     } catch (e) {
       console.error(e);
@@ -75,6 +87,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         prompt_went_well: wentWell.trim() || undefined,
         prompt_hardest: hardest.trim() || undefined,
         prompt_tomorrow: tomorrow.trim() || undefined,
+        prompt_why_connection: whyReflection.trim() || undefined,
         daily_summary: summary,
         created_at: new Date().toISOString(),
       });
@@ -103,6 +116,14 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       <Text style={styles.dateText}>
         {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
       </Text>
+
+      {/* Why Statement Banner */}
+      {userProfile?.why_statement ? (
+        <View style={styles.whyBanner}>
+          <Ionicons name="compass-outline" size={18} color={Colors.primary} />
+          <Text style={styles.whyBannerText}>{userProfile.why_statement}</Text>
+        </View>
+      ) : null}
 
       {isReadOnly && (
         <View style={styles.readOnlyBanner}>
@@ -170,6 +191,27 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           editable={!isReadOnly}
         />
       </View>
+
+      {/* Why Connection Prompt (rotating daily) */}
+      {userProfile?.why_statement ? (
+        <View style={styles.promptSection}>
+          <View style={styles.whyPromptHeader}>
+            <Ionicons name="compass-outline" size={16} color={Colors.primary} />
+            <Text style={styles.whyPromptLabel}>{todaysWhyPrompt}</Text>
+          </View>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Connect today back to your purpose..."
+            placeholderTextColor={Colors.gray}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            value={whyReflection}
+            onChangeText={isReadOnly ? () => {} : setWhyReflection}
+            editable={!isReadOnly}
+          />
+        </View>
+      ) : null}
 
       {/* Actions */}
       {!isReadOnly && (
@@ -258,5 +300,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.lg,
     textDecorationLine: 'underline',
+  },
+  whyBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary + '10',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.lg,
+  },
+  whyBannerText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontStyle: 'italic',
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 20,
+  },
+  whyPromptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  whyPromptLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    flex: 1,
   },
 });

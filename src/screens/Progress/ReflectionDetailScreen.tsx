@@ -19,7 +19,7 @@ import { DailyReflection, ReflectionStats, JournalSearchResult } from '../../typ
 import { getReflections, getReflectionStats, searchJournalEntries } from '../../services/reflections';
 import { GradeLineChart } from '../../components/progress/GradeLineChart';
 import { GradeDistributionChart } from '../../components/progress/GradeDistributionChart';
-import { GRADE_COLORS } from '../../components/home/GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
 
 const TIME_FILTERS = ['7 Days', '30 Days', '90 Days', 'All Time'] as const;
 const SOURCE_FILTERS = ['All', 'Reflections', 'Challenges'] as const;
@@ -237,7 +237,7 @@ export const ReflectionDetailScreen: React.FC = () => {
                     </View>
                     {result.grade && (
                       <View style={[styles.entryGrade, { backgroundColor: GRADE_COLORS[result.grade] }]}>
-                        <Text style={styles.entryGradeText}>{result.grade}</Text>
+                        <Text style={styles.entryGradeText}>{GRADE_LABELS[result.grade]}</Text>
                       </View>
                     )}
                     {result.difficulty && !result.grade && (
@@ -285,12 +285,12 @@ export const ReflectionDetailScreen: React.FC = () => {
               <Card style={styles.statCard}>
                 {stats.totalReflections > 0 ? (
                   <View style={[styles.miniGrade, { backgroundColor: GRADE_COLORS[stats.averageGradeLetter] }]}>
-                    <Text style={styles.miniGradeText}>{stats.averageGradeLetter}</Text>
+                    <Text style={styles.miniGradeText}>{GRADE_LABELS[stats.averageGradeLetter]}</Text>
                   </View>
                 ) : (
                   <Text style={styles.statValue}>-</Text>
                 )}
-                <Text style={styles.statLabel}>Avg Grade</Text>
+                <Text style={styles.statLabel}>Avg Alignment</Text>
               </Card>
               <Card style={styles.statCard}>
                 <Text style={styles.statValue}>{stats.currentStreak}</Text>
@@ -339,7 +339,7 @@ export const ReflectionDetailScreen: React.FC = () => {
               >
                 <View style={styles.entryRow}>
                   <View style={[styles.entryGrade, { backgroundColor: GRADE_COLORS[r.grade] }]}>
-                    <Text style={styles.entryGradeText}>{r.grade}</Text>
+                    <Text style={styles.entryGradeText}>{GRADE_LABELS[r.grade]}</Text>
                   </View>
                   <View style={styles.entryContent}>
                     <Text style={styles.entryDate}>
@@ -529,15 +529,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   miniGrade: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   miniGradeText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 11,
     color: Colors.white,
   },
   sectionTitle: {
@@ -561,15 +561,15 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   entryGrade: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   entryGradeText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 11,
     color: Colors.white,
   },
   entryContent: {

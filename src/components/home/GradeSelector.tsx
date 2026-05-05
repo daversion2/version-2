@@ -1,14 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ReflectionGrade } from '../../types';
 
-const GRADES: { grade: ReflectionGrade; label: string; color: string }[] = [
-  { grade: 'A', label: 'Crushed it', color: '#2E7D32' },
-  { grade: 'B', label: 'Solid day', color: '#558B2F' },
-  { grade: 'C', label: 'Average', color: '#F9A825' },
-  { grade: 'D', label: 'Below avg', color: '#EF6C00' },
-  { grade: 'F', label: 'Rough day', color: '#C62828' },
+const ALIGNMENT_OPTIONS: { grade: ReflectionGrade; label: string; icon: string; color: string }[] = [
+  { grade: 'A', label: 'Fully\naligned', icon: 'compass', color: '#2E7D32' },
+  { grade: 'B', label: 'Mostly\naligned', icon: 'compass-outline', color: '#558B2F' },
+  { grade: 'C', label: 'Mixed\nday', icon: 'swap-horizontal', color: '#F9A825' },
+  { grade: 'D', label: 'Drifted', icon: 'trending-down', color: '#EF6C00' },
+  { grade: 'F', label: 'Off\ntrack', icon: 'close-circle-outline', color: '#C62828' },
 ];
 
 interface GradeSelectorProps {
@@ -18,9 +19,9 @@ interface GradeSelectorProps {
 
 export const GradeSelector: React.FC<GradeSelectorProps> = ({ value, onChange }) => (
   <View style={styles.container}>
-    <Text style={styles.label}>How did you do today? *</Text>
+    <Text style={styles.label}>How aligned were you with your purpose today? *</Text>
     <View style={styles.row}>
-      {GRADES.map(({ grade, label, color }) => {
+      {ALIGNMENT_OPTIONS.map(({ grade, label, icon, color }) => {
         const isSelected = value === grade;
         return (
           <TouchableOpacity
@@ -33,20 +34,17 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({ value, onChange })
             onPress={() => onChange(grade)}
             activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.gradeLetter,
-                { color: isSelected ? Colors.white : color },
-              ]}
-            >
-              {grade}
-            </Text>
+            <Ionicons
+              name={icon as any}
+              size={22}
+              color={isSelected ? Colors.white : color}
+            />
             <Text
               style={[
                 styles.gradeLabel,
                 { color: isSelected ? Colors.white : Colors.gray },
               ]}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {label}
             </Text>
@@ -63,6 +61,14 @@ export const GRADE_COLORS: Record<ReflectionGrade, string> = {
   C: '#F9A825',
   D: '#EF6C00',
   F: '#C62828',
+};
+
+export const GRADE_LABELS: Record<ReflectionGrade, string> = {
+  A: 'Fully aligned',
+  B: 'Mostly aligned',
+  C: 'Mixed day',
+  D: 'Drifted',
+  F: 'Off track',
 };
 
 const styles = StyleSheet.create({
@@ -86,13 +92,11 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 2,
   },
-  gradeLetter: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-  },
   gradeLabel: {
     fontFamily: Fonts.secondary,
     fontSize: 10,
-    marginTop: 2,
+    marginTop: 4,
+    textAlign: 'center',
+    lineHeight: 12,
   },
 });

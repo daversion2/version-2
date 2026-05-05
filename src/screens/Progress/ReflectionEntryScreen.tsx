@@ -5,7 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { DailyReflection } from '../../types';
-import { GRADE_COLORS } from '../../components/home/GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
 
 type Props = NativeStackScreenProps<any, 'ReflectionEntry'>;
 
@@ -33,7 +33,7 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
       <View style={styles.header}>
         <Text style={styles.dateText}>{dateDisplay}</Text>
         <View style={[styles.gradeBadge, { backgroundColor: GRADE_COLORS[reflection.grade] }]}>
-          <Text style={styles.gradeText}>{reflection.grade}</Text>
+          <Text style={styles.gradeText}>{GRADE_LABELS[reflection.grade]}</Text>
         </View>
       </View>
 
@@ -64,7 +64,14 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
         </Card>
       )}
 
-      {!reflection.prompt_went_well && !reflection.prompt_hardest && !reflection.prompt_tomorrow && (
+      {reflection.prompt_why_connection && (
+        <Card style={styles.promptCard}>
+          <Text style={styles.promptLabel}>Why connection</Text>
+          <Text style={styles.promptText}>{reflection.prompt_why_connection}</Text>
+        </Card>
+      )}
+
+      {!reflection.prompt_went_well && !reflection.prompt_hardest && !reflection.prompt_tomorrow && !reflection.prompt_why_connection && (
         <Card>
           <Text style={styles.noPromptsText}>No written reflections for this day.</Text>
         </Card>
@@ -89,15 +96,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradeBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   gradeText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
     color: Colors.white,
   },
   promptCard: {

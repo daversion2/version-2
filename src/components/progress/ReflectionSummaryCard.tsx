@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
 import { ReflectionGrade } from '../../types';
-import { GRADE_COLORS } from '../home/GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../home/GradeSelector';
 
 interface ReflectionSummaryCardProps {
   mostRecentGrade: ReflectionGrade | null;
@@ -34,7 +34,7 @@ export const ReflectionSummaryCard: React.FC<ReflectionSummaryCardProps> = ({
       <View style={styles.statsRow}>
         <View style={styles.stat}>
           <View style={[styles.gradeBadge, { backgroundColor: GRADE_COLORS[mostRecentGrade] }]}>
-            <Text style={styles.gradeText}>{mostRecentGrade}</Text>
+            <Text style={styles.gradeText}>{GRADE_LABELS[mostRecentGrade]}</Text>
           </View>
           <Text style={styles.statLabel}>Latest</Text>
         </View>
@@ -42,7 +42,7 @@ export const ReflectionSummaryCard: React.FC<ReflectionSummaryCardProps> = ({
         {averageGradeLetter && (
           <View style={styles.stat}>
             <View style={[styles.gradeBadge, { backgroundColor: GRADE_COLORS[averageGradeLetter] + 'CC' }]}>
-              <Text style={styles.gradeText}>{averageGradeLetter}</Text>
+              <Text style={styles.gradeText}>{GRADE_LABELS[averageGradeLetter]}</Text>
             </View>
             <Text style={styles.statLabel}>Avg (30d)</Text>
           </View>
@@ -98,15 +98,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   gradeBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   gradeText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.lg,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 11,
     color: Colors.white,
   },
   statLabel: {

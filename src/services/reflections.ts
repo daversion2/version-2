@@ -419,6 +419,7 @@ const REFLECTION_FIELDS = [
   { key: 'prompt_went_well' as const, label: 'What went well' },
   { key: 'prompt_hardest' as const, label: 'What was hardest' },
   { key: 'prompt_tomorrow' as const, label: 'Plan for tomorrow' },
+  { key: 'prompt_why_connection' as const, label: 'Why connection' },
 ];
 
 const CHALLENGE_FIELDS = [

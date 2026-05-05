@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../common/Card';
 import { ReflectionGrade } from '../../types';
-import { GRADE_COLORS } from './GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from './GradeSelector';
 
 interface NightlyReflectionBannerProps {
   hasReflected: boolean;
@@ -31,7 +31,7 @@ export const NightlyReflectionBanner: React.FC<NightlyReflectionBannerProps> = (
           <Ionicons name="checkmark-circle" size={22} color="#2E7D32" />
           <Text style={styles.completedText}>Reflection complete</Text>
           <View style={[styles.gradeBadge, { backgroundColor: GRADE_COLORS[todaysGrade] }]}>
-            <Text style={styles.gradeText}>{todaysGrade}</Text>
+            <Text style={styles.gradeText}>{GRADE_LABELS[todaysGrade]}</Text>
           </View>
         </View>
       </Card>
@@ -128,15 +128,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradeBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   gradeText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 11,
     color: Colors.white,
   },
 });
