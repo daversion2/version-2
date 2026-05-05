@@ -5,6 +5,7 @@ import { HomeStack } from './HomeStack';
 import { ChallengesStack } from './ChallengesStack';
 import { ProgressStack } from './ProgressStack';
 import { CommunityStack } from './CommunityStack';
+import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
 import { AdminStack } from './AdminStack';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +26,8 @@ export const MainTabs: React.FC = () => {
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Challenges')
             iconName = focused ? 'trophy' : 'trophy-outline';
+          else if (route.name === 'Worksheets')
+            iconName = focused ? 'clipboard' : 'clipboard-outline';
           else if (route.name === 'Community')
             iconName = focused ? 'people' : 'people-outline';
           else if (route.name === 'Progress')
@@ -50,6 +53,7 @@ export const MainTabs: React.FC = () => {
     >
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Challenges" component={ChallengesStack} />
+      <Tab.Screen name="Worksheets" component={WorksheetsStack} />
       {SHOW_COMMUNITY && (
         <Tab.Screen name="Community" component={CommunityStack} />
       )}

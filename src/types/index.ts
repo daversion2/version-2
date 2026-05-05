@@ -1,3 +1,6 @@
+// Re-export worksheet types
+export * from './worksheets';
+
 // Core data models per spec
 
 export interface User {
