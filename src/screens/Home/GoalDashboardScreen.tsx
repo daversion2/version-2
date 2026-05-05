@@ -351,6 +351,16 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       </Card>
 
       {/* CBT Data Cards */}
+      {goal.why_connection && (
+        <Card style={styles.cbtCard}>
+          <View style={styles.cbtHeader}>
+            <Ionicons name="compass-outline" size={18} color={Colors.primary} />
+            <Text style={styles.cbtTitle}>How This Serves Your Why</Text>
+          </View>
+          <Text style={styles.cbtContent}>{goal.why_connection}</Text>
+        </Card>
+      )}
+
       {goal.deeper_why && (
         <Card style={styles.cbtCard}>
           <View style={styles.cbtHeader}>

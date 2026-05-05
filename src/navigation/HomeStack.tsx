@@ -29,6 +29,8 @@ import { CreateGoalScreen } from '../screens/Home/CreateGoalScreen';
 import { GoalOnboardingFlow } from '../screens/Home/GoalOnboardingFlow';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
+import { WhyScreen } from '../screens/Home/WhyScreen';
+import { WhyDiscoveryFlow } from '../screens/Home/WhyDiscoveryFlow';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -194,6 +196,16 @@ export const HomeStack: React.FC = () => (
       name="EditGoal"
       component={EditGoalScreen}
       options={{ title: 'Edit Goal' }}
+    />
+    <Stack.Screen
+      name="WhyScreen"
+      component={WhyScreen}
+      options={{ title: 'My Why' }}
+    />
+    <Stack.Screen
+      name="WhyDiscoveryFlow"
+      component={WhyDiscoveryFlow}
+      options={{ title: '', headerShown: false }}
     />
   </Stack.Navigator>
 );

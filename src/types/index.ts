@@ -29,6 +29,9 @@ export interface User {
   reflection_streak?: number;
   // Home Screen Layout
   home_layout?: HomeLayoutItem[];
+  // Why Discovery
+  has_completed_why_discovery?: boolean;
+  why_statement?: string; // Denormalized for fast home screen display
 }
 
 export interface HomeLayoutItem {
@@ -820,6 +823,8 @@ export interface Goal {
   identity_statement?: string;
   support_person?: string;
   cognitive_distortions?: string[];
+  // Why connection (links goal to personal Why)
+  why_connection?: string;
 }
 
 export interface GoalFollowThrough {
@@ -867,4 +872,59 @@ export interface CreateProgramInput {
   duration_days: number;
   icon: string;
   color: string;
+}
+
+// ============================================================================
+// WHY / PURPOSE DISCOVERY
+// ============================================================================
+
+export type WhyDiscoveryStatus = 'not_started' | 'in_progress' | 'completed';
+
+export interface PeakMomentStory {
+  id: string;
+  prompt: string;           // The question that prompted this story
+  response: string;         // User's written story
+  created_at: string;       // ISO 8601
+}
+
+export interface WhyIteration {
+  id: string;
+  depth: number;            // 1-based (first why = 1, second = 2, etc.)
+  question: string;         // The "why" prompt shown
+  answer: string;           // User's response
+}
+
+export interface WhyTheme {
+  id: string;
+  text: string;             // The theme identified (e.g., "Connection", "Growth")
+  confirmed: boolean;       // User confirmed this theme resonates
+  source_story_ids: string[]; // Which stories this theme appeared in
+}
+
+export interface WhyProfile {
+  id: string;
+  user_id: string;
+  status: WhyDiscoveryStatus;
+
+  // Stage 1: Story Mining
+  stories: PeakMomentStory[];
+
+  // Stage 2: 5 Whys Drilling
+  why_iterations: WhyIteration[];
+  core_why_reached: boolean;
+
+  // Stage 3: Theme Recognition
+  themes: WhyTheme[];
+
+  // Stage 4: Why Statement
+  why_statement: string;
+  contribution_part?: string;  // "To [this]..."
+  impact_part?: string;        // "...so that [this]"
+
+  // Metadata
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  last_reflected_at?: string;
+  last_completed_stage: number; // 0=none, 1=stories, 2=whys, 3=themes, 4=statement
 }

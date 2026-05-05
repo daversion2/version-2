@@ -15,6 +15,7 @@ import { CoachApplicationScreen } from '../screens/Settings/CoachApplicationScre
 import { CoachDashboardScreen } from '../screens/Settings/CoachDashboardScreen';
 import { CoachProgramEditScreen } from '../screens/Settings/CoachProgramEditScreen';
 import { ManageRewardMessagesScreen } from '../screens/Settings/ManageRewardMessagesScreen';
+import { WhyScreen } from '../screens/Home/WhyScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -109,6 +110,11 @@ export const SettingsStack: React.FC = () => (
       options={({ route }: any) => ({
         title: route.params?.mode === 'edit' ? 'Edit Program' : 'New Program',
       })}
+    />
+    <Stack.Screen
+      name="WhyScreen"
+      component={WhyScreen}
+      options={{ title: 'My Why' }}
     />
   </Stack.Navigator>
 );

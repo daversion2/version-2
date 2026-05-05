@@ -178,6 +178,29 @@ export const HowItWorksScreen: React.FC = () => {
           </View>
         </View>
       </Card>
+
+      {/* Safety */}
+      <View style={styles.divider} />
+      <Card style={[styles.card, styles.safetyCard]}>
+        <View style={styles.pillarHeader}>
+          <View style={[styles.pillarIcon, { backgroundColor: '#D32F2F' + '15' }]}>
+            <Ionicons name="shield-checkmark" size={22} color={'#D32F2F'} />
+          </View>
+          <View style={styles.pillarHeaderText}>
+            <Text style={styles.sectionTitle}>Safety First</Text>
+            <Text style={styles.pillarTagline}>Push limits, not safety</Text>
+          </View>
+        </View>
+        <Text style={styles.description}>
+          The whole purpose of this app is to get outside your comfort zone — but NEVER do anything that will be truly harmful to yourself or others. Always use common sense and prioritize safety.
+        </Text>
+        <View style={styles.bulletList}>
+          <Text style={styles.bullet}>{'\u2022'} Challenges should stretch you, not endanger you</Text>
+          <Text style={styles.bullet}>{'\u2022'} Listen to your body and mind — rest when needed</Text>
+          <Text style={styles.bullet}>{'\u2022'} If a challenge involves others, ensure their consent and comfort</Text>
+          <Text style={styles.bullet}>{'\u2022'} Growth happens at the edge of comfort, not beyond the edge of safety</Text>
+        </View>
+      </Card>
     </ScrollView>
   );
 };
@@ -300,5 +323,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+  },
+  safetyCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#D32F2F',
   },
 });

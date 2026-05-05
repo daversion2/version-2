@@ -467,6 +467,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     todaysGrade,
     willpowerStats,
     goalFollowThrough,
+    whyStatement: userProfile?.why_statement || null,
+    hasCompletedWhyDiscovery: userProfile?.has_completed_why_discovery === true,
   };
 
   const homeCallbacks: HomeCallbacks = {

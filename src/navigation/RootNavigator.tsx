@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
-import { OnboardingScreen } from '../screens/Auth/OnboardingScreen';
+import { WhyDiscoveryOnboarding } from '../screens/Auth/WhyDiscoveryOnboarding';
 import { Colors } from '../constants/theme';
 import { WalkthroughProvider } from '../context/WalkthroughContext';
 
@@ -32,7 +32,7 @@ export const RootNavigator: React.FC = () => {
         {!user ? (
           <Stack.Screen name="Auth" component={AuthStack} />
         ) : needsOnboarding ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Onboarding" component={WhyDiscoveryOnboarding} />
         ) : (
           <Stack.Screen name="Main">
             {() => (

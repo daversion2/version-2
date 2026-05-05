@@ -112,6 +112,17 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* My Why / Purpose */}
+      <Card style={styles.card} onPress={() => navigation.navigate('WhyScreen')}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>My Why / Purpose</Text>
+            <Text style={styles.desc}>View, edit, or reflect on your personal Why statement</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
       {/* Reward Messages */}
       <Card style={styles.card} onPress={() => navigation.navigate('ManageRewardMessages')}>
         <View style={styles.navRow}>
