@@ -14,7 +14,10 @@ export const WHY_DISCOVERY_STAGES: WhyDiscoveryStage[] = [
   { id: 2, label: 'Your Starting Point', subtitle: 'One honest question', skippable: true },
   { id: 3, label: 'Drilling Deeper', subtitle: 'Finding the root', skippable: true },
   { id: 4, label: 'Your Why', subtitle: 'Craft your purpose statement', skippable: true },
-  { id: 5, label: 'Reward Messages', subtitle: 'Pick what motivates you', skippable: false },
+  { id: 5, label: 'Your First Goal', subtitle: 'Put your Why into action', skippable: true },
+  { id: 6, label: 'Your First Challenge', subtitle: 'One act of willpower', skippable: true },
+  { id: 7, label: 'Your First Habit', subtitle: 'Build consistency', skippable: true },
+  { id: 8, label: 'Reward Messages', subtitle: 'Pick what motivates you', skippable: false },
 ];
 
 // ============================================================================
@@ -124,4 +127,29 @@ export const WHY_REFLECTION_PROMPTS = [
   'If you told a stranger your Why, would they understand what drives you?',
   'What would it look like to live your Why more fully next week?',
   'What\u2019s one thing you did this week that you\u2019re proud of? How does it connect?',
+];
+
+// ============================================================================
+// STAGES 5-7: GOAL / CHALLENGE / HABIT CREATION (ONBOARDING)
+// ============================================================================
+
+export const GOAL_INTRO_TEXT = `Now let\u2019s put your Why into action.\n\nA goal is the big thing you\u2019re working toward \u2014 everything else (challenges and habits) exists to serve it. Pick something meaningful, give it a deadline, and we\u2019ll help you build the system to get there.`;
+
+export const CHALLENGE_INTRO_TEXT = `A challenge is a single act of willpower \u2014 something uncomfortable you commit to doing today.\n\nCold shower, no phone for an hour, talk to a stranger. You rate the difficulty (1\u20135) and earn more points for harder ones. Challenges are how you prove to yourself that you can do hard things.`;
+
+export const HABIT_INTRO_TEXT = `A habit is something you want to do regularly \u2014 exercise, meditate, read, eat clean.\n\nYou set a weekly target and track your consistency over time. Streaks build when you hit your target week after week. Habits are the compound interest of willpower.`;
+
+export const GOAL_END_DATE_PRESETS = [30, 60, 90]; // days from today
+
+export interface GoalCategoryOption {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
+export const GOAL_CATEGORIES: GoalCategoryOption[] = [
+  { id: 'Physical', name: 'Physical', color: '#217180', icon: 'fitness' },
+  { id: 'Social', name: 'Social', color: '#FF5B02', icon: 'chatbubbles' },
+  { id: 'Mind', name: 'Mind', color: '#7B1FA2', icon: 'bulb-outline' },
 ];

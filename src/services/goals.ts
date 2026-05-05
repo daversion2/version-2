@@ -62,6 +62,7 @@ export const getGoalById = async (
  */
 interface GoalCBTFields {
   deeper_why?: string;
+  why_connection?: string;
   confidence_baseline?: number;
   negative_story?: string;
   past_attempt_story?: string;
@@ -111,7 +112,7 @@ export const createGoal = async (
 
   // Add CBT fields if present
   const cbtKeys: (keyof GoalCBTFields)[] = [
-    'deeper_why', 'confidence_baseline', 'negative_story', 'past_attempt_story',
+    'deeper_why', 'why_connection', 'confidence_baseline', 'negative_story', 'past_attempt_story',
     'inner_voice_challenge', 'inner_voice_response', 'good_week_description',
     'minimum_action', 'bonus_actions', 'triggers', 'trigger_substitutes',
     'environment_changes', 'recovery_plan', 'identity_statement', 'support_person',
