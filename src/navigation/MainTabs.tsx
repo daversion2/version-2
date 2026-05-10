@@ -2,15 +2,12 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
-import { ChallengesStack } from './ChallengesStack';
-import { ProgressStack } from './ProgressStack';
-import { CommunityStack } from './CommunityStack';
+import { GoalsStack } from './GoalsStack';
 import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
 import { AdminStack } from './AdminStack';
 import { useAuth } from '../context/AuthContext';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
-import { SHOW_COMMUNITY } from '../constants/featureFlags';
 
 const Tab = createBottomTabNavigator();
 
@@ -24,14 +21,10 @@ export const MainTabs: React.FC = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Challenges')
-            iconName = focused ? 'trophy' : 'trophy-outline';
+          else if (route.name === 'Goals')
+            iconName = focused ? 'flag' : 'flag-outline';
           else if (route.name === 'Worksheets')
             iconName = focused ? 'clipboard' : 'clipboard-outline';
-          else if (route.name === 'Community')
-            iconName = focused ? 'people' : 'people-outline';
-          else if (route.name === 'Progress')
-            iconName = focused ? 'bar-chart' : 'bar-chart-outline';
           else if (route.name === 'Settings')
             iconName = focused ? 'settings' : 'settings-outline';
           else if (route.name === 'Admin')
@@ -52,12 +45,8 @@ export const MainTabs: React.FC = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Challenges" component={ChallengesStack} />
+      <Tab.Screen name="Goals" component={GoalsStack} />
       <Tab.Screen name="Worksheets" component={WorksheetsStack} />
-      {SHOW_COMMUNITY && (
-        <Tab.Screen name="Community" component={CommunityStack} />
-      )}
-      <Tab.Screen name="Progress" component={ProgressStack} />
       <Tab.Screen
         name="Settings"
         component={SettingsStack}

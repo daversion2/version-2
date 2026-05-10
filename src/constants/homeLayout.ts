@@ -7,13 +7,12 @@ export const SECTION_IDS = [
   // Zone 2: Your Goals + Today's Actions
   'todays_plan',
   'goal_actions',
-  // Zone 3: Momentum
   'sprints',
-  // Zone 4: Reflect & Learn
-  'identity_summary',
+  // Zone 3: Reflect
   'reflection_banner',
   'fun_fact',
   // Legacy (kept for backward compat with custom layouts)
+  'identity_summary',
   'goals',
   'willpower_summary',
   'daily_challenges',
@@ -28,6 +27,7 @@ export type HomeSectionId = (typeof SECTION_IDS)[number];
 
 const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
   // Legacy sections hidden from default layout
+  'identity_summary',
   'goals',
   'willpower_summary',
   'daily_challenges',
@@ -59,28 +59,22 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
   },
   {
     id: 'goals_actions',
-    label: "Your Goals + Today's Actions",
+    label: "Today's Actions",
     icon: 'flag-outline',
-    sectionIds: ['todays_plan', 'goal_actions'],
+    sectionIds: ['todays_plan', 'goal_actions', 'sprints'],
   },
   {
-    id: 'momentum',
-    label: 'Momentum',
-    icon: 'flash-outline',
-    sectionIds: ['sprints'],
-  },
-  {
-    id: 'reflect_learn',
-    label: 'Reflect & Learn',
-    icon: 'sparkles-outline',
-    sectionIds: ['identity_summary', 'reflection_banner', 'fun_fact'],
+    id: 'reflect',
+    label: 'Reflect',
+    icon: 'moon-outline',
+    sectionIds: ['reflection_banner', 'fun_fact'],
   },
   // Legacy zone for backward compat with custom layouts
   {
     id: 'legacy',
     label: 'More',
     icon: 'grid-outline',
-    sectionIds: ['goals', 'willpower_summary', 'daily_challenges', 'habits', 'programs', 'extended_challenges', 'buddy_invites', 'team_activity'],
+    sectionIds: ['identity_summary', 'goals', 'willpower_summary', 'daily_challenges', 'habits', 'programs', 'extended_challenges', 'buddy_invites', 'team_activity'],
   },
 ];
 

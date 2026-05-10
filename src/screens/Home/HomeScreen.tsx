@@ -613,7 +613,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
       if (screen === '__progressTab') {
-        navigation.getParent()?.navigate('Progress');
+        navigation.getParent()?.navigate('Goals');
         return;
       }
       navigation.navigate(screen as any, params);

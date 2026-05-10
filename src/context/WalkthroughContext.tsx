@@ -63,10 +63,10 @@ export const WalkthroughProvider: React.FC<{
         (nav as any).navigate('Home', { screen: 'ManageHabits' });
         break;
       case 'Challenges':
-        (nav as any).navigate('Challenges');
+        (nav as any).navigate('Goals');
         break;
       case 'Progress':
-        (nav as any).navigate('Progress');
+        (nav as any).navigate('Goals', { screen: 'OverallProgress' });
         break;
       case 'Settings':
         (nav as any).navigate('Settings');

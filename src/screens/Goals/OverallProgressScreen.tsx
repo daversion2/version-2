@@ -1,0 +1,516 @@
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { Calendar, DateData } from 'react-native-calendars';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Card } from '../../components/common/Card';
+import { useAuth } from '../../context/AuthContext';
+import {
+  calculateWPQ,
+  calculateStreak,
+  getTotalPoints,
+  getCompletionLogs,
+  getCategoryBreakdown,
+  CategoryStat,
+} from '../../services/progress';
+import { getChallengesByActionType } from '../../services/challenges';
+import { ACTION_CATEGORIES } from '../../constants/challengeLibrary';
+import { ActionType, Goal, GoalFollowThrough } from '../../types';
+import { getWillpowerStats, getSuckFactorTier } from '../../services/willpower';
+import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
+import { ReflectionSummaryCard } from '../../components/progress/ReflectionSummaryCard';
+import { getReflections, getReflectionStats } from '../../services/reflections';
+import { ReflectionGrade, ReflectionStats as ReflectionStatsType } from '../../types';
+import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
+
+const TIME_FILTERS = ['Today', '7 Days', '30 Days', 'All Time'] as const;
+
+interface GoalHealth {
+  id: string;
+  name: string;
+  followThroughRate: number;
+}
+
+const getHealthColor = (rate: number): string => {
+  if (rate >= 0.7) return Colors.success;
+  if (rate >= 0.5) return '#F5A623';
+  return Colors.secondary;
+};
+
+const getHealthLabel = (rate: number): string => {
+  if (rate >= 0.7) return 'On track';
+  if (rate >= 0.5) return 'At risk';
+  return 'Falling behind';
+};
+
+export const OverallProgressScreen: React.FC = () => {
+  const { user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const [wpq, setWpq] = useState(0);
+  const [filter, setFilter] = useState<(typeof TIME_FILTERS)[number]>('7 Days');
+  const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [categoryData, setCategoryData] = useState<CategoryStat[]>([]);
+  const [actionTypeCounts, setActionTypeCounts] = useState<Record<ActionType, number>>({
+    'complete': 0,
+    'resist': 0,
+  });
+
+  // Willpower Bank state
+  const [willpowerStats, setWillpowerStats] = useState({
+    totalPoints: 0,
+    currentStreak: 0,
+    multiplier: 1,
+    level: 1,
+    title: 'Beginner Mind',
+    progressToNextLevel: 0,
+    pointsToNextLevel: 50 as number | null,
+  });
+
+  // Reflection state
+  const [reflectionStats, setReflectionStats] = useState<ReflectionStatsType | null>(null);
+  const [mostRecentGrade, setMostRecentGrade] = useState<ReflectionGrade | null>(null);
+
+  // Suck Factor state
+  const [suckFactor, setSuckFactor] = useState({
+    tier: 'Comfort Zone',
+    description: 'Starting with manageable challenges',
+  });
+
+  // Goals health state
+  const [goalsHealth, setGoalsHealth] = useState<GoalHealth[]>([]);
+
+  const getStartDate = (f: string) => {
+    const d = new Date();
+    if (f === 'Today') return d.toISOString().split('T')[0];
+    if (f === '7 Days') {
+      d.setDate(d.getDate() - 7);
+      return d.toISOString().split('T')[0];
+    }
+    if (f === '30 Days') {
+      d.setDate(d.getDate() - 30);
+      return d.toISOString().split('T')[0];
+    }
+    return undefined;
+  };
+
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    const [w, s, allLogs, wpStats, activeGoals] = await Promise.all([
+      calculateWPQ(user.uid),
+      calculateStreak(user.uid),
+      getCompletionLogs(user.uid),
+      getWillpowerStats(user.uid),
+      getActiveGoals(user.uid),
+    ]);
+    setWpq(w);
+    setWillpowerStats(wpStats);
+    setSuckFactor(getSuckFactorTier(w));
+
+    // Points and category breakdown for selected filter
+    const start = getStartDate(filter);
+    const [cats, actionTypes] = await Promise.all([
+      getCategoryBreakdown(user.uid, start),
+      getChallengesByActionType(user.uid, start),
+    ]);
+    setCategoryData(cats);
+    setActionTypeCounts(actionTypes);
+
+    // Load reflection stats (30-day average)
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const rStats = await getReflectionStats(user.uid, thirtyDaysAgo.toISOString().split('T')[0]);
+      setReflectionStats(rStats);
+
+      const recentReflections = await getReflections(user.uid);
+      if (recentReflections.length > 0) {
+        setMostRecentGrade(recentReflections[0].grade);
+      }
+    } catch (err) {
+      console.warn('Reflection stats failed:', err);
+    }
+
+    // Goals health
+    const health = await Promise.all(
+      activeGoals.map(async (g) => {
+        const ft = await computeGoalFollowThrough(user.uid, g.id);
+        return {
+          id: g.id,
+          name: g.name,
+          followThroughRate: ft.followThroughRate,
+        };
+      })
+    );
+    setGoalsHealth(health);
+
+    // Mark calendar
+    const marks: Record<string, any> = {};
+    allLogs.forEach((log) => {
+      marks[log.date] = {
+        marked: true,
+        dotColor: Colors.secondary,
+      };
+    });
+    setMarkedDates(marks);
+  }, [user, filter]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const onDayPress = (day: DateData) => {
+    setSelectedDay(day.dateString);
+    navigation.navigate('DayDetail', { date: day.dateString });
+  };
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      {/* Willpower Bank Card */}
+      <Card style={styles.willpowerCard}>
+        <Text style={styles.levelLabel}>Level {willpowerStats.level}</Text>
+        <Text style={styles.titleValue}>{willpowerStats.title}</Text>
+        <Text style={styles.pointsLabel}>
+          {willpowerStats.totalPoints} Willpower Points
+        </Text>
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${willpowerStats.progressToNextLevel * 100}%` },
+              ]}
+            />
+          </View>
+          {willpowerStats.pointsToNextLevel !== null && (
+            <Text style={styles.progressText}>
+              {willpowerStats.pointsToNextLevel} pts to next level
+            </Text>
+          )}
+        </View>
+      </Card>
+
+      {/* Stats Row */}
+      <View style={styles.statsRow}>
+        <Card style={styles.statCard}>
+          <Text style={styles.statValue}>{willpowerStats.currentStreak}</Text>
+          <Text style={styles.statLabel}>Day Streak</Text>
+          {willpowerStats.multiplier > 1 && (
+            <Text style={styles.multiplierBadge}>
+              {willpowerStats.multiplier}x bonus
+            </Text>
+          )}
+        </Card>
+        <Card style={styles.statCard}>
+          <Text style={styles.statValue}>{wpq.toFixed(1)}</Text>
+          <Text style={styles.statLabel}>Suck Factor</Text>
+          <Text style={styles.suckFactorTier}>{suckFactor.tier}</Text>
+        </Card>
+      </View>
+
+      {/* Goals Health Overview */}
+      {goalsHealth.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Goals Health</Text>
+          <Card>
+            {goalsHealth.map((g, idx) => {
+              const pct = Math.round(g.followThroughRate * 100);
+              const color = getHealthColor(g.followThroughRate);
+              const label = getHealthLabel(g.followThroughRate);
+              return (
+                <TouchableOpacity
+                  key={g.id}
+                  style={[
+                    styles.goalHealthRow,
+                    idx < goalsHealth.length - 1 && styles.goalHealthBorder,
+                  ]}
+                  onPress={() => navigation.navigate('GoalDashboard', { goalId: g.id })}
+                >
+                  <View style={styles.goalHealthInfo}>
+                    <Text style={styles.goalHealthName} numberOfLines={1}>{g.name}</Text>
+                    <View style={styles.goalHealthStatusRow}>
+                      <View style={[styles.statusDot, { backgroundColor: color }]} />
+                      <Text style={[styles.goalHealthStatus, { color }]}>{label}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.goalHealthPct, { color }]}>{pct}%</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </Card>
+        </>
+      )}
+
+      {/* Reflection Summary */}
+      <ReflectionSummaryCard
+        mostRecentGrade={mostRecentGrade}
+        averageGradeLetter={reflectionStats?.totalReflections ? reflectionStats.averageGradeLetter : null}
+        journalingStreak={reflectionStats?.currentStreak ?? 0}
+        onPress={() => navigation.navigate('ReflectionDetail')}
+      />
+
+      {/* Time Filter */}
+      <View style={styles.filterRow}>
+        {TIME_FILTERS.map((f) => (
+          <TouchableOpacity
+            key={f}
+            onPress={() => setFilter(f)}
+            style={[styles.filterChip, filter === f && styles.filterActive]}
+          >
+            <Text
+              style={[styles.filterText, filter === f && styles.filterActiveText]}
+            >
+              {f}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Category Breakdown */}
+      <CategoryBarChart data={categoryData} />
+
+      {/* Action Type Breakdown (Start/Stop) */}
+      {Object.values(actionTypeCounts).some(count => count > 0) && (
+        <>
+          <Text style={styles.sectionTitle}>Challenges by Type</Text>
+          <Card style={styles.actionTypeCard}>
+            {Object.entries(actionTypeCounts)
+              .filter(([_, count]) => count > 0)
+              .sort(([, a], [, b]) => b - a)
+              .map(([type, count]) => {
+                const categoryKey = type === 'complete' ? 'start' : 'stop';
+                const actionConfig = ACTION_CATEGORIES[categoryKey];
+                if (!actionConfig) return null;
+                return (
+                  <View key={type} style={styles.actionTypeRow}>
+                    <View style={styles.actionTypeInfo}>
+                      <Text style={styles.actionTypeIcon}>{actionConfig.icon}</Text>
+                      <Text style={styles.actionTypeName}>{actionConfig.name}</Text>
+                    </View>
+                    <View style={[styles.actionTypeCountBadge, { backgroundColor: actionConfig.color }]}>
+                      <Text style={[styles.actionTypeCount, { color: actionConfig.accentColor }]}>{count}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+          </Card>
+        </>
+      )}
+
+      {/* Calendar */}
+      <Text style={styles.sectionTitle}>Activity Calendar</Text>
+      <Calendar
+        markedDates={{
+          ...markedDates,
+          ...(selectedDay
+            ? {
+                [selectedDay]: {
+                  ...markedDates[selectedDay],
+                  selected: true,
+                  selectedColor: Colors.primary,
+                },
+              }
+            : {}),
+        }}
+        onDayPress={onDayPress}
+        theme={{
+          todayTextColor: Colors.secondary,
+          arrowColor: Colors.primary,
+          textDayFontFamily: Fonts.secondary,
+          textMonthFontFamily: Fonts.primaryBold,
+          textDayHeaderFontFamily: Fonts.secondary,
+        }}
+        style={styles.calendar}
+      />
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: Colors.lightGray },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  willpowerCard: {
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  levelLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.white,
+    opacity: 0.8,
+  },
+  titleValue: {
+    fontFamily: Fonts.accent,
+    fontSize: FontSizes.xxl,
+    color: Colors.white,
+    marginTop: Spacing.xs,
+  },
+  pointsLabel: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.white,
+    marginTop: Spacing.sm,
+  },
+  progressContainer: {
+    width: '100%',
+    marginTop: Spacing.md,
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.secondary,
+    borderRadius: 4,
+  },
+  progressText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.white,
+    opacity: 0.8,
+    marginTop: Spacing.xs,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  statCard: { flex: 1, alignItems: 'center' },
+  statValue: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xxl,
+    color: Colors.primary,
+  },
+  statLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+  },
+  multiplierBadge: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
+    marginTop: Spacing.xs,
+  },
+  suckFactorTier: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    textAlign: 'center',
+  },
+  sectionTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  goalHealthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+  },
+  goalHealthBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  goalHealthInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  goalHealthName: {
+    fontFamily: Fonts.primary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+  },
+  goalHealthStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  goalHealthStatus: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+  },
+  goalHealthPct: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    marginLeft: Spacing.md,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  filterChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  filterActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  filterActiveText: { color: Colors.white },
+  calendar: {
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+  },
+  actionTypeCard: {
+    marginBottom: Spacing.lg,
+  },
+  actionTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  actionTypeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  actionTypeIcon: {
+    fontSize: 20,
+  },
+  actionTypeName: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  actionTypeCountBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+  },
+  actionTypeCount: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+  },
+});

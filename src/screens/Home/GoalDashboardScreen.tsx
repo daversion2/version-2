@@ -72,6 +72,8 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [loading, setLoading] = useState(true);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
+  const [showAllPastChallenges, setShowAllPastChallenges] = useState(false);
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [microGoals, setMicroGoals] = useState<MicroGoal[]>([]);
   const [programEnrollments, setProgramEnrollments] = useState<ProgramEnrollment[]>([]);
@@ -93,7 +95,12 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         setGoal(goalData);
         navigation.setOptions({ title: goalData.name });
       }
-      setChallenges(items.challenges);
+      const activeChallenges = items.challenges.filter(c => c.status === 'active');
+      const completedChallenges = items.challenges.filter(c =>
+        c.status === 'completed' || c.status === 'failed'
+      );
+      setChallenges(activeChallenges);
+      setPastChallenges(completedChallenges);
       setHabits(items.habits);
       setMicroGoals(items.microGoals);
       setProgramEnrollments(items.programEnrollments);
@@ -128,7 +135,7 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const totalTaggedItems = challenges.length + habits.length + microGoals.length + programEnrollments.length;
+  const totalTaggedItems = challenges.length + pastChallenges.length + habits.length + microGoals.length + programEnrollments.length;
 
   const handleComplete = () => {
     Alert.alert(
@@ -209,8 +216,9 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const ftPct = followThrough ? Math.round(followThrough.followThroughRate * 100) : 0;
 
   // Compute per-item breakdown
-  const challengesCompleted = challenges.filter(c => c.status === 'completed').length;
-  const challengesTotal = challenges.length;
+  const allChallenges = [...challenges, ...pastChallenges];
+  const challengesCompleted = allChallenges.filter(c => c.status === 'completed').length;
+  const challengesTotal = allChallenges.length;
   const habitsWeekKept = followThrough?.currentWeekKept ?? 0;
   const habitsWeekTarget = followThrough?.currentWeekCommitments ?? 0;
 
@@ -429,6 +437,68 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
             </Card>
           ))}
+        </>
+      )}
+
+      {/* Challenge History */}
+      {pastChallenges.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Challenge History</Text>
+          <Card style={styles.historyStatsCard}>
+            <View style={styles.historyStatsRow}>
+              <View style={styles.historyStatItem}>
+                <Text style={styles.historyStatValue}>
+                  {pastChallenges.filter(c => c.status === 'completed').length}
+                </Text>
+                <Text style={styles.historyStatLabel}>Completed</Text>
+              </View>
+              <View style={styles.historyStatDivider} />
+              <View style={styles.historyStatItem}>
+                <Text style={styles.historyStatValue}>
+                  {pastChallenges.length > 0
+                    ? Math.round(
+                        (pastChallenges.filter(c => c.status === 'completed').length /
+                          pastChallenges.length) *
+                          100
+                      )
+                    : 0}%
+                </Text>
+                <Text style={styles.historyStatLabel}>Success Rate</Text>
+              </View>
+            </View>
+          </Card>
+          {(showAllPastChallenges ? pastChallenges : pastChallenges.slice(0, 5)).map(c => (
+            <Card
+              key={c.id}
+              style={styles.itemCard}
+              onPress={() => navigation.navigate('ChallengeDetail', { challengeId: c.id })}
+            >
+              <View style={styles.itemRow}>
+                <Ionicons
+                  name={c.status === 'completed' ? 'checkmark-circle' : 'close-circle'}
+                  size={20}
+                  color={c.status === 'completed' ? Colors.success : Colors.gray}
+                />
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName} numberOfLines={1}>{c.name}</Text>
+                  <Text style={styles.itemMeta}>
+                    {c.status} {c.completed_at ? `· ${formatDate(c.completed_at.split('T')[0])}` : ''}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.border} />
+              </View>
+            </Card>
+          ))}
+          {pastChallenges.length > 5 && !showAllPastChallenges && (
+            <TouchableOpacity
+              style={styles.seeAllLink}
+              onPress={() => setShowAllPastChallenges(true)}
+            >
+              <Text style={styles.seeAllText}>
+                See all {pastChallenges.length} challenges
+              </Text>
+            </TouchableOpacity>
+          )}
         </>
       )}
 
@@ -810,6 +880,42 @@ const styles = StyleSheet.create({
   editLinkText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
+    color: Colors.primary,
+  },
+  historyStatsCard: {
+    marginBottom: Spacing.sm,
+  },
+  historyStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  historyStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: Colors.lightGray,
+  },
+  historyStatValue: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xl,
+    color: Colors.primary,
+  },
+  historyStatLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 2,
+  },
+  seeAllLink: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  seeAllText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
     color: Colors.primary,
   },
 });
