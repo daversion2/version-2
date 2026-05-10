@@ -58,6 +58,9 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation }) => {
         description: c.description,
         success_criteria: c.success_criteria,
         why: c.why,
+        goal_ids: c.goal_ids,
+        challenge_type: c.challenge_type,
+        ...(c.challenge_type === 'extended' && c.duration_days ? { duration_days: c.duration_days } : {}),
       });
       navigation.popToTop();
     } catch (e: any) {

@@ -92,9 +92,11 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [showMessagePrompt, setShowMessagePrompt] = useState(false);
   const [completionMessage, setCompletionMessage] = useState('');
 
-  // Goal context for the banner
+  // Goal context for the banner + CBT data
   const [goalContext, setGoalContext] = useState<{ name: string; ft: GoalFollowThrough } | null>(null);
+  const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
   const [promptsExpanded, setPromptsExpanded] = useState(false);
+  const [selectedTrigger, setSelectedTrigger] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !challenge.goal_ids?.length) return;
@@ -105,7 +107,10 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           getGoalById(user.uid, goalId),
           computeGoalFollowThrough(user.uid, goalId),
         ]);
-        if (goal) setGoalContext({ name: goal.name, ft });
+        if (goal) {
+          setGoalContext({ name: goal.name, ft });
+          setGoalCBT(goal);
+        }
       } catch (err) {
         console.warn('Failed to load goal context:', err);
       }
@@ -365,7 +370,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         console.warn('Failed to fetch reward message:', err);
       }
 
-      // Compute narrative line — goal-centric framing
+      // Compute narrative line — goal-centric framing + CBT identity/inner voice
       let narrativeText = '';
       let totalCount = 0;
       try {
@@ -382,6 +387,15 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           narrativeText = streakDays >= 7
             ? `Day ${streakDays} of doing hard things.`
             : `Challenge ${totalCount}. Still here.`;
+        }
+
+        // 2A: Identity statement on milestone completions
+        if (repeatMilestone && goalCBT?.identity_statement) {
+          narrativeText = `You said you're becoming "${goalCBT.identity_statement}." Today is evidence.`;
+        }
+        // 2B: Inner voice victory on hard challenges (difficulty >= 4)
+        else if (result === 'completed' && difficulty >= 4 && goalCBT?.inner_voice_challenge) {
+          narrativeText = `Your inner voice said: "${goalCBT.inner_voice_challenge}." You did it anyway.`;
         }
       } catch (err) {
         console.warn('Failed to compute narrative line:', err);
@@ -522,18 +536,114 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         onChange={setDifficulty}
       />
 
-      {/* Failure Reflection - shown only when result is 'failed' */}
+      {/* Failure Reflection - CBT-enhanced with inner voice, recovery plan, triggers */}
       {result === 'failed' && (
         <View style={styles.failureReflectionSection}>
+          {/* Inner Voice Pair — core CBT cognitive restructuring */}
+          {goalCBT?.inner_voice_challenge && goalCBT?.inner_voice_response && (
+            <Card style={styles.cbtCard}>
+              <View style={styles.cbtCardHeader}>
+                <Ionicons name="chatbubbles-outline" size={18} color={Colors.primary} />
+                <Text style={styles.cbtCardTitle}>Your Inner Voice</Text>
+              </View>
+              <Text style={styles.cbtQuoteText}>
+                Your inner voice predicted: "{goalCBT.inner_voice_challenge}"
+              </Text>
+              <Text style={styles.cbtResponseText}>
+                You already have the answer: "{goalCBT.inner_voice_response}"
+              </Text>
+            </Card>
+          )}
+
+          {/* Recovery Plan — relapse prevention */}
+          {goalCBT?.recovery_plan && (
+            <Card style={styles.cbtCard}>
+              <View style={styles.cbtCardHeader}>
+                <Ionicons name="refresh-outline" size={18} color={Colors.secondary} />
+                <Text style={styles.cbtCardTitle}>Your Recovery Plan</Text>
+              </View>
+              <Text style={styles.cbtFramingText}>
+                Missing a day is data, not failure. You planned for this:
+              </Text>
+              <Text style={styles.cbtPlanText}>"{goalCBT.recovery_plan}"</Text>
+            </Card>
+          )}
+
+          {/* Minimum Action reminder */}
+          {goalCBT?.minimum_action && (
+            <Card style={styles.cbtMinActionCard}>
+              <Text style={styles.cbtMinActionLabel}>Your worst-day win:</Text>
+              <Text style={styles.cbtMinActionText}>"{goalCBT.minimum_action}"</Text>
+              <Text style={styles.cbtMinActionCta}>Can you do just that today?</Text>
+            </Card>
+          )}
+
+          {/* Trigger Identification — replaces generic "What got in the way?" */}
           <Text style={styles.sectionLabel}>What got in the way?</Text>
-          <Text style={styles.reflectionSubtext}>
-            Understanding obstacles helps you overcome them next time.
-          </Text>
+          {goalCBT?.triggers && goalCBT.triggers.length > 0 ? (
+            <>
+              <Text style={styles.reflectionSubtext}>
+                Was it one of your known triggers?
+              </Text>
+              <View style={styles.triggerChipsRow}>
+                {goalCBT.triggers.map((trigger, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.triggerChip,
+                      selectedTrigger === trigger && styles.triggerChipSelected,
+                    ]}
+                    onPress={() => setSelectedTrigger(selectedTrigger === trigger ? null : trigger)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.triggerChipText,
+                      selectedTrigger === trigger && styles.triggerChipTextSelected,
+                    ]}>
+                      {trigger}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[
+                    styles.triggerChip,
+                    selectedTrigger === '__other' && styles.triggerChipSelected,
+                  ]}
+                  onPress={() => setSelectedTrigger(selectedTrigger === '__other' ? null : '__other')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.triggerChipText,
+                    selectedTrigger === '__other' && styles.triggerChipTextSelected,
+                  ]}>
+                    Something else
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Show the user's planned substitute for the selected trigger */}
+              {selectedTrigger && selectedTrigger !== '__other' && goalCBT.trigger_substitutes && (
+                <View style={styles.substituteHint}>
+                  <Ionicons name="bulb-outline" size={14} color={Colors.primary} />
+                  <Text style={styles.substituteHintText}>
+                    Your planned response: "{goalCBT.trigger_substitutes[goalCBT.triggers.indexOf(selectedTrigger)] || goalCBT.trigger_substitutes[0]}"
+                  </Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <Text style={styles.reflectionSubtext}>
+              Understanding obstacles helps you overcome them next time.
+            </Text>
+          )}
+
           <InputField
             label=""
             value={failureReflection}
             onChangeText={setFailureReflection}
-            placeholder="I got distracted by..."
+            placeholder={selectedTrigger && selectedTrigger !== '__other'
+              ? "What happened? Did your planned response work?"
+              : "I got distracted by..."}
             multiline
             numberOfLines={4}
             style={styles.journalInput}
@@ -1025,6 +1135,124 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.sm,
     marginBottom: Spacing.md,
+  },
+  // CBT failure flow styles
+  cbtCard: {
+    backgroundColor: Colors.primary + '08',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    marginBottom: Spacing.md,
+  },
+  cbtCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  cbtCardTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  cbtQuoteText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    fontStyle: 'italic',
+    lineHeight: 20,
+    marginBottom: Spacing.xs,
+  },
+  cbtResponseText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    lineHeight: 20,
+  },
+  cbtFramingText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 20,
+    marginBottom: Spacing.xs,
+  },
+  cbtPlanText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  cbtMinActionCard: {
+    backgroundColor: Colors.secondary + '10',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.secondary,
+    marginBottom: Spacing.lg,
+    alignItems: 'center',
+  },
+  cbtMinActionLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: Spacing.xs,
+  },
+  cbtMinActionText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  cbtMinActionCta: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
+  },
+  triggerChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  triggerChip: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  triggerChipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '15',
+  },
+  triggerChipText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+  },
+  triggerChipTextSelected: {
+    color: Colors.primary,
+    fontFamily: Fonts.secondaryBold,
+  },
+  substituteHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary + '08',
+    padding: Spacing.md,
+    borderRadius: 8,
+    marginBottom: Spacing.md,
+  },
+  substituteHintText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontStyle: 'italic',
+    lineHeight: 20,
   },
   // Goal context banner
   goalContextBanner: {

@@ -14,8 +14,9 @@ import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { useAuth } from '../../context/AuthContext';
-import { DailySummary, ReflectionGrade, DailyReflection } from '../../types';
+import { DailySummary, ReflectionGrade, DailyReflection, Goal } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
+import { getActiveGoals } from '../../services/goals';
 import { showAlert } from '../../utils/alert';
 import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
 
@@ -35,6 +36,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [hardest, setHardest] = useState('');
   const [tomorrow, setTomorrow] = useState('');
   const [whyReflection, setWhyReflection] = useState('');
+  const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -51,11 +53,18 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     setLoading(true);
     try {
-      const [dailySummary, existing] = await Promise.all([
+      const [dailySummary, existing, activeGoals] = await Promise.all([
         buildDailySummary(user.uid, todayStr),
         getReflection(user.uid, todayStr),
+        getActiveGoals(user.uid),
       ]);
       setSummary(dailySummary);
+
+      // Load first goal with CBT data for self-compassion prompts
+      const cbtGoal = activeGoals.find(
+        (g) => g.recovery_plan || g.identity_statement || g.inner_voice_response
+      );
+      if (cbtGoal) setGoalCBT(cbtGoal);
 
       if (existing) {
         setExistingReflection(existing);
@@ -145,6 +154,28 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         value={grade}
         onChange={isReadOnly ? () => {} : setGrade}
       />
+
+      {/* Self-Compassion Prompt — shown on low-grade days (D or F) */}
+      {grade && (grade === 'D' || grade === 'F') && !isReadOnly && (
+        <View style={styles.selfCompassionBanner}>
+          <Ionicons name="heart-outline" size={18} color={Colors.secondary} />
+          <View style={styles.selfCompassionContent}>
+            <Text style={styles.selfCompassionText}>
+              What would you say to a friend who had this day?
+            </Text>
+            {goalCBT?.recovery_plan && (
+              <Text style={styles.selfCompassionPlan}>
+                Your plan for days like this: "{goalCBT.recovery_plan}"
+              </Text>
+            )}
+            {goalCBT?.minimum_action && (
+              <Text style={styles.selfCompassionMinAction}>
+                Tomorrow's worst-day win: "{goalCBT.minimum_action}"
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Prompts */}
       <View style={styles.promptSection}>
@@ -332,5 +363,43 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.primary,
     flex: 1,
+  },
+  // Self-compassion styles
+  selfCompassionBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: Colors.secondary + '10',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.secondary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    marginBottom: Spacing.lg,
+  },
+  selfCompassionContent: {
+    flex: 1,
+  },
+  selfCompassionText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 20,
+    marginBottom: Spacing.xs,
+  },
+  selfCompassionPlan: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    fontStyle: 'italic',
+    lineHeight: 20,
+    marginTop: Spacing.xs,
+  },
+  selfCompassionMinAction: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
+    lineHeight: 20,
+    marginTop: Spacing.xs,
   },
 });

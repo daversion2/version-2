@@ -95,6 +95,20 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     context_value: 'new_user',
     tags: ['self-efficacy', 'first completion', 'mastery experience'],
   },
+  {
+    text: "Around this point, your brain fights back. Old urges may feel stronger than before. This is called an extinction burst — it's actually a sign the new pattern is taking hold.",
+    extended_text: "When you change a behavior, the neural circuits that supported the old pattern don't disappear immediately. Instead, they temporarily fire more intensely — a phenomenon called an 'extinction burst.' Your brain is essentially testing whether the old behavior still works. This spike in cravings or resistance typically peaks around days 5-10 of a new behavior and then subsides. Most people who quit during this window interpret the intensification as evidence they can't change. In reality, it's the opposite: the extinction burst only happens because the new pattern is genuinely disrupting the old one.",
+    context_type: 'state',
+    context_value: 'extinction_burst',
+    tags: ['extinction burst', 'behavioral neuroscience', 'habit formation', 'resistance'],
+  },
+  {
+    text: "The resistance you're feeling right now is your old neural pathways making their last stand. In behavioral science, this is the moment most people quit — and exactly the moment that matters most.",
+    extended_text: "Extinction bursts are well-documented in behavioral neuroscience. When a reinforced behavior stops being rewarded, the behavior temporarily increases in frequency and intensity before fading. Your basal ganglia — the brain region responsible for automatic behaviors — is essentially 'protesting' the change. This is why days 5-10 often feel harder than day 1: you've disrupted the pattern enough for your brain to notice, but not long enough for the new pattern to feel natural. Push through this window, and the old pathway begins to weaken permanently.",
+    context_type: 'state',
+    context_value: 'extinction_burst',
+    tags: ['extinction burst', 'basal ganglia', 'resistance', 'persistence'],
+  },
 
   // ============================================================================
   // GENERIC — broadly relevant to completing hard things

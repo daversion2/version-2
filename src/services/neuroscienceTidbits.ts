@@ -146,6 +146,11 @@ export const buildTidbitContext = (
   if (state.streakDays === 30) states.push('streak_30');
   if (state.repeatMilestone) states.push('repeat_milestone');
 
+  // Extinction burst window: days 5-10 of a streak, or difficulty spike
+  if (state.streakDays >= 5 && state.streakDays <= 10) {
+    states.push('extinction_burst');
+  }
+
   return { challengeType, category, states };
 };
 

@@ -39,6 +39,7 @@ import { FunFactModal } from '../../components/home/FunFactModal';
 import { getTodaysFunFact } from '../../services/funFacts';
 import { FunFact } from '../../types';
 import { CleanSweepPopup } from '../../components/home/CleanSweepPopup';
+import { ComebackModal } from '../../components/home/ComebackModal';
 import { getTodaysMicroGoals, createMicroGoal, completeMicroGoal, deleteMicroGoal } from '../../services/microGoals';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
@@ -98,6 +99,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
   const [goalFollowThrough, setGoalFollowThrough] = useState<Record<string, GoalFollowThrough>>({});
+  const [comebackVisible, setComebackVisible] = useState(false);
+  const [comebackGoal, setComebackGoal] = useState<Goal | null>(null);
+  const comebackShownRef = useRef(false);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -152,6 +156,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setFunFact(todaysFact);
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
+
+      // Detect streak break and show comeback modal (once per session)
+      if (!comebackShownRef.current && wpStats.currentStreak === 0 && activeGoals.length > 0) {
+        // Find the first goal with CBT data to surface
+        const comebackCandidate = activeGoals.find(
+          (g) => g.recovery_plan || g.minimum_action || (g.inner_voice_challenge && g.inner_voice_response)
+        );
+        if (comebackCandidate) {
+          comebackShownRef.current = true;
+          setComebackGoal(comebackCandidate);
+          setComebackVisible(true);
+        }
+      }
 
       // Compute follow-through for each goal
       if (activeGoals.length > 0) {
@@ -573,6 +590,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={funFactModalVisible}
         funFact={funFact}
         onClose={() => setFunFactModalVisible(false)}
+      />
+      <ComebackModal
+        visible={comebackVisible}
+        goal={comebackGoal}
+        onDismiss={() => setComebackVisible(false)}
       />
     </View>
   );
