@@ -31,7 +31,8 @@ import { SHOW_COMMUNITY } from '../../constants/featureFlags';
 
 type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
 
-export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
+export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) => {
+  const forDate = (route.params as any)?.forDate as string | undefined;
   const { user } = useAuth();
   const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'CreateChallenge';
@@ -89,7 +90,7 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation }) => {
       await createChallenge(user.uid, {
         name: name.trim(),
         category_id: categories[categoryIdx]?.name || 'Uncategorized',
-        date: new Date().toISOString().split('T')[0],
+        date: forDate || new Date().toISOString().split('T')[0],
         difficulty_expected: difficulty,
         challenge_type: challengeType,
         ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),

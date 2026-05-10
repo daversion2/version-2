@@ -32,7 +32,8 @@ import {
 
 type Props = NativeStackScreenProps<any, 'ChallengeLibrary'>;
 
-export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
+export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) => {
+  const forDate = (route.params as any)?.forDate as string | undefined;
   const { user } = useAuth();
 
   // Loading states
@@ -100,7 +101,7 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation }) => {
       await createChallenge(user.uid, {
         name: challenge.name,
         category_id: challenge.category,
-        date: new Date().toISOString().split('T')[0],
+        date: forDate || new Date().toISOString().split('T')[0],
         difficulty_expected: challenge.difficulty,
         description: challenge.description,
         success_criteria: challenge.success_criteria,

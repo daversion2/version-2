@@ -15,6 +15,8 @@ import {
   ReflectionGrade,
   Goal,
   GoalFollowThrough,
+  PlannedItem,
+  TomorrowChallenge,
 } from '../../../types';
 
 export interface WillpowerStatsData {
@@ -53,6 +55,8 @@ export interface HomeData {
   // Why Discovery
   whyStatement: string | null;
   hasCompletedWhyDiscovery: boolean;
+  // Plan Tomorrow
+  plannedHabitIds: string[];
 }
 
 export interface HomeCallbacks {
@@ -64,6 +68,10 @@ export interface HomeCallbacks {
   onMicroGoalPressMore: () => void;
   getCatColor: (catName: string) => string;
   onGoalTap?: (goalId: string) => void;
+  onCalendarExport?: (item: PlannedItem) => void;
+  onPlannedItemPress?: (item: PlannedItem) => void;
+  onAddTodayChallenge?: (challenge: TomorrowChallenge) => Promise<void>;
+  onToggleTodayHabit?: (habitId: string) => void;
 }
 
 export interface HomeRefs {

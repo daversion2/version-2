@@ -9,8 +9,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal, GoalFollowThrough } from '../../types';
-import { getActiveChallenges, getActiveExtendedChallenges } from '../../services/challenges';
+import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge } from '../../types';
+import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
 import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
@@ -41,6 +41,9 @@ import { FunFact } from '../../types';
 import { CleanSweepPopup } from '../../components/home/CleanSweepPopup';
 import { ComebackModal } from '../../components/home/ComebackModal';
 import { getTodaysMicroGoals, createMicroGoal, completeMicroGoal, deleteMicroGoal } from '../../services/microGoals';
+import { convertPlannedChallengesToChallenges, getTomorrowPlan, saveTomorrowPlan } from '../../services/dailyPlan';
+import { exportToCalendar } from '../../services/calendarExport';
+import { getTodayString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
 import { runGoalsMigration } from '../../services/dataMigration';
@@ -91,6 +94,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [programDayNumber, setProgramDayNumber] = useState(0);
   const [programCheckedIn, setProgramCheckedIn] = useState(false);
   const [microGoals, setMicroGoals] = useState<MicroGoal[]>([]);
+  const [plannedHabitIds, setPlannedHabitIds] = useState<string[]>([]);
   const [showCleanSweep, setShowCleanSweep] = useState(false);
   const [cleanSweepBonus, setCleanSweepBonus] = useState(0);
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
@@ -147,6 +151,29 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
       setMicroGoals(todaysMG);
+
+      // Activate scheduled challenges whose date has arrived,
+      // convert planned challenges from last night's reflection into real Challenges,
+      // and load planned habit IDs for Today's Plan
+      try {
+        const todayStr = getTodayString();
+        const activatedCount = await activateScheduledChallenges(user.uid, todayStr);
+        const convertedCount = await convertPlannedChallengesToChallenges(user.uid, todayStr);
+        if (activatedCount > 0 || convertedCount > 0) {
+          const refreshedChallenges = await getActiveChallenges(user.uid);
+          setActiveChallenges(refreshedChallenges);
+          const refreshedExtended = await getActiveExtendedChallenges(user.uid);
+          setExtendedChallenges(refreshedExtended);
+        }
+        // Load planned habit IDs for today
+        const todayPlan = await getTomorrowPlan(user.uid, todayStr);
+        if (todayPlan?.planned_habit_ids) {
+          setPlannedHabitIds(todayPlan.planned_habit_ids);
+        }
+      } catch (err) {
+        console.warn('Planned items conversion failed:', err);
+      }
+
       setGoals(activeGoals);
       setPendingInvites(inviteCount);
       setBuddyChallenges(activeBuddies);
@@ -444,6 +471,96 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  // --- Calendar Export ---
+
+  const handleCalendarExport = async (item: PlannedItem) => {
+    await exportToCalendar({
+      title: item.calendarTitle || item.title,
+      notes: item.calendarNotes,
+      startDate: item.calendarStartDate,
+      endDate: item.calendarEndDate,
+    });
+  };
+
+  // --- Planned Item Press ---
+
+  const handlePlannedItemPress = (item: PlannedItem) => {
+    switch (item.type) {
+      case 'habit': {
+        const habit = item.sourceData.habit;
+        if (habit) handleHabitTap(habit);
+        break;
+      }
+      case 'micro_goal': {
+        const mg = item.sourceData.microGoal;
+        if (mg && item.status === 'pending') handleMicroGoalComplete(mg.id);
+        break;
+      }
+      case 'daily_challenge': {
+        const challenge = item.sourceData.challenge;
+        if (challenge) navigation.navigate('CompleteChallenge' as any, { challenge });
+        break;
+      }
+      case 'extended_milestone': {
+        const challenge = item.sourceData.challenge;
+        if (challenge) navigation.navigate('ExtendedChallengeProgress' as any, { challengeId: challenge.id });
+        break;
+      }
+      case 'program_checkin': {
+        const program = item.sourceData.program;
+        if (program) navigation.navigate('ProgramDashboard' as any, { enrollmentId: program.id });
+        break;
+      }
+    }
+  };
+
+  // --- Add to Today ---
+
+  const handleAddTodayChallenge = async (challenge: TomorrowChallenge) => {
+    if (!user) return;
+    try {
+      const todayStr = getTodayString();
+      await createChallenge(user.uid, {
+        name: challenge.name,
+        category_id: challenge.category_id,
+        date: todayStr,
+        difficulty_expected: challenge.difficulty_expected,
+        description: challenge.description,
+      });
+      // Refresh challenges list
+      const refreshed = await getActiveChallenges(user.uid);
+      setActiveChallenges(refreshed);
+    } catch (err) {
+      console.warn('Failed to add today challenge:', err);
+      showAlert('Error', 'Could not create challenge.');
+    }
+  };
+
+  const handleToggleTodayHabit = async (habitId: string) => {
+    if (!user) return;
+    const updated = plannedHabitIds.includes(habitId)
+      ? plannedHabitIds.filter((id) => id !== habitId)
+      : [...plannedHabitIds, habitId];
+    setPlannedHabitIds(updated);
+
+    // Persist to today's plan doc
+    try {
+      const todayStr = getTodayString();
+      const existingPlan = await getTomorrowPlan(user.uid, todayStr);
+      await saveTomorrowPlan(user.uid, {
+        user_id: user.uid,
+        date: todayStr,
+        planned_habit_ids: updated,
+        planned_challenges: existingPlan?.planned_challenges || [],
+        dismissed_habit_ids: existingPlan?.dismissed_habit_ids || [],
+        created_at: existingPlan?.created_at || new Date().toISOString(),
+        source: 'manual',
+      });
+    } catch (err) {
+      console.warn('Failed to save planned habits:', err);
+    }
+  };
+
   // --- Layout & Section Props ---
 
   const layout = useMemo(
@@ -486,6 +603,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     goalFollowThrough,
     whyStatement: userProfile?.why_statement || null,
     hasCompletedWhyDiscovery: userProfile?.has_completed_why_discovery === true,
+    plannedHabitIds,
   };
 
   const homeCallbacks: HomeCallbacks = {
@@ -507,6 +625,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     onMicroGoalPressMore: () => navigation.navigate('CreateMicroGoal' as any),
     getCatColor,
     onGoalTap: (goalId: string) => navigation.navigate('GoalDashboard' as any, { goalId }),
+    onCalendarExport: handleCalendarExport,
+    onPlannedItemPress: handlePlannedItemPress,
+    onAddTodayChallenge: handleAddTodayChallenge,
+    onToggleTodayHabit: handleToggleTodayHabit,
   };
 
   const homeRefs: HomeRefs = {

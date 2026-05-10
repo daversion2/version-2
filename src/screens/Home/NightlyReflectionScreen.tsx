@@ -14,11 +14,16 @@ import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { useAuth } from '../../context/AuthContext';
-import { DailySummary, ReflectionGrade, DailyReflection, Goal } from '../../types';
+import { DailySummary, ReflectionGrade, DailyReflection, Goal, Nudge, Category, TomorrowChallenge } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
 import { getActiveGoals } from '../../services/goals';
+import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
+import { saveTomorrowPlan, getTomorrowPlan, suggestHabitsForTomorrow } from '../../services/dailyPlan';
+import { getUserCategories } from '../../services/categories';
 import { showAlert } from '../../utils/alert';
+import { getTomorrowString } from '../../utils/date';
 import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
+import { PlanTomorrowStep } from '../../components/home/PlanTomorrowStep';
 
 type Props = NativeStackScreenProps<any, 'NightlyReflection'>;
 
@@ -37,6 +42,14 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [tomorrow, setTomorrow] = useState('');
   const [whyReflection, setWhyReflection] = useState('');
   const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
+
+  // Plan Tomorrow state
+  const [allHabits, setAllHabits] = useState<Nudge[]>([]);
+  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
+  const [suggestedHabitIds, setSuggestedHabitIds] = useState<string[]>([]);
+  const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
+  const [plannedChallenges, setPlannedChallenges] = useState<TomorrowChallenge[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -74,6 +87,35 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         setTomorrow(existing.prompt_tomorrow || '');
         setWhyReflection(existing.prompt_why_connection || '');
       }
+
+      // Load data for Plan Tomorrow step
+      try {
+        const [habitList, weekCounts, cats] = await Promise.all([
+          getActiveHabits(user.uid),
+          getWeeklyCompletionCounts(user.uid),
+          getUserCategories(user.uid),
+        ]);
+        setAllHabits(habitList);
+        setWeeklyCounts(weekCounts);
+        setCategories(cats);
+
+        const suggestions = suggestHabitsForTomorrow(habitList, weekCounts);
+        const suggIds = suggestions.map((h) => h.id);
+        setSuggestedHabitIds(suggIds);
+
+        // Load existing tomorrow plan or pre-select suggested habits
+        const tomorrowStr = getTomorrowString();
+        const existingPlan = await getTomorrowPlan(user.uid, tomorrowStr);
+        if (existingPlan) {
+          setSelectedHabitIds(existingPlan.planned_habit_ids || []);
+          setPlannedChallenges(existingPlan.planned_challenges || []);
+        } else {
+          // Pre-select suggested habits by default
+          setSelectedHabitIds(suggIds);
+        }
+      } catch (err) {
+        console.warn('Plan Tomorrow data load failed:', err);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -100,6 +142,24 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         daily_summary: summary,
         created_at: new Date().toISOString(),
       });
+      // Save tomorrow plan if any habits or challenges are planned
+      const tomorrowStr = getTomorrowString();
+      if (selectedHabitIds.length > 0 || plannedChallenges.length > 0) {
+        try {
+          await saveTomorrowPlan(user.uid, {
+            user_id: user.uid,
+            date: tomorrowStr,
+            planned_habit_ids: selectedHabitIds,
+            planned_challenges: plannedChallenges.map((c) => ({ ...c, converted: false })),
+            dismissed_habit_ids: [],
+            created_at: new Date().toISOString(),
+            source: 'reflection',
+          });
+        } catch (err) {
+          console.warn('Failed to save tomorrow plan:', err);
+        }
+      }
+
       showAlert('Reflection Saved', 'Great job reflecting on your day!');
       navigation.goBack();
     } catch (e: any) {
@@ -222,6 +282,32 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           editable={!isReadOnly}
         />
       </View>
+
+      {/* Plan Tomorrow */}
+      <PlanTomorrowStep
+        habits={allHabits}
+        weeklyCounts={weeklyCounts}
+        suggestedHabitIds={suggestedHabitIds}
+        selectedHabitIds={selectedHabitIds}
+        onToggleHabit={(habitId) =>
+          setSelectedHabitIds((prev) =>
+            prev.includes(habitId)
+              ? prev.filter((id) => id !== habitId)
+              : [...prev, habitId]
+          )
+        }
+        plannedChallenges={plannedChallenges}
+        onAddChallenge={(ch) => setPlannedChallenges((prev) => [...prev, ch])}
+        onRemoveChallenge={(index) =>
+          setPlannedChallenges((prev) => prev.filter((_, i) => i !== index))
+        }
+        categories={categories}
+        getCatColor={(catId) => {
+          const cat = categories.find((c) => c.id === catId);
+          return cat?.color || Colors.gray;
+        }}
+        isReadOnly={isReadOnly}
+      />
 
       {/* Why Connection Prompt (rotating daily) */}
       {userProfile?.why_statement ? (

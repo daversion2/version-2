@@ -8,7 +8,8 @@ import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOver
 
 type Props = NativeStackScreenProps<any, 'StartChallenge'>;
 
-export const StartChallengeScreen: React.FC<Props> = ({ navigation }) => {
+export const StartChallengeScreen: React.FC<Props> = ({ navigation, route }) => {
+  const forDate = (route.params as any)?.forDate as string | undefined;
   const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'StartChallenge';
 
@@ -19,20 +20,20 @@ export const StartChallengeScreen: React.FC<Props> = ({ navigation }) => {
 
       <Button
         title="Create New Challenge"
-        onPress={() => navigation.navigate('CreateChallenge')}
+        onPress={() => navigation.navigate('CreateChallenge', { forDate })}
         style={styles.btn}
       />
 
       <Button
         title="Select from Past Challenges"
-        onPress={() => navigation.navigate('PastChallenges')}
+        onPress={() => navigation.navigate('PastChallenges', { forDate })}
         variant="outline"
         style={styles.btn}
       />
 
       <Button
         title="Browse Challenge Library"
-        onPress={() => navigation.navigate('ChallengeLibrary')}
+        onPress={() => navigation.navigate('ChallengeLibrary', { forDate })}
         variant="outline"
         style={styles.btn}
       />

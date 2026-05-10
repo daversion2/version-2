@@ -15,10 +15,12 @@ import { WillpowerSummarySection } from './WillpowerSummarySection';
 import { GoalActionsSection } from './GoalActionsSection';
 import { IdentitySummarySection } from './IdentitySummarySection';
 import { WhySummarySection } from './WhySummarySection';
+import { TodaysPlanSection } from './TodaysPlanSection';
 
 export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   greeting: GreetingSection,
   why_summary: WhySummarySection,
+  todays_plan: TodaysPlanSection,
   goal_actions: GoalActionsSection,
   identity_summary: IdentitySummarySection,
   // Legacy sections (kept for backward compat with custom layouts)

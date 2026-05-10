@@ -17,7 +17,8 @@ import { showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'PastChallenges'>;
 
-export const PastChallengesScreen: React.FC<Props> = ({ navigation }) => {
+export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => {
+  const forDate = (route.params as any)?.forDate as string | undefined;
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,7 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation }) => {
       await createChallenge(user.uid, {
         name: c.name,
         category_id: c.category_id,
-        date: new Date().toISOString().split('T')[0],
+        date: forDate || new Date().toISOString().split('T')[0],
         difficulty_expected: c.difficulty_expected,
         description: c.description,
         success_criteria: c.success_criteria,

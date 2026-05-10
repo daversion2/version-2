@@ -49,7 +49,7 @@ export interface Category {
   icon: string;
 }
 
-export type ChallengeStatus = 'active' | 'completed' | 'failed' | 'archived' | 'cancelled';
+export type ChallengeStatus = 'active' | 'scheduled' | 'completed' | 'failed' | 'archived' | 'cancelled';
 
 export type ChallengeType = 'daily' | 'extended';
 
@@ -837,6 +837,63 @@ export interface GoalFollowThrough {
   followThroughRate: number;       // 0-1
   currentWeekCommitments: number;
   currentWeekKept: number;
+}
+
+// ============================================================================
+// DAILY PLANNER
+// ============================================================================
+
+export type PlannedItemType =
+  | 'micro_goal'
+  | 'daily_challenge'
+  | 'extended_milestone'
+  | 'habit'
+  | 'program_checkin';
+
+export type PlannedItemStatus = 'completed' | 'pending' | 'expired';
+
+export interface PlannedItem {
+  id: string;
+  type: PlannedItemType;
+  title: string;
+  subtitle?: string;
+  status: PlannedItemStatus;
+  icon: string;                    // Ionicons name
+  iconColor: string;
+  deadline?: string;               // HH:MM or ISO
+  sortKey: number;
+  calendarTitle?: string;
+  calendarStartDate?: Date;
+  calendarEndDate?: Date;
+  calendarNotes?: string;
+  sourceData: {
+    microGoal?: MicroGoal;
+    challenge?: Challenge;
+    habit?: Nudge;
+    program?: ProgramEnrollment;
+    programDay?: ProgramDay;
+  };
+}
+
+export interface TomorrowPlan {
+  id: string;
+  user_id: string;
+  date: string;                    // YYYY-MM-DD (the date being planned FOR)
+  planned_habit_ids: string[];
+  planned_challenges: TomorrowChallenge[];
+  dismissed_habit_ids: string[];
+  created_at: string;
+  source: 'reflection' | 'manual';
+  // Backward compat with existing docs
+  planned_micro_goals?: any[];
+}
+
+export interface TomorrowChallenge {
+  name: string;
+  category_id: string;
+  difficulty_expected: number;
+  description?: string;
+  converted: boolean;
 }
 
 // ============================================================================

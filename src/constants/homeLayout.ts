@@ -5,6 +5,7 @@ export const SECTION_IDS = [
   'greeting',
   'why_summary',
   // Zone 2: Your Goals + Today's Actions
+  'todays_plan',
   'goal_actions',
   // Zone 3: Momentum
   'sprints',
@@ -60,7 +61,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'goals_actions',
     label: "Your Goals + Today's Actions",
     icon: 'flag-outline',
-    sectionIds: ['goal_actions'],
+    sectionIds: ['todays_plan', 'goal_actions'],
   },
   {
     id: 'momentum',
@@ -93,6 +94,7 @@ for (const zone of ZONE_CONFIG) {
 export const SECTION_LABELS: Record<HomeSectionId, string> = {
   greeting: 'Greeting',
   why_summary: 'Your Why',
+  todays_plan: "Today's Plan",
   goal_actions: 'Goals & Actions',
   sprints: "Today's Sprints",
   identity_summary: 'Identity Summary',
@@ -112,6 +114,7 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
   greeting: 'sunny-outline',
   why_summary: 'compass-outline',
+  todays_plan: 'today-outline',
   goal_actions: 'flag-outline',
   sprints: 'timer-outline',
   identity_summary: 'sparkles-outline',

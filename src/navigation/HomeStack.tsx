@@ -31,6 +31,7 @@ import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
 import { WhyScreen } from '../screens/Home/WhyScreen';
 import { WhyDiscoveryFlow } from '../screens/Home/WhyDiscoveryFlow';
+import { WeeklyPlannerScreen } from '../screens/Home/WeeklyPlannerScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -206,6 +207,11 @@ export const HomeStack: React.FC = () => (
       name="WhyDiscoveryFlow"
       component={WhyDiscoveryFlow}
       options={{ title: '', headerShown: false }}
+    />
+    <Stack.Screen
+      name="WeeklyPlanner"
+      component={WeeklyPlannerScreen}
+      options={{ title: 'Weekly Planner' }}
     />
   </Stack.Navigator>
 );

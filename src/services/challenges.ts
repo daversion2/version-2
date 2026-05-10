@@ -117,18 +117,24 @@ export const createChallenge = async (
 ): Promise<string> => {
   const challengeType = data.challenge_type || 'daily';
 
+  // Determine if this challenge is for a future date
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const isFuture = data.date > todayStr;
+  const status: ChallengeStatus = isFuture ? 'scheduled' : 'active';
+
   // Prepare challenge data
   let challengeData: Record<string, unknown> = { ...data };
 
   // For extended challenges, auto-generate milestones
   if (challengeType === 'extended' && data.duration_days) {
     challengeData.milestones = generateMilestones(data.duration_days);
-    // Use local date to avoid timezone mismatch (toISOString() returns UTC which
-    // can be a day ahead in US timezones, causing getCurrentDayNumber to return 0)
-    const now = new Date();
-    challengeData.start_date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    // Calculate end_date
-    const endDate = new Date();
+    // Use challenge date (which may be future) for start_date, not today
+    const [startYear, startMonth, startDay] = data.date.split('-').map(Number);
+    const startDate = new Date(startYear, startMonth - 1, startDay);
+    challengeData.start_date = data.date;
+    // Calculate end_date from start_date
+    const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + data.duration_days - 1);
     challengeData.end_date = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
   }
@@ -141,10 +147,36 @@ export const createChallenge = async (
   const docRef = await addDoc(challengesRef(userId), {
     ...cleanData,
     user_id: userId,
-    status: 'active' as ChallengeStatus,
+    status,
     created_at: new Date().toISOString(),
   });
   return docRef.id;
+};
+
+/**
+ * Activate any scheduled challenges whose date has arrived (today or earlier).
+ * Called on HomeScreen load alongside convertPlannedChallengesToChallenges.
+ */
+export const activateScheduledChallenges = async (
+  userId: string,
+  todayStr: string
+): Promise<number> => {
+  const q = query(
+    challengesRef(userId),
+    where('status', '==', 'scheduled'),
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return 0;
+
+  let activatedCount = 0;
+  for (const d of snap.docs) {
+    const challenge = d.data() as Challenge;
+    if (challenge.date <= todayStr) {
+      await updateDoc(d.ref, { status: 'active' as ChallengeStatus });
+      activatedCount++;
+    }
+  }
+  return activatedCount;
 };
 
 export const completeChallenge = async (
