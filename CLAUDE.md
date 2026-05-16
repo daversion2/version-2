@@ -18,6 +18,26 @@ Then open the app manually from the simulator.
 
 Do NOT use `npx expo start` + press `i` — it will crash with a `TurboModuleRegistry` / `RNGoogleSignin` error because Expo Go doesn't include the native modules.
 
+## Pushing to the Live Production App (OTA Update)
+
+When the user says "push to production", "push to live", "ship this", or similar — this means an **EAS OTA (over-the-air) update**, NOT an App Store submission.
+
+OTA updates push the JS bundle directly to users' devices without going through App Store review. Users get the update automatically on their next app launch. This works for any change that is pure JavaScript/TypeScript (screens, logic, data, styles). It does NOT work for native module changes.
+
+**Command:**
+```bash
+eas update --branch production --message "description of what changed"
+```
+
+This builds and uploads iOS + Android bundles simultaneously. Takes ~30–60 seconds. No confirmation needed — just run it.
+
+**Do NOT use:**
+- `eas build` — this creates a full native binary (for App Store submissions only, takes 15–30 min)
+- `eas submit` — this submits to the App Store for review
+
+EAS project: `neuro-nudge-v2` (account: `jonnymcfadden1528s-organization`)
+Dashboard: https://expo.dev/accounts/jonnymcfadden1528s-organization/projects/neuro-nudge-v2/updates
+
 ## Deploying Firebase
 
 **Deploy Cloud Functions:**
