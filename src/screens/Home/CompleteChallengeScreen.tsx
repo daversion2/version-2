@@ -189,6 +189,20 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     );
   };
 
+  const handleUnpackPress = async () => {
+    if (!user) return;
+    try {
+      await completeChallenge(user.uid, challenge.id, {
+        status: 'failed',
+        difficulty_actual: difficulty,
+        failure_reflection: failureReflection.trim() || undefined,
+      });
+    } catch (e) {
+      console.warn('Failed to save challenge result before micro-exercise:', e);
+    }
+    navigation.navigate('MicroExerciseFeeling', { trigger_context: 'challenge_failure' });
+  };
+
   const handleSubmit = async () => {
     if (!result) {
       showAlert('Required', 'Please select success or fail.');
@@ -654,7 +668,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
           <TouchableOpacity
             style={styles.unpackLink}
-            onPress={() => navigation.navigate('MicroExerciseFeeling', { trigger_context: 'challenge_failure' })}
+            onPress={handleUnpackPress}
             activeOpacity={0.7}
           >
             <Ionicons name="chevron-forward-circle-outline" size={16} color={Colors.primary} />

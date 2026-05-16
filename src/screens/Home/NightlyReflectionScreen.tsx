@@ -128,6 +128,28 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
     loadData();
   }, [loadData]);
 
+  const handleWorkThroughThis = async () => {
+    // Save the reflection silently before leaving the screen so the grade isn't lost
+    if (user && grade && summary) {
+      try {
+        await saveReflection(user.uid, {
+          user_id: user.uid,
+          date: todayStr,
+          grade,
+          prompt_went_well: wentWell.trim() || undefined,
+          prompt_hardest: hardest.trim() || undefined,
+          prompt_tomorrow: tomorrow.trim() || undefined,
+          prompt_why_connection: whyReflection.trim() || undefined,
+          daily_summary: summary,
+          created_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn('Failed to save reflection before micro-exercise:', e);
+      }
+    }
+    navigation.navigate('MicroExerciseFeeling', { trigger_context: 'reflection' });
+  };
+
   const handleSave = async () => {
     if (!user || !grade || !summary) return;
     setSaving(true);
@@ -235,7 +257,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             )}
             <TouchableOpacity
-              onPress={() => navigation.navigate('MicroExerciseFeeling', { trigger_context: 'reflection' })}
+              onPress={handleWorkThroughThis}
               style={styles.workThroughLink}
               activeOpacity={0.7}
             >
