@@ -204,9 +204,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightGray,
   },
   filterRow: {
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    maxHeight: 56,
+    maxHeight: 64,
   },
   filterRowContent: {
     gap: Spacing.sm,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.white,
     borderWidth: 1,
