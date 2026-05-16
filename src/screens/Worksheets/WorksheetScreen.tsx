@@ -225,7 +225,6 @@ export const WorksheetScreen: React.FC<{ navigation: any; route: any }> = ({
           onPress={() => handleSave(false)}
           variant="primary"
           loading={saving}
-          disabled={!validateRequired()}
         />
       </View>
     </ScrollView>

@@ -40,12 +40,14 @@ export const SectionRenderer: React.FC<SectionRendererProps> = ({
             );
           }
 
+          const fieldLabel = field.required ? `${field.label} *` : field.label;
+
           switch (field.field_type) {
             case 'text':
               return (
                 <View key={field.id}>
                   <InputField
-                    label={field.label}
+                    label={fieldLabel}
                     value={(value as string) || ''}
                     onChangeText={(text) => onResponseChange(field.id, text)}
                     placeholder={field.placeholder}
@@ -61,7 +63,7 @@ export const SectionRenderer: React.FC<SectionRendererProps> = ({
               return (
                 <View key={field.id}>
                   <InputField
-                    label={field.label}
+                    label={fieldLabel}
                     value={(value as string) || ''}
                     onChangeText={(text) => onResponseChange(field.id, text)}
                     placeholder={field.placeholder}
@@ -80,7 +82,7 @@ export const SectionRenderer: React.FC<SectionRendererProps> = ({
               return (
                 <ChecklistField
                   key={field.id}
-                  label={field.label}
+                  label={fieldLabel}
                   options={field.options || []}
                   selectedOptions={(value as string[]) || []}
                   onChange={(selected) => onResponseChange(field.id, selected)}
@@ -92,7 +94,7 @@ export const SectionRenderer: React.FC<SectionRendererProps> = ({
               return (
                 <SingleSelectField
                   key={field.id}
-                  label={field.label}
+                  label={fieldLabel}
                   options={field.options || []}
                   selectedOption={(value as string) || null}
                   onChange={(selected) => onResponseChange(field.id, selected)}

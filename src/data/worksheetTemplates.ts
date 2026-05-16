@@ -6,17 +6,17 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   // =========================================================================
   {
     id: 'thought_record',
-    name: 'Thought Record',
-    short_description: 'Identify and challenge unhelpful automatic thoughts',
+    name: 'Challenge That Thought',
+    short_description: 'Catch a negative thought and see how much of it is actually true',
     long_description:
-      'The Thought Record helps you notice the connection between situations, thoughts, and emotions. By writing them down, you create distance from the thought and can evaluate it more objectively.',
+      'When a thought feels like a fact, writing it down changes everything. This exercise helps you slow down, look at what actually happened, and find a version of the story that\'s more accurate — not more positive, just more honest.',
     category: 'thoughts',
     difficulty: 1,
     estimated_minutes: 10,
     icon: 'document-text',
     color: '#217180',
     when_to_use:
-      'When you notice a strong negative emotion or find yourself ruminating on something.',
+      'When a negative thought is stuck in your head, or a strong emotion just hit out of nowhere.',
     tips: [
       'Try to capture the thought as close to word-for-word as possible',
       'Rate emotions on a 0-100% intensity scale',
@@ -148,17 +148,17 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   // =========================================================================
   {
     id: 'cognitive_distortions',
-    name: 'Cognitive Distortions',
-    short_description: 'Spot the thinking traps in your automatic thoughts',
+    name: 'Name Your Thinking Trap',
+    short_description: 'Identify the mental patterns that make things feel worse than they are',
     long_description:
-      'Our brains use mental shortcuts that sometimes distort reality. This worksheet helps you identify which "thinking traps" you\'re falling into so you can catch them faster next time.',
+      'Your brain runs patterns on autopilot — and some of those patterns distort reality in predictable ways. This exercise helps you name which one is running so you can catch it faster next time.',
     category: 'thoughts',
     difficulty: 1,
     estimated_minutes: 8,
     icon: 'warning',
     color: '#FF5B02',
     when_to_use:
-      'When you notice yourself spiraling, catastrophizing, or stuck in a negative thought loop.',
+      'When you\'re spiraling, catastrophizing, or stuck in the same negative thought loop.',
     tips: [
       "Most thoughts contain multiple distortions — that's normal",
       'Naming the distortion creates distance from it',
@@ -250,17 +250,17 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   // =========================================================================
   {
     id: 'behavioral_experiment',
-    name: 'Behavioral Experiment',
-    short_description: 'Test a negative belief with real-world evidence',
+    name: 'Put It to the Test',
+    short_description: 'Design a small real-world experiment to challenge a limiting belief',
     long_description:
-      'Instead of just thinking differently, a behavioral experiment lets you TEST your beliefs through action. You predict what will happen, do the experiment, and compare the actual result to your prediction.',
+      'You can\'t think your way out of a belief — you have to act your way out. This exercise helps you make a specific prediction, take an action, and see what actually happens. Evidence beats rumination every time.',
     category: 'behavior',
     difficulty: 2,
     estimated_minutes: 12,
     icon: 'flask',
     color: '#7B1FA2',
     when_to_use:
-      'When you have a belief about yourself or the world that holds you back from action.',
+      'When a belief about yourself or the world is holding you back from taking action.',
     tips: [
       'Start with experiments where the stakes feel manageable',
       "Be specific about what you'll do and when",
@@ -391,17 +391,17 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   // =========================================================================
   {
     id: 'core_belief_arrow',
-    name: 'Core Belief Downward Arrow',
-    short_description: 'Drill down from surface thoughts to root beliefs',
+    name: 'Find the Root',
+    short_description: 'Trace a surface worry down to the deeper belief actually driving it',
     long_description:
-      'Surface-level thoughts are powered by deeper core beliefs about yourself, others, and the world. The Downward Arrow technique asks "If that were true, what would it mean?" repeatedly until you reach the root.',
+      'Most recurring thoughts aren\'t really about what they appear to be about. This exercise asks "what would that mean?" again and again until you hit the belief underneath — the one that keeps generating the same thought patterns.',
     category: 'beliefs',
     difficulty: 2,
     estimated_minutes: 10,
     icon: 'arrow-down-circle',
     color: '#1565C0',
     when_to_use:
-      'When you notice the same type of thought keeps showing up across different situations.',
+      'When the same fear or thought pattern keeps showing up across different situations in your life.',
     tips: [
       'Keep asking "what would that mean about me?" until you hit something that feels core',
       'Core beliefs are usually short, absolute statements (I am... People are... The world is...)',
@@ -510,18 +510,18 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   // =========================================================================
   {
     id: 'smart_action_plan',
-    name: 'SMART Action Plan',
+    name: "Turn 'I Should' Into a Plan",
     short_description:
-      'Turn vague intentions into concrete behavioral commitments',
+      "Convert a vague intention into a concrete action you'll actually follow through on",
     long_description:
-      'Anxiety and avoidance thrive on vagueness. This worksheet helps you convert "I should..." thoughts into specific, measurable, achievable, relevant, and time-bound action steps.',
+      "Avoidance thrives on vagueness. 'I should exercise more' is impossible to execute. 'I will walk for 20 minutes on Tuesday at 7am' is not. This exercise takes what you know you want to do and makes it specific enough to actually happen.",
     category: 'behavior',
     difficulty: 1,
     estimated_minutes: 8,
     icon: 'checkbox',
     color: '#2E7D32',
     when_to_use:
-      'When you\'re procrastinating, overwhelmed, or keep telling yourself "I should" without following through.',
+      "When you keep saying 'I should do this' but never start — or when overwhelm is keeping you stuck.",
     tips: [
       'Start with the smallest possible first step',
       'If it feels too big, break it down further',
