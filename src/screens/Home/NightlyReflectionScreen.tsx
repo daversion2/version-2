@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
+  TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -233,6 +234,13 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
                 Tomorrow's worst-day win: "{goalCBT.minimum_action}"
               </Text>
             )}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('MicroExerciseFeeling', { trigger_context: 'reflection' })}
+              style={styles.workThroughLink}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.workThroughLinkText}>Work through this →</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -487,5 +495,14 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     lineHeight: 20,
     marginTop: Spacing.xs,
+  },
+  workThroughLink: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  workThroughLinkText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
   },
 });

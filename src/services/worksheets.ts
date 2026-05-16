@@ -9,9 +9,11 @@ import {
   where,
   orderBy,
   deleteDoc,
+  limit,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { WorksheetEntry } from '../types';
+import { MicroExerciseTrigger } from '../types/worksheets';
 import { updateWillpowerStats } from './willpower';
 
 const WORKSHEET_BASE_POINTS = 2;
@@ -136,7 +138,8 @@ export const updateWorksheetEntry = async (
 };
 
 /**
- * Get all completed worksheet entries, ordered by most recent.
+ * Get all completed worksheet entries (full worksheets only, not micro-exercises),
+ * ordered by most recent.
  */
 export const getWorksheetHistory = async (
   userId: string,
@@ -158,7 +161,10 @@ export const getWorksheetHistory = async (
     );
   }
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry));
+  // Filter out micro-exercises client-side (they use a separate history view)
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry))
+    .filter((entry) => entry.type !== 'micro_exercise');
 };
 
 /**
@@ -211,6 +217,91 @@ export const getWorksheetsByGoal = async (
     worksheetsRef(userId),
     where('goal_ids', 'array-contains', goalId),
     where('is_draft', '==', false)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry));
+};
+
+/**
+ * Save a completed micro-exercise entry.
+ * Awards 2 willpower points (same as worksheet base).
+ */
+export const saveMicroExerciseEntry = async (
+  userId: string,
+  data: {
+    feeling: string;
+    trigger_context: MicroExerciseTrigger;
+    responses: Record<string, string>;
+    micro_commitment: string;
+    mood_before?: number;
+    mood_after?: number;
+    goal_ids?: string[];
+  }
+): Promise<{ id: string; pointsAwarded: number }> => {
+  const now = new Date().toISOString();
+  const pointsAwarded = WORKSHEET_BASE_POINTS;
+
+  const entryDoc: Record<string, unknown> = {
+    user_id: userId,
+    type: 'micro_exercise',
+    template_id: `micro_${data.feeling}`,
+    template_name: 'Micro Exercise',
+    feeling: data.feeling,
+    trigger_context: data.trigger_context,
+    responses: data.responses,
+    micro_commitment: data.micro_commitment,
+    commitment_follow_up_sent: false,
+    commitment_followed_through: null,
+    is_draft: false,
+    created_at: now,
+    completed_at: now,
+    points_awarded: pointsAwarded,
+  };
+
+  if (data.mood_before !== undefined) entryDoc.mood_before = data.mood_before;
+  if (data.mood_after !== undefined) entryDoc.mood_after = data.mood_after;
+  if (data.goal_ids && data.goal_ids.length > 0) entryDoc.goal_ids = data.goal_ids;
+
+  const docRef = await addDoc(worksheetsRef(userId), entryDoc);
+
+  await updateWillpowerStats(userId, pointsAwarded);
+  await addDoc(logsRef(userId), {
+    user_id: userId,
+    type: 'worksheet',
+    reference_id: docRef.id,
+    points: pointsAwarded,
+    difficulty: 1,
+    date: now.split('T')[0],
+  });
+
+  return { id: docRef.id, pointsAwarded };
+};
+
+/**
+ * Record the user's follow-up response to a micro-exercise commitment.
+ */
+export const updateMicroExerciseFollowUp = async (
+  userId: string,
+  entryId: string,
+  followedThrough: boolean
+): Promise<void> => {
+  const ref = doc(db, 'users', userId, 'worksheets', entryId);
+  await updateDoc(ref, { commitment_followed_through: followedThrough });
+};
+
+/**
+ * Get completed micro-exercise entries, newest first.
+ */
+export const getMicroExerciseHistory = async (
+  userId: string,
+  limitCount = 20
+): Promise<WorksheetEntry[]> => {
+  const q = query(
+    worksheetsRef(userId),
+    where('type', '==', 'micro_exercise'),
+    where('is_draft', '==', false),
+    orderBy('completed_at', 'desc'),
+    limit(limitCount)
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry));

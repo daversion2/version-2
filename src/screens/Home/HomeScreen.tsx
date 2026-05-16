@@ -717,6 +717,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={comebackVisible}
         goal={comebackGoal}
         onDismiss={() => setComebackVisible(false)}
+        navigation={navigation}
       />
     </View>
   );

@@ -44,6 +44,12 @@ export interface WorksheetTemplate {
   when_to_use: string;
 }
 
+export type MicroExerciseTrigger =
+  | 'comeback'
+  | 'challenge_failure'
+  | 'reflection'
+  | 'inactivity';
+
 export interface WorksheetEntry {
   id: string;
   user_id: string;
@@ -57,4 +63,12 @@ export interface WorksheetEntry {
   is_draft: boolean;
   created_at: string;
   completed_at?: string;
+
+  // Micro-exercise fields (populated only when type === 'micro_exercise')
+  type?: 'micro_exercise';
+  feeling?: string;
+  trigger_context?: MicroExerciseTrigger;
+  micro_commitment?: string;
+  commitment_follow_up_sent?: boolean;
+  commitment_followed_through?: boolean | null;
 }

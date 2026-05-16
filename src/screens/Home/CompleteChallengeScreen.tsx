@@ -651,6 +651,15 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           <Text style={styles.optionalText}>
             Optional — no judgment, just learning
           </Text>
+
+          <TouchableOpacity
+            style={styles.unpackLink}
+            onPress={() => navigation.navigate('MicroExerciseFeeling', { trigger_context: 'challenge_failure' })}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-forward-circle-outline" size={16} color={Colors.primary} />
+            <Text style={styles.unpackLinkText}>Feel like unpacking this?</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -926,6 +935,18 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     fontStyle: 'italic',
     marginTop: Spacing.xs,
+  },
+  unpackLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  unpackLinkText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
   journalInput: {
     minHeight: 120,

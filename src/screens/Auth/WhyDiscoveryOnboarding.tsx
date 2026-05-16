@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import {
   WHY_DISCOVERY_STAGES,
@@ -26,11 +27,9 @@ import {
   MAX_WHY_DEPTH,
   WHY_STATEMENT_MIN_LENGTH,
   GOAL_INTRO_TEXT,
-  CHALLENGE_INTRO_TEXT,
-  HABIT_INTRO_TEXT,
-  GOAL_END_DATE_PRESETS,
-  GOAL_CATEGORIES,
 } from '../../constants/whyDiscovery';
+import { GOAL_CONSTANTS, ONBOARDING_PROMPTS, ONBOARDING_STAGES, OnboardingPrompt } from '../../constants/goals';
+import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -50,12 +49,19 @@ import { createGoalWithActions } from '../../services/goals';
 
 const { width } = Dimensions.get('window');
 
-const getTodayStr = () => new Date().toISOString().split('T')[0];
 const addDaysToToday = (days: number): string => {
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];
 };
+
+const formatDate = (date: Date): string => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+};
+
+const toYYYYMMDD = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 export const WhyDiscoveryOnboarding: React.FC = () => {
   const { user, refreshProfile } = useAuth();
@@ -82,24 +88,28 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
   const [contributionPart, setContributionPart] = useState('');
   const [impactPart, setImpactPart] = useState('');
 
-  // Stage 5: Goal
-  const [goalName, setGoalName] = useState('');
-  const [goalCategory, setGoalCategory] = useState('Physical');
-  const [goalWhyConnection, setGoalWhyConnection] = useState('');
-  const [goalEndDatePreset, setGoalEndDatePreset] = useState<number | null>(60);
-  const [goalEndDateCustom, setGoalEndDateCustom] = useState('');
+  // Stages 5-9: CBT Goal Onboarding
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [listData, setListData] = useState<Record<string, string[]>>({
+    bonus_actions: [],
+    triggers: [],
+    trigger_substitutes: [],
+  });
+  const [habitsInput, setHabitsInput] = useState<{ name: string; frequency: number }[]>([]);
+  const [confidenceBaseline, setConfidenceBaseline] = useState(5);
+  const [innerVoiceChallenge, setInnerVoiceChallenge] = useState('');
+  const [innerVoiceResponse, setInnerVoiceResponse] = useState('');
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [listInputs, setListInputs] = useState<Record<string, string>>({});
+  const [habitNameInput, setHabitNameInput] = useState('');
+  const [habitFreqInput, setHabitFreqInput] = useState(3);
 
-  // Stage 6: Challenge
-  const [challengeName, setChallengeName] = useState('');
-  const [challengeCategory, setChallengeCategory] = useState('Physical');
-  const [challengeDifficulty, setChallengeDifficulty] = useState(3);
-
-  // Stage 7: Habit
-  const [habitName, setHabitName] = useState('');
-  const [habitCategory, setHabitCategory] = useState('Physical');
-  const [habitFrequency, setHabitFrequency] = useState(3);
-
-  // Stage 8: Reward Messages
+  // Stage 10: Reward Messages
   const [globalMessages, setGlobalMessages] = useState<RewardMessage[]>([]);
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
 
@@ -127,29 +137,93 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
   const whyStatement = contributionPart.trim() && impactPart.trim()
     ? `To ${contributionPart.trim()} so that ${impactPart.trim()}`
     : '';
-  const goalEndDate = goalEndDatePreset
-    ? addDaysToToday(goalEndDatePreset)
-    : goalEndDateCustom;
+
+  // CBT helpers
+  const setField = (key: string, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const addListItem = (key: string) => {
+    const input = (listInputs[key] || '').trim();
+    if (!input) return;
+    setListData(prev => ({
+      ...prev,
+      [key]: [...(prev[key] || []), input],
+    }));
+    setListInputs(prev => ({ ...prev, [key]: '' }));
+  };
+
+  const removeListItem = (key: string, index: number) => {
+    setListData(prev => ({
+      ...prev,
+      [key]: (prev[key] || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const addHabit = () => {
+    const name = habitNameInput.trim();
+    if (!name) return;
+    setHabitsInput(prev => [...prev, { name, frequency: habitFreqInput }]);
+    setHabitNameInput('');
+    setHabitFreqInput(3);
+  };
+
+  const removeHabit = (index: number) => {
+    setHabitsInput(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDateChange = (_event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (date) setEndDate(date);
+  };
+
+  // Maps onboarding stage (5-9) to CBT prompt stage (1-5)
+  const getCBTStageNumber = (onboardingStage: number) => onboardingStage - 4;
+
+  const getCBTStagePrompts = (onboardingStage: number) =>
+    ONBOARDING_PROMPTS.filter(p => p.stage === getCBTStageNumber(onboardingStage));
 
   // ============================================================================
   // NAVIGATION
   // ============================================================================
 
   const saveGoalData = async () => {
-    if (!user || !goalName.trim()) return;
+    if (!user || !formData.name?.trim()) return;
     try {
-      await createGoalWithActions(user.uid, {
-        name: goalName.trim(),
-        end_date: goalEndDate || addDaysToToday(60),
-        why_connection: goalWhyConnection.trim() || undefined,
-      }, {
-        habits: habitName.trim()
-          ? [{ name: habitName.trim(), category_id: habitCategory, target_count_per_week: habitFrequency }]
-          : [],
-        firstChallenge: challengeName.trim()
-          ? { name: challengeName.trim(), category_id: challengeCategory, difficulty_expected: challengeDifficulty }
-          : undefined,
-      });
+      const habits = habitsInput.map(h => ({
+        name: h.name,
+        category_id: 'Physical',
+        target_count_per_week: h.frequency,
+      }));
+
+      const firstChallenge = formData.first_challenge_input?.trim()
+        ? { name: formData.first_challenge_input.trim(), category_id: 'Physical', difficulty_expected: 3 }
+        : undefined;
+
+      await createGoalWithActions(
+        user.uid,
+        {
+          name: formData.name.trim(),
+          end_date: toYYYYMMDD(endDate),
+          deeper_why: formData.deeper_why?.trim(),
+          confidence_baseline: confidenceBaseline,
+          negative_story: formData.negative_story?.trim(),
+          past_attempt_story: formData.past_attempt_story?.trim(),
+          inner_voice_challenge: innerVoiceChallenge.trim() || undefined,
+          inner_voice_response: innerVoiceResponse.trim() || undefined,
+          good_week_description: formData.good_week_description?.trim(),
+          minimum_action: formData.minimum_action?.trim(),
+          bonus_actions: listData.bonus_actions?.length ? listData.bonus_actions : undefined,
+          triggers: listData.triggers?.length ? listData.triggers : undefined,
+          trigger_substitutes: listData.trigger_substitutes?.length ? listData.trigger_substitutes : undefined,
+          environment_changes: formData.environment_changes?.trim(),
+          recovery_plan: formData.recovery_plan?.trim(),
+          identity_statement: formData.identity_statement?.trim(),
+          support_person: formData.support_person?.trim(),
+          why_connection: formData.why_connection?.trim() || undefined,
+        },
+        { habits, firstChallenge }
+      );
     } catch (e) {
       console.warn('Failed to save goal data:', e);
     }
@@ -171,18 +245,17 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
             coreWhyReached
           );
         }
-        // If skipping from stage 6 or 7, save whatever goal data exists
-        if (currentStage >= 6 && goalName.trim()) {
+        // If skipping from a CBT stage after stage 5 and goal data exists, save it
+        if (currentStage >= 6 && currentStage <= 9 && formData.name?.trim()) {
           await saveGoalData();
         }
       } catch (e) {
         console.warn('Failed to save partial progress:', e);
       }
     }
-    // Skip from stage 5 jumps to 8 (no goal = can't have challenge/habit)
-    // Skip from stage 6 or 7 advances normally
-    if (currentStage === 5) {
-      setCurrentStage(8);
+    // Skip from any CBT goal stage (5-9) jumps to 10 (reward messages)
+    if (currentStage >= 5 && currentStage <= 9) {
+      setCurrentStage(10);
     } else {
       setCurrentStage(prev => prev + 1);
     }
@@ -243,28 +316,59 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
         }
         return true;
       case 5:
-        if (goalName.trim().length < 3) {
-          Alert.alert('Required', 'Please name your goal (at least 3 characters).');
-          return false;
-        }
-        if (!goalEndDate) {
-          Alert.alert('Required', 'Please set a target date for your goal.');
-          return false;
-        }
-        return true;
       case 6:
-        if (challengeName.trim().length < 1) {
-          Alert.alert('Required', 'Please name your first challenge.');
-          return false;
-        }
-        return true;
       case 7:
-        if (habitName.trim().length < 1) {
-          Alert.alert('Required', 'Please name your first habit.');
-          return false;
+      case 8:
+      case 9: {
+        // CBT goal stages — validate required prompts
+        const prompts = getCBTStagePrompts(currentStage);
+        for (const prompt of prompts) {
+          if (!prompt.required) continue;
+          if (prompt.type === 'slider') continue; // always has a value
+          if (prompt.type === 'inner_voice_pair') {
+            if (!innerVoiceChallenge.trim() || !innerVoiceResponse.trim()) {
+              Alert.alert('Required', 'Please fill in both the inner voice and your response.');
+              return false;
+            }
+            continue;
+          }
+          if (prompt.type === 'habit_list') {
+            if (habitsInput.length === 0) {
+              Alert.alert('Required', 'Please add at least one habit.');
+              return false;
+            }
+            continue;
+          }
+          if (prompt.type === 'list') {
+            if ((listData[prompt.fieldKey] || []).length === 0) {
+              Alert.alert('Required', `Please add at least one item for: "${prompt.question}"`);
+              return false;
+            }
+            continue;
+          }
+          // text / multiline
+          if (prompt.fieldKey === 'name') {
+            if (!formData.name?.trim()) {
+              Alert.alert('Required', 'Please enter a goal name.');
+              return false;
+            }
+          } else if (!formData[prompt.fieldKey]?.trim()) {
+            Alert.alert('Required', `Please answer: "${prompt.question}"`);
+            return false;
+          }
+        }
+        // Stage 5 also needs a valid target date
+        if (currentStage === 5) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (endDate <= today) {
+            Alert.alert('Invalid Date', 'Target date must be in the future.');
+            return false;
+          }
         }
         return true;
-      case 8:
+      }
+      case 10:
         if (selectedMessageIds.size < 3) {
           Alert.alert('Required', 'Please select at least 3 reward messages.');
           return false;
@@ -304,8 +408,8 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
             await completeWhyDiscovery(user.uid, whyStatement, contributionPart.trim(), impactPart.trim());
           }
           break;
-        case 7:
-          // Save goal + challenge + habit together when leaving stage 7
+        case 9:
+          // Save goal + habits + challenge together when leaving the last CBT stage
           await saveGoalData();
           break;
       }
@@ -585,201 +689,283 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
     );
   };
 
-  const renderStage5 = () => (
-    <View style={styles.stageContent}>
-      <Text style={styles.stageIntro}>{GOAL_INTRO_TEXT}</Text>
+  // ============================================================================
+  // CBT PROMPT RENDERING (mirrors GoalOnboardingFlow)
+  // ============================================================================
 
-      {/* Why context */}
-      {whyStatement.length > 0 && (
-        <View style={styles.contextBanner}>
-          <Text style={styles.contextBannerLabel}>Your Why:</Text>
-          <Text style={styles.contextBannerText}>"{whyStatement}"</Text>
-        </View>
-      )}
+  const renderPrompt = (prompt: OnboardingPrompt) => {
+    switch (prompt.type) {
+      case 'text':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
+            <InputField
+              label=""
+              value={formData[prompt.fieldKey] || ''}
+              onChangeText={(v) => setField(prompt.fieldKey, v)}
+              placeholder={prompt.placeholder}
+              maxLength={prompt.fieldKey === 'name' ? GOAL_CONSTANTS.NAME_MAX_LENGTH : 300}
+            />
+          </View>
+        );
 
-      {/* Goal Name */}
-      <Text style={styles.fieldLabel}>What's your goal?</Text>
-      <TextInput
-        style={styles.singleLineInput}
-        value={goalName}
-        onChangeText={setGoalName}
-        placeholder="e.g. Get in the best shape of my life"
-        placeholderTextColor={Colors.gray}
-        maxLength={80}
-      />
+      case 'multiline':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            {prompt.fieldKey === 'why_connection' && whyStatement ? (
+              <View style={styles.whyContextBanner}>
+                <Ionicons name="compass" size={16} color={Colors.primary} />
+                <Text style={styles.whyContextText}>Your Why: "{whyStatement}"</Text>
+              </View>
+            ) : null}
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
+            <InputField
+              label=""
+              value={formData[prompt.fieldKey] || ''}
+              onChangeText={(v) => setField(prompt.fieldKey, v)}
+              placeholder={prompt.placeholder}
+              multiline
+              numberOfLines={4}
+              maxLength={500}
+            />
+          </View>
+        );
 
-      {/* Category */}
-      <Text style={styles.fieldLabel}>Category</Text>
-      <View style={styles.categoryPicker}>
-        {GOAL_CATEGORIES.map(cat => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[styles.categoryCard, goalCategory === cat.id && { borderColor: cat.color, backgroundColor: cat.color + '12' }]}
-            onPress={() => setGoalCategory(cat.id)}
-          >
-            <Ionicons name={cat.icon as any} size={22} color={goalCategory === cat.id ? cat.color : Colors.gray} />
-            <Text style={[styles.categoryCardText, goalCategory === cat.id && { color: cat.color, fontFamily: Fonts.secondaryBold }]}>
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      case 'slider':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            <View style={styles.sliderRow}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                <TouchableOpacity
+                  key={n}
+                  onPress={() => setConfidenceBaseline(n)}
+                  style={[
+                    styles.sliderChip,
+                    confidenceBaseline === n && styles.sliderChipActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.sliderChipText,
+                      confidenceBaseline === n && styles.sliderChipTextActive,
+                    ]}
+                  >
+                    {n}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.sliderLabels}>
+              <Text style={styles.sliderLabel}>Not confident</Text>
+              <Text style={styles.sliderLabel}>Very confident</Text>
+            </View>
+          </View>
+        );
 
-      {/* Why Connection */}
-      <Text style={styles.fieldLabel}>How does this goal connect to your Why? (optional)</Text>
-      <TextInput
-        style={styles.multilineInput}
-        value={goalWhyConnection}
-        onChangeText={setGoalWhyConnection}
-        placeholder="Think about how achieving this serves your deeper purpose..."
-        placeholderTextColor={Colors.gray}
-        multiline
-        numberOfLines={3}
-        maxLength={300}
-        textAlignVertical="top"
-      />
+      case 'inner_voice_pair':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
+            <View style={styles.innerVoiceCard}>
+              <View style={styles.innerVoiceRow}>
+                <Ionicons name="volume-high" size={18} color={Colors.secondary} />
+                <Text style={styles.innerVoiceLabel}>Inner voice says:</Text>
+              </View>
+              <TextInput
+                style={styles.innerVoiceInput}
+                value={innerVoiceChallenge}
+                onChangeText={setInnerVoiceChallenge}
+                placeholder={'"Just skip today, one day won\'t matter"'}
+                placeholderTextColor={Colors.gray}
+                multiline
+                maxLength={300}
+              />
+            </View>
+            <View style={[styles.innerVoiceCard, { borderColor: Colors.primary }]}>
+              <View style={styles.innerVoiceRow}>
+                <Ionicons name="shield-checkmark" size={18} color={Colors.primary} />
+                <Text style={[styles.innerVoiceLabel, { color: Colors.primary }]}>You say back:</Text>
+              </View>
+              <TextInput
+                style={styles.innerVoiceInput}
+                value={innerVoiceResponse}
+                onChangeText={setInnerVoiceResponse}
+                placeholder={'"One day always matters. I\'m building a pattern."'}
+                placeholderTextColor={Colors.gray}
+                multiline
+                maxLength={300}
+              />
+            </View>
+          </View>
+        );
 
-      {/* End Date */}
-      <Text style={styles.fieldLabel}>Target deadline</Text>
-      <View style={styles.datePresetRow}>
-        {GOAL_END_DATE_PRESETS.map(days => (
-          <TouchableOpacity
-            key={days}
-            style={[styles.datePresetChip, goalEndDatePreset === days && styles.datePresetChipSelected]}
-            onPress={() => { setGoalEndDatePreset(days); setGoalEndDateCustom(''); }}
-          >
-            <Text style={[styles.datePresetChipText, goalEndDatePreset === days && styles.datePresetChipTextSelected]}>
-              {days} days
-            </Text>
-          </TouchableOpacity>
-        ))}
-        <TouchableOpacity
-          style={[styles.datePresetChip, goalEndDatePreset === null && styles.datePresetChipSelected]}
-          onPress={() => setGoalEndDatePreset(null)}
-        >
-          <Text style={[styles.datePresetChipText, goalEndDatePreset === null && styles.datePresetChipTextSelected]}>
-            Custom
+      case 'habit_list':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
+            {habitsInput.map((habit, idx) => (
+              <View key={idx} style={styles.listItem}>
+                <Text style={styles.listItemText}>
+                  {habit.name} — {habit.frequency}x/week
+                </Text>
+                <TouchableOpacity onPress={() => removeHabit(idx)}>
+                  <Ionicons name="close-circle" size={20} color={Colors.gray} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            <View style={styles.habitAddSection}>
+              <View style={styles.listAddRow}>
+                <TextInput
+                  style={styles.listAddInput}
+                  value={habitNameInput}
+                  onChangeText={setHabitNameInput}
+                  placeholder={prompt.placeholder}
+                  placeholderTextColor={Colors.gray}
+                  onSubmitEditing={addHabit}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.listAddButton} onPress={addHabit}>
+                  <Ionicons name="add-circle" size={28} color={Colors.primary} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.habitFreqLabel}>Times per week</Text>
+              <View style={styles.habitFreqRow}>
+                {[1, 2, 3, 4, 5, 6, 7].map(n => (
+                  <TouchableOpacity
+                    key={n}
+                    onPress={() => setHabitFreqInput(n)}
+                    style={[
+                      styles.habitFreqChip,
+                      habitFreqInput === n && styles.habitFreqChipActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.habitFreqChipText,
+                        habitFreqInput === n && { color: Colors.white },
+                      ]}
+                    >
+                      {n}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        );
+
+      case 'list':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
+            {(listData[prompt.fieldKey] || []).map((item, idx) => (
+              <View key={idx} style={styles.listItem}>
+                <Text style={styles.listItemText}>{item}</Text>
+                <TouchableOpacity onPress={() => removeListItem(prompt.fieldKey, idx)}>
+                  <Ionicons name="close-circle" size={20} color={Colors.gray} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            <View style={styles.listAddRow}>
+              <TextInput
+                style={styles.listAddInput}
+                value={listInputs[prompt.fieldKey] || ''}
+                onChangeText={(v) => setListInputs(prev => ({ ...prev, [prompt.fieldKey]: v }))}
+                placeholder={prompt.placeholder}
+                placeholderTextColor={Colors.gray}
+                onSubmitEditing={() => addListItem(prompt.fieldKey)}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={styles.listAddButton}
+                onPress={() => addListItem(prompt.fieldKey)}
+              >
+                <Ionicons name="add-circle" size={28} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const renderCBTStage = () => {
+    const cbtStageIndex = getCBTStageNumber(currentStage) - 1;
+    const cbtStageInfo = ONBOARDING_STAGES[cbtStageIndex];
+    const prompts = getCBTStagePrompts(currentStage);
+
+    return (
+      <View style={styles.stageContent}>
+        {/* Show intro text and Why context on the first CBT stage */}
+        {currentStage === 5 && (
+          <>
+            <Text style={styles.stageIntro}>{GOAL_INTRO_TEXT}</Text>
+            {whyStatement.length > 0 && (
+              <View style={styles.contextBanner}>
+                <Text style={styles.contextBannerLabel}>Your Why:</Text>
+                <Text style={styles.contextBannerText}>"{whyStatement}"</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* CBT sub-stage header */}
+        <View style={styles.cbtSubHeader}>
+          <View style={styles.cbtSubDots}>
+            {ONBOARDING_STAGES.map((_, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.cbtSubDot,
+                  idx + 1 <= getCBTStageNumber(currentStage) && styles.cbtSubDotActive,
+                  idx + 1 === getCBTStageNumber(currentStage) && styles.cbtSubDotCurrent,
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.cbtSubLabel}>
+            {cbtStageInfo.label}: {cbtStageInfo.subtitle}
           </Text>
-        </TouchableOpacity>
+        </View>
+
+        {/* Target date (only in CBT stage 1 = onboarding stage 5) */}
+        {currentStage === 5 && (
+          <View style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>Target Date</Text>
+            <TouchableOpacity
+              style={styles.dateSelector}
+              onPress={() => setShowDatePicker(!showDatePicker)}
+            >
+              <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
+              <Text style={styles.dateSelectorText}>{formatDate(endDate)}</Text>
+              <Ionicons name="chevron-down" size={16} color={Colors.gray} />
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={endDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                minimumDate={new Date()}
+              />
+            )}
+          </View>
+        )}
+
+        {prompts.map(renderPrompt)}
       </View>
-      {goalEndDatePreset === null && (
-        <TextInput
-          style={styles.singleLineInput}
-          value={goalEndDateCustom}
-          onChangeText={setGoalEndDateCustom}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={Colors.gray}
-          maxLength={10}
-          keyboardType="numbers-and-punctuation"
-        />
-      )}
-    </View>
-  );
+    );
+  };
 
-  const renderStage6 = () => (
-    <View style={styles.stageContent}>
-      <Text style={styles.stageIntro}>{CHALLENGE_INTRO_TEXT}</Text>
-
-      {/* Challenge Name */}
-      <Text style={styles.fieldLabel}>Your first challenge</Text>
-      <TextInput
-        style={styles.singleLineInput}
-        value={challengeName}
-        onChangeText={setChallengeName}
-        placeholder="e.g. Take a cold shower, No phone for 2 hours"
-        placeholderTextColor={Colors.gray}
-        maxLength={80}
-      />
-
-      {/* Category */}
-      <Text style={styles.fieldLabel}>Category</Text>
-      <View style={styles.categoryPicker}>
-        {GOAL_CATEGORIES.map(cat => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[styles.categoryCard, challengeCategory === cat.id && { borderColor: cat.color, backgroundColor: cat.color + '12' }]}
-            onPress={() => setChallengeCategory(cat.id)}
-          >
-            <Ionicons name={cat.icon as any} size={22} color={challengeCategory === cat.id ? cat.color : Colors.gray} />
-            <Text style={[styles.categoryCardText, challengeCategory === cat.id && { color: cat.color, fontFamily: Fonts.secondaryBold }]}>
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Difficulty */}
-      <Text style={styles.fieldLabel}>How hard is this? (1 = easy, 5 = brutal)</Text>
-      <View style={styles.chipRow}>
-        {[1, 2, 3, 4, 5].map(n => (
-          <TouchableOpacity
-            key={n}
-            style={[styles.numberChip, challengeDifficulty === n && styles.numberChipSelected]}
-            onPress={() => setChallengeDifficulty(n)}
-          >
-            <Text style={[styles.numberChipText, challengeDifficulty === n && styles.numberChipTextSelected]}>
-              {n}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderStage7 = () => (
-    <View style={styles.stageContent}>
-      <Text style={styles.stageIntro}>{HABIT_INTRO_TEXT}</Text>
-
-      {/* Habit Name */}
-      <Text style={styles.fieldLabel}>Your first habit</Text>
-      <TextInput
-        style={styles.singleLineInput}
-        value={habitName}
-        onChangeText={setHabitName}
-        placeholder="e.g. Exercise, Meditate, Read 20 minutes"
-        placeholderTextColor={Colors.gray}
-        maxLength={80}
-      />
-
-      {/* Category */}
-      <Text style={styles.fieldLabel}>Category</Text>
-      <View style={styles.categoryPicker}>
-        {GOAL_CATEGORIES.map(cat => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[styles.categoryCard, habitCategory === cat.id && { borderColor: cat.color, backgroundColor: cat.color + '12' }]}
-            onPress={() => setHabitCategory(cat.id)}
-          >
-            <Ionicons name={cat.icon as any} size={22} color={habitCategory === cat.id ? cat.color : Colors.gray} />
-            <Text style={[styles.categoryCardText, habitCategory === cat.id && { color: cat.color, fontFamily: Fonts.secondaryBold }]}>
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Frequency */}
-      <Text style={styles.fieldLabel}>How many times per week?</Text>
-      <View style={styles.chipRow}>
-        {[1, 2, 3, 4, 5, 6, 7].map(n => (
-          <TouchableOpacity
-            key={n}
-            style={[styles.numberChip, habitFrequency === n && styles.numberChipSelected]}
-            onPress={() => setHabitFrequency(n)}
-          >
-            <Text style={[styles.numberChipText, habitFrequency === n && styles.numberChipTextSelected]}>
-              {n}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.chipRowHint}>
-        {habitFrequency === 7 ? 'Every day' : `${habitFrequency}x per week`}
-      </Text>
-    </View>
-  );
-
-  const renderStage8 = () => (
+  const renderStage10 = () => (
     <View style={styles.stageContent}>
       <Text style={styles.stageIntro}>
         These messages show up when you complete a challenge. Pick the ones that hit hardest — you can always change them later.
@@ -818,7 +1004,7 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
 
   const isNextDisabled = saving || checkingUsername
     || (currentStage === 1 && username.trim().length < 3)
-    || (currentStage === 8 && selectedMessageIds.size < 3);
+    || (currentStage === 10 && selectedMessageIds.size < 3);
 
   if (isStage1) {
     return (
@@ -891,10 +1077,8 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
         {currentStage === 2 && renderStage2()}
         {currentStage === 3 && renderStage3()}
         {currentStage === 4 && renderStage4()}
-        {currentStage === 5 && renderStage5()}
-        {currentStage === 6 && renderStage6()}
-        {currentStage === 7 && renderStage7()}
-        {currentStage === 8 && renderStage8()}
+        {currentStage >= 5 && currentStage <= 9 && renderCBTStage()}
+        {currentStage === 10 && renderStage10()}
       </ScrollView>
 
       <View style={styles.navBar}>
@@ -996,26 +1180,56 @@ const styles = StyleSheet.create({
   tipsSection: { gap: Spacing.sm },
   tipText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, lineHeight: 20 },
 
-  // Stages 5-7: Goal/Challenge/Habit
+  // CBT Goal Stages (5-9)
   contextBanner: { backgroundColor: Colors.primary + '08', borderLeftWidth: 3, borderLeftColor: Colors.primary, borderRadius: BorderRadius.sm, padding: Spacing.md, marginBottom: Spacing.lg },
   contextBannerLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.primary, textTransform: 'uppercase', marginBottom: Spacing.xs },
   contextBannerText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20, fontStyle: 'italic' },
-  categoryPicker: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
-  categoryCard: { flex: 1, alignItems: 'center', paddingVertical: Spacing.md, borderRadius: BorderRadius.sm, borderWidth: 1.5, borderColor: Colors.border, gap: Spacing.xs },
-  categoryCardText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
-  datePresetRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md, flexWrap: 'wrap' },
-  datePresetChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1.5, borderColor: Colors.border },
-  datePresetChipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primary + '12' },
-  datePresetChipText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark },
-  datePresetChipTextSelected: { fontFamily: Fonts.secondaryBold, color: Colors.primary },
-  chipRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  numberChip: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  numberChipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primary },
-  numberChipText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
-  numberChipTextSelected: { color: Colors.white },
-  chipRowHint: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: Spacing.xs },
+  promptContainer: { marginBottom: Spacing.lg },
+  requiredBadge: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.secondary, marginBottom: Spacing.sm },
+  whyContextBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.primary + '10', borderRadius: BorderRadius.sm, padding: Spacing.md, marginBottom: Spacing.md, borderLeftWidth: 3, borderLeftColor: Colors.primary },
+  whyContextText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, fontStyle: 'italic', lineHeight: 20 },
+  cbtSubHeader: { marginBottom: Spacing.lg },
+  cbtSubDots: { flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.sm },
+  cbtSubDot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Colors.border },
+  cbtSubDotActive: { backgroundColor: Colors.primary },
+  cbtSubDotCurrent: { backgroundColor: Colors.secondary },
+  cbtSubLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.gray },
 
-  // Stage 8: Reward Messages
+  // Slider
+  sliderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm },
+  sliderChip: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  sliderChipActive: { backgroundColor: Colors.primary },
+  sliderChipText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.primary },
+  sliderChipTextActive: { color: Colors.white },
+  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs },
+  sliderLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
+
+  // Inner voice pair
+  innerVoiceCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.md, borderWidth: 1.5, borderColor: Colors.secondary, padding: Spacing.md, marginBottom: Spacing.sm },
+  innerVoiceRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.xs },
+  innerVoiceLabel: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.secondary },
+  innerVoiceInput: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.dark, minHeight: 60, textAlignVertical: 'top' },
+
+  // List input
+  listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.white, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.sm, marginBottom: Spacing.xs, borderWidth: 1, borderColor: Colors.border },
+  listItemText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, flex: 1, marginRight: Spacing.sm },
+  listAddRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
+  listAddInput: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.dark, backgroundColor: Colors.white, borderRadius: BorderRadius.sm, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  listAddButton: { padding: Spacing.xs },
+
+  // Date picker
+  dateSelector: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.white, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.border },
+  dateSelectorText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.dark },
+
+  // Habit list
+  habitAddSection: { marginTop: Spacing.xs },
+  habitFreqLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, marginTop: Spacing.sm, marginBottom: Spacing.xs },
+  habitFreqRow: { flexDirection: 'row', gap: Spacing.xs },
+  habitFreqChip: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  habitFreqChipActive: { backgroundColor: Colors.primary },
+  habitFreqChipText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.primary },
+
+  // Stage 10: Reward Messages
   messageChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.lightGray, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, borderWidth: 2, borderColor: 'transparent', marginBottom: Spacing.sm },
   messageChipSelected: { backgroundColor: Colors.primary + '10', borderColor: Colors.primary },
   messageChipText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, opacity: 0.8, lineHeight: 20 },

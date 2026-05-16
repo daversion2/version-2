@@ -32,6 +32,11 @@ import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
 import { WhyScreen } from '../screens/Home/WhyScreen';
 import { WhyDiscoveryFlow } from '../screens/Home/WhyDiscoveryFlow';
 import { WeeklyPlannerScreen } from '../screens/Home/WeeklyPlannerScreen';
+import { MicroExerciseFeelingScreen } from '../screens/MicroExercise/MicroExerciseFeelingScreen';
+import { MicroExerciseQuestionScreen } from '../screens/MicroExercise/MicroExerciseQuestionScreen';
+import { MicroExerciseCommitmentScreen } from '../screens/MicroExercise/MicroExerciseCommitmentScreen';
+import { MicroExerciseCompleteScreen } from '../screens/MicroExercise/MicroExerciseCompleteScreen';
+import { MicroExerciseFollowUpScreen } from '../screens/MicroExercise/MicroExerciseFollowUpScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -212,6 +217,31 @@ export const HomeStack: React.FC = () => (
       name="WeeklyPlanner"
       component={WeeklyPlannerScreen}
       options={{ title: 'Weekly Planner' }}
+    />
+    <Stack.Screen
+      name="MicroExerciseFeeling"
+      component={MicroExerciseFeelingScreen}
+      options={{ headerShown: false, presentation: 'modal' }}
+    />
+    <Stack.Screen
+      name="MicroExerciseQuestion"
+      component={MicroExerciseQuestionScreen}
+      options={{ headerShown: false, presentation: 'modal' }}
+    />
+    <Stack.Screen
+      name="MicroExerciseCommitment"
+      component={MicroExerciseCommitmentScreen}
+      options={{ headerShown: false, presentation: 'modal' }}
+    />
+    <Stack.Screen
+      name="MicroExerciseComplete"
+      component={MicroExerciseCompleteScreen}
+      options={{ headerShown: false, presentation: 'modal' }}
+    />
+    <Stack.Screen
+      name="MicroExerciseFollowUp"
+      component={MicroExerciseFollowUpScreen}
+      options={{ title: 'How did it go?' }}
     />
   </Stack.Navigator>
 );

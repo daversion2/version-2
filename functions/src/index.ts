@@ -53,7 +53,8 @@ const getCurrentDayNumber = (startDate: string, today: string): number => {
 const sendPushNotification = async (
   pushToken: string,
   title: string,
-  body: string
+  body: string,
+  data?: Record<string, string>
 ): Promise<void> => {
   if (!Expo.isExpoPushToken(pushToken)) {
     console.log(`Invalid Expo push token: ${pushToken}`);
@@ -65,6 +66,7 @@ const sendPushNotification = async (
     sound: "default",
     title,
     body,
+    ...(data && { data }),
   };
 
   try {
@@ -848,5 +850,93 @@ export const seedInspirationFeed = onSchedule(
     }
 
     console.log(`seedInspirationFeed complete: created ${createdCount} entries`);
+  }
+);
+
+// ============================================================================
+// 9. Micro-commitment follow-up notifications
+// Runs every hour; sends a follow-up notification the day after a micro-exercise
+// is completed, checking in on the user's commitment.
+// ============================================================================
+export const checkMicroCommitmentFollowUps = onSchedule(
+  {
+    schedule: "0 * * * *", // Every hour at minute 0
+    timeZone: "UTC",
+  },
+  async () => {
+    console.log("Running micro commitment follow-up check...");
+
+    const usersSnapshot = await db.collection("users").get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      try {
+        const userData = userDoc.data();
+        const pushToken = userData.expoPushToken;
+        const timezone = userData.timezone || "America/New_York";
+
+        if (!pushToken) continue;
+
+        // Only send during the 10 AM window in the user's local timezone
+        const currentHour = getHourInTimezone(timezone);
+        if (currentHour !== 10) continue;
+
+        const today = getDateInTimezone(timezone);
+        const yesterdayDate = new Date(today + "T00:00:00");
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterday = yesterdayDate.toISOString().split("T")[0];
+
+        // Query micro exercises where follow-up hasn't been sent yet
+        const exercisesSnapshot = await db
+          .collection("users")
+          .doc(userDoc.id)
+          .collection("worksheets")
+          .where("type", "==", "micro_exercise")
+          .where("commitment_follow_up_sent", "==", false)
+          .get();
+
+        for (const exerciseDoc of exercisesSnapshot.docs) {
+          const exercise = exerciseDoc.data();
+
+          // Only process entries completed yesterday
+          if (!exercise.completed_at) continue;
+          const completedDate = (exercise.completed_at as string).split("T")[0];
+          if (completedDate !== yesterday) continue;
+
+          const commitment = exercise.micro_commitment as string | undefined;
+          if (!commitment) continue;
+
+          // Truncate commitment text for the notification body
+          const displayCommitment =
+            commitment.length > 80
+              ? commitment.substring(0, 77) + "..."
+              : commitment;
+
+          await sendPushNotification(
+            pushToken,
+            "How did your commitment go?",
+            `Yesterday you said: "${displayCommitment}"`,
+            {
+              screen: "MicroExerciseFollowUp",
+              entry_id: exerciseDoc.id,
+              user_id: userDoc.id,
+            }
+          );
+
+          // Mark as sent so we don't send again
+          await exerciseDoc.ref.update({ commitment_follow_up_sent: true });
+
+          console.log(
+            `Sent commitment follow-up to user ${userDoc.id} for entry ${exerciseDoc.id}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error processing commitment follow-up for user ${userDoc.id}:`,
+          error
+        );
+      }
+    }
+
+    console.log("checkMicroCommitmentFollowUps complete");
   }
 );

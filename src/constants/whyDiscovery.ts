@@ -14,10 +14,12 @@ export const WHY_DISCOVERY_STAGES: WhyDiscoveryStage[] = [
   { id: 2, label: 'Your Starting Point', subtitle: 'One honest question', skippable: true },
   { id: 3, label: 'Drilling Deeper', subtitle: 'Finding the root', skippable: true },
   { id: 4, label: 'Your Why', subtitle: 'Craft your purpose statement', skippable: true },
-  { id: 5, label: 'Your First Goal', subtitle: 'Put your Why into action', skippable: true },
-  { id: 6, label: 'Your First Challenge', subtitle: 'One act of willpower', skippable: true },
-  { id: 7, label: 'Your First Habit', subtitle: 'Build consistency', skippable: true },
-  { id: 8, label: 'Reward Messages', subtitle: 'Pick what motivates you', skippable: false },
+  { id: 5, label: 'Define Your Goal', subtitle: 'What matters to you', skippable: true },
+  { id: 6, label: 'Thought Patterns', subtitle: "What's been stopping you", skippable: true },
+  { id: 7, label: 'Action Plan', subtitle: 'Build your system', skippable: true },
+  { id: 8, label: 'Anticipate', subtitle: 'Prepare for setbacks', skippable: true },
+  { id: 9, label: 'Identity', subtitle: "Who you're becoming", skippable: true },
+  { id: 10, label: 'Reward Messages', subtitle: 'Pick what motivates you', skippable: false },
 ];
 
 // ============================================================================
@@ -130,14 +132,10 @@ export const WHY_REFLECTION_PROMPTS = [
 ];
 
 // ============================================================================
-// STAGES 5-7: GOAL / CHALLENGE / HABIT CREATION (ONBOARDING)
+// STAGE 5: GOAL CREATION INTRO
 // ============================================================================
 
-export const GOAL_INTRO_TEXT = `Now let\u2019s put your Why into action.\n\nA goal is the big thing you\u2019re working toward \u2014 everything else (challenges and habits) exists to serve it. Pick something meaningful, give it a deadline, and we\u2019ll help you build the system to get there.`;
-
-export const CHALLENGE_INTRO_TEXT = `A challenge is a single act of willpower \u2014 something uncomfortable you commit to doing today.\n\nCold shower, no phone for an hour, talk to a stranger. You rate the difficulty (1\u20135) and earn more points for harder ones. Challenges are how you prove to yourself that you can do hard things.`;
-
-export const HABIT_INTRO_TEXT = `A habit is something you want to do regularly \u2014 exercise, meditate, read, eat clean.\n\nYou set a weekly target and track your consistency over time. Streaks build when you hit your target week after week. Habits are the compound interest of willpower.`;
+export const GOAL_INTRO_TEXT = `Now let\u2019s put your Why into action.\n\nA goal is the big thing you\u2019re working toward \u2014 everything else (challenges and habits) exists to serve it. We\u2019ll walk you through a few questions to build a real system around it.`;
 
 export const GOAL_END_DATE_PRESETS = [30, 60, 90]; // days from today
 

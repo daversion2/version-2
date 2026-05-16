@@ -14,21 +14,20 @@ interface ComebackModalProps {
   visible: boolean;
   goal: Goal | null;
   onDismiss: () => void;
+  navigation: any;
 }
 
 export const ComebackModal: React.FC<ComebackModalProps> = ({
   visible,
   goal,
   onDismiss,
+  navigation,
 }) => {
   if (!visible || !goal) return null;
 
   const hasRecoveryPlan = !!goal.recovery_plan;
   const hasMinAction = !!goal.minimum_action;
   const hasInnerVoice = !!goal.inner_voice_challenge && !!goal.inner_voice_response;
-
-  // Only show if the goal has at least some CBT data to surface
-  if (!hasRecoveryPlan && !hasMinAction && !hasInnerVoice) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -80,6 +79,17 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
 
           <TouchableOpacity style={styles.button} onPress={onDismiss} activeOpacity={0.8}>
             <Text style={styles.buttonText}>Let's Go</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.unpackButton}
+            onPress={() => {
+              onDismiss();
+              navigation.navigate('MicroExerciseFeeling', { trigger_context: 'comeback' });
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.unpackButtonText}>Want to unpack this? →</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -200,5 +210,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
     color: Colors.white,
+  },
+  unpackButton: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  unpackButtonText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
 });
