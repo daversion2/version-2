@@ -8,6 +8,23 @@
         { "fieldPath": "commitment_follow_up_sent", "order": "ASCENDING" },
         { "fieldPath": "completed_at", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "worksheets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_draft", "order": "ASCENDING" },
+        { "fieldPath": "completed_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "worksheets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "template_id", "order": "ASCENDING" },
+        { "fieldPath": "is_draft", "order": "ASCENDING" },
+        { "fieldPath": "completed_at", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

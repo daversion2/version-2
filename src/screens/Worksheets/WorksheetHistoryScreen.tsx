@@ -146,6 +146,7 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
               styles.filterChipText,
               !filterTemplateId && styles.filterChipTextActive,
             ]}
+            numberOfLines={1}
           >
             All
           </Text>
@@ -164,6 +165,7 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
                 styles.filterChipText,
                 filterTemplateId === t.id && styles.filterChipTextActive,
               ]}
+              numberOfLines={1}
             >
               {t.name}
             </Text>
