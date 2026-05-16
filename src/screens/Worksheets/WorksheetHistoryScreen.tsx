@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { getWorksheetHistory } from '../../services/worksheets';
 import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
+import { MICRO_EXERCISES } from '../../data/microExercises';
 import { useAuth } from '../../context/AuthContext';
 import { WorksheetEntry } from '../../types';
 
@@ -58,7 +59,18 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
     return Colors.gray;
   };
 
-  const getFirstResponse = (entry: WorksheetEntry): string => {
+  const getEntryDisplayName = (entry: WorksheetEntry): string => {
+    if (entry.type === 'micro_exercise' && entry.feeling) {
+      const def = MICRO_EXERCISES.find((e) => e.feeling_key === entry.feeling);
+      return def ? def.feeling_label : entry.template_name;
+    }
+    return entry.template_name;
+  };
+
+  const getSnippet = (entry: WorksheetEntry): string => {
+    if (entry.type === 'micro_exercise') {
+      return entry.micro_commitment || '';
+    }
     const template = WORKSHEET_TEMPLATES.find(
       (t) => t.id === entry.template_id
     );
@@ -84,7 +96,9 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
   const renderEntry = ({ item }: { item: WorksheetEntry }) => {
     const moodDelta = getMoodDelta(item);
     const moodColor = getMoodColor(item);
-    const snippet = getFirstResponse(item);
+    const snippet = getSnippet(item);
+    const displayName = getEntryDisplayName(item);
+    const isMicro = item.type === 'micro_exercise';
 
     return (
       <TouchableOpacity
@@ -95,7 +109,14 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
         activeOpacity={0.7}
       >
         <View style={styles.entryHeader}>
-          <Text style={styles.entryTemplateName}>{item.template_name}</Text>
+          <View style={styles.entryTitleRow}>
+            {isMicro && (
+              <View style={styles.microBadge}>
+                <Text style={styles.microBadgeText}>MICRO</Text>
+              </View>
+            )}
+            <Text style={styles.entryTemplateName} numberOfLines={1}>{displayName}</Text>
+          </View>
           {moodDelta && (
             <View style={[styles.moodBadge, { backgroundColor: moodColor + '15' }]}>
               <Ionicons
@@ -254,10 +275,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.xs,
   },
+  entryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    flex: 1,
+    marginRight: Spacing.xs,
+  },
   entryTemplateName: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.sm,
     color: Colors.dark,
+    flexShrink: 1,
+  },
+  microBadge: {
+    backgroundColor: Colors.primary + '20',
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  microBadgeText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 10,
+    color: Colors.primary,
+    letterSpacing: 0.5,
   },
   moodBadge: {
     flexDirection: 'row',

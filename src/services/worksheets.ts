@@ -161,10 +161,7 @@ export const getWorksheetHistory = async (
     );
   }
   const snap = await getDocs(q);
-  // Filter out micro-exercises client-side (they use a separate history view)
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry))
-    .filter((entry) => entry.type !== 'micro_exercise');
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry));
 };
 
 /**
