@@ -30,9 +30,20 @@ export const dismissOnboardingBanner = async (userId: string): Promise<void> => 
 export const completeFullOnboarding = async (userId: string): Promise<void> => {
   await setDoc(
     doc(db, 'users', userId),
-    { onboarding_deferred: false, onboarding_banner_dismissed: true },
+    { onboarding_deferred: false, onboarding_banner_dismissed: true, deferred_onboarding_progress: deleteField() },
     { merge: true }
   );
+};
+
+export const saveDeferredOnboardingProgress = async (
+  userId: string,
+  progress: Record<string, any>
+): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { deferred_onboarding_progress: progress }, { merge: true });
+};
+
+export const clearDeferredOnboardingProgress = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { deferred_onboarding_progress: deleteField() }, { merge: true });
 };
 
 export const resetOnboarding = async (userId: string): Promise<void> => {

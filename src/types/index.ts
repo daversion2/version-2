@@ -38,6 +38,7 @@ export interface User {
   // Deferred onboarding
   onboarding_deferred?: boolean;
   onboarding_banner_dismissed?: boolean;
+  deferred_onboarding_progress?: Record<string, any>;
 }
 
 export interface HomeLayoutItem {

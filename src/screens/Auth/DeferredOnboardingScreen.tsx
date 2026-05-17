@@ -28,7 +28,7 @@ import {
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
-import { completeFullOnboarding } from '../../services/users';
+import { completeFullOnboarding, saveDeferredOnboardingProgress } from '../../services/users';
 import {
   initializeWhyProfile,
   saveWhyIterations,
@@ -51,12 +51,14 @@ const STAGES = [
 type Props = NativeStackScreenProps<any, 'DeferredOnboarding'>;
 
 export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, refreshProfile } = useAuth();
+  const { user, userProfile, refreshProfile } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const restoredRef = useRef(false);
 
   const [currentStage, setCurrentStage] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
 
   // Stage 1: Opening question
@@ -107,6 +109,30 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
         .catch(console.warn);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!userProfile || restoredRef.current) return;
+    restoredRef.current = true;
+    const p = userProfile.deferred_onboarding_progress;
+    if (!p) return;
+    if (p.currentStage) setCurrentStage(p.currentStage);
+    if (p.openingAnswer) setOpeningAnswer(p.openingAnswer);
+    if (p.whyIterations) setWhyIterations(p.whyIterations);
+    if (p.coreWhyReached) setCoreWhyReached(p.coreWhyReached);
+    if (p.contributionPart) setContributionPart(p.contributionPart);
+    if (p.impactPart) setImpactPart(p.impactPart);
+    if (p.deeperWhy) setDeeperWhy(p.deeperWhy);
+    if (p.confidenceBaseline) setConfidenceBaseline(p.confidenceBaseline);
+    if (p.hasTriedBefore !== undefined) setHasTriedBefore(p.hasTriedBefore);
+    if (p.innerVoiceChallenge) setInnerVoiceChallenge(p.innerVoiceChallenge);
+    if (p.innerVoiceResponse) setInnerVoiceResponse(p.innerVoiceResponse);
+    if (p.negativeStory) setNegativeStory(p.negativeStory);
+    if (p.minimumAction) setMinimumAction(p.minimumAction);
+    if (p.recoveryPlan) setRecoveryPlan(p.recoveryPlan);
+    if (p.triggers) setTriggers(p.triggers);
+    if (p.triggerSubs) setTriggerSubs(p.triggerSubs);
+    if (p.identityStatement) setIdentityStatement(p.identityStatement);
+  }, [userProfile]);
 
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -251,6 +277,37 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save. Please try again.');
       setSaving(false);
+    }
+  };
+
+  const handleSaveProgress = async () => {
+    if (!user) return;
+    setSavingProgress(true);
+    try {
+      await saveDeferredOnboardingProgress(user.uid, {
+        currentStage,
+        openingAnswer,
+        whyIterations,
+        coreWhyReached,
+        contributionPart,
+        impactPart,
+        deeperWhy,
+        confidenceBaseline,
+        hasTriedBefore,
+        innerVoiceChallenge,
+        innerVoiceResponse,
+        negativeStory,
+        minimumAction,
+        recoveryPlan,
+        triggers,
+        triggerSubs,
+        identityStatement,
+      });
+      navigation.goBack();
+    } catch (e) {
+      Alert.alert('Error', 'Could not save progress. Please try again.');
+    } finally {
+      setSavingProgress(false);
     }
   };
 
@@ -736,6 +793,14 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="arrow-back" size={20} color={Colors.primary} />
           <Text style={styles.backText}>{currentStage === 1 ? 'Cancel' : 'Back'}</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleSaveProgress}
+          style={styles.saveButton}
+          disabled={savingProgress}
+        >
+          <Ionicons name="bookmark-outline" size={16} color={Colors.gray} />
+          <Text style={styles.saveText}>{savingProgress ? 'Saving…' : 'Save & Exit'}</Text>
+        </TouchableOpacity>
         <Button
           title={isLastStage ? 'Finish Setup' : 'Continue'}
           onPress={handleNext}
@@ -767,7 +832,9 @@ const styles = StyleSheet.create({
   navBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.lightGray, backgroundColor: Colors.white },
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: Spacing.sm },
   backText: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.primary },
-  nextButton: { minWidth: 140 },
+  saveButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
+  saveText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
+  nextButton: { minWidth: 120 },
 
   stageContent: { flex: 1 },
   stageIntro: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.dark, lineHeight: 24, marginBottom: Spacing.lg },
