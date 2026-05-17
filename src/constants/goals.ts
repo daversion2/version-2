@@ -24,7 +24,7 @@ export interface OnboardingPrompt {
   placeholder: string;
   required: boolean;
   fieldKey: string;
-  type: 'text' | 'multiline' | 'slider' | 'list' | 'habit_list' | 'inner_voice_pair';
+  type: 'text' | 'multiline' | 'slider' | 'list' | 'habit_list' | 'inner_voice_pair' | 'yes_no' | 'challenge_input';
 }
 
 export const ONBOARDING_STAGES = [
@@ -76,21 +76,21 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
 
   // Stage 2: Thought Patterns
   {
-    id: 'negative_story',
-    stage: 2,
-    question: "What's the story you tell yourself about why you haven't done this yet?",
-    placeholder: 'e.g., "I\'m lazy" or "I always quit after a week"',
-    required: true,
-    fieldKey: 'negative_story',
-    type: 'multiline',
-  },
-  {
     id: 'past_attempt',
     stage: 2,
-    question: 'Have you tried this before? What did you tell yourself when it fell apart?',
-    placeholder: 'What happened last time, and what did you tell yourself?',
+    question: 'Have you tried to achieve this before?',
+    placeholder: '',
     required: false,
-    fieldKey: 'past_attempt_story',
+    fieldKey: 'past_attempt_tried',
+    type: 'yes_no',
+  },
+  {
+    id: 'negative_story',
+    stage: 2,
+    question: "What did you tell yourself when it fell apart last time?",
+    placeholder: 'e.g., "I\'m lazy" or "I always quit after a week"',
+    required: false,
+    fieldKey: 'negative_story',
     type: 'multiline',
   },
   {
@@ -98,21 +98,12 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
     stage: 2,
     question: 'What will your inner voice say when it gets hard? What will you say back?',
     placeholder: '',
-    required: true,
+    required: false,
     fieldKey: 'inner_voice_pair',
     type: 'inner_voice_pair',
   },
 
   // Stage 3: Action Plan
-  {
-    id: 'good_week',
-    stage: 3,
-    question: 'What does a good week look like for this goal?',
-    placeholder: 'Describe concrete, observable behaviors — not feelings',
-    required: true,
-    fieldKey: 'good_week_description',
-    type: 'multiline',
-  },
   {
     id: 'habits',
     stage: 3,
@@ -126,10 +117,10 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
     id: 'first_challenge',
     stage: 3,
     question: "What's one challenge you can do this week to push yourself for this goal?",
-    placeholder: 'Something specific and uncomfortable',
+    placeholder: 'e.g., Run a mile without stopping, take a cold shower',
     required: true,
     fieldKey: 'first_challenge_input',
-    type: 'text',
+    type: 'challenge_input',
   },
   {
     id: 'minimum_action',
@@ -170,19 +161,10 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
     type: 'list',
   },
   {
-    id: 'environment',
-    stage: 4,
-    question: 'What needs to change in your environment to make this easier?',
-    placeholder: 'e.g., Put gym bag by door, delete food delivery apps',
-    required: false,
-    fieldKey: 'environment_changes',
-    type: 'multiline',
-  },
-  {
     id: 'recovery_plan',
     stage: 4,
-    question: 'When (not if) you miss a day, what\'s your plan to get back on track?',
-    placeholder: 'Missing a day is data, not failure. What will you do next?',
+    question: 'If you miss a day, what will you do to get back on track?',
+    placeholder: "e.g., I'll do a shorter version, or pick it back up the next morning",
     required: true,
     fieldKey: 'recovery_plan',
     type: 'multiline',

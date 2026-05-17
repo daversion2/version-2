@@ -93,7 +93,7 @@ export const WHY_DRILLING_PROMPTS: WhyDrillingPrompt[] = [
   },
 ];
 
-export const MIN_WHY_DEPTH = 3;
+export const MIN_WHY_DEPTH = 1;
 export const MAX_WHY_DEPTH = 7;
 
 // ============================================================================

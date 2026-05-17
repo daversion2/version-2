@@ -109,6 +109,9 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
   const [habitNameInput, setHabitNameInput] = useState('');
   const [habitFreqInput, setHabitFreqInput] = useState(3);
 
+  // Stage 6: Thought Patterns gate
+  const [hasTriedBefore, setHasTriedBefore] = useState<boolean | null>(null);
+
   // Stage 10: Reward Messages
   const [globalMessages, setGlobalMessages] = useState<RewardMessage[]>([]);
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
@@ -197,7 +200,12 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
       }));
 
       const firstChallenge = formData.first_challenge_input?.trim()
-        ? { name: formData.first_challenge_input.trim(), category_id: 'Physical', difficulty_expected: 3 }
+        ? {
+            name: formData.first_challenge_input.trim(),
+            description: formData.first_challenge_input_description?.trim() || undefined,
+            category_id: 'Physical',
+            difficulty_expected: 3,
+          }
         : undefined;
 
       await createGoalWithActions(
@@ -208,15 +216,12 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
           deeper_why: formData.deeper_why?.trim(),
           confidence_baseline: confidenceBaseline,
           negative_story: formData.negative_story?.trim(),
-          past_attempt_story: formData.past_attempt_story?.trim(),
           inner_voice_challenge: innerVoiceChallenge.trim() || undefined,
           inner_voice_response: innerVoiceResponse.trim() || undefined,
-          good_week_description: formData.good_week_description?.trim(),
           minimum_action: formData.minimum_action?.trim(),
           bonus_actions: listData.bonus_actions?.length ? listData.bonus_actions : undefined,
           triggers: listData.triggers?.length ? listData.triggers : undefined,
           trigger_substitutes: listData.trigger_substitutes?.length ? listData.trigger_substitutes : undefined,
-          environment_changes: formData.environment_changes?.trim(),
           recovery_plan: formData.recovery_plan?.trim(),
           identity_statement: formData.identity_statement?.trim(),
           support_person: formData.support_person?.trim(),
@@ -320,14 +325,29 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
       case 7:
       case 8:
       case 9: {
+        // Stage 6: Thought Patterns — gate on hasTriedBefore
+        if (currentStage === 6) {
+          if (hasTriedBefore === null) {
+            Alert.alert('Required', 'Please answer whether you\'ve tried this before.');
+            return false;
+          }
+          if (hasTriedBefore === true) {
+            if (!innerVoiceChallenge.trim() || !innerVoiceResponse.trim()) {
+              Alert.alert('Required', 'Please fill in both the inner voice and your response.');
+              return false;
+            }
+          }
+          return true;
+        }
+
         // CBT goal stages — validate required prompts
         const prompts = getCBTStagePrompts(currentStage);
         for (const prompt of prompts) {
           if (!prompt.required) continue;
           if (prompt.type === 'slider') continue; // always has a value
-          if (prompt.type === 'inner_voice_pair') {
-            if (!innerVoiceChallenge.trim() || !innerVoiceResponse.trim()) {
-              Alert.alert('Required', 'Please fill in both the inner voice and your response.');
+          if (prompt.type === 'challenge_input') {
+            if (!formData[prompt.fieldKey]?.trim()) {
+              Alert.alert('Required', 'Please give your challenge a title.');
               return false;
             }
             continue;
@@ -892,6 +912,59 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
           </View>
         );
 
+      case 'yes_no':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            <View style={styles.yesNoRow}>
+              <TouchableOpacity
+                style={[styles.yesNoButton, hasTriedBefore === true && styles.yesNoButtonActive]}
+                onPress={() => setHasTriedBefore(true)}
+              >
+                <Text style={[styles.yesNoButtonText, hasTriedBefore === true && styles.yesNoButtonTextActive]}>Yes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.yesNoButton, hasTriedBefore === false && styles.yesNoButtonActive]}
+                onPress={() => setHasTriedBefore(false)}
+              >
+                <Text style={[styles.yesNoButtonText, hasTriedBefore === false && styles.yesNoButtonTextActive]}>No</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      case 'challenge_input':
+        return (
+          <View key={prompt.id} style={styles.promptContainer}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
+            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
+            <View style={styles.challengeExplainer}>
+              <Ionicons name="flash" size={16} color={Colors.secondary} />
+              <Text style={styles.challengeExplainerText}>
+                A challenge is something that gets you outside your comfort zone. You'll reflect on it afterward and grow stronger from the experience.
+              </Text>
+            </View>
+            <Text style={styles.fieldLabel}>Challenge title</Text>
+            <InputField
+              label=""
+              value={formData[prompt.fieldKey] || ''}
+              onChangeText={(v) => setField(prompt.fieldKey, v)}
+              placeholder={prompt.placeholder}
+              maxLength={100}
+            />
+            <Text style={styles.fieldLabel}>What you'll do (optional)</Text>
+            <InputField
+              label=""
+              value={formData[prompt.fieldKey + '_description'] || ''}
+              onChangeText={(v) => setField(prompt.fieldKey + '_description', v)}
+              placeholder="Describe specifically what you'll do..."
+              multiline
+              numberOfLines={3}
+              maxLength={300}
+            />
+          </View>
+        );
+
       default:
         return null;
     }
@@ -960,7 +1033,23 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
           </View>
         )}
 
-        {prompts.map(renderPrompt)}
+        {currentStage === 6 ? (() => {
+          const yesNoPrompt = prompts.find(p => p.id === 'past_attempt');
+          const conditionalPrompts = prompts.filter(p => p.id !== 'past_attempt');
+          return (
+            <>
+              {yesNoPrompt && renderPrompt(yesNoPrompt)}
+              {hasTriedBefore === true && conditionalPrompts.map(renderPrompt)}
+              {hasTriedBefore === false && (
+                <View style={styles.noAttemptNote}>
+                  <Text style={styles.noAttemptNoteText}>
+                    Great — you're starting fresh. Let's build the right system from the start.
+                  </Text>
+                </View>
+              )}
+            </>
+          );
+        })() : prompts.map(renderPrompt)}
       </View>
     );
   };
@@ -1228,6 +1317,21 @@ const styles = StyleSheet.create({
   habitFreqChip: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
   habitFreqChipActive: { backgroundColor: Colors.primary },
   habitFreqChipText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.primary },
+
+  // Yes/No buttons (Thought Patterns gate)
+  yesNoRow: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
+  yesNoButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 2, borderColor: Colors.border, alignItems: 'center', backgroundColor: Colors.white },
+  yesNoButtonActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '10' },
+  yesNoButtonText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.gray },
+  yesNoButtonTextActive: { color: Colors.primary },
+
+  // No-attempt note
+  noAttemptNote: { marginTop: Spacing.md, backgroundColor: Colors.primary + '08', borderRadius: BorderRadius.md, padding: Spacing.md, borderLeftWidth: 3, borderLeftColor: Colors.primary },
+  noAttemptNoteText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
+
+  // Challenge input explainer
+  challengeExplainer: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, backgroundColor: Colors.secondary + '10', borderRadius: BorderRadius.sm, padding: Spacing.md, marginBottom: Spacing.md },
+  challengeExplainerText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
 
   // Stage 10: Reward Messages
   messageChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.lightGray, borderRadius: BorderRadius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, borderWidth: 2, borderColor: 'transparent', marginBottom: Spacing.sm },
