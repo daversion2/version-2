@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
 import { GoalsStack } from './GoalsStack';
+import { ProgressStack } from './ProgressStack';
 import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
 import { AdminStack } from './AdminStack';
@@ -23,6 +24,8 @@ export const MainTabs: React.FC = () => {
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
           else if (route.name === 'Goals')
             iconName = focused ? 'flag' : 'flag-outline';
+          else if (route.name === 'Progress')
+            iconName = focused ? 'trending-up' : 'trending-up-outline';
           else if (route.name === 'Worksheets')
             iconName = focused ? 'clipboard' : 'clipboard-outline';
           else if (route.name === 'Settings')
@@ -46,6 +49,7 @@ export const MainTabs: React.FC = () => {
     >
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Goals" component={GoalsStack} />
+      <Tab.Screen name="Progress" component={ProgressStack} />
       <Tab.Screen name="Worksheets" component={WorksheetsStack} />
       <Tab.Screen
         name="Settings"

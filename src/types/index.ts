@@ -35,6 +35,9 @@ export interface User {
   // Why Discovery
   has_completed_why_discovery?: boolean;
   why_statement?: string; // Denormalized for fast home screen display
+  // Deferred onboarding
+  onboarding_deferred?: boolean;
+  onboarding_banner_dismissed?: boolean;
 }
 
 export interface HomeLayoutItem {

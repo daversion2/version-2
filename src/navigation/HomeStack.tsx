@@ -31,6 +31,7 @@ import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
 import { WhyScreen } from '../screens/Home/WhyScreen';
 import { WhyDiscoveryFlow } from '../screens/Home/WhyDiscoveryFlow';
+import { DeferredOnboardingScreen } from '../screens/Auth/DeferredOnboardingScreen';
 import { WeeklyPlannerScreen } from '../screens/Home/WeeklyPlannerScreen';
 import { MicroExerciseFeelingScreen } from '../screens/MicroExercise/MicroExerciseFeelingScreen';
 import { MicroExerciseQuestionScreen } from '../screens/MicroExercise/MicroExerciseQuestionScreen';
@@ -212,6 +213,11 @@ export const HomeStack: React.FC = () => (
       name="WhyDiscoveryFlow"
       component={WhyDiscoveryFlow}
       options={{ title: '', headerShown: false }}
+    />
+    <Stack.Screen
+      name="DeferredOnboarding"
+      component={DeferredOnboardingScreen}
+      options={{ title: '', headerShown: false, presentation: 'fullScreenModal' }}
     />
     <Stack.Screen
       name="WeeklyPlanner"

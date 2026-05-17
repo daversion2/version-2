@@ -8,6 +8,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
+import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './habits';
 import { db } from './firebase';
 import { CompletionLog, Challenge, Nudge } from '../types';
 
@@ -245,4 +246,133 @@ export const getCompletionLogById = async (
   const snap = await getDoc(logRef);
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() } as CompletionLog;
+};
+
+// --- Progress Analytics ---
+
+export const get7DayCompletionRate = async (
+  userId: string
+): Promise<{ rate: number; activeDays: number; totalDays: 7 }> => {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  const startDate = sevenDaysAgo.toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0];
+  const logs = await getCompletionLogs(userId, startDate, today);
+  const activeDays = new Set(logs.map((l) => l.date)).size;
+  return { rate: activeDays / 7, activeDays, totalDays: 7 };
+};
+
+export const getWeekComparison = async (
+  userId: string
+): Promise<{ thisWeek: number; lastWeek: number; bestWeek: number }> => {
+  const allLogs = await getCompletionLogs(userId);
+
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() + mondayOffset);
+  const thisMondayStr = thisMonday.toISOString().split('T')[0];
+  const todayStr = now.toISOString().split('T')[0];
+
+  const lastMonday = new Date(thisMonday);
+  lastMonday.setDate(thisMonday.getDate() - 7);
+  const lastMondayStr = lastMonday.toISOString().split('T')[0];
+  const lastSunday = new Date(thisMonday);
+  lastSunday.setDate(thisMonday.getDate() - 1);
+  const lastSundayStr = lastSunday.toISOString().split('T')[0];
+
+  let thisWeek = 0;
+  let lastWeek = 0;
+  const dateCountMap = new Map<string, number>();
+
+  allLogs.forEach((log) => {
+    if (log.date >= thisMondayStr && log.date <= todayStr) thisWeek++;
+    if (log.date >= lastMondayStr && log.date <= lastSundayStr) lastWeek++;
+    dateCountMap.set(log.date, (dateCountMap.get(log.date) || 0) + 1);
+  });
+
+  // Find best 7-day window
+  const sortedDates = [...dateCountMap.keys()].sort();
+  let bestWeek = thisWeek;
+  for (const startStr of sortedDates) {
+    const windowEnd = new Date(startStr);
+    windowEnd.setDate(windowEnd.getDate() + 6);
+    const windowEndStr = windowEnd.toISOString().split('T')[0];
+    const count = allLogs.filter((l) => l.date >= startStr && l.date <= windowEndStr).length;
+    if (count > bestWeek) bestWeek = count;
+  }
+
+  return { thisWeek, lastWeek, bestWeek };
+};
+
+export const getRecoverySpeed = async (
+  userId: string
+): Promise<{ avgDaysToRecover: number; totalGaps: number }> => {
+  const allLogs = await getCompletionLogs(userId);
+  if (allLogs.length === 0) return { avgDaysToRecover: 0, totalGaps: 0 };
+
+  const uniqueDates = [...new Set(allLogs.map((l) => l.date))].sort();
+  const gaps: number[] = [];
+
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const prev = new Date(uniqueDates[i - 1]);
+    const curr = new Date(uniqueDates[i]);
+    const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000) - 1;
+    if (diffDays > 0) gaps.push(Math.min(diffDays, 30));
+  }
+
+  if (gaps.length === 0) return { avgDaysToRecover: 0, totalGaps: 0 };
+  const avg = gaps.reduce((sum, g) => sum + g, 0) / gaps.length;
+  return { avgDaysToRecover: Math.round(avg * 10) / 10, totalGaps: gaps.length };
+};
+
+export const getDayOfWeekPattern = async (
+  userId: string
+): Promise<Record<number, number>> => {
+  const allLogs = await getCompletionLogs(userId);
+  const pattern: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+
+  allLogs.forEach((log) => {
+    const [y, m, d] = log.date.split('-').map(Number);
+    const dow = new Date(y, m - 1, d).getDay();
+    pattern[dow] = (pattern[dow] || 0) + 1;
+  });
+
+  return pattern;
+};
+
+export interface HabitHealthScore {
+  id: string;
+  name: string;
+  score: number;
+  weekCompletions: number;
+  weekTarget: number;
+  currentStreak: number;
+}
+
+export const getHabitHealthScores = async (userId: string): Promise<HabitHealthScore[]> => {
+  const [habits, weeklyCounts] = await Promise.all([
+    getActiveHabits(userId),
+    getWeeklyCompletionCounts(userId),
+  ]);
+  if (habits.length === 0) return [];
+
+  const streaks = await getHabitsStreaks(userId, habits.map((h) => h.id));
+
+  return habits
+    .map((h) => {
+      const weekCompletions = weeklyCounts[h.id] || 0;
+      const weekTarget = h.target_count_per_week || 3;
+      return {
+        id: h.id,
+        name: h.name,
+        score: Math.min(1, weekCompletions / weekTarget),
+        weekCompletions,
+        weekTarget,
+        currentStreak: streaks[h.id]?.currentStreak || 0,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
 };

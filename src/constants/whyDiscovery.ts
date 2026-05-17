@@ -11,16 +11,25 @@ export interface WhyDiscoveryStage {
 
 export const WHY_DISCOVERY_STAGES: WhyDiscoveryStage[] = [
   { id: 1, label: 'Welcome', subtitle: "Let's get you set up", skippable: false },
-  { id: 2, label: 'Your Starting Point', subtitle: 'One honest question', skippable: true },
-  { id: 3, label: 'Drilling Deeper', subtitle: 'Finding the root', skippable: true },
-  { id: 4, label: 'Your Why', subtitle: 'Craft your purpose statement', skippable: true },
-  { id: 5, label: 'Define Your Goal', subtitle: 'What matters to you', skippable: true },
-  { id: 6, label: 'Thought Patterns', subtitle: "What's been stopping you", skippable: true },
-  { id: 7, label: 'Action Plan', subtitle: 'Build your system', skippable: true },
-  { id: 8, label: 'Anticipate', subtitle: 'Prepare for setbacks', skippable: true },
-  { id: 9, label: 'Identity', subtitle: "Who you're becoming", skippable: true },
-  { id: 10, label: 'Reward Messages', subtitle: 'Pick what motivates you', skippable: false },
+  { id: 2, label: 'Pause', subtitle: 'One minute of awareness', skippable: false },
+  { id: 3, label: 'Reflect', subtitle: 'What did you notice?', skippable: false },
+  { id: 4, label: 'Your Goal', subtitle: 'What do you want to work on?', skippable: false },
+  { id: 5, label: 'Your Action', subtitle: 'How will you start?', skippable: false },
+  { id: 6, label: 'Set It Up', subtitle: 'Name your first step', skippable: false },
+  { id: 7, label: 'Motivation', subtitle: 'Pick what drives you', skippable: false },
 ];
+
+// ============================================================================
+// STAGE 2: MINDFULNESS CONTEXT
+// ============================================================================
+
+export const MINDFULNESS_CONTEXT = `Most behavior change fails not because of willpower — but because of the story running in your head.
+
+This app is built around that insight. Before we set anything up, we want to show you something.
+
+Take 60 seconds. Sit quietly. No scrolling — just notice what thoughts come up.`;
+
+export const MINDFULNESS_TIMER_SECONDS = 60;
 
 // ============================================================================
 // STAGE 2: OPENING QUESTION

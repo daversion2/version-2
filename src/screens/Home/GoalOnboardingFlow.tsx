@@ -249,7 +249,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
           trigger_substitutes: listData.trigger_substitutes?.length ? listData.trigger_substitutes : undefined,
           recovery_plan: formData.recovery_plan?.trim(),
           identity_statement: formData.identity_statement?.trim(),
-          support_person: formData.support_person?.trim(),
           why_connection: formData.why_connection?.trim() || undefined,
         },
         { habits, firstChallenge }

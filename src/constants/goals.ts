@@ -180,13 +180,4 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
     fieldKey: 'identity_statement',
     type: 'text',
   },
-  {
-    id: 'support',
-    stage: 5,
-    question: 'Who in your life can support this? How will you ask them?',
-    placeholder: 'e.g., My partner — I\'ll ask them to check in weekly',
-    required: false,
-    fieldKey: 'support_person',
-    type: 'multiline',
-  },
 ];

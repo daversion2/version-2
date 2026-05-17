@@ -166,6 +166,38 @@ export const createGoalWithActions = async (
 };
 
 /**
+ * Save CBT fields to an existing goal (used by deferred onboarding).
+ */
+export const saveGoalCBTData = async (
+  userId: string,
+  goalId: string,
+  data: {
+    deeper_why?: string;
+    why_connection?: string;
+    confidence_baseline?: number;
+    negative_story?: string;
+    inner_voice_challenge?: string;
+    inner_voice_response?: string;
+    minimum_action?: string;
+    bonus_actions?: string[];
+    triggers?: string[];
+    trigger_substitutes?: string[];
+    recovery_plan?: string;
+    identity_statement?: string;
+  }
+): Promise<void> => {
+  const ref = doc(db, 'users', userId, 'goals', goalId);
+  const clean: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const [key, val] of Object.entries(data)) {
+    if (val === undefined || val === null) continue;
+    if (typeof val === 'string' && val.trim()) clean[key] = val.trim();
+    else if (Array.isArray(val) && val.length > 0) clean[key] = val;
+    else if (typeof val === 'number') clean[key] = val;
+  }
+  await updateDoc(ref, clean);
+};
+
+/**
  * Update a goal's editable fields.
  */
 export const updateGoal = async (

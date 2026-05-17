@@ -1,13 +1,16 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges } from '../../services/challenges';
@@ -46,6 +49,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
+import { dismissOnboardingBanner } from '../../services/users';
 import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
@@ -57,7 +61,7 @@ import { ZoneHeader } from '../../components/home/ZoneHeader';
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, refreshProfile } = useAuth();
   const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
 
   const challengeBtnRef = useRef<View>(null);
@@ -647,6 +651,37 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
       >
+        {userProfile?.onboarding_deferred && !userProfile?.onboarding_banner_dismissed && (
+          <View style={styles.deferredBanner}>
+            <View style={styles.deferredBannerContent}>
+              <Ionicons name="bulb-outline" size={20} color={Colors.primary} style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.deferredBannerTitle}>Finish your setup — 5 min</Text>
+                <Text style={styles.deferredBannerBody}>
+                  Unlock your Why, thought patterns, and recovery plan. These make the app work for you.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.deferredBannerActions}>
+              <TouchableOpacity
+                style={styles.deferredBannerBtn}
+                onPress={() => navigation.navigate('DeferredOnboarding')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.deferredBannerBtnText}>Finish Setup →</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (user) await dismissOnboardingBanner(user.uid);
+                  await refreshProfile();
+                }}
+                style={styles.deferredBannerDismiss}
+              >
+                <Text style={styles.deferredBannerDismissText}>Not now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         {zonedLayout.map((group) => (
           <React.Fragment key={group.zone.id}>
             {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
@@ -727,4 +762,56 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+
+  // Deferred onboarding banner
+  deferredBanner: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '40',
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  deferredBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  deferredBannerTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    marginBottom: 2,
+  },
+  deferredBannerBody: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 18,
+  },
+  deferredBannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  deferredBannerBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+  },
+  deferredBannerBtnText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.white,
+  },
+  deferredBannerDismiss: {
+    paddingVertical: Spacing.sm,
+  },
+  deferredBannerDismissText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+  },
 });

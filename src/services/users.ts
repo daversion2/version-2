@@ -15,8 +15,24 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
 // Alias for getUser
 export const getUser = getUserProfile;
 
-export const markOnboardingComplete = async (userId: string): Promise<void> => {
-  await setDoc(doc(db, 'users', userId), { has_completed_onboarding: true }, { merge: true });
+export const markOnboardingComplete = async (userId: string, deferred = false): Promise<void> => {
+  await setDoc(
+    doc(db, 'users', userId),
+    { has_completed_onboarding: true, ...(deferred ? { onboarding_deferred: true } : {}) },
+    { merge: true }
+  );
+};
+
+export const dismissOnboardingBanner = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { onboarding_banner_dismissed: true }, { merge: true });
+};
+
+export const completeFullOnboarding = async (userId: string): Promise<void> => {
+  await setDoc(
+    doc(db, 'users', userId),
+    { onboarding_deferred: false, onboarding_banner_dismissed: true },
+    { merge: true }
+  );
 };
 
 export const resetOnboarding = async (userId: string): Promise<void> => {
