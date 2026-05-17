@@ -303,6 +303,7 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
         triggerSubs,
         identityStatement,
       });
+      await refreshProfile();
       navigation.goBack();
     } catch (e) {
       Alert.alert('Error', 'Could not save progress. Please try again.');
