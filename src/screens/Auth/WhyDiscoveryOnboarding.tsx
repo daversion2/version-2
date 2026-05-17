@@ -44,13 +44,6 @@ const formatDate = (date: Date): string => {
 const toYYYYMMDD = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-const DIFFICULTY_LABELS: Record<number, string> = {
-  1: 'Easy',
-  2: 'Moderate',
-  3: 'Hard',
-  4: 'Very Hard',
-  5: 'Brutal',
-};
 
 export const WhyDiscoveryOnboarding: React.FC = () => {
   const { user, refreshProfile } = useAuth();
@@ -84,11 +77,6 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Stage 5: Action Type
-  const [actionType, setActionType] = useState<'challenge' | 'habit' | null>(null);
-
-  // Stage 6: Challenge
-  const [challengeName, setChallengeName] = useState('');
-  const [challengeDifficulty, setChallengeDifficulty] = useState(3);
 
   // Stage 6: Habit
   const [habitName, setHabitName] = useState('');
@@ -202,17 +190,9 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
         }
         return true;
       case 5:
-        if (!actionType) {
-          Alert.alert('Required', 'Please choose how you want to start — a challenge or a habit.');
-          return false;
-        }
         return true;
       case 6:
-        if (actionType === 'challenge' && !challengeName.trim()) {
-          Alert.alert('Required', 'Please name your challenge.');
-          return false;
-        }
-        if (actionType === 'habit' && !habitName.trim()) {
+        if (!habitName.trim()) {
           Alert.alert('Required', 'Please name your habit.');
           return false;
         }
@@ -236,25 +216,15 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
     if (!user) return;
     setSaving(true);
     try {
-      const actions =
-        actionType === 'challenge'
-          ? {
-              habits: [] as { name: string; category_id: string; target_count_per_week: number }[],
-              firstChallenge: {
-                name: challengeName.trim(),
-                category_id: 'Physical',
-                difficulty_expected: challengeDifficulty,
-              },
-            }
-          : {
-              habits: [
-                {
-                  name: habitName.trim(),
-                  category_id: habitCategory,
-                  target_count_per_week: habitFrequency,
-                },
-              ],
-            };
+      const actions = {
+        habits: [
+          {
+            name: habitName.trim(),
+            category_id: habitCategory,
+            target_count_per_week: habitFrequency,
+          },
+        ],
+      };
 
       await createGoalWithActions(
         user.uid,
@@ -484,41 +454,10 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
   const renderStage5 = () => (
     <View style={styles.stageContent}>
       <Text style={styles.stageIntro}>
-        How do you want to start working toward this goal?
+        Build a habit to work toward this goal — something you can do regularly.
       </Text>
 
-      <TouchableOpacity
-        style={[styles.actionCard, actionType === 'challenge' && styles.actionCardSelected]}
-        onPress={() => setActionType('challenge')}
-        activeOpacity={0.8}
-      >
-        <View style={styles.actionCardHeader}>
-          <View style={[styles.actionCardIcon, { backgroundColor: Colors.secondary + '20' }]}>
-            <Ionicons name="flash" size={24} color={Colors.secondary} />
-          </View>
-          <View style={styles.actionCardTitle}>
-            <Text style={styles.actionCardName}>Do something hard</Text>
-            <Text style={styles.actionCardType}>Challenge</Text>
-          </View>
-          {actionType === 'challenge' && (
-            <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
-          )}
-        </View>
-        <Text style={styles.actionCardDesc}>
-          A single, specific action that stretches you. Great for breaking patterns or proving something to yourself.
-        </Text>
-        <View style={styles.actionCardExamples}>
-          <Text style={styles.actionCardExample}>• Go to the gym tonight</Text>
-          <Text style={styles.actionCardExample}>• Have a difficult conversation</Text>
-          <Text style={styles.actionCardExample}>• 30 min of focused work with no distractions</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.actionCard, actionType === 'habit' && styles.actionCardSelected]}
-        onPress={() => setActionType('habit')}
-        activeOpacity={0.8}
-      >
+      <View style={[styles.actionCard, styles.actionCardSelected]}>
         <View style={styles.actionCardHeader}>
           <View style={[styles.actionCardIcon, { backgroundColor: Colors.primary + '20' }]}>
             <Ionicons name="repeat" size={24} color={Colors.primary} />
@@ -527,9 +466,7 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
             <Text style={styles.actionCardName}>Build a regular practice</Text>
             <Text style={styles.actionCardType}>Habit</Text>
           </View>
-          {actionType === 'habit' && (
-            <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
-          )}
+          <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
         </View>
         <Text style={styles.actionCardDesc}>
           Something you'll do multiple times a week. Great for skills, routines, or things you want to make automatic.
@@ -539,47 +476,11 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
           <Text style={styles.actionCardExample}>• Morning journaling</Text>
           <Text style={styles.actionCardExample}>• 5x/week workout</Text>
         </View>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 
   const renderStage6 = () => {
-    if (actionType === 'challenge') {
-      return (
-        <View style={styles.stageContent}>
-          <Text style={styles.stageIntro}>
-            Name your first challenge — something specific you can do today or this week.
-          </Text>
-
-          <Text style={styles.promptQuestion}>Challenge name</Text>
-          <TextInput
-            style={styles.singleLineInput}
-            value={challengeName}
-            onChangeText={setChallengeName}
-            placeholder="e.g., Go to the gym after work"
-            placeholderTextColor={Colors.gray}
-            maxLength={100}
-            returnKeyType="done"
-          />
-
-          <Text style={[styles.promptQuestion, { marginTop: Spacing.lg }]}>How hard will this be?</Text>
-          <View style={styles.difficultyRow}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <TouchableOpacity
-                key={n}
-                style={[styles.difficultyChip, challengeDifficulty === n && styles.difficultyChipActive]}
-                onPress={() => setChallengeDifficulty(n)}
-              >
-                <Text style={[styles.difficultyChipText, challengeDifficulty === n && styles.difficultyChipTextActive]}>
-                  {DIFFICULTY_LABELS[n]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      );
-    }
-
     return (
       <View style={styles.stageContent}>
         <Text style={styles.stageIntro}>
@@ -679,9 +580,7 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
     saving ||
     checkingUsername ||
     (currentStage === 3 && !reflectionWorkOn.trim()) ||
-    (currentStage === 5 && !actionType) ||
-    (currentStage === 6 && actionType === 'challenge' && !challengeName.trim()) ||
-    (currentStage === 6 && actionType === 'habit' && !habitName.trim()) ||
+    (currentStage === 6 && !habitName.trim()) ||
     (currentStage === 7 && selectedMessageIds.size < 3);
 
   const nextButtonTitle = (() => {

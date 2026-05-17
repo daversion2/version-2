@@ -26,7 +26,8 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [addMode, setAddMode] = useState<'habit' | 'challenge'>('challenge');
+  const challengesUnlocked = (data.willpowerStats?.currentStreak ?? 0) >= 7;
+  const [addMode, setAddMode] = useState<'habit' | 'challenge'>(challengesUnlocked ? 'challenge' : 'habit');
 
   const items = useMemo(
     () =>
@@ -176,24 +177,26 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
             <View style={styles.addFormSection}>
               {/* Tab switcher */}
               <View style={styles.tabRow}>
-                <TouchableOpacity
-                  style={[styles.tab, addMode === 'challenge' && styles.tabActive]}
-                  onPress={() => setAddMode('challenge')}
-                >
-                  <Ionicons
-                    name="trophy-outline"
-                    size={14}
-                    color={addMode === 'challenge' ? Colors.primary : Colors.gray}
-                  />
-                  <Text
-                    style={[
-                      styles.tabText,
-                      addMode === 'challenge' && styles.tabTextActive,
-                    ]}
+                {challengesUnlocked && (
+                  <TouchableOpacity
+                    style={[styles.tab, addMode === 'challenge' && styles.tabActive]}
+                    onPress={() => setAddMode('challenge')}
                   >
-                    Challenge
-                  </Text>
-                </TouchableOpacity>
+                    <Ionicons
+                      name="trophy-outline"
+                      size={14}
+                      color={addMode === 'challenge' ? Colors.primary : Colors.gray}
+                    />
+                    <Text
+                      style={[
+                        styles.tabText,
+                        addMode === 'challenge' && styles.tabTextActive,
+                      ]}
+                    >
+                      Challenge
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={[styles.tab, addMode === 'habit' && styles.tabActive]}
                   onPress={() => setAddMode('habit')}

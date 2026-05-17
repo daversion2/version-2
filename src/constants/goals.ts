@@ -114,15 +114,6 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
     type: 'habit_list',
   },
   {
-    id: 'first_challenge',
-    stage: 3,
-    question: "What's one challenge you can do this week to push yourself for this goal?",
-    placeholder: 'e.g., Run a mile without stopping, take a cold shower',
-    required: true,
-    fieldKey: 'first_challenge_input',
-    type: 'challenge_input',
-  },
-  {
     id: 'minimum_action',
     stage: 3,
     question: "What's the smallest possible action on your worst day?",

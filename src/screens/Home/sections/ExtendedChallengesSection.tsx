@@ -10,8 +10,10 @@ import { getCurrentDayNumber } from '../../../services/challenges';
 import { HomeSectionProps } from './types';
 
 export const ExtendedChallengesSection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
-  const { extendedChallenges, buddyChallenges } = data;
+  const { extendedChallenges, buddyChallenges, willpowerStats } = data;
+  const currentStreak = willpowerStats?.currentStreak ?? 0;
 
+  if (currentStreak < 7) return null;
   if (extendedChallenges.length === 0) return null;
 
   return (

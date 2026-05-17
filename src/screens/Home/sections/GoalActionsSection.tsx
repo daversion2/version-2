@@ -24,7 +24,9 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
     programDayNumber,
     programCheckedIn,
     goalFollowThrough,
+    willpowerStats,
   } = data;
+  const challengesUnlocked = (willpowerStats?.currentStreak ?? 0) >= 7;
 
   // Empty state — no goals at all
   if (goals.length === 0) {
@@ -89,7 +91,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
             </TouchableOpacity>
 
             {/* Challenges */}
-            {goalChallenges.map((challenge) => (
+            {challengesUnlocked && goalChallenges.map((challenge) => (
               <ChallengeRow
                 key={challenge.id}
                 challenge={challenge}
@@ -132,14 +134,16 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
 
             {/* Quick add */}
             <View style={styles.addRow}>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => callbacks.onNavigate('StartChallenge')}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="flash-outline" size={16} color={Colors.primary} />
-                <Text style={styles.addButtonText}>Challenge</Text>
-              </TouchableOpacity>
+              {challengesUnlocked && (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => callbacks.onNavigate('StartChallenge')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="flash-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.addButtonText}>Challenge</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={styles.addButton}
                 onPress={() => callbacks.onNavigate('ManageHabits')}

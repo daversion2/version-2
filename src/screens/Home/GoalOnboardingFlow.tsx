@@ -150,13 +150,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
       if (!prompt.required) continue;
 
       if (prompt.type === 'slider') continue; // slider always has a value
-      if (prompt.type === 'challenge_input') {
-        if (!formData[prompt.fieldKey]?.trim()) {
-          Alert.alert('Required', 'Please give your challenge a title.');
-          return false;
-        }
-        continue;
-      }
       if (prompt.type === 'habit_list') {
         if (habitsInput.length === 0) {
           Alert.alert('Required', 'Please add at least one habit.');
@@ -224,15 +217,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
         target_count_per_week: h.frequency,
       }));
 
-      const firstChallenge = formData.first_challenge_input?.trim()
-        ? {
-            name: formData.first_challenge_input.trim(),
-            description: formData.first_challenge_input_description?.trim() || undefined,
-            category_id: 'Physical',
-            difficulty_expected: 3,
-          }
-        : undefined;
-
       await createGoalWithActions(
         user.uid,
         {
@@ -251,7 +235,7 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
           identity_statement: formData.identity_statement?.trim(),
           why_connection: formData.why_connection?.trim() || undefined,
         },
-        { habits, firstChallenge }
+        { habits }
       );
 
       navigation.popToTop();
@@ -485,38 +469,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
                 <Text style={[styles.yesNoButtonText, hasTriedBefore === false && styles.yesNoButtonTextActive]}>No</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        );
-
-      case 'challenge_input':
-        return (
-          <View key={prompt.id} style={styles.promptContainer}>
-            <Text style={styles.promptQuestion}>{prompt.question}</Text>
-            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
-            <View style={styles.challengeExplainer}>
-              <Ionicons name="flash" size={16} color={Colors.secondary} />
-              <Text style={styles.challengeExplainerText}>
-                A challenge is something that gets you outside your comfort zone. You'll reflect on it afterward and grow stronger from the experience.
-              </Text>
-            </View>
-            <Text style={styles.fieldLabel}>Challenge title</Text>
-            <InputField
-              label=""
-              value={formData[prompt.fieldKey] || ''}
-              onChangeText={(v) => setField(prompt.fieldKey, v)}
-              placeholder={prompt.placeholder}
-              maxLength={100}
-            />
-            <Text style={styles.fieldLabel}>What you'll do (optional)</Text>
-            <InputField
-              label=""
-              value={formData[prompt.fieldKey + '_description'] || ''}
-              onChangeText={(v) => setField(prompt.fieldKey + '_description', v)}
-              placeholder="Describe specifically what you'll do..."
-              multiline
-              numberOfLines={3}
-              maxLength={300}
-            />
           </View>
         );
 

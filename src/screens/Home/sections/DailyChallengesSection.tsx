@@ -10,25 +10,45 @@ import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { HomeSectionProps } from './types';
 
 export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callbacks, refs }) => {
-  const { activeChallenges, buddyChallenges } = data;
+  const { activeChallenges, buddyChallenges, willpowerStats } = data;
+  const currentStreak = willpowerStats?.currentStreak ?? 0;
+  const challengesUnlocked = currentStreak >= 7;
 
   return (
     <>
       <Card style={styles.headerCard}>
         <View style={styles.headerRow}>
           <View style={styles.headerIcon}>
-            <Ionicons name="flame-outline" size={28} color={Colors.white} />
+            <Ionicons name={challengesUnlocked ? 'flame-outline' : 'lock-closed-outline'} size={28} color={Colors.white} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Growth Challenges</Text>
             <Text style={styles.headerSubtitle}>
-              Challenge yourself and reflect on what you learn
+              {challengesUnlocked
+                ? 'Challenge yourself and reflect on what you learn'
+                : 'Build a 7-day streak to unlock challenges'}
             </Text>
           </View>
         </View>
       </Card>
 
-      {activeChallenges.length > 0 ? (
+      {!challengesUnlocked ? (
+        <Card style={styles.lockedCard}>
+          <View style={styles.lockedRow}>
+            <Ionicons name="lock-closed" size={22} color={Colors.gray} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.lockedTitle}>Challenges unlock at a 7-day streak</Text>
+              <Text style={styles.lockedBody}>
+                Complete at least one habit every day to build your streak. You're {currentStreak} of 7 days in.
+              </Text>
+            </View>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${Math.min((currentStreak / 7) * 100, 100)}%` as any }]} />
+          </View>
+          <Text style={styles.progressLabel}>{currentStreak} / 7 days</Text>
+        </Card>
+      ) : activeChallenges.length > 0 ? (
         activeChallenges.map((challenge) => {
           const buddyInfo = challenge.is_buddy_challenge && challenge.buddy_challenge_id
             ? buddyChallenges.find(b => b.id === challenge.buddy_challenge_id)
@@ -201,5 +221,46 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.gray,
     textAlign: 'center',
+  },
+  lockedCard: {
+    marginBottom: Spacing.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.gray,
+  },
+  lockedRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  lockedTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    marginBottom: 2,
+  },
+  lockedBody: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 18,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: Colors.lightGray,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    marginBottom: Spacing.xs,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.secondary,
+    borderRadius: BorderRadius.full,
+  },
+  progressLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textAlign: 'right',
   },
 });
