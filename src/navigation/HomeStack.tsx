@@ -11,6 +11,9 @@ import { ActionChallengesScreen } from '../screens/Home/BarrierChallengesScreen'
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
 import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
+import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
+import { HabitLibraryScreen } from '../screens/Home/HabitLibraryScreen';
+import { HabitLibraryDetailScreen } from '../screens/Home/HabitLibraryDetailScreen';
 import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
 import { WriteReviewScreen } from '../screens/Community/WriteReviewScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
@@ -113,6 +116,21 @@ export const HomeStack: React.FC = () => (
       name="HabitDetail"
       component={HabitDetailScreen}
       options={{ title: 'Habit Details' }}
+    />
+    <Stack.Screen
+      name="HabitActionPlan"
+      component={HabitActionPlanScreen}
+      options={{ title: 'Action Plan' }}
+    />
+    <Stack.Screen
+      name="HabitLibrary"
+      component={HabitLibraryScreen}
+      options={{ title: 'Habit Library' }}
+    />
+    <Stack.Screen
+      name="HabitLibraryDetail"
+      component={HabitLibraryDetailScreen}
+      options={{ title: '' }}
     />
     <Stack.Screen
       name="SubmitChallenge"

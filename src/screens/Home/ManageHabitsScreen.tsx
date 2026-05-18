@@ -83,7 +83,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     setLoading(true);
     try {
-      await createHabit(user.uid, {
+      const habitId = await createHabit(user.uid, {
         name: newName.trim(),
         category_id: categories[selectedCatIdx]?.name || 'Uncategorized',
         target_count_per_week: timesPerWeek,
@@ -94,6 +94,13 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
       setGoalIds([]);
       setShowForm(false);
       await load();
+      // Skip action plan flow during walkthrough to keep the guided experience intact
+      if (!isMyStep) {
+        navigation.navigate('HabitActionPlan', {
+          habitId,
+          afterSaveRoute: 'ManageHabits',
+        });
+      }
     } catch (e: any) {
       showAlert('Error', e.message);
     } finally {
@@ -161,6 +168,17 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Manage Habits</Text>
+
+      {!showForm && !editingHabit && (
+        <TouchableOpacity
+          style={styles.libraryBtn}
+          onPress={() => navigation.navigate('HabitLibrary')}
+        >
+          <Ionicons name="library-outline" size={16} color={Colors.secondary} />
+          <Text style={styles.libraryBtnText}>Browse Habit Library</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.secondary} />
+        </TouchableOpacity>
+      )}
 
       {showForm ? (
         <Card style={styles.formCard}>
@@ -445,5 +463,24 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     textAlign: 'center',
     marginTop: Spacing.xl,
+  },
+  libraryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.secondary + '08',
+  },
+  libraryBtnText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
   },
 });

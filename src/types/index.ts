@@ -186,6 +186,23 @@ export interface DuoStreak {
   first_completed_at?: string;
 }
 
+export interface HabitActionPlan {
+  cue?: string;                    // Q1: implementation intention (when/where)
+  environment_change?: string;     // Q2: environment design
+  obstacle_plan?: string;          // Q3: WOOP obstacle + if-then
+  minimum_version?: string;        // Q4: minimum viable behavior
+  accountability_person?: string;  // Q5: social commitment
+}
+
+export interface LibraryHabit {
+  id: string;
+  name: string;
+  category_id: string;             // 'Physical' | 'Social' | 'Mind'
+  description: string;
+  suggested_target_per_week: number;
+  action_plan: HabitActionPlan;
+}
+
 export interface Nudge {
   id: string;
   user_id: string;
@@ -195,6 +212,7 @@ export interface Nudge {
   created_by_user: boolean;
   target_count_per_week: number; // 1–7
   goal_ids?: string[];
+  action_plan?: HabitActionPlan;
 }
 
 export interface CompletionLog {

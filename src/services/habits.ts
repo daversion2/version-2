@@ -9,7 +9,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats } from '../types';
+import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan } from '../types';
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -51,13 +51,21 @@ export const getActiveHabits = async (userId: string): Promise<Nudge[]> => {
 
 export const createHabit = async (
   userId: string,
-  data: { name: string; category_id: string; target_count_per_week: number; goal_ids?: string[] }
+  data: {
+    name: string;
+    category_id: string;
+    target_count_per_week: number;
+    goal_ids?: string[];
+    action_plan?: HabitActionPlan;
+    created_by_user?: boolean;
+  }
 ): Promise<string> => {
+  const { created_by_user, ...rest } = data;
   const docRef = await addDoc(habitsRef(userId), {
-    ...data,
+    ...rest,
     user_id: userId,
     is_active: true,
-    created_by_user: true,
+    created_by_user: created_by_user ?? true,
   });
   return docRef.id;
 };

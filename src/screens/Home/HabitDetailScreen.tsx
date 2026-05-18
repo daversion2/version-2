@@ -1,13 +1,15 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Calendar, DateData } from 'react-native-calendars';
+import { useFocusEffect } from '@react-navigation/native';
+import { Calendar } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -15,11 +17,19 @@ import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs } from '../../services/habits';
 import { getUserCategories } from '../../services/categories';
-import { Nudge, HabitStats, CompletionLog, Category } from '../../types';
+import { Nudge, HabitStats, CompletionLog, Category, HabitActionPlan } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'HabitDetail'>;
 
-export const HabitDetailScreen: React.FC<Props> = ({ route }) => {
+const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string; icon: string }[] = [
+  { key: 'cue', label: 'When & where', icon: 'time-outline' },
+  { key: 'environment_change', label: 'Environment tweak', icon: 'home-outline' },
+  { key: 'obstacle_plan', label: 'Obstacle plan', icon: 'shield-outline' },
+  { key: 'minimum_version', label: 'Minimum version', icon: 'trending-down-outline' },
+  { key: 'accountability_person', label: 'Accountability', icon: 'people-outline' },
+];
+
+export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { habitId } = route.params as { habitId: string };
   const { user } = useAuth();
 
@@ -29,28 +39,32 @@ export const HabitDetailScreen: React.FC<Props> = ({ route }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      try {
-        const [h, s, l, cats] = await Promise.all([
-          getHabitById(user.uid, habitId),
-          getHabitStats(user.uid, habitId),
-          getHabitCompletionLogs(user.uid, habitId),
-          getUserCategories(user.uid),
-        ]);
-        setHabit(h);
-        setStats(s);
-        setLogs(l);
-        setCategories(cats);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [h, s, l, cats] = await Promise.all([
+        getHabitById(user.uid, habitId),
+        getHabitStats(user.uid, habitId),
+        getHabitCompletionLogs(user.uid, habitId),
+        getUserCategories(user.uid),
+      ]);
+      setHabit(h);
+      setStats(s);
+      setLogs(l);
+      setCategories(cats);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
   }, [user, habitId]);
+
+  // Reload every time this screen gains focus — handles initial load and return from HabitActionPlanScreen
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const getCatColor = (catName: string) => {
     const cat = categories.find((c) => c.name === catName);
@@ -238,6 +252,56 @@ export const HabitDetailScreen: React.FC<Props> = ({ route }) => {
           ))}
         </>
       )}
+
+      {/* Action Plan */}
+      <View style={styles.actionPlanHeader}>
+        <Text style={styles.sectionTitle}>Action Plan</Text>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('HabitActionPlan', {
+              habitId,
+              prefilled: habit.action_plan,
+            })
+          }
+          style={styles.editPlanBtn}
+        >
+          <Ionicons name="pencil-outline" size={14} color={Colors.primary} />
+          <Text style={styles.editPlanText}>
+            {habit.action_plan ? 'Edit' : 'Set up'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {habit.action_plan &&
+      ACTION_PLAN_LABELS.some(({ key }) => !!habit.action_plan![key]) ? (
+        ACTION_PLAN_LABELS.map(({ key, label, icon }) => {
+          const value = habit.action_plan![key];
+          if (!value) return null;
+          return (
+            <Card key={key} style={styles.planCard}>
+              <View style={styles.planLabelRow}>
+                <Ionicons name={icon as any} size={14} color={Colors.primary} />
+                <Text style={styles.planLabel}>{label}</Text>
+              </View>
+              <Text style={styles.planValue}>{value}</Text>
+            </Card>
+          );
+        })
+      ) : (
+        <Card style={styles.planEmptyCard}>
+          <Text style={styles.planEmptyText}>
+            Set yourself up for success — create an action plan for this habit.
+          </Text>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('HabitActionPlan', { habitId })
+            }
+            style={styles.planEmptyBtn}
+          >
+            <Text style={styles.planEmptyBtnText}>Get started →</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
     </ScrollView>
   );
 };
@@ -370,5 +434,67 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.dark,
     lineHeight: 22,
+  },
+  actionPlanHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  editPlanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  editPlanText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+  },
+  planCard: {
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  planLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  planLabel: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  planValue: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 20,
+  },
+  planEmptyCard: {
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  planEmptyText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 20,
+  },
+  planEmptyBtn: {
+    alignSelf: 'flex-start',
+  },
+  planEmptyBtnText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
 });
