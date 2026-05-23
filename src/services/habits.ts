@@ -7,6 +7,7 @@ import {
   where,
   getDocs,
   getDoc,
+  increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan } from '../types';
@@ -114,6 +115,7 @@ export const logHabitCompletion = async (
   }
 
   await addDoc(logsRef(userId), logData);
+  await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
 };
 
 /**

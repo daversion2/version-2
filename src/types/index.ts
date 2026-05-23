@@ -27,6 +27,9 @@ export interface User {
   coach_profile?: CoachProfile;
   // Programs
   active_program_id?: string; // Denormalized enrollment ID for fast home screen check
+  // All-time completion counters (incremented on each completion)
+  totalHabitsCompleted?: number;
+  totalChallengesCompleted?: number;
   // Nightly Reflection
   last_reflection_date?: string; // YYYY-MM-DD
   reflection_streak?: number;
@@ -761,12 +764,29 @@ export interface DailySummaryHabit {
   done: number;
 }
 
+export interface DailySummaryComparisons {
+  habits_more_vs_last_week?: number;
+  challenges_more_vs_last_week?: number;
+  habits_more_vs_last_month?: number;
+  challenges_more_vs_last_month?: number;
+  habits_more_vs_yesterday?: number;
+  challenges_more_vs_yesterday?: number;
+}
+
 export interface DailySummary {
-  completed_challenges: DailySummaryChallenge[];
-  missed_challenges: { name: string }[];
-  completed_habits: DailySummaryHabit[];
-  missed_habits: DailySummaryHabit[];
-  optional_habits: { name: string; remaining: number }[];
+  // Progress-focused stats (new format)
+  habits_this_week?: number;
+  challenges_this_week?: number;
+  total_xp?: number;
+  total_habits_all_time?: number;
+  total_challenges_all_time?: number;
+  comparisons?: DailySummaryComparisons;
+  // Legacy fields (kept for backward compat with old saved reflections)
+  completed_challenges?: DailySummaryChallenge[];
+  missed_challenges?: { name: string }[];
+  completed_habits?: DailySummaryHabit[];
+  missed_habits?: DailySummaryHabit[];
+  optional_habits?: { name: string; remaining: number }[];
   program_status?: {
     name: string;
     checked_in: boolean;

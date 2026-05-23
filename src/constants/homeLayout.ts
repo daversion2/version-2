@@ -26,6 +26,8 @@ export const SECTION_IDS = [
 export type HomeSectionId = (typeof SECTION_IDS)[number];
 
 const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
+  // Hidden from default layout
+  'sprints',
   // Legacy sections hidden from default layout
   'identity_summary',
   'goals',

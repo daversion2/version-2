@@ -12,15 +12,13 @@ import { db } from './firebase';
 import {
   DailyReflection,
   DailySummary,
+  DailySummaryComparisons,
   ReflectionGrade,
   ReflectionStats,
   CompletionLog,
   JournalSearchResult,
 } from '../types';
-import { getActiveChallenges, getActiveExtendedChallenges, getCurrentDayNumber, getPastChallenges } from './challenges';
-import { getActiveHabits, getCurrentWeekBounds } from './habits';
-import { getActiveEnrollment, getTodaysProgramContent } from './programs';
-import { getMicroGoalSummary } from './microGoals';
+import { getPastChallenges } from './challenges';
 
 // ============================================================================
 // COLLECTION REFERENCES
@@ -64,145 +62,84 @@ function getTodayStr(): string {
 // DAILY SUMMARY BUILDER
 // ============================================================================
 
+const fmt = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 export const buildDailySummary = async (
   userId: string,
   date: string
 ): Promise<DailySummary> => {
-  const [
-    activeDailyChallenges,
-    activeExtendedChallenges,
-    activeHabits,
-    activeEnrollment,
-    microGoalData,
-  ] = await Promise.all([
-    getActiveChallenges(userId),
-    getActiveExtendedChallenges(userId),
-    getActiveHabits(userId),
-    getActiveEnrollment(userId),
-    getMicroGoalSummary(userId, date),
+  const now = new Date();
+
+  // Compute all date range boundaries
+  const yesterday = fmt(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+
+  const dayOfWeek = now.getDay(); // 0=Sun
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const thisMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+  const thisMondayStr = fmt(thisMonday);
+  const lastMonday = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() - 7);
+  const lastMondayStr = fmt(lastMonday);
+  const lastSundayStr = fmt(new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() - 1));
+
+  const firstOfThisMonth = fmt(new Date(now.getFullYear(), now.getMonth(), 1));
+  const firstOfLastMonth = fmt(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const lastDayOfLastMonth = fmt(new Date(now.getFullYear(), now.getMonth(), 0));
+
+  // Single broad query: all logs from start of last month to today
+  const [logSnap, userSnap] = await Promise.all([
+    getDocs(query(logsRef(userId), where('date', '>=', firstOfLastMonth))),
+    getDoc(doc(db, 'users', userId)),
   ]);
 
-  // Get today's completion logs for habits
-  const logSnap = await getDocs(query(logsRef(userId), where('type', '==', 'nudge')));
-  const todayHabitLogs = logSnap.docs
-    .map(d => d.data() as CompletionLog)
-    .filter(l => l.date === date);
+  const userData = userSnap.data() || {};
+  const allLogs = logSnap.docs.map(d => d.data() as CompletionLog);
 
-  // Count completions per habit today
-  const habitCompletionsToday: Record<string, number> = {};
-  todayHabitLogs.forEach(l => {
-    habitCompletionsToday[l.reference_id] = (habitCompletionsToday[l.reference_id] || 0) + 1;
-  });
+  const habitLogs = allLogs.filter(l => l.type === 'nudge');
+  const challengeLogs = allLogs.filter(l => l.type === 'challenge');
 
-  // Get this week's habit completions for determining optional vs missed
-  const { mondayStr, sundayStr } = getCurrentWeekBounds();
-  const allNudgeLogs = logSnap.docs
-    .map(d => d.data() as CompletionLog)
-    .filter(l => l.date >= mondayStr && l.date <= sundayStr);
-  const weeklyHabitCounts: Record<string, number> = {};
-  allNudgeLogs.forEach(l => {
-    weeklyHabitCounts[l.reference_id] = (weeklyHabitCounts[l.reference_id] || 0) + 1;
-  });
+  // Time-bucket counts
+  const countIn = (logs: CompletionLog[], from: string, to: string) =>
+    logs.filter(l => l.date >= from && l.date <= to).length;
 
-  // Get today's challenge completion logs
-  const challengeLogSnap = await getDocs(query(logsRef(userId), where('type', '==', 'challenge')));
-  const todayChallengeLogIds = new Set(
-    challengeLogSnap.docs
-      .map(d => d.data() as CompletionLog)
-      .filter(l => l.date === date)
-      .map(l => l.reference_id)
-  );
+  const habitsThisWeek = countIn(habitLogs, thisMondayStr, date);
+  const habitsLastWeek = countIn(habitLogs, lastMondayStr, lastSundayStr);
+  const habitsThisMonth = countIn(habitLogs, firstOfThisMonth, date);
+  const habitsLastMonth = countIn(habitLogs, firstOfLastMonth, lastDayOfLastMonth);
+  const habitsToday = countIn(habitLogs, date, date);
+  const habitsYesterday = countIn(habitLogs, yesterday, yesterday);
 
-  // Build challenge summary
-  const completedChallenges: DailySummary['completed_challenges'] = [];
-  const missedChallenges: DailySummary['missed_challenges'] = [];
+  const challengesThisWeek = countIn(challengeLogs, thisMondayStr, date);
+  const challengesLastWeek = countIn(challengeLogs, lastMondayStr, lastSundayStr);
+  const challengesThisMonth = countIn(challengeLogs, firstOfThisMonth, date);
+  const challengesLastMonth = countIn(challengeLogs, firstOfLastMonth, lastDayOfLastMonth);
+  const challengesToday = countIn(challengeLogs, date, date);
+  const challengesYesterday = countIn(challengeLogs, yesterday, yesterday);
 
-  // Active daily challenges still not completed = missed
-  activeDailyChallenges.forEach(c => {
-    if (todayChallengeLogIds.has(c.id)) {
-      completedChallenges.push({ name: c.name, difficulty: c.difficulty_actual || c.difficulty_expected });
-    } else {
-      missedChallenges.push({ name: c.name });
-    }
-  });
+  // Build comparisons — only store positive diffs
+  const comparisons: DailySummaryComparisons = {};
+  const habitDiffWeek = habitsThisWeek - habitsLastWeek;
+  const challengeDiffWeek = challengesThisWeek - challengesLastWeek;
+  const habitDiffMonth = habitsThisMonth - habitsLastMonth;
+  const challengeDiffMonth = challengesThisMonth - challengesLastMonth;
+  const habitDiffDay = habitsToday - habitsYesterday;
+  const challengeDiffDay = challengesToday - challengesYesterday;
 
-  // Extended challenges - check today's milestone
-  activeExtendedChallenges.forEach(c => {
-    if (!c.milestones || !c.start_date) return;
-    const dayNum = getCurrentDayNumber(c.start_date);
-    const todayMilestone = c.milestones.find(m => m.day_number === dayNum);
-    if (todayMilestone?.completed) {
-      completedChallenges.push({ name: `${c.name} (Day ${dayNum})`, difficulty: todayMilestone.points_awarded });
-    } else {
-      missedChallenges.push({ name: `${c.name} (Day ${dayNum} check-in)` });
-    }
-  });
+  if (habitDiffWeek > 0) comparisons.habits_more_vs_last_week = habitDiffWeek;
+  if (challengeDiffWeek > 0) comparisons.challenges_more_vs_last_week = challengeDiffWeek;
+  if (habitDiffMonth > 0) comparisons.habits_more_vs_last_month = habitDiffMonth;
+  if (challengeDiffMonth > 0) comparisons.challenges_more_vs_last_month = challengeDiffMonth;
+  if (habitDiffDay > 0) comparisons.habits_more_vs_yesterday = habitDiffDay;
+  if (challengeDiffDay > 0) comparisons.challenges_more_vs_yesterday = challengeDiffDay;
 
-  // Build habit summary
-  const completedHabits: DailySummary['completed_habits'] = [];
-  const missedHabits: DailySummary['missed_habits'] = [];
-  const optionalHabits: DailySummary['optional_habits'] = [];
-
-  const dayOfWeek = new Date().getDay(); // 0=Sun
-  const daysPassedThisWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Mon=1 through Sun=7
-  const daysRemaining = 7 - daysPassedThisWeek;
-
-  activeHabits.forEach(habit => {
-    const doneToday = habitCompletionsToday[habit.id] || 0;
-    const doneThisWeek = weeklyHabitCounts[habit.id] || 0;
-    const target = habit.target_count_per_week;
-    const remaining = target - doneThisWeek;
-
-    if (doneToday > 0) {
-      completedHabits.push({ name: habit.name, target, done: doneThisWeek });
-    } else if (remaining > daysRemaining) {
-      // They need to do it today to stay on track
-      missedHabits.push({ name: habit.name, target, done: doneThisWeek });
-    } else {
-      // They still have enough days remaining — optional
-      optionalHabits.push({ name: habit.name, remaining });
-    }
-  });
-
-  // Build program summary
-  let programStatus: DailySummary['program_status'];
-  if (activeEnrollment) {
-    try {
-      const content = await getTodaysProgramContent(userId, activeEnrollment.id);
-      programStatus = {
-        name: activeEnrollment.program_name,
-        checked_in: content?.isCheckedIn ?? false,
-        day_number: content?.dayNumber,
-      };
-    } catch {
-      programStatus = {
-        name: activeEnrollment.program_name,
-        checked_in: false,
-      };
-    }
-  }
-
-  const summary: DailySummary = {
-    completed_challenges: completedChallenges,
-    missed_challenges: missedChallenges,
-    completed_habits: completedHabits,
-    missed_habits: missedHabits,
-    optional_habits: optionalHabits,
+  return {
+    habits_this_week: habitsThisWeek,
+    challenges_this_week: challengesThisWeek,
+    total_xp: userData.totalWillpowerPoints ?? 0,
+    total_habits_all_time: userData.totalHabitsCompleted ?? 0,
+    total_challenges_all_time: userData.totalChallengesCompleted ?? 0,
+    comparisons,
   };
-
-  if (programStatus) {
-    summary.program_status = programStatus;
-  }
-
-  if (microGoalData.completed.length > 0 || microGoalData.missed.length > 0) {
-    summary.micro_goals = {
-      completed: microGoalData.completed,
-      missed: microGoalData.missed,
-      clean_sweep: microGoalData.cleanSweep,
-    };
-  }
-
-  return summary;
 };
 
 // ============================================================================

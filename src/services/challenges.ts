@@ -13,6 +13,7 @@ import {
   Timestamp,
   deleteDoc,
   getCountFromServer,
+  increment,
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats } from './willpower';
 import { db } from './firebase';
@@ -218,6 +219,10 @@ export const completeChallenge = async (
     difficulty: result.difficulty_actual,
     date: new Date().toISOString().split('T')[0],
   });
+
+  if (result.status === 'completed') {
+    await updateDoc(doc(db, 'users', userId), { totalChallengesCompleted: increment(1) });
+  }
 
   // Update repeat stats
   if (challenge) {
