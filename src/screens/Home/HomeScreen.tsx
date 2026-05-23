@@ -43,6 +43,10 @@ import { getTodaysFunFact } from '../../services/funFacts';
 import { FunFact } from '../../types';
 import { CleanSweepPopup } from '../../components/home/CleanSweepPopup';
 import { ComebackModal } from '../../components/home/ComebackModal';
+import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
+import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
+import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../services/neuroscienceTidbits';
+import { NeuroscienceTidbit } from '../../types';
 import { getTodaysMicroGoals, createMicroGoal, completeMicroGoal, deleteMicroGoal } from '../../services/microGoals';
 import { convertPlannedChallengesToChallenges, getTomorrowPlan, saveTomorrowPlan } from '../../services/dailyPlan';
 import { exportToCalendar } from '../../services/calendarExport';
@@ -111,6 +115,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [comebackGoal, setComebackGoal] = useState<Goal | null>(null);
   const comebackShownRef = useRef(false);
 
+  // Habit tidbit state
+  const [habitTidbit, setHabitTidbit] = useState<NeuroscienceTidbit | null>(null);
+  const [habitTidbitVisible, setHabitTidbitVisible] = useState(false);
+  const [habitLearnMoreVisible, setHabitLearnMoreVisible] = useState(false);
+  const pendingHabitPointsRef = useRef<{ points: number; alertFn: () => void } | null>(null);
+
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
     if (pendingAlert) {
@@ -118,6 +128,36 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setPendingAlert(null);
     }
   }, [pendingAlert]);
+
+  const handleHabitTidbitDismiss = useCallback(() => {
+    setHabitTidbitVisible(false);
+    const pending = pendingHabitPointsRef.current;
+    if (pending) {
+      pendingHabitPointsRef.current = null;
+      setEarnedPoints(pending.points);
+      setShowPointsPopup(true);
+      setPendingAlert(() => pending.alertFn);
+    }
+  }, []);
+
+  const handleHabitLearnMore = useCallback(() => {
+    if (habitTidbit) {
+      recordLearnMoreTap(habitTidbit.id).catch(() => {});
+    }
+    setHabitTidbitVisible(false);
+    setHabitLearnMoreVisible(true);
+  }, [habitTidbit]);
+
+  const handleHabitLearnMoreClose = useCallback(() => {
+    setHabitLearnMoreVisible(false);
+    const pending = pendingHabitPointsRef.current;
+    if (pending) {
+      pendingHabitPointsRef.current = null;
+      setEarnedPoints(pending.points);
+      setShowPointsPopup(true);
+      setPendingAlert(() => pending.alertFn);
+    }
+  }, []);
 
   const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'HomeScreen';
 
@@ -369,10 +409,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         pointsMessage += `\n(${multiplier}x streak bonus applied)`;
       }
 
-      // Show points popup animation first
-      setEarnedPoints(pointsEarned);
-      setShowPointsPopup(true);
-
       // Prepare alerts to show after popup animation completes
       const showAlerts = async () => {
         // Show level-up popup first if new level reached
@@ -406,6 +442,26 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       };
 
+      // Fetch habit tidbit — show it before points popup for a clean sequence
+      try {
+        const tidbit = await selectHabitTidbit(user.uid, {
+          streakDays: stats.currentStreak,
+          difficulty,
+        });
+        if (tidbit) {
+          await recordTidbitShown(user.uid, tidbit.id);
+          setHabitTidbit(tidbit);
+          pendingHabitPointsRef.current = { points: pointsEarned, alertFn: showAlerts };
+          setHabitTidbitVisible(true);
+          return; // Points popup fires after tidbit is dismissed
+        }
+      } catch (err) {
+        console.warn('Failed to fetch habit tidbit:', err);
+      }
+
+      // No tidbit — show points popup immediately as before
+      setEarnedPoints(pointsEarned);
+      setShowPointsPopup(true);
       setPendingAlert(() => showAlerts);
 
       try {
@@ -754,6 +810,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onDismiss={() => setComebackVisible(false)}
         navigation={navigation}
       />
+      <HabitTidbitModal
+        visible={habitTidbitVisible}
+        tidbit={habitTidbit}
+        onLearnMore={handleHabitLearnMore}
+        onDismiss={handleHabitTidbitDismiss}
+      />
+      {habitTidbit && (
+        <TidbitLearnMore
+          visible={habitLearnMoreVisible}
+          tidbit={habitTidbit}
+          onClose={handleHabitLearnMoreClose}
+        />
+      )}
     </View>
   );
 };

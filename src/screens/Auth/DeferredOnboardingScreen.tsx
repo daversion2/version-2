@@ -10,7 +10,6 @@ import {
   TextInput,
   Animated,
   Alert,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -36,16 +35,14 @@ import {
 } from '../../services/whyDiscovery';
 import { getActiveGoals, saveGoalCBTData } from '../../services/goals';
 
-const { width } = Dimensions.get('window');
 
 const STAGES = [
   { id: 1, label: 'Your Starting Point', subtitle: 'What brought you here?' },
   { id: 2, label: 'Drilling Deeper', subtitle: 'Finding the root' },
   { id: 3, label: 'Your Why', subtitle: 'Craft your purpose statement' },
-  { id: 4, label: 'Goal Depth', subtitle: 'Why does this matter?' },
-  { id: 5, label: 'Thought Patterns', subtitle: "What's been in your way?" },
-  { id: 6, label: 'Safety Net', subtitle: 'Prepare for hard days' },
-  { id: 7, label: 'Identity', subtitle: "Who you're becoming" },
+  { id: 4, label: 'Thought Patterns', subtitle: "What's been in your way?" },
+  { id: 5, label: 'Safety Net', subtitle: 'Prepare for hard days' },
+  { id: 6, label: 'Identity', subtitle: "Who you're becoming" },
 ];
 
 type Props = NativeStackScreenProps<any, 'DeferredOnboarding'>;
@@ -73,11 +70,7 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
   const [contributionPart, setContributionPart] = useState('');
   const [impactPart, setImpactPart] = useState('');
 
-  // Stage 4: Goal depth
-  const [deeperWhy, setDeeperWhy] = useState('');
-  const [confidenceBaseline, setConfidenceBaseline] = useState(5);
-
-  // Stage 5: Thought patterns
+  // Stage 4: Thought patterns
   const [hasTriedBefore, setHasTriedBefore] = useState<boolean | null>(null);
   const [innerVoiceChallenge, setInnerVoiceChallenge] = useState('');
   const [innerVoiceResponse, setInnerVoiceResponse] = useState('');
@@ -93,11 +86,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
 
   // Stage 7: Identity
   const [identityStatement, setIdentityStatement] = useState('');
-
-  const whyStatement =
-    contributionPart.trim() && impactPart.trim()
-      ? `To ${contributionPart.trim()} so that ${impactPart.trim()}`
-      : '';
 
   useEffect(() => {
     if (user) {
@@ -121,8 +109,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
     if (p.coreWhyReached) setCoreWhyReached(p.coreWhyReached);
     if (p.contributionPart) setContributionPart(p.contributionPart);
     if (p.impactPart) setImpactPart(p.impactPart);
-    if (p.deeperWhy) setDeeperWhy(p.deeperWhy);
-    if (p.confidenceBaseline) setConfidenceBaseline(p.confidenceBaseline);
     if (p.hasTriedBefore !== undefined) setHasTriedBefore(p.hasTriedBefore);
     if (p.innerVoiceChallenge) setInnerVoiceChallenge(p.innerVoiceChallenge);
     if (p.innerVoiceResponse) setInnerVoiceResponse(p.innerVoiceResponse);
@@ -195,12 +181,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
         }
         return true;
       case 4:
-        if (!deeperWhy.trim()) {
-          Alert.alert('Required', 'Please answer why this goal matters to you.');
-          return false;
-        }
-        return true;
-      case 5:
         if (hasTriedBefore === null) {
           Alert.alert('Required', "Please answer whether you've tried this before.");
           return false;
@@ -210,7 +190,7 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
           return false;
         }
         return true;
-      case 6:
+      case 5:
         if (!minimumAction.trim()) {
           Alert.alert('Required', "Please describe your smallest possible action.");
           return false;
@@ -220,7 +200,7 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
           return false;
         }
         return true;
-      case 7:
+      case 6:
         if (!identityStatement.trim()) {
           Alert.alert('Required', 'Please complete your identity statement.');
           return false;
@@ -245,8 +225,9 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
           coreWhyReached
         );
       }
-      if (currentStage === 3 && whyStatement) {
-        await completeWhyDiscovery(user.uid, whyStatement, contributionPart.trim(), impactPart.trim());
+      if (currentStage === 3 && contributionPart.trim() && impactPart.trim()) {
+        const ws = `To ${contributionPart.trim()} so that ${impactPart.trim()}`;
+        await completeWhyDiscovery(user.uid, ws, contributionPart.trim(), impactPart.trim());
       }
     } catch (e) {
       console.warn('Failed to save stage data:', e);
@@ -259,8 +240,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
     try {
       if (activeGoalId) {
         await saveGoalCBTData(user.uid, activeGoalId, {
-          deeper_why: deeperWhy.trim() || undefined,
-          confidence_baseline: confidenceBaseline,
           negative_story: negativeStory.trim() || undefined,
           inner_voice_challenge: innerVoiceChallenge.trim() || undefined,
           inner_voice_response: innerVoiceResponse.trim() || undefined,
@@ -291,8 +270,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
         coreWhyReached,
         contributionPart,
         impactPart,
-        deeperWhy,
-        confidenceBaseline,
         hasTriedBefore,
         innerVoiceChallenge,
         innerVoiceResponse,
@@ -499,49 +476,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
       </View>
     );
   };
-
-  const renderStage4 = () => (
-    <View style={styles.stageContent}>
-      {whyStatement.length > 0 && (
-        <View style={styles.contextBanner}>
-          <Text style={styles.contextBannerLabel}>Your Why</Text>
-          <Text style={styles.contextBannerText}>"{whyStatement}"</Text>
-        </View>
-      )}
-      <Text style={styles.promptQuestion}>Why does this goal matter to you beyond the surface?</Text>
-      <Text style={styles.requiredBadge}>Required</Text>
-      <InputField
-        label=""
-        value={deeperWhy}
-        onChangeText={setDeeperWhy}
-        placeholder="What would change in your life if you achieved this?"
-        multiline
-        numberOfLines={4}
-        maxLength={500}
-      />
-
-      <Text style={[styles.promptQuestion, { marginTop: Spacing.lg }]}>
-        How confident are you that you can achieve this goal?
-      </Text>
-      <View style={styles.sliderRow}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-          <TouchableOpacity
-            key={n}
-            style={[styles.sliderChip, confidenceBaseline === n && styles.sliderChipActive]}
-            onPress={() => setConfidenceBaseline(n)}
-          >
-            <Text style={[styles.sliderChipText, confidenceBaseline === n && styles.sliderChipTextActive]}>
-              {n}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <View style={styles.sliderLabels}>
-        <Text style={styles.sliderLabel}>Not confident</Text>
-        <Text style={styles.sliderLabel}>Very confident</Text>
-      </View>
-    </View>
-  );
 
   const renderStage5 = () => (
     <View style={styles.stageContent}>
@@ -783,10 +717,9 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
         {currentStage === 1 && renderStage1()}
         {currentStage === 2 && renderStage2()}
         {currentStage === 3 && renderStage3()}
-        {currentStage === 4 && renderStage4()}
-        {currentStage === 5 && renderStage5()}
-        {currentStage === 6 && renderStage6()}
-        {currentStage === 7 && renderStage7()}
+        {currentStage === 4 && renderStage5()}
+        {currentStage === 5 && renderStage6()}
+        {currentStage === 6 && renderStage7()}
       </ScrollView>
 
       <View style={styles.navBar}>
@@ -873,19 +806,7 @@ const styles = StyleSheet.create({
   previewLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.primary, textTransform: 'uppercase', marginBottom: Spacing.sm },
   previewStatement: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark, lineHeight: 26 },
 
-  // Stage 4
-  contextBanner: { backgroundColor: Colors.primary + '08', borderLeftWidth: 3, borderLeftColor: Colors.primary, borderRadius: BorderRadius.sm, padding: Spacing.md, marginBottom: Spacing.lg },
-  contextBannerLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.primary, textTransform: 'uppercase', marginBottom: Spacing.xs },
-  contextBannerText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20, fontStyle: 'italic' },
-  sliderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm },
-  sliderChip: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  sliderChipActive: { backgroundColor: Colors.primary },
-  sliderChipText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.primary },
-  sliderChipTextActive: { color: Colors.white },
-  sliderLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs },
-  sliderLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
-
-  // Stage 5
+  // Stage 4 (Thought Patterns)
   yesNoRow: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.sm, marginBottom: Spacing.md },
   yesNoBtn: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 2, borderColor: Colors.border, alignItems: 'center' },
   yesNoBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '10' },

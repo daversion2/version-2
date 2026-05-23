@@ -226,6 +226,59 @@ export const selectTidbitForCompletion = async (
 };
 
 // ============================================================================
+// Habit Tidbit Selection
+// ============================================================================
+
+export interface HabitTidbitContext {
+  streakDays: number;
+  difficulty: 'easy' | 'challenging';
+  isReturn?: boolean; // returning after a missed day
+}
+
+/**
+ * Select a habit-specific neuroscience tidbit using a priority cascade.
+ * Priority: specific state (struggle/established/streak/new_habit) → generic habit → null
+ */
+export const selectHabitTidbit = async (
+  userId: string,
+  context: HabitTidbitContext
+): Promise<NeuroscienceTidbit | null> => {
+  const [allTidbits, recentIds] = await Promise.all([
+    getAllActiveTidbits(),
+    getRecentlyShownTidbitIds(userId),
+  ]);
+
+  const habitTidbits = allTidbits.filter((t) => t.context_type === 'habit');
+  if (habitTidbits.length === 0) return null;
+
+  const recentSet = new Set(recentIds);
+  const notRecent = (t: NeuroscienceTidbit) => !recentSet.has(t.id);
+
+  // Determine priority state
+  const priorityStates: string[] = [];
+  if (context.isReturn) priorityStates.push('struggle');
+  if (context.difficulty === 'challenging') priorityStates.push('struggle');
+  if (context.streakDays >= 30) priorityStates.push('established');
+  if (context.streakDays >= 7) priorityStates.push('streak');
+  if (context.streakDays <= 14) priorityStates.push('new_habit');
+
+  // Priority 1: Specific state
+  for (const state of priorityStates) {
+    const matches = habitTidbits.filter((t) => t.context_value === state && notRecent(t));
+    const pick = randomPick(matches);
+    if (pick) return pick;
+  }
+
+  // Priority 2: Generic habit
+  const genericMatches = habitTidbits.filter((t) => t.context_value === 'generic' && notRecent(t));
+  const pick = randomPick(genericMatches);
+  if (pick) return pick;
+
+  // Recycle: pick any habit tidbit if all recently shown
+  return randomPick(habitTidbits);
+};
+
+// ============================================================================
 // Tracking
 // ============================================================================
 

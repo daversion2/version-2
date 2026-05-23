@@ -577,7 +577,7 @@ export interface FunFact {
 
 // --- Neuroscience Tidbits ---
 
-export type TidbitContextType = 'challenge_type' | 'category' | 'state' | 'generic';
+export type TidbitContextType = 'challenge_type' | 'category' | 'state' | 'generic' | 'habit';
 
 export interface NeuroscienceTidbit {
   id: string;
