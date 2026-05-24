@@ -5,6 +5,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../consta
 import { HomeSectionProps } from './types';
 
 export const WhySummarySection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
+  // Hidden for now
+  return null;
   const { whyStatement, hasCompletedWhyDiscovery } = data;
 
   if (hasCompletedWhyDiscovery && whyStatement) {
