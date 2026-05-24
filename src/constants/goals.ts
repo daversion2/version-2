@@ -24,15 +24,12 @@ export interface OnboardingPrompt {
   placeholder: string;
   required: boolean;
   fieldKey: string;
-  type: 'text' | 'multiline' | 'slider' | 'list' | 'habit_list' | 'inner_voice_pair' | 'yes_no' | 'challenge_input';
+  type: 'text' | 'multiline' | 'slider' | 'inner_voice_pair' | 'yes_no' | 'challenge_input';
 }
 
 export const ONBOARDING_STAGES = [
   { id: 1, label: 'Define the Goal', subtitle: 'What matters to you' },
   { id: 2, label: 'Thought Patterns', subtitle: 'What\'s been stopping you' },
-  { id: 3, label: 'Action Plan', subtitle: 'Build your system' },
-  { id: 4, label: 'Anticipate', subtitle: 'Prepare for setbacks' },
-  { id: 5, label: 'Identity', subtitle: 'Who you\'re becoming' },
 ] as const;
 
 export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
@@ -94,72 +91,4 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
     type: 'inner_voice_pair',
   },
 
-  // Stage 3: Action Plan
-  {
-    id: 'habits',
-    stage: 3,
-    question: 'What habits do you need to build to make this a reality?',
-    placeholder: 'e.g., Go to gym',
-    required: true,
-    fieldKey: 'habits_input',
-    type: 'habit_list',
-  },
-  {
-    id: 'minimum_action',
-    stage: 3,
-    question: "What's the smallest possible action on your worst day?",
-    placeholder: 'On a terrible day, the win is...',
-    required: true,
-    fieldKey: 'minimum_action',
-    type: 'text',
-  },
-  {
-    id: 'bonus_actions',
-    stage: 3,
-    question: 'What are 2-3 things you could do when you have free time for this goal?',
-    placeholder: 'e.g., Go for an extra walk',
-    required: false,
-    fieldKey: 'bonus_actions',
-    type: 'list',
-  },
-
-  // Stage 4: Anticipate
-  {
-    id: 'triggers',
-    stage: 4,
-    question: 'What situations or feelings trigger you to fall off?',
-    placeholder: 'e.g., Stress at work, boredom, feeling tired',
-    required: false,
-    fieldKey: 'triggers',
-    type: 'list',
-  },
-  {
-    id: 'trigger_substitutes',
-    stage: 4,
-    question: 'When that trigger hits, what will you do instead?',
-    placeholder: 'e.g., Take a 5-minute walk instead of snacking',
-    required: false,
-    fieldKey: 'trigger_substitutes',
-    type: 'list',
-  },
-  {
-    id: 'recovery_plan',
-    stage: 4,
-    question: 'If you miss a day, what will you do to get back on track?',
-    placeholder: "e.g., I'll do a shorter version, or pick it back up the next morning",
-    required: true,
-    fieldKey: 'recovery_plan',
-    type: 'multiline',
-  },
-
-  // Stage 5: Identity
-  {
-    id: 'identity',
-    stage: 5,
-    question: 'Who are you becoming through this goal?',
-    placeholder: "e.g., I'm becoming someone who keeps promises to himself",
-    required: true,
-    fieldKey: 'identity_statement',
-    type: 'text',
-  },
 ];

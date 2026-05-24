@@ -42,12 +42,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
 
   // Form state
   const [formData, setFormData] = useState<Record<string, string>>({});
-  const [listData, setListData] = useState<Record<string, string[]>>({
-    bonus_actions: [],
-    triggers: [],
-    trigger_substitutes: [],
-  });
-  const [habitsInput, setHabitsInput] = useState<{ name: string; frequency: number }[]>([]);
   const [confidenceBaseline, setConfidenceBaseline] = useState(5);
   const [innerVoiceChallenge, setInnerVoiceChallenge] = useState('');
   const [innerVoiceResponse, setInnerVoiceResponse] = useState('');
@@ -59,9 +53,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
     return d;
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-
-  // List input temp state
-  const [listInputs, setListInputs] = useState<Record<string, string>>({});
 
   // Stage 2: Thought Patterns gate
   const [hasTriedBefore, setHasTriedBefore] = useState<boolean | null>(null);
@@ -88,39 +79,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  const addListItem = (key: string) => {
-    const input = (listInputs[key] || '').trim();
-    if (!input) return;
-    setListData(prev => ({
-      ...prev,
-      [key]: [...(prev[key] || []), input],
-    }));
-    setListInputs(prev => ({ ...prev, [key]: '' }));
-  };
-
-  const removeListItem = (key: string, index: number) => {
-    setListData(prev => ({
-      ...prev,
-      [key]: (prev[key] || []).filter((_, i) => i !== index),
-    }));
-  };
-
-  // Habit list helpers
-  const [habitNameInput, setHabitNameInput] = useState('');
-  const [habitFreqInput, setHabitFreqInput] = useState(3);
-
-  const addHabit = () => {
-    const name = habitNameInput.trim();
-    if (!name) return;
-    setHabitsInput(prev => [...prev, { name, frequency: habitFreqInput }]);
-    setHabitNameInput('');
-    setHabitFreqInput(3);
-  };
-
-  const removeHabit = (index: number) => {
-    setHabitsInput(prev => prev.filter((_, i) => i !== index));
-  };
-
   const validateStage = (): boolean => {
     // Stage 2: Thought Patterns — gate on hasTriedBefore
     if (currentStage === 2) {
@@ -141,20 +99,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
       if (!prompt.required) continue;
 
       if (prompt.type === 'slider') continue; // slider always has a value
-      if (prompt.type === 'habit_list') {
-        if (habitsInput.length === 0) {
-          Alert.alert('Required', 'Please add at least one habit.');
-          return false;
-        }
-        continue;
-      }
-      if (prompt.type === 'list') {
-        if ((listData[prompt.fieldKey] || []).length === 0) {
-          Alert.alert('Required', `Please add at least one item for: "${prompt.question}"`);
-          return false;
-        }
-        continue;
-      }
       // text / multiline
       const fieldKey = prompt.fieldKey;
       if (fieldKey === 'name') {
@@ -202,12 +146,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
     if (!user || atCap) return;
     setLoading(true);
     try {
-      const habits = habitsInput.map(h => ({
-        name: h.name,
-        category_id: 'Physical',
-        target_count_per_week: h.frequency,
-      }));
-
       await createGoalWithActions(
         user.uid,
         {
@@ -218,14 +156,8 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
           negative_story: formData.negative_story?.trim(),
           inner_voice_challenge: innerVoiceChallenge.trim() || undefined,
           inner_voice_response: innerVoiceResponse.trim() || undefined,
-          minimum_action: formData.minimum_action?.trim(),
-          bonus_actions: listData.bonus_actions?.length ? listData.bonus_actions : undefined,
-          triggers: listData.triggers?.length ? listData.triggers : undefined,
-          trigger_substitutes: listData.trigger_substitutes?.length ? listData.trigger_substitutes : undefined,
-          recovery_plan: formData.recovery_plan?.trim(),
-          identity_statement: formData.identity_statement?.trim(),
         },
-        { habits }
+        { habits: [] }
       );
 
       navigation.popToTop();
@@ -341,95 +273,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
                 multiline
                 maxLength={300}
               />
-            </View>
-          </View>
-        );
-
-      case 'habit_list':
-        return (
-          <View key={prompt.id} style={styles.promptContainer}>
-            <Text style={styles.promptQuestion}>{prompt.question}</Text>
-            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
-            {habitsInput.map((habit, idx) => (
-              <View key={idx} style={styles.listItem}>
-                <Text style={styles.listItemText}>
-                  {habit.name} — {habit.frequency}x/week
-                </Text>
-                <TouchableOpacity onPress={() => removeHabit(idx)}>
-                  <Ionicons name="close-circle" size={20} color={Colors.gray} />
-                </TouchableOpacity>
-              </View>
-            ))}
-            <View style={styles.habitAddSection}>
-              <View style={styles.listAddRow}>
-                <TextInput
-                  style={styles.listAddInput}
-                  value={habitNameInput}
-                  onChangeText={setHabitNameInput}
-                  placeholder={prompt.placeholder}
-                  placeholderTextColor={Colors.gray}
-                  onSubmitEditing={addHabit}
-                  returnKeyType="done"
-                />
-                <TouchableOpacity style={styles.listAddButton} onPress={addHabit}>
-                  <Ionicons name="add-circle" size={28} color={Colors.primary} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.habitFreqLabel}>Times per week</Text>
-              <View style={styles.habitFreqRow}>
-                {[1, 2, 3, 4, 5, 6, 7].map(n => (
-                  <TouchableOpacity
-                    key={n}
-                    onPress={() => setHabitFreqInput(n)}
-                    style={[
-                      styles.habitFreqChip,
-                      habitFreqInput === n && styles.habitFreqChipActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.habitFreqChipText,
-                        habitFreqInput === n && { color: Colors.white },
-                      ]}
-                    >
-                      {n}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </View>
-        );
-
-      case 'list':
-        return (
-          <View key={prompt.id} style={styles.promptContainer}>
-            <Text style={styles.promptQuestion}>{prompt.question}</Text>
-            {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
-            {(listData[prompt.fieldKey] || []).map((item, idx) => (
-              <View key={idx} style={styles.listItem}>
-                <Text style={styles.listItemText}>{item}</Text>
-                <TouchableOpacity onPress={() => removeListItem(prompt.fieldKey, idx)}>
-                  <Ionicons name="close-circle" size={20} color={Colors.gray} />
-                </TouchableOpacity>
-              </View>
-            ))}
-            <View style={styles.listAddRow}>
-              <TextInput
-                style={styles.listAddInput}
-                value={listInputs[prompt.fieldKey] || ''}
-                onChangeText={(v) => setListInputs(prev => ({ ...prev, [prompt.fieldKey]: v }))}
-                placeholder={prompt.placeholder}
-                placeholderTextColor={Colors.gray}
-                onSubmitEditing={() => addListItem(prompt.fieldKey)}
-                returnKeyType="done"
-              />
-              <TouchableOpacity
-                style={styles.listAddButton}
-                onPress={() => addListItem(prompt.fieldKey)}
-              >
-                <Ionicons name="add-circle" size={28} color={Colors.primary} />
-              </TouchableOpacity>
             </View>
           </View>
         );
@@ -726,47 +569,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
-  // List input
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  listItemText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  listAddRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.xs,
-  },
-  listAddInput: {
-    flex: 1,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  listAddButton: {
-    padding: Spacing.xs,
-  },
 
   // Date picker
   dateSelector: {
@@ -836,38 +638,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
-  // Habit list
-  habitAddSection: {
-    marginTop: Spacing.xs,
-  },
-  habitFreqLabel: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  habitFreqRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  habitFreqChip: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  habitFreqChipActive: {
-    backgroundColor: Colors.primary,
-  },
-  habitFreqChipText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-  },
   // Yes/No buttons
   yesNoRow: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
   yesNoButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 2, borderColor: Colors.border, alignItems: 'center', backgroundColor: Colors.white },
@@ -879,9 +649,5 @@ const styles = StyleSheet.create({
   noAttemptNote: { marginTop: Spacing.md, backgroundColor: Colors.primary + '08', borderRadius: BorderRadius.md, padding: Spacing.md, borderLeftWidth: 3, borderLeftColor: Colors.primary },
   noAttemptNoteText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
 
-  // Challenge input
-  challengeExplainer: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, backgroundColor: Colors.secondary + '10', borderRadius: BorderRadius.sm, padding: Spacing.md, marginBottom: Spacing.md },
-  challengeExplainerText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
-  fieldLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark, marginBottom: Spacing.sm, marginTop: Spacing.md },
 
 });
