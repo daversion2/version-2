@@ -38,6 +38,10 @@ export interface User {
   // Why Discovery
   has_completed_why_discovery?: boolean;
   why_statement?: string; // Denormalized for fast home screen display
+  // New onboarding
+  redirect_mantra?: string;
+  onboarding_pattern?: string;
+  onboarding_reflection?: string;
   // Deferred onboarding
   onboarding_deferred?: boolean;
   onboarding_banner_dismissed?: boolean;

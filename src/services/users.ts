@@ -186,6 +186,9 @@ const USER_SUBCOLLECTIONS = [
   'programBadges',
   'rewardMessages',
   'challengeStats',
+  'shownTidbits',
+  'tomorrowPlans',
+  'worksheets',
 ];
 
 const deleteSubcollection = async (userId: string, subcollectionName: string): Promise<number> => {
@@ -233,6 +236,19 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
       home_layout: deleteField(),
       expoPushToken: deleteField(),
       timezone: deleteField(),
+      // Why discovery
+      has_completed_why_discovery: deleteField(),
+      why_statement: deleteField(),
+      // Onboarding
+      redirect_mantra: deleteField(),
+      onboarding_pattern: deleteField(),
+      onboarding_reflection: deleteField(),
+      onboarding_deferred: deleteField(),
+      onboarding_banner_dismissed: deleteField(),
+      deferred_onboarding_progress: deleteField(),
+      // Completion counters
+      totalHabitsCompleted: 0,
+      totalChallengesCompleted: 0,
     },
     { merge: true }
   );
