@@ -21,14 +21,17 @@ export const ChallengesUnlockModal: React.FC<Props> = ({ visible, onBrowse, onDi
           <Text style={styles.unlocked}>Unlocked</Text>
           <Text style={styles.title}>Challenges</Text>
           <Text style={styles.body}>
-            You've been showing up consistently — that's earned you access to challenges. These are one-time pushes that stretch you beyond your daily habits.
+            Habits are absolutely foundational — but challenges are what keep you growing and pushing your limits.
           </Text>
           <View style={styles.tipRow}>
-            <Ionicons name="information-circle-outline" size={16} color={Colors.primary} style={{ marginTop: 1 }} />
+            <Ionicons name="flash-outline" size={16} color={Colors.primary} style={{ marginTop: 1 }} />
             <Text style={styles.tipText}>
-              Habits stay your foundation. Challenges are how you level up.
+              Neuroscience shows that by purposefully getting outside of your comfort zone, you strengthen areas of your brain responsible for willpower. That's what challenges are all about.
             </Text>
           </View>
+          <Text style={styles.flowText}>
+            Pick or create a challenge, do it, reflect and lock it in.
+          </Text>
           <Button title="Browse Challenges" onPress={onBrowse} style={styles.button} />
         </Pressable>
       </Pressable>
@@ -99,6 +102,14 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     lineHeight: 20,
     flex: 1,
+  },
+  flowText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.lg,
   },
   button: {
     width: '100%',

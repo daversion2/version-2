@@ -435,8 +435,20 @@ export const OnboardingScreen: React.FC = () => {
   const renderScreen6 = () => (
     <View style={styles.stageContent}>
       <Text style={styles.stageIntro}>
-        Pick a redirect mantra — a short phrase you'll see when your mind drifts.
+        Pick a redirect mantra — a short phrase you'll say to yourself when your mind drifts.
       </Text>
+      <View style={styles.scienceCard}>
+        <Ionicons name="bulb-outline" size={18} color={Colors.primary} />
+        <Text style={styles.scienceText}>
+          Research shows that self-directed speech activates your prefrontal cortex — the part of your brain responsible for focus and self-control. A short, personal mantra interrupts autopilot thinking and gives your brain a clear instruction to follow.
+        </Text>
+      </View>
+      <View style={styles.howToCard}>
+        <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
+        <Text style={styles.scienceText}>
+          When you notice a negative thought pattern arising, use your mantra to cut it off. Repeat it to yourself to redirect your focus.
+        </Text>
+      </View>
       <Text style={styles.mantraSubtext}>
         You can write your own or tap one below to start.
       </Text>
@@ -1125,6 +1137,31 @@ const styles = StyleSheet.create({
   },
 
   // Screen 6: Mantra
+  scienceCard: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary + '08',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  howToCard: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    backgroundColor: Colors.secondary + '08',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    alignItems: 'flex-start',
+  },
+  scienceText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 20,
+  },
   mantraSubtext: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,

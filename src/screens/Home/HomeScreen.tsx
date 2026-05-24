@@ -130,11 +130,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Plan intro modal (one-time, first home screen landing after onboarding)
   const [planIntroVisible, setPlanIntroVisible] = useState(false);
-  const planIntroCheckedRef = useRef(false);
 
   // Goal prompt modal (Day 2 - second app open, no goals)
   const [goalPromptVisible, setGoalPromptVisible] = useState(false);
-  const goalPromptCheckedRef = useRef(false);
 
   // Challenges unlock modal (after 3 habit completions)
   const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
@@ -360,9 +358,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Show one-time plan intro on first home screen landing after onboarding
   useEffect(() => {
-    if (planIntroCheckedRef.current) return;
     if (!userProfile || isWalkthroughActive) return;
-    planIntroCheckedRef.current = true;
+    if (planIntroVisible) return; // Already showing
     if (!userProfile.has_seen_plan_intro) {
       // Small delay so the home screen renders first
       const timer = setTimeout(() => setPlanIntroVisible(true), 800);
@@ -372,9 +369,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Show goal prompt on second app open if user has no goals
   useEffect(() => {
-    if (goalPromptCheckedRef.current) return;
     if (!userProfile || isWalkthroughActive || goals.length > 0) return;
-    goalPromptCheckedRef.current = true;
+    if (goalPromptVisible) return; // Already showing
     if (
       (userProfile.app_open_count ?? 0) >= 2 &&
       !userProfile.has_dismissed_goal_prompt &&

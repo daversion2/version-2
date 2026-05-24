@@ -56,15 +56,6 @@ export const ONBOARDING_PROMPTS: OnboardingPrompt[] = [
     type: 'multiline',
   },
   {
-    id: 'why_connection',
-    stage: 1,
-    question: 'How does this goal serve your personal Why?',
-    placeholder: 'Think about how achieving this goal connects to your core purpose...',
-    required: false,
-    fieldKey: 'why_connection',
-    type: 'multiline',
-  },
-  {
     id: 'confidence',
     stage: 1,
     question: "On a scale of 1-10, how confident are you that you'll achieve this?",

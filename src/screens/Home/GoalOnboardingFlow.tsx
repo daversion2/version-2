@@ -19,7 +19,6 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { createGoalWithActions, getActiveGoals } from '../../services/goals';
 import { GOAL_CONSTANTS, ONBOARDING_STAGES, ONBOARDING_PROMPTS, OnboardingPrompt } from '../../constants/goals';
-import { Modal } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 type Props = NativeStackScreenProps<any>;
@@ -40,8 +39,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
   const [currentStage, setCurrentStage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [atCap, setAtCap] = useState(false);
-  const [showWhyGuard, setShowWhyGuard] = useState(false);
-  const [whyGuardDismissed, setWhyGuardDismissed] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -69,18 +66,12 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
   // Stage 2: Thought Patterns gate
   const [hasTriedBefore, setHasTriedBefore] = useState<boolean | null>(null);
 
-  const hasWhyDiscovery = userProfile?.has_completed_why_discovery === true;
-  const userWhyStatement = userProfile?.why_statement || '';
 
   useEffect(() => {
     if (!user) return;
     getActiveGoals(user.uid).then(goals => {
       setAtCap(goals.length >= GOAL_CONSTANTS.MAX_ACTIVE);
     });
-    // Show soft guard if user hasn't completed Why Discovery
-    if (!hasWhyDiscovery && !whyGuardDismissed) {
-      setShowWhyGuard(true);
-    }
   }, [user]);
 
   useEffect(() => {
@@ -233,7 +224,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
           trigger_substitutes: listData.trigger_substitutes?.length ? listData.trigger_substitutes : undefined,
           recovery_plan: formData.recovery_plan?.trim(),
           identity_statement: formData.identity_statement?.trim(),
-          why_connection: formData.why_connection?.trim() || undefined,
         },
         { habits }
       );
@@ -271,13 +261,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
       case 'multiline':
         return (
           <View key={prompt.id} style={styles.promptContainer}>
-            {/* Show Why context banner for the why_connection field */}
-            {prompt.fieldKey === 'why_connection' && hasWhyDiscovery && userWhyStatement ? (
-              <View style={styles.whyContextBanner}>
-                <Ionicons name="compass" size={16} color={Colors.primary} />
-                <Text style={styles.whyContextText}>Your Why: "{userWhyStatement}"</Text>
-              </View>
-            ) : null}
             <Text style={styles.promptQuestion}>{prompt.question}</Text>
             {prompt.required && <Text style={styles.requiredBadge}>Required</Text>}
             <InputField
@@ -498,37 +481,6 @@ export const GoalOnboardingFlow: React.FC<Props> = ({ navigation }) => {
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Soft guard modal - encourage Why Discovery first */}
-      <Modal visible={showWhyGuard} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Ionicons name="compass-outline" size={40} color={Colors.primary} />
-            <Text style={styles.modalTitle}>Discover Your Why First?</Text>
-            <Text style={styles.modalBody}>
-              Goals are more powerful when connected to your core purpose.
-            </Text>
-            <TouchableOpacity
-              style={styles.modalPrimaryButton}
-              onPress={() => {
-                setShowWhyGuard(false);
-                navigation.replace('WhyDiscoveryFlow');
-              }}
-            >
-              <Text style={styles.modalPrimaryText}>Discover My Why</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalSecondaryButton}
-              onPress={() => {
-                setShowWhyGuard(false);
-                setWhyGuardDismissed(true);
-              }}
-            >
-              <Text style={styles.modalSecondaryText}>Create Goal Anyway</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Progress bar */}
       <View style={styles.progressBarContainer}>
         <Animated.View
@@ -916,58 +868,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.primary,
   },
-  // Why guard modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 340,
-    gap: Spacing.md,
-  },
-  modalTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    textAlign: 'center',
-  },
-  modalBody: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  modalPrimaryButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    width: '100%',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  modalPrimaryText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.white,
-  },
-  modalSecondaryButton: {
-    paddingVertical: Spacing.sm,
-  },
-  modalSecondaryText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-  },
   // Yes/No buttons
   yesNoRow: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.md },
   yesNoButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.md, borderWidth: 2, borderColor: Colors.border, alignItems: 'center', backgroundColor: Colors.white },
@@ -984,24 +884,4 @@ const styles = StyleSheet.create({
   challengeExplainerText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
   fieldLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark, marginBottom: Spacing.sm, marginTop: Spacing.md },
 
-  // Why context banner
-  whyContextBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary + '10',
-    borderRadius: BorderRadius.sm,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  whyContextText: {
-    flex: 1,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
 });
