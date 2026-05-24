@@ -37,6 +37,7 @@ import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthroug
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
+import { PlanIntroModal } from '../../components/common/PlanIntroModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { shouldShowPointsAlert } from '../../services/alertPreferences';
 import { FunFactModal } from '../../components/home/FunFactModal';
@@ -54,7 +55,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen } from '../../services/users';
+import { markPointsIntroSeen, markPlanIntroSeen } from '../../services/users';
 import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
@@ -124,6 +125,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
+
+  // Plan intro modal (one-time, first home screen landing after onboarding)
+  const [planIntroVisible, setPlanIntroVisible] = useState(false);
+  const planIntroCheckedRef = useRef(false);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -331,6 +336,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       loadData();
     }, [loadData])
   );
+
+  // Show one-time plan intro on first home screen landing after onboarding
+  useEffect(() => {
+    if (planIntroCheckedRef.current) return;
+    if (!userProfile || isWalkthroughActive) return;
+    planIntroCheckedRef.current = true;
+    if (!userProfile.has_seen_plan_intro) {
+      // Small delay so the home screen renders first
+      const timer = setTimeout(() => setPlanIntroVisible(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [userProfile, isWalkthroughActive]);
 
   // Measure the target ref for the current walkthrough step
   useEffect(() => {
@@ -770,6 +787,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <PointsIntroModal
         visible={pointsIntroVisible}
         onDismiss={() => setPointsIntroVisible(false)}
+      />
+      <PlanIntroModal
+        visible={planIntroVisible}
+        onDismiss={async () => {
+          setPlanIntroVisible(false);
+          if (user) {
+            try {
+              await markPlanIntroSeen(user.uid);
+              await refreshProfile();
+            } catch (err) {
+              console.warn('Failed to mark plan intro seen:', err);
+            }
+          }
+        }}
       />
       <PointsAlertModal
         visible={pointsAlertVisible}

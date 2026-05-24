@@ -50,6 +50,10 @@ export const markPointsIntroSeen = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_seen_points_intro: true }, { merge: true });
 };
 
+export const markPlanIntroSeen = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_seen_plan_intro: true }, { merge: true });
+};
+
 export const resetOnboarding = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_completed_onboarding: false }, { merge: true });
 };
@@ -255,6 +259,7 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
       totalChallengesCompleted: 0,
       // Intro flags
       has_seen_points_intro: deleteField(),
+      has_seen_plan_intro: deleteField(),
     },
     { merge: true }
   );

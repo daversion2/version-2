@@ -44,6 +44,7 @@ export interface User {
   onboarding_reflection?: string;
   // One-time intro flags
   has_seen_points_intro?: boolean;
+  has_seen_plan_intro?: boolean;
   // Deferred onboarding
   onboarding_deferred?: boolean;
   onboarding_banner_dismissed?: boolean;
