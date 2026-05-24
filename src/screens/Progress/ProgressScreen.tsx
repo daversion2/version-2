@@ -29,8 +29,6 @@ import { GoalHealthCard } from '../../components/progress/GoalHealthCard';
 import { ConsistencyCard } from '../../components/progress/ConsistencyCard';
 import { HabitHealthList } from '../../components/progress/HabitHealthList';
 import { DayOfWeekChart } from '../../components/progress/DayOfWeekChart';
-import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
-import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 interface GoalCardData {
   goal: Goal;
@@ -40,8 +38,6 @@ interface GoalCardData {
 export const ProgressScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
-  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Progress';
 
   const [loading, setLoading] = useState(true);
 
@@ -249,17 +245,6 @@ export const ProgressScreen: React.FC = () => {
         </>
       )}
 
-      {isMyStep && (
-        <WalkthroughOverlay
-          visible
-          stepText={currentStepConfig?.text || ''}
-          stepNumber={currentStep}
-          totalSteps={WALKTHROUGH_STEPS.length}
-          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
-          onNext={nextStep}
-          onSkip={skipWalkthrough}
-        />
-      )}
     </ScrollView>
   );
 };

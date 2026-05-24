@@ -12,14 +12,10 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { registerForPushNotifications } from '../../services/notifications';
 import { showAlert, showConfirm } from '../../utils/alert';
-import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
-import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 export const SettingsScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
   const navigation = useNavigation<any>();
-  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough, restartWalkthrough } = useWalkthrough();
-  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Settings';
   const [username, setUsername] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
 
@@ -217,17 +213,11 @@ export const SettingsScreen: React.FC = () => {
       {/* Tutorial */}
       <Card style={styles.card}>
         <Text style={styles.label}>Tutorial</Text>
-        <Text style={styles.desc}>Revisit the intro or guided walkthrough of the app.</Text>
+        <Text style={styles.desc}>Revisit the intro of the app.</Text>
         <View style={styles.buttonRow}>
           <Button
             title="Replay Intro"
             onPress={handleReplayOnboarding}
-            variant="outline"
-            style={styles.halfButton}
-          />
-          <Button
-            title="Replay Tutorial"
-            onPress={restartWalkthrough}
             variant="outline"
             style={styles.halfButton}
           />
@@ -324,17 +314,6 @@ export const SettingsScreen: React.FC = () => {
         style={styles.logout}
       />
 
-      {isMyStep && (
-        <WalkthroughOverlay
-          visible
-          stepText={currentStepConfig?.text || ''}
-          stepNumber={currentStep}
-          totalSteps={WALKTHROUGH_STEPS.length}
-          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
-          onNext={nextStep}
-          onSkip={skipWalkthrough}
-        />
-      )}
     </ScrollView>
   );
 };

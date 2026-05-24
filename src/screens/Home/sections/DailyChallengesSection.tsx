@@ -9,7 +9,7 @@ import { BuddyChallengeStatusBadge } from '../../../components/challenge/BuddyCh
 import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { HomeSectionProps } from './types';
 
-export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callbacks, refs }) => {
+export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
   const { activeChallenges, buddyChallenges } = data;
   const totalCompleted = data.totalHabitsCompleted;
   const challengesUnlocked = totalCompleted >= 3;
@@ -115,13 +115,11 @@ export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callb
       ) : (
         <Card>
           <Text style={styles.noChallenge}>No active challenge</Text>
-          <View ref={refs?.challengeBtnRef} collapsable={false}>
-            <Button
-              title="Start Today's Challenge"
-              onPress={() => callbacks.onNavigate('StartChallenge')}
-              style={{ marginTop: Spacing.md }}
-            />
-          </View>
+          <Button
+            title="Start Today's Challenge"
+            onPress={() => callbacks.onNavigate('StartChallenge')}
+            style={{ marginTop: Spacing.md }}
+          />
         </Card>
       )}
     </>

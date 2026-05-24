@@ -31,9 +31,6 @@ import {
 import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
-import { useWalkthrough } from '../../context/WalkthroughContext';
-import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
-import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
@@ -62,7 +59,7 @@ import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
-import { HomeData, HomeCallbacks, HomeRefs, WillpowerStatsData } from './sections/types';
+import { HomeData, HomeCallbacks, WillpowerStatsData } from './sections/types';
 import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/homeLayout';
 import { ZoneHeader } from '../../components/home/ZoneHeader';
 
@@ -70,13 +67,7 @@ type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();
-  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
-
-  const challengeBtnRef = useRef<View>(null);
-  const habitsAddRef = useRef<View>(null);
-  const habitAreaRef = useRef<View>(null);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [spotlightLayout, setSpotlightLayout] = useState<SpotlightLayout | null>(null);
 
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
@@ -179,7 +170,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, []);
 
-  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'HomeScreen';
 
   const getCatColor = useCallback((catName: string) => {
     const cat = categories.find((c) => c.name === catName);
@@ -376,18 +366,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Show one-time plan intro on first home screen landing after onboarding
   useEffect(() => {
-    if (!userProfile || isWalkthroughActive) return;
+    if (!userProfile) return;
     if (planIntroVisible) return; // Already showing
     if (!userProfile.has_seen_plan_intro) {
       // Small delay so the home screen renders first
       const timer = setTimeout(() => setPlanIntroVisible(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [userProfile, isWalkthroughActive]);
+  }, [userProfile]);
 
   // Show goal prompt on second app open if user has no goals
   useEffect(() => {
-    if (!userProfile || isWalkthroughActive || goals.length > 0) return;
+    if (!userProfile || goals.length > 0) return;
     if (goalPromptVisible) return; // Already showing
     if (
       (userProfile.app_open_count ?? 0) >= 2 &&
@@ -397,40 +387,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const timer = setTimeout(() => setGoalPromptVisible(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [userProfile, isWalkthroughActive, goals]);
+  }, [userProfile, goals]);
 
-  // Measure the target ref for the current walkthrough step
-  useEffect(() => {
-    if (!isMyStep || !currentStepConfig?.target) {
-      setSpotlightLayout(null);
-      return;
-    }
-    const refMap: Record<string, React.RefObject<View | null>> = {
-      challengeBtn: challengeBtnRef,
-      habitsAdd: habitsAddRef,
-      habitArea: habitAreaRef,
-    };
-    const ref = refMap[currentStepConfig.target];
-    if (!ref?.current) return;
-
-    // First, scroll to top for challengeBtn, or scroll down a bit for habits
-    if (currentStepConfig.target === 'challengeBtn') {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    } else if (currentStepConfig.target === 'habitsAdd' || currentStepConfig.target === 'habitArea') {
-      // Scroll down to make habits section visible
-      scrollViewRef.current?.scrollTo({ y: 150, animated: false });
-    }
-
-    // Wait for scroll and layout to settle, then measure
-    const timer = setTimeout(() => {
-      ref.current?.measureInWindow((x, y, width, height) => {
-        if (width > 0 && height > 0) {
-          setSpotlightLayout({ x, y, width, height });
-        }
-      });
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [isMyStep, currentStepConfig, currentStep]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -789,11 +747,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     onToggleTodayHabit: handleToggleTodayHabit,
   };
 
-  const homeRefs: HomeRefs = {
-    challengeBtnRef,
-    habitsAddRef,
-    habitAreaRef,
-  };
 
   return (
     <View style={styles.screen}>
@@ -818,7 +771,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   key={item.id}
                   data={homeData}
                   callbacks={homeCallbacks}
-                  refs={homeRefs}
                 />
               );
             })}
@@ -831,18 +783,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
       />
-      {isMyStep && (
-        <WalkthroughOverlay
-          visible
-          spotlightLayout={currentStepConfig?.target ? spotlightLayout : undefined}
-          stepText={currentStepConfig?.text || ''}
-          stepNumber={currentStep}
-          totalSteps={WALKTHROUGH_STEPS.length}
-          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
-          onNext={nextStep}
-          onSkip={skipWalkthrough}
-        />
-      )}
       </ScrollView>
       <PointsPopup
         points={earnedPoints}

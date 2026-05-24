@@ -3,15 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
-import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
-import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 type Props = NativeStackScreenProps<any, 'StartChallenge'>;
 
 export const StartChallengeScreen: React.FC<Props> = ({ navigation, route }) => {
   const forDate = (route.params as any)?.forDate as string | undefined;
-  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
-  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'StartChallenge';
 
   return (
     <View style={styles.container}>
@@ -38,17 +34,6 @@ export const StartChallengeScreen: React.FC<Props> = ({ navigation, route }) => 
         style={styles.btn}
       />
 
-      {isMyStep && (
-        <WalkthroughOverlay
-          visible
-          stepText={currentStepConfig?.text || ''}
-          stepNumber={currentStep}
-          totalSteps={WALKTHROUGH_STEPS.length}
-          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
-          onNext={nextStep}
-          onSkip={skipWalkthrough}
-        />
-      )}
     </View>
   );
 };

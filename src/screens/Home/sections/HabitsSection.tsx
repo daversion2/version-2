@@ -6,32 +6,28 @@ import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { HomeSectionProps } from './types';
 
-export const HabitsSection: React.FC<HomeSectionProps> = ({ data, callbacks, refs }) => {
+export const HabitsSection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
   const { habits, weeklyCounts, habitStreaks } = data;
 
   return (
     <>
       <View style={styles.habitsHeader}>
         <Text style={styles.sectionTitle}>Habits</Text>
-        <View ref={refs?.habitsAddRef} collapsable={false}>
-          <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits')}>
-            <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits')}>
+          <Ionicons name="add-circle-outline" size={28} color={Colors.primary} />
+        </TouchableOpacity>
       </View>
 
       {habits.length === 0 ? (
-        <View ref={refs?.habitAreaRef} collapsable={false}>
-          <Card>
-            <Text style={styles.noChallenge}>No habits yet</Text>
-            <Button
-              title="Add a Habit"
-              onPress={() => callbacks.onNavigate('ManageHabits')}
-              variant="outline"
-              style={{ marginTop: Spacing.md }}
-            />
-          </Card>
-        </View>
+        <Card>
+          <Text style={styles.noChallenge}>No habits yet</Text>
+          <Button
+            title="Add a Habit"
+            onPress={() => callbacks.onNavigate('ManageHabits')}
+            variant="outline"
+            style={{ marginTop: Spacing.md }}
+          />
+        </Card>
       ) : (
         habits.map((habit, index) => {
           const done = weeklyCounts[habit.id] || 0;
@@ -41,8 +37,6 @@ export const HabitsSection: React.FC<HomeSectionProps> = ({ data, callbacks, ref
           return (
             <View
               key={habit.id}
-              ref={index === 0 ? refs?.habitAreaRef : undefined}
-              collapsable={false}
             >
               <Card style={styles.habitCard} onPress={() => callbacks.onHabitTap(habit)}>
                 <View style={styles.habitRow}>

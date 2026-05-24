@@ -1,5 +1,3 @@
-import { RefObject } from 'react';
-import { View } from 'react-native';
 import {
   Challenge,
   Nudge,
@@ -79,14 +77,7 @@ export interface HomeCallbacks {
   onToggleTodayHabit?: (habitId: string) => void;
 }
 
-export interface HomeRefs {
-  challengeBtnRef: RefObject<View | null>;
-  habitsAddRef: RefObject<View | null>;
-  habitAreaRef: RefObject<View | null>;
-}
-
 export interface HomeSectionProps {
   data: HomeData;
   callbacks: HomeCallbacks;
-  refs?: HomeRefs;
 }

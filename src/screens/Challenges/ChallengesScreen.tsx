@@ -8,14 +8,10 @@ import { useAuth } from '../../context/AuthContext';
 import { getPastChallenges } from '../../services/challenges';
 import { getChallengeSummaryStats, ChallengeSummaryStats } from '../../services/challengeStats';
 import { Challenge } from '../../types';
-import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
-import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 
 export const ChallengesScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
-  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'Challenges';
   const [stats, setStats] = useState<ChallengeSummaryStats>({
     avgDifficulty: 0,
     totalCompleted: 0,
@@ -100,19 +96,6 @@ export const ChallengesScreen: React.FC = () => {
       }
       ListEmptyComponent={
         <Text style={styles.emptyText}>No completed challenges yet.</Text>
-      }
-      ListFooterComponent={
-        isMyStep ? (
-          <WalkthroughOverlay
-            visible
-            stepText={currentStepConfig?.text || ''}
-            stepNumber={currentStep}
-            totalSteps={WALKTHROUGH_STEPS.length}
-            isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
-            onNext={nextStep}
-            onSkip={skipWalkthrough}
-          />
-        ) : null
       }
     />
   );

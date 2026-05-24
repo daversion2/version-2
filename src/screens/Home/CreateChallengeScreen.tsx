@@ -21,8 +21,6 @@ import { getUserCategories } from '../../services/categories';
 import { TouchableOpacity } from 'react-native';
 import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
-import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
-import { WalkthroughOverlay } from '../../components/walkthrough/WalkthroughOverlay';
 import { ChallengeTypeSelector } from '../../components/challenge/ChallengeTypeSelector';
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
@@ -34,8 +32,6 @@ type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
 export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) => {
   const forDate = (route.params as any)?.forDate as string | undefined;
   const { user } = useAuth();
-  const { isWalkthroughActive, currentStep, currentStepConfig, nextStep, skipWalkthrough } = useWalkthrough();
-  const isMyStep = isWalkthroughActive && currentStepConfig?.screen === 'CreateChallenge';
 
   const [name, setName] = useState('');
   const [categoryIdx, setCategoryIdx] = useState(0);
@@ -64,16 +60,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
     }
   }, [user]);
 
-  // Pre-fill fields when in walkthrough mode
-  useEffect(() => {
-    if (isMyStep) {
-      setName('Placeholder challenge name');
-      setDescription('Placeholder description');
-      setSuccessCriteria('Placeholder success criteria');
-      setWhy('Placeholder reason');
-      setDifficulty(3);
-    }
-  }, [isMyStep]);
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -264,17 +250,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
         )}
       </ScrollView>
 
-      {isMyStep && (
-        <WalkthroughOverlay
-          visible
-          stepText={currentStepConfig?.text || ''}
-          stepNumber={currentStep}
-          totalSteps={WALKTHROUGH_STEPS.length}
-          isLast={currentStep === WALKTHROUGH_STEPS.length - 1}
-          onNext={nextStep}
-          onSkip={skipWalkthrough}
-        />
-      )}
     </KeyboardAvoidingView>
   );
 };

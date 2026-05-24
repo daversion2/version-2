@@ -8,7 +8,6 @@ import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { OnboardingScreen } from '../screens/Auth/OnboardingScreen';
 import { Colors } from '../constants/theme';
-import { WalkthroughProvider } from '../context/WalkthroughContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -58,7 +57,6 @@ export const RootNavigator: React.FC = () => {
   }
 
   const needsOnboarding = user && userProfile?.has_completed_onboarding === false;
-  const needsWalkthrough = !!user && userProfile?.has_completed_onboarding === true && userProfile?.has_completed_walkthrough === false;
 
   return (
     <NavigationContainer ref={navigationRef}>
@@ -68,13 +66,7 @@ export const RootNavigator: React.FC = () => {
         ) : needsOnboarding ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
-          <Stack.Screen name="Main">
-            {() => (
-              <WalkthroughProvider shouldStart={needsWalkthrough} navigationRef={navigationRef}>
-                <MainTabs />
-              </WalkthroughProvider>
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="Main" component={MainTabs} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

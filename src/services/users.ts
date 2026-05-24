@@ -71,9 +71,6 @@ export const resetOnboarding = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_completed_onboarding: false }, { merge: true });
 };
 
-export const markWalkthroughComplete = async (userId: string): Promise<void> => {
-  await setDoc(doc(db, 'users', userId), { has_completed_walkthrough: true }, { merge: true });
-};
 
 export const savePushToken = async (userId: string, token: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { expoPushToken: token }, { merge: true });
@@ -244,7 +241,6 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
       username: deleteField(),
       username_lowercase: deleteField(),
       has_completed_onboarding: false,
-      has_completed_walkthrough: false,
       totalWillpowerPoints: 0,
       currentStreak: 0,
       lastActivityDate: deleteField(),
