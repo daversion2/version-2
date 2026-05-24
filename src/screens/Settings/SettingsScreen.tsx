@@ -8,6 +8,8 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
 import { resetOnboarding, getUser, clearUserAccount } from '../../services/users';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 import { registerForPushNotifications } from '../../services/notifications';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { useWalkthrough, WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
@@ -243,6 +245,64 @@ export const SettingsScreen: React.FC = () => {
           onPress={handleEnableNotifications}
           variant="secondary"
           style={{ marginTop: Spacing.md }}
+        />
+      </Card>
+
+      {/* Dev Testing Tools */}
+      <Card style={{ marginTop: Spacing.lg }}>
+        <Text style={{ fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, marginBottom: Spacing.sm }}>
+          Dev Testing
+        </Text>
+        <Button
+          title="Simulate Day 2 (Goal Prompt)"
+          onPress={async () => {
+            if (!user) return;
+            await setDoc(doc(db, 'users', user.uid), {
+              has_seen_plan_intro: true,
+              has_seen_points_intro: true,
+              has_dismissed_goal_prompt: false,
+              app_open_count: 2,
+            }, { merge: true });
+            await refreshProfile();
+            showAlert('Done', 'Day 2 state set. Go back to Home to see the goal prompt.');
+          }}
+          variant="outline"
+          style={{ marginBottom: Spacing.sm }}
+        />
+        <Button
+          title="Simulate Day 3 (Challenge Unlock)"
+          onPress={async () => {
+            if (!user) return;
+            await setDoc(doc(db, 'users', user.uid), {
+              has_seen_plan_intro: true,
+              has_seen_points_intro: true,
+              has_dismissed_goal_prompt: true,
+              has_seen_challenges_unlock: false,
+              totalHabitsCompleted: 2,
+            }, { merge: true });
+            await refreshProfile();
+            showAlert('Done', 'Day 3 state set. Complete one more habit on Home to trigger the unlock.');
+          }}
+          variant="outline"
+          style={{ marginBottom: Spacing.sm }}
+        />
+        <Button
+          title="Reset All Intro Flags"
+          onPress={async () => {
+            if (!user) return;
+            const { deleteField } = await import('firebase/firestore');
+            await setDoc(doc(db, 'users', user.uid), {
+              has_seen_plan_intro: deleteField(),
+              has_seen_points_intro: deleteField(),
+              has_dismissed_goal_prompt: deleteField(),
+              has_seen_challenges_unlock: deleteField(),
+              app_open_count: deleteField(),
+              totalHabitsCompleted: 0,
+            }, { merge: true });
+            await refreshProfile();
+            showAlert('Done', 'All intro flags reset.');
+          }}
+          variant="outline"
         />
       </Card>
 
