@@ -54,6 +54,19 @@ export const markPlanIntroSeen = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_seen_plan_intro: true }, { merge: true });
 };
 
+export const dismissGoalPrompt = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_dismissed_goal_prompt: true }, { merge: true });
+};
+
+export const markChallengesUnlockSeen = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_seen_challenges_unlock: true }, { merge: true });
+};
+
+export const incrementAppOpenCount = async (userId: string): Promise<void> => {
+  const { increment } = await import('firebase/firestore');
+  await setDoc(doc(db, 'users', userId), { app_open_count: increment(1) }, { merge: true });
+};
+
 export const resetOnboarding = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_completed_onboarding: false }, { merge: true });
 };
@@ -260,6 +273,9 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
       // Intro flags
       has_seen_points_intro: deleteField(),
       has_seen_plan_intro: deleteField(),
+      has_dismissed_goal_prompt: deleteField(),
+      has_seen_challenges_unlock: deleteField(),
+      app_open_count: deleteField(),
     },
     { merge: true }
   );

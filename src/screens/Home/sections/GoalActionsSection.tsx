@@ -26,7 +26,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
     goalFollowThrough,
     willpowerStats,
   } = data;
-  const challengesUnlocked = (willpowerStats?.currentStreak ?? 0) >= 7;
+  const challengesUnlocked = data.totalHabitsCompleted >= 3;
 
   // Empty state — no goals at all
   if (goals.length === 0) {

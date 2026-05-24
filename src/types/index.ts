@@ -45,6 +45,10 @@ export interface User {
   // One-time intro flags
   has_seen_points_intro?: boolean;
   has_seen_plan_intro?: boolean;
+  has_dismissed_goal_prompt?: boolean;
+  has_seen_challenges_unlock?: boolean;
+  // App usage tracking
+  app_open_count?: number;
   // Deferred onboarding
   onboarding_deferred?: boolean;
   onboarding_banner_dismissed?: boolean;

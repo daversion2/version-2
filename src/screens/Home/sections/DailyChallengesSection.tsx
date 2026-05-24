@@ -10,9 +10,9 @@ import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { HomeSectionProps } from './types';
 
 export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callbacks, refs }) => {
-  const { activeChallenges, buddyChallenges, willpowerStats } = data;
-  const currentStreak = willpowerStats?.currentStreak ?? 0;
-  const challengesUnlocked = currentStreak >= 7;
+  const { activeChallenges, buddyChallenges } = data;
+  const totalCompleted = data.totalHabitsCompleted;
+  const challengesUnlocked = totalCompleted >= 3;
 
   return (
     <>
@@ -26,7 +26,7 @@ export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callb
             <Text style={styles.headerSubtitle}>
               {challengesUnlocked
                 ? 'Challenge yourself and reflect on what you learn'
-                : 'Build a 7-day streak to unlock challenges'}
+                : 'Complete 3 habits to unlock challenges'}
             </Text>
           </View>
         </View>
@@ -37,16 +37,16 @@ export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callb
           <View style={styles.lockedRow}>
             <Ionicons name="lock-closed" size={22} color={Colors.gray} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.lockedTitle}>Challenges unlock at a 7-day streak</Text>
+              <Text style={styles.lockedTitle}>Challenges unlock after 3 habit completions</Text>
               <Text style={styles.lockedBody}>
-                Complete at least one habit every day to build your streak. You're {currentStreak} of 7 days in.
+                Keep completing your habits to unlock challenges. You've completed {totalCompleted} of 3.
               </Text>
             </View>
           </View>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${Math.min((currentStreak / 7) * 100, 100)}%` as any }]} />
+            <View style={[styles.progressFill, { width: `${Math.min((totalCompleted / 3) * 100, 100)}%` as any }]} />
           </View>
-          <Text style={styles.progressLabel}>{currentStreak} / 7 days</Text>
+          <Text style={styles.progressLabel}>{totalCompleted} / 3 habits</Text>
         </Card>
       ) : activeChallenges.length > 0 ? (
         activeChallenges.map((challenge) => {

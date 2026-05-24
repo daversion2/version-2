@@ -26,7 +26,7 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const challengesUnlocked = (data.willpowerStats?.currentStreak ?? 0) >= 7;
+  const challengesUnlocked = data.totalHabitsCompleted >= 3;
   const [addMode, setAddMode] = useState<'habit' | 'challenge'>(challengesUnlocked ? 'challenge' : 'habit');
 
   const items = useMemo(

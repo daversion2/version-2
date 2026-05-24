@@ -52,6 +52,8 @@ export interface HomeData {
   todaysGrade: ReflectionGrade | undefined;
   willpowerStats: WillpowerStatsData | null;
   goalFollowThrough: Record<string, GoalFollowThrough>;
+  // Challenge unlock
+  totalHabitsCompleted: number;
   // Why Discovery
   whyStatement: string | null;
   hasCompletedWhyDiscovery: boolean;

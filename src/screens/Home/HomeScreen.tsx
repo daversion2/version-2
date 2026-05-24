@@ -38,6 +38,8 @@ import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { PlanIntroModal } from '../../components/common/PlanIntroModal';
+import { GoalPromptModal } from '../../components/common/GoalPromptModal';
+import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { shouldShowPointsAlert } from '../../services/alertPreferences';
 import { FunFactModal } from '../../components/home/FunFactModal';
@@ -55,7 +57,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, markPlanIntroSeen } from '../../services/users';
+import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount } from '../../services/users';
 import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
@@ -129,6 +131,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Plan intro modal (one-time, first home screen landing after onboarding)
   const [planIntroVisible, setPlanIntroVisible] = useState(false);
   const planIntroCheckedRef = useRef(false);
+
+  // Goal prompt modal (Day 2 - second app open, no goals)
+  const [goalPromptVisible, setGoalPromptVisible] = useState(false);
+  const goalPromptCheckedRef = useRef(false);
+
+  // Challenges unlock modal (after 3 habit completions)
+  const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
+
+  // Track app opens
+  const appOpenTrackedRef = useRef(false);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -337,6 +349,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }, [loadData])
   );
 
+  // Track app opens (once per session)
+  useEffect(() => {
+    if (appOpenTrackedRef.current || !user) return;
+    appOpenTrackedRef.current = true;
+    incrementAppOpenCount(user.uid).catch((err) =>
+      console.warn('Failed to increment app open count:', err)
+    );
+  }, [user]);
+
   // Show one-time plan intro on first home screen landing after onboarding
   useEffect(() => {
     if (planIntroCheckedRef.current) return;
@@ -348,6 +369,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       return () => clearTimeout(timer);
     }
   }, [userProfile, isWalkthroughActive]);
+
+  // Show goal prompt on second app open if user has no goals
+  useEffect(() => {
+    if (goalPromptCheckedRef.current) return;
+    if (!userProfile || isWalkthroughActive || goals.length > 0) return;
+    goalPromptCheckedRef.current = true;
+    if (
+      (userProfile.app_open_count ?? 0) >= 2 &&
+      !userProfile.has_dismissed_goal_prompt &&
+      userProfile.has_seen_plan_intro // Don't stack with plan intro
+    ) {
+      const timer = setTimeout(() => setGoalPromptVisible(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [userProfile, isWalkthroughActive, goals]);
 
   // Measure the target ref for the current walkthrough step
   useEffect(() => {
@@ -433,6 +469,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           console.warn('Failed to mark points intro seen:', err);
         }
         return;
+      }
+
+      // Show challenges unlock celebration when crossing 3 total completions
+      const newTotal = (userProfile?.totalHabitsCompleted ?? 0) + 1;
+      if (newTotal >= 3 && !userProfile?.has_seen_challenges_unlock) {
+        setChallengesUnlockVisible(true);
+        try {
+          await markChallengesUnlockSeen(user.uid);
+          await refreshProfile();
+        } catch (err) {
+          console.warn('Failed to mark challenges unlock seen:', err);
+        }
+        // Still show the normal points flow after dismiss, don't return
       }
 
       // Build points message with multiplier info
@@ -694,6 +743,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     todaysGrade,
     willpowerStats,
     goalFollowThrough,
+    totalHabitsCompleted: userProfile?.totalHabitsCompleted ?? 0,
     whyStatement: userProfile?.why_statement || null,
     hasCompletedWhyDiscovery: userProfile?.has_completed_why_discovery === true,
     plannedHabitIds,
@@ -801,6 +851,40 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             }
           }
         }}
+      />
+      <GoalPromptModal
+        visible={goalPromptVisible}
+        onSetupGoal={async () => {
+          setGoalPromptVisible(false);
+          if (user) {
+            try {
+              await dismissGoalPrompt(user.uid);
+              await refreshProfile();
+            } catch (err) {
+              console.warn('Failed to dismiss goal prompt:', err);
+            }
+          }
+          navigation.navigate('GoalOnboardingFlow');
+        }}
+        onDismiss={async () => {
+          setGoalPromptVisible(false);
+          if (user) {
+            try {
+              await dismissGoalPrompt(user.uid);
+              await refreshProfile();
+            } catch (err) {
+              console.warn('Failed to dismiss goal prompt:', err);
+            }
+          }
+        }}
+      />
+      <ChallengesUnlockModal
+        visible={challengesUnlockVisible}
+        onBrowse={() => {
+          setChallengesUnlockVisible(false);
+          navigation.navigate('StartChallenge');
+        }}
+        onDismiss={() => setChallengesUnlockVisible(false)}
       />
       <PointsAlertModal
         visible={pointsAlertVisible}
