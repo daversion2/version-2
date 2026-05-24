@@ -12,7 +12,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge } from '../../types';
+import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
@@ -54,7 +54,7 @@ import { NeuroscienceTidbit } from '../../types';
 import { getTodaysMicroGoals, createMicroGoal, completeMicroGoal, deleteMicroGoal } from '../../services/microGoals';
 import { convertPlannedChallengesToChallenges, getTomorrowPlan, saveTomorrowPlan } from '../../services/dailyPlan';
 import { exportToCalendar } from '../../services/calendarExport';
-import { getTodayString } from '../../utils/date';
+import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
 import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount } from '../../services/users';
@@ -107,6 +107,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [programCheckedIn, setProgramCheckedIn] = useState(false);
   const [microGoals, setMicroGoals] = useState<MicroGoal[]>([]);
   const [plannedHabitIds, setPlannedHabitIds] = useState<string[]>([]);
+  const [weeklyPlans, setWeeklyPlans] = useState<Record<string, TomorrowPlan>>({});
   const [showCleanSweep, setShowCleanSweep] = useState(false);
   const [cleanSweepBonus, setCleanSweepBonus] = useState(0);
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
@@ -233,6 +234,23 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         if (todayPlan?.planned_habit_ids) {
           setPlannedHabitIds(todayPlan.planned_habit_ids);
         }
+
+        // Load future plans for this week (for planner context on habit rows)
+        const today = new Date();
+        const futurePlans: Record<string, TomorrowPlan> = {};
+        const futureDates: string[] = [];
+        for (let i = 1; i <= 6; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          futureDates.push(toLocalDateString(d));
+        }
+        const planResults = await Promise.all(
+          futureDates.map((date) => getTomorrowPlan(user.uid, date))
+        );
+        planResults.forEach((plan, idx) => {
+          if (plan) futurePlans[futureDates[idx]] = plan;
+        });
+        setWeeklyPlans(futurePlans);
       } catch (err) {
         console.warn('Planned items conversion failed:', err);
       }
@@ -743,6 +761,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     whyStatement: userProfile?.why_statement || null,
     hasCompletedWhyDiscovery: userProfile?.has_completed_why_discovery === true,
     plannedHabitIds,
+    weeklyPlans,
   };
 
   const homeCallbacks: HomeCallbacks = {

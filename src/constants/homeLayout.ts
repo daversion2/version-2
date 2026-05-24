@@ -27,6 +27,7 @@ export type HomeSectionId = (typeof SECTION_IDS)[number];
 
 const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
   // Hidden from default layout
+  'todays_plan',
   'sprints',
   // Legacy sections hidden from default layout
   'identity_summary',
@@ -63,7 +64,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'goals_actions',
     label: "Today's Actions",
     icon: 'flag-outline',
-    sectionIds: ['todays_plan', 'goal_actions', 'sprints'],
+    sectionIds: ['goal_actions', 'sprints'],
   },
   {
     id: 'reflect',
@@ -76,7 +77,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'legacy',
     label: 'More',
     icon: 'grid-outline',
-    sectionIds: ['identity_summary', 'goals', 'willpower_summary', 'daily_challenges', 'habits', 'programs', 'extended_challenges', 'buddy_invites', 'team_activity'],
+    sectionIds: ['todays_plan', 'identity_summary', 'goals', 'willpower_summary', 'daily_challenges', 'habits', 'programs', 'extended_challenges', 'buddy_invites', 'team_activity'],
   },
 ];
 

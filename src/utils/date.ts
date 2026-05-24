@@ -90,11 +90,20 @@ export const getWeekDates = (d: Date): string[] => {
   });
 };
 
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
+
+/**
+ * Get short day name from a YYYY-MM-DD string: "Mon", "Tue", etc.
+ */
+export const formatShortDay = (dateStr: string): string => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return DAY_NAMES[date.getDay()];
+};
 
 /**
  * Format a YYYY-MM-DD string for display: "Mon, May 5"

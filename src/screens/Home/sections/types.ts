@@ -17,6 +17,7 @@ import {
   GoalFollowThrough,
   PlannedItem,
   TomorrowChallenge,
+  TomorrowPlan,
 } from '../../../types';
 
 export interface WillpowerStatsData {
@@ -59,6 +60,8 @@ export interface HomeData {
   hasCompletedWhyDiscovery: boolean;
   // Plan Tomorrow
   plannedHabitIds: string[];
+  // Weekly plans for planner context (future dates -> TomorrowPlan)
+  weeklyPlans: Record<string, TomorrowPlan>;
 }
 
 export interface HomeCallbacks {

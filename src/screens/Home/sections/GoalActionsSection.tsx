@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
@@ -10,6 +10,7 @@ import { HomeSectionProps } from './types';
 import { Goal, Challenge, Nudge, HabitActionPlan } from '../../../types';
 import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { GOAL_CONSTANTS } from '../../../constants/goals';
+import { formatShortDay } from '../../../utils/date';
 
 export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks, refs }) => {
   const {
@@ -24,26 +25,68 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
     programDayNumber,
     programCheckedIn,
     goalFollowThrough,
-    willpowerStats,
   } = data;
   const challengesUnlocked = data.totalHabitsCompleted >= 3;
+
+  // Planner context lookups
+  const plannedTodaySet = useMemo(() => new Set(data.plannedHabitIds), [data.plannedHabitIds]);
+
+  const futureHabitPlanMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!data.weeklyPlans) return map;
+    const sortedDates = Object.keys(data.weeklyPlans).sort();
+    for (const date of sortedDates) {
+      const plan = data.weeklyPlans[date];
+      for (const habitId of plan.planned_habit_ids) {
+        if (!map.has(habitId)) {
+          map.set(habitId, date);
+        }
+      }
+    }
+    return map;
+  }, [data.weeklyPlans]);
+
+  // Group items by goal
+  const allChallenges = [...activeChallenges, ...extendedChallenges];
+
+  // Find habits not linked to any goal
+  const linkedHabitIds = new Set(
+    goals.flatMap((goal) => habits.filter((h) => h.goal_ids?.includes(goal.id)).map((h) => h.id))
+  );
+  const unlinkedHabits = habits.filter((h) => !linkedHabitIds.has(h.id));
+
+  // Find challenges not linked to any goal
+  const linkedChallengeIds = new Set(
+    goals.flatMap((goal) => allChallenges.filter((c) => c.goal_ids?.includes(goal.id)).map((c) => c.id))
+  );
+  const unlinkedChallenges = challengesUnlocked
+    ? allChallenges.filter((c) => !linkedChallengeIds.has(c.id))
+    : [];
+
+  const hasUnlinkedItems = unlinkedHabits.length > 0 || unlinkedChallenges.length > 0;
 
   // Empty state — no goals at all
   if (goals.length === 0) {
     return (
       <>
-        {/* Show existing habits even without goals */}
-        {habits.length > 0 && (
+        {/* Planner access */}
+        <PlannerBar callbacks={callbacks} />
+
+        {/* Show existing habits/challenges even without goals */}
+        {(habits.length > 0 || (challengesUnlocked && allChallenges.length > 0)) && (
           <View style={styles.goalGroup}>
             <View style={styles.goalHeader}>
               <View style={styles.goalHeaderLeft}>
-                <Ionicons name="repeat" size={20} color={Colors.primary} />
-                <Text style={styles.goalName}>My Habits</Text>
+                <Ionicons name="list" size={20} color={Colors.primary} />
+                <Text style={styles.goalName}>Your Activities</Text>
               </View>
               <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits')}>
                 <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
               </TouchableOpacity>
             </View>
+            {challengesUnlocked && allChallenges.map((challenge) => (
+              <ChallengeRow key={challenge.id} challenge={challenge} callbacks={callbacks} />
+            ))}
             {habits.map((habit) => (
               <HabitRow
                 key={habit.id}
@@ -51,6 +94,8 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
                 done={weeklyCounts[habit.id] || 0}
                 streak={habitStreaks[habit.id]?.currentStreak || 0}
                 callbacks={callbacks}
+                isDueToday={plannedTodaySet.has(habit.id)}
+                plannedForDate={futureHabitPlanMap.get(habit.id)}
               />
             ))}
           </View>
@@ -71,17 +116,11 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
     );
   }
 
-  // Group items by goal
-  const allChallenges = [...activeChallenges, ...extendedChallenges];
-
-  // Find habits not linked to any goal
-  const linkedHabitIds = new Set(
-    goals.flatMap((goal) => habits.filter((h) => h.goal_ids?.includes(goal.id)).map((h) => h.id))
-  );
-  const unlinkedHabits = habits.filter((h) => !linkedHabitIds.has(h.id));
-
   return (
     <>
+      {/* Planner access */}
+      <PlannerBar callbacks={callbacks} />
+
       {goals.map((goal) => {
         const goalChallenges = allChallenges.filter(
           (c) => c.goal_ids?.includes(goal.id)
@@ -138,6 +177,8 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
                 done={weeklyCounts[habit.id] || 0}
                 streak={habitStreaks[habit.id]?.currentStreak || 0}
                 callbacks={callbacks}
+                isDueToday={plannedTodaySet.has(habit.id)}
+                plannedForDate={futureHabitPlanMap.get(habit.id)}
               />
             ))}
 
@@ -188,15 +229,22 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
         );
       })}
 
-      {/* Habits not linked to any goal */}
-      {unlinkedHabits.length > 0 && (
+      {/* Items not linked to any goal */}
+      {hasUnlinkedItems && (
         <View style={styles.goalGroup}>
           <View style={styles.goalHeader}>
             <View style={styles.goalHeaderLeft}>
-              <Ionicons name="repeat" size={20} color={Colors.primary} />
-              <Text style={styles.goalName}>My Habits</Text>
+              <Ionicons name="list" size={20} color={Colors.primary} />
+              <Text style={styles.goalName}>Your Activities</Text>
             </View>
           </View>
+          {unlinkedChallenges.map((challenge) => (
+            <ChallengeRow
+              key={challenge.id}
+              challenge={challenge}
+              callbacks={callbacks}
+            />
+          ))}
           {unlinkedHabits.map((habit) => (
             <HabitRow
               key={habit.id}
@@ -204,6 +252,8 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
               done={weeklyCounts[habit.id] || 0}
               streak={habitStreaks[habit.id]?.currentStreak || 0}
               callbacks={callbacks}
+              isDueToday={plannedTodaySet.has(habit.id)}
+              plannedForDate={futureHabitPlanMap.get(habit.id)}
             />
           ))}
           <View style={styles.addRow}>
@@ -235,6 +285,20 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
 };
 
 // --- Sub-components ---
+
+const PlannerBar: React.FC<{ callbacks: HomeSectionProps['callbacks'] }> = ({ callbacks }) => (
+  <TouchableOpacity
+    style={styles.plannerBar}
+    onPress={() => callbacks.onNavigate('WeeklyPlanner')}
+    activeOpacity={0.7}
+  >
+    <View style={styles.plannerBarLeft}>
+      <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+      <Text style={styles.plannerBarText}>Plan Your Week</Text>
+    </View>
+    <Ionicons name="chevron-forward" size={16} color={Colors.gray} />
+  </TouchableOpacity>
+);
 
 const ChallengeRow: React.FC<{
   challenge: Challenge;
@@ -318,7 +382,9 @@ const HabitRow: React.FC<{
   done: number;
   streak: number;
   callbacks: HomeSectionProps['callbacks'];
-}> = ({ habit, done, streak, callbacks }) => {
+  isDueToday?: boolean;
+  plannedForDate?: string;
+}> = ({ habit, done, streak, callbacks, isDueToday, plannedForDate }) => {
   const [expanded, setExpanded] = useState(false);
   const target = habit.target_count_per_week;
   const isComplete = done >= target;
@@ -345,9 +411,22 @@ const HabitRow: React.FC<{
                 </View>
               )}
             </View>
-            <Text style={styles.metaText}>
-              {done}/{target} this week
-            </Text>
+            <View style={styles.habitMetaRow}>
+              <Text style={styles.metaText}>
+                {done}/{target} this week
+              </Text>
+              {isDueToday && (
+                <View style={styles.dueTodayBadge}>
+                  <Ionicons name="today" size={11} color={Colors.primary} />
+                  <Text style={styles.dueTodayText}>Today</Text>
+                </View>
+              )}
+            </View>
+            {!isDueToday && plannedForDate && (
+              <Text style={styles.plannedForText}>
+                Planned for {formatShortDay(plannedForDate)}
+              </Text>
+            )}
           </View>
           <TouchableOpacity
             onPress={() => callbacks.onNavigate('HabitDetail', { habitId: habit.id })}
@@ -447,6 +526,28 @@ const ProgramRow: React.FC<{
 // --- Styles ---
 
 const styles = StyleSheet.create({
+  // Planner bar
+  plannerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.primary + '08',
+    borderRadius: BorderRadius.md,
+  },
+  plannerBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  plannerBarText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
+
   // Empty state
   emptyCard: {
     alignItems: 'center',
@@ -553,6 +654,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
+  habitMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -566,6 +672,26 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xs,
     color: Colors.secondary,
+  },
+  dueTodayBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: Colors.primary + '12',
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: 1,
+    borderRadius: BorderRadius.full,
+  },
+  dueTodayText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 10,
+    color: Colors.primary,
+  },
+  plannedForText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    fontStyle: 'italic',
   },
 
   // Action plan dropdown
