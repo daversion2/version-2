@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
@@ -7,7 +7,7 @@ import { Button } from '../../../components/common/Button';
 import { CountdownTimer } from '../../../components/challenge/CountdownTimer';
 import { ProgressBar } from '../../../components/challenge/ProgressBar';
 import { HomeSectionProps } from './types';
-import { Goal, Challenge, Nudge } from '../../../types';
+import { Goal, Challenge, Nudge, HabitActionPlan } from '../../../types';
 import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { GOAL_CONSTANTS } from '../../../constants/goals';
 
@@ -305,46 +305,90 @@ const ChallengeRow: React.FC<{
   );
 };
 
+const PLAN_LABELS: { key: keyof HabitActionPlan; label: string; icon: string }[] = [
+  { key: 'cue', label: 'When & where', icon: 'time-outline' },
+  { key: 'environment_change', label: 'Environment tweak', icon: 'home-outline' },
+  { key: 'obstacle_plan', label: 'Obstacle plan', icon: 'shield-outline' },
+  { key: 'minimum_version', label: 'Minimum version', icon: 'trending-down-outline' },
+  { key: 'accountability_person', label: 'Accountability', icon: 'people-outline' },
+];
+
 const HabitRow: React.FC<{
   habit: Nudge;
   done: number;
   streak: number;
   callbacks: HomeSectionProps['callbacks'];
 }> = ({ habit, done, streak, callbacks }) => {
+  const [expanded, setExpanded] = useState(false);
   const target = habit.target_count_per_week;
   const isComplete = done >= target;
+  const hasPlan = habit.action_plan && PLAN_LABELS.some(({ key }) => !!habit.action_plan![key]);
 
   return (
-    <Card style={styles.actionCard} onPress={() => callbacks.onHabitTap(habit)}>
-      <View style={styles.actionRow}>
-        <Ionicons
-          name={isComplete ? 'checkmark-circle' : 'radio-button-off'}
-          size={20}
-          color={isComplete ? Colors.success : Colors.primary}
-        />
-        <View style={styles.actionInfo}>
-          <View style={styles.habitNameRow}>
-            <Text style={styles.actionName} numberOfLines={1}>
-              {habit.name}
+    <Card style={styles.actionCard}>
+      <TouchableOpacity onPress={() => callbacks.onHabitTap(habit)} activeOpacity={0.7}>
+        <View style={styles.actionRow}>
+          <Ionicons
+            name={isComplete ? 'checkmark-circle' : 'radio-button-off'}
+            size={20}
+            color={isComplete ? Colors.success : Colors.primary}
+          />
+          <View style={styles.actionInfo}>
+            <View style={styles.habitNameRow}>
+              <Text style={styles.actionName} numberOfLines={1}>
+                {habit.name}
+              </Text>
+              {streak > 1 && (
+                <View style={styles.streakBadge}>
+                  <Ionicons name="flame" size={12} color={Colors.secondary} />
+                  <Text style={styles.streakText}>{streak}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.metaText}>
+              {done}/{target} this week
             </Text>
-            {streak > 1 && (
-              <View style={styles.streakBadge}>
-                <Ionicons name="flame" size={12} color={Colors.secondary} />
-                <Text style={styles.streakText}>{streak}</Text>
-              </View>
-            )}
           </View>
-          <Text style={styles.metaText}>
-            {done}/{target} this week
-          </Text>
+          <TouchableOpacity
+            onPress={() => callbacks.onNavigate('HabitDetail', { habitId: habit.id })}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="stats-chart" size={18} color={Colors.primary} />
+          </TouchableOpacity>
         </View>
+      </TouchableOpacity>
+      {hasPlan && (
         <TouchableOpacity
-          onPress={() => callbacks.onNavigate('HabitDetail', { habitId: habit.id })}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.planToggle}
+          onPress={() => setExpanded(!expanded)}
+          activeOpacity={0.7}
         >
-          <Ionicons name="stats-chart" size={18} color={Colors.primary} />
+          <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
+          <Text style={styles.planToggleText}>My Plan</Text>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={14}
+            color={Colors.primary}
+          />
         </TouchableOpacity>
-      </View>
+      )}
+      {expanded && hasPlan && (
+        <View style={styles.planDropdown}>
+          {PLAN_LABELS.map(({ key, label, icon }) => {
+            const value = habit.action_plan![key];
+            if (!value) return null;
+            return (
+              <View key={key} style={styles.planItem}>
+                <Ionicons name={icon as any} size={14} color={Colors.primary} style={{ marginTop: 1 }} />
+                <View style={styles.planItemContent}>
+                  <Text style={styles.planItemLabel}>{label}</Text>
+                  <Text style={styles.planItemValue}>{value}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </Card>
   );
 };
@@ -522,6 +566,46 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xs,
     color: Colors.secondary,
+  },
+
+  // Action plan dropdown
+  planToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGray,
+  },
+  planToggleText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    flex: 1,
+  },
+  planDropdown: {
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  planItem: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  planItemContent: {
+    flex: 1,
+  },
+  planItemLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.dark,
+    marginBottom: 1,
+  },
+  planItemValue: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    lineHeight: 18,
   },
 
   // Program specifics
