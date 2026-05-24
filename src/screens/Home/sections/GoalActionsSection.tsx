@@ -31,23 +31,54 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
   // Empty state — no goals at all
   if (goals.length === 0) {
     return (
-      <Card style={styles.emptyCard}>
-        <Ionicons name="flag-outline" size={40} color={Colors.primary} />
-        <Text style={styles.emptyTitle}>Create Your First Goal</Text>
-        <Text style={styles.emptyText}>
-          Goals organize your challenges, habits, and programs into one clear picture.
-        </Text>
-        <Button
-          title="Get Started"
-          onPress={() => callbacks.onNavigate('GoalOnboardingFlow')}
-          style={{ marginTop: Spacing.md }}
-        />
-      </Card>
+      <>
+        {/* Show existing habits even without goals */}
+        {habits.length > 0 && (
+          <View style={styles.goalGroup}>
+            <View style={styles.goalHeader}>
+              <View style={styles.goalHeaderLeft}>
+                <Ionicons name="repeat" size={20} color={Colors.primary} />
+                <Text style={styles.goalName}>My Habits</Text>
+              </View>
+              <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits')}>
+                <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
+              </TouchableOpacity>
+            </View>
+            {habits.map((habit) => (
+              <HabitRow
+                key={habit.id}
+                habit={habit}
+                done={weeklyCounts[habit.id] || 0}
+                streak={habitStreaks[habit.id]?.currentStreak || 0}
+                callbacks={callbacks}
+              />
+            ))}
+          </View>
+        )}
+        <Card style={styles.emptyCard}>
+          <Ionicons name="flag-outline" size={40} color={Colors.primary} />
+          <Text style={styles.emptyTitle}>Create Your First Goal</Text>
+          <Text style={styles.emptyText}>
+            Goals organize your challenges, habits, and programs into one clear picture.
+          </Text>
+          <Button
+            title="Get Started"
+            onPress={() => callbacks.onNavigate('GoalOnboardingFlow')}
+            style={{ marginTop: Spacing.md }}
+          />
+        </Card>
+      </>
     );
   }
 
   // Group items by goal
   const allChallenges = [...activeChallenges, ...extendedChallenges];
+
+  // Find habits not linked to any goal
+  const linkedHabitIds = new Set(
+    goals.flatMap((goal) => habits.filter((h) => h.goal_ids?.includes(goal.id)).map((h) => h.id))
+  );
+  const unlinkedHabits = habits.filter((h) => !linkedHabitIds.has(h.id));
 
   return (
     <>
@@ -156,6 +187,37 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
           </View>
         );
       })}
+
+      {/* Habits not linked to any goal */}
+      {unlinkedHabits.length > 0 && (
+        <View style={styles.goalGroup}>
+          <View style={styles.goalHeader}>
+            <View style={styles.goalHeaderLeft}>
+              <Ionicons name="repeat" size={20} color={Colors.primary} />
+              <Text style={styles.goalName}>My Habits</Text>
+            </View>
+          </View>
+          {unlinkedHabits.map((habit) => (
+            <HabitRow
+              key={habit.id}
+              habit={habit}
+              done={weeklyCounts[habit.id] || 0}
+              streak={habitStreaks[habit.id]?.currentStreak || 0}
+              callbacks={callbacks}
+            />
+          ))}
+          <View style={styles.addRow}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => callbacks.onNavigate('ManageHabits')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="add-outline" size={16} color={Colors.primary} />
+              <Text style={styles.addButtonText}>Add Habit</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Add another goal (up to max) */}
       {goals.length < GOAL_CONSTANTS.MAX_ACTIVE && (
