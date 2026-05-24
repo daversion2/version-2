@@ -42,6 +42,8 @@ export interface User {
   redirect_mantra?: string;
   onboarding_pattern?: string;
   onboarding_reflection?: string;
+  // One-time intro flags
+  has_seen_points_intro?: boolean;
   // Deferred onboarding
   onboarding_deferred?: boolean;
   onboarding_banner_dismissed?: boolean;

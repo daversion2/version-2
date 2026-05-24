@@ -36,6 +36,7 @@ import { WALKTHROUGH_STEPS } from '../../context/WalkthroughContext';
 import { WalkthroughOverlay, SpotlightLayout } from '../../components/walkthrough/WalkthroughOverlay';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsAlertModal } from '../../components/common/PointsAlertModal';
+import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { shouldShowPointsAlert } from '../../services/alertPreferences';
 import { FunFactModal } from '../../components/home/FunFactModal';
@@ -53,6 +54,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
+import { markPointsIntroSeen } from '../../services/users';
 import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
@@ -119,6 +121,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [habitTidbitVisible, setHabitTidbitVisible] = useState(false);
   const [habitLearnMoreVisible, setHabitLearnMoreVisible] = useState(false);
   const pendingHabitPointsRef = useRef<{ points: number; alertFn: () => void } | null>(null);
+
+  // Points intro modal (one-time, first habit completion)
+  const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -400,6 +405,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
 
       setCompletingHabit(null);
+
+      // Show one-time points intro on first habit completion after onboarding
+      if (!userProfile?.has_seen_points_intro) {
+        setPointsIntroVisible(true);
+        try {
+          await markPointsIntroSeen(user.uid);
+          await refreshProfile();
+        } catch (err) {
+          console.warn('Failed to mark points intro seen:', err);
+        }
+        return;
+      }
 
       // Build points message with multiplier info
       const multiplier = getStreakMultiplier(stats.currentStreak);
@@ -749,6 +766,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         points={earnedPoints}
         visible={showPointsPopup}
         onComplete={handlePopupComplete}
+      />
+      <PointsIntroModal
+        visible={pointsIntroVisible}
+        onDismiss={() => setPointsIntroVisible(false)}
       />
       <PointsAlertModal
         visible={pointsAlertVisible}

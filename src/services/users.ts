@@ -46,6 +46,10 @@ export const clearDeferredOnboardingProgress = async (userId: string): Promise<v
   await setDoc(doc(db, 'users', userId), { deferred_onboarding_progress: deleteField() }, { merge: true });
 };
 
+export const markPointsIntroSeen = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_seen_points_intro: true }, { merge: true });
+};
+
 export const resetOnboarding = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_completed_onboarding: false }, { merge: true });
 };
@@ -249,6 +253,8 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
       // Completion counters
       totalHabitsCompleted: 0,
       totalChallengesCompleted: 0,
+      // Intro flags
+      has_seen_points_intro: deleteField(),
     },
     { merge: true }
   );
