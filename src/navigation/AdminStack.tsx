@@ -8,7 +8,6 @@ import { AdminFunFactsScreen } from '../screens/Admin/AdminFunFactsScreen';
 import { AdminFunFactEditScreen } from '../screens/Admin/AdminFunFactEditScreen';
 import { AdminTidbitsScreen } from '../screens/Admin/AdminTidbitsScreen';
 import { AdminTidbitEditScreen } from '../screens/Admin/AdminTidbitEditScreen';
-import { AdminCoachReviewScreen } from '../screens/Admin/AdminCoachReviewScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator();
@@ -62,11 +61,6 @@ export const AdminStack: React.FC = () => (
       name="AdminTidbitEdit"
       component={AdminTidbitEditScreen}
       options={{ title: 'Edit Tidbit' }}
-    />
-    <Stack.Screen
-      name="AdminCoachReview"
-      component={AdminCoachReviewScreen}
-      options={{ title: 'Coach Applications' }}
     />
   </Stack.Navigator>
 );

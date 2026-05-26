@@ -26,7 +26,6 @@ import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
-import { CreateMicroGoalScreen } from '../screens/Home/CreateMicroGoalScreen';
 import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
 import { CreateGoalScreen } from '../screens/Home/CreateGoalScreen';
 import { GoalOnboardingFlow } from '../screens/Home/GoalOnboardingFlow';
@@ -191,11 +190,6 @@ export const HomeStack: React.FC = () => (
       name="NightlyReflection"
       component={NightlyReflectionScreen}
       options={{ title: 'Nightly Reflection' }}
-    />
-    <Stack.Screen
-      name="CreateMicroGoal"
-      component={CreateMicroGoalScreen}
-      options={{ title: 'New Sprint' }}
     />
     <Stack.Screen
       name="CustomizeHome"

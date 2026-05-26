@@ -32,7 +32,6 @@ interface WeekDayCardProps {
 const TYPE_LABELS: Record<string, string> = {
   challenge: 'Challenge',
   nudge: 'Habit',
-  micro_goal: 'Sprint',
   program: 'Program',
 };
 
@@ -64,7 +63,7 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
 
   // Badge text
   const totalCompleted =
-    summary.challengesCompleted + summary.habitsCompleted + summary.microGoalsCompleted;
+    summary.challengesCompleted + summary.habitsCompleted;
   const plannedCount =
     (summary.plan?.planned_habit_ids?.length || 0) +
     (summary.plan?.planned_challenges?.length || 0) +

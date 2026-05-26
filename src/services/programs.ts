@@ -45,7 +45,7 @@ const logsRef = (userId: string) =>
 // ============================================================================
 
 /** Fetch all available program templates, ordered by display order.
- *  Filters out draft/archived coach programs — only published and legacy (no status) programs are shown. */
+ *  Filters out draft/archived programs — only published and legacy (no status) programs are shown. */
 export const getAllPrograms = async (): Promise<ProgramTemplate[]> => {
   const q = query(programsRef(), orderBy('order', 'asc'));
   const snap = await getDocs(q);

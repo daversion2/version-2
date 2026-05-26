@@ -10,13 +10,6 @@ interface PlannedItemRowProps {
   onPress?: (item: PlannedItem) => void;
 }
 
-const formatTime = (deadline: string): string => {
-  const [h, m] = deadline.split(':').map(Number);
-  const period = h >= 12 ? 'PM' : 'AM';
-  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
-};
-
 export const PlannedItemRow: React.FC<PlannedItemRowProps> = ({
   item,
   onCalendarExport,
@@ -68,34 +61,6 @@ export const PlannedItemRow: React.FC<PlannedItemRowProps> = ({
             </Text>
           )}
 
-          {item.deadline && item.type === 'micro_goal' && (
-            <View
-              style={[
-                styles.deadlinePill,
-                {
-                  backgroundColor: (isCompleted || isExpired
-                    ? Colors.gray
-                    : Colors.primary) + '15',
-                },
-              ]}
-            >
-              <Ionicons
-                name="time-outline"
-                size={11}
-                color={isCompleted || isExpired ? Colors.gray : Colors.primary}
-              />
-              <Text
-                style={[
-                  styles.deadlineText,
-                  {
-                    color: isCompleted || isExpired ? Colors.gray : Colors.primary,
-                  },
-                ]}
-              >
-                {formatTime(item.deadline)}
-              </Text>
-            </View>
-          )}
         </View>
       </View>
 
@@ -151,18 +116,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
-  },
-  deadlinePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-  },
-  deadlineText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
   },
   calendarButton: {
     padding: Spacing.xs,

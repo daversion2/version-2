@@ -11,9 +11,6 @@ import { TeamDetailScreen } from '../screens/Community/TeamDetailScreen';
 import { MySubmissionsScreen } from '../screens/Community/MySubmissionsScreen';
 import { PrivacySettingsScreen } from '../screens/Settings/PrivacySettingsScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
-import { CoachApplicationScreen } from '../screens/Settings/CoachApplicationScreen';
-import { CoachDashboardScreen } from '../screens/Settings/CoachDashboardScreen';
-import { CoachProgramEditScreen } from '../screens/Settings/CoachProgramEditScreen';
 import { ManageRewardMessagesScreen } from '../screens/Settings/ManageRewardMessagesScreen';
 import { WhyScreen } from '../screens/Home/WhyScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
@@ -93,23 +90,6 @@ export const SettingsStack: React.FC = () => (
       name="EditProfile"
       component={EditProfileScreen}
       options={{ title: 'Edit Profile' }}
-    />
-    <Stack.Screen
-      name="CoachApplication"
-      component={CoachApplicationScreen}
-      options={{ title: 'Become a Coach' }}
-    />
-    <Stack.Screen
-      name="CoachDashboard"
-      component={CoachDashboardScreen}
-      options={{ title: 'Coach Dashboard' }}
-    />
-    <Stack.Screen
-      name="CoachProgramEdit"
-      component={CoachProgramEditScreen}
-      options={({ route }: any) => ({
-        title: route.params?.mode === 'edit' ? 'Edit Program' : 'New Program',
-      })}
     />
     <Stack.Screen
       name="WhyScreen"

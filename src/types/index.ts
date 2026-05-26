@@ -21,9 +21,6 @@ export interface User {
   submission_ban_until?: string; // ISO timestamp if rate-limited
   // Admin
   is_admin?: boolean;
-  // Coach
-  is_coach?: boolean;
-  coach_profile?: CoachProfile;
   // Programs
   active_program_id?: string; // Denormalized enrollment ID for fast home screen check
   // All-time completion counters (incremented on each completion)
@@ -231,7 +228,7 @@ export interface Nudge {
 export interface CompletionLog {
   id: string;
   user_id: string;
-  type: 'challenge' | 'nudge' | 'program' | 'micro_goal';
+  type: 'challenge' | 'nudge' | 'program';
   reference_id: string;
   points: number;
   difficulty: number;
@@ -241,26 +238,6 @@ export interface CompletionLog {
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';
-
-// ============================================================================
-// MICRO-GOALS (SPRINTS)
-// ============================================================================
-
-export type MicroGoalStatus = 'active' | 'completed' | 'expired';
-
-export interface MicroGoal {
-  id: string;
-  user_id: string;
-  description: string;            // SMART goal text (max 120 chars)
-  date: string;                   // YYYY-MM-DD
-  deadline: string;               // HH:MM (24hr format)
-  status: MicroGoalStatus;
-  completed_at?: string;          // ISO 8601
-  points_awarded?: number;
-  created_at: string;             // ISO 8601
-  order: number;                  // Display order (0-4)
-  goal_ids?: string[];
-}
 
 // =============================================================================
 // CHALLENGE LIBRARY TYPES
@@ -672,13 +649,11 @@ export interface ProgramTemplate {
   // Monetization readiness
   is_premium: boolean;
 
-  // Coach-ready fields
   assignable_by_coach: boolean;
 
-  // Creator attribution
-  creator_id?: string;           // userId of coach (undefined = system program)
-  creator_name?: string;         // denormalized display name
-  creator_credentials?: string;  // denormalized credentials
+  creator_id?: string;
+  creator_name?: string;
+  creator_credentials?: string;
 
   // Publishing
   status?: 'draft' | 'published' | 'archived'; // undefined = legacy system program (treated as published)
@@ -718,8 +693,7 @@ export interface ProgramEnrollment {
   // Habit conversion tracking
   habits_created_from_program?: string[];
 
-  // Coach-ready fields
-  assigned_by?: string;             // userId of coach (null = self-enrolled)
+  assigned_by?: string;
   assigned_at?: string;
 
   // Goal tagging
@@ -801,11 +775,6 @@ export interface DailySummary {
     name: string;
     checked_in: boolean;
     day_number?: number;
-  };
-  micro_goals?: {
-    completed: { description: string; deadline: string }[];
-    missed: { description: string; deadline: string }[];
-    clean_sweep: boolean;
   };
 }
 
@@ -896,7 +865,6 @@ export interface GoalFollowThrough {
 // ============================================================================
 
 export type PlannedItemType =
-  | 'micro_goal'
   | 'daily_challenge'
   | 'extended_milestone'
   | 'habit'
@@ -919,7 +887,6 @@ export interface PlannedItem {
   calendarEndDate?: Date;
   calendarNotes?: string;
   sourceData: {
-    microGoal?: MicroGoal;
     challenge?: Challenge;
     habit?: Nudge;
     program?: ProgramEnrollment;
@@ -936,8 +903,6 @@ export interface TomorrowPlan {
   dismissed_habit_ids: string[];
   created_at: string;
   source: 'reflection' | 'manual';
-  // Backward compat with existing docs
-  planned_micro_goals?: any[];
 }
 
 export interface TomorrowChallenge {
@@ -946,45 +911,6 @@ export interface TomorrowChallenge {
   difficulty_expected: number;
   description?: string;
   converted: boolean;
-}
-
-// ============================================================================
-// COACH PLATFORM
-// ============================================================================
-
-export interface CoachProfile {
-  display_name: string;
-  bio: string;
-  credentials?: string;
-  website_url?: string;
-  approved_at: string;
-  total_enrollments?: number;
-  published_program_count?: number;
-}
-
-export interface CoachApplication {
-  id: string;
-  user_id: string;
-  username: string;
-  email: string;
-  display_name: string;
-  bio: string;
-  credentials?: string;
-  website_url?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  rejection_reason?: string;
-  submitted_at: string;
-  reviewed_at?: string;
-  reviewed_by?: string;
-}
-
-export interface CreateProgramInput {
-  name: string;
-  description: string;
-  category: string;
-  duration_days: number;
-  icon: string;
-  color: string;
 }
 
 // ============================================================================

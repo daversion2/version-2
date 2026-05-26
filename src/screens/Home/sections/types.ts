@@ -7,7 +7,6 @@ import {
   BuddyChallenge,
   ProgramEnrollment,
   ProgramDay,
-  MicroGoal,
   HabitStreakInfo,
   FunFact,
   ReflectionGrade,
@@ -44,7 +43,6 @@ export interface HomeData {
   todaysProgramDay: ProgramDay | null;
   programDayNumber: number;
   programCheckedIn: boolean;
-  microGoals: MicroGoal[];
   goals: Goal[];
   showReflectionBanner: boolean;
   reflectedToday: boolean;
@@ -65,10 +63,6 @@ export interface HomeData {
 export interface HomeCallbacks {
   onNavigate: (screen: string, params?: any) => void;
   onHabitTap: (habit: Nudge) => void;
-  onMicroGoalComplete: (id: string) => void;
-  onMicroGoalDelete: (id: string) => void;
-  onMicroGoalAdd: (description: string, deadline: string) => Promise<void>;
-  onMicroGoalPressMore: () => void;
   getCatColor: (catName: string) => string;
   onGoalTap?: (goalId: string) => void;
   onCalendarExport?: (item: PlannedItem) => void;

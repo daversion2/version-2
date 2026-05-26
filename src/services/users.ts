@@ -199,7 +199,6 @@ const USER_SUBCOLLECTIONS = [
   'categories',
   'reflections',
   'goals',
-  'microGoals',
   'programEnrollments',
   'programBadges',
   'rewardMessages',
@@ -221,7 +220,7 @@ const deleteSubcollection = async (userId: string, subcollectionName: string): P
 };
 
 /**
- * Clear all user data and reset to fresh state (preserves auth + email + admin/coach status).
+ * Clear all user data and reset to fresh state (preserves auth + email + admin status).
  * Deletes all subcollections and resets user doc fields.
  * After this, the user will see onboarding again.
  */
@@ -234,7 +233,7 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
     totalDeleted += count;
   }
 
-  // Reset user document fields (preserve email, created_at, is_admin, is_coach, coach_profile)
+  // Reset user document fields (preserve email, created_at, is_admin)
   await setDoc(
     doc(db, 'users', userId),
     {

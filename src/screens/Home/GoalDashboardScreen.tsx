@@ -27,7 +27,7 @@ import {
   computeGoalFollowThrough,
 } from '../../services/goals';
 import { getCompletionLogs } from '../../services/progress';
-import { Goal, GoalFollowThrough, Challenge, Nudge, MicroGoal, ProgramEnrollment } from '../../types';
+import { Goal, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'GoalDashboard'>;
 
@@ -75,7 +75,6 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
   const [showAllPastChallenges, setShowAllPastChallenges] = useState(false);
   const [habits, setHabits] = useState<Nudge[]>([]);
-  const [microGoals, setMicroGoals] = useState<MicroGoal[]>([]);
   const [programEnrollments, setProgramEnrollments] = useState<ProgramEnrollment[]>([]);
   const [followThrough, setFollowThrough] = useState<GoalFollowThrough | null>(null);
   const [activityDates, setActivityDates] = useState<Set<string>>(new Set());
@@ -102,7 +101,6 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       setChallenges(activeChallenges);
       setPastChallenges(completedChallenges);
       setHabits(items.habits);
-      setMicroGoals(items.microGoals);
       setProgramEnrollments(items.programEnrollments);
       setFollowThrough(ft);
 
@@ -110,7 +108,6 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       const itemIds = new Set<string>([
         ...items.challenges.map(c => c.id),
         ...items.habits.map(h => h.id),
-        ...items.microGoals.map(mg => mg.id),
         ...items.programEnrollments.map(pe => pe.id),
       ]);
 
@@ -135,7 +132,7 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const totalTaggedItems = challenges.length + pastChallenges.length + habits.length + microGoals.length + programEnrollments.length;
+  const totalTaggedItems = challenges.length + pastChallenges.length + habits.length + programEnrollments.length;
 
   const handleComplete = () => {
     Alert.alert(
@@ -524,28 +521,6 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         </>
       )}
 
-      {/* Tagged Sprints */}
-      {microGoals.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Sprints</Text>
-          {microGoals.map(mg => (
-            <Card key={mg.id} style={styles.itemCard}>
-              <View style={styles.itemRow}>
-                <Ionicons
-                  name={mg.status === 'completed' ? 'checkmark-circle' : 'timer-outline'}
-                  size={20}
-                  color={mg.status === 'completed' ? Colors.success : Colors.primary}
-                />
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName} numberOfLines={1}>{mg.description}</Text>
-                  <Text style={styles.itemMeta}>{mg.status} · {mg.deadline}</Text>
-                </View>
-              </View>
-            </Card>
-          ))}
-        </>
-      )}
-
       {/* Tagged Programs */}
       {programEnrollments.length > 0 && (
         <>
@@ -572,7 +547,7 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       {totalTaggedItems === 0 && (
         <Card style={{ marginTop: Spacing.md }}>
           <Text style={styles.emptyText}>
-            No items tagged to this goal yet. Tag challenges, habits, sprints, or programs when creating them.
+            No items tagged to this goal yet. Tag challenges, habits, or programs when creating them.
           </Text>
         </Card>
       )}

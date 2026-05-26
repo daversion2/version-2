@@ -8,7 +8,6 @@ import {
   PlannedItem,
   TomorrowPlan,
   TomorrowChallenge,
-  MicroGoal,
   Challenge,
   Nudge,
   ProgramEnrollment,
@@ -27,7 +26,6 @@ import { getCurrentDayNumber, createChallenge } from './challenges';
  * HomeScreen's existing Promise.all fetch.
  */
 export function buildTodaysPlan(params: {
-  microGoals: MicroGoal[];
   activeChallenges: Challenge[];
   extendedChallenges: Challenge[];
   habits: Nudge[];
@@ -40,30 +38,8 @@ export function buildTodaysPlan(params: {
   plannedHabitIds?: string[];
 }): PlannedItem[] {
   const items: PlannedItem[] = [];
-  const now = new Date();
-  const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  // 1. Micro-goals (highest priority — have explicit deadlines)
-  for (const mg of params.microGoals) {
-    const isCompleted = mg.status === 'completed';
-    const isExpired = !isCompleted && mg.deadline < currentHHMM;
-    items.push({
-      id: mg.id,
-      type: 'micro_goal',
-      title: mg.description,
-      status: isCompleted ? 'completed' : isExpired ? 'expired' : 'pending',
-      icon: isCompleted ? 'checkmark-circle' : 'flash',
-      iconColor: isCompleted ? Colors.primary : Colors.secondary,
-      deadline: mg.deadline,
-      sortKey: deadlineToSortKey(mg.deadline, isCompleted),
-      calendarTitle: mg.description,
-      calendarStartDate: deadlineToDate(mg.deadline),
-      calendarEndDate: deadlineToDate(mg.deadline, 30),
-      sourceData: { microGoal: mg },
-    });
-  }
-
-  // 2. Daily challenges
+  // 1. Daily challenges
   for (const ch of params.activeChallenges) {
     items.push({
       id: ch.id,
@@ -87,7 +63,7 @@ export function buildTodaysPlan(params: {
     });
   }
 
-  // 3. Extended challenge milestones (today's check-in)
+  // 2. Extended challenge milestones (today's check-in)
   for (const ec of params.extendedChallenges) {
     if (!ec.milestones || !ec.start_date) continue;
     const dayNum = getCurrentDayNumber(ec.start_date);
@@ -107,7 +83,8 @@ export function buildTodaysPlan(params: {
     });
   }
 
-  // 4. Habits — show planned habits + those needing attention (behind pace)
+  // 3. Habits — show planned habits + those needing attention (behind pace)
+  const now = new Date();
   const dayOfWeek = now.getDay(); // 0=Sun
   const daysPassedThisWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Mon=1 start
   const daysRemaining = 7 - daysPassedThisWeek;
@@ -141,7 +118,7 @@ export function buildTodaysPlan(params: {
     });
   }
 
-  // 5. Program check-in
+  // 4. Program check-in
   if (params.activeProgram && params.todaysProgramDay) {
     items.push({
       id: params.activeProgram.id,
@@ -271,13 +248,6 @@ function deadlineToSortKey(hhmm: string, isCompleted: boolean): number {
   if (isCompleted) return 1000;
   const [h, m] = hhmm.split(':').map(Number);
   return h * 60 + m;
-}
-
-function deadlineToDate(hhmm: string, addMins = 0): Date {
-  const [h, m] = hhmm.split(':').map(Number);
-  const d = new Date();
-  d.setHours(h, m + addMins, 0, 0);
-  return d;
 }
 
 function addMinutes(date: Date, mins: number): Date {

@@ -24,7 +24,6 @@ import {
   TomorrowChallenge,
   ProgramEnrollment,
   ProgramDay,
-  MicroGoal,
 } from '../../types';
 import { loadWeekData, WeekData } from '../../services/weeklyPlan';
 import { saveTomorrowPlan, getTomorrowPlan } from '../../services/dailyPlan';
@@ -33,7 +32,6 @@ import { getActiveChallenges, getActiveExtendedChallenges, getAllChallenges } fr
 import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
 import { getUserCategories } from '../../services/categories';
 import { getActiveEnrollment, getTodaysProgramContent } from '../../services/programs';
-import { getTodaysMicroGoals } from '../../services/microGoals';
 import { convertPlannedChallengesToChallenges } from '../../services/dailyPlan';
 import {
   getWeekDates,
@@ -64,7 +62,6 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
   const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
   const [programDayNumber, setProgramDayNumber] = useState(0);
   const [programCheckedIn, setProgramCheckedIn] = useState(false);
-  const [microGoals, setMicroGoals] = useState<MicroGoal[]>([]);
   const [plannedHabitIds, setPlannedHabitIds] = useState<string[]>([]);
 
   // Name lookup for completion logs
@@ -100,9 +97,6 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
         const ch = allChallenges.find((c) => c.id === log.reference_id);
         return ch?.name || 'Challenge';
       }
-      if (log.type === 'micro_goal') {
-        return 'Sprint';
-      }
       if (log.type === 'program') {
         return activeProgram?.program_name || 'Program';
       }
@@ -123,7 +117,6 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
         dailyChallenges,
         extChallenges,
         enrollment,
-        todaysMG,
         counts,
         challengeList,
       ] = await Promise.all([
@@ -132,7 +125,6 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveEnrollment(user.uid),
-        isCurrentWeek ? getTodaysMicroGoals(user.uid) : Promise.resolve([]),
         getWeeklyCompletionCounts(user.uid),
         getAllChallenges(user.uid),
       ]);
@@ -142,7 +134,6 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
       setActiveProgram(enrollment);
-      setMicroGoals(todaysMG);
       setWeeklyCounts(counts);
       setAllChallenges(challengeList);
 
@@ -180,7 +171,6 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
         weekDates,
         isCurrentWeek
           ? {
-              microGoals: todaysMG,
               activeChallenges: dailyChallenges,
               extendedChallenges: extChallenges,
               habits: habitList,

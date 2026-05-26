@@ -9,7 +9,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Goal, GoalStatus, GoalFollowThrough, Challenge, Nudge, MicroGoal, ProgramEnrollment } from '../types';
+import { Goal, GoalStatus, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment } from '../types';
 import { GOAL_CONSTANTS } from '../constants/goals';
 import { createHabit } from './habits';
 import { createChallenge } from './challenges';
@@ -307,7 +307,6 @@ export const getItemsForGoal = async (
 ): Promise<{
   challenges: Challenge[];
   habits: Nudge[];
-  microGoals: MicroGoal[];
   programEnrollments: ProgramEnrollment[];
 }> => {
   const challengesQ = query(
@@ -318,26 +317,20 @@ export const getItemsForGoal = async (
     collection(db, 'users', userId, 'habits'),
     where('goal_ids', 'array-contains', goalId)
   );
-  const microGoalsQ = query(
-    collection(db, 'users', userId, 'microGoals'),
-    where('goal_ids', 'array-contains', goalId)
-  );
   const programsQ = query(
     collection(db, 'users', userId, 'programEnrollments'),
     where('goal_ids', 'array-contains', goalId)
   );
 
-  const [challengesSnap, habitsSnap, microGoalsSnap, programsSnap] = await Promise.all([
+  const [challengesSnap, habitsSnap, programsSnap] = await Promise.all([
     getDocs(challengesQ),
     getDocs(habitsQ),
-    getDocs(microGoalsQ),
     getDocs(programsQ),
   ]);
 
   return {
     challenges: challengesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Challenge)),
     habits: habitsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Nudge)),
-    microGoals: microGoalsSnap.docs.map(d => ({ id: d.id, ...d.data() } as MicroGoal)),
     programEnrollments: programsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProgramEnrollment)),
   };
 };

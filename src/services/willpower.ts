@@ -93,18 +93,6 @@ export const calculateHabitPoints = (
   return Math.round(difficulty * multiplier);
 };
 
-// Calculate points for a completed micro-goal
-export const calculateMicroGoalPoints = (streakDays: number): number => {
-  const multiplier = getStreakMultiplier(streakDays);
-  return Math.round(POINTS.MICRO_GOAL_BASE * multiplier);
-};
-
-// Calculate clean sweep bonus points
-export const calculateCleanSweepBonus = (streakDays: number): number => {
-  const multiplier = getStreakMultiplier(streakDays);
-  return Math.round(POINTS.MICRO_GOAL_CLEAN_SWEEP * multiplier);
-};
-
 // Get streak tier info for display
 export const getStreakTierInfo = (streakDays: number): {
   multiplier: number;

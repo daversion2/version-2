@@ -12,7 +12,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, MicroGoal, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
+import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
@@ -22,8 +22,6 @@ import { getUserCategories } from '../../services/categories';
 import { getUserTeam, logTeamActivity, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
 import {
   calculateHabitPoints,
-  calculateMicroGoalPoints,
-  calculateCleanSweepBonus,
   updateWillpowerStats,
   getWillpowerStats,
   getStreakMultiplier,
@@ -42,13 +40,11 @@ import { shouldShowPointsAlert } from '../../services/alertPreferences';
 import { FunFactModal } from '../../components/home/FunFactModal';
 import { getTodaysFunFact } from '../../services/funFacts';
 import { FunFact } from '../../types';
-import { CleanSweepPopup } from '../../components/home/CleanSweepPopup';
 import { ComebackModal } from '../../components/home/ComebackModal';
 import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../services/neuroscienceTidbits';
 import { NeuroscienceTidbit } from '../../types';
-import { getTodaysMicroGoals, createMicroGoal, completeMicroGoal, deleteMicroGoal } from '../../services/microGoals';
 import { convertPlannedChallengesToChallenges, getTomorrowPlan, saveTomorrowPlan } from '../../services/dailyPlan';
 import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString, toLocalDateString } from '../../utils/date';
@@ -96,11 +92,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
   const [programDayNumber, setProgramDayNumber] = useState(0);
   const [programCheckedIn, setProgramCheckedIn] = useState(false);
-  const [microGoals, setMicroGoals] = useState<MicroGoal[]>([]);
   const [plannedHabitIds, setPlannedHabitIds] = useState<string[]>([]);
   const [weeklyPlans, setWeeklyPlans] = useState<Record<string, TomorrowPlan>>({});
-  const [showCleanSweep, setShowCleanSweep] = useState(false);
-  const [cleanSweepBonus, setCleanSweepBonus] = useState(0);
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
@@ -188,7 +181,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         );
       }
 
-      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, todaysMG, activeGoals, wpStats] = await Promise.all([
+      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
@@ -198,13 +191,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         getPendingInviteCount(user.uid),
         getActiveBuddyChallenges(user.uid),
         getActiveEnrollment(user.uid),
-        getTodaysMicroGoals(user.uid),
         getActiveGoals(user.uid),
         getWillpowerStats(user.uid),
       ]);
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
-      setMicroGoals(todaysMG);
 
       // Activate scheduled challenges whose date has arrived,
       // convert planned challenges from last night's reflection into real Challenges,
@@ -529,62 +520,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  // --- Micro-Goal Handlers ---
-
-  const handleMicroGoalComplete = async (microGoalId: string) => {
-    if (!user) return;
-    try {
-      const stats = await getWillpowerStats(user.uid);
-      const pointsEarned = calculateMicroGoalPoints(stats.currentStreak);
-
-      const { isCleanSweep } = await completeMicroGoal(user.uid, microGoalId, pointsEarned);
-      const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
-
-      // Show points popup
-      setEarnedPoints(pointsEarned);
-      setShowPointsPopup(true);
-
-      // Prepare post-popup actions
-      const showAlerts = async () => {
-        if (isCleanSweep) {
-          const sweepBonus = calculateCleanSweepBonus(stats.currentStreak);
-          await updateWillpowerStats(user.uid, sweepBonus);
-          setCleanSweepBonus(sweepBonus);
-          setShowCleanSweep(true);
-        } else if (updateResult.newLevelReached && updateResult.levelInfo) {
-          setLevelUpLevel(updateResult.levelInfo.level);
-          setLevelUpTitle(updateResult.levelInfo.title);
-          setLevelUpVisible(true);
-        }
-      };
-      setPendingAlert(() => showAlerts);
-
-      // Refresh micro-goals
-      const refreshed = await getTodaysMicroGoals(user.uid);
-      setMicroGoals(refreshed);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleMicroGoalAdd = async (description: string, deadline: string) => {
-    if (!user) return;
-    await createMicroGoal(user.uid, { description, deadline });
-    const refreshed = await getTodaysMicroGoals(user.uid);
-    setMicroGoals(refreshed);
-  };
-
-  const handleMicroGoalDelete = async (microGoalId: string) => {
-    if (!user) return;
-    try {
-      await deleteMicroGoal(user.uid, microGoalId);
-      const refreshed = await getTodaysMicroGoals(user.uid);
-      setMicroGoals(refreshed);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   // --- Calendar Export ---
 
   const handleCalendarExport = async (item: PlannedItem) => {
@@ -603,11 +538,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       case 'habit': {
         const habit = item.sourceData.habit;
         if (habit) handleHabitTap(habit);
-        break;
-      }
-      case 'micro_goal': {
-        const mg = item.sourceData.microGoal;
-        if (mg && item.status === 'pending') handleMicroGoalComplete(mg.id);
         break;
       }
       case 'daily_challenge': {
@@ -708,7 +638,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     todaysProgramDay,
     programDayNumber,
     programCheckedIn,
-    microGoals,
     goals,
     showReflectionBanner,
     reflectedToday,
@@ -735,10 +664,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate(screen as any, params);
     },
     onHabitTap: handleHabitTap,
-    onMicroGoalComplete: handleMicroGoalComplete,
-    onMicroGoalDelete: handleMicroGoalDelete,
-    onMicroGoalAdd: handleMicroGoalAdd,
-    onMicroGoalPressMore: () => navigation.navigate('CreateMicroGoal' as any),
     getCatColor,
     onGoalTap: (goalId: string) => navigation.navigate('GoalDashboard' as any, { goalId }),
     onCalendarExport: handleCalendarExport,
@@ -852,11 +777,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         level={levelUpLevel}
         title={levelUpTitle}
         onContinue={() => setLevelUpVisible(false)}
-      />
-      <CleanSweepPopup
-        visible={showCleanSweep}
-        bonusPoints={cleanSweepBonus}
-        onComplete={() => setShowCleanSweep(false)}
       />
       <FunFactModal
         visible={funFactModalVisible}

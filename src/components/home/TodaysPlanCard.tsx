@@ -32,7 +32,6 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
   const items = useMemo(
     () =>
       buildTodaysPlan({
-        microGoals: data.microGoals,
         activeChallenges: data.activeChallenges,
         extendedChallenges: data.extendedChallenges,
         habits: data.habits,
@@ -45,7 +44,6 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
         plannedHabitIds: data.plannedHabitIds,
       }),
     [
-      data.microGoals,
       data.activeChallenges,
       data.extendedChallenges,
       data.habits,

@@ -13,7 +13,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { getUserStats, getLibraryStats, getPendingCoachApplications } from '../../services/admin';
+import { getUserStats, getLibraryStats } from '../../services/admin';
 import { getSubmissionStats, getPendingSubmissions } from '../../services/submissions';
 import { reseedPrograms } from '../../utils/seedPrograms';
 import { seedRewardMessages } from '../../utils/seedRewardMessages';
@@ -42,25 +42,22 @@ export const AdminDashboardScreen: React.FC = () => {
     approvalRate: number;
   } | null>(null);
   const [recentSubmissions, setRecentSubmissions] = useState<ChallengeSubmission[]>([]);
-  const [pendingCoachApps, setPendingCoachApps] = useState(0);
   const [reseeding, setReseeding] = useState(false);
   const [seedingMessages, setSeedingMessages] = useState(false);
   const [seedingTidbits, setSeedingTidbits] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [users, library, submissions, pending, coachApps] = await Promise.all([
+      const [users, library, submissions, pending] = await Promise.all([
         getUserStats(),
         getLibraryStats(),
         getSubmissionStats(),
         getPendingSubmissions(),
-        getPendingCoachApplications(),
       ]);
       setUserStats(users);
       setLibraryStats(library);
       setSubmissionStats(submissions);
       setRecentSubmissions(pending.slice(0, 3)); // Show first 3
-      setPendingCoachApps(coachApps.length);
     } catch (error) {
       console.error('Error loading admin dashboard:', error);
     } finally {
@@ -330,22 +327,6 @@ export const AdminDashboardScreen: React.FC = () => {
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
       </Card>
-      <Card
-        style={styles.linkCard}
-        onPress={() => navigation.navigate('AdminCoachReview')}
-      >
-        <View style={styles.linkRow}>
-          <Ionicons name="school" size={24} color={Colors.primary} />
-          <Text style={styles.linkText}>Coach Applications</Text>
-          {pendingCoachApps > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingCoachApps}</Text>
-            </View>
-          )}
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
-
       {/* Recent Submissions */}
       {recentSubmissions.length > 0 && (
         <>

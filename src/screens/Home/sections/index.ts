@@ -7,7 +7,6 @@ import { TeamActivitySection } from './TeamActivitySection';
 import { BuddyInvitesSection } from './BuddyInvitesSection';
 import { ProgramSection } from './ProgramSection';
 import { DailyChallengesSection } from './DailyChallengesSection';
-import { SprintsSection } from './SprintsSection';
 import { ExtendedChallengesSection } from './ExtendedChallengesSection';
 import { HabitsSection } from './HabitsSection';
 import { GoalsSection } from './GoalsSection';
@@ -27,7 +26,6 @@ export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   goals: GoalsSection,
   willpower_summary: WillpowerSummarySection,
   daily_challenges: DailyChallengesSection,
-  sprints: SprintsSection,
   habits: HabitsSection,
   programs: ProgramSection,
   extended_challenges: ExtendedChallengesSection,

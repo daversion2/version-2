@@ -7,7 +7,6 @@ export const SECTION_IDS = [
   // Zone 2: Your Goals + Today's Actions
   'todays_plan',
   'goal_actions',
-  'sprints',
   // Zone 3: Reflect
   'reflection_banner',
   'fun_fact',
@@ -28,7 +27,6 @@ export type HomeSectionId = (typeof SECTION_IDS)[number];
 const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
   // Hidden from default layout
   'todays_plan',
-  'sprints',
   // Legacy sections hidden from default layout
   'identity_summary',
   'goals',
@@ -64,7 +62,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'goals_actions',
     label: "Today's Actions",
     icon: 'flag-outline',
-    sectionIds: ['goal_actions', 'sprints'],
+    sectionIds: ['goal_actions'],
   },
   {
     id: 'reflect',
@@ -93,7 +91,6 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
   why_summary: 'Your Why',
   todays_plan: "Today's Plan",
   goal_actions: 'Goals & Actions',
-  sprints: "Today's Sprints",
   identity_summary: 'Identity Summary',
   reflection_banner: 'Nightly Reflection',
   fun_fact: 'Fun Fact',
@@ -113,7 +110,6 @@ export const SECTION_ICONS: Record<HomeSectionId, string> = {
   why_summary: 'compass-outline',
   todays_plan: 'today-outline',
   goal_actions: 'flag-outline',
-  sprints: 'timer-outline',
   identity_summary: 'sparkles-outline',
   reflection_banner: 'moon-outline',
   fun_fact: 'bulb-outline',

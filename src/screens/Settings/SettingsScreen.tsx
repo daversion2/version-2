@@ -165,29 +165,6 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
-      {/* Coach */}
-      {userProfile?.is_coach ? (
-        <Card style={styles.card} onPress={() => navigation.navigate('CoachDashboard')}>
-          <View style={styles.navRow}>
-            <View>
-              <Text style={styles.label}>Coach Dashboard</Text>
-              <Text style={styles.desc}>Manage your programs and view stats</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-          </View>
-        </Card>
-      ) : (
-        <Card style={styles.card} onPress={() => navigation.navigate('CoachApplication')}>
-          <View style={styles.navRow}>
-            <View>
-              <Text style={styles.label}>Become a Coach</Text>
-              <Text style={styles.desc}>Create and publish willpower programs</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-          </View>
-        </Card>
-      )}
-
       {/* Privacy */}
       <Card style={styles.card} onPress={() => navigation.navigate('PrivacySettings')}>
         <View style={styles.navRow}>
