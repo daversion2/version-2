@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getPastChallenges, createChallenge, getChallengeRepeatStats } from '../../services/challenges';
 import { Challenge, ChallengeRepeatStats } from '../../types';
 import { showAlert } from '../../utils/alert';
+import { getTodayString } from '../../utils/date';
 
 type Props = NativeStackScreenProps<any, 'PastChallenges'>;
 
@@ -54,7 +55,7 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => 
       await createChallenge(user.uid, {
         name: c.name,
         category_id: c.category_id,
-        date: forDate || new Date().toISOString().split('T')[0],
+        date: forDate || getTodayString(),
         difficulty_expected: c.difficulty_expected,
         description: c.description,
         success_criteria: c.success_criteria,

@@ -18,6 +18,7 @@ import {
 } from '../../services/challengeLibrary';
 import { createChallenge } from '../../services/challenges';
 import { LibraryChallenge, TimeCategory, ActionType } from '../../types';
+import { getTodayString } from '../../utils/date';
 import { showAlert } from '../../utils/alert';
 import {
   ACTION_CATEGORIES_LIST,
@@ -101,7 +102,7 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
       await createChallenge(user.uid, {
         name: challenge.name,
         category_id: challenge.category,
-        date: forDate || new Date().toISOString().split('T')[0],
+        date: forDate || getTodayString(),
         difficulty_expected: challenge.difficulty,
         description: challenge.description,
         success_criteria: challenge.success_criteria,

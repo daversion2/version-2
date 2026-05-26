@@ -254,6 +254,25 @@ export const SettingsScreen: React.FC = () => {
           style={{ marginBottom: Spacing.sm }}
         />
         <Button
+          title="Simulate Streak Break (Comeback)"
+          onPress={async () => {
+            if (!user) return;
+            await setDoc(doc(db, 'users', user.uid), {
+              currentStreak: 0,
+              lastActivityDate: null,
+            }, { merge: true });
+            showAlert('Done', 'Streak reset to 0. Go back to Home to see the comeback modal.');
+          }}
+          variant="outline"
+          style={{ marginBottom: Spacing.sm }}
+        />
+        <Button
+          title="Micro-Exercise: Reflection"
+          onPress={() => navigation.navigate('Home', { screen: 'MicroExerciseFeeling', params: { trigger_context: 'reflection' } })}
+          variant="outline"
+          style={{ marginBottom: Spacing.sm }}
+        />
+        <Button
           title="Reset All Intro Flags"
           onPress={async () => {
             if (!user) return;
@@ -264,7 +283,6 @@ export const SettingsScreen: React.FC = () => {
               has_dismissed_goal_prompt: deleteField(),
               has_seen_challenges_unlock: deleteField(),
               app_open_count: deleteField(),
-              totalHabitsCompleted: 0,
             }, { merge: true });
             await refreshProfile();
             showAlert('Done', 'All intro flags reset.');

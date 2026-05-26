@@ -26,6 +26,7 @@ import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { SHOW_COMMUNITY } from '../../constants/featureFlags';
+import { getTodayString } from '../../utils/date';
 
 type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
 
@@ -76,7 +77,7 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
       await createChallenge(user.uid, {
         name: name.trim(),
         category_id: categories[categoryIdx]?.name || 'Uncategorized',
-        date: forDate || new Date().toISOString().split('T')[0],
+        date: forDate || getTodayString(),
         difficulty_expected: difficulty,
         challenge_type: challengeType,
         ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),

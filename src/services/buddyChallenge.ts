@@ -13,6 +13,7 @@ import { db } from './firebase';
 import { createChallenge } from './challenges';
 import { updateWillpowerStats } from './willpower';
 import { createBuddyCompletionFeedEntry } from './inspirationFeed';
+import { getTodayString } from '../utils/date';
 import {
   BuddyChallenge,
   BuddyChallengeStatus,
@@ -101,7 +102,7 @@ export const createBuddyChallengeInvite = async (
   const inviterChallengeId = await createChallenge(inviterId, {
     name: challengeData.name,
     category_id: challengeData.category_id,
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayString(),
     difficulty_expected: challengeData.difficulty_expected,
     challenge_type: challengeData.challenge_type,
     duration_days: challengeData.duration_days,
@@ -192,7 +193,7 @@ export const acceptBuddyChallenge = async (
   const partnerChallengeId = await createChallenge(partnerId, {
     name: buddy.challenge_name,
     category_id: buddy.category_id,
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayString(),
     difficulty_expected: buddy.difficulty_expected,
     challenge_type: buddy.challenge_type,
     duration_days: buddy.duration_days,
@@ -391,7 +392,7 @@ export const sendNudge = async (
   if (!buddy) return { success: false, reason: 'Buddy challenge not found.' };
   if (buddy.status !== 'active') return { success: false, reason: 'Challenge is not active.' };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayString();
   const isInviter = senderId === buddy.inviter_id;
 
   if (!isInviter && senderId !== buddy.partner_id) {

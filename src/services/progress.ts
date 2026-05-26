@@ -8,6 +8,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
+import { getTodayString } from '../utils/date';
 import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './habits';
 import { db } from './firebase';
 import { CompletionLog, Challenge, Nudge } from '../types';
@@ -92,7 +93,7 @@ export const calculateWPQ = async (userId: string): Promise<number> => {
   const tenDaysAgo = new Date();
   tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
   const startDate = tenDaysAgo.toISOString().split('T')[0];
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayString();
 
   const snap = await getDocs(query(challengesRef(userId)));
   const challenges = snap.docs
@@ -256,7 +257,7 @@ export const get7DayCompletionRate = async (
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
   const startDate = sevenDaysAgo.toISOString().split('T')[0];
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayString();
   const logs = await getCompletionLogs(userId, startDate, today);
   const activeDays = new Set(logs.map((l) => l.date)).size;
   return { rate: activeDays / 7, activeDays, totalDays: 7 };

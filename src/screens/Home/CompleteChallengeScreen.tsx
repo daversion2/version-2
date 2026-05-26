@@ -39,6 +39,8 @@ import { getCategoryByName } from '../../services/categories';
 import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { RewardMoment } from '../../components/reward/RewardMoment';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
+import { ChallengeFailureModal } from '../../components/challenge/ChallengeFailureModal';
+import { saveChallengeFailureLog } from '../../services/challengeFailureLogs';
 import { getPersonalizedRewardMessage } from '../../services/userRewardMessages';
 import {
   selectTidbitForCompletion,
@@ -83,6 +85,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [pendingLevelUp, setPendingLevelUp] = useState<{ level: number; title: string } | null>(null);
   const [pendingStreakTier, setPendingStreakTier] = useState<{ streak: number; tierName: string; multiplier: number } | null>(null);
 
+  const [failureModalVisible, setFailureModalVisible] = useState(false);
   const [feedEntryId, setFeedEntryId] = useState<string | null>(null);
   const feedEntryIdRef = useRef<string | null>(null);
   const [showMessagePrompt, setShowMessagePrompt] = useState(false);
@@ -92,7 +95,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [goalContext, setGoalContext] = useState<{ name: string; ft: GoalFollowThrough } | null>(null);
   const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
   const [promptsExpanded, setPromptsExpanded] = useState(false);
-  const [selectedTrigger, setSelectedTrigger] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !challenge.goal_ids?.length) return;
@@ -141,9 +143,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     navigation.popToTop();
   }, [navigation]);
 
-  const handleRewardDismiss = useCallback(() => {
-    setRewardVisible(false);
-
+  const proceedAfterReward = useCallback(() => {
     // Fire milestone alerts in sequence after reward moment
     if (pendingLevelUp) {
       triggerMilestoneHaptic();
@@ -167,6 +167,35 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     navigateHome();
   }, [pendingLevelUp, pendingStreakTier, navigateHome]);
 
+  const handleRewardDismiss = useCallback(() => {
+    setRewardVisible(false);
+
+    // Show failure modal for failed challenges
+    if (rewardResult === 'failed') {
+      setFailureModalVisible(true);
+      return;
+    }
+
+    proceedAfterReward();
+  }, [rewardResult, proceedAfterReward]);
+
+  const handleFailureComplete = useCallback(async (barrierReason: string, nextAction: string) => {
+    setFailureModalVisible(false);
+    if (user) {
+      try {
+        await saveChallengeFailureLog(user.uid, {
+          challengeId: challenge.id,
+          challengeName: challenge.name,
+          barrierReason,
+          nextAction,
+        });
+      } catch (err) {
+        console.warn('Failed to save challenge failure log:', err);
+      }
+    }
+    proceedAfterReward();
+  }, [user, challenge.id, challenge.name, proceedAfterReward]);
+
   const handleCancel = () => {
     if (!user) return;
     showConfirm(
@@ -183,20 +212,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       },
       'Yes, Cancel'
     );
-  };
-
-  const handleUnpackPress = async () => {
-    if (!user) return;
-    try {
-      await completeChallenge(user.uid, challenge.id, {
-        status: 'failed',
-        difficulty_actual: difficulty,
-        failure_reflection: failureReflection.trim() || undefined,
-      });
-    } catch (e) {
-      console.warn('Failed to save challenge result before micro-exercise:', e);
-    }
-    navigation.navigate('MicroExerciseFeeling', { trigger_context: 'challenge_failure' });
   };
 
   const handleSubmit = async () => {
@@ -546,130 +561,24 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         onChange={setDifficulty}
       />
 
-      {/* Failure Reflection - CBT-enhanced with inner voice, recovery plan, triggers */}
+      {/* Failure Reflection */}
       {result === 'failed' && (
         <View style={styles.failureReflectionSection}>
-          {/* Inner Voice Pair — core CBT cognitive restructuring */}
-          {goalCBT?.inner_voice_challenge && goalCBT?.inner_voice_response && (
-            <Card style={styles.cbtCard}>
-              <View style={styles.cbtCardHeader}>
-                <Ionicons name="chatbubbles-outline" size={18} color={Colors.primary} />
-                <Text style={styles.cbtCardTitle}>Your Inner Voice</Text>
-              </View>
-              <Text style={styles.cbtQuoteText}>
-                Your inner voice predicted: "{goalCBT.inner_voice_challenge}"
-              </Text>
-              <Text style={styles.cbtResponseText}>
-                You already have the answer: "{goalCBT.inner_voice_response}"
-              </Text>
-            </Card>
-          )}
-
-          {/* Recovery Plan — relapse prevention */}
-          {goalCBT?.recovery_plan && (
-            <Card style={styles.cbtCard}>
-              <View style={styles.cbtCardHeader}>
-                <Ionicons name="refresh-outline" size={18} color={Colors.secondary} />
-                <Text style={styles.cbtCardTitle}>Your Recovery Plan</Text>
-              </View>
-              <Text style={styles.cbtFramingText}>
-                Missing a day is data, not failure. You planned for this:
-              </Text>
-              <Text style={styles.cbtPlanText}>"{goalCBT.recovery_plan}"</Text>
-            </Card>
-          )}
-
-          {/* Minimum Action reminder */}
-          {goalCBT?.minimum_action && (
-            <Card style={styles.cbtMinActionCard}>
-              <Text style={styles.cbtMinActionLabel}>Your worst-day win:</Text>
-              <Text style={styles.cbtMinActionText}>"{goalCBT.minimum_action}"</Text>
-              <Text style={styles.cbtMinActionCta}>Can you do just that today?</Text>
-            </Card>
-          )}
-
-          {/* Trigger Identification — replaces generic "What got in the way?" */}
-          <Text style={styles.sectionLabel}>What got in the way?</Text>
-          {goalCBT?.triggers && goalCBT.triggers.length > 0 ? (
-            <>
-              <Text style={styles.reflectionSubtext}>
-                Was it one of your known triggers?
-              </Text>
-              <View style={styles.triggerChipsRow}>
-                {goalCBT.triggers.map((trigger, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.triggerChip,
-                      selectedTrigger === trigger && styles.triggerChipSelected,
-                    ]}
-                    onPress={() => setSelectedTrigger(selectedTrigger === trigger ? null : trigger)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.triggerChipText,
-                      selectedTrigger === trigger && styles.triggerChipTextSelected,
-                    ]}>
-                      {trigger}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  style={[
-                    styles.triggerChip,
-                    selectedTrigger === '__other' && styles.triggerChipSelected,
-                  ]}
-                  onPress={() => setSelectedTrigger(selectedTrigger === '__other' ? null : '__other')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.triggerChipText,
-                    selectedTrigger === '__other' && styles.triggerChipTextSelected,
-                  ]}>
-                    Something else
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Show the user's planned substitute for the selected trigger */}
-              {selectedTrigger && selectedTrigger !== '__other' && goalCBT.trigger_substitutes && (
-                <View style={styles.substituteHint}>
-                  <Ionicons name="bulb-outline" size={14} color={Colors.primary} />
-                  <Text style={styles.substituteHintText}>
-                    Your planned response: "{goalCBT.trigger_substitutes[goalCBT.triggers.indexOf(selectedTrigger)] || goalCBT.trigger_substitutes[0]}"
-                  </Text>
-                </View>
-              )}
-            </>
-          ) : (
-            <Text style={styles.reflectionSubtext}>
-              Understanding obstacles helps you overcome them next time.
-            </Text>
-          )}
-
+          <Text style={styles.reflectionSubtext}>
+            Understanding obstacles helps you overcome them next time.
+          </Text>
           <InputField
             label=""
             value={failureReflection}
             onChangeText={setFailureReflection}
-            placeholder={selectedTrigger && selectedTrigger !== '__other'
-              ? "What happened? Did your planned response work?"
-              : "I got distracted by..."}
+            placeholder="I got distracted by..."
             multiline
             numberOfLines={4}
             style={styles.journalInput}
           />
           <Text style={styles.optionalText}>
-            Optional — no judgment, just learning
+            Optional — earns bonus points
           </Text>
-
-          <TouchableOpacity
-            style={styles.unpackLink}
-            onPress={handleUnpackPress}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-forward-circle-outline" size={16} color={Colors.primary} />
-            <Text style={styles.unpackLinkText}>Feel like unpacking this?</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -804,6 +713,15 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           onClose={() => setLearnMoreVisible(false)}
         />
       )}
+      <ChallengeFailureModal
+        visible={failureModalVisible}
+        challengeName={challenge.name}
+        onComplete={handleFailureComplete}
+        onDismiss={() => {
+          setFailureModalVisible(false);
+          proceedAfterReward();
+        }}
+      />
       <LevelUpPopup
         visible={levelUpVisible}
         level={levelUpLevel}
@@ -934,18 +852,6 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     fontStyle: 'italic',
     marginTop: Spacing.xs,
-  },
-  unpackLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  unpackLinkText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
   },
   journalInput: {
     minHeight: 120,
@@ -1155,124 +1061,6 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.sm,
     marginBottom: Spacing.md,
-  },
-  // CBT failure flow styles
-  cbtCard: {
-    backgroundColor: Colors.primary + '08',
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-    marginBottom: Spacing.md,
-  },
-  cbtCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  cbtCardTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  cbtQuoteText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    fontStyle: 'italic',
-    lineHeight: 20,
-    marginBottom: Spacing.xs,
-  },
-  cbtResponseText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    lineHeight: 20,
-  },
-  cbtFramingText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    lineHeight: 20,
-    marginBottom: Spacing.xs,
-  },
-  cbtPlanText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
-  cbtMinActionCard: {
-    backgroundColor: Colors.secondary + '10',
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.secondary,
-    marginBottom: Spacing.lg,
-    alignItems: 'center',
-  },
-  cbtMinActionLabel: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
-  },
-  cbtMinActionText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  cbtMinActionCta: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.secondary,
-  },
-  triggerChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  triggerChip: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-  },
-  triggerChipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '15',
-  },
-  triggerChipText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-  },
-  triggerChipTextSelected: {
-    color: Colors.primary,
-    fontFamily: Fonts.secondaryBold,
-  },
-  substituteHint: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
-    backgroundColor: Colors.primary + '08',
-    padding: Spacing.md,
-    borderRadius: 8,
-    marginBottom: Spacing.md,
-  },
-  substituteHintText: {
-    flex: 1,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontStyle: 'italic',
-    lineHeight: 20,
   },
   // Goal context banner
   goalContextBanner: {

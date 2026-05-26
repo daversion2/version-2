@@ -41,6 +41,7 @@ import { FunFactModal } from '../../components/home/FunFactModal';
 import { getTodaysFunFact } from '../../services/funFacts';
 import { FunFact } from '../../types';
 import { ComebackModal } from '../../components/home/ComebackModal';
+import { saveComebackLog } from '../../services/comebackLogs';
 import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../services/neuroscienceTidbits';
@@ -101,7 +102,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
   const [goalFollowThrough, setGoalFollowThrough] = useState<Record<string, GoalFollowThrough>>({});
   const [comebackVisible, setComebackVisible] = useState(false);
-  const [comebackGoal, setComebackGoal] = useState<Goal | null>(null);
   const comebackShownRef = useRef(false);
 
   // Habit tidbit state
@@ -172,6 +172,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
+      // Refresh user profile so totalHabitsCompleted, flags, etc. are current
+      await refreshProfile();
+
       // Run lazy goals migration before loading data
       const didMigrate = await runGoalsMigration(user.uid);
       if (didMigrate) {
@@ -247,16 +250,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setWillpowerStats(wpStats);
 
       // Detect streak break and show comeback modal (once per session)
-      if (!comebackShownRef.current && wpStats.currentStreak === 0 && activeGoals.length > 0) {
-        // Find the first goal with CBT data to surface
-        const comebackCandidate = activeGoals.find(
-          (g) => g.recovery_plan || g.minimum_action || (g.inner_voice_challenge && g.inner_voice_response)
-        );
-        if (comebackCandidate) {
-          comebackShownRef.current = true;
-          setComebackGoal(comebackCandidate);
-          setComebackVisible(true);
-        }
+      if (!comebackShownRef.current && wpStats.currentStreak === 0 && habitList.length > 0) {
+        comebackShownRef.current = true;
+        setComebackVisible(true);
       }
 
       // Compute follow-through for each goal
@@ -338,7 +334,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [user]);
+  }, [user, refreshProfile]);
 
   useFocusEffect(
     useCallback(() => {
@@ -785,9 +781,34 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       />
       <ComebackModal
         visible={comebackVisible}
-        goal={comebackGoal}
+        habits={habits}
+        onCommit={async (habitId, habitName, barrierReason) => {
+          setComebackVisible(false);
+          if (!user) return;
+          try {
+            // Add habit to today's plan
+            const todayStr = getTodayString();
+            const updated = plannedHabitIds.includes(habitId)
+              ? plannedHabitIds
+              : [...plannedHabitIds, habitId];
+            setPlannedHabitIds(updated);
+            const existingPlan = await getTomorrowPlan(user.uid, todayStr);
+            await saveTomorrowPlan(user.uid, {
+              user_id: user.uid,
+              date: todayStr,
+              planned_habit_ids: updated,
+              planned_challenges: existingPlan?.planned_challenges || [],
+              dismissed_habit_ids: existingPlan?.dismissed_habit_ids || [],
+              created_at: existingPlan?.created_at || new Date().toISOString(),
+              source: 'manual',
+            });
+            // Save comeback log
+            await saveComebackLog(user.uid, { barrierReason, committedHabitId: habitId, committedHabitName: habitName });
+          } catch (err) {
+            console.warn('Failed to save comeback commitment:', err);
+          }
+        }}
         onDismiss={() => setComebackVisible(false)}
-        navigation={navigation}
       />
       <HabitTidbitModal
         visible={habitTidbitVisible}

@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, collection, getDocs, query } from 'firebase/firestore';
 import { db } from './firebase';
 import { WILLPOWER_LEVELS, STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
+import { getTodayString } from '../utils/date';
 
 // Get level number from total points (convenience wrapper around getLevelInfo)
 export const getLevelFromPoints = (totalPoints: number): number => {
@@ -137,7 +138,7 @@ export const updateWillpowerStats = async (
   const userSnap = await getDoc(userRef);
   const userData = userSnap.exists() ? userSnap.data() : {};
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayString();
   const lastActivityDate = userData.lastActivityDate || null;
   const currentStreak = userData.currentStreak || 0;
   const totalPoints = userData.totalWillpowerPoints || 0;
@@ -216,7 +217,7 @@ export const getWillpowerStats = async (
   // Check if streak is still valid (activity yesterday or today)
   let validStreak = currentStreak;
   if (lastActivityDate) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayString();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];

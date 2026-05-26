@@ -10,54 +10,58 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { Nudge } from '../../types';
 
 const BARRIER_OPTIONS = [
-  'Work was too busy',
-  'I was tired or low energy',
-  'I forgot',
-  "I wasn't feeling well",
-  'Life got in the way',
+  'It was harder than I expected',
+  'I ran out of time',
   'I lost motivation',
+  'Something came up',
+  "I wasn't in the right headspace",
 ];
 
-interface ComebackModalProps {
+const NEXT_ACTION_OPTIONS = [
+  { key: 'retry', label: "I'll try this again tomorrow" },
+  { key: 'easier', label: "I'll try a lower difficulty" },
+  { key: 'different', label: "I'll try a different challenge" },
+  { key: 'recharge', label: "I'll take today to recharge" },
+];
+
+interface ChallengeFailureModalProps {
   visible: boolean;
-  habits: Nudge[];
-  onCommit: (habitId: string, habitName: string, barrierReason: string) => void;
+  challengeName: string;
+  onComplete: (barrierReason: string, nextAction: string) => void;
   onDismiss: () => void;
 }
 
-export const ComebackModal: React.FC<ComebackModalProps> = ({
+export const ChallengeFailureModal: React.FC<ChallengeFailureModalProps> = ({
   visible,
-  habits,
-  onCommit,
+  challengeName,
+  onComplete,
   onDismiss,
 }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedBarrier, setSelectedBarrier] = useState<string | null>(null);
   const [otherText, setOtherText] = useState('');
-  const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
 
   const resetAndDismiss = () => {
     setStep(1);
     setSelectedBarrier(null);
     setOtherText('');
-    setSelectedHabitId(null);
+    setSelectedAction(null);
     onDismiss();
   };
 
-  const handleCommit = () => {
-    if (!selectedHabitId) return;
-    const habit = habits.find((h) => h.id === selectedHabitId);
-    if (!habit) return;
+  const handleComplete = () => {
+    if (!selectedAction) return;
     const reason =
       selectedBarrier === 'Other' ? otherText.trim() || 'Other' : selectedBarrier || '';
-    onCommit(selectedHabitId, habit.name, reason);
+    const action = NEXT_ACTION_OPTIONS.find((o) => o.key === selectedAction)?.label || selectedAction;
+    onComplete(reason, action);
     setStep(1);
     setSelectedBarrier(null);
     setOtherText('');
-    setSelectedHabitId(null);
+    setSelectedAction(null);
   };
 
   if (!visible) return null;
@@ -69,22 +73,19 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
           {/* Progress indicator */}
           <View style={styles.progressRow}>
             {[1, 2, 3].map((s) => (
-              <View
-                key={s}
-                style={[styles.dot, s <= step && styles.dotActive]}
-              />
+              <View key={s} style={[styles.dot, s <= step && styles.dotActive]} />
             ))}
           </View>
 
-          {/* Step 1: Welcome */}
+          {/* Step 1: Normalize */}
           {step === 1 && (
             <View>
               <View style={styles.iconRow}>
-                <Ionicons name="refresh" size={32} color={Colors.secondary} />
+                <Ionicons name="heart-outline" size={32} color={Colors.secondary} />
               </View>
-              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.title}>You didn't finish this one</Text>
               <Text style={styles.body}>
-                You've been away for a couple days. That's okay — life happens. Let's figure out what's next.
+                That's okay — what matters is what you do next. Let's figure that out.
               </Text>
               <TouchableOpacity
                 style={styles.primaryButton}
@@ -94,7 +95,7 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                 <Text style={styles.primaryButtonText}>Continue</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dismissLink} onPress={resetAndDismiss}>
-                <Text style={styles.dismissText}>Not now</Text>
+                <Text style={styles.dismissText}>Skip</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -130,7 +131,6 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                   </TouchableOpacity>
                 ))}
 
-                {/* Other option */}
                 <TouchableOpacity
                   style={[
                     styles.optionCard,
@@ -167,10 +167,7 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
               </ScrollView>
 
               <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  !selectedBarrier && styles.primaryButtonDisabled,
-                ]}
+                style={[styles.primaryButton, !selectedBarrier && styles.primaryButtonDisabled]}
                 onPress={() => setStep(3)}
                 disabled={!selectedBarrier}
                 activeOpacity={0.8}
@@ -180,53 +177,45 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
             </View>
           )}
 
-          {/* Step 3: Commit to a habit */}
+          {/* Step 3: What's next */}
           {step === 3 && (
             <View>
-              <Text style={styles.title}>Commit to one thing today</Text>
-              <Text style={styles.subtitle}>Even if it's not perfect.</Text>
+              <Text style={styles.title}>What's next?</Text>
+              <Text style={styles.subtitle}>Pick what feels right for you.</Text>
 
-              <ScrollView style={styles.habitList} showsVerticalScrollIndicator={false}>
-                {habits.map((habit) => (
+              <ScrollView style={styles.optionsList} showsVerticalScrollIndicator={false}>
+                {NEXT_ACTION_OPTIONS.map((option) => (
                   <TouchableOpacity
-                    key={habit.id}
+                    key={option.key}
                     style={[
-                      styles.habitCard,
-                      selectedHabitId === habit.id && styles.habitCardSelected,
+                      styles.optionCard,
+                      selectedAction === option.key && styles.optionCardSelected,
                     ]}
-                    onPress={() => setSelectedHabitId(habit.id)}
+                    onPress={() => setSelectedAction(option.key)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.habitInfo}>
-                      <Text
-                        style={[
-                          styles.habitName,
-                          selectedHabitId === habit.id && styles.habitNameSelected,
-                        ]}
-                      >
-                        {habit.name}
-                      </Text>
-                      {habit.category_id ? (
-                        <Text style={styles.habitCategory}>{habit.category_id}</Text>
-                      ) : null}
-                    </View>
-                    {selectedHabitId === habit.id && (
-                      <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
+                    <Text
+                      style={[
+                        styles.optionText,
+                        selectedAction === option.key && styles.optionTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    {selectedAction === option.key && (
+                      <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
                     )}
                   </TouchableOpacity>
                 ))}
               </ScrollView>
 
               <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  !selectedHabitId && styles.primaryButtonDisabled,
-                ]}
-                onPress={handleCommit}
-                disabled={!selectedHabitId}
+                style={[styles.primaryButton, !selectedAction && styles.primaryButtonDisabled]}
+                onPress={handleComplete}
+                disabled={!selectedAction}
                 activeOpacity={0.8}
               >
-                <Text style={styles.primaryButtonText}>Let's Do This</Text>
+                <Text style={styles.primaryButtonText}>Got It</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -320,7 +309,7 @@ const styles = StyleSheet.create({
     color: Colors.gray,
   },
   optionsList: {
-    maxHeight: 280,
+    maxHeight: 260,
   },
   optionCard: {
     flexDirection: 'row',
@@ -360,42 +349,5 @@ const styles = StyleSheet.create({
     minHeight: 60,
     marginBottom: Spacing.sm,
     lineHeight: 22,
-  },
-  habitList: {
-    maxHeight: 260,
-  },
-  habitCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.lightGray,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-  },
-  habitCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '08',
-  },
-  habitInfo: {
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  habitName: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-  },
-  habitNameSelected: {
-    color: Colors.primary,
-  },
-  habitCategory: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    marginTop: 2,
   },
 });

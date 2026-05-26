@@ -18,6 +18,7 @@ import {
 import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats } from './willpower';
 import { db } from './firebase';
 import { Challenge, ChallengeStatus, CompletionLog, ChallengeMilestone, ChallengeRepeatStats, ActionType } from '../types';
+import { getTodayString } from '../utils/date';
 
 const challengesRef = (userId: string) =>
   collection(db, 'users', userId, 'challenges');
@@ -217,7 +218,7 @@ export const completeChallenge = async (
     reference_id: challengeId,
     points,
     difficulty: result.difficulty_actual,
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayString(),
   });
 
   if (result.status === 'completed') {
@@ -454,7 +455,7 @@ export const completeExtendedChallenge = async (
     reference_id: challengeId,
     points,
     difficulty: result.difficulty_actual,
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayString(),
   });
 
   // Update repeat stats

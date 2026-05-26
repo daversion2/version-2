@@ -15,6 +15,7 @@ import { db } from './firebase';
 import { WorksheetEntry } from '../types';
 import { MicroExerciseTrigger } from '../types/worksheets';
 import { updateWillpowerStats } from './willpower';
+import { getTodayString } from '../utils/date';
 
 const WORKSHEET_BASE_POINTS = 2;
 const MOOD_IMPROVEMENT_BONUS_THRESHOLD = 3;
@@ -129,7 +130,7 @@ export const updateWorksheetEntry = async (
       reference_id: entryId,
       points: pointsAwarded,
       difficulty: 1,
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayString(),
     });
   }
 
