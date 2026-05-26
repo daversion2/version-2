@@ -10,7 +10,16 @@ import {
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
-import { HABIT_PROMPTS, getRandomPrompt } from '../../constants/microPrompts';
+
+const HABIT_PROMPTS = [
+  'What made today different?',
+  'How did this habit feel today?',
+  'Any thoughts on your progress?',
+  'What helped you follow through?',
+];
+
+const getRandomPrompt = (prompts: string[]): string =>
+  prompts[Math.floor(Math.random() * prompts.length)];
 
 interface Props {
   visible: boolean;
