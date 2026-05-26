@@ -15,17 +15,15 @@ import { LibraryHabit } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'HabitLibrary'>;
 
-const CATEGORY_FILTERS = ['All', 'Physical', 'Social', 'Mind'];
+const CATEGORY_FILTERS = ['All', 'Physical', 'Mind'];
 
 const CATEGORY_COLORS: Record<string, string> = {
   Physical: '#217180',
-  Social: '#FF5B02',
   Mind: '#7B1FA2',
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
   Physical: 'fitness',
-  Social: 'chatbubbles',
   Mind: 'bulb-outline',
 };
 
