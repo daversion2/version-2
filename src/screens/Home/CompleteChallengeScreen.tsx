@@ -25,7 +25,6 @@ import {
   getWillpowerStats,
   getStreakMultiplier,
   getStreakTierInfo,
-  getLevelInfo,
 } from '../../services/willpower';
 import { Challenge, BuddyChallenge, Goal, GoalFollowThrough } from '../../types';
 import { onBuddyChallengeUserComplete } from '../../services/buddyChallenge';
@@ -36,7 +35,6 @@ import { getUserTeam, logTeamActivity } from '../../services/teams';
 import { createFeedEntry, createMilestoneFeedEntry, updateFeedEntryMessage } from '../../services/inspirationFeed';
 import { getUser } from '../../services/users';
 import { getCategoryByName } from '../../services/categories';
-import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { RewardMoment } from '../../components/reward/RewardMoment';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { ChallengeFailureModal } from '../../components/challenge/ChallengeFailureModal';
@@ -79,10 +77,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [learnMoreTidbit, setLearnMoreTidbit] = useState<NeuroscienceTidbit | null>(null);
 
   // Milestone alerts (fire after reward moment)
-  const [levelUpVisible, setLevelUpVisible] = useState(false);
-  const [levelUpLevel, setLevelUpLevel] = useState(0);
-  const [levelUpTitle, setLevelUpTitle] = useState('');
-  const [pendingLevelUp, setPendingLevelUp] = useState<{ level: number; title: string } | null>(null);
   const [pendingStreakTier, setPendingStreakTier] = useState<{ streak: number; tierName: string; multiplier: number } | null>(null);
 
   const [failureModalVisible, setFailureModalVisible] = useState(false);
@@ -145,14 +139,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
   const proceedAfterReward = useCallback(() => {
     // Fire milestone alerts in sequence after reward moment
-    if (pendingLevelUp) {
-      triggerMilestoneHaptic();
-      setLevelUpLevel(pendingLevelUp.level);
-      setLevelUpTitle(pendingLevelUp.title);
-      setLevelUpVisible(true);
-      return;
-    }
-
     if (pendingStreakTier) {
       triggerMilestoneHaptic();
       showAlert(
@@ -165,7 +151,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     }
 
     navigateHome();
-  }, [pendingLevelUp, pendingStreakTier, navigateHome]);
+  }, [pendingStreakTier, navigateHome]);
 
   const handleRewardDismiss = useCallback(() => {
     setRewardVisible(false);
@@ -285,7 +271,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             const categoryName = challenge.category_id;
             const category = await getCategoryByName(user.uid, categoryName);
             const streakInfo = getStreakTierInfo(stats.currentStreak);
-            const currentLevelInfo = getLevelInfo(stats.totalPoints);
             const entryId = await createFeedEntry(
               user.uid,
               categoryName,
@@ -296,9 +281,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
               category?.icon,
               userData?.username,
               streakInfo.tierName,
-              stats.currentStreak,
-              currentLevelInfo.level,
-              currentLevelInfo.title
+              stats.currentStreak
             );
             if (entryId) {
               feedEntryIdRef.current = entryId;
@@ -347,22 +330,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
               undefined,
               undefined,
               updateResult.newStreak,
-              updateResult.tierInfo.tierName,
-              undefined,
-              undefined
-            );
-          }
-          if (updateResult.newLevelReached && updateResult.levelInfo) {
-            createMilestoneFeedEntry(
-              user.uid,
-              userData?.username,
-              'level_up',
-              updateResult.levelInfo.level,
-              undefined,
-              updateResult.newStreak,
-              undefined,
-              updateResult.levelInfo.level,
-              updateResult.levelInfo.title
+              updateResult.tierInfo.tierName
             );
           }
           if (repeatMilestone) {
@@ -372,10 +340,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
               'repeat_milestone',
               repeatMilestone,
               challenge.name,
-              updateResult.newStreak,
-              undefined,
-              undefined,
-              undefined
+              updateResult.newStreak
             );
           }
         }
@@ -448,9 +413,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       setRewardTidbit(tidbit);
 
       // Store pending milestones for after reward moment
-      if (updateResult.newLevelReached && updateResult.levelInfo) {
-        setPendingLevelUp({ level: updateResult.levelInfo.level, title: updateResult.levelInfo.title });
-      }
       if (updateResult.newTierReached && updateResult.tierInfo) {
         setPendingStreakTier({
           streak: updateResult.newStreak,
@@ -722,26 +684,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           proceedAfterReward();
         }}
       />
-      <LevelUpPopup
-        visible={levelUpVisible}
-        level={levelUpLevel}
-        title={levelUpTitle}
-        onContinue={() => {
-          setLevelUpVisible(false);
-          if (pendingStreakTier) {
-            triggerMilestoneHaptic();
-            showAlert(
-              'Streak Milestone!',
-              `${pendingStreakTier.streak}-Day Streak: ${pendingStreakTier.tierName}!\n\nYou're now earning ${pendingStreakTier.multiplier}x points on all activities!`,
-              () => navigateHome()
-            );
-            setPendingStreakTier(null);
-          } else {
-            navigateHome();
-          }
-        }}
-      />
-
       {/* Completion Message Prompt Modal */}
       <Modal
         visible={showMessagePrompt}

@@ -78,9 +78,7 @@ export const createFeedEntry = async (
   categoryIcon?: string,
   username?: string,
   streakTier?: string,
-  streakDays?: number,
-  willpowerLevel?: number,
-  willpowerTitle?: string
+  streakDays?: number
 ): Promise<string | null> => {
   // Only include difficulty 3+ challenges
   const tier = getDifficultyTier(difficulty);
@@ -103,8 +101,6 @@ export const createFeedEntry = async (
     entry_type: 'challenge_completion',
     streak_tier: streakTier,
     streak_days: streakDays,
-    willpower_level: willpowerLevel,
-    willpower_title: willpowerTitle,
     fist_bump_count: 0,
   };
 
@@ -118,7 +114,7 @@ export const createFeedEntry = async (
 };
 
 /**
- * Create a milestone feed entry (streak tier, level up, or repeat milestone)
+ * Create a milestone feed entry (streak tier or repeat milestone)
  * Same privacy model as challenge entries: jittered timestamp, 48-hour expiry
  */
 export const createMilestoneFeedEntry = async (
@@ -128,9 +124,7 @@ export const createMilestoneFeedEntry = async (
   milestoneValue?: number,
   milestoneChallengeName?: string,
   streakDays?: number,
-  streakTier?: string,
-  willpowerLevel?: number,
-  willpowerTitle?: string
+  streakTier?: string
 ): Promise<string | null> => {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
@@ -148,8 +142,6 @@ export const createMilestoneFeedEntry = async (
     entry_type: entryType,
     streak_tier: streakTier,
     streak_days: streakDays,
-    willpower_level: willpowerLevel,
-    willpower_title: willpowerTitle,
     milestone_value: milestoneValue,
     milestone_challenge_name: milestoneChallengeName,
     fist_bump_count: 0,

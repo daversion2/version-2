@@ -1,50 +1,6 @@
-import { WILLPOWER_LEVELS, STREAK_MULTIPLIERS, POINTS } from '../willpower';
+import { STREAK_MULTIPLIERS, POINTS } from '../willpower';
 
 describe('Willpower Constants', () => {
-  describe('WILLPOWER_LEVELS', () => {
-    it('has exactly 10 levels', () => {
-      expect(WILLPOWER_LEVELS).toHaveLength(10);
-    });
-
-    it('levels are numbered 1 through 10', () => {
-      WILLPOWER_LEVELS.forEach((level, index) => {
-        expect(level.level).toBe(index + 1);
-      });
-    });
-
-    it('each level has required properties', () => {
-      WILLPOWER_LEVELS.forEach((level) => {
-        expect(level.level).toBeDefined();
-        expect(typeof level.level).toBe('number');
-        expect(level.pointsRequired).toBeDefined();
-        expect(typeof level.pointsRequired).toBe('number');
-        expect(level.title).toBeDefined();
-        expect(typeof level.title).toBe('string');
-      });
-    });
-
-    it('level 1 starts at 0 points', () => {
-      expect(WILLPOWER_LEVELS[0].pointsRequired).toBe(0);
-    });
-
-    it('points required increases with each level', () => {
-      for (let i = 1; i < WILLPOWER_LEVELS.length; i++) {
-        expect(WILLPOWER_LEVELS[i].pointsRequired).toBeGreaterThan(
-          WILLPOWER_LEVELS[i - 1].pointsRequired
-        );
-      }
-    });
-
-    it('has correct level titles', () => {
-      expect(WILLPOWER_LEVELS[0].title).toBe('Beginner Mind');
-      expect(WILLPOWER_LEVELS[9].title).toBe('Willpower Legend');
-    });
-
-    it('level 10 requires 4000 points', () => {
-      expect(WILLPOWER_LEVELS[9].pointsRequired).toBe(4000);
-    });
-  });
-
   describe('STREAK_MULTIPLIERS', () => {
     it('has 5 streak tiers', () => {
       expect(STREAK_MULTIPLIERS).toHaveLength(5);

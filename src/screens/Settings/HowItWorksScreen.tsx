@@ -112,9 +112,6 @@ export const HowItWorksScreen: React.FC = () => {
           <Text style={styles.bullet}>
             {'\u2022'} Even logging a failed challenge earns 2 points (showing up matters)
           </Text>
-          <Text style={styles.bullet}>
-            {'\u2022'} Move through levels (1-10) as you stack up points
-          </Text>
         </View>
       </Card>
 

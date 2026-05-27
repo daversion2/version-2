@@ -40,7 +40,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
 
           // Check if challenge can be submitted to library
           if (c.status === 'completed') {
-            const eligibility = await canSubmitChallenge(user.uid, 0, challengeId);
+            const eligibility = await canSubmitChallenge(user.uid, challengeId);
             setCanSubmit(eligibility.canSubmit);
             setSubmitReason(eligibility.reason);
           }

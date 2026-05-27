@@ -212,9 +212,6 @@ export const AdminSubmissionsScreen: React.FC = () => {
               <Text style={styles.metaText}>
                 Difficulty: {submission.difficulty_suggested}/5
               </Text>
-              <Text style={styles.metaText}>
-                Level {submission.user_level} user
-              </Text>
             </View>
 
             {submission.success_criteria && (

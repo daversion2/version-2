@@ -679,16 +679,6 @@ const SEED_CHALLENGES: Array<{
   { name: "Go 24 Hours Without Checking the Time", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
 ];
 
-const WILLPOWER_LEVEL_POOL = [
-  { level: 2, title: "Beast Mode" },
-  { level: 3, title: "Committed and Consistent" },
-  { level: 4, title: "Badass in Training" },
-  { level: 5, title: "Willpower Warrior" },
-  { level: 6, title: "Grit Machine" },
-  { level: 7, title: "Resilient AF" },
-  { level: 8, title: "Unstoppable" },
-];
-
 const STREAK_TIER_POOL = [
   { tier: "On Fire", days: 3 },
   { tier: "On Fire", days: 5 },
@@ -737,12 +727,11 @@ const seedDifficultyTier = (difficulty: number): string => {
 };
 
 // Helper: weighted random entry type selection
-// 75% challenge_completion, 10% streak_milestone, 10% level_up, 5% program_completion
+// 80% challenge_completion, 15% streak_milestone, 5% program_completion
 const pickEntryType = (): string => {
   const roll = Math.random();
-  if (roll < 0.75) return "challenge_completion";
-  if (roll < 0.85) return "streak_milestone";
-  if (roll < 0.95) return "level_up";
+  if (roll < 0.80) return "challenge_completion";
+  if (roll < 0.95) return "streak_milestone";
   return "program_completion";
 };
 
@@ -770,7 +759,6 @@ export const seedInspirationFeed = onSchedule(
       const expiresAt = new Date(completedAt.getTime() + 48 * 60 * 60 * 1000);
 
       const fakeUserId = `seed-${username.toLowerCase()}-${Math.floor(Math.random() * 10000)}`;
-      const willpower = pickRandom(WILLPOWER_LEVEL_POOL);
       const streak = pickRandom(STREAK_TIER_POOL);
 
       let entryData: Record<string, any> = {
@@ -782,8 +770,6 @@ export const seedInspirationFeed = onSchedule(
         entry_type: entryType,
         streak_tier: streak.tier,
         streak_days: streak.days,
-        willpower_level: willpower.level,
-        willpower_title: willpower.title,
         fist_bump_count: 0,
       };
 
@@ -812,15 +798,6 @@ export const seedInspirationFeed = onSchedule(
           category_name: "",
           difficulty_tier: "moderate",
           milestone_value: streak.days,
-        };
-
-      } else if (entryType === "level_up") {
-        entryData = {
-          ...entryData,
-          category_id: "",
-          category_name: "",
-          difficulty_tier: "moderate",
-          milestone_value: willpower.level,
         };
 
       } else if (entryType === "program_completion") {

@@ -42,7 +42,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       )}
 
       <View style={styles.header}>
-        <Text style={styles.levelText}>Level {review.user_level} user</Text>
         <Text style={styles.timeText}>
           {formatReviewTime(review.created_at)}
         </Text>

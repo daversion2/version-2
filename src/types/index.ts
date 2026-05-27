@@ -402,7 +402,7 @@ export interface TeamActivityFeedItem {
 
 export type DifficultyTier = 'moderate' | 'hard' | 'very_hard';
 
-export type FeedEntryType = 'challenge_completion' | 'streak_milestone' | 'level_up' | 'repeat_milestone' | 'buddy_completion' | 'program_completion';
+export type FeedEntryType = 'challenge_completion' | 'streak_milestone' | 'repeat_milestone' | 'buddy_completion' | 'program_completion';
 
 export interface InspirationFeedEntry {
   id: string;
@@ -421,8 +421,6 @@ export interface InspirationFeedEntry {
   completion_message?: string; // Optional 150-char post-completion message
   streak_tier?: string; // e.g., "On Fire", "Legendary"
   streak_days?: number; // Current streak count at time of entry
-  willpower_level?: number; // User's level at time of entry
-  willpower_title?: string; // e.g., "Grit Machine"
   // Milestone entry fields
   milestone_value?: number; // e.g., 50 (for "completed 50 times")
   milestone_challenge_name?: string; // e.g., "Cold Shower" (for repeat milestones)
@@ -452,7 +450,6 @@ export type SubmissionStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn'
 export interface ChallengeSubmission {
   id: string;
   user_id: string;
-  user_level: number;
   original_challenge_id: string; // User's own challenge they're submitting
 
   // Submission content
@@ -480,7 +477,6 @@ export interface ChallengeSubmission {
 export interface LibraryChallengeExtended extends LibraryChallenge {
   // Source tracking
   source: 'system' | 'user_submitted';
-  submitted_by_level?: number;
   submitted_at?: string;
   submission_status?: SubmissionStatus;
   approved_at?: string;
@@ -507,7 +503,6 @@ export interface ChallengeReview {
   id: string;
   library_challenge_id: string;
   user_id: string;
-  user_level: number; // Level at time of review
   completion_id: string; // Link to user's completion
 
   // Review content

@@ -26,9 +26,6 @@ export const PointsIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
             <Text style={styles.bullet}>
               <Text style={styles.bulletBold}>Harder days earn more</Text> — if it felt tough but you did it anyway, you get extra credit.
             </Text>
-            <Text style={styles.bullet}>
-              <Text style={styles.bulletBold}>Level up over time</Text> — your total points unlock new levels and titles.
-            </Text>
           </View>
           <Text style={styles.footer}>Just keep showing up. The points take care of themselves.</Text>
           <Button title="Got it" onPress={onDismiss} style={styles.button} />

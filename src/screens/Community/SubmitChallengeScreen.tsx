@@ -18,7 +18,6 @@ import { useAuth } from '../../context/AuthContext';
 import { submitChallenge, canSubmitChallenge } from '../../services/submissions';
 import { getChallengeById } from '../../services/challenges';
 import { getUserCategories } from '../../services/categories';
-import { getLevelFromPoints } from '../../services/willpower';
 import { Challenge, Category } from '../../types';
 import { showAlert } from '../../utils/alert';
 
@@ -73,8 +72,7 @@ export const SubmitChallengeScreen: React.FC = () => {
         setCategory(categoryData || null);
 
         // Check eligibility
-        const userLevel = getLevelFromPoints(userProfile.totalWillpowerPoints || 0);
-        const eligibility = await canSubmitChallenge(user.uid, userLevel, challengeId);
+        const eligibility = await canSubmitChallenge(user.uid, challengeId);
         setCanSubmit(eligibility.canSubmit);
         setSubmitReason(eligibility.reason);
       } catch (error) {
@@ -108,8 +106,7 @@ export const SubmitChallengeScreen: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const userLevel = getLevelFromPoints(userProfile.totalWillpowerPoints || 0);
-      await submitChallenge(user.uid, userLevel, challengeId, {
+      await submitChallenge(user.uid, challengeId, {
         name: name.trim(),
         category_id: challenge.category_id,
         category_name: category.name,

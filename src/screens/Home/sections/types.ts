@@ -21,10 +21,6 @@ export interface WillpowerStatsData {
   totalPoints: number;
   currentStreak: number;
   multiplier: number;
-  level: number;
-  title: string;
-  progressToNextLevel: number;
-  pointsToNextLevel: number | null;
 }
 
 export interface HomeData {

@@ -27,7 +27,6 @@ const libraryRef = () => collection(db, 'challengeLibrary');
  */
 export const submitChallenge = async (
   userId: string,
-  userLevel: number,
   originalChallengeId: string,
   data: {
     name: string;
@@ -82,7 +81,6 @@ export const submitChallenge = async (
 
   const submissionData: Omit<ChallengeSubmission, 'id'> = {
     user_id: userId,
-    user_level: userLevel,
     original_challenge_id: originalChallengeId,
     name: data.name,
     category_id: data.category_id,
@@ -156,7 +154,6 @@ export const withdrawSubmission = async (
  */
 export const canSubmitChallenge = async (
   userId: string,
-  userLevel: number,
   challengeId: string
 ): Promise<{ canSubmit: boolean; reason?: string }> => {
   // Check if already submitted
@@ -241,7 +238,6 @@ export const approveSubmission = async (
     description: finalData.description,
     success_criteria: finalData.success_criteria,
     source: 'user_submitted',
-    submitted_by_level: submission.user_level,
     submitted_at: submission.submitted_at,
     submission_status: 'approved',
     approved_at: new Date().toISOString(),

@@ -229,11 +229,6 @@ export const InspirationFeedScreen: React.FC = () => {
               <Text style={styles.categoryPillText}>{item.category_name}</Text>
             </View>
           )}
-          {item.willpower_level && item.willpower_level >= 3 && (
-            <View style={styles.levelPill}>
-              <Text style={styles.levelPillText}>Lv.{item.willpower_level}</Text>
-            </View>
-          )}
         </View>
 
         {renderFistBumpFooter(item)}
@@ -280,51 +275,6 @@ export const InspirationFeedScreen: React.FC = () => {
 
         <Text style={styles.milestoneNarrative}>
           {displayName} {streakVerb} on fire — {item.streak_days} days straight!
-        </Text>
-
-        {renderFistBumpFooter(item)}
-      </Card>
-    );
-  };
-
-  // ============================================================================
-  // LEVEL UP — purple theme, big level number, title badge
-  // ============================================================================
-
-  const renderLevelUpEntry = (item: InspirationFeedEntry) => {
-    const isOwnEntry = item.user_id === user?.uid;
-    const displayName = isOwnEntry ? 'You' : (item.username || 'Someone');
-    const purple = '#7B1FA2';
-
-    return (
-      <Card style={{ ...styles.entryCard, backgroundColor: '#F9F0FF' }}>
-        <View style={styles.entryHeader}>
-          <View style={styles.headerLeft}>
-            <View style={[styles.iconCircle, { backgroundColor: purple + '20' }]}>
-              <Ionicons name="arrow-up-circle" size={18} color={purple} />
-            </View>
-            <Text style={styles.headerName}>{displayName}</Text>
-            {isOwnEntry && (
-              <View style={styles.youBadge}>
-                <Text style={styles.youBadgeText}>You</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.timeText}>{formatRelativeTime(item.display_timestamp)}</Text>
-        </View>
-
-        <View style={styles.milestoneCenter}>
-          <Text style={[styles.bigNumber, { color: purple }]}>Lv.{item.willpower_level}</Text>
-          {item.willpower_title && (
-            <View style={[styles.tierBadge, { backgroundColor: purple + '15' }]}>
-              <Ionicons name="star" size={12} color={purple} />
-              <Text style={[styles.tierBadgeText, { color: purple }]}>{item.willpower_title}</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.milestoneNarrative}>
-          {displayName} just leveled up to Level {item.willpower_level}!
         </Text>
 
         {renderFistBumpFooter(item)}
@@ -477,8 +427,6 @@ export const InspirationFeedScreen: React.FC = () => {
     switch (entryType) {
       case 'streak_milestone':
         return renderStreakEntry(item);
-      case 'level_up':
-        return renderLevelUpEntry(item);
       case 'repeat_milestone':
         return renderRepeatEntry(item);
       case 'buddy_completion':
@@ -649,15 +597,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary + '10',
   },
   categoryPillText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.primary },
-  levelPill: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray + '15',
-  },
-  levelPillText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
-
-  // ---- Milestone-style center block (streak, level up, program) ----
+  // ---- Milestone-style center block (streak, program) ----
   milestoneCenter: { alignItems: 'center', paddingVertical: Spacing.md },
   bigNumber: { fontFamily: Fonts.primaryBold, fontSize: 40, marginBottom: 2 },
   bigNumberLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },

@@ -63,10 +63,6 @@ export const OverallProgressScreen: React.FC = () => {
     totalPoints: 0,
     currentStreak: 0,
     multiplier: 1,
-    level: 1,
-    title: 'Beginner Mind',
-    progressToNextLevel: 0,
-    pointsToNextLevel: 50 as number | null,
   });
 
   // Reflection state
@@ -172,27 +168,9 @@ export const OverallProgressScreen: React.FC = () => {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {/* Willpower Bank Card */}
       <Card style={styles.willpowerCard}>
-        <Text style={styles.levelLabel}>Level {willpowerStats.level}</Text>
-        <Text style={styles.titleValue}>{willpowerStats.title}</Text>
         <Text style={styles.pointsLabel}>
           {willpowerStats.totalPoints} Willpower Points
         </Text>
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${willpowerStats.progressToNextLevel * 100}%` },
-              ]}
-            />
-          </View>
-          {willpowerStats.pointsToNextLevel !== null && (
-            <Text style={styles.progressText}>
-              {willpowerStats.pointsToNextLevel} pts to next level
-            </Text>
-          )}
-        </View>
       </Card>
 
       {/* Stats Row */}
@@ -339,47 +317,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  levelLabel: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.white,
-    opacity: 0.8,
-  },
-  titleValue: {
-    fontFamily: Fonts.accent,
-    fontSize: FontSizes.xxl,
-    color: Colors.white,
-    marginTop: Spacing.xs,
-  },
   pointsLabel: {
     fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     color: Colors.white,
-    marginTop: Spacing.sm,
-  },
-  progressContainer: {
-    width: '100%',
-    marginTop: Spacing.md,
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.secondary,
-    borderRadius: 4,
-  },
-  progressText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.white,
-    opacity: 0.8,
-    marginTop: Spacing.xs,
   },
   statsRow: {
     flexDirection: 'row',

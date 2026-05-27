@@ -16,7 +16,6 @@ import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
 import { createReview } from '../../services/reviews';
-import { getLevelFromPoints } from '../../services/willpower';
 import { OverallExperience, DifficultyAccuracy } from '../../types';
 import { showAlert } from '../../utils/alert';
 
@@ -76,8 +75,7 @@ export const WriteReviewScreen: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const userLevel = getLevelFromPoints(userProfile.totalWillpowerPoints || 0);
-      await createReview(user.uid, userLevel, libraryChallengeId, completionId, {
+      await createReview(user.uid, libraryChallengeId, completionId, {
         overall_experience: experience,
         difficulty_accuracy: difficultyAccuracy,
         would_recommend: wouldRecommend,

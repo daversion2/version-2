@@ -35,7 +35,6 @@ import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { PlanIntroModal } from '../../components/common/PlanIntroModal';
 import { GoalPromptModal } from '../../components/common/GoalPromptModal';
 import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
-import { LevelUpPopup } from '../../components/common/LevelUpPopup';
 import { shouldShowPointsAlert } from '../../services/alertPreferences';
 import { FunFactModal } from '../../components/home/FunFactModal';
 import { getTodaysFunFact } from '../../services/funFacts';
@@ -84,9 +83,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [pointsAlertVisible, setPointsAlertVisible] = useState(false);
   const [pointsAlertTitle, setPointsAlertTitle] = useState('');
   const [pointsAlertMessage, setPointsAlertMessage] = useState('');
-  const [levelUpVisible, setLevelUpVisible] = useState(false);
-  const [levelUpLevel, setLevelUpLevel] = useState(0);
-  const [levelUpTitle, setLevelUpTitle] = useState('');
   const [funFact, setFunFact] = useState<FunFact | null>(null);
   const [funFactModalVisible, setFunFactModalVisible] = useState(false);
   const [activeProgram, setActiveProgram] = useState<ProgramEnrollment | null>(null);
@@ -460,14 +456,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       // Prepare alerts to show after popup animation completes
       const showAlerts = async () => {
-        // Show level-up popup first if new level reached
-        if (updateResult.newLevelReached && updateResult.levelInfo) {
-          setLevelUpLevel(updateResult.levelInfo.level);
-          setLevelUpTitle(updateResult.levelInfo.title);
-          setLevelUpVisible(true);
-          return; // Other alerts will be shown after level-up is dismissed
-        }
-
         if (updateResult.newTierReached && updateResult.tierInfo) {
           showAlert(
             'Streak Milestone!',
@@ -775,12 +763,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         title={pointsAlertTitle}
         message={pointsAlertMessage}
         onDismiss={() => setPointsAlertVisible(false)}
-      />
-      <LevelUpPopup
-        visible={levelUpVisible}
-        level={levelUpLevel}
-        title={levelUpTitle}
-        onContinue={() => setLevelUpVisible(false)}
       />
       <FunFactModal
         visible={funFactModalVisible}

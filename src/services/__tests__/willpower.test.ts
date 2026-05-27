@@ -1,6 +1,5 @@
 import {
   getStreakMultiplier,
-  getLevelInfo,
   calculateChallengePoints,
   calculateFailedChallengePoints,
   calculateHabitPoints,
@@ -46,48 +45,6 @@ describe('Willpower Service', () => {
 
     it('returns 1.0 for 0 days (edge case)', () => {
       expect(getStreakMultiplier(0)).toBe(1.0);
-    });
-  });
-
-  describe('getLevelInfo', () => {
-    it('returns level 1 for 0 points', () => {
-      const info = getLevelInfo(0);
-      expect(info.level).toBe(1);
-      expect(info.title).toBe('Beginner Mind');
-      expect(info.pointsForCurrentLevel).toBe(0);
-      expect(info.pointsForNextLevel).toBe(50);
-    });
-
-    it('returns level 2 for 50 points', () => {
-      const info = getLevelInfo(50);
-      expect(info.level).toBe(2);
-      expect(info.title).toBe('Apprentice');
-    });
-
-    it('returns level 3 for 150 points', () => {
-      const info = getLevelInfo(150);
-      expect(info.level).toBe(3);
-      expect(info.title).toBe('Challenger');
-    });
-
-    it('returns level 10 for 4000+ points', () => {
-      const info = getLevelInfo(4000);
-      expect(info.level).toBe(10);
-      expect(info.title).toBe('Willpower Legend');
-      expect(info.pointsForNextLevel).toBeNull();
-      expect(info.progressToNextLevel).toBe(1);
-    });
-
-    it('calculates progress correctly', () => {
-      // At 25 points, should be halfway between level 1 (0) and level 2 (50)
-      const info = getLevelInfo(25);
-      expect(info.level).toBe(1);
-      expect(info.progressToNextLevel).toBe(0.5);
-    });
-
-    it('caps progress at 1', () => {
-      const info = getLevelInfo(4500);
-      expect(info.progressToNextLevel).toBe(1);
     });
   });
 

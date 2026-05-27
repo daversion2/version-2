@@ -33,7 +33,6 @@ const votesRef = () => collection(db, 'reviewVotes');
  */
 export const createReview = async (
   userId: string,
-  userLevel: number,
   libraryChallengeId: string,
   completionId: string,
   data: {
@@ -53,7 +52,6 @@ export const createReview = async (
   const reviewData: Omit<ChallengeReview, 'id'> = {
     library_challenge_id: libraryChallengeId,
     user_id: userId,
-    user_level: userLevel,
     completion_id: completionId,
     overall_experience: data.overall_experience,
     difficulty_accuracy: data.difficulty_accuracy,

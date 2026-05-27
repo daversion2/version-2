@@ -1,12 +1,7 @@
 import { doc, getDoc, setDoc, collection, getDocs, query } from 'firebase/firestore';
 import { db } from './firebase';
-import { WILLPOWER_LEVELS, STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
+import { STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
 import { getTodayString } from '../utils/date';
-
-// Get level number from total points (convenience wrapper around getLevelInfo)
-export const getLevelFromPoints = (totalPoints: number): number => {
-  return getLevelInfo(totalPoints).level;
-};
 
 // Get the streak multiplier based on current streak days
 export const getStreakMultiplier = (streakDays: number): number => {
@@ -14,45 +9,6 @@ export const getStreakMultiplier = (streakDays: number): number => {
     (t) => streakDays >= t.minDays && streakDays <= t.maxDays
   );
   return tier?.multiplier || 1.0;
-};
-
-// Get level info from total points
-export const getLevelInfo = (totalPoints: number): {
-  level: number;
-  title: string;
-  pointsForCurrentLevel: number;
-  pointsForNextLevel: number | null;
-  progressToNextLevel: number;
-} => {
-  let currentLevel = WILLPOWER_LEVELS[0];
-
-  for (const level of WILLPOWER_LEVELS) {
-    if (totalPoints >= level.pointsRequired) {
-      currentLevel = level;
-    } else {
-      break;
-    }
-  }
-
-  const nextLevel = WILLPOWER_LEVELS.find((l) => l.level === currentLevel.level + 1);
-
-  const pointsForCurrentLevel = currentLevel.pointsRequired;
-  const pointsForNextLevel = nextLevel?.pointsRequired || null;
-
-  let progressToNextLevel = 1; // 100% if max level
-  if (pointsForNextLevel !== null) {
-    const pointsInCurrentLevel = totalPoints - pointsForCurrentLevel;
-    const pointsNeededForNext = pointsForNextLevel - pointsForCurrentLevel;
-    progressToNextLevel = pointsInCurrentLevel / pointsNeededForNext;
-  }
-
-  return {
-    level: currentLevel.level,
-    title: currentLevel.title,
-    pointsForCurrentLevel,
-    pointsForNextLevel,
-    progressToNextLevel: Math.min(progressToNextLevel, 1),
-  };
 };
 
 // Calculate points for a completed challenge
@@ -131,8 +87,6 @@ export const updateWillpowerStats = async (
   multiplier: number;
   newTierReached: boolean;
   tierInfo: { multiplier: number; tierName: string; minDays: number } | null;
-  newLevelReached: boolean;
-  levelInfo: { level: number; title: string } | null;
 }> => {
   const userRef = doc(db, 'users', userId);
   const userSnap = await getDoc(userRef);
@@ -174,12 +128,7 @@ export const updateWillpowerStats = async (
   const newTierReached = newMultiplier > oldMultiplier;
   const tierInfo = newTierReached ? getStreakTierInfo(newStreak) : null;
 
-  // Check for level up
-  const oldLevelInfo = getLevelInfo(totalPoints);
   const newTotal = totalPoints + pointsToAdd;
-  const newLevelInfo = getLevelInfo(newTotal);
-  const newLevelReached = newLevelInfo.level > oldLevelInfo.level;
-  const levelInfo = newLevelReached ? { level: newLevelInfo.level, title: newLevelInfo.title } : null;
 
   await setDoc(
     userRef,
@@ -191,7 +140,7 @@ export const updateWillpowerStats = async (
     { merge: true }
   );
 
-  return { newTotal, newStreak, multiplier: newMultiplier, newTierReached, tierInfo, newLevelReached, levelInfo };
+  return { newTotal, newStreak, multiplier: newMultiplier, newTierReached, tierInfo };
 };
 
 // Get user's willpower stats
@@ -201,10 +150,6 @@ export const getWillpowerStats = async (
   totalPoints: number;
   currentStreak: number;
   multiplier: number;
-  level: number;
-  title: string;
-  progressToNextLevel: number;
-  pointsToNextLevel: number | null;
 }> => {
   const userRef = doc(db, 'users', userId);
   const userSnap = await getDoc(userRef);
@@ -229,18 +174,11 @@ export const getWillpowerStats = async (
   }
 
   const multiplier = getStreakMultiplier(validStreak);
-  const levelInfo = getLevelInfo(totalPoints);
 
   return {
     totalPoints,
     currentStreak: validStreak,
     multiplier,
-    level: levelInfo.level,
-    title: levelInfo.title,
-    progressToNextLevel: levelInfo.progressToNextLevel,
-    pointsToNextLevel: levelInfo.pointsForNextLevel
-      ? levelInfo.pointsForNextLevel - totalPoints
-      : null,
   };
 };
 
