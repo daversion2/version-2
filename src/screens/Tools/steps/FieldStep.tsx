@@ -12,6 +12,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../consta
 import { WorksheetField } from '../../../types';
 import { ChecklistField } from '../../../components/worksheets/ChecklistField';
 import { SingleSelectField } from '../../../components/worksheets/SingleSelectField';
+import { AppMessage } from '../components/AppMessage';
 
 interface FieldStepProps {
   field: WorksheetField;
@@ -30,7 +31,7 @@ export const FieldStep: React.FC<FieldStepProps> = ({
 
   useEffect(() => {
     if (field.field_type === 'text' || field.field_type === 'textarea') {
-      const timer = setTimeout(() => inputRef.current?.focus(), 350);
+      const timer = setTimeout(() => inputRef.current?.focus(), 800);
       return () => clearTimeout(timer);
     }
   }, [field.id]);
@@ -45,7 +46,7 @@ export const FieldStep: React.FC<FieldStepProps> = ({
             value={(value as string) || ''}
             onChangeText={(text) => onChange(text)}
             placeholder={field.placeholder}
-            placeholderTextColor={Colors.gray}
+            placeholderTextColor={Colors.gray + '80'}
             maxLength={field.max_length}
             returnKeyType="done"
           />
@@ -59,7 +60,7 @@ export const FieldStep: React.FC<FieldStepProps> = ({
             value={(value as string) || ''}
             onChangeText={(text) => onChange(text)}
             placeholder={field.placeholder}
-            placeholderTextColor={Colors.gray}
+            placeholderTextColor={Colors.gray + '80'}
             multiline
             numberOfLines={5}
             textAlignVertical="top"
@@ -102,14 +103,23 @@ export const FieldStep: React.FC<FieldStepProps> = ({
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.label}>{field.label}</Text>
-      {field.helper_text && (field.field_type === 'text' || field.field_type === 'textarea') && (
-        <Text style={styles.helperText}>{field.helper_text}</Text>
-      )}
+      {/* App prompt message */}
+      <AppMessage
+        message={field.label}
+        subtitle={field.helper_text}
+        color={color}
+        delay={400}
+      />
+
+      {/* Optional badge */}
       {!field.required && (
-        <Text style={styles.optionalBadge}>Optional</Text>
+        <Text style={styles.optionalBadge}>Optional — skip if it doesn't apply</Text>
       )}
+
+      {/* Input area */}
       <View style={styles.inputWrapper}>{renderInput()}</View>
+
+      {/* Character count */}
       {field.max_length && isTextType && (
         <Text style={styles.charCount}>
           {((value as string) || '').length}/{field.max_length}
@@ -139,32 +149,18 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.xxl,
-  },
-  label: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    lineHeight: 30,
-    marginBottom: Spacing.sm,
-  },
-  helperText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    fontStyle: 'italic',
-    marginBottom: Spacing.md,
-    lineHeight: 20,
   },
   optionalBadge: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
     marginBottom: Spacing.md,
+    fontStyle: 'italic',
   },
   inputWrapper: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   textInput: {
     fontFamily: Fonts.secondary,
@@ -172,7 +168,7 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     backgroundColor: Colors.lightGray,
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.border,
     padding: Spacing.md,
     lineHeight: 22,

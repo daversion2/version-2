@@ -26,8 +26,8 @@ export const MainTabs: React.FC = () => {
             iconName = focused ? 'flag' : 'flag-outline';
           else if (route.name === 'Progress')
             iconName = focused ? 'trending-up' : 'trending-up-outline';
-          else if (route.name === 'Worksheets')
-            iconName = focused ? 'clipboard' : 'clipboard-outline';
+          else if (route.name === 'Tools')
+            iconName = focused ? 'construct' : 'construct-outline';
           else if (route.name === 'Settings')
             iconName = focused ? 'settings' : 'settings-outline';
           else if (route.name === 'Admin')
@@ -50,7 +50,7 @@ export const MainTabs: React.FC = () => {
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Goals" component={GoalsStack} />
       <Tab.Screen name="Progress" component={ProgressStack} />
-      <Tab.Screen name="Worksheets" component={WorksheetsStack} />
+      <Tab.Screen name="Tools" component={WorksheetsStack} />
       <Tab.Screen
         name="Settings"
         component={SettingsStack}

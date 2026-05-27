@@ -28,7 +28,7 @@ export const WorksheetsStack: React.FC = () => (
       name="WorksheetLibraryScreen"
       component={WorksheetLibraryScreen}
       options={({ navigation }) => ({
-        title: 'Worksheets',
+        title: 'Tools',
         headerLeft: () => (
           <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
         ),

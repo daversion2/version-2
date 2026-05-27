@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   BackHandler,
   Alert,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -59,6 +60,27 @@ export const ToolConversationScreen: React.FC<{ navigation: any; route: any }> =
   const [draftId, setDraftId] = useState<string | null>(entryId || null);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+
+  // Button animation
+  const buttonScale = useRef(new Animated.Value(1)).current;
+
+  const handleButtonPressIn = () => {
+    Animated.spring(buttonScale, {
+      toValue: 0.96,
+      friction: 8,
+      tension: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleButtonPressOut = () => {
+    Animated.spring(buttonScale, {
+      toValue: 1,
+      friction: 8,
+      tension: 300,
+      useNativeDriver: true,
+    }).start();
+  };
 
   // Hide native header
   useEffect(() => {
@@ -346,21 +368,25 @@ export const ToolConversationScreen: React.FC<{ navigation: any; route: any }> =
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            { backgroundColor: isCompleted ? Colors.primary : template.color },
-            !canContinue && !showSkip && styles.continueButtonDisabled,
-          ]}
-          onPress={isCompleted ? () => navigation.goBack() : handleContinue}
-          disabled={!canContinue && !showSkip && !isCompleted}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.continueButtonText}>{getButtonLabel()}</Text>
-          {!isCompleted && currentStep?.type !== 'mood_after' && (
-            <Ionicons name="arrow-forward" size={18} color={Colors.white} />
-          )}
-        </TouchableOpacity>
+        <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
+          <TouchableOpacity
+            style={[
+              styles.continueButton,
+              { backgroundColor: isCompleted ? Colors.primary : template.color },
+              !canContinue && !showSkip && styles.continueButtonDisabled,
+            ]}
+            onPress={isCompleted ? () => navigation.goBack() : handleContinue}
+            onPressIn={handleButtonPressIn}
+            onPressOut={handleButtonPressOut}
+            disabled={!canContinue && !showSkip && !isCompleted}
+            activeOpacity={1}
+          >
+            <Text style={styles.continueButtonText}>{getButtonLabel()}</Text>
+            {!isCompleted && currentStep?.type !== 'mood_after' && (
+              <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+            )}
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -371,7 +397,7 @@ export default ToolConversationScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: '#FAFBFC',
   },
   centered: {
     flex: 1,
@@ -387,10 +413,17 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: Spacing.xs,
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   stepContainer: {
     flex: 1,
@@ -399,6 +432,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     paddingTop: Spacing.sm,
+    backgroundColor: '#FAFBFC',
   },
   skipButton: {
     alignItems: 'center',
@@ -415,11 +449,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md + 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
   continueButtonDisabled: {
     opacity: 0.4,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   continueButtonText: {
     fontFamily: Fonts.primaryBold,

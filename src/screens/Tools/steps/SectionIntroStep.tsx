@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
 import { WorksheetSection } from '../../../types';
@@ -17,21 +17,58 @@ export const SectionIntroStep: React.FC<SectionIntroStepProps> = ({
   totalSections,
   color,
 }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(200),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.spring(iconScale, {
+        toValue: 1,
+        friction: 6,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionLabel}>
-        Part {sectionIndex + 1} of {totalSections}
-      </Text>
-
-      <View style={[styles.card, { borderLeftColor: color }]}>
-        <View style={styles.cardHeader}>
-          <Ionicons name="chatbubble-ellipses-outline" size={18} color={color} />
-          <Text style={styles.cardTitle}>{section.title}</Text>
+      <Animated.View style={[styles.iconRow, { transform: [{ scale: iconScale }] }]}>
+        <View style={[styles.iconCircle, { backgroundColor: color + '15' }]}>
+          <Ionicons name="chatbubble-ellipses" size={24} color={color} />
         </View>
+      </Animated.View>
+
+      <Animated.View
+        style={[
+          styles.contentArea,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+        ]}
+      >
+        <Text style={styles.sectionLabel}>
+          Part {sectionIndex + 1} of {totalSections}
+        </Text>
+
+        <Text style={[styles.title, { color }]}>{section.title}</Text>
+
         {section.description && (
-          <Text style={styles.cardDescription}>{section.description}</Text>
+          <Text style={styles.description}>{section.description}</Text>
         )}
-      </View>
+      </Animated.View>
     </View>
   );
 };
@@ -39,39 +76,43 @@ export const SectionIntroStep: React.FC<SectionIntroStepProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.xxl,
+    alignItems: 'center',
+  },
+  iconRow: {
+    marginBottom: Spacing.lg,
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contentArea: {
+    alignItems: 'center',
+    width: '100%',
   },
   sectionLabel: {
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.xs,
     color: Colors.gray,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: Spacing.lg,
+    letterSpacing: 1,
+    marginBottom: Spacing.md,
   },
-  card: {
-    backgroundColor: Colors.lightGray,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    borderLeftWidth: 4,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  cardTitle: {
+  title: {
     fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.lg,
-    color: Colors.dark,
-    flex: 1,
+    fontSize: FontSizes.xl + 2,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
   },
-  cardDescription: {
+  description: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.gray,
     lineHeight: 24,
-    marginTop: Spacing.xs,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.md,
   },
 });

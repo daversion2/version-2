@@ -27,8 +27,8 @@ export const MicroExerciseCompleteScreen: React.FC<Props> = ({ navigation, route
   );
 
   const handleGoDeeper = () => {
-    // Navigate to the Worksheets tab's WorksheetForm screen
-    navigation.getParent()?.navigate('Worksheets', {
+    // Navigate to the Tools tab's WorksheetForm screen
+    navigation.getParent()?.navigate('Tools', {
       screen: 'WorksheetForm',
       params: { templateId: exercise.source_template_id },
     });

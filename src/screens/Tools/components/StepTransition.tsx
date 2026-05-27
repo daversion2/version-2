@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, StyleSheet } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SLIDE_DISTANCE = SCREEN_WIDTH * 0.25;
 
 interface StepTransitionProps {
   stepKey: string;
@@ -17,28 +16,39 @@ export const StepTransition: React.FC<StepTransitionProps> = ({
 }) => {
   const translateX = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const enterFrom = direction === 'forward' ? SLIDE_DISTANCE : -SLIDE_DISTANCE;
+    const enterFrom = direction === 'forward' ? SCREEN_WIDTH * 0.15 : -SCREEN_WIDTH * 0.15;
     translateX.setValue(enterFrom);
     opacity.setValue(0);
+    scale.setValue(0.97);
 
     Animated.parallel([
-      Animated.timing(translateX, {
+      Animated.spring(translateX, {
         toValue: 0,
-        duration: 250,
+        friction: 20,
+        tension: 80,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 200,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 20,
+        tension: 80,
         useNativeDriver: true,
       }),
     ]).start();
   }, [stepKey]);
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ translateX }], opacity }]}>
+    <Animated.View
+      style={[styles.container, { transform: [{ translateX }, { scale }], opacity }]}
+    >
       {children}
     </Animated.View>
   );

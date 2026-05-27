@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../constants/theme';
 import { MoodSelector } from '../../../components/worksheets/MoodSelector';
+import { AppMessage } from '../components/AppMessage';
 
 interface MoodStepProps {
   type: 'before' | 'after';
@@ -10,26 +11,65 @@ interface MoodStepProps {
 }
 
 export const MoodStep: React.FC<MoodStepProps> = ({ type, value, onChange }) => {
+  const selectorFade = useRef(new Animated.Value(0)).current;
+  const selectorSlide = useRef(new Animated.Value(15)).current;
+
   const title =
     type === 'before'
-      ? 'Before we start...'
-      : "You've done the work.";
+      ? 'Before we dive in...'
+      : "You've done the hard part.";
   const subtitle =
     type === 'before'
-      ? 'How are you feeling right now?'
-      : 'How are you feeling now?';
+      ? 'Just a quick check-in. No wrong answer.'
+      : undefined;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(700),
+      Animated.parallel([
+        Animated.timing(selectorFade, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(selectorSlide, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      <View style={styles.selectorWrapper}>
-        <MoodSelector
-          label=""
-          value={value}
-          onChange={onChange}
-        />
-      </View>
+      <AppMessage
+        message={title}
+        subtitle={subtitle}
+        color={Colors.primary}
+        delay={300}
+      />
+
+      <Animated.View
+        style={[
+          styles.selectorWrapper,
+          { opacity: selectorFade, transform: [{ translateY: selectorSlide }] },
+        ]}
+      >
+        <Text style={styles.prompt}>
+          {type === 'before'
+            ? 'How are you feeling right now?'
+            : 'How are you feeling now?'}
+        </Text>
+        <MoodSelector label="" value={value} onChange={onChange} />
+        {value !== undefined && (
+          <Animated.Text style={styles.selectedFeedback}>
+            {value <= 3 ? "Got it. Let's work through this." :
+             value <= 6 ? "Okay. Let's see where this takes you." :
+             "Good place to start. Let's go deeper."}
+          </Animated.Text>
+        )}
+      </Animated.View>
     </View>
   );
 };
@@ -37,22 +77,23 @@ export const MoodStep: React.FC<MoodStepProps> = ({ type, value, onChange }) => 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-  },
-  title: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
+    paddingTop: Spacing.lg,
   },
   selectorWrapper: {
     marginTop: Spacing.md,
+  },
+  prompt: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.dark,
+    marginBottom: Spacing.lg,
+  },
+  selectedFeedback: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    fontStyle: 'italic',
+    marginTop: Spacing.md,
+    textAlign: 'center',
   },
 });

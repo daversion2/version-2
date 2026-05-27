@@ -48,36 +48,37 @@ export const WorksheetTemplateCard: React.FC<WorksheetTemplateCardProps> = ({
         onPressOut={handlePressOut}
         activeOpacity={1}
       >
-        <View style={[styles.iconContainer, { backgroundColor: template.color + '20' }]}>
-          <Ionicons
-            name={template.icon as keyof typeof Ionicons.glyphMap}
-            size={24}
-            color={template.color}
-          />
-        </View>
-        <Text style={styles.name} numberOfLines={2}>
-          {template.name}
-        </Text>
-        <Text style={styles.description} numberOfLines={2}>
-          {template.short_description}
-        </Text>
-        <View style={styles.footer}>
-          <View style={styles.metaRow}>
-            <View style={styles.difficultyDots}>
-              {[1, 2, 3].map((d) => (
-                <View
-                  key={d}
-                  style={[
-                    styles.dot,
-                    d <= template.difficulty && { backgroundColor: template.color },
-                  ]}
-                />
-              ))}
-            </View>
-            <Text style={styles.time}>
-              ~{template.estimated_minutes} min
-            </Text>
+        <View style={styles.row}>
+          <View style={[styles.iconContainer, { backgroundColor: template.color + '18' }]}>
+            <Ionicons
+              name={template.icon as keyof typeof Ionicons.glyphMap}
+              size={24}
+              color={template.color}
+            />
           </View>
+          <View style={styles.content}>
+            <Text style={styles.name} numberOfLines={1}>
+              {template.name}
+            </Text>
+            <Text style={styles.description} numberOfLines={3}>
+              {template.short_description}
+            </Text>
+            <View style={styles.metaRow}>
+              <View style={styles.difficultyDots}>
+                {[1, 2, 3].map((d) => (
+                  <View
+                    key={d}
+                    style={[
+                      styles.dot,
+                      d <= template.difficulty && { backgroundColor: template.color },
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={styles.time}>~{template.estimated_minutes} min</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.gray} style={styles.chevron} />
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -86,57 +87,59 @@ export const WorksheetTemplateCard: React.FC<WorksheetTemplateCardProps> = ({
 
 const styles = StyleSheet.create({
   cardWrapper: {
-    width: '48%',
+    width: '100%',
     marginBottom: Spacing.sm,
   },
   card: {
-    backgroundColor: Colors.cardBg,
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowRadius: 4,
-    elevation: 3,
-    minHeight: 160,
-    justifyContent: 'space-between',
+    elevation: 2,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginRight: Spacing.md,
+  },
+  content: {
+    flex: 1,
   },
   name: {
     fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     color: Colors.dark,
-    marginBottom: Spacing.xs,
+    marginBottom: 2,
   },
   description: {
     fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     color: Colors.gray,
-    marginBottom: Spacing.sm,
-    flex: 1,
-  },
-  footer: {
-    marginTop: 'auto',
+    lineHeight: 20,
+    marginBottom: Spacing.xs,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
   difficultyDots: {
     flexDirection: 'row',
     gap: 3,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
     backgroundColor: Colors.border,
   },
@@ -144,5 +147,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+  },
+  chevron: {
+    marginLeft: Spacing.sm,
   },
 });

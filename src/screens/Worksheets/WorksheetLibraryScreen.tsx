@@ -107,8 +107,6 @@ export const WorksheetLibraryScreen: React.FC<{ navigation: any }> = ({
       <FlatList
         data={filteredTemplates}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={renderHeader}
         renderItem={({ item }) => (
@@ -134,9 +132,6 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.md,
     paddingBottom: Spacing.xxl,
-  },
-  row: {
-    justifyContent: 'space-between',
   },
   draftBanner: {
     flexDirection: 'row',
