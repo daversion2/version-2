@@ -3,7 +3,7 @@ import { Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { WorksheetLibraryScreen } from '../screens/Worksheets/WorksheetLibraryScreen';
-import { WorksheetScreen } from '../screens/Worksheets/WorksheetScreen';
+import { ToolConversationScreen } from '../screens/Tools/ToolConversationScreen';
 import { WorksheetHistoryScreen } from '../screens/Worksheets/WorksheetHistoryScreen';
 import { WorksheetDetailScreen } from '../screens/Worksheets/WorksheetDetailScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
@@ -44,8 +44,8 @@ export const WorksheetsStack: React.FC = () => (
     />
     <Stack.Screen
       name="WorksheetForm"
-      component={WorksheetScreen}
-      options={{ title: 'Worksheet' }}
+      component={ToolConversationScreen}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="WorksheetHistory"

@@ -246,148 +246,7 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   },
 
   // =========================================================================
-  // 3. BEHAVIORAL EXPERIMENT PLANNER
-  // =========================================================================
-  {
-    id: 'behavioral_experiment',
-    name: 'Put It to the Test',
-    short_description: 'Design a small real-world experiment to challenge a limiting belief',
-    long_description:
-      'You can\'t think your way out of a belief — you have to act your way out. This exercise helps you make a specific prediction, take an action, and see what actually happens. Evidence beats rumination every time.',
-    category: 'behavior',
-    difficulty: 2,
-    estimated_minutes: 12,
-    icon: 'flask',
-    color: '#7B1FA2',
-    when_to_use:
-      'When a belief about yourself or the world is holding you back from taking action.',
-    tips: [
-      'Start with experiments where the stakes feel manageable',
-      "Be specific about what you'll do and when",
-      'Record results as soon as possible after the experiment',
-    ],
-    sections: [
-      {
-        id: 'belief',
-        title: 'The Belief to Test',
-        description:
-          'What belief or prediction do you want to put to the test?',
-        fields: [
-          {
-            id: 'belief_to_test',
-            label: 'The belief I want to test',
-            placeholder:
-              "e.g., If I speak up in the meeting, people will think I'm stupid.",
-            field_type: 'textarea',
-            required: true,
-            max_length: 400,
-          },
-          {
-            id: 'belief_strength',
-            label: 'How strongly do I believe this? (0-100%)',
-            placeholder: 'e.g., 75',
-            field_type: 'text',
-            required: true,
-            max_length: 3,
-          },
-        ],
-      },
-      {
-        id: 'experiment_design',
-        title: 'Design the Experiment',
-        description: 'What will you actually DO to test this belief?',
-        fields: [
-          {
-            id: 'experiment_action',
-            label: 'What I will do',
-            placeholder:
-              "e.g., I will ask one question or make one comment in tomorrow's team meeting.",
-            field_type: 'textarea',
-            required: true,
-            max_length: 400,
-          },
-          {
-            id: 'when_where',
-            label: 'When and where',
-            placeholder: 'e.g., Tuesday 10am standup meeting',
-            field_type: 'text',
-            required: true,
-            max_length: 200,
-          },
-          {
-            id: 'prediction',
-            label: 'My prediction (what I think will happen)',
-            placeholder:
-              'e.g., People will look confused or annoyed. My voice will shake.',
-            field_type: 'textarea',
-            required: true,
-            max_length: 400,
-          },
-          {
-            id: 'safety_behaviors',
-            label: 'Safety behaviors I will drop',
-            placeholder:
-              "e.g., I won't rehearse my comment 10 times first or apologize before speaking.",
-            field_type: 'textarea',
-            required: false,
-            helper_text:
-              'Safety behaviors prevent you from fully testing the belief',
-            max_length: 300,
-          },
-        ],
-      },
-      {
-        id: 'results',
-        title: 'Results',
-        description: 'After the experiment, record what actually happened.',
-        fields: [
-          {
-            id: 'what_happened',
-            label: 'What actually happened?',
-            placeholder:
-              'e.g., I asked a question. Two people nodded. My manager said "good point."',
-            field_type: 'textarea',
-            required: false,
-            max_length: 500,
-          },
-          {
-            id: 'prediction_accuracy',
-            label: 'Was my prediction accurate?',
-            field_type: 'single_select',
-            required: false,
-            options: [
-              'Not at all — the opposite happened',
-              'Slightly — a small part was true',
-              'Partially — some of it happened',
-              'Mostly accurate',
-              'Completely accurate',
-            ],
-          },
-          {
-            id: 'what_i_learned',
-            label: 'What did I learn?',
-            placeholder:
-              'e.g., People actually welcomed my input. The fear was worse than the reality.',
-            field_type: 'textarea',
-            required: false,
-            max_length: 500,
-          },
-          {
-            id: 'new_belief_strength',
-            label:
-              'How strongly do I believe the original thought NOW? (0-100%)',
-            placeholder: 'e.g., 30',
-            field_type: 'text',
-            required: false,
-            max_length: 3,
-          },
-        ],
-      },
-    ],
-  },
-
-  // =========================================================================
-  // 4. CORE BELIEF DOWNWARD ARROW
+  // 3. CORE BELIEF DOWNWARD ARROW
   // =========================================================================
   {
     id: 'core_belief_arrow',
@@ -506,7 +365,7 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   },
 
   // =========================================================================
-  // 5. SMART ACTION PLAN
+  // 4. SMART ACTION PLAN
   // =========================================================================
   {
     id: 'smart_action_plan',

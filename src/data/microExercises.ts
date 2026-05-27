@@ -87,37 +87,6 @@ export const MICRO_EXERCISES: MicroExerciseDefinition[] = [
       "That urge to quit isn't weakness — it's your nervous system trying to conserve energy. You just gave it a reason not to. That's your brain updating its model of you.",
   },
   {
-    feeling_key: 'dont_know_why',
-    feeling_label: "I don't know why I can't just do it",
-    source_template_id: 'behavioral_experiment',
-    default_for_triggers: [],
-    questions: [
-      {
-        id: 'q1',
-        prompt:
-          "Think about the last time you actually followed through on something like this. What was different about that day?",
-        placeholder:
-          "e.g. \"I had more energy, fewer distractions, I'd already started the night before...\"",
-      },
-      {
-        id: 'q2',
-        prompt:
-          "What's the belief that keeps you stuck before you even start — and where did it actually come from?",
-        placeholder:
-          "e.g. \"I tell myself I'm just not disciplined, but I'm not sure that's actually true...\"",
-      },
-      {
-        id: 'q3',
-        prompt:
-          "What's the smallest test you could run today to see if that belief holds up?",
-        placeholder:
-          "e.g. \"Just showing up for five minutes and...\"",
-      },
-    ],
-    completion_affirmation:
-      "You can't think your way out of a belief. Your brain updates through action and evidence — not reflection alone. You just designed the experiment. Now run it.",
-  },
-  {
     feeling_key: 'overwhelmed',
     feeling_label: 'Everything feels like too much',
     source_template_id: 'core_belief_arrow',
