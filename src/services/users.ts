@@ -62,6 +62,10 @@ export const markChallengesUnlockSeen = async (userId: string): Promise<void> =>
   await setDoc(doc(db, 'users', userId), { has_seen_challenges_unlock: true }, { merge: true });
 };
 
+export const markComebackShown = async (userId: string, date: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { lastComebackDate: date }, { merge: true });
+};
+
 export const incrementAppOpenCount = async (userId: string): Promise<void> => {
   const { increment } = await import('firebase/firestore');
   await setDoc(doc(db, 'users', userId), { app_open_count: increment(1) }, { merge: true });

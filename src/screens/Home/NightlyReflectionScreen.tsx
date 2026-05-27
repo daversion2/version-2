@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,9 +14,8 @@ import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { useAuth } from '../../context/AuthContext';
-import { DailySummary, ReflectionGrade, DailyReflection, Goal, Nudge, Category, TomorrowChallenge } from '../../types';
+import { DailySummary, ReflectionGrade, DailyReflection, Nudge, Category, TomorrowChallenge } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
-import { getActiveGoals } from '../../services/goals';
 import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
 import { saveTomorrowPlan, getTomorrowPlan, suggestHabitsForTomorrow } from '../../services/dailyPlan';
 import { getUserCategories } from '../../services/categories';
@@ -25,6 +23,7 @@ import { showAlert } from '../../utils/alert';
 import { getTomorrowString } from '../../utils/date';
 import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
 import { PlanTomorrowStep } from '../../components/home/PlanTomorrowStep';
+import { BadDayModal } from '../../components/home/BadDayModal';
 
 type Props = NativeStackScreenProps<any, 'NightlyReflection'>;
 
@@ -42,7 +41,8 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [hardest, setHardest] = useState('');
   const [tomorrow, setTomorrow] = useState('');
   const [whyReflection, setWhyReflection] = useState('');
-  const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
+  const [badDayModalVisible, setBadDayModalVisible] = useState(false);
+  const [badDayShownForGrade, setBadDayShownForGrade] = useState(false);
 
   // Plan Tomorrow state
   const [allHabits, setAllHabits] = useState<Nudge[]>([]);
@@ -67,18 +67,11 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     setLoading(true);
     try {
-      const [dailySummary, existing, activeGoals] = await Promise.all([
+      const [dailySummary, existing] = await Promise.all([
         buildDailySummary(user.uid, todayStr),
         getReflection(user.uid, todayStr),
-        getActiveGoals(user.uid),
       ]);
       setSummary(dailySummary);
-
-      // Load first goal with CBT data for self-compassion prompts
-      const cbtGoal = activeGoals.find(
-        (g) => g.recovery_plan || g.identity_statement || g.inner_voice_response
-      );
-      if (cbtGoal) setGoalCBT(cbtGoal);
 
       if (existing) {
         setExistingReflection(existing);
@@ -127,28 +120,6 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const handleWorkThroughThis = async () => {
-    // Save the reflection silently before leaving the screen so the grade isn't lost
-    if (user && grade && summary) {
-      try {
-        await saveReflection(user.uid, {
-          user_id: user.uid,
-          date: todayStr,
-          grade,
-          prompt_went_well: wentWell.trim() || undefined,
-          prompt_hardest: hardest.trim() || undefined,
-          prompt_tomorrow: tomorrow.trim() || undefined,
-          prompt_why_connection: whyReflection.trim() || undefined,
-          daily_summary: summary,
-          created_at: new Date().toISOString(),
-        });
-      } catch (e) {
-        console.warn('Failed to save reflection before micro-exercise:', e);
-      }
-    }
-    navigation.navigate('MicroExerciseFeeling', { trigger_context: 'reflection' });
-  };
 
   const handleSave = async () => {
     if (!user || !grade || !summary) return;
@@ -235,37 +206,28 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       {/* Grade Selector */}
       <GradeSelector
         value={grade}
-        onChange={isReadOnly ? () => {} : setGrade}
+        onChange={isReadOnly ? () => {} : (g) => {
+          setGrade(g);
+          if ((g === 'D' || g === 'F') && !badDayShownForGrade) {
+            setBadDayShownForGrade(true);
+            setBadDayModalVisible(true);
+          }
+        }}
       />
 
-      {/* Self-Compassion Prompt — shown on low-grade days (D or F) */}
-      {grade && (grade === 'D' || grade === 'F') && !isReadOnly && (
-        <View style={styles.selfCompassionBanner}>
-          <Ionicons name="heart-outline" size={18} color={Colors.secondary} />
-          <View style={styles.selfCompassionContent}>
-            <Text style={styles.selfCompassionText}>
-              What would you say to a friend who had this day?
-            </Text>
-            {goalCBT?.recovery_plan && (
-              <Text style={styles.selfCompassionPlan}>
-                Your plan for days like this: "{goalCBT.recovery_plan}"
-              </Text>
-            )}
-            {goalCBT?.minimum_action && (
-              <Text style={styles.selfCompassionMinAction}>
-                Tomorrow's worst-day win: "{goalCBT.minimum_action}"
-              </Text>
-            )}
-            <TouchableOpacity
-              onPress={handleWorkThroughThis}
-              style={styles.workThroughLink}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.workThroughLinkText}>Work through this →</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      {/* Bad Day Modal — shown once when D or F is selected */}
+      <BadDayModal
+        visible={badDayModalVisible}
+        habits={allHabits}
+        onCommit={(habitId) => {
+          setBadDayModalVisible(false);
+          // Auto-select the committed habit in Plan Tomorrow
+          setSelectedHabitIds((prev) =>
+            prev.includes(habitId) ? prev : [...prev, habitId]
+          );
+        }}
+        onDismiss={() => setBadDayModalVisible(false)}
+      />
 
       {/* Prompts */}
       <View style={styles.promptSection}>
@@ -479,52 +441,5 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.primary,
     flex: 1,
-  },
-  // Self-compassion styles
-  selfCompassionBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    backgroundColor: Colors.secondary + '10',
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.secondary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    marginBottom: Spacing.lg,
-  },
-  selfCompassionContent: {
-    flex: 1,
-  },
-  selfCompassionText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-    lineHeight: 20,
-    marginBottom: Spacing.xs,
-  },
-  selfCompassionPlan: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    fontStyle: 'italic',
-    lineHeight: 20,
-    marginTop: Spacing.xs,
-  },
-  selfCompassionMinAction: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.secondary,
-    lineHeight: 20,
-    marginTop: Spacing.xs,
-  },
-  workThroughLink: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  workThroughLinkText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.secondary,
   },
 });

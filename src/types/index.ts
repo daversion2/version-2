@@ -43,6 +43,8 @@ export interface User {
   has_seen_plan_intro?: boolean;
   has_dismissed_goal_prompt?: boolean;
   has_seen_challenges_unlock?: boolean;
+  // Comeback modal
+  lastComebackDate?: string; // YYYY-MM-DD — prevents re-showing on same day
   // App usage tracking
   app_open_count?: number;
   // Deferred onboarding

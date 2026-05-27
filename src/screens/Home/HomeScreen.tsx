@@ -51,7 +51,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount } from '../../services/users';
+import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markComebackShown } from '../../services/users';
 import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
@@ -249,10 +249,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
 
-      // Detect streak break and show comeback modal (once per session)
-      if (!comebackShownRef.current && wpStats.currentStreak === 0 && habitList.length > 0) {
+      // Detect streak break and show comeback modal (once per day)
+      const todayForComeback = getTodayString();
+      if (
+        !comebackShownRef.current &&
+        wpStats.currentStreak === 0 &&
+        habitList.length > 0 &&
+        userProfile?.lastComebackDate !== todayForComeback
+      ) {
         comebackShownRef.current = true;
         setComebackVisible(true);
+        // Mark today so it won't re-trigger on refresh
+        markComebackShown(user.uid, todayForComeback).catch(() => {});
       }
 
       // Compute follow-through for each goal
