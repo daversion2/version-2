@@ -98,6 +98,26 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
                 plannedForDate={futureHabitPlanMap.get(habit.id)}
               />
             ))}
+            <View style={styles.addRow}>
+              {challengesUnlocked && (
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => callbacks.onNavigate('StartChallenge')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="flash-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.addButtonText}>Challenge</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => callbacks.onNavigate('ManageHabits')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
+                <Text style={styles.addButtonText}>Habit</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         <Card style={styles.emptyCard}>
@@ -257,13 +277,23 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
             />
           ))}
           <View style={styles.addRow}>
+            {challengesUnlocked && (
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => callbacks.onNavigate('StartChallenge')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="flash-outline" size={16} color={Colors.primary} />
+                <Text style={styles.addButtonText}>Challenge</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => callbacks.onNavigate('ManageHabits')}
               activeOpacity={0.7}
             >
-              <Ionicons name="add-outline" size={16} color={Colors.primary} />
-              <Text style={styles.addButtonText}>Add Habit</Text>
+              <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
+              <Text style={styles.addButtonText}>Habit</Text>
             </TouchableOpacity>
           </View>
         </View>

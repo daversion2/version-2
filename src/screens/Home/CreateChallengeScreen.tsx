@@ -67,10 +67,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
       showAlert('Required', 'Please enter a challenge name.');
       return;
     }
-    if (goalIds.length === 0) {
-      showAlert('Required', 'Please select at least one goal for this challenge.');
-      return;
-    }
     if (!user) return;
     setLoading(true);
     try {
@@ -204,7 +200,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
         <GoalTagPicker
           selectedGoalIds={goalIds}
           onChange={setGoalIds}
-          required
           onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
         />
 

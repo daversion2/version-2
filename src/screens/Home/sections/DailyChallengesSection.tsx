@@ -29,6 +29,11 @@ export const DailyChallengesSection: React.FC<HomeSectionProps> = ({ data, callb
                 : 'Complete 3 habits to unlock challenges'}
             </Text>
           </View>
+          {challengesUnlocked && (
+            <TouchableOpacity onPress={() => callbacks.onNavigate('StartChallenge')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="add-circle-outline" size={28} color={Colors.white} />
+            </TouchableOpacity>
+          )}
         </View>
       </Card>
 
