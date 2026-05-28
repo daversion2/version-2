@@ -13,7 +13,7 @@ const getStatusLabel = (status: string): string => {
     case 'pending': return 'Invited';
     case 'active': return 'In Progress';
     case 'completed': return 'Completed';
-    case 'failed': return 'Failed';
+    case 'failed': return 'Not Yet';
     case 'declined': return 'Declined';
     case 'cancelled': return 'Cancelled';
     default: return status;

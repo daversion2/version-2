@@ -53,7 +53,7 @@ export const ChallengesScreen: React.FC = () => {
             </Text>
             <Text style={styles.metaText}>{item.date}</Text>
             <Text style={[styles.metaText, { color: statusColor }]}>
-              {item.status === 'completed' ? 'Success' : 'Failed'}
+              {item.status === 'completed' ? 'Success' : 'Not Yet'}
             </Text>
             <Text style={styles.metaText}>
               Diff: {item.difficulty_actual || item.difficulty_expected}

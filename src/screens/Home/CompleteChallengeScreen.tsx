@@ -509,7 +509,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           style={styles.resultBtn}
         />
         <Button
-          title="Fail"
+          title="Not Yet"
           onPress={() => setResult('failed')}
           variant={result === 'failed' ? 'primary' : 'outline'}
           style={styles.resultBtn}
