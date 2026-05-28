@@ -4,21 +4,12 @@ export const SECTION_IDS = [
   // Zone 1: Welcome
   'greeting',
   'mantra',
-  'why_summary',
   // Zone 2: Your Goals + Today's Actions
-  'todays_plan',
   'goal_actions',
   // Zone 3: Reflect
   'reflection_banner',
   'fun_fact',
   // Legacy (kept for backward compat with custom layouts)
-  'identity_summary',
-  'goals',
-  'willpower_summary',
-  'daily_challenges',
-  'habits',
-  'programs',
-  'extended_challenges',
   'buddy_invites',
   'team_activity',
 ] as const;
@@ -26,16 +17,7 @@ export const SECTION_IDS = [
 export type HomeSectionId = (typeof SECTION_IDS)[number];
 
 const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
-  // Hidden from default layout
-  'todays_plan',
   // Legacy sections hidden from default layout
-  'identity_summary',
-  'goals',
-  'willpower_summary',
-  'daily_challenges',
-  'habits',
-  'programs',
-  'extended_challenges',
   'buddy_invites',
   'team_activity',
 ]);
@@ -57,7 +39,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'welcome',
     label: 'Welcome',
     icon: 'sunny-outline',
-    sectionIds: ['greeting', 'mantra', 'why_summary'],
+    sectionIds: ['greeting', 'mantra'],
   },
   {
     id: 'goals_actions',
@@ -76,7 +58,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'legacy',
     label: 'More',
     icon: 'grid-outline',
-    sectionIds: ['todays_plan', 'identity_summary', 'goals', 'willpower_summary', 'daily_challenges', 'habits', 'programs', 'extended_challenges', 'buddy_invites', 'team_activity'],
+    sectionIds: ['buddy_invites', 'team_activity'],
   },
 ];
 
@@ -90,19 +72,10 @@ for (const zone of ZONE_CONFIG) {
 export const SECTION_LABELS: Record<HomeSectionId, string> = {
   greeting: 'Greeting',
   mantra: 'Redirect Mantra',
-  why_summary: 'Your Why',
-  todays_plan: "Today's Plan",
   goal_actions: 'Goals & Actions',
-  identity_summary: 'Identity Summary',
   reflection_banner: 'Nightly Reflection',
   fun_fact: 'Fun Fact',
   // Legacy
-  goals: 'Goals',
-  willpower_summary: 'Willpower Summary',
-  daily_challenges: "Today's Challenges",
-  habits: 'Habits',
-  programs: 'Programs',
-  extended_challenges: 'Extended Challenges',
   buddy_invites: 'Buddy Invites',
   team_activity: 'Team Activity',
 };
@@ -110,19 +83,10 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
   greeting: 'sunny-outline',
   mantra: 'megaphone-outline',
-  why_summary: 'compass-outline',
-  todays_plan: 'today-outline',
   goal_actions: 'flag-outline',
-  identity_summary: 'sparkles-outline',
   reflection_banner: 'moon-outline',
   fun_fact: 'bulb-outline',
   // Legacy
-  goals: 'flag-outline',
-  willpower_summary: 'shield-outline',
-  daily_challenges: 'flash-outline',
-  habits: 'repeat-outline',
-  programs: 'rocket-outline',
-  extended_challenges: 'trending-up-outline',
   buddy_invites: 'person-add-outline',
   team_activity: 'people-outline',
 };
