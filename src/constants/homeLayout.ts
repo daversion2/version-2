@@ -3,6 +3,7 @@ import { HomeLayoutItem } from '../types';
 export const SECTION_IDS = [
   // Zone 1: Welcome
   'greeting',
+  'mantra',
   'why_summary',
   // Zone 2: Your Goals + Today's Actions
   'todays_plan',
@@ -56,7 +57,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'welcome',
     label: 'Welcome',
     icon: 'sunny-outline',
-    sectionIds: ['greeting', 'why_summary'],
+    sectionIds: ['greeting', 'mantra', 'why_summary'],
   },
   {
     id: 'goals_actions',
@@ -88,6 +89,7 @@ for (const zone of ZONE_CONFIG) {
 
 export const SECTION_LABELS: Record<HomeSectionId, string> = {
   greeting: 'Greeting',
+  mantra: 'Redirect Mantra',
   why_summary: 'Your Why',
   todays_plan: "Today's Plan",
   goal_actions: 'Goals & Actions',
@@ -107,6 +109,7 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
   greeting: 'sunny-outline',
+  mantra: 'megaphone-outline',
   why_summary: 'compass-outline',
   todays_plan: 'today-outline',
   goal_actions: 'flag-outline',

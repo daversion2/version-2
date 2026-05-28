@@ -261,6 +261,8 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
       why_statement: deleteField(),
       // Onboarding
       redirect_mantra: deleteField(),
+      mantras: deleteField(),
+      active_mantra_id: deleteField(),
       onboarding_pattern: deleteField(),
       onboarding_reflection: deleteField(),
       onboarding_deferred: deleteField(),

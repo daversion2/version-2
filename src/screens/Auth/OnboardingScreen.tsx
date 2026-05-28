@@ -67,18 +67,7 @@ const PATTERN_RESPONSES: Record<string, { headline: string; body: string; patter
   },
 };
 
-const MANTRA_EXAMPLES = [
-  'I am not my thoughts',
-  'Progress, not perfection',
-  'One step at a time',
-  'I choose calm over chaos',
-  'I am enough, right now',
-  'Breathe in strength, breathe out doubt',
-  'I trust the process',
-  'Small steps, big changes',
-  'I am building something real',
-  'This moment is mine',
-];
+import { MANTRA_EXAMPLES } from '../../data/mantras';
 
 // ============================================================================
 // COMPONENT
@@ -194,7 +183,16 @@ export const OnboardingScreen: React.FC = () => {
       }
 
       // 4. Save onboarding data to user doc
-      const userData: Record<string, string> = { redirect_mantra: mantra };
+      const mantraObj = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        text: mantra,
+        created_at: new Date().toISOString(),
+      };
+      const userData: Record<string, any> = {
+        redirect_mantra: mantra,
+        mantras: [mantraObj],
+        active_mantra_id: mantraObj.id,
+      };
       if (selectedPattern) userData.onboarding_pattern = selectedPattern;
       if (reflectionText.trim()) userData.onboarding_reflection = reflectionText.trim();
       await setDoc(doc(db, 'users', user.uid), userData, { merge: true });

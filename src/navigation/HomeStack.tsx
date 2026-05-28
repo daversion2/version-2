@@ -31,6 +31,7 @@ import { CreateGoalScreen } from '../screens/Home/CreateGoalScreen';
 import { GoalOnboardingFlow } from '../screens/Home/GoalOnboardingFlow';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
+import { MantraScreen } from '../screens/Home/MantraScreen';
 import { WhyScreen } from '../screens/Home/WhyScreen';
 import { WhyDiscoveryFlow } from '../screens/Home/WhyDiscoveryFlow';
 import { DeferredOnboardingScreen } from '../screens/Auth/DeferredOnboardingScreen';
@@ -215,6 +216,11 @@ export const HomeStack: React.FC = () => (
       name="EditGoal"
       component={EditGoalScreen}
       options={{ title: 'Edit Goal' }}
+    />
+    <Stack.Screen
+      name="MantraScreen"
+      component={MantraScreen}
+      options={{ title: 'My Mantras' }}
     />
     <Stack.Screen
       name="WhyScreen"

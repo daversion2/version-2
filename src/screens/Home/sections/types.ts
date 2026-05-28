@@ -47,6 +47,8 @@ export interface HomeData {
   goalFollowThrough: Record<string, GoalFollowThrough>;
   // Challenge unlock
   totalHabitsCompleted: number;
+  // Mantra
+  activeMantra: string | null;
   // Why Discovery
   whyStatement: string | null;
   hasCompletedWhyDiscovery: boolean;

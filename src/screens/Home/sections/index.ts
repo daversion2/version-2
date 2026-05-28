@@ -14,10 +14,12 @@ import { WillpowerSummarySection } from './WillpowerSummarySection';
 import { GoalActionsSection } from './GoalActionsSection';
 import { IdentitySummarySection } from './IdentitySummarySection';
 import { WhySummarySection } from './WhySummarySection';
+import { MantraSection } from './MantraSection';
 import { TodaysPlanSection } from './TodaysPlanSection';
 
 export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   greeting: GreetingSection,
+  mantra: MantraSection,
   why_summary: WhySummarySection,
   todays_plan: TodaysPlanSection,
   goal_actions: GoalActionsSection,

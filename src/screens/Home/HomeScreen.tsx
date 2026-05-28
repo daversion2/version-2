@@ -58,6 +58,7 @@ import { SECTION_REGISTRY } from './sections';
 import { HomeData, HomeCallbacks, WillpowerStatsData } from './sections/types';
 import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/homeLayout';
 import { ZoneHeader } from '../../components/home/ZoneHeader';
+import { getActiveMantraText } from '../../services/mantras';
 
 type Props = NativeStackScreenProps<any, 'HomeScreen'>;
 
@@ -637,6 +638,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     willpowerStats,
     goalFollowThrough,
     totalHabitsCompleted: userProfile?.totalHabitsCompleted ?? 0,
+    activeMantra: getActiveMantraText(userProfile),
     whyStatement: userProfile?.why_statement || null,
     hasCompletedWhyDiscovery: userProfile?.has_completed_why_discovery === true,
     plannedHabitIds,

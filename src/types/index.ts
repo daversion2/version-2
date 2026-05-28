@@ -3,6 +3,12 @@ export * from './worksheets';
 
 // Core data models per spec
 
+export interface Mantra {
+  id: string;
+  text: string;
+  created_at: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -36,6 +42,8 @@ export interface User {
   why_statement?: string; // Denormalized for fast home screen display
   // New onboarding
   redirect_mantra?: string;
+  mantras?: Mantra[];
+  active_mantra_id?: string;
   onboarding_pattern?: string;
   onboarding_reflection?: string;
   // One-time intro flags
