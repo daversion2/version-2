@@ -351,16 +351,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [user]);
 
-  // Show one-time plan intro on first home screen landing after onboarding
+  // Show one-time plan intro after onboarding OR after first habit creation (if skipped onboarding)
   useEffect(() => {
     if (!userProfile) return;
     if (planIntroVisible) return; // Already showing
-    if (!userProfile.has_seen_plan_intro) {
+    if (!userProfile.has_seen_plan_intro && habits.length > 0) {
       // Small delay so the home screen renders first
       const timer = setTimeout(() => setPlanIntroVisible(true), 800);
       return () => clearTimeout(timer);
     }
-  }, [userProfile]);
+  }, [userProfile, habits]);
 
   // Show goal prompt on second app open if user has no goals
   useEffect(() => {

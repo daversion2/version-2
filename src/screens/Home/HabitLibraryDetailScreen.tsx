@@ -48,17 +48,13 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
   const color = Colors.primary;
 
   const handleAdd = async () => {
-    if (selectedGoalIds.length === 0) {
-      showAlert('Required', 'Please select at least one goal for this habit.');
-      return;
-    }
     if (!user) return;
     setAdding(true);
     try {
       const newHabitId = await createHabit(user.uid, {
         name: habit.name,
         target_count_per_week: habit.suggested_target_per_week,
-        goal_ids: selectedGoalIds,
+        ...(selectedGoalIds.length > 0 ? { goal_ids: selectedGoalIds } : {}),
         action_plan: habit.action_plan,
         created_by_user: false,
       });
@@ -113,7 +109,6 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
       <GoalTagPicker
         selectedGoalIds={selectedGoalIds}
         onChange={setSelectedGoalIds}
-        required
         onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
       />
 

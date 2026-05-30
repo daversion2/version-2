@@ -108,14 +108,10 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     })();
   }, [user, challenge.goal_ids]);
 
-  // Navigate home, or show the message prompt first if a feed entry was created
-  // Uses ref instead of state to avoid stale closure when called from pending alert callbacks
+  // Navigate home after challenge completion
+  // Community "Share a Thought" prompt disabled while community feature is off
   const navigateHome = useCallback(() => {
-    if (feedEntryIdRef.current) {
-      setShowMessagePrompt(true);
-    } else {
-      navigation.popToTop();
-    }
+    navigation.popToTop();
   }, [navigation]);
 
   const handleShareMessage = useCallback(async () => {

@@ -72,54 +72,52 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
         {/* Planner access */}
         <PlannerBar callbacks={callbacks} />
 
-        {/* Show existing habits/challenges even without goals */}
-        {(habits.length > 0 || (challengesUnlocked && allChallenges.length > 0)) && (
-          <View style={styles.goalGroup}>
-            <View style={styles.goalHeader}>
-              <View style={styles.goalHeaderLeft}>
-                <Ionicons name="list" size={20} color={Colors.primary} />
-                <Text style={styles.goalName}>Your Activities</Text>
-              </View>
-              <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits')}>
-                <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
-              </TouchableOpacity>
+        {/* Show activities section — always visible so users can create habits */}
+        <View style={styles.goalGroup}>
+          <View style={styles.goalHeader}>
+            <View style={styles.goalHeaderLeft}>
+              <Ionicons name="list" size={20} color={Colors.primary} />
+              <Text style={styles.goalName}>Your Activities</Text>
             </View>
-            {challengesUnlocked && allChallenges.map((challenge) => (
-              <ChallengeRow key={challenge.id} challenge={challenge} callbacks={callbacks} />
-            ))}
-            {habits.map((habit) => (
-              <HabitRow
-                key={habit.id}
-                habit={habit}
-                done={weeklyCounts[habit.id] || 0}
-                streak={habitStreaks[habit.id]?.currentStreak || 0}
-                callbacks={callbacks}
-                isDueToday={plannedTodaySet.has(habit.id)}
-                plannedForDate={futureHabitPlanMap.get(habit.id)}
-              />
-            ))}
-            <View style={styles.addRow}>
-              {challengesUnlocked && (
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => callbacks.onNavigate('StartChallenge')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="flash-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.addButtonText}>Challenge</Text>
-                </TouchableOpacity>
-              )}
+            <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits')}>
+              <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          {challengesUnlocked && allChallenges.map((challenge) => (
+            <ChallengeRow key={challenge.id} challenge={challenge} callbacks={callbacks} />
+          ))}
+          {habits.map((habit) => (
+            <HabitRow
+              key={habit.id}
+              habit={habit}
+              done={weeklyCounts[habit.id] || 0}
+              streak={habitStreaks[habit.id]?.currentStreak || 0}
+              callbacks={callbacks}
+              isDueToday={plannedTodaySet.has(habit.id)}
+              plannedForDate={futureHabitPlanMap.get(habit.id)}
+            />
+          ))}
+          <View style={styles.addRow}>
+            {challengesUnlocked && (
               <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => callbacks.onNavigate('ManageHabits')}
+                onPress={() => callbacks.onNavigate('StartChallenge')}
                 activeOpacity={0.7}
               >
-                <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
-                <Text style={styles.addButtonText}>Habit</Text>
+                <Ionicons name="flash-outline" size={16} color={Colors.primary} />
+                <Text style={styles.addButtonText}>Challenge</Text>
               </TouchableOpacity>
-            </View>
+            )}
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => callbacks.onNavigate('ManageHabits')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
+              <Text style={styles.addButtonText}>Habit</Text>
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
         <Card style={styles.emptyCard}>
           <Ionicons name="flag-outline" size={40} color={Colors.primary} />
           <Text style={styles.emptyTitle}>Create Your First Goal</Text>

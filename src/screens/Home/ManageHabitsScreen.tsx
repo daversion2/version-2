@@ -54,10 +54,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
       showAlert('Required', 'Enter a habit name.');
       return;
     }
-    if (goalIds.length === 0) {
-      showAlert('Required', 'Please select at least one goal for this habit.');
-      return;
-    }
     if (!user) return;
     setLoading(true);
     try {
@@ -173,7 +169,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
           <GoalTagPicker
             selectedGoalIds={goalIds}
             onChange={setGoalIds}
-            required
             onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
           />
           <View style={styles.formButtons}>
