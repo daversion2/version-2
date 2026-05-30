@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
 import { HomeSectionProps } from './types';
 
-export const MantraSection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
+export const MantraSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
   if (!data.activeMantra) return null;
 
   return (
@@ -16,7 +16,7 @@ export const MantraSection: React.FC<HomeSectionProps> = ({ data, callbacks }) =
       <Text style={styles.mantraText}>"{data.activeMantra}"</Text>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

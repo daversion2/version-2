@@ -5,7 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../../constants/theme';
 import { Card } from '../../../components/common/Card';
 import { HomeSectionProps } from './types';
 
-export const BuddyInvitesSection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
+export const BuddyInvitesSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
   if (data.pendingInvites <= 0) return null;
   return (
     <Card
@@ -21,7 +21,7 @@ export const BuddyInvitesSection: React.FC<HomeSectionProps> = ({ data, callback
       </View>
     </Card>
   );
-};
+});
 
 const styles = StyleSheet.create({
   inviteBanner: {

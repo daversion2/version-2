@@ -10,9 +10,9 @@ const getGreeting = (): string => {
   return 'Good evening';
 };
 
-export const GreetingSection: React.FC<HomeSectionProps> = () => {
+export const GreetingSection: React.FC<HomeSectionProps> = React.memo(() => {
   return <Text style={styles.greeting}>{getGreeting()}</Text>;
-};
+});
 
 const styles = StyleSheet.create({
   greeting: {

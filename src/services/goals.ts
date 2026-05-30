@@ -348,10 +348,12 @@ export const getItemsForGoal = async (
 
 /**
  * Compute follow-through stats for a goal based on its tagged items.
+ * Optionally accepts pre-fetched nudge logs to avoid redundant Firestore reads.
  */
 export const computeGoalFollowThrough = async (
   userId: string,
-  goalId: string
+  goalId: string,
+  cachedNudgeLogs?: { reference_id: string; date: string }[]
 ): Promise<GoalFollowThrough> => {
   const items = await getItemsForGoal(userId, goalId);
 
@@ -361,14 +363,22 @@ export const computeGoalFollowThrough = async (
     c => c.status === 'completed'
   ).length;
 
-  // Habits: sum weekly target counts vs completion log counts
-  // We count total target as sum of target_count_per_week for each habit
-  // and kept as the actual completions logged this week
-  const habitsQ = query(
-    collection(db, 'users', userId, 'completionLogs'),
-    where('type', '==', 'nudge')
-  );
-  const habitsSnap = await getDocs(habitsQ);
+  // Use cached logs if provided, otherwise fetch from Firestore
+  let nudgeLogs: { reference_id: string; date: string }[];
+  if (cachedNudgeLogs) {
+    nudgeLogs = cachedNudgeLogs;
+  } else {
+    const habitsQ = query(
+      collection(db, 'users', userId, 'completionLogs'),
+      where('type', '==', 'nudge')
+    );
+    const habitsSnap = await getDocs(habitsQ);
+    nudgeLogs = habitsSnap.docs.map(d => {
+      const data = d.data();
+      return { reference_id: data.reference_id as string, date: data.date as string };
+    });
+  }
+
   const habitIds = new Set(items.habits.map(h => h.id));
 
   // Get current week bounds
@@ -383,12 +393,11 @@ export const computeGoalFollowThrough = async (
   const sundayStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
 
   let weeklyHabitKept = 0;
-  habitsSnap.docs.forEach(d => {
-    const data = d.data();
-    if (habitIds.has(data.reference_id) && data.date >= mondayStr && data.date <= sundayStr) {
+  for (const log of nudgeLogs) {
+    if (habitIds.has(log.reference_id) && log.date >= mondayStr && log.date <= sundayStr) {
       weeklyHabitKept++;
     }
-  });
+  }
 
   const weeklyHabitTarget = items.habits.reduce(
     (sum, h) => sum + h.target_count_per_week, 0

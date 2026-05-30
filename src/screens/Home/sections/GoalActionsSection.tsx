@@ -12,7 +12,7 @@ import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { GOAL_CONSTANTS } from '../../../constants/goals';
 import { formatShortDay } from '../../../utils/date';
 
-export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
+export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
   const {
     goals,
     activeChallenges,
@@ -312,7 +312,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = ({ data, callbacks
       )}
     </>
   );
-};
+});
 
 // --- Sub-components ---
 

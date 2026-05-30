@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { NightlyReflectionBanner } from '../../../components/home/NightlyReflectionBanner';
 import { HomeSectionProps } from './types';
 
-export const ReflectionBannerSection: React.FC<HomeSectionProps> = ({ data, callbacks }) => {
+export const ReflectionBannerSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
   if (!data.showReflectionBanner) return null;
 
   // Compute today's action count for the recap
@@ -27,4 +27,4 @@ export const ReflectionBannerSection: React.FC<HomeSectionProps> = ({ data, call
       onPress={() => callbacks.onNavigate('NightlyReflection')}
     />
   );
-};
+});

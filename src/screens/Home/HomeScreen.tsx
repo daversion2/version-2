@@ -16,7 +16,7 @@ import { Challenge, Nudge, Team, TeamMemberActivitySummary, BuddyChallenge, Prog
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
-import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
+import { getActiveHabits, logHabitCompletion, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts } from '../../services/habits';
 import { HabitStreakInfo } from '../../types';
 import { getGoalColor } from '../../constants/goalColors';
 import { getUserTeam, logTeamActivity, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
@@ -258,12 +258,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         markComebackShown(user.uid, todayForComeback).catch(() => {});
       }
 
-      // Compute follow-through for each goal
+      // Fetch all nudge logs once — reused by weekly counts, streaks, and goal follow-through
+      let cachedNudgeLogs: Awaited<ReturnType<typeof fetchAllNudgeLogs>> = [];
+      try {
+        cachedNudgeLogs = await fetchAllNudgeLogs(user.uid);
+        setWeeklyCounts(getWeeklyCompletionCountsFromLogs(cachedNudgeLogs));
+        if (habitList.length > 0) {
+          setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList.map(h => h.id)));
+        }
+      } catch (err) {
+        console.warn('Nudge logs fetch failed:', err);
+      }
+
+      // Compute follow-through for each goal (reuses cached logs)
       if (activeGoals.length > 0) {
         try {
+          const logsForGoals = cachedNudgeLogs.map(l => ({ reference_id: l.reference_id, date: l.date }));
           const ftEntries = await Promise.all(
             activeGoals.map(async (g) => {
-              const ft = await computeGoalFollowThrough(user.uid, g.id);
+              const ft = await computeGoalFollowThrough(user.uid, g.id, logsForGoals);
               return [g.id, ft] as const;
             })
           );
@@ -302,22 +315,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       } else {
         setTeamSummary([]);
-      }
-
-      try {
-        const counts = await getWeeklyCompletionCounts(user.uid);
-        setWeeklyCounts(counts);
-      } catch (err) {
-        console.warn('Weekly counts query failed (composite index may be needed):', err);
-      }
-      // Fetch streaks for all habits
-      if (habitList.length > 0) {
-        try {
-          const streaks = await getHabitsStreaks(user.uid, habitList.map((h) => h.id));
-          setHabitStreaks(streaks);
-        } catch (err) {
-          console.warn('Habit streaks query failed:', err);
-        }
       }
 
       // Check nightly reflection status
@@ -386,9 +383,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleHabitTap = (habit: Nudge) => {
+  const handleHabitTap = useCallback((habit: Nudge) => {
     setCompletingHabit(habit);
-  };
+  }, []);
 
   const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string) => {
     if (!user || !completingHabit) return;
@@ -512,18 +509,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // --- Calendar Export ---
 
-  const handleCalendarExport = async (item: PlannedItem) => {
+  const handleCalendarExport = useCallback(async (item: PlannedItem) => {
     await exportToCalendar({
       title: item.calendarTitle || item.title,
       notes: item.calendarNotes,
       startDate: item.calendarStartDate,
       endDate: item.calendarEndDate,
     });
-  };
+  }, []);
 
   // --- Planned Item Press ---
 
-  const handlePlannedItemPress = (item: PlannedItem) => {
+  const handlePlannedItemPress = useCallback((item: PlannedItem) => {
     switch (item.type) {
       case 'habit': {
         const habit = item.sourceData.habit;
@@ -546,11 +543,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         break;
       }
     }
-  };
+  }, [handleHabitTap, navigation]);
 
   // --- Add to Today ---
 
-  const handleAddTodayChallenge = async (challenge: TomorrowChallenge) => {
+  const handleAddTodayChallenge = useCallback(async (challenge: TomorrowChallenge) => {
     if (!user) return;
     try {
       const todayStr = getTodayString();
@@ -567,9 +564,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       console.warn('Failed to add today challenge:', err);
       showAlert('Error', 'Could not create challenge.');
     }
-  };
+  }, [user]);
 
-  const handleToggleTodayHabit = async (habitId: string) => {
+  const handleToggleTodayHabit = useCallback(async (habitId: string) => {
     if (!user) return;
     const updated = plannedHabitIds.includes(habitId)
       ? plannedHabitIds.filter((id) => id !== habitId)
@@ -592,7 +589,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (err) {
       console.warn('Failed to save planned habits:', err);
     }
-  };
+  }, [user, plannedHabitIds]);
 
   // --- Layout & Section Props ---
 
@@ -611,7 +608,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }).filter(group => group.items.length > 0);
   }, [layout]);
 
-  const homeData: HomeData = {
+  const totalHabitsCompleted = userProfile?.totalHabitsCompleted ?? 0;
+  const activeMantra = getActiveMantraText(userProfile);
+  const whyStatement = userProfile?.why_statement || null;
+  const hasCompletedWhyDiscovery = userProfile?.has_completed_why_discovery === true;
+
+  const homeData: HomeData = useMemo(() => ({
     activeChallenges,
     extendedChallenges,
     habits,
@@ -632,34 +634,47 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     todaysGrade,
     willpowerStats,
     goalFollowThrough,
-    totalHabitsCompleted: userProfile?.totalHabitsCompleted ?? 0,
-    activeMantra: getActiveMantraText(userProfile),
-    whyStatement: userProfile?.why_statement || null,
-    hasCompletedWhyDiscovery: userProfile?.has_completed_why_discovery === true,
+    totalHabitsCompleted,
+    activeMantra,
+    whyStatement,
+    hasCompletedWhyDiscovery,
     plannedHabitIds,
     weeklyPlans,
-  };
+  }), [
+    activeChallenges, extendedChallenges, habits, team, teamSummary,
+    weeklyCounts, habitStreaks, funFact, pendingInvites, buddyChallenges,
+    activeProgram, todaysProgramDay, programDayNumber, programCheckedIn,
+    goals, showReflectionBanner, reflectedToday, todaysGrade,
+    willpowerStats, goalFollowThrough, totalHabitsCompleted, activeMantra,
+    whyStatement, hasCompletedWhyDiscovery, plannedHabitIds, weeklyPlans,
+  ]);
 
-  const homeCallbacks: HomeCallbacks = {
-    onNavigate: (screen: string, params?: any) => {
-      if (screen === '__funFactModal') {
-        setFunFactModalVisible(true);
-        return;
-      }
-      if (screen === '__progressTab') {
-        navigation.getParent()?.navigate('Goals');
-        return;
-      }
-      navigation.navigate(screen as any, params);
-    },
+  const onNavigate = useCallback((screen: string, params?: any) => {
+    if (screen === '__funFactModal') {
+      setFunFactModalVisible(true);
+      return;
+    }
+    if (screen === '__progressTab') {
+      navigation.getParent()?.navigate('Goals');
+      return;
+    }
+    navigation.navigate(screen as any, params);
+  }, [navigation]);
+
+  const onGoalTap = useCallback((goalId: string) => {
+    navigation.navigate('GoalDashboard' as any, { goalId });
+  }, [navigation]);
+
+  const homeCallbacks: HomeCallbacks = useMemo(() => ({
+    onNavigate,
     onHabitTap: handleHabitTap,
     getItemColor,
-    onGoalTap: (goalId: string) => navigation.navigate('GoalDashboard' as any, { goalId }),
+    onGoalTap,
     onCalendarExport: handleCalendarExport,
     onPlannedItemPress: handlePlannedItemPress,
     onAddTodayChallenge: handleAddTodayChallenge,
     onToggleTodayHabit: handleToggleTodayHabit,
-  };
+  }), [onNavigate, handleHabitTap, getItemColor, onGoalTap, handleCalendarExport, handlePlannedItemPress, handleAddTodayChallenge, handleToggleTodayHabit]);
 
 
   return (

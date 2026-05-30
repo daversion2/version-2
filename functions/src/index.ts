@@ -10,6 +10,59 @@ const expo = new Expo();
 // Global kill switch for push notifications — set to true to re-enable
 const PUSH_NOTIFICATIONS_ENABLED = false;
 
+// Common timezones to check against for hourly scheduled functions.
+// Firestore 'in' queries support up to 30 values, so we can include all major zones.
+const COMMON_TIMEZONES = [
+  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "America/Phoenix", "America/Anchorage", "Pacific/Honolulu", "America/Toronto",
+  "America/Vancouver", "America/Edmonton", "America/Winnipeg", "America/Halifax",
+  "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Rome",
+  "Europe/Madrid", "Europe/Amsterdam", "Europe/Stockholm", "Europe/Zurich",
+  "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Asia/Dubai",
+  "Australia/Sydney", "Australia/Melbourne", "Australia/Perth",
+  "Pacific/Auckland", "America/Sao_Paulo", "America/Mexico_City",
+];
+
+/**
+ * Returns the list of timezones where the current hour matches `targetHour`.
+ * Used to pre-filter users by timezone in scheduled functions instead of
+ * fetching all users and checking the hour in a loop.
+ */
+const getTimezonesAtHour = (targetHour: number): string[] => {
+  return COMMON_TIMEZONES.filter((tz) => getHourInTimezone(tz) === targetHour);
+};
+
+/**
+ * Fetch only users whose timezone is currently at the given hour and who have
+ * a push token. Falls back to fetching users with the default timezone
+ * ("America/New_York") if no matching timezones are found.
+ *
+ * Uses Firestore 'in' query (max 30 values) to avoid reading every user doc.
+ */
+const getUsersAtHour = async (
+  targetHour: number
+): Promise<admin.firestore.QueryDocumentSnapshot[]> => {
+  const matchingTimezones = getTimezonesAtHour(targetHour);
+  if (matchingTimezones.length === 0) return [];
+
+  // Firestore 'in' supports up to 30 values — we stay under that limit
+  const chunks: string[][] = [];
+  for (let i = 0; i < matchingTimezones.length; i += 30) {
+    chunks.push(matchingTimezones.slice(i, i + 30));
+  }
+
+  const allDocs: admin.firestore.QueryDocumentSnapshot[] = [];
+  for (const chunk of chunks) {
+    const snap = await db
+      .collection("users")
+      .where("timezone", "in", chunk)
+      .get();
+    allDocs.push(...snap.docs);
+  }
+
+  return allDocs;
+};
+
 // Helper to get today's date in YYYY-MM-DD format for a specific timezone
 const getDateInTimezone = (timezone: string): string => {
   try {
@@ -99,19 +152,17 @@ export const morningChallengeReminder = onSchedule(
   async () => {
     console.log("Running morning reminder check...");
 
-    const usersSnapshot = await db.collection("users").get();
+    // Only fetch users whose timezone is currently at 8 AM
+    const userDocs = await getUsersAtHour(8);
+    console.log(`Found ${userDocs.length} users at 8 AM`);
 
-    for (const userDoc of usersSnapshot.docs) {
+    for (const userDoc of userDocs) {
       try {
         const userData = userDoc.data();
         const pushToken = userData.expoPushToken;
         const timezone = userData.timezone || "America/New_York";
 
         if (!pushToken) continue;
-
-        // Check if it's 8 AM in user's timezone
-        const currentHour = getHourInTimezone(timezone);
-        if (currentHour !== 8) continue;
 
         const today = getDateInTimezone(timezone);
 
@@ -191,19 +242,17 @@ export const eveningChallengeReminder = onSchedule(
   async () => {
     console.log("Running evening reminder check...");
 
-    const usersSnapshot = await db.collection("users").get();
+    // Only fetch users whose timezone is currently at 8 PM
+    const userDocs = await getUsersAtHour(20);
+    console.log(`Found ${userDocs.length} users at 8 PM`);
 
-    for (const userDoc of usersSnapshot.docs) {
+    for (const userDoc of userDocs) {
       try {
         const userData = userDoc.data();
         const pushToken = userData.expoPushToken;
         const timezone = userData.timezone || "America/New_York";
 
         if (!pushToken) continue;
-
-        // Check if it's 8 PM (20:00) in user's timezone
-        const currentHour = getHourInTimezone(timezone);
-        if (currentHour !== 20) continue;
 
         const today = getDateInTimezone(timezone);
 
@@ -845,19 +894,17 @@ export const checkMicroCommitmentFollowUps = onSchedule(
   async () => {
     console.log("Running micro commitment follow-up check...");
 
-    const usersSnapshot = await db.collection("users").get();
+    // Only fetch users whose timezone is currently at 10 AM
+    const userDocs = await getUsersAtHour(10);
+    console.log(`Found ${userDocs.length} users at 10 AM`);
 
-    for (const userDoc of usersSnapshot.docs) {
+    for (const userDoc of userDocs) {
       try {
         const userData = userDoc.data();
         const pushToken = userData.expoPushToken;
         const timezone = userData.timezone || "America/New_York";
 
         if (!pushToken) continue;
-
-        // Only send during the 10 AM window in the user's local timezone
-        const currentHour = getHourInTimezone(timezone);
-        if (currentHour !== 10) continue;
 
         const today = getDateInTimezone(timezone);
         const yesterdayDate = new Date(today + "T00:00:00");
@@ -933,16 +980,14 @@ export const expireStaleChallenges = onSchedule(
   async () => {
     console.log("Running stale challenge expiry check...");
 
-    const usersSnapshot = await db.collection("users").get();
+    // Only fetch users whose timezone is currently at midnight
+    const userDocs = await getUsersAtHour(0);
+    console.log(`Found ${userDocs.length} users at midnight`);
 
-    for (const userDoc of usersSnapshot.docs) {
+    for (const userDoc of userDocs) {
       try {
         const userData = userDoc.data();
         const timezone = userData.timezone || "America/New_York";
-
-        // Only run at midnight in the user's timezone
-        const currentHour = getHourInTimezone(timezone);
-        if (currentHour !== 0) continue;
 
         const today = getDateInTimezone(timezone);
 
@@ -953,18 +998,21 @@ export const expireStaleChallenges = onSchedule(
           .where("status", "==", "active")
           .get();
 
+        // Batch all updates for this user's stale challenges
+        const batch = db.batch();
         let expiredCount = 0;
         for (const challengeDoc of challengesSnapshot.docs) {
           const challenge = challengeDoc.data();
           // Skip extended challenges — they span multiple days
           if (challenge.challenge_type === "extended") continue;
           if (challenge.date < today) {
-            await challengeDoc.ref.update({ status: "not_yet" });
+            batch.update(challengeDoc.ref, { status: "not_yet" });
             expiredCount++;
           }
         }
 
         if (expiredCount > 0) {
+          await batch.commit();
           console.log(
             `Expired ${expiredCount} stale challenges for user ${userDoc.id}`
           );

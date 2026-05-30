@@ -119,28 +119,42 @@ export const logHabitCompletion = async (
 };
 
 /**
+ * Fetch all nudge-type completion logs for a user.
+ * Call this once and pass the result to getWeeklyCompletionCountsFromLogs / getHabitsStreaksFromLogs
+ * to avoid redundant Firestore reads.
+ */
+export const fetchAllNudgeLogs = async (
+  userId: string
+): Promise<CompletionLog[]> => {
+  const q = query(logsRef(userId), where('type', '==', 'nudge'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompletionLog));
+};
+
+/**
+ * Compute weekly completion counts from pre-fetched logs (no Firestore call).
+ */
+export const getWeeklyCompletionCountsFromLogs = (
+  logs: CompletionLog[]
+): Record<string, number> => {
+  const { mondayStr, sundayStr } = getCurrentWeekBounds();
+  const counts: Record<string, number> = {};
+  for (const log of logs) {
+    if (log.date >= mondayStr && log.date <= sundayStr) {
+      counts[log.reference_id] = (counts[log.reference_id] || 0) + 1;
+    }
+  }
+  return counts;
+};
+
+/**
  * Returns a map of habitId -> completion count for the current Monday–Sunday week.
  */
 export const getWeeklyCompletionCounts = async (
   userId: string
 ): Promise<Record<string, number>> => {
-  const { mondayStr, sundayStr } = getCurrentWeekBounds();
-
-  // Single-field query to avoid needing a composite index; filter dates client-side
-  const q = query(logsRef(userId), where('type', '==', 'nudge'));
-  const snap = await getDocs(q);
-
-  const counts: Record<string, number> = {};
-  snap.docs.forEach((d) => {
-    const data = d.data();
-    const date = data.date as string;
-    if (date >= mondayStr && date <= sundayStr) {
-      const refId = data.reference_id as string;
-      counts[refId] = (counts[refId] || 0) + 1;
-    }
-  });
-
-  return counts;
+  const logs = await fetchAllNudgeLogs(userId);
+  return getWeeklyCompletionCountsFromLogs(logs);
 };
 
 /**
@@ -284,26 +298,20 @@ export const getHabitStreak = async (
 };
 
 /**
- * Get streaks for multiple habits at once
+ * Compute streaks for multiple habits from pre-fetched logs (no Firestore call).
  */
-export const getHabitsStreaks = async (
-  userId: string,
+export const getHabitsStreaksFromLogs = (
+  logs: CompletionLog[],
   habitIds: string[]
-): Promise<Record<string, HabitStreakInfo>> => {
-  // Fetch all nudge logs once to avoid multiple queries
-  const q = query(logsRef(userId), where('type', '==', 'nudge'));
-  const snap = await getDocs(q);
-
+): Record<string, HabitStreakInfo> => {
   // Group logs by habit ID
   const logsByHabit: Record<string, string[]> = {};
-  snap.docs.forEach((d) => {
-    const data = d.data();
-    const refId = data.reference_id as string;
-    if (habitIds.includes(refId)) {
-      if (!logsByHabit[refId]) logsByHabit[refId] = [];
-      logsByHabit[refId].push(data.date as string);
+  for (const log of logs) {
+    if (habitIds.includes(log.reference_id)) {
+      if (!logsByHabit[log.reference_id]) logsByHabit[log.reference_id] = [];
+      logsByHabit[log.reference_id].push(log.date);
     }
-  });
+  }
 
   const toDateStr = (d: Date): string =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -372,6 +380,17 @@ export const getHabitsStreaks = async (
   }
 
   return result;
+};
+
+/**
+ * Get streaks for multiple habits at once
+ */
+export const getHabitsStreaks = async (
+  userId: string,
+  habitIds: string[]
+): Promise<Record<string, HabitStreakInfo>> => {
+  const logs = await fetchAllNudgeLogs(userId);
+  return getHabitsStreaksFromLogs(logs, habitIds);
 };
 
 /**
