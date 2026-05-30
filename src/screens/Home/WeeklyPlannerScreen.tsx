@@ -18,7 +18,6 @@ import { useAuth } from '../../context/AuthContext';
 import {
   Challenge,
   Nudge,
-  Category,
   CompletionLog,
   PlannedItem,
   TomorrowChallenge,
@@ -30,7 +29,9 @@ import { saveTomorrowPlan, getTomorrowPlan } from '../../services/dailyPlan';
 import { exportToCalendar } from '../../services/calendarExport';
 import { getActiveChallenges, getActiveExtendedChallenges, getAllChallenges } from '../../services/challenges';
 import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
-import { getUserCategories } from '../../services/categories';
+import { getGoalColor } from '../../constants/goalColors';
+import { getActiveGoals } from '../../services/goals';
+import { Goal } from '../../types';
 import { getActiveEnrollment, getTodaysProgramContent } from '../../services/programs';
 import { convertPlannedChallengesToChallenges } from '../../services/dailyPlan';
 import {
@@ -54,7 +55,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
 
   // Shared data for building today's plan & day cards
   const [habits, setHabits] = useState<Nudge[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
@@ -78,12 +79,9 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
   const weekEnd = weekDates[6];
   const isCurrentWeek = currentWeekOffset === 0;
 
-  const getCatColor = useCallback(
-    (catId: string) => {
-      const cat = categories.find((c) => c.name === catId || c.id === catId);
-      return cat?.color || Colors.gray;
-    },
-    [categories]
+  const getItemColor = useCallback(
+    (goalIds?: string[]) => getGoalColor(goalIds, goals),
+    [goals]
   );
 
   // Build a name lookup from loaded data
@@ -113,7 +111,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
       // Load shared data in parallel
       const [
         habitList,
-        cats,
+        activeGoals,
         dailyChallenges,
         extChallenges,
         enrollment,
@@ -121,7 +119,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
         challengeList,
       ] = await Promise.all([
         getActiveHabits(user.uid),
-        getUserCategories(user.uid),
+        getActiveGoals(user.uid),
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveEnrollment(user.uid),
@@ -130,7 +128,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
       ]);
 
       setHabits(habitList);
-      setCategories(cats);
+      setGoals(activeGoals);
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
       setActiveProgram(enrollment);
@@ -179,10 +177,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
               todaysProgramDay: progDay,
               programDayNumber: progDayNum,
               programCheckedIn: progCheckedIn,
-              getCatColor: (catName: string) => {
-                const cat = cats.find((c) => c.name === catName || c.id === catName);
-                return cat?.color || Colors.gray;
-              },
+              getItemColor: (goalIds?: string[]) => getGoalColor(goalIds, activeGoals),
               plannedHabitIds: todayPlannedHabits,
             }
           : undefined
@@ -271,9 +266,9 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
         name: h.name,
         done: weeklyCounts[h.id] || 0,
         target: h.target_count_per_week,
-        color: getCatColor(h.category_id),
+        color: getItemColor(h.goal_ids),
       }));
-  }, [habits, weeklyCounts, getCatColor, isCurrentWeek]);
+  }, [habits, weeklyCounts, getItemColor, isCurrentWeek]);
 
   if (loading) {
     return (
@@ -351,10 +346,9 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
           <WeekDayCard
             key={day.date}
             summary={day}
-            categories={categories}
             habits={habits}
             weeklyCounts={weeklyCounts}
-            getCatColor={getCatColor}
+            getItemColor={getItemColor}
             getLogName={getLogName}
             onPlanSaved={handlePlanSaved}
             scheduledChallenges={allChallenges.filter(

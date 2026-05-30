@@ -197,9 +197,6 @@ export const AdminSubmissionsScreen: React.FC = () => {
         submissions.map((submission) => (
           <Card key={submission.id} style={styles.submissionCard}>
             <View style={styles.submissionHeader}>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{submission.category_name}</Text>
-              </View>
               <Text style={styles.dateText}>
                 {formatDate(submission.submitted_at)}
               </Text>

@@ -206,9 +206,6 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                       >
                         {habit.name}
                       </Text>
-                      {habit.category_id ? (
-                        <Text style={styles.habitCategory}>{habit.category_id}</Text>
-                      ) : null}
                     </View>
                     {selectedHabitId === habit.id && (
                       <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
@@ -391,11 +388,5 @@ const styles = StyleSheet.create({
   },
   habitNameSelected: {
     color: Colors.primary,
-  },
-  habitCategory: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    marginTop: 2,
   },
 });

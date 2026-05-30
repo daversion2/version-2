@@ -586,14 +586,13 @@ export const abandonProgram = async (
 export const convertProgramToHabits = async (
   userId: string,
   enrollmentId: string,
-  selectedHabits: { name: string; category: string; target_count_per_week: number }[]
+  selectedHabits: { name: string; category?: string; target_count_per_week: number }[]
 ): Promise<string[]> => {
   const habitIds: string[] = [];
 
   for (const habit of selectedHabits) {
     const habitId = await createHabit(userId, {
       name: habit.name,
-      category_id: habit.category,
       target_count_per_week: habit.target_count_per_week,
     });
     habitIds.push(habitId);

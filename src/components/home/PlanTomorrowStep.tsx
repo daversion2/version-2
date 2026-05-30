@@ -5,11 +5,10 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { Nudge, Category, TomorrowChallenge } from '../../types';
+import { Nudge, TomorrowChallenge } from '../../types';
 
 interface PlanTomorrowStepProps {
   habits: Nudge[];
@@ -20,8 +19,6 @@ interface PlanTomorrowStepProps {
   plannedChallenges: TomorrowChallenge[];
   onAddChallenge: (challenge: TomorrowChallenge) => void;
   onRemoveChallenge: (index: number) => void;
-  categories: Category[];
-  getCatColor: (catId: string) => string;
   isReadOnly: boolean;
 }
 
@@ -36,26 +33,20 @@ export const PlanTomorrowStep: React.FC<PlanTomorrowStepProps> = ({
   plannedChallenges,
   onAddChallenge,
   onRemoveChallenge,
-  categories,
-  getCatColor,
   isReadOnly,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [challengeName, setChallengeName] = useState('');
   const [challengeDifficulty, setChallengeDifficulty] = useState(2);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(
-    categories.length > 0 ? categories[0].id : ''
-  );
 
   const totalPlanned = selectedHabitIds.length + plannedChallenges.length;
 
   const handleAddChallenge = () => {
     const trimmed = challengeName.trim();
-    if (!trimmed || !selectedCategoryId) return;
+    if (!trimmed) return;
 
     onAddChallenge({
       name: trimmed,
-      category_id: selectedCategoryId,
       difficulty_expected: challengeDifficulty,
       converted: false,
     });
@@ -136,28 +127,16 @@ export const PlanTomorrowStep: React.FC<PlanTomorrowStepProps> = ({
             <Text style={styles.sectionLabel}>Challenges</Text>
 
             {/* Planned challenges list */}
-            {plannedChallenges.map((ch, index) => {
-              const cat = categories.find((c) => c.id === ch.category_id);
-              return (
+            {plannedChallenges.map((ch, index) => (
                 <View key={index} style={styles.challengeRow}>
                   <Ionicons
                     name="trophy-outline"
                     size={18}
-                    color={cat ? cat.color : Colors.secondary}
+                    color={Colors.secondary}
                   />
                   <View style={styles.challengeInfo}>
                     <Text style={styles.challengeName}>{ch.name}</Text>
                     <View style={styles.challengeMeta}>
-                      {cat && (
-                        <Text
-                          style={[
-                            styles.challengeCategory,
-                            { color: cat.color },
-                          ]}
-                        >
-                          {cat.name}
-                        </Text>
-                      )}
                       <Text style={styles.challengeDiffText}>
                         {DIFFICULTY_LABELS[ch.difficulty_expected - 1]}
                       </Text>
@@ -176,8 +155,7 @@ export const PlanTomorrowStep: React.FC<PlanTomorrowStepProps> = ({
                     </TouchableOpacity>
                   )}
                 </View>
-              );
-            })}
+            ))}
 
             {/* Quick-add challenge form */}
             {!isReadOnly && (
@@ -192,49 +170,6 @@ export const PlanTomorrowStep: React.FC<PlanTomorrowStepProps> = ({
                   returnKeyType="done"
                   onSubmitEditing={handleAddChallenge}
                 />
-
-                {/* Category picker */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.categoryRow}
-                >
-                  {categories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryChip,
-                        selectedCategoryId === cat.id &&
-                          styles.categoryChipSelected,
-                        selectedCategoryId === cat.id && {
-                          borderColor: cat.color,
-                          backgroundColor: cat.color + '15',
-                        },
-                      ]}
-                      onPress={() => setSelectedCategoryId(cat.id)}
-                    >
-                      <Ionicons
-                        name={cat.icon as any}
-                        size={14}
-                        color={
-                          selectedCategoryId === cat.id
-                            ? cat.color
-                            : Colors.gray
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.categoryChipText,
-                          selectedCategoryId === cat.id && {
-                            color: cat.color,
-                          },
-                        ]}
-                      >
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
 
                 {/* Difficulty selector + add button */}
                 <View style={styles.difficultyRow}>
@@ -392,10 +327,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  challengeCategory: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs - 1,
-  },
   challengeDiffText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs - 1,
@@ -415,29 +346,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-  },
-  categoryRow: {
-    marginTop: Spacing.sm,
-    flexGrow: 0,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginRight: Spacing.xs,
-  },
-  categoryChipSelected: {
-    borderWidth: 1.5,
-  },
-  categoryChipText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
   },
   difficultyRow: {
     flexDirection: 'row',

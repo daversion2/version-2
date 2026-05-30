@@ -20,7 +20,6 @@ import {
   WHY_DISCOVERY_STAGES,
   MINDFULNESS_CONTEXT,
   MINDFULNESS_TIMER_SECONDS,
-  GOAL_CATEGORIES,
 } from '../../constants/whyDiscovery';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -81,7 +80,6 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
   // Stage 6: Habit
   const [habitName, setHabitName] = useState('');
   const [habitFrequency, setHabitFrequency] = useState(3);
-  const [habitCategory, setHabitCategory] = useState('Physical');
 
   // Stage 7: Reward Messages
   const [globalMessages, setGlobalMessages] = useState<RewardMessage[]>([]);
@@ -220,7 +218,6 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
         habits: [
           {
             name: habitName.trim(),
-            category_id: habitCategory,
             target_count_per_week: habitFrequency,
           },
         ],
@@ -512,33 +509,6 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
         </View>
         <Text style={styles.freqLabel}>{habitFrequency}x per week</Text>
 
-        <Text style={[styles.promptQuestion, { marginTop: Spacing.lg }]}>Category</Text>
-        <View style={styles.categoryRow}>
-          {GOAL_CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={[
-                styles.categoryChip,
-                habitCategory === cat.id && { borderColor: cat.color, backgroundColor: cat.color + '15' },
-              ]}
-              onPress={() => setHabitCategory(cat.id)}
-            >
-              <Ionicons
-                name={cat.icon as any}
-                size={16}
-                color={habitCategory === cat.id ? cat.color : Colors.gray}
-              />
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  habitCategory === cat.id && { color: cat.color },
-                ]}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
     );
   };

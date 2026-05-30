@@ -15,8 +15,7 @@ import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { updateChallenge } from '../../services/challenges';
-import { Category, Challenge, DEFAULT_CATEGORIES } from '../../types';
-import { getUserCategories } from '../../services/categories';
+import { Challenge } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
 import { DurationSelector } from '../../components/challenge/DurationSelector';
@@ -29,12 +28,8 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
   const challenge = route.params?.challenge as Challenge;
 
-  // Core domain names (Physical, Social, Mind)
-  const coreDomainNames = DEFAULT_CATEGORIES.map(c => c.name);
-
   // Initialize state from the challenge being edited
   const [name, setName] = useState(challenge?.name || '');
-  const [categoryIdx, setCategoryIdx] = useState(0);
   const [difficulty, setDifficulty] = useState(challenge?.difficulty_expected || 3);
   const [description, setDescription] = useState(challenge?.description || '');
   const [successCriteria, setSuccessCriteria] = useState(challenge?.success_criteria || '');
@@ -42,33 +37,11 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [durationDays, setDurationDays] = useState(challenge?.duration_days || 7);
   const [goalIds, setGoalIds] = useState<string[]>(challenge?.goal_ids || []);
 
   const isExtended = challenge?.challenge_type === 'extended';
   const completedMilestones = challenge?.milestones?.filter(m => m.completed).length || 0;
-
-  useEffect(() => {
-    if (user) {
-      getUserCategories(user.uid)
-        .then((cats) => {
-          // Filter to only show the core three domains (Physical, Social, Mind)
-          const coreCats = cats.filter(c => coreDomainNames.includes(c.name));
-          setCategories(coreCats);
-
-          // Set initial category index based on challenge's category
-          if (challenge?.category_id) {
-            const idx = coreCats.findIndex(c => c.name === challenge.category_id);
-            if (idx >= 0) setCategoryIdx(idx);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to load categories:', err);
-          showAlert('Error', 'Failed to load categories. Please try again.');
-        });
-    }
-  }, [user, challenge?.category_id]);
 
   // Parse deadline into date and time components
   useEffect(() => {
@@ -96,7 +69,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       const updates: Parameters<typeof updateChallenge>[2] = {
         name: name.trim(),
-        category_id: categories[categoryIdx]?.name || challenge.category_id,
         difficulty_expected: difficulty,
         description: description.trim() || undefined,
         success_criteria: successCriteria.trim() || undefined,
@@ -182,31 +154,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
             ? "e.g. No social media for 7 days"
             : "e.g. Cold shower for 2 minutes"}
         />
-
-        {/* Category Picker */}
-        <Text style={styles.label}>Category *</Text>
-        <View style={styles.categoryRow}>
-          {categories.map((cat, i) => (
-            <TouchableOpacity
-              key={cat.name}
-              onPress={() => setCategoryIdx(i)}
-              style={[
-                styles.categoryChip,
-                { borderColor: cat.color },
-                categoryIdx === i && { backgroundColor: cat.color },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  categoryIdx === i && { color: Colors.white },
-                ]}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         <DifficultySelector
           label="Expected Difficulty *"

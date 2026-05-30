@@ -10,16 +10,16 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../common/Card';
 import { PlannedItemRow } from './PlannedItemRow';
 import { DaySummary } from '../../services/weeklyPlan';
-import { Category, Challenge, CompletionLog, Nudge, PlannedItem, TomorrowChallenge } from '../../types';
+import { Challenge, CompletionLog, Nudge, PlannedItem, TomorrowChallenge } from '../../types';
+import { NO_GOAL_COLOR } from '../../constants/goalColors';
 import { formatDayHeader } from '../../utils/date';
 import { suggestHabitsForTomorrow } from '../../services/dailyPlan';
 
 interface WeekDayCardProps {
   summary: DaySummary;
-  categories: Category[];
   habits: Nudge[];
   weeklyCounts: Record<string, number>;
-  getCatColor: (catId: string) => string;
+  getItemColor: (goalIds?: string[]) => string;
   getLogName: (log: CompletionLog) => string;
   onPlanSaved: (date: string, habitIds: string[], challenges: TomorrowChallenge[]) => void;
   scheduledChallenges?: Challenge[];
@@ -37,10 +37,9 @@ const TYPE_LABELS: Record<string, string> = {
 
 export const WeekDayCard: React.FC<WeekDayCardProps> = ({
   summary,
-  categories,
   habits,
   weeklyCounts,
-  getCatColor,
+  getItemColor,
   getLogName,
   onPlanSaved,
   scheduledChallenges = [],
@@ -220,7 +219,7 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
                             <Ionicons
                               name="repeat-outline"
                               size={18}
-                              color={getCatColor(habit.category_id)}
+                              color={getItemColor(habit.goal_ids)}
                             />
                             <Text style={styles.planRowText}>{habit.name}</Text>
                           </View>
@@ -232,13 +231,12 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
                     <View style={styles.planSection}>
                       <Text style={styles.planSectionLabel}>Challenges</Text>
                       {(summary.plan?.planned_challenges || []).map((ch, i) => {
-                        const cat = categories.find((c) => c.id === ch.category_id);
                         return (
                           <View key={`planned-${i}`} style={styles.planRow}>
                             <Ionicons
                               name="trophy-outline"
                               size={18}
-                              color={cat?.color || Colors.secondary}
+                              color={Colors.secondary}
                             />
                             <Text style={styles.planRowText}>{ch.name}</Text>
                           </View>
@@ -249,7 +247,7 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
                           <Ionicons
                             name="trophy"
                             size={18}
-                            color={getCatColor(ch.category_id)}
+                            color={Colors.secondary}
                           />
                           <Text style={styles.planRowText}>{ch.name}</Text>
                           <View style={styles.scheduledBadge}>
@@ -317,14 +315,12 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
               {/* Planned challenges list + add button */}
               <View style={styles.editSection}>
                 <Text style={styles.editSectionLabel}>Challenges</Text>
-                {plannedChallenges.map((ch, index) => {
-                  const cat = categories.find((c) => c.id === ch.category_id);
-                  return (
+                {plannedChallenges.map((ch, index) => (
                     <View key={index} style={styles.challengeRow}>
                       <Ionicons
                         name="trophy-outline"
                         size={18}
-                        color={cat?.color || Colors.secondary}
+                        color={Colors.secondary}
                       />
                       <Text style={styles.challengeRowText}>{ch.name}</Text>
                       <TouchableOpacity
@@ -334,8 +330,7 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
                         <Ionicons name="close-circle-outline" size={20} color={Colors.gray} />
                       </TouchableOpacity>
                     </View>
-                  );
-                })}
+                ))}
                 <TouchableOpacity
                   style={styles.newChallengeBtn}
                   onPress={() => onNavigate('StartChallenge', { forDate: date })}

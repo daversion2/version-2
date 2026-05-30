@@ -17,8 +17,7 @@ import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { useAuth } from '../../context/AuthContext';
 import { submitChallenge, canSubmitChallenge } from '../../services/submissions';
 import { getChallengeById } from '../../services/challenges';
-import { getUserCategories } from '../../services/categories';
-import { Challenge, Category } from '../../types';
+import { Challenge } from '../../types';
 import { showAlert } from '../../utils/alert';
 
 type RouteParams = {
@@ -35,7 +34,6 @@ export const SubmitChallengeScreen: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [category, setCategory] = useState<Category | null>(null);
   const [canSubmit, setCanSubmit] = useState(false);
   const [submitReason, setSubmitReason] = useState<string | undefined>();
 
@@ -66,11 +64,6 @@ export const SubmitChallengeScreen: React.FC = () => {
         setDifficulty(challengeData.difficulty_actual || challengeData.difficulty_expected);
         setSuccessCriteria(challengeData.success_criteria || '');
 
-        // Load category - category_id contains the category name
-        const categories = await getUserCategories(user.uid);
-        const categoryData = categories.find(c => c.name === challengeData.category_id || c.id === challengeData.category_id);
-        setCategory(categoryData || null);
-
         // Check eligibility
         const eligibility = await canSubmitChallenge(user.uid, challengeId);
         setCanSubmit(eligibility.canSubmit);
@@ -87,7 +80,7 @@ export const SubmitChallengeScreen: React.FC = () => {
   }, [user, userProfile, challengeId, navigation]);
 
   const handleSubmit = async () => {
-    if (!user || !userProfile || !challenge || !category) return;
+    if (!user || !userProfile || !challenge) return;
 
     if (!name.trim()) {
       showAlert('Missing Info', 'Please enter a challenge name.');
@@ -108,8 +101,6 @@ export const SubmitChallengeScreen: React.FC = () => {
     try {
       await submitChallenge(user.uid, challengeId, {
         name: name.trim(),
-        category_id: challenge.category_id,
-        category_name: category.name,
         difficulty_suggested: difficulty,
         description: description.trim(),
         success_criteria: successCriteria.trim() || undefined,
@@ -204,13 +195,6 @@ export const SubmitChallengeScreen: React.FC = () => {
             onChangeText={setName}
             maxLength={100}
           />
-
-          <View style={{ height: Spacing.md }} />
-
-          <Text style={styles.fieldLabel}>Category</Text>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{category?.name || 'Unknown'}</Text>
-          </View>
 
           <View style={{ height: Spacing.md }} />
 

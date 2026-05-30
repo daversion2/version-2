@@ -49,7 +49,7 @@ export interface TodayBuildParams {
   todaysProgramDay: ProgramDay | null;
   programDayNumber: number;
   programCheckedIn: boolean;
-  getCatColor: (catName: string) => string;
+  getItemColor: (goalIds?: string[]) => string;
   plannedHabitIds?: string[];
 }
 

@@ -99,17 +99,6 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
-      {/* Categories */}
-      <Card style={styles.card} onPress={() => navigation.navigate('ManageCategories')}>
-        <View style={styles.navRow}>
-          <View>
-            <Text style={styles.label}>Categories</Text>
-            <Text style={styles.desc}>Add or remove challenge and habit categories</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
-
       {/* My Why / Purpose */}
       <Card style={styles.card} onPress={() => navigation.navigate('WhyScreen')}>
         <View style={styles.navRow}>

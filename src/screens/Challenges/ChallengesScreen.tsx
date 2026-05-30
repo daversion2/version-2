@@ -48,9 +48,6 @@ export const ChallengesScreen: React.FC = () => {
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           </View>
           <View style={styles.itemMeta}>
-            <Text style={styles.metaText}>
-              {item.category_id || 'Uncategorized'}
-            </Text>
             <Text style={styles.metaText}>{item.date}</Text>
             <Text style={[styles.metaText, { color: statusColor }]}>
               {item.status === 'completed' ? 'Success' : 'Not Yet'}

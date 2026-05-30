@@ -54,7 +54,7 @@ export const createHabit = async (
   userId: string,
   data: {
     name: string;
-    category_id: string;
+    category_id?: string;
     target_count_per_week: number;
     goal_ids?: string[];
     action_plan?: HabitActionPlan;

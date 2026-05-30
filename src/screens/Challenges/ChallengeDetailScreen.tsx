@@ -18,7 +18,6 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
   const { user } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [categoryName, setCategoryName] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);
   const [submitReason, setSubmitReason] = useState<string | undefined>();
@@ -31,8 +30,6 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
         const c = await getChallengeById(user.uid, challengeId);
         setChallenge(c);
         if (c) {
-          // category_id actually stores the category name, not ID
-          setCategoryName(c.category_id || 'Uncategorized');
 
           // Fetch repeat stats for this challenge name
           const stats = await getChallengeRepeatStats(user.uid, c.name);
@@ -104,9 +101,6 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
           <Text style={styles.badgeText}>
             {challenge.status.charAt(0).toUpperCase() + challenge.status.slice(1)}
           </Text>
-        </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{categoryName}</Text>
         </View>
       </View>
 

@@ -34,7 +34,6 @@ import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { getUserTeam, logTeamActivity } from '../../services/teams';
 import { createFeedEntry, createMilestoneFeedEntry, updateFeedEntryMessage } from '../../services/inspirationFeed';
 import { getUser } from '../../services/users';
-import { getCategoryByName } from '../../services/categories';
 import { RewardMoment } from '../../components/reward/RewardMoment';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { ChallengeFailureModal } from '../../components/challenge/ChallengeFailureModal';
@@ -231,8 +230,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             team.id,
             user.uid,
             'challenge',
-            challenge.category_id || '',
-            challenge.category_id || ''
+            challenge.name
           );
         }
       } catch (teamErr) {
@@ -266,19 +264,13 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           // Default to opted in if not explicitly set
           const optedIn = userData?.inspiration_feed_opt_in !== false;
 
-          if (optedIn && challenge.category_id) {
-            // Note: challenge.category_id contains the category name (e.g., "Physical")
-            const categoryName = challenge.category_id;
-            const category = await getCategoryByName(user.uid, categoryName);
+          if (optedIn) {
             const streakInfo = getStreakTierInfo(stats.currentStreak);
             const entryId = await createFeedEntry(
               user.uid,
-              categoryName,
-              categoryName,
               difficulty,
               challenge.name,
               true,
-              category?.icon,
               userData?.username,
               streakInfo.tierName,
               stats.currentStreak

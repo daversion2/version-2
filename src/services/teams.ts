@@ -385,16 +385,14 @@ export const logTeamActivity = async (
   teamId: string,
   userId: string,
   type: 'challenge' | 'habit',
-  categoryId: string,
-  categoryName: string,
+  activityName: string,
   habitCount?: number
 ): Promise<void> => {
   const activityData: Omit<TeamActivity, 'id'> = {
     user_id: userId,
     date: getTodayStr(),
     type,
-    category_id: categoryId,
-    category_name: categoryName,
+    category_name: activityName,
     created_at: new Date().toISOString(),
   };
 

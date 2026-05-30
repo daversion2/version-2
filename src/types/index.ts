@@ -66,12 +66,6 @@ export interface HomeLayoutItem {
   visible: boolean;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
-}
 
 export type ChallengeStatus = 'active' | 'scheduled' | 'completed' | 'failed' | 'archived' | 'cancelled';
 
@@ -101,7 +95,7 @@ export interface Challenge {
   id: string;
   user_id: string;
   name: string;
-  category_id: string;
+  category_id?: string;
   date: string;
   difficulty_expected: number; // 1-5
   status: ChallengeStatus;
@@ -164,7 +158,7 @@ export interface BuddyChallenge {
   // Challenge details (copied at invite time)
   challenge_name: string;
   challenge_type: ChallengeType;
-  category_id: string;
+  category_id?: string;
   difficulty_expected: number;
   duration_days?: number;
   description?: string;
@@ -217,7 +211,7 @@ export interface HabitActionPlan {
 export interface LibraryHabit {
   id: string;
   name: string;
-  category_id: string;             // 'Physical' | 'Social' | 'Mind'
+  category_id?: string;
   description: string;
   suggested_target_per_week: number;
   action_plan: HabitActionPlan;
@@ -227,7 +221,7 @@ export interface Nudge {
   id: string;
   user_id: string;
   name: string;
-  category_id: string;
+  category_id?: string;
   is_active: boolean;
   created_by_user: boolean;
   target_count_per_week: number; // 1–7
@@ -310,12 +304,6 @@ export interface LibraryChallenge {
   prerequisite_challenge_ids?: string[];
 }
 
-export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
-  { name: 'Physical', color: '#217180', icon: 'fitness' },
-  { name: 'Social', color: '#FF5B02', icon: 'chatbubbles' },
-  { name: 'Mind', color: '#7B1FA2', icon: 'bulb-outline' },
-];
-
 // Habit streak information
 export interface HabitStreakInfo {
   habitId: string;
@@ -376,8 +364,8 @@ export interface TeamActivity {
   user_id: string;
   date: string; // YYYY-MM-DD
   type: TeamActivityType;
-  category_id: string;
-  category_name: string;
+  category_id?: string;
+  category_name?: string;
   habit_count?: number; // If type is 'habit', how many
   created_at: string;
 }
@@ -389,7 +377,6 @@ export interface TeamMemberActivitySummary {
   username?: string; // User's username for display
   has_activity_today: boolean;
   challenge_completed: boolean;
-  challenge_category?: string;
   habits_completed: number;
   last_activity_time?: string; // ISO timestamp
   current_streak: number;
@@ -402,7 +389,7 @@ export interface TeamActivityFeedItem {
   display_name: string;
   username?: string; // User's username for display
   type: TeamActivityType;
-  category_name: string;
+  category_name?: string;
   created_at: string;
 }
 
@@ -416,8 +403,8 @@ export interface InspirationFeedEntry {
   id: string;
   user_id: string; // For filtering (not displayed)
   username?: string;
-  category_id: string;
-  category_name: string;
+  category_id?: string;
+  category_name?: string;
   category_icon?: string;
   difficulty_tier: DifficultyTier;
   challenge_teaser?: string; // First 50 chars if opted in
@@ -462,8 +449,8 @@ export interface ChallengeSubmission {
 
   // Submission content
   name: string;
-  category_id: string;
-  category_name: string;
+  category_id?: string;
+  category_name?: string;
   difficulty_suggested: number; // 1-5
   description: string;
   success_criteria?: string;
@@ -827,6 +814,7 @@ export interface Goal {
   id: string;
   user_id: string;
   name: string;
+  color: string;
   description?: string;
   status: GoalStatus;
   start_date: string;        // YYYY-MM-DD
@@ -912,7 +900,7 @@ export interface TomorrowPlan {
 
 export interface TomorrowChallenge {
   name: string;
-  category_id: string;
+  category_id?: string;
   difficulty_expected: number;
   description?: string;
   converted: boolean;

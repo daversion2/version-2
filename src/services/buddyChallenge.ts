@@ -41,7 +41,7 @@ export const createBuddyChallengeInvite = async (
   teamId: string,
   challengeData: {
     name: string;
-    category_id: string;
+    category_id?: string;
     challenge_type: 'daily' | 'extended';
     difficulty_expected: number;
     duration_days?: number;
@@ -460,8 +460,6 @@ export const onBuddyChallengeUserComplete = async (
       buddy.inviter_username,
       buddy.partner_username,
       buddy.challenge_name,
-      buddy.category_id,
-      buddy.category_id,
     );
 
     // Mark buddy challenge as completed

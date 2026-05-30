@@ -178,10 +178,7 @@ export const TeamDetailScreen: React.FC = () => {
                     )}
                   </Text>
                   <Text style={styles.memberActivity}>
-                    Completed a {activity.type} ·{' '}
-                    <Text style={styles.categoryHighlight}>
-                      {activity.category_name}
-                    </Text>
+                    Completed a {activity.type}
                   </Text>
                 </View>
               </View>

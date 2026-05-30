@@ -12,14 +12,14 @@ import {
   calculateStreak,
   getTotalPoints,
   getCompletionLogs,
-  getCategoryBreakdown,
-  CategoryStat,
+  getGoalBreakdown,
+  GoalStat,
 } from '../../services/progress';
 import { getChallengesByActionType } from '../../services/challenges';
 import { ACTION_CATEGORIES } from '../../constants/challengeLibrary';
 import { ActionType, Goal, GoalFollowThrough } from '../../types';
 import { getWillpowerStats, getSuckFactorTier } from '../../services/willpower';
-import { CategoryBarChart } from '../../components/progress/CategoryBarChart';
+import { GoalBarChart } from '../../components/progress/GoalBarChart';
 import { ReflectionSummaryCard } from '../../components/progress/ReflectionSummaryCard';
 import { getReflections, getReflectionStats } from '../../services/reflections';
 import { ReflectionGrade, ReflectionStats as ReflectionStatsType } from '../../types';
@@ -52,7 +52,7 @@ export const OverallProgressScreen: React.FC = () => {
   const [filter, setFilter] = useState<(typeof TIME_FILTERS)[number]>('7 Days');
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [categoryData, setCategoryData] = useState<CategoryStat[]>([]);
+  const [goalData, setGoalData] = useState<GoalStat[]>([]);
   const [actionTypeCounts, setActionTypeCounts] = useState<Record<ActionType, number>>({
     'complete': 0,
     'resist': 0,
@@ -105,13 +105,13 @@ export const OverallProgressScreen: React.FC = () => {
     setWillpowerStats(wpStats);
     setSuckFactor(getSuckFactorTier(w));
 
-    // Points and category breakdown for selected filter
+    // Points and goal breakdown for selected filter
     const start = getStartDate(filter);
-    const [cats, actionTypes] = await Promise.all([
-      getCategoryBreakdown(user.uid, start),
+    const [goalBreakdown, actionTypes] = await Promise.all([
+      getGoalBreakdown(user.uid, activeGoals, start),
       getChallengesByActionType(user.uid, start),
     ]);
-    setCategoryData(cats);
+    setGoalData(goalBreakdown);
     setActionTypeCounts(actionTypes);
 
     // Load reflection stats (30-day average)
@@ -249,8 +249,8 @@ export const OverallProgressScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Category Breakdown */}
-      <CategoryBarChart data={categoryData} />
+      {/* Goal Breakdown */}
+      <GoalBarChart data={goalData} />
 
       {/* Action Type Breakdown (Start/Stop) */}
       {Object.values(actionTypeCounts).some(count => count > 0) && (

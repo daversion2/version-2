@@ -70,12 +70,9 @@ const createTeaser = (name: string): string => {
  */
 export const createFeedEntry = async (
   userId: string,
-  categoryId: string,
-  categoryName: string,
   difficulty: number,
   challengeName: string,
   shareTeaser: boolean = true,
-  categoryIcon?: string,
   username?: string,
   streakTier?: string,
   streakDays?: number
@@ -91,9 +88,6 @@ export const createFeedEntry = async (
   const entryData: Omit<InspirationFeedEntry, 'id'> = {
     user_id: userId,
     username: username,
-    category_id: categoryId,
-    category_name: categoryName,
-    category_icon: categoryIcon,
     difficulty_tier: tier,
     completed_at: now.toISOString(),
     display_timestamp: displayTimestamp.toISOString(),
@@ -160,8 +154,6 @@ export const createBuddyCompletionFeedEntry = async (
   inviterUsername: string | undefined,
   partnerUsername: string | undefined,
   challengeName: string,
-  categoryId: string,
-  categoryName: string,
 ): Promise<string | null> => {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
@@ -170,8 +162,6 @@ export const createBuddyCompletionFeedEntry = async (
   const entryData: Omit<InspirationFeedEntry, 'id'> = {
     user_id: inviterId,
     username: inviterUsername,
-    category_id: categoryId,
-    category_name: categoryName,
     difficulty_tier: 'moderate',
     completed_at: now.toISOString(),
     display_timestamp: displayTimestamp.toISOString(),
@@ -283,20 +273,6 @@ export const getInspirationFeed = async (
 
   // Return limited number of entries
   return sorted.slice(0, maxEntries);
-};
-
-/**
- * Get feed entries filtered by category
- */
-export const getInspirationFeedByCategory = async (
-  currentUserId: string,
-  categoryId: string,
-  maxEntries: number = 50
-): Promise<InspirationFeedEntry[]> => {
-  const allEntries = await getInspirationFeed(currentUserId, 200);
-  return allEntries
-    .filter((e) => e.category_id === categoryId)
-    .slice(0, maxEntries);
 };
 
 /**

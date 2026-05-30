@@ -11,11 +11,11 @@ import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
 import { getTodayString } from '../utils/date';
 import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './habits';
 import { db } from './firebase';
-import { CompletionLog, Challenge, Nudge } from '../types';
+import { CompletionLog, Challenge, Nudge, Goal } from '../types';
+import { NO_GOAL_COLOR } from '../constants/goalColors';
 
 export interface EnrichedCompletionLog extends CompletionLog {
   name: string;
-  category_id: string;
 }
 
 export const getCompletionLogsWithNames = async (
@@ -30,16 +30,16 @@ export const getCompletionLogsWithNames = async (
     getDocs(query(habitsRef)),
   ]);
 
-  const challengeMap = new Map<string, { name: string; category_id: string }>();
+  const challengeMap = new Map<string, { name: string }>();
   challengeSnap.docs.forEach((d) => {
     const data = d.data() as Challenge;
-    challengeMap.set(d.id, { name: data.name, category_id: data.category_id });
+    challengeMap.set(d.id, { name: data.name });
   });
 
-  const habitMap = new Map<string, { name: string; category_id: string }>();
+  const habitMap = new Map<string, { name: string }>();
   habitSnap.docs.forEach((d) => {
     const data = d.data() as Nudge;
-    habitMap.set(d.id, { name: data.name, category_id: data.category_id });
+    habitMap.set(d.id, { name: data.name });
   });
 
   return logSnap.docs
@@ -53,14 +53,15 @@ export const getCompletionLogsWithNames = async (
       return {
         ...log,
         name: ref?.name || 'Unknown',
-        category_id: ref?.category_id || '',
       };
     })
     .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
 };
 
-export interface CategoryStat {
-  category: string;
+export interface GoalStat {
+  goalId: string;
+  goalName: string;
+  goalColor: string;
   points: number;
   completions: number;
 }
@@ -149,10 +150,11 @@ export const getTotalPoints = async (
   return docs.reduce((sum, d) => sum + (d.points as number), 0);
 };
 
-export const getCategoryBreakdown = async (
+export const getGoalBreakdown = async (
   userId: string,
+  goals: Goal[],
   startDate?: string
-): Promise<CategoryStat[]> => {
+): Promise<GoalStat[]> => {
   const habitsRef = collection(db, 'users', userId, 'habits');
 
   // Fetch logs, challenges, and habits in parallel
@@ -162,40 +164,53 @@ export const getCategoryBreakdown = async (
     getDocs(query(habitsRef)),
   ]);
 
-  // Build lookup maps: reference_id -> category
-  const challengeMap = new Map<string, string>();
+  // Build lookup maps: reference_id -> goal_ids
+  const challengeGoalMap = new Map<string, string[]>();
   challengeSnap.docs.forEach((d) => {
     const data = d.data() as Challenge;
-    challengeMap.set(d.id, data.category_id);
+    challengeGoalMap.set(d.id, data.goal_ids || []);
   });
 
-  const habitMap = new Map<string, string>();
+  const habitGoalMap = new Map<string, string[]>();
   habitSnap.docs.forEach((d) => {
     const data = d.data() as Nudge;
-    habitMap.set(d.id, data.category_id);
+    habitGoalMap.set(d.id, data.goal_ids || []);
   });
 
-  // Filter logs by date and aggregate by category
+  // Build goal lookup
+  const goalMap = new Map<string, Goal>();
+  goals.forEach((g) => goalMap.set(g.id, g));
+
+  // Filter logs by date and aggregate by goal
   const stats = new Map<string, { points: number; completions: number }>();
 
   logSnap.docs.forEach((d) => {
     const log = d.data() as CompletionLog;
     if (startDate && log.date < startDate) return;
 
-    const category =
+    const goalIds =
       log.type === 'challenge'
-        ? challengeMap.get(log.reference_id)
-        : habitMap.get(log.reference_id);
+        ? challengeGoalMap.get(log.reference_id)
+        : habitGoalMap.get(log.reference_id);
 
-    const cat = category || 'Uncategorized';
-    const existing = stats.get(cat) || { points: 0, completions: 0 };
+    // Attribute to first linked goal, or 'no-goal'
+    const goalId = goalIds && goalIds.length > 0 ? goalIds[0] : 'no-goal';
+    const existing = stats.get(goalId) || { points: 0, completions: 0 };
     existing.points += log.points;
     existing.completions += 1;
-    stats.set(cat, existing);
+    stats.set(goalId, existing);
   });
 
   return Array.from(stats.entries())
-    .map(([category, data]) => ({ category, ...data }))
+    .map(([goalId, data]) => {
+      const goal = goalMap.get(goalId);
+      return {
+        goalId,
+        goalName: goal?.name || 'No Goal',
+        goalColor: goal?.color || NO_GOAL_COLOR,
+        ...data,
+      };
+    })
     .sort((a, b) => b.points - a.points);
 };
 

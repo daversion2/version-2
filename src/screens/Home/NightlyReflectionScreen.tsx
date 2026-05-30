@@ -14,11 +14,10 @@ import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { useAuth } from '../../context/AuthContext';
-import { DailySummary, ReflectionGrade, DailyReflection, Nudge, Category, TomorrowChallenge } from '../../types';
+import { DailySummary, ReflectionGrade, DailyReflection, Nudge, TomorrowChallenge } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
 import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
 import { saveTomorrowPlan, getTomorrowPlan, suggestHabitsForTomorrow } from '../../services/dailyPlan';
-import { getUserCategories } from '../../services/categories';
 import { showAlert } from '../../utils/alert';
 import { getTomorrowString } from '../../utils/date';
 import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
@@ -50,7 +49,6 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [suggestedHabitIds, setSuggestedHabitIds] = useState<string[]>([]);
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
   const [plannedChallenges, setPlannedChallenges] = useState<TomorrowChallenge[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -84,14 +82,12 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
 
       // Load data for Plan Tomorrow step
       try {
-        const [habitList, weekCounts, cats] = await Promise.all([
+        const [habitList, weekCounts] = await Promise.all([
           getActiveHabits(user.uid),
           getWeeklyCompletionCounts(user.uid),
-          getUserCategories(user.uid),
         ]);
         setAllHabits(habitList);
         setWeeklyCounts(weekCounts);
-        setCategories(cats);
 
         const suggestions = suggestHabitsForTomorrow(habitList, weekCounts);
         const suggIds = suggestions.map((h) => h.id);
@@ -293,11 +289,6 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         onRemoveChallenge={(index) =>
           setPlannedChallenges((prev) => prev.filter((_, i) => i !== index))
         }
-        categories={categories}
-        getCatColor={(catId) => {
-          const cat = categories.find((c) => c.id === catId);
-          return cat?.color || Colors.gray;
-        }}
         isReadOnly={isReadOnly}
       />
 

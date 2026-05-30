@@ -102,7 +102,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-1', {
         user_id: userId,
         name: 'Exercise',
-        category_id: 'cat-1',
+
         is_active: true,
         created_by_user: true,
       });
@@ -110,7 +110,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-2', {
         user_id: userId,
         name: 'Meditation',
-        category_id: 'cat-2',
+
         is_active: true,
         created_by_user: true,
       });
@@ -127,7 +127,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-1', {
         user_id: userId,
         name: 'Exercise',
-        category_id: 'cat-1',
+
         is_active: true,
         created_by_user: true,
       });
@@ -135,7 +135,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-2', {
         user_id: userId,
         name: 'Meditation',
-        category_id: 'cat-2',
+
         is_active: true,
         created_by_user: true,
       });
@@ -160,7 +160,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-1', {
         user_id: userId,
         name: 'Exercise',
-        category_id: 'cat-1',
+
         is_active: true,
         created_by_user: true,
       });
@@ -182,7 +182,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-1', {
         user_id: userId,
         name: 'Active Habit',
-        category_id: 'cat-1',
+
         is_active: true,
         created_by_user: true,
       });
@@ -190,7 +190,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-2', {
         user_id: userId,
         name: 'Inactive Habit',
-        category_id: 'cat-2',
+
         is_active: false,
         created_by_user: true,
       });
@@ -205,7 +205,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-1', {
         user_id: userId,
         name: 'Exercise',
-        category_id: 'cat-1',
+
         is_active: true,
         created_by_user: true,
       });
@@ -230,7 +230,7 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
       addMockDocument(`users/${userId}/habits`, 'habit-1', {
         user_id: userId,
         name: 'Exercise',
-        category_id: 'cat-1',
+
         is_active: true,
         created_by_user: true,
       });

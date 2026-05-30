@@ -11,6 +11,7 @@ import {
 import { db } from './firebase';
 import { Goal, GoalStatus, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment } from '../types';
 import { GOAL_CONSTANTS } from '../constants/goals';
+import { pickNextGoalColor, GOAL_COLOR_PALETTE } from '../constants/goalColors';
 import { createHabit } from './habits';
 import { createChallenge } from './challenges';
 
@@ -31,7 +32,10 @@ export const getActiveGoals = async (userId: string): Promise<Goal[]> => {
     where('status', '==', 'active')
   );
   const snap = await getDocs(q);
-  const goals = snap.docs.map(d => ({ id: d.id, ...d.data() } as Goal));
+  const goals = snap.docs.map(d => {
+    const data = d.data();
+    return { id: d.id, ...data, color: data.color || GOAL_COLOR_PALETTE[0] } as Goal;
+  });
   return goals.sort((a, b) => a.end_date.localeCompare(b.end_date));
 };
 
@@ -40,7 +44,10 @@ export const getActiveGoals = async (userId: string): Promise<Goal[]> => {
  */
 export const getAllGoals = async (userId: string): Promise<Goal[]> => {
   const snap = await getDocs(goalsRef(userId));
-  const goals = snap.docs.map(d => ({ id: d.id, ...d.data() } as Goal));
+  const goals = snap.docs.map(d => {
+    const data = d.data();
+    return { id: d.id, ...data, color: data.color || GOAL_COLOR_PALETTE[0] } as Goal;
+  });
   return goals.sort((a, b) => b.created_at.localeCompare(a.created_at));
 };
 
@@ -54,7 +61,8 @@ export const getGoalById = async (
   const ref = doc(db, 'users', userId, 'goals', goalId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() } as Goal;
+  const data = snap.data();
+  return { id: snap.id, ...data, color: data.color || GOAL_COLOR_PALETTE[0] } as Goal;
 };
 
 /**
@@ -102,6 +110,7 @@ export const createGoal = async (
   const goalDoc: Record<string, unknown> = {
     user_id: userId,
     name: data.name.trim(),
+    color: pickNextGoalColor(active),
     description: data.description?.trim() || null,
     status: 'active' as GoalStatus,
     start_date: getTodayStr(),
@@ -136,8 +145,8 @@ export const createGoalWithActions = async (
   userId: string,
   goalData: Parameters<typeof createGoal>[1],
   actions: {
-    habits: { name: string; category_id: string; target_count_per_week: number }[];
-    firstChallenge?: { name: string; category_id: string; difficulty_expected: number };
+    habits: { name: string; category_id?: string; target_count_per_week: number }[];
+    firstChallenge?: { name: string; category_id?: string; difficulty_expected: number };
   }
 ): Promise<string> => {
   // 1. Create the goal
@@ -208,6 +217,7 @@ export const updateGoal = async (
     description?: string;
     end_date?: string;
     manual_progress?: number;
+    color?: string;
   }
 ): Promise<void> => {
   const ref = doc(db, 'users', userId, 'goals', goalId);
@@ -216,6 +226,7 @@ export const updateGoal = async (
   if (updates.description !== undefined) clean.description = updates.description.trim() || null;
   if (updates.end_date !== undefined) clean.end_date = updates.end_date;
   if (updates.manual_progress !== undefined) clean.manual_progress = Math.max(0, Math.min(100, updates.manual_progress));
+  if (updates.color !== undefined) clean.color = updates.color;
   await updateDoc(ref, clean);
 };
 

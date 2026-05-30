@@ -104,10 +104,6 @@ export const MySubmissionsScreen: React.FC = () => {
 
         <View style={styles.details}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Category</Text>
-            <Text style={styles.detailValue}>{item.category_name}</Text>
-          </View>
-          <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Difficulty</Text>
             <Text style={styles.detailValue}>{item.difficulty_suggested}/5</Text>
           </View>

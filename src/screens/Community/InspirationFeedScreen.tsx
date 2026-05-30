@@ -169,7 +169,7 @@ export const InspirationFeedScreen: React.FC = () => {
   // ============================================================================
 
   const renderChallengeEntry = (item: InspirationFeedEntry) => {
-    const iconName = item.category_icon || 'flash';
+    const iconName = 'flash';
     const difficultyColor = DIFFICULTY_COLORS[item.difficulty_tier];
     const difficultyLabel = DIFFICULTY_LABELS[item.difficulty_tier];
     const isOwnEntry = item.user_id === user?.uid;
@@ -224,11 +224,6 @@ export const InspirationFeedScreen: React.FC = () => {
               {difficultyLabel}
             </Text>
           </View>
-          {item.category_name && (
-            <View style={styles.categoryPill}>
-              <Text style={styles.categoryPillText}>{item.category_name}</Text>
-            </View>
-          )}
         </View>
 
         {renderFistBumpFooter(item)}

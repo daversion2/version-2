@@ -109,7 +109,6 @@ export const ActionChallengesScreen: React.FC<Props> = ({ route, navigation }) =
 
       await createChallenge(user.uid, {
         name: challenge.name,
-        category_id: challenge.category,
         date: getTodayString(),
         difficulty_expected: challenge.difficulty,
         description: challenge.description,
@@ -255,7 +254,6 @@ export const ActionChallengesScreen: React.FC<Props> = ({ route, navigation }) =
           navigation.navigate('BuddyPickPartner', {
             challengeData: {
               name: challenge.name,
-              category_id: challenge.category,
               challenge_type: isExtended ? 'extended' : 'daily',
               difficulty_expected: challenge.difficulty,
               ...(isExtended ? { duration_days: duration } : {}),

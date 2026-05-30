@@ -12,13 +12,13 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Category, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
+import { Challenge, Nudge, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
 import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
 import { HabitStreakInfo } from '../../types';
-import { getUserCategories } from '../../services/categories';
+import { getGoalColor } from '../../constants/goalColors';
 import { getUserTeam, logTeamActivity, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
 import {
   calculateHabitPoints,
@@ -72,7 +72,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [buddyChallenges, setBuddyChallenges] = useState<BuddyChallenge[]>([]);
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
@@ -161,10 +160,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
 
-  const getCatColor = useCallback((catName: string) => {
-    const cat = categories.find((c) => c.name === catName);
-    return cat?.color || Colors.gray;
-  }, [categories]);
+  const getItemColor = useCallback((goalIds?: string[]) => {
+    return getGoalColor(goalIds, goals);
+  }, [goals]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -181,11 +179,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         );
       }
 
-      const [dailyChallenges, extChallenges, habitList, cats, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
+      const [dailyChallenges, extChallenges, habitList, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
-        getUserCategories(user.uid),
         getUserTeam(user.uid),
         getTodaysFunFact(),
         getPendingInviteCount(user.uid),
@@ -240,7 +237,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setPendingInvites(inviteCount);
       setBuddyChallenges(activeBuddies);
       setHabits(habitList);
-      setCategories(cats);
       setTeam(userTeam);
       setFunFact(todaysFact);
       setActiveProgram(enrollment);
@@ -404,8 +400,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             team.id,
             user.uid,
             'habit',
-            completingHabit.category_id,
-            completingHabit.category_id
+            completingHabit.name
           );
           // Refresh team summary after logging activity
           const summary = await getTeamMemberActivitySummaryOptimized(team.id);
@@ -559,7 +554,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const todayStr = getTodayString();
       await createChallenge(user.uid, {
         name: challenge.name,
-        category_id: challenge.category_id,
         date: todayStr,
         difficulty_expected: challenge.difficulty_expected,
         description: challenge.description,
@@ -619,7 +613,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     activeChallenges,
     extendedChallenges,
     habits,
-    categories,
     team,
     teamSummary,
     weeklyCounts,
@@ -658,7 +651,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate(screen as any, params);
     },
     onHabitTap: handleHabitTap,
-    getCatColor,
+    getItemColor,
     onGoalTap: (goalId: string) => navigation.navigate('GoalDashboard' as any, { goalId }),
     onCalendarExport: handleCalendarExport,
     onPlannedItemPress: handlePlannedItemPress,

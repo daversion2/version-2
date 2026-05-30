@@ -2,7 +2,6 @@ import React from 'react';
 import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
-import { ManageCategoriesScreen } from '../screens/Settings/ManageCategoriesScreen';
 import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
 import { TeamScreen } from '../screens/Community/TeamScreen';
 import { CreateTeamScreen } from '../screens/Community/CreateTeamScreen';
@@ -40,11 +39,6 @@ export const SettingsStack: React.FC = () => (
           <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
         ),
       }}
-    />
-    <Stack.Screen
-      name="ManageCategories"
-      component={ManageCategoriesScreen}
-      options={{ title: 'Categories' }}
     />
     <Stack.Screen
       name="ManageRewardMessages"

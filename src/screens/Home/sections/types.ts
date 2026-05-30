@@ -1,7 +1,6 @@
 import {
   Challenge,
   Nudge,
-  Category,
   Team,
   TeamMemberActivitySummary,
   BuddyChallenge,
@@ -27,7 +26,6 @@ export interface HomeData {
   activeChallenges: Challenge[];
   extendedChallenges: Challenge[];
   habits: Nudge[];
-  categories: Category[];
   team: Team | null;
   teamSummary: TeamMemberActivitySummary[];
   weeklyCounts: Record<string, number>;
@@ -61,7 +59,7 @@ export interface HomeData {
 export interface HomeCallbacks {
   onNavigate: (screen: string, params?: any) => void;
   onHabitTap: (habit: Nudge) => void;
-  getCatColor: (catName: string) => string;
+  getItemColor: (goalIds?: string[]) => string;
   onGoalTap?: (goalId: string) => void;
   onCalendarExport?: (item: PlannedItem) => void;
   onPlannedItemPress?: (item: PlannedItem) => void;

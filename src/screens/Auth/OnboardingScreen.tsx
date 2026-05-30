@@ -179,7 +179,6 @@ export const OnboardingScreen: React.FC = () => {
       // 1. Create meditation habit
       const meditationHabitId = await createHabit(user.uid, {
         name: 'Meditation',
-        category_id: 'Mind',
         target_count_per_week: 5,
         action_plan: morningMeditation.action_plan,
       });
@@ -192,7 +191,6 @@ export const OnboardingScreen: React.FC = () => {
         const selectedHabit = HABIT_LIBRARY.find((h) => h.id === selectedHabitId)!;
         await createHabit(user.uid, {
           name: selectedHabit.name,
-          category_id: selectedHabit.category_id,
           target_count_per_week: selectedHabit.suggested_target_per_week,
           action_plan: selectedHabit.action_plan,
         });
@@ -537,7 +535,7 @@ export const OnboardingScreen: React.FC = () => {
                   {habit.name}
                 </Text>
                 <Text style={styles.habitRowMeta}>
-                  {habit.suggested_target_per_week}x/week · {habit.category_id}
+                  {habit.suggested_target_per_week}x/week
                 </Text>
               </View>
               {isSelected && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}

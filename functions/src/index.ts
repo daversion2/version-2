@@ -7,6 +7,9 @@ admin.initializeApp();
 const db = admin.firestore();
 const expo = new Expo();
 
+// Global kill switch for push notifications — set to true to re-enable
+const PUSH_NOTIFICATIONS_ENABLED = false;
+
 // Helper to get today's date in YYYY-MM-DD format for a specific timezone
 const getDateInTimezone = (timezone: string): string => {
   try {
@@ -56,6 +59,10 @@ const sendPushNotification = async (
   body: string,
   data?: Record<string, string>
 ): Promise<void> => {
+  if (!PUSH_NOTIFICATIONS_ENABLED) {
+    console.log("Push notifications disabled — skipping");
+    return;
+  }
   if (!Expo.isExpoPushToken(pushToken)) {
     console.log(`Invalid Expo push token: ${pushToken}`);
     return;
@@ -455,13 +462,15 @@ export const sendTeamActivityNotification = onDocumentCreated(
     }
 
     // Send all notifications
-    if (notifications.length > 0) {
+    if (notifications.length > 0 && PUSH_NOTIFICATIONS_ENABLED) {
       console.log(`Sending ${notifications.length} notifications`);
       const chunks = expo.chunkPushNotifications(notifications);
       for (const chunk of chunks) {
         await expo.sendPushNotificationsAsync(chunk);
       }
       console.log("All team activity notifications sent");
+    } else if (notifications.length > 0) {
+      console.log(`Push notifications disabled — skipping ${notifications.length} team notifications`);
     } else {
       console.log("No notifications to send");
     }
@@ -614,12 +623,14 @@ export const sendBuddyBothComplete = onDocumentUpdated(
       });
     }
 
-    if (notifications.length > 0) {
+    if (notifications.length > 0 && PUSH_NOTIFICATIONS_ENABLED) {
       const chunks = expo.chunkPushNotifications(notifications);
       for (const chunk of chunks) {
         await expo.sendPushNotificationsAsync(chunk);
       }
       console.log(`Sent both-complete notifications for buddy challenge ${event.params.buddyChallengeId}`);
+    } else if (notifications.length > 0) {
+      console.log(`Push notifications disabled — skipping buddy both-complete notifications`);
     }
   }
 );
@@ -640,43 +651,41 @@ const SEED_USERNAMES = [
 
 const SEED_CHALLENGES: Array<{
   name: string;
-  category: string;
-  categoryIcon: string;
   difficulty: number;
 }> = [
   // Physical — difficulty 3+
-  { name: "Cold Shower for X Minutes", category: "Physical", categoryIcon: "fitness", difficulty: 3 },
-  { name: "Ice Bath / Cold Plunge for X Minutes", category: "Physical", categoryIcon: "fitness", difficulty: 5 },
-  { name: "Eat Only One Meal Today (OMAD)", category: "Physical", categoryIcon: "fitness", difficulty: 4 },
-  { name: "Fast for X Hours", category: "Physical", categoryIcon: "fitness", difficulty: 4 },
-  { name: "Sleep on the Floor", category: "Physical", categoryIcon: "fitness", difficulty: 4 },
-  { name: "Attend Spin Class — Then Run for X Min", category: "Physical", categoryIcon: "fitness", difficulty: 4 },
-  { name: "Go an Entire Day Without Sitting", category: "Physical", categoryIcon: "fitness", difficulty: 5 },
-  { name: "Carry a Loaded Rucksack for X Miles", category: "Physical", categoryIcon: "fitness", difficulty: 4 },
-  { name: "Hold a Wall Sit for As Long As You Can", category: "Physical", categoryIcon: "fitness", difficulty: 3 },
-  { name: "No Hot Water for the Entire Day", category: "Physical", categoryIcon: "fitness", difficulty: 4 },
+  { name: "Cold Shower for X Minutes", difficulty: 3 },
+  { name: "Ice Bath / Cold Plunge for X Minutes", difficulty: 5 },
+  { name: "Eat Only One Meal Today (OMAD)", difficulty: 4 },
+  { name: "Fast for X Hours", difficulty: 4 },
+  { name: "Sleep on the Floor", difficulty: 4 },
+  { name: "Attend Spin Class — Then Run for X Min", difficulty: 4 },
+  { name: "Go an Entire Day Without Sitting", difficulty: 5 },
+  { name: "Carry a Loaded Rucksack for X Miles", difficulty: 4 },
+  { name: "Hold a Wall Sit for As Long As You Can", difficulty: 3 },
+  { name: "No Hot Water for the Entire Day", difficulty: 4 },
   // Social — difficulty 3+
-  { name: "Start a Conversation with X Strangers", category: "Social", categoryIcon: "chatbubbles", difficulty: 3 },
-  { name: "Ask Someone for Brutally Honest Feedback About You", category: "Social", categoryIcon: "chatbubbles", difficulty: 4 },
-  { name: "Disagree with Someone Out Loud in a Group Setting", category: "Social", categoryIcon: "chatbubbles", difficulty: 3 },
-  { name: "Record and Post a Video of Yourself", category: "Social", categoryIcon: "chatbubbles", difficulty: 3 },
-  { name: "Eat Alone at a Restaurant — No Phone", category: "Social", categoryIcon: "chatbubbles", difficulty: 3 },
-  { name: "Make a Request You Fully Expect to Be Denied", category: "Social", categoryIcon: "chatbubbles", difficulty: 3 },
-  { name: "Sing or Perform in Front of People", category: "Social", categoryIcon: "chatbubbles", difficulty: 5 },
+  { name: "Start a Conversation with X Strangers", difficulty: 3 },
+  { name: "Ask Someone for Brutally Honest Feedback About You", difficulty: 4 },
+  { name: "Disagree with Someone Out Loud in a Group Setting", difficulty: 3 },
+  { name: "Record and Post a Video of Yourself", difficulty: 3 },
+  { name: "Eat Alone at a Restaurant — No Phone", difficulty: 3 },
+  { name: "Make a Request You Fully Expect to Be Denied", difficulty: 3 },
+  { name: "Sing or Perform in Front of People", difficulty: 5 },
   // Mind — difficulty 3+
-  { name: "No Complaining for 24 Hours", category: "Mind", categoryIcon: "bulb-outline", difficulty: 4 },
-  { name: "Deep Work Block for X Minutes — Zero Distractions", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
-  { name: "Do the Hardest Task on Your List First", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
-  { name: "Sit with an Uncomfortable Emotion for X Minutes", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
-  { name: "Journal About Your Biggest Fear in Brutal Detail", category: "Mind", categoryIcon: "bulb-outline", difficulty: 4 },
-  { name: "Do Absolutely Nothing for One Hour", category: "Mind", categoryIcon: "bulb-outline", difficulty: 4 },
-  { name: "Go the Entire Day with Zero Background Noise", category: "Mind", categoryIcon: "bulb-outline", difficulty: 4 },
-  { name: "Go an Entire Day Without Speaking", category: "Mind", categoryIcon: "bulb-outline", difficulty: 5 },
-  { name: "Meditate for X Minutes Without Moving", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
-  { name: "No Social Media for the Entire Day", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
-  { name: "No Lying — Including White Lies — for 24 Hours", category: "Mind", categoryIcon: "bulb-outline", difficulty: 4 },
-  { name: "No Phone for X Hours", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
-  { name: "Go 24 Hours Without Checking the Time", category: "Mind", categoryIcon: "bulb-outline", difficulty: 3 },
+  { name: "No Complaining for 24 Hours", difficulty: 4 },
+  { name: "Deep Work Block for X Minutes — Zero Distractions", difficulty: 3 },
+  { name: "Do the Hardest Task on Your List First", difficulty: 3 },
+  { name: "Sit with an Uncomfortable Emotion for X Minutes", difficulty: 3 },
+  { name: "Journal About Your Biggest Fear in Brutal Detail", difficulty: 4 },
+  { name: "Do Absolutely Nothing for One Hour", difficulty: 4 },
+  { name: "Go the Entire Day with Zero Background Noise", difficulty: 4 },
+  { name: "Go an Entire Day Without Speaking", difficulty: 5 },
+  { name: "Meditate for X Minutes Without Moving", difficulty: 3 },
+  { name: "No Social Media for the Entire Day", difficulty: 3 },
+  { name: "No Lying — Including White Lies — for 24 Hours", difficulty: 4 },
+  { name: "No Phone for X Hours", difficulty: 3 },
+  { name: "Go 24 Hours Without Checking the Time", difficulty: 3 },
 ];
 
 const STREAK_TIER_POOL = [
@@ -777,9 +786,6 @@ export const seedInspirationFeed = onSchedule(
         const challenge = pickRandom(SEED_CHALLENGES);
         entryData = {
           ...entryData,
-          category_id: challenge.category,
-          category_name: challenge.category,
-          category_icon: challenge.categoryIcon,
           difficulty_tier: seedDifficultyTier(challenge.difficulty),
           challenge_teaser: challenge.name.length > 50
             ? challenge.name.substring(0, 47) + "..."
@@ -794,8 +800,6 @@ export const seedInspirationFeed = onSchedule(
       } else if (entryType === "streak_milestone") {
         entryData = {
           ...entryData,
-          category_id: "",
-          category_name: "",
           difficulty_tier: "moderate",
           milestone_value: streak.days,
         };
@@ -804,8 +808,6 @@ export const seedInspirationFeed = onSchedule(
         const program = pickRandom(PROGRAM_POOL);
         entryData = {
           ...entryData,
-          category_id: "",
-          category_name: "",
           difficulty_tier: "very_hard",
           program_name: program.name,
           program_duration_days: program.durationDays,

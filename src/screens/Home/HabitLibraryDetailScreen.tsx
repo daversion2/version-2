@@ -20,11 +20,6 @@ import { showAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<any, 'HabitLibraryDetail'>;
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Physical: '#217180',
-  Social: '#FF5B02',
-  Mind: '#7B1FA2',
-};
 
 const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string }[] = [
   { key: 'cue', label: 'When & where' },
@@ -50,7 +45,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
     );
   }
 
-  const color = CATEGORY_COLORS[habit.category_id] ?? Colors.primary;
+  const color = Colors.primary;
 
   const handleAdd = async () => {
     if (selectedGoalIds.length === 0) {
@@ -62,7 +57,6 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
     try {
       const newHabitId = await createHabit(user.uid, {
         name: habit.name,
-        category_id: habit.category_id,
         target_count_per_week: habit.suggested_target_per_week,
         goal_ids: selectedGoalIds,
         action_plan: habit.action_plan,
@@ -87,10 +81,6 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <View style={[styles.categoryChip, { backgroundColor: color + '18' }]}>
-        <Ionicons name="leaf-outline" size={14} color={color} />
-        <Text style={[styles.categoryText, { color }]}>{habit.category_id}</Text>
-      </View>
       <Text style={styles.habitName}>{habit.name}</Text>
       <Text style={styles.description}>{habit.description}</Text>
 

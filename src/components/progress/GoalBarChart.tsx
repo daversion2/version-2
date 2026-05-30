@@ -2,21 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
-import { CategoryStat } from '../../services/progress';
-import { DEFAULT_CATEGORIES } from '../../types';
+import { GoalStat } from '../../services/progress';
 
 type ViewMode = 'points' | 'completions';
 
 interface Props {
-  data: CategoryStat[];
+  data: GoalStat[];
 }
 
-const getCategoryColor = (name: string): string => {
-  const match = DEFAULT_CATEGORIES.find((c) => c.name === name);
-  return match?.color || Colors.gray;
-};
-
-export const CategoryBarChart: React.FC<Props> = ({ data }) => {
+export const GoalBarChart: React.FC<Props> = ({ data }) => {
   const [mode, setMode] = useState<ViewMode>('points');
 
   const maxValue = Math.max(
@@ -27,7 +21,7 @@ export const CategoryBarChart: React.FC<Props> = ({ data }) => {
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Categories</Text>
+        <Text style={styles.title}>By Goal</Text>
         <View style={styles.toggleRow}>
           <TouchableOpacity
             onPress={() => setMode('points')}
@@ -54,18 +48,17 @@ export const CategoryBarChart: React.FC<Props> = ({ data }) => {
         data.map((item) => {
           const value = mode === 'points' ? item.points : item.completions;
           const barWidth = (value / maxValue) * 100;
-          const color = getCategoryColor(item.category);
 
           return (
-            <View key={item.category} style={styles.row}>
+            <View key={item.goalId} style={styles.row}>
               <Text style={styles.label} numberOfLines={1}>
-                {item.category}
+                {item.goalName}
               </Text>
               <View style={styles.barContainer}>
                 <View
                   style={[
                     styles.bar,
-                    { width: `${barWidth}%`, backgroundColor: color },
+                    { width: `${barWidth}%`, backgroundColor: item.goalColor },
                   ]}
                 />
               </View>

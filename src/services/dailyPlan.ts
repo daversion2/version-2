@@ -34,7 +34,7 @@ export function buildTodaysPlan(params: {
   todaysProgramDay: ProgramDay | null;
   programDayNumber: number;
   programCheckedIn: boolean;
-  getCatColor: (catName: string) => string;
+  getItemColor: (goalIds?: string[]) => string;
   plannedHabitIds?: string[];
 }): PlannedItem[] {
   const items: PlannedItem[] = [];
@@ -111,7 +111,7 @@ export function buildTodaysPlan(params: {
       subtitle,
       status: 'pending',
       icon: 'repeat-outline',
-      iconColor: params.getCatColor(habit.category_id),
+      iconColor: params.getItemColor(habit.goal_ids),
       sortKey: isPlanned ? 250 : isUrgent ? 300 : 600,
       calendarTitle: habit.name,
       sourceData: { habit },
@@ -197,7 +197,6 @@ export async function convertPlannedChallengesToChallenges(
     try {
       await createChallenge(userId, {
         name: updated[i].name,
-        category_id: updated[i].category_id,
         date: todayStr,
         difficulty_expected: updated[i].difficulty_expected,
         description: updated[i].description,

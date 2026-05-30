@@ -16,8 +16,7 @@ import { Card } from '../../components/common/Card';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs } from '../../services/habits';
-import { getUserCategories } from '../../services/categories';
-import { Nudge, HabitStats, CompletionLog, Category, HabitActionPlan } from '../../types';
+import { Nudge, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'HabitDetail'>;
 
@@ -36,22 +35,19 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [habit, setHabit] = useState<Nudge | null>(null);
   const [stats, setStats] = useState<HabitStats | null>(null);
   const [logs, setLogs] = useState<CompletionLog[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [h, s, l, cats] = await Promise.all([
+      const [h, s, l] = await Promise.all([
         getHabitById(user.uid, habitId),
         getHabitStats(user.uid, habitId),
         getHabitCompletionLogs(user.uid, habitId),
-        getUserCategories(user.uid),
       ]);
       setHabit(h);
       setStats(s);
       setLogs(l);
-      setCategories(cats);
     } catch (e) {
       console.error(e);
     } finally {
@@ -66,10 +62,6 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     }, [loadData])
   );
 
-  const getCatColor = (catName: string) => {
-    const cat = categories.find((c) => c.name === catName);
-    return cat?.color || Colors.gray;
-  };
 
   // Generate marked dates for calendar heat map
   const markedDates = useMemo(() => {
@@ -129,18 +121,11 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  const catColor = getCatColor(habit.category_id);
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.habitName}>{habit.name}</Text>
-        <View style={[styles.categoryBadge, { backgroundColor: catColor + '20' }]}>
-          <Text style={[styles.categoryText, { color: catColor }]}>
-            {habit.category_id}
-          </Text>
-        </View>
       </View>
 
       {/* Stats Card - 2x2 Grid */}

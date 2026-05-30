@@ -40,7 +40,7 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
         todaysProgramDay: data.todaysProgramDay,
         programDayNumber: data.programDayNumber,
         programCheckedIn: data.programCheckedIn,
-        getCatColor: callbacks.getCatColor,
+        getItemColor: callbacks.getItemColor,
         plannedHabitIds: data.plannedHabitIds,
       }),
     [
@@ -52,7 +52,7 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
       data.todaysProgramDay,
       data.programDayNumber,
       data.programCheckedIn,
-      callbacks.getCatColor,
+      callbacks.getItemColor,
       data.plannedHabitIds,
     ]
   );

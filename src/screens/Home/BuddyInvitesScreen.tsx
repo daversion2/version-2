@@ -128,7 +128,6 @@ export const BuddyInvitesScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={[styles.diffBadge]}>
                     <Text style={styles.diffText}>{invite.difficulty_expected}</Text>
                   </View>
-                  <Text style={styles.categoryText}>{invite.category_id}</Text>
                 </View>
 
                 {invite.description ? (

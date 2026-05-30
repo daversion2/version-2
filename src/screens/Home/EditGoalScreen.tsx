@@ -19,6 +19,7 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { getGoalById, updateGoal, archiveGoal, isGoalExpired } from '../../services/goals';
 import { GOAL_CONSTANTS } from '../../constants/goals';
+import { ALL_GOAL_COLORS } from '../../constants/goalColors';
 import { Goal } from '../../types';
 
 type Props = NativeStackScreenProps<any, 'EditGoal'>;
@@ -46,6 +47,7 @@ export const EditGoalScreen: React.FC<Props> = ({ route, navigation }) => {
   const [description, setDescription] = useState('');
   const [endDate, setEndDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [color, setColor] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -55,6 +57,7 @@ export const EditGoalScreen: React.FC<Props> = ({ route, navigation }) => {
       if (g) {
         setGoal(g);
         setName(g.name);
+        setColor(g.color);
         setDescription(g.description || '');
         setEndDate(parseYYYYMMDD(g.end_date));
       }
@@ -66,11 +69,12 @@ export const EditGoalScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!user || !goal || !name.trim()) return;
     setSaving(true);
     try {
-      const updates: { name?: string; description?: string; end_date?: string } = {};
+      const updates: { name?: string; description?: string; end_date?: string; color?: string } = {};
       if (name.trim() !== goal.name) updates.name = name.trim();
       if ((description.trim() || '') !== (goal.description || '')) updates.description = description.trim();
       const newEndDate = toYYYYMMDD(endDate);
       if (newEndDate !== goal.end_date) updates.end_date = newEndDate;
+      if (color !== goal.color) updates.color = color;
 
       if (Object.keys(updates).length > 0) {
         await updateGoal(user.uid, goal.id, updates);
@@ -147,6 +151,21 @@ export const EditGoalScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text style={styles.charCount}>
           {name.length}/{GOAL_CONSTANTS.NAME_MAX_LENGTH}
         </Text>
+
+        <Text style={styles.label}>Color</Text>
+        <View style={styles.colorRow}>
+          {ALL_GOAL_COLORS.map(c => (
+            <TouchableOpacity
+              key={c}
+              onPress={() => setColor(c)}
+              style={[
+                styles.colorCircle,
+                { backgroundColor: c },
+                color === c && styles.colorCircleSelected,
+              ]}
+            />
+          ))}
+        </View>
 
         <Text style={styles.label}>Description (Optional)</Text>
         <InputField
@@ -280,6 +299,20 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+  },
+  colorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  colorCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  colorCircleSelected: {
+    borderWidth: 3,
+    borderColor: Colors.dark,
   },
   archiveBtn: {
     flexDirection: 'row',

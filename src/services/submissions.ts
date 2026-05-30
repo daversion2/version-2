@@ -30,8 +30,8 @@ export const submitChallenge = async (
   originalChallengeId: string,
   data: {
     name: string;
-    category_id: string;
-    category_name: string;
+    category_id?: string;
+    category_name?: string;
     difficulty_suggested: number;
     description: string;
     success_criteria?: string;
@@ -83,8 +83,8 @@ export const submitChallenge = async (
     user_id: userId,
     original_challenge_id: originalChallengeId,
     name: data.name,
-    category_id: data.category_id,
-    category_name: data.category_name,
+    category_id: data.category_id || '',
+    category_name: data.category_name || '',
     difficulty_suggested: data.difficulty_suggested,
     description: data.description,
     status: 'pending',
@@ -233,7 +233,7 @@ export const approveSubmission = async (
   // Create library entry
   const libraryData: Omit<LibraryChallengeExtended, 'id'> = {
     name: finalData.name,
-    category: submission.category_name,
+    category: submission.category_name || '',
     difficulty: finalData.difficulty_suggested,
     description: finalData.description,
     success_criteria: finalData.success_criteria,

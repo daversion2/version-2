@@ -14,8 +14,7 @@ import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveHabits, createHabit, updateHabit } from '../../services/habits';
-import { Nudge, Category } from '../../types';
-import { getUserCategories } from '../../services/categories';
+import { Nudge } from '../../types';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
@@ -28,27 +27,21 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCatIdx, setSelectedCatIdx] = useState(0);
   const [timesPerWeek, setTimesPerWeek] = useState(3);
   const [goalIds, setGoalIds] = useState<string[]>([]);
 
   // Edit mode state
   const [editingHabit, setEditingHabit] = useState<Nudge | null>(null);
   const [editName, setEditName] = useState('');
-  const [editCatIdx, setEditCatIdx] = useState(0);
   const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
   const [editLoading, setEditLoading] = useState(false);
   const [editGoalIds, setEditGoalIds] = useState<string[]>([]);
 
   const load = async () => {
     if (!user) return;
-    const [h, cats] = await Promise.all([
-      getActiveHabits(user.uid),
-      getUserCategories(user.uid),
-    ]);
+    const h = await getActiveHabits(user.uid);
     setHabits(h);
-    setCategories(cats);
+
   };
 
   useEffect(() => {
@@ -70,7 +63,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const habitId = await createHabit(user.uid, {
         name: newName.trim(),
-        category_id: categories[selectedCatIdx]?.name || 'Uncategorized',
         target_count_per_week: timesPerWeek,
         ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
       });
@@ -93,8 +85,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const startEdit = (habit: Nudge) => {
     setEditingHabit(habit);
     setEditName(habit.name);
-    const catIdx = categories.findIndex((c) => c.name === habit.category_id);
-    setEditCatIdx(catIdx >= 0 ? catIdx : 0);
     setEditTimesPerWeek(habit.target_count_per_week);
     setEditGoalIds(habit.goal_ids || []);
     setShowForm(false);
@@ -103,7 +93,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const cancelEdit = () => {
     setEditingHabit(null);
     setEditName('');
-    setEditCatIdx(0);
   };
 
   const handleSaveEdit = async () => {
@@ -116,7 +105,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await updateHabit(user.uid, editingHabit.id, {
         name: editName.trim(),
-        category_id: categories[editCatIdx]?.name || 'Uncategorized',
         target_count_per_week: editTimesPerWeek,
         goal_ids: editGoalIds,
       } as Partial<Nudge>);
@@ -142,11 +130,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const getCatColor = (catName: string) => {
-    const cat = categories.find((c) => c.name === catName);
-    return cat?.color || Colors.gray;
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Manage Habits</Text>
@@ -170,24 +153,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setNewName}
             placeholder="e.g. Meditate 10 minutes"
           />
-          <Text style={styles.catLabel}>Category</Text>
-          <View style={styles.catRow}>
-            {categories.map((cat, i) => (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => setSelectedCatIdx(i)}
-                style={[
-                  styles.catChip,
-                  { borderColor: cat.color },
-                  selectedCatIdx === i && { backgroundColor: cat.color },
-                ]}
-              >
-                <Text style={[styles.catChipText, selectedCatIdx === i && { color: Colors.white }]}>
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
           <Text style={styles.catLabel}>Times per week</Text>
           <View style={styles.catRow}>
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
@@ -239,24 +204,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={setEditName}
             placeholder="Habit name"
           />
-          <Text style={styles.catLabel}>Category</Text>
-          <View style={styles.catRow}>
-            {categories.map((cat, i) => (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => setEditCatIdx(i)}
-                style={[
-                  styles.catChip,
-                  { borderColor: cat.color },
-                  editCatIdx === i && { backgroundColor: cat.color },
-                ]}
-              >
-                <Text style={[styles.catChipText, editCatIdx === i && { color: Colors.white }]}>
-                  {cat.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
           <Text style={styles.catLabel}>Times per week</Text>
           <View style={styles.catRow}>
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
@@ -302,11 +249,6 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.habitInfo}>
                 <Text style={styles.habitName}>{item.name}</Text>
                 <View style={styles.badgeRow}>
-                  <View style={[styles.badge, { backgroundColor: getCatColor(item.category_id) + '20' }]}>
-                    <Text style={[styles.badgeText, { color: getCatColor(item.category_id) }]}>
-                      {item.category_id}
-                    </Text>
-                  </View>
                   <View style={[styles.badge, { backgroundColor: Colors.primary + '15' }]}>
                     <Text style={[styles.badgeText, { color: Colors.primary }]}>
                       {item.target_count_per_week}x/week

@@ -16,8 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { createChallenge } from '../../services/challenges';
 import { getUserTeam } from '../../services/teams';
-import { Category, ChallengeType, DEFAULT_CATEGORIES } from '../../types';
-import { getUserCategories } from '../../services/categories';
+import { ChallengeType } from '../../types';
 import { TouchableOpacity } from 'react-native';
 import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
@@ -35,7 +34,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
   const { user } = useAuth();
 
   const [name, setName] = useState('');
-  const [categoryIdx, setCategoryIdx] = useState(0);
   const [difficulty, setDifficulty] = useState(3);
   const [description, setDescription] = useState('');
   const [successCriteria, setSuccessCriteria] = useState('');
@@ -43,23 +41,10 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [challengeType, setChallengeType] = useState<ChallengeType>('daily');
   const [durationDays, setDurationDays] = useState(7);
   const [goalIds, setGoalIds] = useState<string[]>([]);
 
-  // Core domain names (Physical, Social, Mind)
-  const coreDomainNames = DEFAULT_CATEGORIES.map(c => c.name);
-
-  useEffect(() => {
-    if (user) {
-      getUserCategories(user.uid).then((cats) => {
-        // Filter to only show the core three domains (Physical, Social, Mind)
-        const coreCats = cats.filter(c => coreDomainNames.includes(c.name));
-        setCategories(coreCats);
-      });
-    }
-  }, [user]);
 
 
   const handleCreate = async () => {
@@ -72,7 +57,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
     try {
       await createChallenge(user.uid, {
         name: name.trim(),
-        category_id: categories[categoryIdx]?.name || 'Uncategorized',
         date: forDate || getTodayString(),
         difficulty_expected: difficulty,
         challenge_type: challengeType,
@@ -127,31 +111,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
             ? "e.g. No social media for 7 days"
             : "e.g. Cold shower for 2 minutes"}
         />
-
-        {/* Category Picker */}
-        <Text style={styles.label}>Category *</Text>
-        <View style={styles.categoryRow}>
-          {categories.map((cat, i) => (
-            <TouchableOpacity
-              key={cat.name}
-              onPress={() => setCategoryIdx(i)}
-              style={[
-                styles.categoryChip,
-                { borderColor: cat.color },
-                categoryIdx === i && { backgroundColor: cat.color },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  categoryIdx === i && { color: Colors.white },
-                ]}
-              >
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         <DifficultySelector
           label="Expected Difficulty *"
@@ -228,7 +187,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
               navigation.navigate('BuddyPickPartner', {
                 challengeData: {
                   name: name.trim(),
-                  category_id: categories[categoryIdx]?.name || 'Uncategorized',
                   challenge_type: challengeType,
                   difficulty_expected: difficulty,
                   ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),

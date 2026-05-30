@@ -334,9 +334,6 @@ export const AdminDashboardScreen: React.FC = () => {
           {recentSubmissions.map((sub) => (
             <Card key={sub.id} style={styles.submissionPreview}>
               <View style={styles.submissionRow}>
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{sub.category_name}</Text>
-                </View>
                 <Text style={styles.submissionName} numberOfLines={1}>
                   {sub.name}
                 </Text>

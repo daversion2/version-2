@@ -125,7 +125,7 @@ const mapCategory = (categoryId: string): string => {
  * Build a TidbitContext from challenge data and completion state.
  */
 export const buildTidbitContext = (
-  challenge: { name: string; category_id: string },
+  challenge: { name: string; category_id?: string },
   state: {
     totalCount: number;
     streakDays: number;
@@ -135,7 +135,7 @@ export const buildTidbitContext = (
   }
 ): TidbitContext => {
   const challengeType = deriveChallengeType(challenge.name);
-  const category = mapCategory(challenge.category_id);
+  const category = challenge.category_id ? mapCategory(challenge.category_id) : undefined;
 
   const states: string[] = [];
   if (state.totalCount === 1) states.push('new_user');

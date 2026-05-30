@@ -54,7 +54,6 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => 
     try {
       await createChallenge(user.uid, {
         name: c.name,
-        category_id: c.category_id,
         date: forDate || getTodayString(),
         difficulty_expected: c.difficulty_expected,
         description: c.description,
@@ -80,7 +79,6 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => 
     navigation.navigate('BuddyPickPartner', {
       challengeData: {
         name: c.name,
-        category_id: c.category_id,
         challenge_type: challengeType,
         difficulty_expected: c.difficulty_expected,
         ...(challengeType === 'extended' && c.duration_days ? { duration_days: c.duration_days } : {}),
@@ -99,7 +97,7 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => 
       <Card style={styles.card}>
         <Text style={styles.name}>{item.name}</Text>
         <Text style={styles.meta}>
-          {item.category_id} — Difficulty: {item.difficulty_expected}
+          Difficulty: {item.difficulty_expected}
         </Text>
         {completionCount > 0 && (
           <Text style={styles.repeatCount}>
