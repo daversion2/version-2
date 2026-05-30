@@ -151,6 +151,22 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // ============================================================================
+  // SKIP ONBOARDING
+  // ============================================================================
+
+  const handleSkipOnboarding = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await markOnboardingComplete(user.uid);
+      await refreshProfile();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Something went wrong.');
+      setSaving(false);
+    }
+  };
+
+  // ============================================================================
   // COMPLETION LOGIC (Screen 8)
   // ============================================================================
 
@@ -626,26 +642,35 @@ export const OnboardingScreen: React.FC = () => {
     if (step === 3) {
       const timerDone = timerSeconds === 0 && !timerStarted;
       return (
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-            <Text style={styles.backText}>Back</Text>
+        <View>
+          <View style={styles.navBar}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={20} color={Colors.primary} />
+              <Text style={styles.backText}>Back</Text>
+            </TouchableOpacity>
+            {!timerStarted && !timerDone ? (
+              <Button
+                title="Start the minute"
+                onPress={() => setTimerStarted(true)}
+                style={styles.nextButton}
+              />
+            ) : timerDone ? (
+              <Button
+                title="Here's what came up →"
+                onPress={() => goToStep(4)}
+                style={styles.nextButton}
+              />
+            ) : (
+              <View style={styles.nextButton} />
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={handleSkipOnboarding}
+            style={styles.skipOnboardingButton}
+            disabled={saving}
+          >
+            <Text style={styles.skipOnboardingText}>Just take me to the app</Text>
           </TouchableOpacity>
-          {!timerStarted && !timerDone ? (
-            <Button
-              title="Start the minute"
-              onPress={() => setTimerStarted(true)}
-              style={styles.nextButton}
-            />
-          ) : timerDone ? (
-            <Button
-              title="Here's what came up →"
-              onPress={() => goToStep(4)}
-              style={styles.nextButton}
-            />
-          ) : (
-            <View style={styles.nextButton} />
-          )}
         </View>
       );
     }
@@ -920,6 +945,8 @@ const styles = StyleSheet.create({
   fullWidthButton: { width: width - Spacing.lg * 2 },
   skipButton: { paddingVertical: Spacing.sm },
   skipText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
+  skipOnboardingButton: { alignItems: 'center', paddingVertical: Spacing.md, paddingBottom: Spacing.lg },
+  skipOnboardingText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, textDecorationLine: 'underline' },
 
   // Shared content
   stageContent: { flex: 1 },
