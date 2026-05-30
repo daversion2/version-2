@@ -83,11 +83,12 @@ export function buildTodaysPlan(params: {
     });
   }
 
-  // 3. Habits — show planned habits + those needing attention (behind pace)
+  // 3. Habits — show only planned habits + urgent ones
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0=Sun
   const daysPassedThisWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Mon=1 start
-  const daysRemaining = 7 - daysPassedThisWeek;
+  const daysRemaining = 7 - daysPassedThisWeek; // days left including today
+  const daysLeftAfterToday = Math.max(0, daysRemaining - 1);
   const plannedSet = new Set(params.plannedHabitIds || []);
 
   for (const habit of params.habits) {
@@ -96,12 +97,19 @@ export function buildTodaysPlan(params: {
     const remaining = target - doneThisWeek;
     const isPlanned = plannedSet.has(habit.id);
 
-    // Show if planned, or if behind pace and still needs completions
+    // "Urgent" = must be done today or will miss weekly target.
+    // If remaining completions exceed days left after today, today is mandatory.
+    const isUrgent = remaining > 0 && remaining > daysLeftAfterToday;
+
+    // Only show if explicitly planned for today OR urgent
+    if (!isPlanned && !isUrgent) continue;
+    // Skip if already met target and not explicitly planned
     if (remaining <= 0 && !isPlanned) continue;
-    const isUrgent = remaining > 0 && remaining > daysRemaining;
 
     let subtitle = `${doneThisWeek}/${target} this week`;
-    if (isPlanned && remaining <= 0) subtitle = 'Planned';
+    if (isPlanned && remaining <= 0) subtitle = 'Planned (target met)';
+    else if (isUrgent && !isPlanned) subtitle = `Urgent · ${doneThisWeek}/${target} this week`;
+    else if (isPlanned && isUrgent) subtitle = `Planned · Urgent · ${doneThisWeek}/${target}`;
     else if (isPlanned) subtitle = `Planned · ${doneThisWeek}/${target} this week`;
 
     items.push({

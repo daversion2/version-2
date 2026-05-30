@@ -181,6 +181,37 @@ export const activateScheduledChallenges = async (
   return activatedCount;
 };
 
+/**
+ * Auto-expire stale daily challenges.
+ * Any active daily challenge whose date is before today gets marked 'not_yet'.
+ * Extended challenges are excluded (they span multiple days via milestones).
+ * Called on HomeScreen load BEFORE activateScheduledChallenges.
+ */
+export const expireStaleDailyChallenges = async (
+  userId: string,
+  todayStr: string
+): Promise<number> => {
+  const q = query(
+    challengesRef(userId),
+    where('status', '==', 'active'),
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return 0;
+
+  let expiredCount = 0;
+  for (const d of snap.docs) {
+    const challenge = d.data() as Challenge;
+    // Skip extended challenges — they have their own multi-day lifecycle
+    if (challenge.challenge_type === 'extended') continue;
+    // Only expire if the challenge date is strictly before today
+    if (challenge.date < todayStr) {
+      await updateDoc(d.ref, { status: 'not_yet' as ChallengeStatus });
+      expiredCount++;
+    }
+  }
+  return expiredCount;
+};
+
 export const completeChallenge = async (
   userId: string,
   challengeId: string,
@@ -249,7 +280,7 @@ export const getPastChallenges = async (userId: string): Promise<Challenge[]> =>
   const snap = await getDocs(query(challengesRef(userId)));
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() } as Challenge))
-    .filter((c) => ['completed', 'failed', 'archived'].includes(c.status))
+    .filter((c) => ['completed', 'failed', 'not_yet', 'archived'].includes(c.status))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 50);
 };

@@ -67,7 +67,7 @@ export interface HomeLayoutItem {
 }
 
 
-export type ChallengeStatus = 'active' | 'scheduled' | 'completed' | 'failed' | 'archived' | 'cancelled';
+export type ChallengeStatus = 'active' | 'scheduled' | 'completed' | 'failed' | 'not_yet' | 'archived' | 'cancelled';
 
 export type ChallengeType = 'daily' | 'extended';
 

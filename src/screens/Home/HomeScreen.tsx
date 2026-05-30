@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, Nudge, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
-import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges } from '../../services/challenges';
+import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
 import { getActiveHabits, logHabitCompletion, getWeeklyCompletionCounts, getHabitsStreaks } from '../../services/habits';
@@ -194,14 +194,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
 
-      // Activate scheduled challenges whose date has arrived,
-      // convert planned challenges from last night's reflection into real Challenges,
-      // and load planned habit IDs for Today's Plan
+      // 1. Expire stale daily challenges from previous days
+      // 2. Activate scheduled challenges whose date has arrived
+      // 3. Convert planned challenges into real Challenge documents
+      // 4. Load planned habit IDs for Today's Plan
       try {
         const todayStr = getTodayString();
+        const expiredCount = await expireStaleDailyChallenges(user.uid, todayStr);
         const activatedCount = await activateScheduledChallenges(user.uid, todayStr);
         const convertedCount = await convertPlannedChallengesToChallenges(user.uid, todayStr);
-        if (activatedCount > 0 || convertedCount > 0) {
+        if (expiredCount > 0 || activatedCount > 0 || convertedCount > 0) {
           const refreshedChallenges = await getActiveChallenges(user.uid);
           setActiveChallenges(refreshedChallenges);
           const refreshedExtended = await getActiveExtendedChallenges(user.uid);

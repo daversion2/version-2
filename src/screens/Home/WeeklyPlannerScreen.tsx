@@ -27,7 +27,7 @@ import {
 import { loadWeekData, WeekData } from '../../services/weeklyPlan';
 import { saveTomorrowPlan, getTomorrowPlan } from '../../services/dailyPlan';
 import { exportToCalendar } from '../../services/calendarExport';
-import { getActiveChallenges, getActiveExtendedChallenges, getAllChallenges } from '../../services/challenges';
+import { getActiveChallenges, getActiveExtendedChallenges, getAllChallenges, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
 import { getGoalColor } from '../../constants/goalColors';
 import { getActiveGoals } from '../../services/goals';
@@ -107,6 +107,10 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     try {
       const todayStr = getTodayString();
+
+      // Expire stale challenges and activate scheduled ones first
+      await expireStaleDailyChallenges(user.uid, todayStr);
+      await activateScheduledChallenges(user.uid, todayStr);
 
       // Load shared data in parallel
       const [

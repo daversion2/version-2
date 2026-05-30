@@ -919,3 +919,64 @@ export const checkMicroCommitmentFollowUps = onSchedule(
     console.log("checkMicroCommitmentFollowUps complete");
   }
 );
+
+// ============================================================================
+// AUTO-EXPIRE STALE DAILY CHALLENGES
+// Runs every hour. At midnight in each user's timezone, marks active daily
+// challenges from previous days as 'not_yet'. Extended challenges are excluded.
+// ============================================================================
+export const expireStaleChallenges = onSchedule(
+  {
+    schedule: "0 * * * *",
+    timeZone: "UTC",
+  },
+  async () => {
+    console.log("Running stale challenge expiry check...");
+
+    const usersSnapshot = await db.collection("users").get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      try {
+        const userData = userDoc.data();
+        const timezone = userData.timezone || "America/New_York";
+
+        // Only run at midnight in the user's timezone
+        const currentHour = getHourInTimezone(timezone);
+        if (currentHour !== 0) continue;
+
+        const today = getDateInTimezone(timezone);
+
+        const challengesSnapshot = await db
+          .collection("users")
+          .doc(userDoc.id)
+          .collection("challenges")
+          .where("status", "==", "active")
+          .get();
+
+        let expiredCount = 0;
+        for (const challengeDoc of challengesSnapshot.docs) {
+          const challenge = challengeDoc.data();
+          // Skip extended challenges — they span multiple days
+          if (challenge.challenge_type === "extended") continue;
+          if (challenge.date < today) {
+            await challengeDoc.ref.update({ status: "not_yet" });
+            expiredCount++;
+          }
+        }
+
+        if (expiredCount > 0) {
+          console.log(
+            `Expired ${expiredCount} stale challenges for user ${userDoc.id}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Error expiring challenges for user ${userDoc.id}:`,
+          error
+        );
+      }
+    }
+
+    console.log("expireStaleChallenges complete");
+  }
+);
