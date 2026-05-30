@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
@@ -16,10 +16,10 @@ import { Challenge, ChallengeRepeatStats } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { getTodayString } from '../../utils/date';
 
-type Props = NativeStackScreenProps<any, 'PastChallenges'>;
+type Props = HomeScreenProps<'PastChallenges'>;
 
 export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => {
-  const forDate = (route.params as any)?.forDate as string | undefined;
+  const forDate = route.params?.forDate;
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);

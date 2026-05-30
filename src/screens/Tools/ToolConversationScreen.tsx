@@ -19,6 +19,7 @@ import {
   getWorksheetEntryById,
 } from '../../services/worksheets';
 import { useAuth } from '../../context/AuthContext';
+import { WorksheetsScreenProps } from '../../types/navigation';
 
 import { generateStepsFromTemplate, calculateResumeStepIndex } from './utils/generateSteps';
 import { isStepComplete } from './utils/stepValidation';
@@ -32,7 +33,9 @@ import { FieldStep } from './steps/FieldStep';
 import { GoalStep } from './steps/GoalStep';
 import { CompletionStep } from './steps/CompletionStep';
 
-export const ToolConversationScreen: React.FC<{ navigation: any; route: any }> = ({
+type Props = WorksheetsScreenProps<'WorksheetForm'>;
+
+export const ToolConversationScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {

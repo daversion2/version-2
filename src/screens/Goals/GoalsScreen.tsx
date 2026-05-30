@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -18,6 +17,7 @@ import { getActiveGoals, getAllGoals, computeGoalFollowThrough, getItemsForGoal 
 import { getWillpowerStats } from '../../services/willpower';
 import { Goal, GoalFollowThrough } from '../../types';
 import { GOAL_CONSTANTS } from '../../constants/goals';
+import { GoalsNavigation } from '../../types/navigation';
 
 interface GoalCardData {
   goal: Goal;
@@ -41,7 +41,7 @@ const getHealthColor = (rate: number): string => {
 
 export const GoalsScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<GoalsNavigation>();
   const [loading, setLoading] = useState(true);
   const [goalCards, setGoalCards] = useState<GoalCardData[]>([]);
   const [completedGoals, setCompletedGoals] = useState<Goal[]>([]);

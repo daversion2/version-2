@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -22,11 +22,11 @@ import { Challenge, BuddyChallenge, ChallengeMilestone } from '../../types';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { getBuddyChallengeById, sendNudge, getPartnerChallengeStatus, getPartnerChallengeMilestones } from '../../services/buddyChallenge';
 
-type Props = NativeStackScreenProps<any, 'ExtendedChallengeProgress'>;
+type Props = HomeScreenProps<'ExtendedChallengeProgress'>;
 
 export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
-  const passedChallenge = route.params?.challenge as Challenge;
+  const passedChallenge = route.params?.challenge;
 
   const [challenge, setChallenge] = useState<Challenge | null>(passedChallenge);
   const [loading, setLoading] = useState(false);

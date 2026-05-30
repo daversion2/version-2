@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -31,11 +31,11 @@ import {
 import { getCurrentDayNumber } from '../../services/challenges';
 import { ProgramEnrollment, ProgramDay, ProgramTemplate } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'ProgramDashboard'>;
+type Props = HomeScreenProps<'ProgramDashboard'>;
 
 export const ProgramDashboardScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
-  const enrollmentId = route.params?.enrollmentId as string;
+  const enrollmentId = route.params?.enrollmentId;
 
   const [enrollment, setEnrollment] = useState<ProgramEnrollment | null>(null);
   const [program, setProgram] = useState<ProgramTemplate | null>(null);

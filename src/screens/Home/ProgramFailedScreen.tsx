@@ -6,7 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -19,11 +19,11 @@ import {
 } from '../../services/programs';
 import { ProgramEnrollment, ProgramTemplate } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'ProgramFailed'>;
+type Props = HomeScreenProps<'ProgramFailed'>;
 
 export const ProgramFailedScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
-  const enrollmentId = route.params?.enrollmentId as string;
+  const enrollmentId = route.params?.enrollmentId;
 
   const [enrollment, setEnrollment] = useState<ProgramEnrollment | null>(null);
   const [program, setProgram] = useState<ProgramTemplate | null>(null);

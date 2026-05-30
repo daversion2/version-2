@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -18,7 +18,7 @@ import { Nudge } from '../../types';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
-type Props = NativeStackScreenProps<any, 'ManageHabits'>;
+type Props = HomeScreenProps<'ManageHabits'>;
 
 export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();

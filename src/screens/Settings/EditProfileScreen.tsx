@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { SettingsScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -19,7 +19,7 @@ import {
 } from '../../services/users';
 import { showAlert } from '../../utils/alert';
 
-type Props = NativeStackScreenProps<any, 'EditProfile'>;
+type Props = SettingsScreenProps<'EditProfile'>;
 
 export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, refreshProfile } = useAuth();

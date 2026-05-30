@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 
-type Props = NativeStackScreenProps<any, 'StartChallenge'>;
+type Props = HomeScreenProps<'StartChallenge'>;
 
 export const StartChallengeScreen: React.FC<Props> = ({ navigation, route }) => {
-  const forDate = (route.params as any)?.forDate as string | undefined;
+  const forDate = route.params?.forDate;
 
   return (
     <View style={styles.container}>

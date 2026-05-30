@@ -11,7 +11,7 @@ import {
   Animated,
   Alert,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
@@ -21,7 +21,7 @@ import { createGoalWithActions, getActiveGoals } from '../../services/goals';
 import { GOAL_CONSTANTS, ONBOARDING_STAGES, ONBOARDING_PROMPTS, OnboardingPrompt } from '../../constants/goals';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
-type Props = NativeStackScreenProps<any>;
+type Props = HomeScreenProps<'GoalOnboardingFlow'>;
 
 const formatDate = (date: Date): string => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

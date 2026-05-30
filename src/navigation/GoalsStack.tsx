@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { GoalsStackParamList } from '../types/navigation';
 import { GoalsScreen } from '../screens/Goals/GoalsScreen';
 import { OverallProgressScreen } from '../screens/Goals/OverallProgressScreen';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
@@ -22,7 +23,7 @@ import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<GoalsStackParamList>();
 
 export const GoalsStack: React.FC = () => (
   <Stack.Navigator

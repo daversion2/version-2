@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -31,10 +31,10 @@ import {
   ChallengeDetailModal,
 } from '../../components/library';
 
-type Props = NativeStackScreenProps<any, 'ChallengeLibrary'>;
+type Props = HomeScreenProps<'ChallengeLibrary'>;
 
 export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) => {
-  const forDate = (route.params as any)?.forDate as string | undefined;
+  const forDate = route.params?.forDate;
   const { user } = useAuth();
 
   // Loading states
@@ -139,8 +139,8 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
   const handleActionCategoryPress = (actionType: ActionType) => {
     navigation.navigate('ActionChallenges', {
       actionType,
-      initialTimeCategory: selectedTimeCategory,
-      initialLifeDomain: selectedLifeDomain,
+      initialTimeCategory: selectedTimeCategory ?? undefined,
+      initialLifeDomain: selectedLifeDomain ?? undefined,
     });
   };
 

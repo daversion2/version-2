@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { useFocusEffect } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs } from '../../services/habits';
 import { Nudge, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'HabitDetail'>;
+type Props = HomeScreenProps<'HabitDetail'>;
 
 const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string; icon: string }[] = [
   { key: 'cue', label: 'When & where', icon: 'time-outline' },
@@ -29,7 +29,7 @@ const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string; icon: str
 ];
 
 export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { habitId } = route.params as { habitId: string };
+  const { habitId } = route.params;
   const { user } = useAuth();
 
   const [habit, setHabit] = useState<Nudge | null>(null);

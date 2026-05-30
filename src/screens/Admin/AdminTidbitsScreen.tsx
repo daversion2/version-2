@@ -15,9 +15,10 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { getAllTidbits, deleteTidbit } from '../../services/neuroscienceTidbits';
 import { NeuroscienceTidbit } from '../../types';
+import { AdminNavigation } from '../../types/navigation';
 
 export const AdminTidbitsScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AdminNavigation>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tidbits, setTidbits] = useState<NeuroscienceTidbit[]>([]);

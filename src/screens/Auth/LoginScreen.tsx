@@ -8,15 +8,15 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
 import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
 import { signIn, resetPassword, signInWithGoogle } from '../../services/auth';
 import { showAlert } from '../../utils/alert';
+import { AuthScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'Login'>;
+type Props = AuthScreenProps<'Login'>;
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');

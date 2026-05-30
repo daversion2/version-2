@@ -10,13 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { updateHabit } from '../../services/habits';
 import { HabitActionPlan } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'HabitActionPlan'>;
+type Props = HomeScreenProps<'HabitActionPlan'>;
 
 const QUESTIONS: {
   key: keyof HabitActionPlan;
@@ -57,11 +57,7 @@ const QUESTIONS: {
 ];
 
 export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { habitId, prefilled, afterSaveRoute } = route.params as {
-    habitId: string;
-    prefilled?: HabitActionPlan;
-    afterSaveRoute?: string;
-  };
+  const { habitId, prefilled, afterSaveRoute } = route.params;
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<HabitActionPlan>(prefilled ?? {});
@@ -110,7 +106,7 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
       });
       await updateHabit(user.uid, habitId, { action_plan: plan });
       if (afterSaveRoute) {
-        navigation.navigate(afterSaveRoute);
+        (navigation as { navigate: (screen: string) => void }).navigate(afterSaveRoute);
       } else {
         navigation.goBack();
       }
@@ -123,7 +119,7 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
 
   const handleSkipAll = () => {
     if (afterSaveRoute) {
-      navigation.navigate(afterSaveRoute);
+      (navigation as { navigate: (screen: string) => void }).navigate(afterSaveRoute);
     } else {
       navigation.goBack();
     }

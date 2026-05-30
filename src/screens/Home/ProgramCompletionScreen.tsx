@@ -6,7 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -20,13 +20,13 @@ import {
 } from '../../services/programs';
 import { ProgramEnrollment, ProgramTemplate } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'ProgramCompletion'>;
+type Props = HomeScreenProps<'ProgramCompletion'>;
 
 export const ProgramCompletionScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
-  const enrollmentId = route.params?.enrollmentId as string;
-  const totalPoints = route.params?.totalPoints as number;
-  const bonusPoints = route.params?.bonusPoints as number;
+  const enrollmentId = route.params?.enrollmentId;
+  const totalPoints = route.params?.totalPoints;
+  const bonusPoints = route.params?.bonusPoints;
 
   const [enrollment, setEnrollment] = useState<ProgramEnrollment | null>(null);
   const [program, setProgram] = useState<ProgramTemplate | null>(null);

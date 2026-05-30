@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -18,11 +18,11 @@ import { ProgramTemplate, ProgramMode, ProgramDay } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
-type Props = NativeStackScreenProps<any, 'ProgramDetail'>;
+type Props = HomeScreenProps<'ProgramDetail'>;
 
 export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
-  const { programId } = route.params as { programId: string };
+  const { programId } = route.params;
 
   const [program, setProgram] = useState<ProgramTemplate | null>(null);
   const [loading, setLoading] = useState(true);

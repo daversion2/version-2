@@ -14,6 +14,7 @@ interface TeamActivityCardProps {
 
 export const TeamActivityCard: React.FC<TeamActivityCardProps> = ({ team, summary }) => {
   const { user } = useAuth();
+  // Cross-tab navigation: navigates to Settings tab then Team screen
   const navigation = useNavigation<any>();
 
   const activeToday = summary.filter((m) => m.has_activity_today).length;

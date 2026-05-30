@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -20,13 +19,14 @@ import { updateWillpowerStats } from '../../services/willpower';
 import { isYesterday } from '../../utils/date';
 import { showConfirm, showAlert } from '../../utils/alert';
 import { Nudge, HabitDifficulty } from '../../types';
+import { ProgressScreenProps, ProgressNavigation } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'DayDetail'>;
+type Props = ProgressScreenProps<'DayDetail'>;
 
 export const DayDetailScreen: React.FC<Props> = ({ route }) => {
-  const { date } = route.params as { date: string };
+  const { date } = route.params;
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<ProgressNavigation>();
   const [logs, setLogs] = useState<EnrichedCompletionLog[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
 

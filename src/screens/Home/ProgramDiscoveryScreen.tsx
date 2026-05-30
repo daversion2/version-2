@@ -6,7 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -14,7 +14,7 @@ import { getAllPrograms } from '../../services/programs';
 import { seedPrograms } from '../../utils/seedPrograms';
 import { ProgramTemplate } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'ProgramDiscovery'>;
+type Props = HomeScreenProps<'ProgramDiscovery'>;
 
 export const ProgramDiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   const [programs, setPrograms] = useState<ProgramTemplate[]>([]);

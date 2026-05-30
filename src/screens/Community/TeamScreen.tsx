@@ -16,10 +16,11 @@ import { useAuth } from '../../context/AuthContext';
 import { getUserTeam, getTeamMembers, leaveTeam, getTeamStats } from '../../services/teams';
 import { Team, TeamMember } from '../../types';
 import { showAlert, showConfirm } from '../../utils/alert';
+import { SettingsNavigation } from '../../types/navigation';
 
 export const TeamScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<SettingsNavigation>();
   const [loading, setLoading] = useState(true);
   const [team, setTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);

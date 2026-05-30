@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { AdminStackParamList } from '../types/navigation';
 import { AdminDashboardScreen } from '../screens/Admin/AdminDashboardScreen';
 import { AdminChallengesScreen } from '../screens/Admin/AdminChallengesScreen';
 import { AdminChallengeEditScreen } from '../screens/Admin/AdminChallengeEditScreen';
@@ -10,7 +11,7 @@ import { AdminTidbitsScreen } from '../screens/Admin/AdminTidbitsScreen';
 import { AdminTidbitEditScreen } from '../screens/Admin/AdminTidbitEditScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 export const AdminStack: React.FC = () => (
   <Stack.Navigator

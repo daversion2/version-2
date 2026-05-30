@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
 import { useAuth } from '../../context/AuthContext';
@@ -25,7 +25,7 @@ import { StoryCard } from '../../components/why/StoryCard';
 import { WhyChain } from '../../components/why/WhyChain';
 import { ThemeChip } from '../../components/why/ThemeChip';
 
-type Props = NativeStackScreenProps<any>;
+type Props = HomeScreenProps<'WhyScreen'>;
 
 export const WhyScreen: React.FC<Props> = ({ navigation }) => {
   const { user, refreshProfile } = useAuth();

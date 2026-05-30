@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, Nudge, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
@@ -60,7 +60,7 @@ import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/hom
 import { ZoneHeader } from '../../components/home/ZoneHeader';
 import { getActiveMantraText } from '../../services/mantras';
 
-type Props = NativeStackScreenProps<any, 'HomeScreen'>;
+type Props = HomeScreenProps<'HomeScreen'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();

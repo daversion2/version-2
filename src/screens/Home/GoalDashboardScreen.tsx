@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -29,7 +29,7 @@ import {
 import { getCompletionLogs } from '../../services/progress';
 import { Goal, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'GoalDashboard'>;
+type Props = HomeScreenProps<'GoalDashboard'>;
 
 const formatDate = (dateStr: string): string => {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -67,7 +67,7 @@ const getActivityDates = async (
 
 export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
-  const goalId = route.params?.goalId as string;
+  const goalId = route.params?.goalId;
 
   const [goal, setGoal] = useState<Goal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -529,7 +529,7 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
             <Card
               key={pe.id}
               style={styles.itemCard}
-              onPress={() => navigation.navigate('ProgramDashboard')}
+              onPress={() => navigation.navigate('ProgramDashboard', { enrollmentId: pe.id })}
             >
               <View style={styles.itemRow}>
                 <Ionicons name="rocket-outline" size={20} color={Colors.primary} />

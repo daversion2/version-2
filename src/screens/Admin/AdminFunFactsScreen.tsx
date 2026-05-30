@@ -16,9 +16,10 @@ import { Card } from '../../components/common/Card';
 import { getAllFunFacts } from '../../services/funFacts';
 import { deleteFunFact, reorderFunFacts } from '../../services/admin';
 import { FunFact } from '../../types';
+import { AdminNavigation } from '../../types/navigation';
 
 export const AdminFunFactsScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AdminNavigation>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [facts, setFacts] = useState<FunFact[]>([]);
@@ -128,7 +129,7 @@ export const AdminFunFactsScreen: React.FC = () => {
               onPress={() =>
                 navigation.navigate('AdminFunFactEdit', {
                   mode: 'edit',
-                  factId: fact.id,
+                  funFactId: fact.id,
                 })
               }
             >
@@ -179,7 +180,7 @@ export const AdminFunFactsScreen: React.FC = () => {
                   onPress={() =>
                     navigation.navigate('AdminFunFactEdit', {
                       mode: 'edit',
-                      factId: fact.id,
+                      funFactId: fact.id,
                     })
                   }
                 >

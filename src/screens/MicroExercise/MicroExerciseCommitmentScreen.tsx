@@ -11,20 +11,17 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MicroExerciseDefinition, MicroExerciseSessionState } from '../../types/microExercise';
 import { saveMicroExerciseEntry } from '../../services/worksheets';
 import { useAuth } from '../../context/AuthContext';
+import { HomeScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'MicroExerciseCommitment'>;
+type Props = HomeScreenProps<'MicroExerciseCommitment'>;
 
 export const MicroExerciseCommitmentScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { session, exercise } = route.params as {
-    session: MicroExerciseSessionState;
-    exercise: MicroExerciseDefinition;
-  };
+  const { session, exercise } = route.params;
 
   const { user } = useAuth();
   const [commitment, setCommitment] = useState('');

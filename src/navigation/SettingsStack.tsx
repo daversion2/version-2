@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SettingsStackParamList } from '../types/navigation';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
 import { TeamScreen } from '../screens/Community/TeamScreen';
@@ -16,7 +17,7 @@ import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
 export const SettingsStack: React.FC = () => (
   <Stack.Navigator

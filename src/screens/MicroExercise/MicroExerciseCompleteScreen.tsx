@@ -7,20 +7,16 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MicroExerciseDefinition, MicroExerciseSessionState } from '../../types/microExercise';
 import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
+import { HomeScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'MicroExerciseComplete'>;
+type Props = HomeScreenProps<'MicroExerciseComplete'>;
 
 export const MicroExerciseCompleteScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { session, exercise, pointsAwarded } = route.params as {
-    session: MicroExerciseSessionState;
-    exercise: MicroExerciseDefinition;
-    pointsAwarded: number;
-  };
+  const { session, exercise, pointsAwarded } = route.params;
 
   const sourceTemplate = WORKSHEET_TEMPLATES.find(
     (t) => t.id === exercise.source_template_id

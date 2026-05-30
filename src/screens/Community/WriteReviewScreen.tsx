@@ -8,7 +8,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -18,14 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { createReview } from '../../services/reviews';
 import { OverallExperience, DifficultyAccuracy } from '../../types';
 import { showAlert } from '../../utils/alert';
-
-type RouteParams = {
-  WriteReview: {
-    libraryChallengeId: string;
-    challengeName: string;
-    completionId: string;
-  };
-};
+import { HomeScreenProps, HomeNavigation } from '../../types/navigation';
 
 const EXPERIENCE_OPTIONS: { value: OverallExperience; label: string; icon: string }[] = [
   { value: 'positive', label: 'Positive', icon: 'happy' },
@@ -39,10 +32,11 @@ const DIFFICULTY_OPTIONS: { value: DifficultyAccuracy; label: string }[] = [
   { value: 'harder', label: 'Harder than expected' },
 ];
 
-export const WriteReviewScreen: React.FC = () => {
+type Props = HomeScreenProps<'WriteReview'>;
+
+export const WriteReviewScreen: React.FC<Props> = ({ route }) => {
   const { user, userProfile } = useAuth();
-  const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<RouteParams, 'WriteReview'>>();
+  const navigation = useNavigation<HomeNavigation>();
   const { libraryChallengeId, challengeName, completionId } = route.params;
 
   const [submitting, setSubmitting] = useState(false);

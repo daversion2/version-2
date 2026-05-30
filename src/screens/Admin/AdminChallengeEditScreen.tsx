@@ -10,7 +10,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
@@ -21,17 +21,12 @@ import {
 } from '../../services/admin';
 import { LibraryChallenge, TimeCategory, ActionType } from '../../types';
 import { TIME_CATEGORIES, ACTION_CATEGORIES, LIFE_DOMAINS } from '../../constants/challengeLibrary';
+import { AdminScreenProps, AdminNavigation } from '../../types/navigation';
 
-type RouteParams = {
-  AdminChallengeEdit: {
-    mode: 'create' | 'edit';
-    challengeId?: string;
-  };
-};
+type Props = AdminScreenProps<'AdminChallengeEdit'>;
 
-export const AdminChallengeEditScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<RouteParams, 'AdminChallengeEdit'>>();
+export const AdminChallengeEditScreen: React.FC<Props> = ({ route }) => {
+  const navigation = useNavigation<AdminNavigation>();
   const { mode, challengeId } = route.params;
   const isEditing = mode === 'edit' && challengeId;
 

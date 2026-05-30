@@ -8,7 +8,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
 import { DifficultySelector } from '../../components/common/DifficultySelector';
@@ -22,11 +22,11 @@ import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
-type Props = NativeStackScreenProps<any, 'EditChallenge'>;
+type Props = HomeScreenProps<'EditChallenge'>;
 
 export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
-  const challenge = route.params?.challenge as Challenge;
+  const challenge = route.params?.challenge;
 
   // Initialize state from the challenge being edited
   const [name, setName] = useState(challenge?.name || '');

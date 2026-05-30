@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -11,7 +11,7 @@ import { BuddyChallenge } from '../../types';
 import { getPendingInvites, acceptBuddyChallenge, declineBuddyChallenge } from '../../services/buddyChallenge';
 import { showAlert } from '../../utils/alert';
 
-type Props = NativeStackScreenProps<any, 'BuddyInvites'>;
+type Props = HomeScreenProps<'BuddyInvites'>;
 
 export const BuddyInvitesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();

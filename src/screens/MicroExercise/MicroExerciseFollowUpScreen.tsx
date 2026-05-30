@@ -7,19 +7,19 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { getWorksheetEntryById, updateMicroExerciseFollowUp } from '../../services/worksheets';
 import { useAuth } from '../../context/AuthContext';
 import { MicroExerciseTrigger } from '../../types/worksheets';
+import { HomeScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'MicroExerciseFollowUp'>;
+type Props = HomeScreenProps<'MicroExerciseFollowUp'>;
 
 type ScreenState = 'loading' | 'prompt' | 'did_it' | 'not_yet' | 'error';
 
 export const MicroExerciseFollowUpScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { entry_id, user_id } = route.params as { entry_id: string; user_id: string };
+  const { entry_id, user_id } = route.params;
   const { user } = useAuth();
 
   const [state, setState] = useState<ScreenState>('loading');

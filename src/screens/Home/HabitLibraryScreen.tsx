@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
 import { LibraryHabit } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'HabitLibrary'>;
+type Props = HomeScreenProps<'HabitLibrary'>;
 
 export const HabitLibraryScreen: React.FC<Props> = ({ navigation }) => {
   const renderHabit = ({ item }: { item: LibraryHabit }) => {

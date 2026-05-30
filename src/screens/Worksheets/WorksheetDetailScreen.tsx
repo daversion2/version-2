@@ -12,11 +12,11 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { WorksheetEntry, WorksheetTemplate } from '../../types';
+import { WorksheetsScreenProps } from '../../types/navigation';
 
-export const WorksheetDetailScreen: React.FC<{
-  navigation: any;
-  route: any;
-}> = ({ navigation, route }) => {
+type Props = WorksheetsScreenProps<'WorksheetDetail'>;
+
+export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { entryId } = route.params;
   const { user } = useAuth();
   const [entry, setEntry] = useState<WorksheetEntry | null>(null);

@@ -9,7 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -48,11 +48,11 @@ import {
 import { NeuroscienceTidbit } from '../../types';
 import { triggerMilestoneHaptic } from '../../utils/haptics';
 
-type Props = NativeStackScreenProps<any, 'CompleteChallenge'>;
+type Props = HomeScreenProps<'CompleteChallenge'>;
 
 export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
-  const challenge = route.params?.challenge as Challenge;
+  const challenge = route.params?.challenge;
 
   const [result, setResult] = useState<'completed' | 'failed' | null>(null);
   const [difficulty, setDifficulty] = useState(3);

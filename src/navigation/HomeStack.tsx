@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { HomeStackParamList } from '../types/navigation';
 import { HomeScreen } from '../screens/Home/HomeScreen';
 import { StartChallengeScreen } from '../screens/Home/StartChallengeScreen';
 import { CreateChallengeScreen } from '../screens/Home/CreateChallengeScreen';
@@ -9,6 +10,7 @@ import { PastChallengesScreen } from '../screens/Home/PastChallengesScreen';
 import { ChallengeLibraryScreen } from '../screens/Home/ChallengeLibraryScreen';
 import { ActionChallengesScreen } from '../screens/Home/BarrierChallengesScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
+import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
 import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
 import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
 import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
@@ -45,7 +47,7 @@ import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<HomeStackParamList>();
 
 export const HomeStack: React.FC = () => (
   <Stack.Navigator
@@ -106,6 +108,11 @@ export const HomeStack: React.FC = () => (
       name="CompleteChallenge"
       component={CompleteChallengeScreen}
       options={{ title: 'Complete Challenge' }}
+    />
+    <Stack.Screen
+      name="ChallengeDetail"
+      component={ChallengeDetailScreen}
+      options={{ title: 'Challenge' }}
     />
     <Stack.Screen
       name="ManageHabits"
@@ -196,11 +203,6 @@ export const HomeStack: React.FC = () => (
       name="CustomizeHome"
       component={CustomizeHomeScreen}
       options={{ title: 'Customize Home' }}
-    />
-    <Stack.Screen
-      name="CreateGoal"
-      component={GoalOnboardingFlow}
-      options={{ title: 'New Goal' }}
     />
     <Stack.Screen
       name="GoalOnboardingFlow"

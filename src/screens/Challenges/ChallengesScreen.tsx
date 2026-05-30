@@ -1,17 +1,17 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
 import { getPastChallenges } from '../../services/challenges';
 import { getChallengeSummaryStats, ChallengeSummaryStats } from '../../services/challengeStats';
 import { Challenge } from '../../types';
+import { GoalsNavigation } from '../../types/navigation';
 
 export const ChallengesScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<GoalsNavigation>();
   const [stats, setStats] = useState<ChallengeSummaryStats>({
     avgDifficulty: 0,
     totalCompleted: 0,

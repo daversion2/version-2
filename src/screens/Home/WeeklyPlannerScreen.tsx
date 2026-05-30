@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { WeekDayCard } from '../../components/home/WeekDayCard';
@@ -43,7 +43,7 @@ import {
   getTodayString,
 } from '../../utils/date';
 
-type Props = NativeStackScreenProps<any, 'WeeklyPlanner'>;
+type Props = HomeScreenProps<'WeeklyPlanner'>;
 
 export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();

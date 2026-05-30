@@ -7,17 +7,17 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MicroExerciseDefinition, MicroExerciseSessionState } from '../../types/microExercise';
 import { MICRO_EXERCISES, getOrderedFeelingsForTrigger } from '../../data/microExercises';
 import { MicroExerciseTrigger } from '../../types/worksheets';
+import { HomeScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'MicroExerciseFeeling'>;
+type Props = HomeScreenProps<'MicroExerciseFeeling'>;
 
 export const MicroExerciseFeelingScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { trigger_context } = route.params as { trigger_context: MicroExerciseTrigger };
+  const { trigger_context } = route.params;
   const [showAll, setShowAll] = useState(false);
 
   const ordered = getOrderedFeelingsForTrigger(trigger_context);

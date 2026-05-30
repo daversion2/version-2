@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -13,7 +13,7 @@ import { createBuddyChallengeInvite } from '../../services/buddyChallenge';
 import { getDuoStreak } from '../../services/buddyChallenge';
 import { showAlert } from '../../utils/alert';
 
-type Props = NativeStackScreenProps<any, 'BuddyPickPartner'>;
+type Props = HomeScreenProps<'BuddyPickPartner'>;
 
 export const BuddyPickPartnerScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user, userProfile } = useAuth();
@@ -86,7 +86,7 @@ export const BuddyPickPartnerScreen: React.FC<Props> = ({ navigation, route }) =
         user.uid,
         member.user_id,
         teamId,
-        challengeData,
+        challengeData as Parameters<typeof createBuddyChallengeInvite>[3],
         userProfile?.username,
         member.username,
       );
@@ -123,7 +123,7 @@ export const BuddyPickPartnerScreen: React.FC<Props> = ({ navigation, route }) =
               </Text>
               <Button
                 title="Go to Teams"
-                onPress={() => navigation.navigate('Community', { screen: 'TeamScreen' })}
+                onPress={() => navigation.getParent()?.navigate('Settings', { screen: 'Team' })}
                 style={{ marginTop: Spacing.md }}
               />
             </View>

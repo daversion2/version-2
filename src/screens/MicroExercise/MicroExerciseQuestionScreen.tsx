@@ -10,19 +10,15 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MicroExerciseDefinition, MicroExerciseSessionState } from '../../types/microExercise';
+import { HomeScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'MicroExerciseQuestion'>;
+type Props = HomeScreenProps<'MicroExerciseQuestion'>;
 
 export const MicroExerciseQuestionScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { session, question_index, exercise } = route.params as {
-    session: MicroExerciseSessionState;
-    question_index: 0 | 1 | 2;
-    exercise: MicroExerciseDefinition;
-  };
+  const { session, question_index, exercise } = route.params;
 
   const question = exercise.questions[question_index];
   const [answer, setAnswer] = useState(session.responses[question.id] ?? '');

@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -20,6 +19,7 @@ import { getReflections, getReflectionStats, searchJournalEntries } from '../../
 import { GradeLineChart } from '../../components/progress/GradeLineChart';
 import { GradeDistributionChart } from '../../components/progress/GradeDistributionChart';
 import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
+import { ProgressNavigation } from '../../types/navigation';
 
 const TIME_FILTERS = ['7 Days', '30 Days', '90 Days', 'All Time'] as const;
 const SOURCE_FILTERS = ['All', 'Reflections', 'Challenges'] as const;
@@ -27,7 +27,7 @@ type SourceFilter = (typeof SOURCE_FILTERS)[number];
 
 export const ReflectionDetailScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<ProgressNavigation>();
 
   const [filter, setFilter] = useState<(typeof TIME_FILTERS)[number]>('30 Days');
   const [stats, setStats] = useState<ReflectionStats | null>(null);

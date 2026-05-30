@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -29,14 +29,10 @@ import {
   ChallengeDetailModal,
 } from '../../components/library';
 
-type Props = NativeStackScreenProps<any, 'ActionChallenges'>;
+type Props = HomeScreenProps<'ActionChallenges'>;
 
 export const ActionChallengesScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { actionType, initialTimeCategory, initialLifeDomain } = route.params as {
-    actionType: ActionType;
-    initialTimeCategory?: TimeCategory | null;
-    initialLifeDomain?: string | null;
-  };
+  const { actionType, initialTimeCategory, initialLifeDomain } = route.params;
 
   const { user } = useAuth();
   // Map action_type to display category

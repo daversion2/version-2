@@ -16,10 +16,11 @@ import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
 import { createTeam } from '../../services/teams';
 import { showAlert } from '../../utils/alert';
+import { SettingsNavigation } from '../../types/navigation';
 
 export const CreateTeamScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<SettingsNavigation>();
 
   const [teamName, setTeamName] = useState('');
   const [displayName, setDisplayName] = useState('');

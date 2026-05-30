@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -10,13 +9,14 @@ import { getChallengeById, deleteChallenge, getChallengeRepeatStats } from '../.
 import { canSubmitChallenge } from '../../services/submissions';
 import { Challenge, ChallengeRepeatStats } from '../../types';
 import { showConfirm, showAlert } from '../../utils/alert';
+import { GoalsScreenProps, GoalsNavigation } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'ChallengeDetail'>;
+type Props = GoalsScreenProps<'ChallengeDetail'>;
 
 export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
-  const { challengeId } = route.params as { challengeId: string };
+  const { challengeId } = route.params;
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<GoalsNavigation>();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);

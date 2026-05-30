@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { MainTabParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
 import { GoalsStack } from './GoalsStack';
@@ -10,7 +11,7 @@ import { AdminStack } from './AdminStack';
 import { useAuth } from '../context/AuthContext';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const MainTabs: React.FC = () => {
   const { userProfile } = useAuth();

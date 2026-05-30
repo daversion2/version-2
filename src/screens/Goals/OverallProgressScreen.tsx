@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -24,6 +23,7 @@ import { ReflectionSummaryCard } from '../../components/progress/ReflectionSumma
 import { getReflections, getReflectionStats } from '../../services/reflections';
 import { ReflectionGrade, ReflectionStats as ReflectionStatsType } from '../../types';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
+import { GoalsNavigation } from '../../types/navigation';
 
 const TIME_FILTERS = ['Today', '7 Days', '30 Days', 'All Time'] as const;
 
@@ -47,7 +47,7 @@ const getHealthLabel = (rate: number): string => {
 
 export const OverallProgressScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<GoalsNavigation>();
   const [wpq, setWpq] = useState(0);
   const [filter, setFilter] = useState<(typeof TIME_FILTERS)[number]>('7 Days');
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});

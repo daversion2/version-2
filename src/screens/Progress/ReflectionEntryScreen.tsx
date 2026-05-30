@@ -1,16 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { DailyReflection } from '../../types';
 import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
+import { GoalsScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'ReflectionEntry'>;
+type Props = GoalsScreenProps<'ReflectionEntry'>;
 
 export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
-  const reflection = route.params?.reflection as DailyReflection;
+  const reflection = route.params.reflection;
 
   if (!reflection) {
     return (

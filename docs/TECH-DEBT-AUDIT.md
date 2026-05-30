@@ -195,8 +195,8 @@ programSeedData.ts (2,619 lines) and challengeSeedData.ts (1,880 lines) are one-
 | Bundle/Assets | **B** | 2.5MB screenshots, unused deps |
 
 ### Top 5 Highest-Impact Fixes
-1. **Cache completion logs** — fetch once, pass to multiple consumers (saves 2x redundant full-dataset downloads)
-2. **Refactor Cloud Function scheduled jobs** — stop iterating all users; use triggers or batched queries
-3. **Add `useMemo` to HomeScreen** `homeData`/`homeCallbacks` + `React.memo` to section components
-4. **Create navigation `ParamList` types** — eliminates 63 `any` usages in one shot
+1. ~~**Cache completion logs** — fetch once, pass to multiple consumers (saves 2x redundant full-dataset downloads)~~ **COMPLETED** (2026-05-30) — Added `fetchAllNudgeLogs()` + pure computation functions in habits.ts; HomeScreen fetches once and derives weekly counts, streaks, and goal follow-through from cached data
+2. ~~**Refactor Cloud Function scheduled jobs** — stop iterating all users; use triggers or batched queries~~ **COMPLETED** (2026-05-30) — Added timezone-filtered `getUsersAtHour()` helper; refactored 4 scheduled functions to query only relevant users; added batched writes for expireStaleChallenges
+3. ~~**Add `useMemo` to HomeScreen** `homeData`/`homeCallbacks` + `React.memo` to section components~~ **COMPLETED** (2026-05-30) — Wrapped homeData/homeCallbacks in useMemo, converted 5 handlers to useCallback, added React.memo to all 7 section components
+4. ~~**Create navigation `ParamList` types** — eliminates 63 `any` usages in one shot~~ **COMPLETED** (2026-05-30) — Created `src/types/navigation.ts` with typed ParamList for all 9 navigators (Root, Auth, MainTabs, Home, Goals, Progress, Worksheets, Settings, Admin); updated 50+ screen files to use typed Props; reduced navigation `any` from 63 to 2 (1 dead code, 1 cross-tab component); also fixed a missing `enrollmentId` param bug in GoalDashboardScreen surfaced by the typing
 5. **Remove screenshots from bundle** — instant 2.5MB savings

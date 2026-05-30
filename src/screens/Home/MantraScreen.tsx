@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -37,7 +37,7 @@ const QUICK_TIPS = [
   'Ground it in identity, not outcome',
 ];
 
-type Props = NativeStackScreenProps<any, 'MantraScreen'>;
+type Props = HomeScreenProps<'MantraScreen'>;
 
 export const MantraScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();

@@ -1,12 +1,15 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { ProgressStackParamList } from '../types/navigation';
 import { ProgressScreen } from '../screens/Progress/ProgressScreen';
 import { DayDetailScreen } from '../screens/Progress/DayDetailScreen';
 import { ReflectionDetailScreen } from '../screens/Progress/ReflectionDetailScreen';
+import { ReflectionEntryScreen } from '../screens/Progress/ReflectionEntryScreen';
+import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<ProgressStackParamList>();
 
 export const ProgressStack: React.FC = () => (
   <Stack.Navigator
@@ -32,6 +35,16 @@ export const ProgressStack: React.FC = () => (
       name="ReflectionDetail"
       component={ReflectionDetailScreen}
       options={{ title: 'Reflections' }}
+    />
+    <Stack.Screen
+      name="ReflectionEntry"
+      component={ReflectionEntryScreen}
+      options={{ title: 'Reflection' }}
+    />
+    <Stack.Screen
+      name="ChallengeDetail"
+      component={ChallengeDetailScreen}
+      options={{ title: 'Challenge' }}
     />
     <Stack.Screen
       name="GoalDashboard"

@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useFocusEffect, useRoute, RouteProp } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -20,16 +20,14 @@ import {
   getTeamStats,
 } from '../../services/teams';
 import { Team, TeamMember, TeamActivityFeedItem } from '../../types';
-
-type RouteParams = {
-  TeamDetail: { teamId: string };
-};
+import { SettingsScreenProps } from '../../types/navigation';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export const TeamDetailScreen: React.FC = () => {
+type Props = SettingsScreenProps<'TeamDetail'>;
+
+export const TeamDetailScreen: React.FC<Props> = ({ route }) => {
   const { user } = useAuth();
-  const route = useRoute<RouteProp<RouteParams, 'TeamDetail'>>();
   const { teamId } = route.params;
 
   const [loading, setLoading] = useState(true);

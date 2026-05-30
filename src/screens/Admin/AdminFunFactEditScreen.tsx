@@ -8,7 +8,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import {
@@ -18,19 +18,15 @@ import {
 } from '../../services/admin';
 import { getAllFunFacts } from '../../services/funFacts';
 import { FunFact } from '../../types';
+import { AdminScreenProps, AdminNavigation } from '../../types/navigation';
 
-type RouteParams = {
-  AdminFunFactEdit: {
-    mode: 'create' | 'edit';
-    factId?: string;
-  };
-};
+type Props = AdminScreenProps<'AdminFunFactEdit'>;
 
-export const AdminFunFactEditScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<RouteParams, 'AdminFunFactEdit'>>();
-  const { mode, factId } = route.params;
-  const isEditing = mode === 'edit' && factId;
+export const AdminFunFactEditScreen: React.FC<Props> = ({ route }) => {
+  const navigation = useNavigation<AdminNavigation>();
+  const { mode } = route.params;
+  const funFactId = route.params.funFactId;
+  const isEditing = mode === 'edit' && funFactId;
 
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
@@ -50,10 +46,10 @@ export const AdminFunFactEditScreen: React.FC = () => {
   }, [isEditing]);
 
   const loadFact = async () => {
-    if (!factId) return;
+    if (!funFactId) return;
     try {
       const facts = await getAllFunFacts();
-      const existingFact = facts.find((f) => f.id === factId);
+      const existingFact = facts.find((f) => f.id === funFactId);
       if (existingFact) {
         setFact(existingFact.fact);
         setSourceTitle(existingFact.sourceTitle || '');
@@ -92,8 +88,8 @@ export const AdminFunFactEditScreen: React.FC = () => {
         order,
       };
 
-      if (isEditing && factId) {
-        await updateFunFact(factId, factData);
+      if (isEditing && funFactId) {
+        await updateFunFact(funFactId, factData);
         Alert.alert('Success', 'Fun fact updated');
       } else {
         await createFunFact(factData);

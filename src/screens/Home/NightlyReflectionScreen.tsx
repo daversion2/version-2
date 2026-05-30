@@ -7,7 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
@@ -24,7 +24,7 @@ import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
 import { PlanTomorrowStep } from '../../components/home/PlanTomorrowStep';
 import { BadDayModal } from '../../components/home/BadDayModal';
 
-type Props = NativeStackScreenProps<any, 'NightlyReflection'>;
+type Props = HomeScreenProps<'NightlyReflection'>;
 
 export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile } = useAuth();

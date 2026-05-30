@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
 import { DifficultySelector } from '../../components/common/DifficultySelector';
@@ -27,10 +27,10 @@ import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { SHOW_COMMUNITY } from '../../constants/featureFlags';
 import { getTodayString } from '../../utils/date';
 
-type Props = NativeStackScreenProps<any, 'CreateChallenge'>;
+type Props = HomeScreenProps<'CreateChallenge'>;
 
 export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) => {
-  const forDate = (route.params as any)?.forDate as string | undefined;
+  const forDate = route.params?.forDate;
   const { user } = useAuth();
 
   const [name, setName] = useState('');

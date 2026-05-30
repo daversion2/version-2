@@ -17,10 +17,11 @@ import { useAuth } from '../../context/AuthContext';
 import { getTeamByInviteCode, joinTeam, getUserTeam } from '../../services/teams';
 import { Team } from '../../types';
 import { showAlert } from '../../utils/alert';
+import { SettingsNavigation } from '../../types/navigation';
 
 export const JoinTeamScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<SettingsNavigation>();
 
   const [inviteCode, setInviteCode] = useState('');
   const [displayName, setDisplayName] = useState('');

@@ -9,7 +9,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import {
@@ -18,13 +18,7 @@ import {
   updateTidbit,
 } from '../../services/neuroscienceTidbits';
 import { TidbitContextType } from '../../types';
-
-type RouteParams = {
-  AdminTidbitEdit: {
-    mode: 'create' | 'edit';
-    tidbitId?: string;
-  };
-};
+import { AdminScreenProps, AdminNavigation } from '../../types/navigation';
 
 const CONTEXT_TYPE_OPTIONS: { label: string; value: TidbitContextType }[] = [
   { label: 'Challenge Type', value: 'challenge_type' },
@@ -33,9 +27,10 @@ const CONTEXT_TYPE_OPTIONS: { label: string; value: TidbitContextType }[] = [
   { label: 'Generic', value: 'generic' },
 ];
 
-export const AdminTidbitEditScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<RouteParams, 'AdminTidbitEdit'>>();
+type Props = AdminScreenProps<'AdminTidbitEdit'>;
+
+export const AdminTidbitEditScreen: React.FC<Props> = ({ route }) => {
+  const navigation = useNavigation<AdminNavigation>();
   const { mode, tidbitId } = route.params;
   const isEditing = mode === 'edit' && tidbitId;
 

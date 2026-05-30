@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types/navigation';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../context/AuthContext';
 import { AuthStack } from './AuthStack';
@@ -9,26 +10,26 @@ import { MainTabs } from './MainTabs';
 import { OnboardingScreen } from '../screens/Auth/OnboardingScreen';
 import { Colors } from '../constants/theme';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const navigateToFollowUp = (
-  navigationRef: React.RefObject<NavigationContainerRef<any>>,
+  navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList> | null>,
   data: Record<string, string>
 ) => {
   if (data.screen === 'MicroExerciseFollowUp' && data.entry_id && data.user_id) {
-    navigationRef.current?.navigate('Main' as never, {
+    navigationRef.current?.navigate('Main', {
       screen: 'Home',
       params: {
         screen: 'MicroExerciseFollowUp',
         params: { entry_id: data.entry_id, user_id: data.user_id },
       },
-    } as never);
+    });
   }
 };
 
 export const RootNavigator: React.FC = () => {
   const { user, userProfile, loading } = useAuth();
-  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
 
   // Handle notification deep links for micro-exercise follow-ups
   useEffect(() => {

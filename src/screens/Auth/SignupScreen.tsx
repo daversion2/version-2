@@ -7,14 +7,14 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
 import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
 import { signUp, signInWithGoogle } from '../../services/auth';
+import { AuthScreenProps } from '../../types/navigation';
 
-type Props = NativeStackScreenProps<any, 'Signup'>;
+type Props = AuthScreenProps<'Signup'>;
 
 export const SignupScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');

@@ -19,9 +19,10 @@ import { reseedPrograms } from '../../utils/seedPrograms';
 import { seedRewardMessages } from '../../utils/seedRewardMessages';
 import { seedNeuroscienceTidbits } from '../../utils/seedTidbits';
 import { ChallengeSubmission } from '../../types';
+import { AdminNavigation } from '../../types/navigation';
 
 export const AdminDashboardScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AdminNavigation>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userStats, setUserStats] = useState<{

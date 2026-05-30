@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { WorksheetsStackParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { WorksheetLibraryScreen } from '../screens/Worksheets/WorksheetLibraryScreen';
 import { ToolConversationScreen } from '../screens/Tools/ToolConversationScreen';
@@ -10,7 +11,7 @@ import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<WorksheetsStackParamList>();
 
 export const WorksheetsStack: React.FC = () => (
   <Stack.Navigator

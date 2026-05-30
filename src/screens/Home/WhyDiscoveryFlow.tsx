@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import {
   OPENING_QUESTION_INTRO,
@@ -33,7 +33,7 @@ import {
   completeWhyDiscovery,
 } from '../../services/whyDiscovery';
 
-type Props = NativeStackScreenProps<any>;
+type Props = HomeScreenProps<'WhyDiscoveryFlow'>;
 
 /**
  * Standalone Why Discovery flow for existing users.

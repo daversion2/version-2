@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { SettingsNavigation } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -15,7 +16,7 @@ import { showAlert, showConfirm } from '../../utils/alert';
 
 export const SettingsScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<SettingsNavigation>();
   const [username, setUsername] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
 
@@ -257,7 +258,7 @@ export const SettingsScreen: React.FC = () => {
         />
         <Button
           title="Micro-Exercise: Reflection"
-          onPress={() => navigation.navigate('Home', { screen: 'MicroExerciseFeeling', params: { trigger_context: 'reflection' } })}
+          onPress={() => navigation.getParent()?.navigate('Home', { screen: 'MicroExerciseFeeling', params: { trigger_context: 'reflection' } })}
           variant="outline"
           style={{ marginBottom: Spacing.sm }}
         />

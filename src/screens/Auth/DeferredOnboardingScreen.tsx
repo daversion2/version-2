@@ -12,7 +12,6 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import {
   OPENING_QUESTION_INTRO,
@@ -34,6 +33,7 @@ import {
   completeWhyDiscovery,
 } from '../../services/whyDiscovery';
 import { getActiveGoals, saveGoalCBTData } from '../../services/goals';
+import { HomeScreenProps } from '../../types/navigation';
 
 
 const STAGES = [
@@ -45,7 +45,7 @@ const STAGES = [
   { id: 6, label: 'Identity', subtitle: "Who you're becoming" },
 ];
 
-type Props = NativeStackScreenProps<any, 'DeferredOnboarding'>;
+type Props = HomeScreenProps<'DeferredOnboarding'>;
 
 export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();

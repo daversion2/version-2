@@ -17,9 +17,10 @@ import { Card } from '../../components/common/Card';
 import { getAllLibraryChallenges, deleteLibraryChallenge } from '../../services/admin';
 import { LibraryChallenge, ActionType } from '../../types';
 import { ACTION_CATEGORIES } from '../../constants/challengeLibrary';
+import { AdminNavigation } from '../../types/navigation';
 
 export const AdminChallengesScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<AdminNavigation>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [challenges, setChallenges] = useState<LibraryChallenge[]>([]);

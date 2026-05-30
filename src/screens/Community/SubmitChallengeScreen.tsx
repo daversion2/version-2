@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -19,15 +19,13 @@ import { submitChallenge, canSubmitChallenge } from '../../services/submissions'
 import { getChallengeById } from '../../services/challenges';
 import { Challenge } from '../../types';
 import { showAlert } from '../../utils/alert';
+import { HomeScreenProps, HomeNavigation } from '../../types/navigation';
 
-type RouteParams = {
-  SubmitChallenge: { challengeId: string };
-};
+type Props = HomeScreenProps<'SubmitChallenge'>;
 
-export const SubmitChallengeScreen: React.FC = () => {
+export const SubmitChallengeScreen: React.FC<Props> = ({ route }) => {
   const { user, userProfile } = useAuth();
-  const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<RouteParams, 'SubmitChallenge'>>();
+  const navigation = useNavigation<HomeNavigation>();
   const { challengeId } = route.params;
 
   const [loading, setLoading] = useState(true);

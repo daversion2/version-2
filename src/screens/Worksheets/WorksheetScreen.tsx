@@ -21,8 +21,11 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { showAlert } from '../../utils/alert';
 import { WorksheetTemplate } from '../../types';
+import { WorksheetsScreenProps } from '../../types/navigation';
 
-export const WorksheetScreen: React.FC<{ navigation: any; route: any }> = ({
+type Props = WorksheetsScreenProps<'WorksheetForm'>;
+
+export const WorksheetScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {

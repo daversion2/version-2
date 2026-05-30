@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
@@ -29,6 +28,7 @@ import { GoalHealthCard } from '../../components/progress/GoalHealthCard';
 import { ConsistencyCard } from '../../components/progress/ConsistencyCard';
 import { HabitHealthList } from '../../components/progress/HabitHealthList';
 import { DayOfWeekChart } from '../../components/progress/DayOfWeekChart';
+import { ProgressNavigation } from '../../types/navigation';
 
 interface GoalCardData {
   goal: Goal;
@@ -37,7 +37,7 @@ interface GoalCardData {
 
 export const ProgressScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const navigation = useNavigation<ProgressNavigation>();
 
   const [loading, setLoading] = useState(true);
 

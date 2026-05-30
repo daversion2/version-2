@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -22,7 +22,7 @@ import { GOAL_CONSTANTS } from '../../constants/goals';
 import { ALL_GOAL_COLORS } from '../../constants/goalColors';
 import { Goal } from '../../types';
 
-type Props = NativeStackScreenProps<any, 'EditGoal'>;
+type Props = HomeScreenProps<'EditGoal'>;
 
 const formatDate = (dateStr: string): string => {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -40,7 +40,7 @@ const parseYYYYMMDD = (str: string): Date => {
 
 export const EditGoalScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
-  const goalId = route.params?.goalId as string;
+  const goalId = route.params?.goalId;
 
   const [goal, setGoal] = useState<Goal | null>(null);
   const [name, setName] = useState('');

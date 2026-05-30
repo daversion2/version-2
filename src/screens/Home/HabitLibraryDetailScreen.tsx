@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
@@ -18,7 +18,7 @@ import { createHabit } from '../../services/habits';
 import { HabitActionPlan } from '../../types';
 import { showAlert } from '../../utils/alert';
 
-type Props = NativeStackScreenProps<any, 'HabitLibraryDetail'>;
+type Props = HomeScreenProps<'HabitLibraryDetail'>;
 
 
 const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string }[] = [
@@ -30,7 +30,7 @@ const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string }[] = [
 ];
 
 export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { habitId } = route.params as { habitId: string };
+  const { habitId } = route.params;
   const { user } = useAuth();
 
   const habit = HABIT_LIBRARY.find((h) => h.id === habitId);
