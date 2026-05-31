@@ -22,6 +22,7 @@ interface RewardMomentProps {
   buddyBonusPoints?: number;
   challengeResult: 'completed' | 'failed';
   repeatMilestone?: number | null;
+  totalChallengesCompleted?: number;
   tidbit?: NeuroscienceTidbit | null;
   onLearnMore?: (tidbit: NeuroscienceTidbit) => void;
   onDismiss: () => void;
@@ -143,7 +144,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   streakMultiplier,
   buddyBonusPoints,
   challengeResult,
-  repeatMilestone,
+  totalChallengesCompleted,
   tidbit,
   onLearnMore,
   onDismiss,
@@ -161,7 +162,6 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
 
   const [phase, setPhase] = useState<'celebration' | 'tidbit'>('celebration');
   const isCompleted = challengeResult === 'completed';
-  const hasTidbit = isCompleted && tidbit != null;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const transitioning = useRef(false);
 
@@ -215,58 +215,87 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
           }),
         ] : []),
 
-        // Message fades in (delayed slightly after burst)
-        Animated.sequence([
-          Animated.delay(isCompleted ? 500 : 200),
-          Animated.parallel([
-            Animated.timing(messageOpacity, {
+        // For failed: message fades in (delayed slightly after burst)
+        ...(!isCompleted ? [
+          Animated.sequence([
+            Animated.delay(200),
+            Animated.parallel([
+              Animated.timing(messageOpacity, {
+                toValue: 1,
+                duration: 400,
+                useNativeDriver: true,
+              }),
+              Animated.spring(messageScale, {
+                toValue: 1,
+                friction: 8,
+                tension: 100,
+                useNativeDriver: true,
+              }),
+            ]),
+          ]),
+        ] : []),
+
+        // For failed: narrative line fades in
+        ...(!isCompleted ? [
+          Animated.sequence([
+            Animated.delay(400),
+            Animated.timing(narrativeOpacity, {
               toValue: 1,
-              duration: 400,
-              useNativeDriver: true,
-            }),
-            Animated.spring(messageScale, {
-              toValue: 1,
-              friction: 8,
-              tension: 100,
+              duration: 300,
               useNativeDriver: true,
             }),
           ]),
-        ]),
+        ] : []),
 
-        // Narrative line fades in
-        Animated.sequence([
-          Animated.delay(isCompleted ? 700 : 400),
-          Animated.timing(narrativeOpacity, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ]),
-
-        // Points line fades in
-        Animated.sequence([
-          Animated.delay(isCompleted ? 900 : 600),
-          Animated.timing(pointsOpacity, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ]),
+        // For failed: points line fades in
+        ...(!isCompleted ? [
+          Animated.sequence([
+            Animated.delay(600),
+            Animated.timing(pointsOpacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]),
+        ] : []),
 
         // Continue button fades in
         Animated.sequence([
-          Animated.delay(isCompleted ? 2500 : 1500),
-          Animated.timing(buttonOpacity, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
+          // For completed: auto-transition after particles finish (~2s)
+          // For failed: standard delay for reading message
+          Animated.delay(isCompleted ? 2000 : 1500),
+          ...(isCompleted ? [
+            // Auto-transition to tidbit for completed challenges
+            Animated.parallel([
+              Animated.timing(celebrationOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+              }),
+              Animated.timing(colorWashOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+              }),
+            ]),
+          ] : [
+            Animated.timing(buttonOpacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]),
         ]),
       ]),
     ]);
 
     animationRef.current = animation;
-    animation.start();
+    animation.start(() => {
+      // After animation completes, auto-transition to tidbit for completed
+      if (isCompleted) {
+        setPhase('tidbit');
+      }
+    });
 
     // Fire haptic after anticipation delay
     const hapticTimeout = setTimeout(() => {
@@ -281,7 +310,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
 
   if (!visible) return null;
 
-  // Build points text
+  // Build points text (used for failed challenges)
   let pointsText = `+${pointsEarned} pts`;
   if (streakMultiplier > 1) {
     pointsText += ` (${streakMultiplier}x streak)`;
@@ -304,43 +333,14 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
 
   // Handle continue/done button press
   const handleContinuePress = () => {
-    if (transitioning.current) return; // guard against double-tap
-
-    if (phase === 'celebration' && hasTidbit) {
-      // Transition to tidbit phase
-      transitioning.current = true;
-
-      // Stop the celebration animation chain to prevent conflicts
-      animationRef.current?.stop();
-      animationRef.current = null;
-
-      overlayOpacity.setValue(1);
-      celebrationOpacity.setValue(1);
-
-      setPhase('tidbit');
-      Animated.parallel([
-        Animated.timing(celebrationOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(colorWashOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        transitioning.current = false;
-      });
-    } else {
-      onDismiss();
-    }
+    if (transitioning.current) return;
+    onDismiss();
   };
 
   return (
     <Modal visible={visible} transparent animationType="none">
       <View style={styles.overlayContainer}>
-        {/* Animated dark background (celebration fade-in) */}
+        {/* Animated dark background */}
         <Animated.View
           style={[styles.overlayBg, { opacity: overlayOpacity }]}
         />
@@ -371,8 +371,8 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
           </Animated.View>
         )}
 
-        {/* Celebration Content (Beat 1 & 2) */}
-        {phase === 'celebration' && (
+        {/* Celebration Content — only for failed challenges (message + narrative + points) */}
+        {phase === 'celebration' && !isCompleted && (
           <Animated.View style={[styles.contentContainer, { opacity: celebrationOpacity }]}>
             {/* Main message */}
             <Animated.Text
@@ -396,15 +396,6 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
               </Animated.Text>
             ) : null}
 
-            {/* Repeat milestone */}
-            {repeatMilestone ? (
-              <Animated.Text
-                style={[styles.milestoneText, { opacity: narrativeOpacity }]}
-              >
-                {repeatMilestone}th time completing this challenge
-              </Animated.Text>
-            ) : null}
-
             {/* Points */}
             <Animated.Text
               style={[styles.pointsText, { opacity: pointsOpacity }]}
@@ -414,28 +405,43 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
           </Animated.View>
         )}
 
-        {/* Tidbit Content (Beat 3 — The Exhale) */}
-        {phase === 'tidbit' && tidbit && (
+        {/* Tidbit Content with Stats (completed challenges) */}
+        {phase === 'tidbit' && (
           <View style={styles.tidbitContainer}>
-            {/* Label */}
-            <View style={styles.tidbitLabelRow}>
-              <Ionicons name="flash" size={16} color="rgba(255, 255, 255, 0.5)" />
-              <Text style={styles.tidbitLabel}>Your brain right now</Text>
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{totalChallengesCompleted ?? 0}</Text>
+                <Text style={styles.statLabel}>challenges{'\n'}completed</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>+{pointsEarned}</Text>
+                <Text style={styles.statLabel}>points{'\n'}earned</Text>
+              </View>
             </View>
 
-            {/* Tidbit text */}
-            <Text style={styles.tidbitText}>{tidbit.text}</Text>
+            {/* Tidbit */}
+            {tidbit && (
+              <>
+                <View style={styles.tidbitLabelRow}>
+                  <Ionicons name="flash" size={16} color="rgba(255, 255, 255, 0.5)" />
+                  <Text style={styles.tidbitLabel}>Your brain right now</Text>
+                </View>
 
-            {/* Learn more link */}
-            {tidbit.extended_text && onLearnMore && (
-              <TouchableOpacity
-                style={styles.learnMoreButton}
-                onPress={() => onLearnMore(tidbit)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.learnMoreText}>Learn more</Text>
-                <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
-              </TouchableOpacity>
+                <Text style={styles.tidbitText}>{tidbit.text}</Text>
+
+                {tidbit.extended_text && onLearnMore && (
+                  <TouchableOpacity
+                    style={styles.learnMoreButton}
+                    onPress={() => onLearnMore(tidbit)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.learnMoreText}>Learn more</Text>
+                    <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </View>
         )}
@@ -521,13 +527,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
-  milestoneText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: '#FFD700',
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
   pointsText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
@@ -594,5 +593,33 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.primary,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xl,
+    gap: Spacing.lg,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: 32,
+    color: '#FFD700',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: 'rgba(255, 255, 255, 0.5)',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
 });

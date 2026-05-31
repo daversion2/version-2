@@ -71,6 +71,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [rewardBuddyBonus, setRewardBuddyBonus] = useState(0);
   const [rewardResult, setRewardResult] = useState<'completed' | 'failed'>('completed');
   const [rewardRepeatMilestone, setRewardRepeatMilestone] = useState<number | null>(null);
+  const [rewardTotalCompleted, setRewardTotalCompleted] = useState(0);
   const [rewardTidbit, setRewardTidbit] = useState<NeuroscienceTidbit | null>(null);
   const [learnMoreVisible, setLearnMoreVisible] = useState(false);
   const [learnMoreTidbit, setLearnMoreTidbit] = useState<NeuroscienceTidbit | null>(null);
@@ -339,13 +340,15 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       // --- Prepare reward moment ---
       const multiplier = getStreakMultiplier(stats.currentStreak);
 
-      // Fetch personalized reward message (user pool → global fallback → hardcoded)
+      // Fetch personalized reward message (only needed for failed challenges)
       let messageText = 'One more proof point.';
-      try {
-        const msg = await getPersonalizedRewardMessage(user!.uid);
-        messageText = msg.text;
-      } catch (err) {
-        console.warn('Failed to fetch reward message:', err);
+      if (result === 'failed') {
+        try {
+          const msg = await getPersonalizedRewardMessage(user!.uid);
+          messageText = msg.text;
+        } catch (err) {
+          console.warn('Failed to fetch reward message:', err);
+        }
       }
 
       // Compute narrative line — goal-centric framing + CBT identity/inner voice
@@ -353,6 +356,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       let totalCount = 0;
       try {
         totalCount = await getTotalCompletionCount(user.uid);
+        setRewardTotalCompleted(totalCount);
         // Use goal context if available for identity-framing
         if (goalContext) {
           const kept = goalContext.ft.keptCommitments + 1; // +1 for this completion
@@ -648,6 +652,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         buddyBonusPoints={rewardBuddyBonus > 0 ? rewardBuddyBonus : undefined}
         challengeResult={rewardResult}
         repeatMilestone={rewardRepeatMilestone}
+        totalChallengesCompleted={rewardTotalCompleted}
         tidbit={rewardResult === 'completed' ? rewardTidbit : null}
         onLearnMore={(t) => {
           setLearnMoreTidbit(t);
