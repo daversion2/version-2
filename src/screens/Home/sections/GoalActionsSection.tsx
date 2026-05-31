@@ -126,7 +126,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
           </Text>
           <Button
             title="Get Started"
-            onPress={() => callbacks.onNavigate('GoalOnboardingFlow')}
+            onPress={() => callbacks.onNavigate('GoalCreationFlow')}
             style={{ marginTop: Spacing.md }}
           />
         </Card>
@@ -301,7 +301,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
       {goals.length < GOAL_CONSTANTS.MAX_ACTIVE && (
         <TouchableOpacity
           style={styles.addGoalButton}
-          onPress={() => callbacks.onNavigate('GoalOnboardingFlow')}
+          onPress={() => callbacks.onNavigate('GoalCreationFlow')}
           activeOpacity={0.7}
         >
           <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />

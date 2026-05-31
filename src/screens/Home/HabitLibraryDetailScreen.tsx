@@ -109,7 +109,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
       <GoalTagPicker
         selectedGoalIds={selectedGoalIds}
         onChange={setSelectedGoalIds}
-        onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
+        onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
       />
 
       {/* Add button */}

@@ -159,7 +159,7 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
         <GoalTagPicker
           selectedGoalIds={goalIds}
           onChange={setGoalIds}
-          onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
+          onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
         />
 
         <Button

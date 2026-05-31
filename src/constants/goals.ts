@@ -1,10 +1,92 @@
-import { GoalStatus } from '../types';
+import { GoalStatus, MeasurementType } from '../types';
 
 export const GOAL_CONSTANTS = {
   MAX_ACTIVE: 3,
   NAME_MAX_LENGTH: 80,
   DESCRIPTION_MAX_LENGTH: 300,
+  WHY_MAX_LENGTH: 500,
+  IDENTITY_MAX_LENGTH: 200,
+  OBSTACLE_MAX_LENGTH: 300,
+  PLAN_MAX_LENGTH: 300,
+  DEFAULT_GOAL_DURATION_DAYS: 90,
 };
+
+// ============================================================================
+// GOAL CREATION FLOW v2
+// ============================================================================
+
+export interface MeasurementTypeMeta {
+  type: MeasurementType;
+  label: string;
+  description: string;
+  icon: string;       // Ionicons name
+}
+
+export const MEASUREMENT_TYPES: MeasurementTypeMeta[] = [
+  {
+    type: 'done_by_date',
+    label: 'Done by a date',
+    description: 'A one-time finish line',
+    icon: 'checkmark-circle-outline',
+  },
+  {
+    type: 'reach_number',
+    label: 'Reach a number',
+    description: 'A metric you\'ll hit over time',
+    icon: 'trending-up-outline',
+  },
+  {
+    type: 'hit_total',
+    label: 'Hit a total',
+    description: 'Accumulate X instances',
+    icon: 'calculator-outline',
+  },
+  {
+    type: 'rate_yourself',
+    label: 'Rate yourself',
+    description: 'Weekly reflection, no hard metric',
+    icon: 'star-outline',
+  },
+];
+
+export const DAYS_OF_WEEK = [
+  { value: 'monday', label: 'Mon' },
+  { value: 'tuesday', label: 'Tue' },
+  { value: 'wednesday', label: 'Wed' },
+  { value: 'thursday', label: 'Thu' },
+  { value: 'friday', label: 'Fri' },
+  { value: 'saturday', label: 'Sat' },
+  { value: 'sunday', label: 'Sun' },
+] as const;
+
+export const CREATION_FLOW_STEPS = [
+  { id: 1, label: 'Goal' },
+  { id: 2, label: 'Why' },
+  { id: 3, label: 'Measure' },
+  { id: 4, label: 'Obstacles', optional: true },
+  { id: 5, label: 'Commit' },
+] as const;
+
+export const NEUROSCIENCE_BLURBS = {
+  goal: {
+    title: 'Why this works',
+    content: 'Specific goals create a well-defined gap between your current state and desired state. Your brain\'s dopaminergic system fires in response to closing that gap — but only if it\'s concrete enough to perceive. Vague goals produce no gap signal, and therefore no motivational pull.',
+  },
+  why: {
+    title: 'Why this works',
+    content: 'Goals anchored to intrinsic values — identity, growth, meaning — activate the limbic system\'s motivational circuitry far more durably than surface-level reasons. Extrinsic reasons produce motivation that fades; values-based reasons self-renew.',
+  },
+  measurement: {
+    title: 'Why this works',
+    content: 'Measurable goals allow the brain to continuously calculate progress. This activates a feedback loop in the striatum — the closer you get, the more motivating the goal becomes. Without measurement, there\'s no feedback loop and motivation stays flat.',
+  },
+  obstacles: {
+    title: 'Why this works',
+    content: 'Implementation intentions — "if X, then Y" plans — have been shown in meta-analyses to roughly double goal follow-through rates. By pre-deciding the response, you offload the decision from willpower to procedural memory. When the obstacle arrives, the brain doesn\'t deliberate — it executes.',
+  },
+} as const;
+
+export const SMART_GUIDANCE = 'Being specific and realistic is proven to increase the probability of achieving goals. Include what you want to achieve, how you\'ll measure it, and by when.';
 
 export const GOAL_STATUS_LABELS: Record<GoalStatus, string> = {
   active: 'Active',

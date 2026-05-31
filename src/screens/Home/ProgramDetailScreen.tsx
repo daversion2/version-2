@@ -203,7 +203,7 @@ export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         selectedGoalIds={goalIds}
         onChange={setGoalIds}
         required
-        onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
+        onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
       />
 
       {/* Start Button */}

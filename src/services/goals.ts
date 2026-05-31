@@ -3,13 +3,17 @@ import {
   doc,
   addDoc,
   updateDoc,
+  deleteDoc,
   getDoc,
   query,
   where,
   getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Goal, GoalStatus, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment } from '../types';
+import {
+  Goal, GoalStatus, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment,
+  MeasurementType, MeasurementConfig, GoalObstacle, VisualizationSettings, GoalDraftStatus,
+} from '../types';
 import { GOAL_CONSTANTS } from '../constants/goals';
 import { pickNextGoalColor, GOAL_COLOR_PALETTE } from '../constants/goalColors';
 import { createHabit } from './habits';
@@ -36,7 +40,8 @@ export const getActiveGoals = async (userId: string): Promise<Goal[]> => {
     const data = d.data();
     return { id: d.id, ...data, color: data.color || GOAL_COLOR_PALETTE[0] } as Goal;
   });
-  return goals.sort((a, b) => a.end_date.localeCompare(b.end_date));
+  // Exclude drafts from active goals list
+  return goals.filter(g => g.draft_status !== 'draft').sort((a, b) => a.end_date.localeCompare(b.end_date));
 };
 
 /**
@@ -89,7 +94,18 @@ interface GoalCBTFields {
 }
 
 /**
- * Create a new goal. Enforces MAX_ACTIVE cap. Accepts optional CBT fields.
+ * v2 creation flow fields.
+ */
+interface GoalV2Fields {
+  measurement_type?: MeasurementType;
+  measurement_config?: MeasurementConfig;
+  obstacles?: GoalObstacle[];
+  visualization_settings?: VisualizationSettings;
+  draft_status?: GoalDraftStatus;
+}
+
+/**
+ * Create a new goal. Enforces MAX_ACTIVE cap (unless draft). Accepts optional CBT and v2 fields.
  */
 export const createGoal = async (
   userId: string,
@@ -97,10 +113,13 @@ export const createGoal = async (
     name: string;
     description?: string;
     end_date: string;
-  } & GoalCBTFields
+  } & GoalCBTFields & GoalV2Fields
 ): Promise<string> => {
+  const isDraft = data.draft_status === 'draft';
+
+  // Only enforce cap for committed goals
   const active = await getActiveGoals(userId);
-  if (active.length >= GOAL_CONSTANTS.MAX_ACTIVE) {
+  if (!isDraft && active.length >= GOAL_CONSTANTS.MAX_ACTIVE) {
     throw new Error(`Maximum ${GOAL_CONSTANTS.MAX_ACTIVE} active goals allowed`);
   }
 
@@ -119,6 +138,11 @@ export const createGoal = async (
     created_at: now,
   };
 
+  // Add draft_status if present
+  if (data.draft_status) {
+    goalDoc.draft_status = data.draft_status;
+  }
+
   // Add CBT fields if present
   const cbtKeys: (keyof GoalCBTFields)[] = [
     'deeper_why', 'why_connection', 'confidence_baseline', 'negative_story', 'past_attempt_story',
@@ -133,6 +157,12 @@ export const createGoal = async (
       goalDoc[key] = typeof val === 'string' ? val.trim() : val;
     }
   }
+
+  // Add v2 fields if present
+  if (data.measurement_type) goalDoc.measurement_type = data.measurement_type;
+  if (data.measurement_config) goalDoc.measurement_config = data.measurement_config;
+  if (data.obstacles && data.obstacles.length > 0) goalDoc.obstacles = data.obstacles;
+  if (data.visualization_settings) goalDoc.visualization_settings = data.visualization_settings;
 
   const docRef = await addDoc(goalsRef(userId), goalDoc);
   return docRef.id;
@@ -344,6 +374,137 @@ export const getItemsForGoal = async (
     habits: habitsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Nudge)),
     programEnrollments: programsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProgramEnrollment)),
   };
+};
+
+// ============================================================================
+// DRAFT GOALS
+// ============================================================================
+
+/**
+ * Create a goal draft. Does NOT enforce MAX_ACTIVE cap.
+ */
+export const createGoalDraft = async (
+  userId: string,
+  data: Partial<{
+    name: string;
+    deeper_why: string;
+    identity_statement: string;
+    measurement_type: MeasurementType;
+    measurement_config: MeasurementConfig;
+    obstacles: GoalObstacle[];
+  }>
+): Promise<string> => {
+  const active = await getActiveGoals(userId);
+  const now = new Date().toISOString();
+  const today = getTodayStr();
+
+  const goalDoc: Record<string, unknown> = {
+    user_id: userId,
+    name: data.name?.trim() || '',
+    color: pickNextGoalColor(active),
+    status: 'active' as GoalStatus,
+    start_date: today,
+    end_date: deriveEndDate(data.measurement_config),
+    manual_progress: 0,
+    created_at: now,
+    draft_status: 'draft' as GoalDraftStatus,
+  };
+
+  if (data.deeper_why?.trim()) goalDoc.deeper_why = data.deeper_why.trim();
+  if (data.identity_statement?.trim()) goalDoc.identity_statement = data.identity_statement.trim();
+  if (data.measurement_type) goalDoc.measurement_type = data.measurement_type;
+  if (data.measurement_config) goalDoc.measurement_config = data.measurement_config;
+  if (data.obstacles && data.obstacles.length > 0) goalDoc.obstacles = data.obstacles;
+
+  const docRef = await addDoc(goalsRef(userId), goalDoc);
+  return docRef.id;
+};
+
+/**
+ * Update an existing goal draft with the latest form state.
+ */
+export const updateGoalDraft = async (
+  userId: string,
+  draftId: string,
+  data: Partial<{
+    name: string;
+    deeper_why: string;
+    identity_statement: string;
+    measurement_type: MeasurementType;
+    measurement_config: MeasurementConfig;
+    obstacles: GoalObstacle[];
+  }>
+): Promise<void> => {
+  const ref = doc(db, 'users', userId, 'goals', draftId);
+  const clean: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+  if (data.name !== undefined) clean.name = data.name.trim();
+  if (data.deeper_why !== undefined) clean.deeper_why = data.deeper_why.trim();
+  if (data.identity_statement !== undefined) clean.identity_statement = data.identity_statement.trim();
+  if (data.measurement_type !== undefined) clean.measurement_type = data.measurement_type;
+  if (data.measurement_config !== undefined) {
+    clean.measurement_config = data.measurement_config;
+    clean.end_date = deriveEndDate(data.measurement_config);
+  }
+  if (data.obstacles !== undefined) clean.obstacles = data.obstacles;
+
+  await updateDoc(ref, clean);
+};
+
+/**
+ * Commit a draft goal. Enforces MAX_ACTIVE cap.
+ */
+export const commitGoalDraft = async (
+  userId: string,
+  draftId: string
+): Promise<void> => {
+  const active = await getActiveGoals(userId);
+  if (active.length >= GOAL_CONSTANTS.MAX_ACTIVE) {
+    throw new Error(`Maximum ${GOAL_CONSTANTS.MAX_ACTIVE} active goals allowed`);
+  }
+
+  const ref = doc(db, 'users', userId, 'goals', draftId);
+  await updateDoc(ref, {
+    draft_status: 'committed' as GoalDraftStatus,
+    start_date: getTodayStr(),
+    updated_at: new Date().toISOString(),
+  });
+};
+
+/**
+ * Get all draft goals for a user.
+ */
+export const getDraftGoals = async (userId: string): Promise<Goal[]> => {
+  const q = query(
+    goalsRef(userId),
+    where('draft_status', '==', 'draft')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => {
+    const data = d.data();
+    return { id: d.id, ...data, color: data.color || GOAL_COLOR_PALETTE[0] } as Goal;
+  });
+};
+
+/**
+ * Delete a draft goal.
+ */
+export const deleteDraft = async (userId: string, draftId: string): Promise<void> => {
+  const ref = doc(db, 'users', userId, 'goals', draftId);
+  await deleteDoc(ref);
+};
+
+/**
+ * Derive end_date from measurement config, defaulting to 90 days.
+ */
+const deriveEndDate = (config?: MeasurementConfig): string => {
+  if (config) {
+    if (config.type === 'done_by_date') return config.target_date;
+    if (config.type === 'hit_total' && config.deadline) return config.deadline;
+  }
+  const d = new Date();
+  d.setDate(d.getDate() + GOAL_CONSTANTS.DEFAULT_GOAL_DURATION_DAYS);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 /**

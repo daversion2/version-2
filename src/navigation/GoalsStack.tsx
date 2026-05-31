@@ -7,7 +7,7 @@ import { GoalsScreen } from '../screens/Goals/GoalsScreen';
 import { OverallProgressScreen } from '../screens/Goals/OverallProgressScreen';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
-import { GoalOnboardingFlow } from '../screens/Home/GoalOnboardingFlow';
+import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationFlow';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
 import { DayDetailScreen } from '../screens/Progress/DayDetailScreen';
 import { ReflectionDetailScreen } from '../screens/Progress/ReflectionDetailScreen';
@@ -71,8 +71,8 @@ export const GoalsStack: React.FC = () => (
       options={{ title: 'Edit Goal' }}
     />
     <Stack.Screen
-      name="GoalOnboardingFlow"
-      component={GoalOnboardingFlow}
+      name="GoalCreationFlow"
+      component={GoalCreationFlow}
       options={{ title: 'New Goal' }}
     />
     <Stack.Screen

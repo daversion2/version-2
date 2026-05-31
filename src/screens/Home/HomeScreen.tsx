@@ -720,7 +720,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               console.warn('Failed to dismiss goal prompt:', err);
             }
           }
-          navigation.navigate('GoalOnboardingFlow');
+          navigation.navigate('GoalCreationFlow');
         }}
         onDismiss={async () => {
           setGoalPromptVisible(false);

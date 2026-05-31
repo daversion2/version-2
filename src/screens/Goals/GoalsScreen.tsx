@@ -13,7 +13,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
-import { getActiveGoals, getAllGoals, computeGoalFollowThrough, getItemsForGoal } from '../../services/goals';
+import { getActiveGoals, getAllGoals, computeGoalFollowThrough, getItemsForGoal, getDraftGoals } from '../../services/goals';
 import { getWillpowerStats } from '../../services/willpower';
 import { Goal, GoalFollowThrough } from '../../types';
 import { GOAL_CONSTANTS } from '../../constants/goals';
@@ -46,15 +46,18 @@ export const GoalsScreen: React.FC = () => {
   const [goalCards, setGoalCards] = useState<GoalCardData[]>([]);
   const [completedGoals, setCompletedGoals] = useState<Goal[]>([]);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [draftGoals, setDraftGoals] = useState<Goal[]>([]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [activeGoals, allGoals] = await Promise.all([
+      const [activeGoals, allGoals, drafts] = await Promise.all([
         getActiveGoals(user.uid),
         getAllGoals(user.uid),
+        getDraftGoals(user.uid),
       ]);
+      setDraftGoals(drafts);
 
       const cards = await Promise.all(
         activeGoals.map(async (goal) => {
@@ -97,6 +100,24 @@ export const GoalsScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      {/* Draft Banner */}
+      {draftGoals.length > 0 && (
+        <TouchableOpacity
+          style={styles.draftBanner}
+          onPress={() => navigation.navigate('GoalCreationFlow', { draftId: draftGoals[0].id })}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="document-text-outline" size={20} color={Colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.draftBannerTitle}>
+              {draftGoals[0].name ? `Continue: ${draftGoals[0].name}` : 'You have a draft goal'}
+            </Text>
+            <Text style={styles.draftBannerSubtitle}>Tap to continue where you left off</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+        </TouchableOpacity>
+      )}
+
       {/* Active Goals */}
       {goalCards.length === 0 ? (
         <Card style={styles.emptyCard}>
@@ -107,7 +128,7 @@ export const GoalsScreen: React.FC = () => {
           </Text>
           <Button
             title="Create Your First Goal"
-            onPress={() => navigation.navigate('GoalOnboardingFlow')}
+            onPress={() => navigation.navigate('GoalCreationFlow')}
             style={{ marginTop: Spacing.md }}
           />
         </Card>
@@ -186,7 +207,7 @@ export const GoalsScreen: React.FC = () => {
         <Button
           title="Add Goal"
           variant="outline"
-          onPress={() => navigation.navigate('GoalOnboardingFlow')}
+          onPress={() => navigation.navigate('GoalCreationFlow')}
           style={{ marginTop: Spacing.sm }}
         />
       )}
@@ -381,5 +402,27 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.gray,
     textTransform: 'capitalize',
+  },
+  draftBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.primary + '10',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  draftBannerTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
+  draftBannerSubtitle: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 2,
   },
 });

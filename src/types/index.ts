@@ -819,6 +819,54 @@ export interface JournalSearchResult {
 
 export type GoalStatus = 'active' | 'completed' | 'not_completed' | 'archived';
 
+export type MeasurementType = 'done_by_date' | 'reach_number' | 'hit_total' | 'rate_yourself';
+
+export interface MeasurementConfigDoneByDate {
+  type: 'done_by_date';
+  target_date: string;          // YYYY-MM-DD
+}
+
+export interface MeasurementConfigReachNumber {
+  type: 'reach_number';
+  metric_name: string;
+  starting_value: number;
+  target_value: number;
+  direction: 'up' | 'down';
+}
+
+export interface MeasurementConfigHitTotal {
+  type: 'hit_total';
+  target_count: number;
+  deadline?: string;            // YYYY-MM-DD
+}
+
+export interface MeasurementConfigRateSelf {
+  type: 'rate_yourself';
+  scale_max: 5 | 10;
+  check_in_day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+  reflection_question: string;
+}
+
+export type MeasurementConfig =
+  | MeasurementConfigDoneByDate
+  | MeasurementConfigReachNumber
+  | MeasurementConfigHitTotal
+  | MeasurementConfigRateSelf;
+
+export interface GoalObstacle {
+  id: string;
+  obstacle: string;
+  when_then_plan: string;
+  minimum_action?: string;
+}
+
+export interface VisualizationSettings {
+  enabled: boolean;
+  frequency: 'daily' | 'weekly';
+}
+
+export type GoalDraftStatus = 'draft' | 'committed';
+
 export interface Goal {
   id: string;
   user_id: string;
@@ -832,6 +880,13 @@ export interface Goal {
   manual_progress: number;    // 0-100
   created_at: string;         // ISO 8601
   updated_at?: string;        // ISO 8601
+
+  // Goal Creation Flow v2 fields
+  measurement_type?: MeasurementType;
+  measurement_config?: MeasurementConfig;
+  obstacles?: GoalObstacle[];
+  visualization_settings?: VisualizationSettings;
+  draft_status?: GoalDraftStatus;
 
   // CBT Goal Onboarding fields (Phase 1.1)
   deeper_why?: string;

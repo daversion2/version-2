@@ -29,8 +29,7 @@ import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
 import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
-import { CreateGoalScreen } from '../screens/Home/CreateGoalScreen';
-import { GoalOnboardingFlow } from '../screens/Home/GoalOnboardingFlow';
+import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationFlow';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
 import { MantraScreen } from '../screens/Home/MantraScreen';
@@ -205,8 +204,8 @@ export const HomeStack: React.FC = () => (
       options={{ title: 'Customize Home' }}
     />
     <Stack.Screen
-      name="GoalOnboardingFlow"
-      component={GoalOnboardingFlow}
+      name="GoalCreationFlow"
+      component={GoalCreationFlow}
       options={{ title: 'New Goal' }}
     />
     <Stack.Screen

@@ -169,7 +169,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
           <GoalTagPicker
             selectedGoalIds={goalIds}
             onChange={setGoalIds}
-            onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
+            onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
           />
           <View style={styles.formButtons}>
             <Button title="Add" onPress={handleAdd} loading={loading} style={{ flex: 1 }} />
@@ -220,7 +220,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
             selectedGoalIds={editGoalIds}
             onChange={setEditGoalIds}
             required
-            onCreateGoal={() => navigation.navigate('GoalOnboardingFlow')}
+            onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
           />
           <View style={styles.formButtons}>
             <Button title="Save" onPress={handleSaveEdit} loading={editLoading} style={{ flex: 1 }} />

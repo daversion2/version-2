@@ -92,7 +92,7 @@ export type HomeStackParamList = {
   ProgramFailed: { enrollmentId: string };
   NightlyReflection: undefined;
   CustomizeHome: undefined;
-  GoalOnboardingFlow: undefined;
+  GoalCreationFlow: { draftId?: string } | undefined;
   GoalDashboard: { goalId: string };
   EditGoal: { goalId: string };
   MantraScreen: undefined;
@@ -123,11 +123,11 @@ export type HomeStackParamList = {
 // ============================================================================
 
 export type GoalsStackParamList = {
-  GoalsScreen: undefined;
+  GoalsScreen: { highlightGoalId?: string } | undefined;
   OverallProgress: undefined;
   GoalDashboard: { goalId: string };
   EditGoal: { goalId: string };
-  GoalOnboardingFlow: undefined;
+  GoalCreationFlow: { draftId?: string } | undefined;
   ChallengeDetail: { challengeId: string };
   DayDetail: { date: string };
   ReflectionDetail: undefined;
