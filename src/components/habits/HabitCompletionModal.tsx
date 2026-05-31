@@ -79,7 +79,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
           <Text style={styles.title}>{habitName}</Text>
 
           <QuadrantGrid
-            prompt="How are you feeling right now?"
+            prompt="How did you feel before completing this habit?"
             selected={quadrantBefore}
             onSelect={setQuadrantBefore}
           />
