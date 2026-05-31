@@ -229,6 +229,8 @@ export interface Nudge {
   action_plan?: HabitActionPlan;
 }
 
+export type Quadrant = 'stressed' | 'energized' | 'depleted' | 'calm';
+
 export interface CompletionLog {
   id: string;
   user_id: string;
@@ -239,6 +241,13 @@ export interface CompletionLog {
   date: string;
   completed_at?: string; // ISO 8601 timestamp
   notes?: string; // Optional notes for this completion
+  // Before/after emotional state tracking (habit check-ins only)
+  energyBefore?: -1 | 1 | null;
+  moodBefore?: -1 | 1 | null;
+  energyAfter?: -1 | 1 | null;
+  moodAfter?: -1 | 1 | null;
+  quadrantBefore?: Quadrant | null;
+  quadrantAfter?: Quadrant | null;
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';

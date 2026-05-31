@@ -10,7 +10,14 @@ import {
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan } from '../types';
+import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, Quadrant } from '../types';
+
+const QUADRANT_VALUES: Record<Quadrant, { energy: -1 | 1; mood: -1 | 1 }> = {
+  stressed:  { energy: 1,  mood: -1 },
+  energized: { energy: 1,  mood: 1  },
+  depleted:  { energy: -1, mood: -1 },
+  calm:      { energy: -1, mood: 1  },
+};
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -87,13 +94,17 @@ export const updateHabit = async (
  * @param difficulty - 'easy' (1 pt) or 'challenging' (2 pts)
  * @param date - Optional YYYY-MM-DD date string for backdating (defaults to today)
  * @param notes - Optional notes for this completion
+ * @param quadrantBefore - Optional before-state quadrant selection
+ * @param quadrantAfter - Optional after-state quadrant selection
  */
 export const logHabitCompletion = async (
   userId: string,
   habitId: string,
   difficulty: HabitDifficulty,
   date?: string,
-  notes?: string
+  notes?: string,
+  quadrantBefore?: Quadrant | null,
+  quadrantAfter?: Quadrant | null,
 ) => {
   const points = difficulty === 'easy' ? 1 : 2;
   const now = new Date();
@@ -112,6 +123,22 @@ export const logHabitCompletion = async (
   // Only add notes if provided and non-empty
   if (notes && notes.trim()) {
     logData.notes = notes.trim();
+  }
+
+  // Add before-state fields if a quadrant was selected
+  if (quadrantBefore) {
+    const vals = QUADRANT_VALUES[quadrantBefore];
+    logData.quadrantBefore = quadrantBefore;
+    logData.energyBefore = vals.energy;
+    logData.moodBefore = vals.mood;
+  }
+
+  // Add after-state fields if a quadrant was selected
+  if (quadrantAfter) {
+    const vals = QUADRANT_VALUES[quadrantAfter];
+    logData.quadrantAfter = quadrantAfter;
+    logData.energyAfter = vals.energy;
+    logData.moodAfter = vals.mood;
   }
 
   await addDoc(logsRef(userId), logData);

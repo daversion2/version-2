@@ -25,7 +25,7 @@ import {
   updateWillpowerStats,
   getWillpowerStats,
 } from '../../services/willpower';
-import { HabitDifficulty } from '../../types';
+import { HabitDifficulty, Quadrant } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
@@ -381,10 +381,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setCompletingHabit(habit);
   }, []);
 
-  const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string) => {
+  const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string, quadrantBefore?: Quadrant | null, quadrantAfter?: Quadrant | null) => {
     if (!user || !completingHabit) return;
     try {
-      await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes);
+      await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes, quadrantBefore, quadrantAfter);
 
       // Log team activity if user is in a team
       if (team) {

@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
+import { QuadrantGrid } from './QuadrantGrid';
+import { Quadrant } from '../../types';
 
 const HABIT_PROMPTS = [
   'What made today different?',
@@ -24,7 +26,12 @@ const getRandomPrompt = (prompts: string[]): string =>
 interface Props {
   visible: boolean;
   habitName: string;
-  onSubmit: (difficulty: 'easy' | 'challenging', notes?: string) => void;
+  onSubmit: (
+    difficulty: 'easy' | 'challenging',
+    notes?: string,
+    quadrantBefore?: Quadrant | null,
+    quadrantAfter?: Quadrant | null,
+  ) => void;
   onCancel: () => void;
 }
 
@@ -36,6 +43,9 @@ export const HabitCompletionModal: React.FC<Props> = ({
 }) => {
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
   const [notes, setNotes] = useState('');
+  const [quadrantBefore, setQuadrantBefore] = useState<Quadrant | null>(null);
+  const [quadrantAfter, setQuadrantAfter] = useState<Quadrant | null>(null);
+  const [showNotes, setShowNotes] = useState(false);
 
   // Rotate prompt each time the modal opens with a new habit
   const microPrompt = useMemo(
@@ -43,16 +53,22 @@ export const HabitCompletionModal: React.FC<Props> = ({
     [habitName, visible]
   );
 
-  const handleSubmit = () => {
-    if (!selected) return;
-    onSubmit(selected, notes.trim() || undefined);
+  const resetState = () => {
     setSelected(null);
     setNotes('');
+    setQuadrantBefore(null);
+    setQuadrantAfter(null);
+    setShowNotes(false);
+  };
+
+  const handleSubmit = () => {
+    if (!selected) return;
+    onSubmit(selected, notes.trim() || undefined, quadrantBefore, quadrantAfter);
+    resetState();
   };
 
   const handleCancel = () => {
-    setSelected(null);
-    setNotes('');
+    resetState();
     onCancel();
   };
 
@@ -61,6 +77,13 @@ export const HabitCompletionModal: React.FC<Props> = ({
       <Pressable style={styles.overlay} onPress={handleCancel}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>{habitName}</Text>
+
+          <QuadrantGrid
+            prompt="How are you feeling right now?"
+            selected={quadrantBefore}
+            onSelect={setQuadrantBefore}
+          />
+
           <Text style={styles.subtitle}>How was it?</Text>
 
           <View style={styles.buttonRow}>
@@ -97,15 +120,31 @@ export const HabitCompletionModal: React.FC<Props> = ({
             </TouchableOpacity>
           </View>
 
-          <TextInput
-            style={styles.notesInput}
-            placeholder={microPrompt}
-            placeholderTextColor={Colors.gray}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            maxLength={200}
+          <QuadrantGrid
+            prompt="How do you feel now?"
+            selected={quadrantAfter}
+            onSelect={setQuadrantAfter}
           />
+
+          {showNotes ? (
+            <TextInput
+              style={styles.notesInput}
+              placeholder={microPrompt}
+              placeholderTextColor={Colors.gray}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              maxLength={200}
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.addNoteToggle}
+              onPress={() => setShowNotes(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.addNoteText}>+ add a note</Text>
+            </TouchableOpacity>
+          )}
 
           <View style={styles.actions}>
             <Button
@@ -190,6 +229,15 @@ const styles = StyleSheet.create({
   },
   optionTextActive: {
     color: Colors.white,
+  },
+  addNoteToggle: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  addNoteText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
   notesInput: {
     fontFamily: Fonts.secondary,
