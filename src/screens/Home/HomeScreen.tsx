@@ -24,18 +24,15 @@ import {
   calculateHabitPoints,
   updateWillpowerStats,
   getWillpowerStats,
-  getStreakMultiplier,
 } from '../../services/willpower';
 import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
-import { PointsAlertModal } from '../../components/common/PointsAlertModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { PlanIntroModal } from '../../components/common/PlanIntroModal';
 import { GoalPromptModal } from '../../components/common/GoalPromptModal';
 import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
-import { shouldShowPointsAlert } from '../../services/alertPreferences';
 import { FunFactModal } from '../../components/home/FunFactModal';
 import { getTodaysFunFact } from '../../services/funFacts';
 import { FunFact } from '../../types';
@@ -80,9 +77,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
-  const [pointsAlertVisible, setPointsAlertVisible] = useState(false);
-  const [pointsAlertTitle, setPointsAlertTitle] = useState('');
-  const [pointsAlertMessage, setPointsAlertMessage] = useState('');
   const [funFact, setFunFact] = useState<FunFact | null>(null);
   const [funFactModalVisible, setFunFactModalVisible] = useState(false);
   const [activeProgram, setActiveProgram] = useState<ProgramEnrollment | null>(null);
@@ -442,13 +436,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // Still show the normal points flow after dismiss, don't return
       }
 
-      // Build points message with multiplier info
-      const multiplier = getStreakMultiplier(stats.currentStreak);
-      let pointsMessage = `You earned ${pointsEarned} Willpower Point${pointsEarned !== 1 ? 's' : ''}!`;
-      if (multiplier > 1) {
-        pointsMessage += `\n(${multiplier}x streak bonus applied)`;
-      }
-
       // Prepare alerts to show after popup animation completes
       const showAlerts = async () => {
         if (updateResult.newTierReached && updateResult.tierInfo) {
@@ -456,21 +443,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             'Streak Milestone!',
             `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`
           );
-          setTimeout(async () => {
-            const shouldShow = await shouldShowPointsAlert();
-            if (shouldShow) {
-              setPointsAlertTitle('Habit Logged');
-              setPointsAlertMessage(pointsMessage);
-              setPointsAlertVisible(true);
-            }
-          }, 500);
-        } else {
-          const shouldShow = await shouldShowPointsAlert();
-          if (shouldShow) {
-            setPointsAlertTitle('Habit Logged');
-            setPointsAlertMessage(pointsMessage);
-            setPointsAlertVisible(true);
-          }
         }
       };
 
@@ -769,12 +741,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           navigation.navigate('StartChallenge');
         }}
         onDismiss={() => setChallengesUnlockVisible(false)}
-      />
-      <PointsAlertModal
-        visible={pointsAlertVisible}
-        title={pointsAlertTitle}
-        message={pointsAlertMessage}
-        onDismiss={() => setPointsAlertVisible(false)}
       />
       <FunFactModal
         visible={funFactModalVisible}
