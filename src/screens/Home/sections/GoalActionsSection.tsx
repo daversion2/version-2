@@ -464,37 +464,58 @@ const HabitRow: React.FC<{
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
-      {hasPlan && (
+      {hasPlan ? (
+        <>
+          <View style={styles.planToggle}>
+            <TouchableOpacity
+              style={styles.planToggleLeft}
+              onPress={() => setExpanded(!expanded)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
+              <Text style={styles.planToggleText}>My Plan</Text>
+              <Ionicons
+                name={expanded ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={Colors.primary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => callbacks.onNavigate('HabitActionPlan', { habitId: habit.id, prefilled: habit.action_plan })}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.planEditText}>Edit</Text>
+            </TouchableOpacity>
+          </View>
+          {expanded && (
+            <View style={styles.planDropdown}>
+              {PLAN_LABELS.map(({ key, label, icon }) => {
+                const value = habit.action_plan![key];
+                if (!value) return null;
+                return (
+                  <View key={key} style={styles.planItem}>
+                    <Ionicons name={icon as any} size={14} color={Colors.primary} style={{ marginTop: 1 }} />
+                    <View style={styles.planItemContent}>
+                      <Text style={styles.planItemLabel}>{label}</Text>
+                      <Text style={styles.planItemValue}>{value}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </>
+      ) : (
         <TouchableOpacity
           style={styles.planToggle}
-          onPress={() => setExpanded(!expanded)}
+          onPress={() => callbacks.onNavigate('HabitActionPlan', { habitId: habit.id })}
           activeOpacity={0.7}
         >
           <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
-          <Text style={styles.planToggleText}>My Plan</Text>
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={14}
-            color={Colors.primary}
-          />
+          <Text style={styles.planToggleText}>Create a plan for this habit</Text>
+          <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
         </TouchableOpacity>
-      )}
-      {expanded && hasPlan && (
-        <View style={styles.planDropdown}>
-          {PLAN_LABELS.map(({ key, label, icon }) => {
-            const value = habit.action_plan![key];
-            if (!value) return null;
-            return (
-              <View key={key} style={styles.planItem}>
-                <Ionicons name={icon as any} size={14} color={Colors.primary} style={{ marginTop: 1 }} />
-                <View style={styles.planItemContent}>
-                  <Text style={styles.planItemLabel}>{label}</Text>
-                  <Text style={styles.planItemValue}>{value}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
       )}
     </Card>
   );
@@ -726,17 +747,29 @@ const styles = StyleSheet.create({
   planToggle: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.xs,
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.lightGray,
   },
+  planToggleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    flex: 1,
+  },
   planToggleText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.primary,
     flex: 1,
+  },
+  planEditText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
   },
   planDropdown: {
     marginTop: Spacing.sm,

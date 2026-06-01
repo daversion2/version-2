@@ -105,7 +105,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
       })}
 
       {/* Goal picker */}
-      <Text style={styles.sectionTitle}>Link to a Goal</Text>
+      <Text style={styles.sectionTitle}>Link to a Goal (optional)</Text>
       <GoalTagPicker
         selectedGoalIds={selectedGoalIds}
         onChange={setSelectedGoalIds}
@@ -117,10 +117,10 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
         style={[
           styles.addBtn,
           { backgroundColor: color },
-          (adding || selectedGoalIds.length === 0) && styles.addBtnDisabled,
+          adding && styles.addBtnDisabled,
         ]}
         onPress={handleAdd}
-        disabled={adding || selectedGoalIds.length === 0}
+        disabled={adding}
       >
         {adding ? (
           <ActivityIndicator color={Colors.white} />
