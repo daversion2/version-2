@@ -33,9 +33,6 @@ import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { PlanIntroModal } from '../../components/common/PlanIntroModal';
 import { GoalPromptModal } from '../../components/common/GoalPromptModal';
 import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
-import { FunFactModal } from '../../components/home/FunFactModal';
-import { getTodaysFunFact } from '../../services/funFacts';
-import { FunFact } from '../../types';
 import { ComebackModal } from '../../components/home/ComebackModal';
 import { saveComebackLog } from '../../services/comebackLogs';
 import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
@@ -77,8 +74,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
-  const [funFact, setFunFact] = useState<FunFact | null>(null);
-  const [funFactModalVisible, setFunFactModalVisible] = useState(false);
   const [activeProgram, setActiveProgram] = useState<ProgramEnrollment | null>(null);
   const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
   const [programDayNumber, setProgramDayNumber] = useState(0);
@@ -173,12 +168,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         );
       }
 
-      const [dailyChallenges, extChallenges, habitList, userTeam, todaysFact, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
+      const [dailyChallenges, extChallenges, habitList, userTeam, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
         getUserTeam(user.uid),
-        getTodaysFunFact(),
         getPendingInviteCount(user.uid),
         getActiveBuddyChallenges(user.uid),
         getActiveEnrollment(user.uid),
@@ -234,7 +228,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setBuddyChallenges(activeBuddies);
       setHabits(habitList);
       setTeam(userTeam);
-      setFunFact(todaysFact);
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
 
@@ -593,7 +586,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     teamSummary,
     weeklyCounts,
     habitStreaks,
-    funFact,
     pendingInvites,
     buddyChallenges,
     activeProgram,
@@ -614,7 +606,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     weeklyPlans,
   }), [
     activeChallenges, extendedChallenges, habits, team, teamSummary,
-    weeklyCounts, habitStreaks, funFact, pendingInvites, buddyChallenges,
+    weeklyCounts, habitStreaks, pendingInvites, buddyChallenges,
     activeProgram, todaysProgramDay, programDayNumber, programCheckedIn,
     goals, showReflectionBanner, reflectedToday, todaysGrade,
     willpowerStats, goalFollowThrough, totalHabitsCompleted, activeMantra,
@@ -622,10 +614,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   ]);
 
   const onNavigate = useCallback((screen: string, params?: any) => {
-    if (screen === '__funFactModal') {
-      setFunFactModalVisible(true);
-      return;
-    }
     if (screen === '__progressTab') {
       navigation.getParent()?.navigate('Goals');
       return;
@@ -742,12 +730,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }}
         onDismiss={() => setChallengesUnlockVisible(false)}
       />
-      <FunFactModal
-        visible={funFactModalVisible}
-        funFact={funFact}
-        onClose={() => setFunFactModalVisible(false)}
-      />
-      <ComebackModal
+<ComebackModal
         visible={comebackVisible}
         habits={habits}
         onCommit={async (habitId, habitName, barrierReason) => {

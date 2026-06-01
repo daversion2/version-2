@@ -8,7 +8,6 @@ export const SECTION_IDS = [
   'goal_actions',
   // Zone 3: Reflect
   'reflection_banner',
-  'fun_fact',
   // Legacy (kept for backward compat with custom layouts)
   'buddy_invites',
   'team_activity',
@@ -51,7 +50,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'reflect',
     label: 'Reflect',
     icon: 'moon-outline',
-    sectionIds: ['reflection_banner', 'fun_fact'],
+    sectionIds: ['reflection_banner'],
   },
   // Legacy zone for backward compat with custom layouts
   {
@@ -74,7 +73,6 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
   mantra: 'Redirect Mantra',
   goal_actions: 'Goals & Actions',
   reflection_banner: 'Nightly Reflection',
-  fun_fact: 'Fun Fact',
   // Legacy
   buddy_invites: 'Buddy Invites',
   team_activity: 'Team Activity',
@@ -85,7 +83,6 @@ export const SECTION_ICONS: Record<HomeSectionId, string> = {
   mantra: 'megaphone-outline',
   goal_actions: 'flag-outline',
   reflection_banner: 'moon-outline',
-  fun_fact: 'bulb-outline',
   // Legacy
   buddy_invites: 'person-add-outline',
   team_activity: 'people-outline',

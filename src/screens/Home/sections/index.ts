@@ -1,7 +1,6 @@
 import React from 'react';
 import { HomeSectionProps } from './types';
 import { GreetingSection } from './GreetingSection';
-import { FunFactSection } from './FunFactSection';
 import { ReflectionBannerSection } from './ReflectionBannerSection';
 import { TeamActivitySection } from './TeamActivitySection';
 import { BuddyInvitesSection } from './BuddyInvitesSection';
@@ -16,7 +15,6 @@ export const SECTION_REGISTRY: Record<string, React.FC<HomeSectionProps>> = {
   buddy_invites: BuddyInvitesSection,
   team_activity: TeamActivitySection,
   reflection_banner: ReflectionBannerSection,
-  fun_fact: FunFactSection,
 };
 
 export { HomeSectionProps } from './types';

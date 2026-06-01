@@ -7,7 +7,6 @@ import {
   ProgramEnrollment,
   ProgramDay,
   HabitStreakInfo,
-  FunFact,
   ReflectionGrade,
   Goal,
   GoalFollowThrough,
@@ -30,7 +29,6 @@ export interface HomeData {
   teamSummary: TeamMemberActivitySummary[];
   weeklyCounts: Record<string, number>;
   habitStreaks: Record<string, HabitStreakInfo>;
-  funFact: FunFact | null;
   pendingInvites: number;
   buddyChallenges: BuddyChallenge[];
   activeProgram: ProgramEnrollment | null;
