@@ -1,0 +1,215 @@
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+} from 'firebase/firestore';
+import { db } from './firebase';
+import {
+  Goal,
+  MeasurementLogEntry,
+  MeasurementProgress,
+  MeasurementConfigDoneByDate,
+  MeasurementConfigReachNumber,
+  MeasurementConfigHitTotal,
+  MeasurementConfigRateSelf,
+} from '../types';
+
+const measurementLogsRef = (userId: string) =>
+  collection(db, 'users', userId, 'measurementLogs');
+
+const getTodayStr = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
+/**
+ * Create a measurement log entry.
+ */
+export const logMeasurement = async (
+  userId: string,
+  goalId: string,
+  entry: {
+    value: number;
+    source: 'manual' | 'habit_completion';
+    source_id?: string;
+    note?: string;
+  }
+): Promise<string> => {
+  const now = new Date();
+  const logData: Record<string, unknown> = {
+    goal_id: goalId,
+    date: getTodayStr(),
+    created_at: now.toISOString(),
+    value: entry.value,
+    source: entry.source,
+  };
+  if (entry.source_id) logData.source_id = entry.source_id;
+  if (entry.note?.trim()) logData.note = entry.note.trim();
+
+  const docRef = await addDoc(measurementLogsRef(userId), logData);
+  return docRef.id;
+};
+
+/**
+ * Get all measurement log entries for a goal, ordered by date descending.
+ */
+export const getMeasurementLogs = async (
+  userId: string,
+  goalId: string
+): Promise<MeasurementLogEntry[]> => {
+  // Single-field query (auto-indexed) + in-memory sort to avoid needing a composite index
+  const q = query(
+    measurementLogsRef(userId),
+    where('goal_id', '==', goalId)
+  );
+  const snap = await getDocs(q);
+  const logs = snap.docs.map(d => ({ id: d.id, ...d.data() } as MeasurementLogEntry));
+  logs.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
+  return logs;
+};
+
+/**
+ * Compute measurement progress for a goal from its logs and config.
+ */
+export const getMeasurementProgress = async (
+  userId: string,
+  goal: Goal
+): Promise<MeasurementProgress | null> => {
+  if (!goal.measurement_type) return null;
+
+  const type = goal.measurement_type;
+  const config = goal.measurement_config;
+
+  // done_by_date needs no logs
+  if (type === 'done_by_date') {
+    const c = config as MeasurementConfigDoneByDate | undefined;
+    const targetDate = c?.target_date || goal.end_date;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const [y, m, d] = targetDate.split('-').map(Number);
+    const end = new Date(y, m - 1, d);
+    const daysRemaining = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Percentage = time elapsed / total duration
+    const [sy, sm, sd] = goal.start_date.split('-').map(Number);
+    const start = new Date(sy, sm - 1, sd);
+    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const elapsed = totalDays - daysRemaining;
+    const percentage = totalDays > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / totalDays) * 100))) : 0;
+
+    return {
+      measurement_type: type,
+      current_value: daysRemaining,
+      target_value: 0,
+      percentage,
+      total_entries: 0,
+      days_remaining: daysRemaining,
+    };
+  }
+
+  // All other types need logs
+  const logs = await getMeasurementLogs(userId, goal.id);
+
+  if (type === 'reach_number') {
+    const c = config as MeasurementConfigReachNumber | undefined;
+    const startingValue = c?.starting_value ?? 0;
+    const targetValue = c?.target_value ?? 0;
+    const direction = c?.direction ?? 'up';
+    const metricName = c?.metric_name ?? '';
+
+    const sum = logs.reduce((acc, log) => acc + log.value, 0);
+    const currentValue = direction === 'up'
+      ? startingValue + sum
+      : startingValue - sum;
+
+    const totalRange = Math.abs(targetValue - startingValue);
+    const progress = Math.abs(currentValue - startingValue);
+    const percentage = totalRange > 0
+      ? Math.min(100, Math.max(0, Math.round((progress / totalRange) * 100)))
+      : 0;
+
+    return {
+      measurement_type: type,
+      current_value: currentValue,
+      target_value: targetValue,
+      starting_value: startingValue,
+      percentage,
+      total_entries: logs.length,
+      latest_entry: logs[0] || undefined,
+      metric_name: metricName,
+    };
+  }
+
+  if (type === 'hit_total') {
+    const c = config as MeasurementConfigHitTotal | undefined;
+    const targetCount = c?.target_count ?? 0;
+    const currentValue = logs.reduce((acc, log) => acc + log.value, 0);
+    const percentage = targetCount > 0
+      ? Math.min(100, Math.max(0, Math.round((currentValue / targetCount) * 100)))
+      : 0;
+
+    return {
+      measurement_type: type,
+      current_value: currentValue,
+      target_value: targetCount,
+      percentage,
+      total_entries: logs.length,
+      latest_entry: logs[0] || undefined,
+    };
+  }
+
+  if (type === 'rate_yourself') {
+    const c = config as MeasurementConfigRateSelf | undefined;
+    const scaleMax = c?.scale_max ?? 10;
+    const latestValue = logs.length > 0 ? logs[0].value : 0;
+    const trend = logs.slice(0, 8).map(l => l.value).reverse();
+    const percentage = scaleMax > 0
+      ? Math.round((latestValue / scaleMax) * 100)
+      : 0;
+
+    return {
+      measurement_type: type,
+      current_value: latestValue,
+      target_value: scaleMax,
+      percentage,
+      total_entries: logs.length,
+      latest_entry: logs[0] || undefined,
+      trend,
+    };
+  }
+
+  return null;
+};
+
+/**
+ * Find active hit_total goals that track the given habit, and auto-log +1 for each.
+ */
+export const autoLogHabitMeasurement = async (
+  userId: string,
+  habitId: string,
+  completionLogId?: string
+): Promise<void> => {
+  // Query goals where tracking_habit_id matches
+  const goalsQ = query(
+    collection(db, 'users', userId, 'goals'),
+    where('tracking_habit_id', '==', habitId),
+    where('status', '==', 'active')
+  );
+  const snap = await getDocs(goalsQ);
+  const matchingGoals = snap.docs.filter(d => {
+    const data = d.data();
+    return data.measurement_type === 'hit_total' && data.draft_status !== 'draft';
+  });
+
+  await Promise.all(
+    matchingGoals.map(goalDoc =>
+      logMeasurement(userId, goalDoc.id, {
+        value: 1,
+        source: 'habit_completion',
+        source_id: completionLogId,
+      })
+    )
+  );
+};

@@ -15,7 +15,8 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveGoals, getAllGoals, computeGoalFollowThrough, getItemsForGoal, getDraftGoals } from '../../services/goals';
 import { getWillpowerStats } from '../../services/willpower';
-import { Goal, GoalFollowThrough } from '../../types';
+import { Goal, GoalFollowThrough, MeasurementProgress } from '../../types';
+import { getMeasurementProgress } from '../../services/measurements';
 import { GOAL_CONSTANTS } from '../../constants/goals';
 import { GoalsNavigation } from '../../types/navigation';
 
@@ -23,6 +24,7 @@ interface GoalCardData {
   goal: Goal;
   followThrough: GoalFollowThrough | null;
   linkedCounts: { challenges: number; habits: number; programs: number };
+  measurementProgress: MeasurementProgress | null;
 }
 
 const getDaysRemaining = (endDate: string): number => {
@@ -65,6 +67,12 @@ export const GoalsScreen: React.FC = () => {
             computeGoalFollowThrough(user.uid, goal.id),
             getItemsForGoal(user.uid, goal.id),
           ]);
+          let mp: MeasurementProgress | null = null;
+          if (goal.measurement_type) {
+            try {
+              mp = await getMeasurementProgress(user.uid, goal);
+            } catch { /* ignore */ }
+          }
           return {
             goal,
             followThrough: ft,
@@ -73,6 +81,7 @@ export const GoalsScreen: React.FC = () => {
               habits: items.habits.length,
               programs: items.programEnrollments.length,
             },
+            measurementProgress: mp,
           };
         })
       );
@@ -133,7 +142,7 @@ export const GoalsScreen: React.FC = () => {
           />
         </Card>
       ) : (
-        goalCards.map(({ goal, followThrough, linkedCounts }) => {
+        goalCards.map(({ goal, followThrough, linkedCounts, measurementProgress: mp }) => {
           const ftRate = followThrough?.followThroughRate ?? 0;
           const ftPct = Math.round(ftRate * 100);
           const daysLeft = getDaysRemaining(goal.end_date);
@@ -194,6 +203,20 @@ export const GoalsScreen: React.FC = () => {
                 {followThrough && followThrough.currentWeekCommitments > 0 && (
                   <Text style={styles.weeklyText}>
                     This week: {followThrough.currentWeekKept}/{followThrough.currentWeekCommitments} kept
+                  </Text>
+                )}
+
+                {mp && goal.measurement_type && goal.measurement_type !== 'done_by_date' && (
+                  <Text style={styles.measurementIndicator}>
+                    {goal.measurement_type === 'reach_number' && mp.metric_name
+                      ? `${mp.current_value}/${mp.target_value ?? 0} ${mp.metric_name}`
+                      : goal.measurement_type === 'reach_number'
+                      ? `${mp.current_value}/${mp.target_value ?? 0}`
+                      : goal.measurement_type === 'hit_total'
+                      ? `${mp.current_value}/${mp.target_value ?? 0}`
+                      : goal.measurement_type === 'rate_yourself' && mp.total_entries > 0
+                      ? `Last: ${mp.current_value}/${mp.target_value ?? 10}`
+                      : null}
                   </Text>
                 )}
               </Card>
@@ -357,6 +380,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+    marginTop: Spacing.xs,
+  },
+  measurementIndicator: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
     marginTop: Spacing.xs,
   },
   capText: {

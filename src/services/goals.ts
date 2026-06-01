@@ -101,6 +101,7 @@ interface GoalV2Fields {
   measurement_config?: MeasurementConfig;
   obstacles?: GoalObstacle[];
   visualization_settings?: VisualizationSettings;
+  tracking_habit_id?: string;
   draft_status?: GoalDraftStatus;
 }
 
@@ -160,9 +161,17 @@ export const createGoal = async (
 
   // Add v2 fields if present
   if (data.measurement_type) goalDoc.measurement_type = data.measurement_type;
-  if (data.measurement_config) goalDoc.measurement_config = data.measurement_config;
+  if (data.measurement_config) {
+    // Strip undefined values — Firestore rejects them
+    const cleanConfig: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data.measurement_config)) {
+      if (v !== undefined) cleanConfig[k] = v;
+    }
+    goalDoc.measurement_config = cleanConfig;
+  }
   if (data.obstacles && data.obstacles.length > 0) goalDoc.obstacles = data.obstacles;
   if (data.visualization_settings) goalDoc.visualization_settings = data.visualization_settings;
+  if (data.tracking_habit_id) goalDoc.tracking_habit_id = data.tracking_habit_id;
 
   const docRef = await addDoc(goalsRef(userId), goalDoc);
   return docRef.id;
@@ -258,6 +267,21 @@ export const updateGoal = async (
   if (updates.manual_progress !== undefined) clean.manual_progress = Math.max(0, Math.min(100, updates.manual_progress));
   if (updates.color !== undefined) clean.color = updates.color;
   await updateDoc(ref, clean);
+};
+
+/**
+ * Set the tracking habit for a hit_total goal.
+ */
+export const updateGoalTrackingHabit = async (
+  userId: string,
+  goalId: string,
+  habitId: string
+): Promise<void> => {
+  const ref = doc(db, 'users', userId, 'goals', goalId);
+  await updateDoc(ref, {
+    tracking_habit_id: habitId,
+    updated_at: new Date().toISOString(),
+  });
 };
 
 /**
@@ -413,7 +437,13 @@ export const createGoalDraft = async (
   if (data.deeper_why?.trim()) goalDoc.deeper_why = data.deeper_why.trim();
   if (data.identity_statement?.trim()) goalDoc.identity_statement = data.identity_statement.trim();
   if (data.measurement_type) goalDoc.measurement_type = data.measurement_type;
-  if (data.measurement_config) goalDoc.measurement_config = data.measurement_config;
+  if (data.measurement_config) {
+    const cleanCfg: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data.measurement_config)) {
+      if (v !== undefined) cleanCfg[k] = v;
+    }
+    goalDoc.measurement_config = cleanCfg;
+  }
   if (data.obstacles && data.obstacles.length > 0) goalDoc.obstacles = data.obstacles;
 
   const docRef = await addDoc(goalsRef(userId), goalDoc);
@@ -443,7 +473,11 @@ export const updateGoalDraft = async (
   if (data.identity_statement !== undefined) clean.identity_statement = data.identity_statement.trim();
   if (data.measurement_type !== undefined) clean.measurement_type = data.measurement_type;
   if (data.measurement_config !== undefined) {
-    clean.measurement_config = data.measurement_config;
+    const cleanCfg: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data.measurement_config)) {
+      if (v !== undefined) cleanCfg[k] = v;
+    }
+    clean.measurement_config = cleanCfg;
     clean.end_date = deriveEndDate(data.measurement_config);
   }
   if (data.obstacles !== undefined) clean.obstacles = data.obstacles;

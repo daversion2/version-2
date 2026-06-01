@@ -141,8 +141,9 @@ export const logHabitCompletion = async (
     logData.moodAfter = vals.mood;
   }
 
-  await addDoc(logsRef(userId), logData);
+  const docRef = await addDoc(logsRef(userId), logData);
   await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
+  return docRef.id;
 };
 
 /**

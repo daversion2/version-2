@@ -27,7 +27,12 @@ import {
   computeGoalFollowThrough,
 } from '../../services/goals';
 import { getCompletionLogs } from '../../services/progress';
-import { Goal, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment } from '../../types';
+import { getMeasurementProgress, logMeasurement } from '../../services/measurements';
+import { Goal, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment, MeasurementProgress } from '../../types';
+import { MeasurementProgressSection } from '../../components/goals/MeasurementProgressSection';
+import { LogProgressModal } from '../../components/goals/LogProgressModal';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 
 type Props = HomeScreenProps<'GoalDashboard'>;
 
@@ -80,6 +85,9 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const [activityDates, setActivityDates] = useState<Set<string>>(new Set());
   const [showExtendPicker, setShowExtendPicker] = useState(false);
   const [extendDate, setExtendDate] = useState(new Date());
+  const [measurementProgress, setMeasurementProgress] = useState<MeasurementProgress | null>(null);
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [trackingHabitName, setTrackingHabitName] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user || !goalId) return;
@@ -93,6 +101,32 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       if (goalData) {
         setGoal(goalData);
         navigation.setOptions({ title: goalData.name });
+
+        // Fetch measurement progress if goal has a measurement type
+        if (goalData.measurement_type) {
+          try {
+            const mp = await getMeasurementProgress(user.uid, goalData);
+            setMeasurementProgress(mp);
+          } catch {
+            setMeasurementProgress(null);
+          }
+
+          // Fetch tracking habit name if linked
+          if (goalData.tracking_habit_id) {
+            try {
+              const habitDoc = await getDoc(doc(db, 'users', user.uid, 'nudges', goalData.tracking_habit_id));
+              if (habitDoc.exists()) {
+                setTrackingHabitName(habitDoc.data().name ?? null);
+              }
+            } catch {
+              setTrackingHabitName(null);
+            }
+          } else {
+            setTrackingHabitName(null);
+          }
+        } else {
+          setMeasurementProgress(null);
+        }
       }
       const activeChallenges = items.challenges.filter(c => c.status === 'active');
       const completedChallenges = items.challenges.filter(c =>
@@ -188,6 +222,40 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       loadData();
     } catch (e: any) {
       Alert.alert('Error', e.message);
+    }
+  };
+
+  const handleQuickIncrement = async () => {
+    if (!user || !goal) return;
+    try {
+      await logMeasurement(user.uid, goal.id, { value: 1, source: 'manual' });
+      const mp = await getMeasurementProgress(user.uid, goal);
+      setMeasurementProgress(mp);
+    } catch (e) {
+      console.error('Failed to log increment:', e);
+    }
+  };
+
+  const handleLogProgress = async (value: number) => {
+    if (!user || !goal) return;
+    try {
+      await logMeasurement(user.uid, goal.id, { value, source: 'manual' });
+      setShowLogModal(false);
+      const mp = await getMeasurementProgress(user.uid, goal);
+      setMeasurementProgress(mp);
+    } catch (e) {
+      console.error('Failed to log progress:', e);
+    }
+  };
+
+  const handleRateSelfSubmit = async (value: number, note?: string) => {
+    if (!user || !goal) return;
+    try {
+      await logMeasurement(user.uid, goal.id, { value, source: 'manual', note });
+      const mp = await getMeasurementProgress(user.uid, goal);
+      setMeasurementProgress(mp);
+    } catch (e) {
+      console.error('Failed to log rating:', e);
     }
   };
 
@@ -304,6 +372,19 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
           )}
         </View>
       </Card>
+
+      {/* Measurement progress */}
+      {goal.measurement_type && measurementProgress && (
+        <MeasurementProgressSection
+          goal={goal}
+          progress={measurementProgress}
+          onLogProgress={() => setShowLogModal(true)}
+          onQuickIncrement={handleQuickIncrement}
+          onRateSelfSubmit={handleRateSelfSubmit}
+          trackingHabitName={trackingHabitName}
+          readOnly={!isActive}
+        />
+      )}
 
       {/* Commitment calendar */}
       <Card>
@@ -603,6 +684,17 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       )}
+      {/* Log progress modal for reach_number */}
+      <LogProgressModal
+        visible={showLogModal}
+        metricName={
+          goal.measurement_config && 'metric_name' in goal.measurement_config
+            ? goal.measurement_config.metric_name
+            : ''
+        }
+        onLog={handleLogProgress}
+        onDismiss={() => setShowLogModal(false)}
+      />
     </ScrollView>
   );
 };

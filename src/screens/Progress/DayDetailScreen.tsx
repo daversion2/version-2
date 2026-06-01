@@ -88,7 +88,16 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     if (!user) return;
     try {
       // Log the habit completion with the backdated date
-      await logHabitCompletion(user.uid, habitId, difficulty, date, notes);
+      const completionLogId = await logHabitCompletion(user.uid, habitId, difficulty, date, notes);
+
+      // Auto-count for hit_total measurement goals
+      try {
+        const { autoLogHabitMeasurement } = await import('../../services/measurements');
+        await autoLogHabitMeasurement(user.uid, habitId, completionLogId);
+      } catch (err) {
+        console.warn('Failed to auto-log measurement:', err);
+      }
+
       // Update willpower stats
       const points = difficulty === 'easy' ? 1 : 2;
       await updateWillpowerStats(user.uid, points);

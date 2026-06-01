@@ -843,7 +843,8 @@ export interface MeasurementConfigHitTotal {
 export interface MeasurementConfigRateSelf {
   type: 'rate_yourself';
   scale_max: 5 | 10;
-  check_in_day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+  check_in_frequency?: 'daily' | 'weekly';  // defaults to 'weekly' for backward compat
+  check_in_day?: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
   reflection_question: string;
 }
 
@@ -886,6 +887,7 @@ export interface Goal {
   measurement_config?: MeasurementConfig;
   obstacles?: GoalObstacle[];
   visualization_settings?: VisualizationSettings;
+  tracking_habit_id?: string;
   draft_status?: GoalDraftStatus;
 
   // CBT Goal Onboarding fields (Phase 1.1)
@@ -915,6 +917,30 @@ export interface GoalFollowThrough {
   followThroughRate: number;       // 0-1
   currentWeekCommitments: number;
   currentWeekKept: number;
+}
+
+export interface MeasurementLogEntry {
+  id: string;
+  goal_id: string;
+  date: string;
+  created_at: string;
+  value: number;
+  source: 'manual' | 'habit_completion';
+  source_id?: string;
+  note?: string;
+}
+
+export interface MeasurementProgress {
+  measurement_type: MeasurementType;
+  current_value: number;
+  target_value?: number;
+  starting_value?: number;
+  percentage: number;
+  total_entries: number;
+  latest_entry?: MeasurementLogEntry;
+  trend?: number[];
+  days_remaining?: number;
+  metric_name?: string;
 }
 
 // ============================================================================

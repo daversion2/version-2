@@ -189,6 +189,7 @@ export const MeasurementConfigPanel: React.FC<MeasurementConfigPanelProps> = ({
 
   const renderRateSelf = () => {
     const c = config as Partial<MeasurementConfigRateSelf>;
+    const frequency = c.check_in_frequency ?? 'weekly';
     return (
       <View style={styles.section}>
         <Text style={styles.label}>Scale</Text>
@@ -207,26 +208,46 @@ export const MeasurementConfigPanel: React.FC<MeasurementConfigPanelProps> = ({
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.label, { marginTop: Spacing.md }]}>Check-in day</Text>
-        <View style={styles.dayRow}>
-          {DAYS_OF_WEEK.map((day) => (
-            <TouchableOpacity
-              key={day.value}
-              style={[styles.dayChip, c.check_in_day === day.value && styles.dayChipActive]}
-              onPress={() => onChange({ ...c, type: 'rate_yourself', check_in_day: day.value } as any)}
-            >
-              <Text style={[styles.dayChipText, c.check_in_day === day.value && styles.dayChipTextActive]}>
-                {day.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <Text style={[styles.label, { marginTop: Spacing.md }]}>Check-in frequency</Text>
+        <View style={styles.toggleRow}>
+          <TouchableOpacity
+            style={[styles.toggleOption, frequency === 'daily' && styles.toggleOptionActive]}
+            onPress={() => onChange({ ...c, type: 'rate_yourself', check_in_frequency: 'daily', check_in_day: undefined } as any)}
+          >
+            <Text style={[styles.toggleText, frequency === 'daily' && styles.toggleTextActive]}>Daily</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleOption, frequency === 'weekly' && styles.toggleOptionActive]}
+            onPress={() => onChange({ ...c, type: 'rate_yourself', check_in_frequency: 'weekly' } as any)}
+          >
+            <Text style={[styles.toggleText, frequency === 'weekly' && styles.toggleTextActive]}>Weekly</Text>
+          </TouchableOpacity>
         </View>
+
+        {frequency === 'weekly' && (
+          <>
+            <Text style={styles.label}>Check-in day</Text>
+            <View style={styles.dayRow}>
+              {DAYS_OF_WEEK.map((day) => (
+                <TouchableOpacity
+                  key={day.value}
+                  style={[styles.dayChip, c.check_in_day === day.value && styles.dayChipActive]}
+                  onPress={() => onChange({ ...c, type: 'rate_yourself', check_in_day: day.value } as any)}
+                >
+                  <Text style={[styles.dayChipText, c.check_in_day === day.value && styles.dayChipTextActive]}>
+                    {day.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
         <InputField
           label="What question will you ask yourself?"
           value={c.reflection_question || ''}
           onChangeText={(v) => onChange({ ...c, type: 'rate_yourself', reflection_question: v } as any)}
-          placeholder="How well did I live this goal this week?"
+          placeholder={frequency === 'daily' ? 'How well did I live this goal today?' : 'How well did I live this goal this week?'}
           multiline
           maxLength={200}
         />

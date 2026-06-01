@@ -25,6 +25,14 @@
         { "fieldPath": "is_draft", "order": "ASCENDING" },
         { "fieldPath": "completed_at", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "measurementLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "goal_id", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

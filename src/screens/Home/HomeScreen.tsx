@@ -384,7 +384,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string, quadrantBefore?: Quadrant | null, quadrantAfter?: Quadrant | null) => {
     if (!user || !completingHabit) return;
     try {
-      await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes, quadrantBefore, quadrantAfter);
+      const completionLogId = await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes, quadrantBefore, quadrantAfter);
+
+      // Auto-count for hit_total measurement goals
+      try {
+        const { autoLogHabitMeasurement } = await import('../../services/measurements');
+        await autoLogHabitMeasurement(user.uid, completingHabit.id, completionLogId);
+      } catch (err) {
+        console.warn('Failed to auto-log measurement:', err);
+      }
 
       // Log team activity if user is in a team
       if (team) {

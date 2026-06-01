@@ -15,6 +15,7 @@ import { Button } from '../../../components/common/Button';
 import { GoalProgressDots } from '../../../components/goals/GoalProgressDots';
 import { GoalCelebration } from '../../../components/goals/GoalCelebration';
 import { VisualizationPromptModal } from '../../../components/goals/VisualizationPromptModal';
+import { HabitLinkingModal } from '../../../components/goals/HabitLinkingModal';
 import { useAuth } from '../../../context/AuthContext';
 import {
   getActiveGoals,
@@ -23,13 +24,16 @@ import {
   updateGoalDraft,
   commitGoalDraft,
   getGoalById,
+  updateGoalTrackingHabit,
 } from '../../../services/goals';
+import { getActiveHabits } from '../../../services/habits';
 import { GOAL_CONSTANTS, CREATION_FLOW_STEPS } from '../../../constants/goals';
 import {
   MeasurementType,
   MeasurementConfig,
   GoalObstacle,
   VisualizationSettings,
+  Nudge,
   MeasurementConfigDoneByDate,
   MeasurementConfigReachNumber,
   MeasurementConfigHitTotal,
@@ -74,9 +78,11 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
   const [returnStep, setReturnStep] = useState<number | null>(null);
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
 
-  // Celebration + visualization state
+  // Celebration + visualization + habit linking state
   const [showCelebration, setShowCelebration] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
+  const [showHabitLinking, setShowHabitLinking] = useState(false);
+  const [activeHabitsForLinking, setActiveHabitsForLinking] = useState<Nudge[]>([]);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
 
   // Form state
@@ -171,7 +177,8 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
             Alert.alert('Required', 'Please choose a rating scale.');
             return false;
           }
-          if (!c.check_in_day) {
+          const freq = c.check_in_frequency ?? 'weekly';
+          if (freq === 'weekly' && !c.check_in_day) {
             Alert.alert('Required', 'Please choose a check-in day.');
             return false;
           }
@@ -314,9 +321,45 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
     }
   };
 
-  const handleCelebrationComplete = () => {
+  const handleCelebrationComplete = async () => {
     setShowCelebration(false);
-    // Show visualization prompt (only on first goal — simplified: always show for now)
+
+    // For hit_total goals, show habit linking modal before visualization
+    if (measurementType === 'hit_total' && user) {
+      try {
+        const habits = await getActiveHabits(user.uid);
+        setActiveHabitsForLinking(habits);
+        setShowHabitLinking(true);
+        return;
+      } catch {
+        // Fall through to visualization if habit fetch fails
+      }
+    }
+
+    setShowVisualization(true);
+  };
+
+  const handleHabitLink = async (habitId: string) => {
+    if (user && createdGoalId) {
+      try {
+        await updateGoalTrackingHabit(user.uid, createdGoalId, habitId);
+      } catch {
+        // Non-critical — continue to visualization
+      }
+    }
+    setShowHabitLinking(false);
+    setShowVisualization(true);
+  };
+
+  const handleHabitLinkSkip = () => {
+    setShowHabitLinking(false);
+    setShowVisualization(true);
+  };
+
+  const handleHabitLinkCreateNew = () => {
+    setShowHabitLinking(false);
+    // Navigate to manage habits, then visualization will show when they return
+    // For now, just proceed to visualization
     setShowVisualization(true);
   };
 
@@ -458,6 +501,15 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
 
       {/* Celebration overlay */}
       <GoalCelebration visible={showCelebration} onComplete={handleCelebrationComplete} />
+
+      {/* Habit linking modal (hit_total only) */}
+      <HabitLinkingModal
+        visible={showHabitLinking}
+        habits={activeHabitsForLinking}
+        onLink={handleHabitLink}
+        onCreateNew={handleHabitLinkCreateNew}
+        onSkip={handleHabitLinkSkip}
+      />
 
       {/* Visualization prompt modal */}
       <VisualizationPromptModal
