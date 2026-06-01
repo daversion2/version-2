@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,7 +16,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
-import { getHabitById, getHabitStats, getHabitCompletionLogs } from '../../services/habits';
+import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/habits';
 import { Nudge, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 
 type Props = HomeScreenProps<'HabitDetail'>;
@@ -61,6 +62,29 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       loadData();
     }, [loadData])
   );
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Habit',
+      'Are you sure you want to delete this habit? Your completion history will be preserved.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user) return;
+            try {
+              await updateHabit(user.uid, habitId, { is_active: false });
+              navigation.goBack();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ]
+    );
+  };
 
 
   // Generate marked dates for calendar heat map
@@ -287,6 +311,12 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </Card>
       )}
+
+      {/* Delete */}
+      <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+        <Ionicons name="trash-outline" size={18} color={Colors.secondary} />
+        <Text style={styles.deleteBtnText}>Delete Habit</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -481,5 +511,18 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.sm,
     color: Colors.primary,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.lg,
+    marginTop: Spacing.xl,
+  },
+  deleteBtnText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.secondary,
   },
 });

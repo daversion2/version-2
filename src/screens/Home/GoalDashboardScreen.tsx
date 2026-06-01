@@ -25,6 +25,7 @@ import {
   isGoalExpired,
   getItemsForGoal,
   computeGoalFollowThrough,
+  archiveGoal,
 } from '../../services/goals';
 import { getCompletionLogs } from '../../services/progress';
 import { getMeasurementProgress, logMeasurement } from '../../services/measurements';
@@ -219,6 +220,29 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
     } catch (e) {
       console.error('Failed to log progress:', e);
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Goal',
+      'Are you sure you want to delete this goal? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user || !goal) return;
+            try {
+              await archiveGoal(user.uid, goal.id);
+              navigation.goBack();
+            } catch (e: any) {
+              Alert.alert('Error', e.message);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -641,6 +665,11 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons name="pencil" size={16} color={Colors.primary} />
             <Text style={styles.editLinkText}>Edit Goal</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.deleteLink} onPress={handleDelete}>
+            <Ionicons name="trash-outline" size={16} color={Colors.secondary} />
+            <Text style={styles.deleteLinkText}>Delete Goal</Text>
+          </TouchableOpacity>
         </View>
       )}
       {/* Log progress modal for reach_number */}
@@ -907,6 +936,18 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.primary,
+  },
+  deleteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+  },
+  deleteLinkText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.secondary,
   },
   historyStatsCard: {
     marginBottom: Spacing.sm,
