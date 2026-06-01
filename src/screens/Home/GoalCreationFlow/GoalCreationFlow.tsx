@@ -15,7 +15,6 @@ import { Button } from '../../../components/common/Button';
 import { GoalProgressDots } from '../../../components/goals/GoalProgressDots';
 import { GoalCelebration } from '../../../components/goals/GoalCelebration';
 import { VisualizationPromptModal } from '../../../components/goals/VisualizationPromptModal';
-import { HabitLinkingModal } from '../../../components/goals/HabitLinkingModal';
 import { useAuth } from '../../../context/AuthContext';
 import {
   getActiveGoals,
@@ -24,20 +23,15 @@ import {
   updateGoalDraft,
   commitGoalDraft,
   getGoalById,
-  updateGoalTrackingHabit,
 } from '../../../services/goals';
-import { getActiveHabits } from '../../../services/habits';
 import { GOAL_CONSTANTS, CREATION_FLOW_STEPS } from '../../../constants/goals';
 import {
   MeasurementType,
   MeasurementConfig,
   GoalObstacle,
   VisualizationSettings,
-  Nudge,
   MeasurementConfigDoneByDate,
   MeasurementConfigReachNumber,
-  MeasurementConfigHitTotal,
-  MeasurementConfigRateSelf,
 } from '../../../types';
 
 import { GoalNameStep } from './steps/GoalNameStep';
@@ -58,9 +52,6 @@ const deriveEndDate = (config?: Partial<MeasurementConfig>): string => {
     if (config.type === 'done_by_date' && (config as any).target_date) {
       return (config as MeasurementConfigDoneByDate).target_date;
     }
-    if (config.type === 'hit_total' && (config as any).deadline) {
-      return (config as MeasurementConfigHitTotal).deadline!;
-    }
   }
   const d = new Date();
   d.setDate(d.getDate() + GOAL_CONSTANTS.DEFAULT_GOAL_DURATION_DAYS);
@@ -78,11 +69,9 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
   const [returnStep, setReturnStep] = useState<number | null>(null);
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
 
-  // Celebration + visualization + habit linking state
+  // Celebration + visualization state
   const [showCelebration, setShowCelebration] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
-  const [showHabitLinking, setShowHabitLinking] = useState(false);
-  const [activeHabitsForLinking, setActiveHabitsForLinking] = useState<Nudge[]>([]);
   const [createdGoalId, setCreatedGoalId] = useState<string | null>(null);
 
   // Form state
@@ -163,27 +152,6 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
           }
           if (!c.direction) {
             Alert.alert('Required', 'Please select a direction (going up or down).');
-            return false;
-          }
-        } else if (measurementType === 'hit_total') {
-          const c = measurementConfig as Partial<MeasurementConfigHitTotal>;
-          if (!c.target_count || c.target_count <= 0) {
-            Alert.alert('Required', 'Please enter a target count greater than 0.');
-            return false;
-          }
-        } else if (measurementType === 'rate_yourself') {
-          const c = measurementConfig as Partial<MeasurementConfigRateSelf>;
-          if (!c.scale_max) {
-            Alert.alert('Required', 'Please choose a rating scale.');
-            return false;
-          }
-          const freq = c.check_in_frequency ?? 'weekly';
-          if (freq === 'weekly' && !c.check_in_day) {
-            Alert.alert('Required', 'Please choose a check-in day.');
-            return false;
-          }
-          if (!c.reflection_question?.trim()) {
-            Alert.alert('Required', 'Please enter a reflection question.');
             return false;
           }
         }
@@ -321,45 +289,8 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
     }
   };
 
-  const handleCelebrationComplete = async () => {
+  const handleCelebrationComplete = () => {
     setShowCelebration(false);
-
-    // For hit_total goals, show habit linking modal before visualization
-    if (measurementType === 'hit_total' && user) {
-      try {
-        const habits = await getActiveHabits(user.uid);
-        setActiveHabitsForLinking(habits);
-        setShowHabitLinking(true);
-        return;
-      } catch {
-        // Fall through to visualization if habit fetch fails
-      }
-    }
-
-    setShowVisualization(true);
-  };
-
-  const handleHabitLink = async (habitId: string) => {
-    if (user && createdGoalId) {
-      try {
-        await updateGoalTrackingHabit(user.uid, createdGoalId, habitId);
-      } catch {
-        // Non-critical — continue to visualization
-      }
-    }
-    setShowHabitLinking(false);
-    setShowVisualization(true);
-  };
-
-  const handleHabitLinkSkip = () => {
-    setShowHabitLinking(false);
-    setShowVisualization(true);
-  };
-
-  const handleHabitLinkCreateNew = () => {
-    setShowHabitLinking(false);
-    // Navigate to manage habits, then visualization will show when they return
-    // For now, just proceed to visualization
     setShowVisualization(true);
   };
 
@@ -501,15 +432,6 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
 
       {/* Celebration overlay */}
       <GoalCelebration visible={showCelebration} onComplete={handleCelebrationComplete} />
-
-      {/* Habit linking modal (hit_total only) */}
-      <HabitLinkingModal
-        visible={showHabitLinking}
-        habits={activeHabitsForLinking}
-        onLink={handleHabitLink}
-        onCreateNew={handleHabitLinkCreateNew}
-        onSkip={handleHabitLinkSkip}
-      />
 
       {/* Visualization prompt modal */}
       <VisualizationPromptModal

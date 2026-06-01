@@ -12,8 +12,6 @@ import {
   MeasurementProgress,
   MeasurementConfigDoneByDate,
   MeasurementConfigReachNumber,
-  MeasurementConfigHitTotal,
-  MeasurementConfigRateSelf,
 } from '../types';
 
 const measurementLogsRef = (userId: string) =>
@@ -32,8 +30,7 @@ export const logMeasurement = async (
   goalId: string,
   entry: {
     value: number;
-    source: 'manual' | 'habit_completion';
-    source_id?: string;
+    source: 'manual';
     note?: string;
   }
 ): Promise<string> => {
@@ -45,7 +42,6 @@ export const logMeasurement = async (
     value: entry.value,
     source: entry.source,
   };
-  if (entry.source_id) logData.source_id = entry.source_id;
   if (entry.note?.trim()) logData.note = entry.note.trim();
 
   const docRef = await addDoc(measurementLogsRef(userId), logData);
@@ -142,74 +138,5 @@ export const getMeasurementProgress = async (
     };
   }
 
-  if (type === 'hit_total') {
-    const c = config as MeasurementConfigHitTotal | undefined;
-    const targetCount = c?.target_count ?? 0;
-    const currentValue = logs.reduce((acc, log) => acc + log.value, 0);
-    const percentage = targetCount > 0
-      ? Math.min(100, Math.max(0, Math.round((currentValue / targetCount) * 100)))
-      : 0;
-
-    return {
-      measurement_type: type,
-      current_value: currentValue,
-      target_value: targetCount,
-      percentage,
-      total_entries: logs.length,
-      latest_entry: logs[0] || undefined,
-    };
-  }
-
-  if (type === 'rate_yourself') {
-    const c = config as MeasurementConfigRateSelf | undefined;
-    const scaleMax = c?.scale_max ?? 10;
-    const latestValue = logs.length > 0 ? logs[0].value : 0;
-    const trend = logs.slice(0, 8).map(l => l.value).reverse();
-    const percentage = scaleMax > 0
-      ? Math.round((latestValue / scaleMax) * 100)
-      : 0;
-
-    return {
-      measurement_type: type,
-      current_value: latestValue,
-      target_value: scaleMax,
-      percentage,
-      total_entries: logs.length,
-      latest_entry: logs[0] || undefined,
-      trend,
-    };
-  }
-
   return null;
-};
-
-/**
- * Find active hit_total goals that track the given habit, and auto-log +1 for each.
- */
-export const autoLogHabitMeasurement = async (
-  userId: string,
-  habitId: string,
-  completionLogId?: string
-): Promise<void> => {
-  // Query goals where tracking_habit_id matches
-  const goalsQ = query(
-    collection(db, 'users', userId, 'goals'),
-    where('tracking_habit_id', '==', habitId),
-    where('status', '==', 'active')
-  );
-  const snap = await getDocs(goalsQ);
-  const matchingGoals = snap.docs.filter(d => {
-    const data = d.data();
-    return data.measurement_type === 'hit_total' && data.draft_status !== 'draft';
-  });
-
-  await Promise.all(
-    matchingGoals.map(goalDoc =>
-      logMeasurement(userId, goalDoc.id, {
-        value: 1,
-        source: 'habit_completion',
-        source_id: completionLogId,
-      })
-    )
-  );
 };

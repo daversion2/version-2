@@ -19,10 +19,6 @@ const getDefaultConfig = (type: MeasurementType): Partial<MeasurementConfig> => 
     }
     case 'reach_number':
       return { type: 'reach_number', direction: 'up' } as any;
-    case 'hit_total':
-      return { type: 'hit_total' } as any;
-    case 'rate_yourself':
-      return { type: 'rate_yourself', scale_max: 5 } as any;
     default:
       return { type } as any;
   }

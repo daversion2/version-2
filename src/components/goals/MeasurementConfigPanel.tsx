@@ -4,14 +4,11 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { Ionicons } from '@expo/vector-icons';
 import { InputField } from '../common/InputField';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { DAYS_OF_WEEK } from '../../constants/goals';
 import {
   MeasurementType,
   MeasurementConfig,
   MeasurementConfigDoneByDate,
   MeasurementConfigReachNumber,
-  MeasurementConfigHitTotal,
-  MeasurementConfigRateSelf,
 } from '../../types';
 
 interface MeasurementConfigPanelProps {
@@ -46,7 +43,6 @@ export const MeasurementConfigPanel: React.FC<MeasurementConfigPanelProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
   const [showDatePicker, setShowDatePicker] = React.useState(false);
-  const [showDeadlinePicker, setShowDeadlinePicker] = React.useState(false);
 
   useEffect(() => {
     fadeAnim.setValue(0);
@@ -61,14 +57,6 @@ export const MeasurementConfigPanel: React.FC<MeasurementConfigPanelProps> = ({
     if (Platform.OS === 'android') setShowDatePicker(false);
     if (date) {
       onChange({ type: 'done_by_date', target_date: toYYYYMMDD(date) } as MeasurementConfigDoneByDate);
-    }
-  };
-
-  const handleDeadlineChange = (_event: DateTimePickerEvent, date?: Date) => {
-    if (Platform.OS === 'android') setShowDeadlinePicker(false);
-    if (date) {
-      const c = config as Partial<MeasurementConfigHitTotal>;
-      onChange({ type: 'hit_total', target_count: c.target_count || 0, deadline: toYYYYMMDD(date) } as MeasurementConfigHitTotal);
     }
   };
 
@@ -150,117 +138,10 @@ export const MeasurementConfigPanel: React.FC<MeasurementConfigPanelProps> = ({
     );
   };
 
-  const renderHitTotal = () => {
-    const c = config as Partial<MeasurementConfigHitTotal>;
-    const deadlineDate = parseDate(c.deadline);
-
-    return (
-      <View style={styles.section}>
-        <InputField
-          label="How many?"
-          value={c.target_count !== undefined ? String(c.target_count) : ''}
-          onChangeText={(v) => onChange({ ...c, type: 'hit_total', target_count: Number(v) || 0 } as any)}
-          placeholder="e.g., 50"
-          keyboardType="numeric"
-        />
-        <Text style={styles.label}>Deadline (optional)</Text>
-        <TouchableOpacity
-          style={styles.dateSelector}
-          onPress={() => setShowDeadlinePicker(!showDeadlinePicker)}
-        >
-          <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
-          <Text style={styles.dateSelectorText}>
-            {c.deadline ? formatDate(deadlineDate) : 'No deadline'}
-          </Text>
-          <Ionicons name="chevron-down" size={16} color={Colors.gray} />
-        </TouchableOpacity>
-        {showDeadlinePicker && (
-          <DateTimePicker
-            value={deadlineDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleDeadlineChange}
-            minimumDate={new Date()}
-          />
-        )}
-      </View>
-    );
-  };
-
-  const renderRateSelf = () => {
-    const c = config as Partial<MeasurementConfigRateSelf>;
-    const frequency = c.check_in_frequency ?? 'weekly';
-    return (
-      <View style={styles.section}>
-        <Text style={styles.label}>Scale</Text>
-        <View style={styles.toggleRow}>
-          <TouchableOpacity
-            style={[styles.toggleOption, c.scale_max === 5 && styles.toggleOptionActive]}
-            onPress={() => onChange({ ...c, type: 'rate_yourself', scale_max: 5 } as any)}
-          >
-            <Text style={[styles.toggleText, c.scale_max === 5 && styles.toggleTextActive]}>1 – 5</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleOption, c.scale_max === 10 && styles.toggleOptionActive]}
-            onPress={() => onChange({ ...c, type: 'rate_yourself', scale_max: 10 } as any)}
-          >
-            <Text style={[styles.toggleText, c.scale_max === 10 && styles.toggleTextActive]}>1 – 10</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={[styles.label, { marginTop: Spacing.md }]}>Check-in frequency</Text>
-        <View style={styles.toggleRow}>
-          <TouchableOpacity
-            style={[styles.toggleOption, frequency === 'daily' && styles.toggleOptionActive]}
-            onPress={() => onChange({ ...c, type: 'rate_yourself', check_in_frequency: 'daily', check_in_day: undefined } as any)}
-          >
-            <Text style={[styles.toggleText, frequency === 'daily' && styles.toggleTextActive]}>Daily</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleOption, frequency === 'weekly' && styles.toggleOptionActive]}
-            onPress={() => onChange({ ...c, type: 'rate_yourself', check_in_frequency: 'weekly' } as any)}
-          >
-            <Text style={[styles.toggleText, frequency === 'weekly' && styles.toggleTextActive]}>Weekly</Text>
-          </TouchableOpacity>
-        </View>
-
-        {frequency === 'weekly' && (
-          <>
-            <Text style={styles.label}>Check-in day</Text>
-            <View style={styles.dayRow}>
-              {DAYS_OF_WEEK.map((day) => (
-                <TouchableOpacity
-                  key={day.value}
-                  style={[styles.dayChip, c.check_in_day === day.value && styles.dayChipActive]}
-                  onPress={() => onChange({ ...c, type: 'rate_yourself', check_in_day: day.value } as any)}
-                >
-                  <Text style={[styles.dayChipText, c.check_in_day === day.value && styles.dayChipTextActive]}>
-                    {day.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        )}
-
-        <InputField
-          label="What question will you ask yourself?"
-          value={c.reflection_question || ''}
-          onChangeText={(v) => onChange({ ...c, type: 'rate_yourself', reflection_question: v } as any)}
-          placeholder={frequency === 'daily' ? 'How well did I live this goal today?' : 'How well did I live this goal this week?'}
-          multiline
-          maxLength={200}
-        />
-      </View>
-    );
-  };
-
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       {type === 'done_by_date' && renderDoneByDate()}
       {type === 'reach_number' && renderReachNumber()}
-      {type === 'hit_total' && renderHitTotal()}
-      {type === 'rate_yourself' && renderRateSelf()}
     </Animated.View>
   );
 };
@@ -323,32 +204,6 @@ const styles = StyleSheet.create({
     color: Colors.gray,
   },
   toggleTextActive: {
-    color: Colors.primary,
-  },
-  dayRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  dayChip: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-  },
-  dayChipActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '10',
-  },
-  dayChipText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-  },
-  dayChipTextActive: {
     color: Colors.primary,
   },
 });

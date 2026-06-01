@@ -36,14 +36,6 @@ const getMeasurementSummary = (
       }
       return label;
     }
-    case 'hit_total': {
-      const c = config as any;
-      return c.target_count ? `${label} — ${c.target_count} total` : label;
-    }
-    case 'rate_yourself': {
-      const c = config as any;
-      return c.check_in_day ? `${label} — ${c.check_in_day}s` : label;
-    }
     default:
       return label;
   }

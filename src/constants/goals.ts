@@ -35,18 +35,6 @@ export const MEASUREMENT_TYPES: MeasurementTypeMeta[] = [
     description: 'A metric you\'ll hit over time',
     icon: 'trending-up-outline',
   },
-  {
-    type: 'hit_total',
-    label: 'Hit a total',
-    description: 'Accumulate X instances',
-    icon: 'calculator-outline',
-  },
-  {
-    type: 'rate_yourself',
-    label: 'Rate yourself',
-    description: 'Weekly reflection, no hard metric',
-    icon: 'star-outline',
-  },
 ];
 
 export const DAYS_OF_WEEK = [

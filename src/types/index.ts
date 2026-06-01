@@ -819,7 +819,7 @@ export interface JournalSearchResult {
 
 export type GoalStatus = 'active' | 'completed' | 'not_completed' | 'archived';
 
-export type MeasurementType = 'done_by_date' | 'reach_number' | 'hit_total' | 'rate_yourself';
+export type MeasurementType = 'done_by_date' | 'reach_number';
 
 export interface MeasurementConfigDoneByDate {
   type: 'done_by_date';
@@ -834,25 +834,9 @@ export interface MeasurementConfigReachNumber {
   direction: 'up' | 'down';
 }
 
-export interface MeasurementConfigHitTotal {
-  type: 'hit_total';
-  target_count: number;
-  deadline?: string;            // YYYY-MM-DD
-}
-
-export interface MeasurementConfigRateSelf {
-  type: 'rate_yourself';
-  scale_max: 5 | 10;
-  check_in_frequency?: 'daily' | 'weekly';  // defaults to 'weekly' for backward compat
-  check_in_day?: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
-  reflection_question: string;
-}
-
 export type MeasurementConfig =
   | MeasurementConfigDoneByDate
-  | MeasurementConfigReachNumber
-  | MeasurementConfigHitTotal
-  | MeasurementConfigRateSelf;
+  | MeasurementConfigReachNumber;
 
 export interface GoalObstacle {
   id: string;
@@ -887,7 +871,6 @@ export interface Goal {
   measurement_config?: MeasurementConfig;
   obstacles?: GoalObstacle[];
   visualization_settings?: VisualizationSettings;
-  tracking_habit_id?: string;
   draft_status?: GoalDraftStatus;
 
   // CBT Goal Onboarding fields (Phase 1.1)
@@ -925,7 +908,7 @@ export interface MeasurementLogEntry {
   date: string;
   created_at: string;
   value: number;
-  source: 'manual' | 'habit_completion';
+  source: 'manual';
   source_id?: string;
   note?: string;
 }

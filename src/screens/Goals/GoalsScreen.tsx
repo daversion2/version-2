@@ -206,17 +206,11 @@ export const GoalsScreen: React.FC = () => {
                   </Text>
                 )}
 
-                {mp && goal.measurement_type && goal.measurement_type !== 'done_by_date' && (
+                {mp && goal.measurement_type === 'reach_number' && (
                   <Text style={styles.measurementIndicator}>
-                    {goal.measurement_type === 'reach_number' && mp.metric_name
+                    {mp.metric_name
                       ? `${mp.current_value}/${mp.target_value ?? 0} ${mp.metric_name}`
-                      : goal.measurement_type === 'reach_number'
-                      ? `${mp.current_value}/${mp.target_value ?? 0}`
-                      : goal.measurement_type === 'hit_total'
-                      ? `${mp.current_value}/${mp.target_value ?? 0}`
-                      : goal.measurement_type === 'rate_yourself' && mp.total_entries > 0
-                      ? `Last: ${mp.current_value}/${mp.target_value ?? 10}`
-                      : null}
+                      : `${mp.current_value}/${mp.target_value ?? 0}`}
                   </Text>
                 )}
               </Card>

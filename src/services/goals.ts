@@ -101,7 +101,6 @@ interface GoalV2Fields {
   measurement_config?: MeasurementConfig;
   obstacles?: GoalObstacle[];
   visualization_settings?: VisualizationSettings;
-  tracking_habit_id?: string;
   draft_status?: GoalDraftStatus;
 }
 
@@ -171,8 +170,6 @@ export const createGoal = async (
   }
   if (data.obstacles && data.obstacles.length > 0) goalDoc.obstacles = data.obstacles;
   if (data.visualization_settings) goalDoc.visualization_settings = data.visualization_settings;
-  if (data.tracking_habit_id) goalDoc.tracking_habit_id = data.tracking_habit_id;
-
   const docRef = await addDoc(goalsRef(userId), goalDoc);
   return docRef.id;
 };
@@ -267,21 +264,6 @@ export const updateGoal = async (
   if (updates.manual_progress !== undefined) clean.manual_progress = Math.max(0, Math.min(100, updates.manual_progress));
   if (updates.color !== undefined) clean.color = updates.color;
   await updateDoc(ref, clean);
-};
-
-/**
- * Set the tracking habit for a hit_total goal.
- */
-export const updateGoalTrackingHabit = async (
-  userId: string,
-  goalId: string,
-  habitId: string
-): Promise<void> => {
-  const ref = doc(db, 'users', userId, 'goals', goalId);
-  await updateDoc(ref, {
-    tracking_habit_id: habitId,
-    updated_at: new Date().toISOString(),
-  });
 };
 
 /**
@@ -534,7 +516,6 @@ export const deleteDraft = async (userId: string, draftId: string): Promise<void
 const deriveEndDate = (config?: MeasurementConfig): string => {
   if (config) {
     if (config.type === 'done_by_date') return config.target_date;
-    if (config.type === 'hit_total' && config.deadline) return config.deadline;
   }
   const d = new Date();
   d.setDate(d.getDate() + GOAL_CONSTANTS.DEFAULT_GOAL_DURATION_DAYS);
