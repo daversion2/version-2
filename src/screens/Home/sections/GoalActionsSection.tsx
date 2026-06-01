@@ -27,6 +27,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
     goalFollowThrough,
   } = data;
   const challengesUnlocked = data.totalHabitsCompleted >= 3;
+  const habitsRemaining = 3 - (data.totalHabitsCompleted ?? 0);
 
   // Planner context lookups
   const plannedTodaySet = useMemo(() => new Set(data.plannedHabitIds), [data.plannedHabitIds]);
@@ -71,6 +72,16 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
       <>
         {/* Planner access */}
         <PlannerBar callbacks={callbacks} />
+
+        {/* Challenges unlock teaser */}
+        {!challengesUnlocked && habitsRemaining > 0 && (
+          <View style={styles.unlockTeaser}>
+            <Ionicons name="lock-closed" size={14} color={Colors.secondary} />
+            <Text style={styles.unlockTeaserText}>
+              {habitsRemaining} habit{habitsRemaining !== 1 ? 's' : ''} away from unlocking Challenges
+            </Text>
+          </View>
+        )}
 
         {/* Show activities section — always visible so users can create habits */}
         <View style={styles.goalGroup}>
@@ -138,6 +149,16 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
     <>
       {/* Planner access */}
       <PlannerBar callbacks={callbacks} />
+
+      {/* Challenges unlock teaser */}
+      {!challengesUnlocked && habitsRemaining > 0 && (
+        <View style={styles.unlockTeaser}>
+          <Ionicons name="lock-closed" size={14} color={Colors.secondary} />
+          <Text style={styles.unlockTeaserText}>
+            {habitsRemaining} habit{habitsRemaining !== 1 ? 's' : ''} away from unlocking Challenges
+          </Text>
+        </View>
+      )}
 
       {goals.map((goal) => {
         const goalChallenges = allChallenges.filter(
@@ -841,6 +862,24 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.gray,
+  },
+
+  // Unlock teaser
+  unlockTeaser: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.secondary + '10',
+    borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
+  },
+  unlockTeaserText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
   },
 
   // Add goal
