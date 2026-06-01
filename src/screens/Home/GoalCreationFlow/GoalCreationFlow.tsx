@@ -24,6 +24,7 @@ import {
   commitGoalDraft,
   getGoalById,
 } from '../../../services/goals';
+import { createHabit } from '../../../services/habits';
 import { GOAL_CONSTANTS, CREATION_FLOW_STEPS } from '../../../constants/goals';
 import {
   MeasurementType,
@@ -32,6 +33,7 @@ import {
   VisualizationSettings,
   MeasurementConfigDoneByDate,
   MeasurementConfigReachNumber,
+  HabitActionPlan,
 } from '../../../types';
 
 import { GoalNameStep } from './steps/GoalNameStep';
@@ -56,6 +58,38 @@ const deriveEndDate = (config?: Partial<MeasurementConfig>): string => {
   const d = new Date();
   d.setDate(d.getDate() + GOAL_CONSTANTS.DEFAULT_GOAL_DURATION_DAYS);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const buildVisualizationActionPlan = (
+  obstacles: GoalObstacle[],
+  goalName: string,
+): HabitActionPlan => {
+  const validObstacles = obstacles.filter((o) => o.obstacle.trim());
+  let obstaclePlan: string | undefined;
+
+  if (validObstacles.length > 0) {
+    obstaclePlan = validObstacles
+      .map((o, i) => {
+        let entry = `${i + 1}. Obstacle: ${o.obstacle}`;
+        if (o.when_then_plan.trim()) {
+          entry += `\n   When this happens, I will: ${o.when_then_plan}`;
+        }
+        if (o.minimum_action?.trim()) {
+          entry += `\n   Minimum action: ${o.minimum_action}`;
+        }
+        return entry;
+      })
+      .join('\n\n');
+  }
+
+  return {
+    cue: 'After my morning coffee, I sit in a quiet spot and close my eyes for 2 minutes.',
+    environment_change:
+      'Find a quiet space, silence your phone, and close your eyes. A consistent spot helps build the habit.',
+    obstacle_plan: obstaclePlan,
+    minimum_version:
+      'Close your eyes for 30 seconds and picture the #1 obstacle, then say your if-then plan once.',
+  };
 };
 
 export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, route }) => {
@@ -295,6 +329,7 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
   };
 
   const handleVisualizationSave = async (settings: VisualizationSettings) => {
+    // 1. Save visualization_settings to goal doc (existing behavior)
     try {
       if (user && createdGoalId) {
         const { updateDoc: firestoreUpdate, doc: firestoreDoc } = await import('firebase/firestore');
@@ -303,8 +338,27 @@ export const GoalCreationFlow: React.FC<GoalCreationFlowProps> = ({ navigation, 
         await firestoreUpdate(ref, { visualization_settings: settings });
       }
     } catch {
-      // Visualization is non-critical — don't block navigation
+      // Visualization settings save is non-critical — don't block navigation
     }
+
+    // 2. Auto-create a visualization habit linked to this goal
+    try {
+      if (user && createdGoalId && settings.enabled) {
+        const actionPlan = buildVisualizationActionPlan(obstacles, name);
+
+        await createHabit(user.uid, {
+          name: `Visualize: ${name}`,
+          category_id: 'Mind',
+          target_count_per_week: settings.frequency,
+          goal_ids: [createdGoalId],
+          action_plan: actionPlan,
+          created_by_user: false,
+        });
+      }
+    } catch {
+      // Habit creation is non-critical — don't block navigation
+    }
+
     setShowVisualization(false);
     navigation.popToTop();
   };

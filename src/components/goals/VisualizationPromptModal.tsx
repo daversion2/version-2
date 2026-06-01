@@ -17,7 +17,7 @@ export const VisualizationPromptModal: React.FC<VisualizationPromptModalProps> =
   onDismiss,
 }) => {
   const [enabled, setEnabled] = useState(true);
-  const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
+  const [frequency, setFrequency] = useState<number>(4);
 
   const handleSave = () => {
     if (enabled) {
@@ -34,8 +34,8 @@ export const VisualizationPromptModal: React.FC<VisualizationPromptModalProps> =
           <Ionicons name="eye-outline" size={36} color={Colors.primary} style={styles.icon} />
           <Text style={styles.title}>Visualize your success</Text>
           <Text style={styles.body}>
-            Research shows that regularly picturing yourself achieving a goal strengthens neural pathways
-            associated with the actions needed to get there.
+            Research shows that mentally rehearsing obstacles and your plan to overcome them doubles
+            follow-through compared to positive-only visualization.
           </Text>
 
           {/* Toggle */}
@@ -52,19 +52,24 @@ export const VisualizationPromptModal: React.FC<VisualizationPromptModalProps> =
 
           {/* Frequency picker */}
           {enabled && (
-            <View style={styles.frequencyRow}>
-              <TouchableOpacity
-                style={[styles.frequencyOption, frequency === 'daily' && styles.frequencyOptionActive]}
-                onPress={() => setFrequency('daily')}
-              >
-                <Text style={[styles.frequencyText, frequency === 'daily' && styles.frequencyTextActive]}>Daily</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.frequencyOption, frequency === 'weekly' && styles.frequencyOptionActive]}
-                onPress={() => setFrequency('weekly')}
-              >
-                <Text style={[styles.frequencyText, frequency === 'weekly' && styles.frequencyTextActive]}>Weekly</Text>
-              </TouchableOpacity>
+            <View>
+              <Text style={styles.frequencyLabel}>Times per week</Text>
+              <View style={styles.frequencyRow}>
+                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                  <TouchableOpacity
+                    key={n}
+                    onPress={() => setFrequency(n)}
+                    style={[
+                      styles.freqChip,
+                      frequency === n && styles.freqChipActive,
+                    ]}
+                  >
+                    <Text style={[styles.freqChipText, frequency === n && styles.freqChipTextActive]}>
+                      {n}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           )}
 
@@ -144,31 +149,36 @@ const styles = StyleSheet.create({
   toggleKnobActive: {
     alignSelf: 'flex-end',
   },
+  frequencyLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.sm,
+  },
   frequencyRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
     marginBottom: Spacing.lg,
   },
-  frequencyOption: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+  freqChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-  },
-  frequencyOptionActive: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '10',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  frequencyText: {
+  freqChipActive: {
+    backgroundColor: Colors.primary,
+  },
+  freqChipText: {
     fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-  },
-  frequencyTextActive: {
+    fontSize: FontSizes.sm,
     color: Colors.primary,
+  },
+  freqChipTextActive: {
+    color: Colors.white,
   },
   button: {
     width: '100%',

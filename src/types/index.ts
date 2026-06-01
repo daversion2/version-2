@@ -847,7 +847,7 @@ export interface GoalObstacle {
 
 export interface VisualizationSettings {
   enabled: boolean;
-  frequency: 'daily' | 'weekly';
+  frequency: number; // 1-7 times per week
 }
 
 export type GoalDraftStatus = 'draft' | 'committed';
