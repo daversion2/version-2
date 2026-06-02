@@ -26,47 +26,6 @@ const { width } = Dimensions.get('window');
 
 const TIMER_DURATION = 60;
 
-// ============================================================================
-// PATTERN DATA
-// ============================================================================
-
-const PATTERN_TILES = [
-  { id: 'racing-thoughts', label: 'Racing thoughts', icon: 'flash-outline' as const },
-  { id: 'restlessness', label: 'Restlessness', icon: 'body-outline' as const },
-  { id: 'anxiety', label: 'Worry or anxiety', icon: 'cloud-outline' as const },
-  { id: 'self-criticism', label: 'Self-criticism', icon: 'chatbox-ellipses-outline' as const },
-  { id: 'distraction', label: 'Distraction', icon: 'navigate-outline' as const },
-  { id: 'something-else', label: 'Something else', icon: 'ellipsis-horizontal-outline' as const },
-];
-
-const PATTERN_RESPONSES: Record<string, { headline: string; body: string; patternLabel: string }> = {
-  'racing-thoughts': {
-    headline: 'Your mind likes to stay busy.',
-    body: "Racing thoughts are your brain's default mode network firing on all cylinders. Meditation doesn't stop the thoughts — it teaches you to notice them without getting swept away. Over time, the volume turns down on its own.",
-    patternLabel: 'Overactive mind',
-  },
-  restlessness: {
-    headline: 'Your body is telling you something.',
-    body: "Restlessness during stillness is your nervous system adjusting. It's used to constant input. The discomfort you felt is actually the gap between stimulus and response — the exact space where growth happens.",
-    patternLabel: 'Restless energy',
-  },
-  anxiety: {
-    headline: "You carry more than you realize.",
-    body: "When you stop moving, worry often surfaces because it's been running in the background all along. Meditation doesn't create the anxiety — it reveals it. And what you can see, you can work with.",
-    patternLabel: 'Background worry',
-  },
-  'self-criticism': {
-    headline: 'That voice is loud, but it\'s not the truth.',
-    body: "The inner critic often shows up loudest in quiet moments. It's a pattern your brain learned early — probably as a way to protect you. Meditation helps you hear it without believing it.",
-    patternLabel: 'Inner critic',
-  },
-  distraction: {
-    headline: 'Your attention has been trained to scatter.',
-    body: "Constant notifications, scrolling, and multitasking have wired your brain to seek novelty. The fact that you noticed yourself getting distracted is already progress — that's awareness, and awareness is the foundation.",
-    patternLabel: 'Scattered focus',
-  },
-};
-
 import { MANTRA_EXAMPLES } from '../../data/mantras';
 
 // ============================================================================
@@ -85,22 +44,13 @@ export const OnboardingScreen: React.FC = () => {
   const [timerStarted, setTimerStarted] = useState(false);
   const timerProgress = useRef(new Animated.Value(1)).current;
 
-  // Screen 4: Reflection
-  const [reflectionText, setReflectionText] = useState('');
-
-  // Screen 5: Pattern
-  const [selectedPattern, setSelectedPattern] = useState<string | null>(null);
-  const [patternConfirmed, setPatternConfirmed] = useState(false);
-  const [customPatternText, setCustomPatternText] = useState('');
-  const [subStep, setSubStep] = useState<'tiles' | 'response' | 'escape'>('tiles');
-
-  // Screen 6: Mantra
+  // Screen 5: Mantra
   const [mantra, setMantra] = useState('');
 
-  // Screen 7: Habit Selection
+  // Screen 6: Habit Selection
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
 
-  // Screen 8: Saving
+  // Screen 7: Saving
   const [saving, setSaving] = useState(false);
 
   // Timer countdown
@@ -134,19 +84,6 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   const handleBack = () => {
-    if (step === 5 && subStep === 'response') {
-      setSubStep('tiles');
-      return;
-    }
-    if (step === 5 && subStep === 'escape') {
-      setSubStep('response');
-      return;
-    }
-    if (step === 6) {
-      setSubStep('tiles');
-      goToStep(5);
-      return;
-    }
     if (step > 1) goToStep(step - 1);
   };
 
@@ -167,7 +104,7 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // ============================================================================
-  // COMPLETION LOGIC (Screen 8)
+  // COMPLETION LOGIC (Screen 7)
   // ============================================================================
 
   const handleComplete = async () => {
@@ -202,14 +139,11 @@ export const OnboardingScreen: React.FC = () => {
         text: mantra,
         created_at: new Date().toISOString(),
       };
-      const userData: Record<string, any> = {
+      await setDoc(doc(db, 'users', user.uid), {
         redirect_mantra: mantra,
         mantras: [mantraObj],
         active_mantra_id: mantraObj.id,
-      };
-      if (selectedPattern) userData.onboarding_pattern = selectedPattern;
-      if (reflectionText.trim()) userData.onboarding_reflection = reflectionText.trim();
-      await setDoc(doc(db, 'users', user.uid), userData, { merge: true });
+      }, { merge: true });
 
       // 5. Mark onboarding complete
       await markOnboardingComplete(user.uid, true);
@@ -231,9 +165,13 @@ export const OnboardingScreen: React.FC = () => {
       <View style={styles.welcomeContent}>
         <Text style={styles.welcomeTitle}>Welcome to{'\n'}Neuro Nudge</Text>
         <Text style={styles.welcomeSubtitle}>
-          Before we set anything up, let's start with something real.{'\n\n'}
-          You're going to sit quietly for 60 seconds.{'\n'}
-          No instructions. No guidance. Just you.
+          Neuro Nudge is all about taking action. We're going to start with a short, 60-second exercise where you will sit quietly and observe your thoughts.
+        </Text>
+        <Text style={styles.welcomeWhyTitle}>Why are we doing this?</Text>
+        <Text style={styles.welcomeWhyBody}>
+          Your brain doesn't need much time to shift.{'\n\n'}
+          In a 2026 Harvard study, measurable brainwave changes appeared in complete beginners within 2–3 minutes of their very first meditation. Alpha and theta waves — the signatures of calm, focused awareness — rose. Mind-wandering activity dropped.{'\n\n'}
+          The secret isn't emptying your mind. It's watching it. When you observe your thoughts instead of chasing them, your brain's threat center quiets and your reasoning center strengthens. That's the whole game.
         </Text>
       </View>
       <Button
@@ -265,7 +203,7 @@ export const OnboardingScreen: React.FC = () => {
         <Text style={styles.intentionBody}>
           Sit still. Notice what comes up.{'\n'}
           Don't try to fix, control, or quiet anything.{'\n'}
-          Just watch.
+          Just observe.
         </Text>
       </View>
     </View>
@@ -320,131 +258,31 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // ============================================================================
-  // SCREEN 4 — REFLECT
+  // SCREEN 4 — VALIDATION BRIDGE
   // ============================================================================
 
   const renderScreen4 = () => (
-    <View style={styles.stageContent}>
-      <Text style={styles.stageIntro}>
-        What came up for you during that minute?
+    <View style={[styles.stageContent, styles.bridgeCenter]}>
+      <Text style={styles.bridgeHeadline}>
+        There's a lot going on in there, right?
       </Text>
-      <Text style={styles.reflectSubtext}>
-        Thoughts, feelings, distractions, physical sensations — anything you noticed.
+      <Text style={styles.bridgeBody}>
+        That's completely normal. Your brain generates thousands of thoughts a day — and many of them are negative. You probably noticed a few during that minute.
       </Text>
-      <TextInput
-        style={styles.multilineInput}
-        value={reflectionText}
-        onChangeText={setReflectionText}
-        placeholder="There's no wrong answer..."
-        placeholderTextColor={Colors.gray}
-        multiline
-        numberOfLines={5}
-        maxLength={500}
-        textAlignVertical="top"
-      />
+      <Text style={styles.bridgeBody}>
+        Left unchecked, those background thoughts quietly shape your decisions, your motivation, and your habits. Most people never even notice them running.
+      </Text>
+      <Text style={styles.bridgeKicker}>
+        That's why we use a redirect mantra — a short phrase you repeat in your head when negativity shows up. Your brain can only hold one thought at a time. Give it the mantra, and the negative thought has nowhere to go.
+      </Text>
     </View>
   );
 
   // ============================================================================
-  // SCREEN 5 — PATTERN RECOGNITION
+  // SCREEN 5 — MANTRA SELECTION
   // ============================================================================
 
-  const renderScreen5 = () => {
-    // Sub-step: Tiles
-    if (subStep === 'tiles') {
-      return (
-        <View style={styles.stageContent}>
-          <Text style={styles.stageIntro}>
-            Did any of these show up during your sit?
-          </Text>
-          <Text style={styles.patternSubtext}>
-            Most people recognize at least one. Tap what resonates.
-          </Text>
-          <View style={styles.patternGrid}>
-            {PATTERN_TILES.map((tile) => {
-              const isSelected = selectedPattern === tile.id;
-              return (
-                <TouchableOpacity
-                  key={tile.id}
-                  style={[styles.patternTile, isSelected && styles.patternTileSelected]}
-                  onPress={() => setSelectedPattern(tile.id)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={tile.icon}
-                    size={28}
-                    color={isSelected ? Colors.primary : Colors.gray}
-                  />
-                  <Text style={[styles.patternTileLabel, isSelected && styles.patternTileLabelSelected]}>
-                    {tile.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      );
-    }
-
-    // Sub-step: Response (5b)
-    if (subStep === 'response') {
-      if (selectedPattern === 'something-else') {
-        return (
-          <View style={styles.stageContent}>
-            <Text style={styles.stageIntro}>Tell us what you noticed.</Text>
-            <TextInput
-              style={styles.multilineInput}
-              value={customPatternText}
-              onChangeText={setCustomPatternText}
-              placeholder="What came up for you?"
-              placeholderTextColor={Colors.gray}
-              multiline
-              numberOfLines={4}
-              maxLength={300}
-              textAlignVertical="top"
-            />
-          </View>
-        );
-      }
-
-      const response = PATTERN_RESPONSES[selectedPattern!];
-      if (!response) return null;
-
-      return (
-        <View style={styles.stageContent}>
-          <Text style={styles.responseHeadline}>{response.headline}</Text>
-          <Text style={styles.responseBody}>{response.body}</Text>
-          <View style={styles.responseBadge}>
-            <Text style={styles.responseBadgeText}>Your pattern: {response.patternLabel}</Text>
-          </View>
-        </View>
-      );
-    }
-
-    // Sub-step: Escape hatch (freeform after "This doesn't quite fit")
-    return (
-      <View style={styles.stageContent}>
-        <Text style={styles.stageIntro}>No worries — tell us what feels more accurate.</Text>
-        <TextInput
-          style={styles.multilineInput}
-          value={customPatternText}
-          onChangeText={setCustomPatternText}
-          placeholder="What did you actually notice?"
-          placeholderTextColor={Colors.gray}
-          multiline
-          numberOfLines={4}
-          maxLength={300}
-          textAlignVertical="top"
-        />
-      </View>
-    );
-  };
-
-  // ============================================================================
-  // SCREEN 6 — MANTRA SELECTION
-  // ============================================================================
-
-  const renderScreen6 = () => (
+  const renderScreen5 = () => (
     <View style={styles.stageContent}>
       <Text style={styles.stageIntro}>
         Pick a redirect mantra — a short phrase you'll say to yourself when your mind drifts.
@@ -458,7 +296,7 @@ export const OnboardingScreen: React.FC = () => {
       <View style={styles.howToCard}>
         <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
         <Text style={styles.scienceText}>
-          When you notice a negative thought pattern arising, use your mantra to cut it off. Repeat it to yourself to redirect your focus.
+          Here's how it works: when you catch a negative thought, repeat your mantra silently — over and over — until the thought passes. Your brain was already running on repeat. This just changes what it's repeating.
         </Text>
       </View>
       <Text style={styles.mantraSubtext}>
@@ -491,10 +329,10 @@ export const OnboardingScreen: React.FC = () => {
   );
 
   // ============================================================================
-  // SCREEN 7 — HABIT SELECTION
+  // SCREEN 6 — HABIT SELECTION
   // ============================================================================
 
-  const renderScreen7 = () => {
+  const renderScreen6 = () => {
     const availableHabits = HABIT_LIBRARY.filter((h) => h.id !== 'morning-meditation');
 
     return (
@@ -547,10 +385,10 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // ============================================================================
-  // SCREEN 8 — REVEAL
+  // SCREEN 7 — REVEAL
   // ============================================================================
 
-  const renderScreen8 = () => {
+  const renderScreen7 = () => {
     const selectedHabit = HABIT_LIBRARY.find((h) => h.id === selectedHabitId);
 
     return (
@@ -592,12 +430,12 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // ============================================================================
-  // PROGRESS DOTS (Screens 2-7 only)
+  // PROGRESS DOTS (Screens 2-6 only)
   // ============================================================================
 
   const renderDots = () => {
-    const totalDots = 6; // Screens 2-7
-    const currentDot = step - 1; // step 2 = dot 1, step 7 = dot 6
+    const totalDots = 5; // Screens 2-6
+    const currentDot = step - 1; // step 2 = dot 1, step 6 = dot 5
 
     return (
       <View style={styles.dotsRow}>
@@ -654,7 +492,7 @@ export const OnboardingScreen: React.FC = () => {
               />
             ) : timerDone ? (
               <Button
-                title="Here's what came up →"
+                title="Continue →"
                 onPress={() => goToStep(4)}
                 style={styles.nextButton}
               />
@@ -673,7 +511,7 @@ export const OnboardingScreen: React.FC = () => {
       );
     }
 
-    // Screen 4: Reflect (Skip + Continue)
+    // Screen 4: Validation bridge
     if (step === 4) {
       return (
         <View style={styles.navBar}>
@@ -681,113 +519,17 @@ export const OnboardingScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={20} color={Colors.primary} />
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
-          <View style={styles.navRight}>
-            <TouchableOpacity onPress={() => goToStep(5)} style={styles.skipButton}>
-              <Text style={styles.skipText}>Skip</Text>
-            </TouchableOpacity>
-            <Button
-              title="Continue →"
-              onPress={() => goToStep(5)}
-              style={styles.nextButton}
-            />
-          </View>
+          <Button
+            title="Give me a mantra →"
+            onPress={() => goToStep(5)}
+            style={styles.nextButton}
+          />
         </View>
       );
     }
 
-    // Screen 5: Pattern
+    // Screen 5: Mantra
     if (step === 5) {
-      if (subStep === 'tiles') {
-        return (
-          <View style={styles.navBar}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-            <View style={styles.navRight}>
-              <TouchableOpacity onPress={() => goToStep(6)} style={styles.skipButton}>
-                <Text style={styles.skipText}>Skip</Text>
-              </TouchableOpacity>
-              {selectedPattern && (
-                <Button
-                  title="That's it →"
-                  onPress={() => setSubStep('response')}
-                  style={styles.nextButton}
-                />
-              )}
-            </View>
-          </View>
-        );
-      }
-      if (subStep === 'response') {
-        if (selectedPattern === 'something-else') {
-          return (
-            <View style={styles.navBar}>
-              <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-                <Text style={styles.backText}>Back</Text>
-              </TouchableOpacity>
-              <View style={styles.navRight}>
-                <TouchableOpacity onPress={() => goToStep(6)} style={styles.skipButton}>
-                  <Text style={styles.skipText}>Skip</Text>
-                </TouchableOpacity>
-                <Button
-                  title="Continue →"
-                  onPress={() => goToStep(6)}
-                  style={styles.nextButton}
-                />
-              </View>
-            </View>
-          );
-        }
-        return (
-          <View style={styles.navBar}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
-            <View style={styles.navRight}>
-              <TouchableOpacity
-                onPress={() => setSubStep('escape')}
-                style={styles.skipButton}
-              >
-                <Text style={styles.skipText}>This doesn't quite fit</Text>
-              </TouchableOpacity>
-              <Button
-                title="That's me →"
-                onPress={() => {
-                  setPatternConfirmed(true);
-                  goToStep(6);
-                }}
-                style={styles.nextButton}
-              />
-            </View>
-          </View>
-        );
-      }
-      // escape sub-step
-      return (
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-          <View style={styles.navRight}>
-            <TouchableOpacity onPress={() => goToStep(6)} style={styles.skipButton}>
-              <Text style={styles.skipText}>Skip</Text>
-            </TouchableOpacity>
-            <Button
-              title="Continue →"
-              onPress={() => goToStep(6)}
-              style={styles.nextButton}
-            />
-          </View>
-        </View>
-      );
-    }
-
-    // Screen 6: Mantra
-    if (step === 6) {
       return (
         <View style={styles.navBar}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
@@ -796,7 +538,7 @@ export const OnboardingScreen: React.FC = () => {
           </TouchableOpacity>
           <Button
             title="This is my redirect →"
-            onPress={() => goToStep(7)}
+            onPress={() => goToStep(6)}
             disabled={!mantra.trim()}
             style={styles.nextButton}
           />
@@ -804,8 +546,8 @@ export const OnboardingScreen: React.FC = () => {
       );
     }
 
-    // Screen 7: Habit selection
-    if (step === 7) {
+    // Screen 6: Habit selection
+    if (step === 6) {
       return (
         <View style={styles.navBar}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
@@ -814,7 +556,7 @@ export const OnboardingScreen: React.FC = () => {
           </TouchableOpacity>
           <Button
             title="This is my starting point →"
-            onPress={() => goToStep(8)}
+            onPress={() => goToStep(7)}
             disabled={!selectedHabitId}
             style={styles.nextButton}
           />
@@ -822,8 +564,8 @@ export const OnboardingScreen: React.FC = () => {
       );
     }
 
-    // Screen 8: Reveal
-    if (step === 8) {
+    // Screen 7: Reveal
+    if (step === 7) {
       return (
         <View style={styles.navBarCenter}>
           <Button
@@ -847,8 +589,8 @@ export const OnboardingScreen: React.FC = () => {
   // Screen 1: Full-screen welcome (no chrome)
   if (step === 1) return renderScreen1();
 
-  // Screen 8: Full-screen reveal (no dots)
-  if (step === 8) {
+  // Screen 7: Full-screen reveal (no dots)
+  if (step === 7) {
     return (
       <View style={styles.screen}>
         <ScrollView
@@ -857,14 +599,14 @@ export const OnboardingScreen: React.FC = () => {
           contentContainerStyle={[styles.content, { paddingTop: Spacing.xxl }]}
           showsVerticalScrollIndicator={false}
         >
-          {renderScreen8()}
+          {renderScreen7()}
         </ScrollView>
         {renderBottomNav()}
       </View>
     );
   }
 
-  // Screens 2-7: Standard layout with dots
+  // Screens 2-6: Standard layout with dots
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -886,7 +628,6 @@ export const OnboardingScreen: React.FC = () => {
         {step === 4 && renderScreen4()}
         {step === 5 && renderScreen5()}
         {step === 6 && renderScreen6()}
-        {step === 7 && renderScreen7()}
       </ScrollView>
 
       {renderBottomNav()}
@@ -936,13 +677,10 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.lightGray,
     backgroundColor: Colors.white,
   },
-  navRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: Spacing.sm },
   backText: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.primary },
   nextButton: { minWidth: 140 },
   fullWidthButton: { width: width - Spacing.lg * 2 },
-  skipButton: { paddingVertical: Spacing.sm },
-  skipText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
   skipOnboardingButton: { alignItems: 'center', paddingVertical: Spacing.md, paddingBottom: Spacing.lg },
   skipOnboardingText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, textDecorationLine: 'underline' },
 
@@ -980,6 +718,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
     lineHeight: 24,
+  },
+  welcomeWhyTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.white,
+    textAlign: 'center',
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
+  welcomeWhyBody: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.white,
+    textAlign: 'center',
+    opacity: 0.85,
+    lineHeight: 22,
   },
 
   // Screen 2: Settle
@@ -1074,92 +828,34 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
   },
 
-  // Screen 4: Reflect
-  reflectSubtext: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-    lineHeight: 22,
-    marginBottom: Spacing.lg,
+  // Screen 4: Validation bridge
+  bridgeCenter: {
+    justifyContent: 'center',
+    paddingTop: Spacing.xl,
   },
-  multilineInput: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-
-  // Screen 5: Patterns
-  patternSubtext: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    marginBottom: Spacing.lg,
-  },
-  patternGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  patternTile: {
-    width: (width - Spacing.lg * 2 - Spacing.sm) / 2,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.white,
-  },
-  patternTileSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '08',
-  },
-  patternTileLabel: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-    textAlign: 'center',
-  },
-  patternTileLabelSelected: {
-    color: Colors.primary,
-  },
-  responseHeadline: {
+  bridgeHeadline: {
     fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.xxl,
     color: Colors.dark,
-    lineHeight: 30,
-    marginBottom: Spacing.lg,
+    lineHeight: 34,
+    marginBottom: Spacing.xl,
   },
-  responseBody: {
+  bridgeBody: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.dark,
     lineHeight: 24,
     marginBottom: Spacing.lg,
   },
-  responseBadge: {
-    backgroundColor: Colors.primary + '10',
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    alignSelf: 'flex-start',
-  },
-  responseBadgeText: {
+  bridgeKicker: {
     fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.md,
     color: Colors.primary,
+    lineHeight: 24,
+    marginTop: Spacing.sm,
   },
 
-  // Screen 6: Mantra
+  // Screen 5: Mantra
   scienceCard: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -1231,7 +927,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondaryBold,
   },
 
-  // Screen 7: Habit selection
+  // Screen 6: Habit selection
   lockedHabitRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1306,7 +1002,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Screen 8: Reveal
+  // Screen 7: Reveal
   revealContainer: { alignItems: 'center' },
   revealTitle: {
     fontFamily: Fonts.primaryBold,
