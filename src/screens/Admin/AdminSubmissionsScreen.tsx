@@ -7,6 +7,9 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Modal,
+  TextInput,
+  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +38,9 @@ export const AdminSubmissionsScreen: React.FC = () => {
     approvalRate: number;
   } | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectingSubmission, setRejectingSubmission] = useState<ChallengeSubmission | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -98,40 +104,34 @@ export const AdminSubmissionsScreen: React.FC = () => {
     );
   };
 
-  const handleReject = async (submission: ChallengeSubmission) => {
+  const handleReject = (submission: ChallengeSubmission) => {
     if (!user) return;
+    setRejectingSubmission(submission);
+    setRejectReason('');
+    setRejectModalVisible(true);
+  };
 
-    Alert.prompt(
-      'Reject Submission',
-      'Optionally provide a reason for rejection:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: async (reason?: string) => {
-            setProcessingId(submission.id);
-            try {
-              await rejectSubmission(submission.id, user.uid, reason);
-              setSubmissions((prev) => prev.filter((s) => s.id !== submission.id));
-              if (stats) {
-                setStats({
-                  ...stats,
-                  pending: stats.pending - 1,
-                  rejected: stats.rejected + 1,
-                });
-              }
-              Alert.alert('Rejected', 'Submission has been rejected.');
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-            } finally {
-              setProcessingId(null);
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
+  const confirmReject = async () => {
+    if (!user || !rejectingSubmission) return;
+    setRejectModalVisible(false);
+    setProcessingId(rejectingSubmission.id);
+    try {
+      await rejectSubmission(rejectingSubmission.id, user.uid, rejectReason.trim() || undefined);
+      setSubmissions((prev) => prev.filter((s) => s.id !== rejectingSubmission.id));
+      if (stats) {
+        setStats({
+          ...stats,
+          pending: stats.pending - 1,
+          rejected: stats.rejected + 1,
+        });
+      }
+      Alert.alert('Rejected', 'Submission has been rejected.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setProcessingId(null);
+      setRejectingSubmission(null);
+    }
   };
 
   const formatDate = (dateString: string): string => {
@@ -252,6 +252,47 @@ export const AdminSubmissionsScreen: React.FC = () => {
           </Card>
         ))
       )}
+      {/* Rejection Reason Modal */}
+      <Modal
+        visible={rejectModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRejectModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reject Submission</Text>
+            <Text style={styles.modalSubtitle}>Optionally provide a reason for rejection:</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              placeholder="Reason (optional)"
+              placeholderTextColor={Colors.gray}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => {
+                  setRejectModalVisible(false);
+                  setRejectingSubmission(null);
+                }}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalRejectButton}
+                onPress={confirmReject}
+              >
+                <Text style={styles.modalRejectText}>Reject</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -387,5 +428,66 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+  },
+  modalTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.dark,
+    marginBottom: Spacing.xs,
+  },
+  modalSubtitle: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.md,
+  },
+  modalInput: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: Spacing.md,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.md,
+  },
+  modalCancelButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  modalCancelText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.gray,
+  },
+  modalRejectButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: '#D32F2F15',
+    borderRadius: BorderRadius.sm,
+  },
+  modalRejectText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.md,
+    color: '#D32F2F',
   },
 });

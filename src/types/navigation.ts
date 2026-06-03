@@ -102,7 +102,7 @@ export type HomeStackParamList = {
   MicroExerciseFeeling: { trigger_context: MicroExerciseTrigger };
   MicroExerciseQuestion: {
     session: MicroExerciseSessionState;
-    question_index: 0 | 1 | 2;
+    question_index: number;
     exercise: MicroExerciseDefinition;
   };
   MicroExerciseCommitment: {

@@ -255,6 +255,7 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
       navigation.goBack();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save. Please try again.');
+    } finally {
       setSaving(false);
     }
   };

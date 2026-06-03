@@ -88,34 +88,39 @@ export const ProgramDashboardScreen: React.FC<Props> = ({ navigation, route }) =
   const handleCheckIn = async (succeeded: boolean, points: number, note?: string) => {
     if (!user?.uid || !enrollment || !todayContent) return;
 
-    const result = await completeProgramDay(
-      user.uid,
-      enrollment.id,
-      todayContent.dayNumber,
-      succeeded,
-      points,
-      note
-    );
+    try {
+      const result = await completeProgramDay(
+        user.uid,
+        enrollment.id,
+        todayContent.dayNumber,
+        succeeded,
+        points,
+        note
+      );
 
-    setCheckInModalVisible(false);
+      setCheckInModalVisible(false);
 
-    if (result.programFailed) {
-      navigation.replace('ProgramFailed', { enrollmentId: enrollment.id });
-      return;
+      if (result.programFailed) {
+        navigation.replace('ProgramFailed', { enrollmentId: enrollment.id });
+        return;
+      }
+
+      if (result.programCompleted) {
+        const completionResult = await completeProgram(user.uid, enrollment.id);
+        navigation.replace('ProgramCompletion', {
+          enrollmentId: enrollment.id,
+          totalPoints: completionResult.totalPoints,
+          bonusPoints: completionResult.bonusPoints,
+        });
+        return;
+      }
+
+      // Reload data after check-in
+      loadData();
+    } catch (error: any) {
+      setCheckInModalVisible(false);
+      Alert.alert('Error', error.message || 'Failed to check in. Please try again.');
     }
-
-    if (result.programCompleted) {
-      const completionResult = await completeProgram(user.uid, enrollment.id);
-      navigation.replace('ProgramCompletion', {
-        enrollmentId: enrollment.id,
-        totalPoints: completionResult.totalPoints,
-        bonusPoints: completionResult.bonusPoints,
-      });
-      return;
-    }
-
-    // Reload data after check-in
-    loadData();
   };
 
   const handleAbandon = () => {

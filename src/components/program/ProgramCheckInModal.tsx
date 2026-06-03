@@ -32,12 +32,15 @@ export const ProgramCheckInModal: React.FC<Props> = ({
   const handleConfirm = async () => {
     if (succeeded === null) return;
     setLoading(true);
-    await onConfirm(succeeded, points, note.trim() || undefined);
-    setLoading(false);
-    setSucceeded(null);
-    setPoints(3);
-    setNote('');
-    setShowEducational(false);
+    try {
+      await onConfirm(succeeded, points, note.trim() || undefined);
+      setSucceeded(null);
+      setPoints(3);
+      setNote('');
+      setShowEducational(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {

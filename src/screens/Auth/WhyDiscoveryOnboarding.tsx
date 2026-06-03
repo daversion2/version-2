@@ -237,6 +237,7 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
       await refreshProfile();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to complete setup');
+    } finally {
       setSaving(false);
     }
   };

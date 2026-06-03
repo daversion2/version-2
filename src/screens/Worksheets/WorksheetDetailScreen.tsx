@@ -9,6 +9,7 @@ import {
   getWorksheetEntryById,
   deleteWorksheetEntry,
 } from '../../services/worksheets';
+import { getGoalById } from '../../services/goals';
 import { useAuth } from '../../context/AuthContext';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { WorksheetEntry, WorksheetTemplate } from '../../types';
@@ -21,19 +22,42 @@ export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const { user } = useAuth();
   const [entry, setEntry] = useState<WorksheetEntry | null>(null);
   const [template, setTemplate] = useState<WorksheetTemplate | null>(null);
+  const [goalNames, setGoalNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user || !entryId) return;
-    getWorksheetEntryById(user.uid, entryId).then((e) => {
-      setEntry(e);
-      if (e) {
-        const t = WORKSHEET_TEMPLATES.find((t) => t.id === e.template_id);
-        setTemplate(t || null);
-        navigation.setOptions({ title: e.template_name });
-      }
-      setLoading(false);
-    });
+    getWorksheetEntryById(user.uid, entryId)
+      .then(async (e) => {
+        setEntry(e);
+        if (e) {
+          const t = WORKSHEET_TEMPLATES.find((t) => t.id === e.template_id);
+          setTemplate(t || null);
+          navigation.setOptions({ title: e.template_name });
+
+          // Look up goal names from IDs
+          if (e.goal_ids && e.goal_ids.length > 0) {
+            const names: Record<string, string> = {};
+            await Promise.all(
+              e.goal_ids.map(async (goalId) => {
+                try {
+                  const goal = await getGoalById(user.uid, goalId);
+                  names[goalId] = goal?.name || goalId;
+                } catch {
+                  names[goalId] = goalId;
+                }
+              })
+            );
+            setGoalNames(names);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load worksheet entry:', error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [user, entryId, navigation]);
 
   const handleDelete = () => {
@@ -154,7 +178,7 @@ export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           <View style={styles.pointsRow}>
             <Ionicons name="flash" size={14} color={Colors.secondary} />
             <Text style={styles.pointsText}>
-              +{entry.points_awarded} willpower points
+              +{entry.points_awarded} XP
             </Text>
           </View>
         ) : null}
@@ -179,7 +203,7 @@ export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) =>
             {entry.goal_ids.map((id) => (
               <View key={id} style={styles.goalTag}>
                 <Ionicons name="flag" size={12} color={Colors.primary} />
-                <Text style={styles.goalTagText}>{id}</Text>
+                <Text style={styles.goalTagText}>{goalNames[id] || id}</Text>
               </View>
             ))}
           </View>

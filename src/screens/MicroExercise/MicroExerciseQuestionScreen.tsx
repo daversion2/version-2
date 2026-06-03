@@ -22,7 +22,7 @@ export const MicroExerciseQuestionScreen: React.FC<Props> = ({ navigation, route
 
   const question = exercise.questions[question_index];
   const [answer, setAnswer] = useState(session.responses[question.id] ?? '');
-  const isLast = question_index === 2;
+  const isLast = question_index === exercise.questions.length - 1;
 
   const handleContinue = () => {
     const updatedSession: MicroExerciseSessionState = {
@@ -35,7 +35,7 @@ export const MicroExerciseQuestionScreen: React.FC<Props> = ({ navigation, route
     } else {
       navigation.replace('MicroExerciseQuestion', {
         session: updatedSession,
-        question_index: (question_index + 1) as 1 | 2,
+        question_index: question_index + 1,
         exercise,
       });
     }
@@ -58,7 +58,7 @@ export const MicroExerciseQuestionScreen: React.FC<Props> = ({ navigation, route
 
         {/* Progress dots */}
         <View style={styles.progressRow}>
-          {[0, 1, 2].map((i) => (
+          {exercise.questions.map((_, i) => (
             <View
               key={i}
               style={[styles.dot, i <= question_index && styles.dotActive]}

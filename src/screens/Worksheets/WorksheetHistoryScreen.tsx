@@ -27,12 +27,18 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
   const loadHistory = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const data = await getWorksheetHistory(
-      user.uid,
-      filterTemplateId || undefined
-    );
-    setEntries(data);
-    setLoading(false);
+    try {
+      const data = await getWorksheetHistory(
+        user.uid,
+        filterTemplateId || undefined
+      );
+      setEntries(data);
+    } catch (error) {
+      console.error('Failed to load worksheet history:', error);
+      setEntries([]);
+    } finally {
+      setLoading(false);
+    }
   }, [user, filterTemplateId]);
 
   useFocusEffect(
