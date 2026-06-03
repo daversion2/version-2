@@ -265,7 +265,7 @@ export const CompletionStep: React.FC<CompletionStepProps> = ({
           ]}
         >
           <Ionicons name="flash" size={16} color={Colors.secondary} />
-          <Text style={styles.pointsText}>+{pointsAwarded} willpower points</Text>
+          <Text style={styles.pointsText}>+{pointsAwarded} XP</Text>
         </Animated.View>
       )}
 

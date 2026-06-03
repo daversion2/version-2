@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, collection, getDocs, query } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, query, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import { STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
 import { getTodayString } from '../utils/date';
@@ -89,58 +89,56 @@ export const updateWillpowerStats = async (
   tierInfo: { multiplier: number; tierName: string; minDays: number } | null;
 }> => {
   const userRef = doc(db, 'users', userId);
-  const userSnap = await getDoc(userRef);
-  const userData = userSnap.exists() ? userSnap.data() : {};
-
   const today = getTodayString();
-  const lastActivityDate = userData.lastActivityDate || null;
-  const currentStreak = userData.currentStreak || 0;
-  const totalPoints = userData.totalWillpowerPoints || 0;
 
-  // Get the old multiplier before any streak changes
-  const oldMultiplier = getStreakMultiplier(currentStreak);
+  const result = await runTransaction(db, async (transaction) => {
+    const userSnap = await transaction.get(userRef);
+    const userData = userSnap.exists() ? userSnap.data() : {};
 
-  // Calculate new streak
-  let newStreak = currentStreak;
+    const lastActivityDate = userData.lastActivityDate || null;
+    const currentStreak = userData.currentStreak || 0;
+    const totalPoints = userData.totalWillpowerPoints || 0;
 
-  if (lastActivityDate === null) {
-    // First activity ever
-    newStreak = 1;
-  } else if (lastActivityDate === today) {
-    // Already logged activity today, streak stays the same
-    newStreak = currentStreak;
-  } else {
-    // Check if yesterday
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const oldMultiplier = getStreakMultiplier(currentStreak);
 
-    if (lastActivityDate === yesterdayStr) {
-      // Consecutive day, increment streak
-      newStreak = currentStreak + 1;
-    } else {
-      // Streak broken, start fresh
+    let newStreak = currentStreak;
+
+    if (lastActivityDate === null) {
       newStreak = 1;
+    } else if (lastActivityDate === today) {
+      newStreak = currentStreak;
+    } else {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      if (lastActivityDate === yesterdayStr) {
+        newStreak = currentStreak + 1;
+      } else {
+        newStreak = 1;
+      }
     }
-  }
 
-  const newMultiplier = getStreakMultiplier(newStreak);
-  const newTierReached = newMultiplier > oldMultiplier;
-  const tierInfo = newTierReached ? getStreakTierInfo(newStreak) : null;
+    const newMultiplier = getStreakMultiplier(newStreak);
+    const newTierReached = newMultiplier > oldMultiplier;
+    const tierInfo = newTierReached ? getStreakTierInfo(newStreak) : null;
 
-  const newTotal = totalPoints + pointsToAdd;
+    const newTotal = totalPoints + pointsToAdd;
 
-  await setDoc(
-    userRef,
-    {
-      totalWillpowerPoints: newTotal,
-      currentStreak: newStreak,
-      lastActivityDate: today,
-    },
-    { merge: true }
-  );
+    transaction.set(
+      userRef,
+      {
+        totalWillpowerPoints: newTotal,
+        currentStreak: newStreak,
+        lastActivityDate: today,
+      },
+      { merge: true }
+    );
 
-  return { newTotal, newStreak, multiplier: newMultiplier, newTierReached, tierInfo };
+    return { newTotal, newStreak, multiplier: newMultiplier, newTierReached, tierInfo };
+  });
+
+  return result;
 };
 
 // Get user's willpower stats
@@ -218,30 +216,36 @@ export const subtractWillpowerPoints = async (
   pointsToSubtract: number
 ): Promise<number> => {
   const userRef = doc(db, 'users', userId);
-  const userSnap = await getDoc(userRef);
-  const userData = userSnap.exists() ? userSnap.data() : {};
 
-  const currentTotal = userData.totalWillpowerPoints || 0;
-  const newTotal = Math.max(0, currentTotal - pointsToSubtract);
+  return runTransaction(db, async (transaction) => {
+    const userSnap = await transaction.get(userRef);
+    const userData = userSnap.exists() ? userSnap.data() : {};
 
-  await setDoc(userRef, { totalWillpowerPoints: newTotal }, { merge: true });
-  return newTotal;
+    const currentTotal = userData.totalWillpowerPoints || 0;
+    const newTotal = Math.max(0, currentTotal - pointsToSubtract);
+
+    transaction.set(userRef, { totalWillpowerPoints: newTotal }, { merge: true });
+    return newTotal;
+  });
 };
 
-// Adjust willpower points by a delta (positive or negative)
+// Adjust XP by a delta (positive or negative)
 export const adjustWillpowerPoints = async (
   userId: string,
   delta: number
 ): Promise<number> => {
   const userRef = doc(db, 'users', userId);
-  const userSnap = await getDoc(userRef);
-  const userData = userSnap.exists() ? userSnap.data() : {};
 
-  const currentTotal = userData.totalWillpowerPoints || 0;
-  const newTotal = Math.max(0, currentTotal + delta);
+  return runTransaction(db, async (transaction) => {
+    const userSnap = await transaction.get(userRef);
+    const userData = userSnap.exists() ? userSnap.data() : {};
 
-  await setDoc(userRef, { totalWillpowerPoints: newTotal }, { merge: true });
-  return newTotal;
+    const currentTotal = userData.totalWillpowerPoints || 0;
+    const newTotal = Math.max(0, currentTotal + delta);
+
+    transaction.set(userRef, { totalWillpowerPoints: newTotal }, { merge: true });
+    return newTotal;
+  });
 };
 
 // Recalculate user streak from completion logs

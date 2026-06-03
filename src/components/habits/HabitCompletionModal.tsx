@@ -65,7 +65,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.overlay} onPress={handleCancel}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>{habitName}</Text>

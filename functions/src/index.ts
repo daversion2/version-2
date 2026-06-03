@@ -60,6 +60,22 @@ const getUsersAtHour = async (
     allDocs.push(...snap.docs);
   }
 
+  // Also include users with no timezone set, defaulting them to America/New_York
+  if (matchingTimezones.includes("America/New_York")) {
+    const noTzSnap = await db
+      .collection("users")
+      .where("timezone", "==", null)
+      .get();
+    allDocs.push(...noTzSnap.docs);
+
+    // Also catch users where timezone field doesn't exist (empty string)
+    const emptyTzSnap = await db
+      .collection("users")
+      .where("timezone", "==", "")
+      .get();
+    allDocs.push(...emptyTzSnap.docs);
+  }
+
   return allDocs;
 };
 
@@ -89,7 +105,8 @@ const getHourInTimezone = (timezone: string): number => {
       hour: "numeric",
       hour12: false,
     });
-    return parseInt(formatter.format(now), 10);
+    // Intl with hour12:false can return "24" at midnight — normalize to 0
+    return parseInt(formatter.format(now), 10) % 24;
   } catch {
     return -1; // Invalid timezone
   }
@@ -178,12 +195,17 @@ export const morningChallengeReminder = onSchedule(
         if (!enrollmentSnapshot.empty) {
           const enrollment = enrollmentSnapshot.docs[0].data();
           const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
-          await sendPushNotification(
-            pushToken,
-            `Day ${dayNumber} of ${enrollment.program_name}`,
-            "Time to check in for today's challenge."
-          );
-          console.log(`Sent morning program reminder to user ${userDoc.id} (Day ${dayNumber})`);
+          // Skip stale enrollments where dayNumber exceeds program duration
+          if (dayNumber <= (enrollment.duration_days || Infinity)) {
+            await sendPushNotification(
+              pushToken,
+              `Day ${dayNumber} of ${enrollment.program_name}`,
+              "Time to check in for today's challenge."
+            );
+            console.log(`Sent morning program reminder to user ${userDoc.id} (Day ${dayNumber})`);
+          } else {
+            console.log(`Skipping stale enrollment for user ${userDoc.id} (Day ${dayNumber} > ${enrollment.duration_days})`);
+          }
           continue;
         }
 
@@ -268,6 +290,13 @@ export const eveningChallengeReminder = onSchedule(
         if (!enrollmentSnapshot.empty) {
           const enrollment = enrollmentSnapshot.docs[0].data();
           const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
+
+          // Skip stale enrollments where dayNumber exceeds program duration
+          if (dayNumber > (enrollment.duration_days || Infinity)) {
+            console.log(`Skipping stale enrollment for user ${userDoc.id} (Day ${dayNumber} > ${enrollment.duration_days})`);
+            continue;
+          }
+
           const percentComplete = Math.round(
             (dayNumber / enrollment.duration_days) * 100
           );
@@ -339,7 +368,7 @@ export const eveningChallengeReminder = onSchedule(
           continue;
         }
 
-        // Priority 3: Fallback — challenge logic
+        // Priority 3: Fallback — challenge logic (send at most one notification)
         const challengesSnapshot = await db
           .collection("users")
           .doc(userDoc.id)
@@ -349,24 +378,27 @@ export const eveningChallengeReminder = onSchedule(
 
         if (challengesSnapshot.empty) continue;
 
-        for (const challengeDoc of challengesSnapshot.docs) {
-          const challenge = challengeDoc.data();
+        const allCompleted = challengesSnapshot.docs.every(
+          (d) => d.data().status === "completed"
+        );
+        const anyActive = challengesSnapshot.docs.some(
+          (d) => d.data().status === "active"
+        );
 
-          if (challenge.status === "active") {
-            await sendPushNotification(
-              pushToken,
-              "Complete Your Challenge",
-              "Don't forget to complete your challenge today. You've got this!"
-            );
-            console.log(`Sent evening challenge reminder to user ${userDoc.id} (${timezone})`);
-          } else if (challenge.status === "completed") {
-            await sendPushNotification(
-              pushToken,
-              "Amazing Work Today!",
-              "You crushed your challenge! Keep the momentum going tomorrow."
-            );
-            console.log(`Sent evening challenge congrats to user ${userDoc.id} (${timezone})`);
-          }
+        if (anyActive) {
+          await sendPushNotification(
+            pushToken,
+            "Complete Your Challenge",
+            "Don't forget to complete your challenge today. You've got this!"
+          );
+          console.log(`Sent evening challenge reminder to user ${userDoc.id} (${timezone})`);
+        } else if (allCompleted) {
+          await sendPushNotification(
+            pushToken,
+            "Amazing Work Today!",
+            "You crushed your challenge! Keep the momentum going tomorrow."
+          );
+          console.log(`Sent evening challenge congrats to user ${userDoc.id} (${timezone})`);
         }
       } catch (error) {
         console.error(`Error processing evening reminder for user ${userDoc.id}:`, error);
@@ -810,10 +842,10 @@ export const seedInspirationFeed = onSchedule(
       const entryType = pickEntryType();
       const now = new Date();
 
-      // Jitter timestamp ±90 minutes so entries don't cluster
+      // Jitter timestamp ±90 minutes so entries don't cluster, clamped to not exceed now
       const jitterMs = (Math.random() - 0.5) * 2 * 90 * 60 * 1000;
-      const completedAt = new Date(now.getTime() + jitterMs);
-      const displayTimestamp = new Date(completedAt.getTime() + (Math.random() - 0.5) * 2 * 30 * 60 * 1000);
+      const completedAt = new Date(Math.min(now.getTime(), now.getTime() + jitterMs));
+      const displayTimestamp = new Date(Math.min(now.getTime(), completedAt.getTime() + (Math.random() - 0.5) * 2 * 30 * 60 * 1000));
       const expiresAt = new Date(completedAt.getTime() + 48 * 60 * 60 * 1000);
 
       const fakeUserId = `seed-${username.toLowerCase()}-${Math.floor(Math.random() * 10000)}`;
@@ -911,13 +943,19 @@ export const checkMicroCommitmentFollowUps = onSchedule(
         yesterdayDate.setDate(yesterdayDate.getDate() - 1);
         const yesterday = yesterdayDate.toISOString().split("T")[0];
 
-        // Query micro exercises where follow-up hasn't been sent yet
+        // Query micro exercises completed recently where follow-up hasn't been sent
+        // Bound to last 7 days to avoid scanning entire history
+        const sevenDaysAgo = new Date(today + "T00:00:00");
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const cutoffDate = sevenDaysAgo.toISOString();
+
         const exercisesSnapshot = await db
           .collection("users")
           .doc(userDoc.id)
           .collection("worksheets")
           .where("type", "==", "micro_exercise")
           .where("commitment_follow_up_sent", "==", false)
+          .where("completed_at", ">=", cutoffDate)
           .get();
 
         for (const exerciseDoc of exercisesSnapshot.docs) {

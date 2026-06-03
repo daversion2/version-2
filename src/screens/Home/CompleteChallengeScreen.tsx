@@ -247,7 +247,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         }
       }
 
-      // Calculate and award willpower points
+      // Calculate and award XP
       // Check EITHER reflection (success journal OR failure reflection)
       const hasReflection = result === 'completed'
         ? trimmedJournal.length > 0

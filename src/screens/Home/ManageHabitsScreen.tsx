@@ -39,9 +39,12 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
 
   const load = async () => {
     if (!user) return;
-    const h = await getActiveHabits(user.uid);
-    setHabits(h);
-
+    try {
+      const h = await getActiveHabits(user.uid);
+      setHabits(h);
+    } catch (e: any) {
+      showAlert('Error', e.message || 'Failed to load habits.');
+    }
   };
 
   useEffect(() => {
@@ -119,8 +122,12 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
       `Remove "${habit.name}" from your active habits?`,
       async () => {
         if (!user) return;
-        await updateHabit(user.uid, habit.id, { is_active: false });
-        await load();
+        try {
+          await updateHabit(user.uid, habit.id, { is_active: false });
+          await load();
+        } catch (e: any) {
+          showAlert('Error', e.message || 'Failed to deactivate habit.');
+        }
       },
       'Deactivate'
     );

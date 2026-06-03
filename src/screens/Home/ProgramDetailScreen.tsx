@@ -195,7 +195,7 @@ export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         <BenefitRow icon="book-outline" text="Daily neuroscience insights and tips" color={program.color} />
         <BenefitRow icon="trophy-outline" text={`"${program.completion_badge_name}" badge on completion`} color={program.color} />
         <BenefitRow icon="add-circle-outline" text="Habits you can keep after the program ends" color={program.color} />
-        <BenefitRow icon="star-outline" text={`${program.completion_bonus_points} bonus Willpower Points on completion`} color={program.color} />
+        <BenefitRow icon="star-outline" text={`${program.completion_bonus_points} bonus XP on completion`} color={program.color} />
         <BenefitRow icon="heart-outline" text={`${program.grace_days} grace day${program.grace_days !== 1 ? 's' : ''} if life gets in the way`} color={program.color} />
       </Card>
 

@@ -12,7 +12,7 @@ interface Props {
 
 export const ChallengesUnlockModal: React.FC<Props> = ({ visible, onBrowse, onDismiss }) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
         <Pressable style={styles.card} onPress={() => {}}>
           <View style={styles.iconContainer}>

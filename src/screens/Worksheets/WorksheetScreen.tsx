@@ -102,7 +102,7 @@ export const WorksheetScreen: React.FC<Props> = ({
         if (!asDraft && result.pointsAwarded > 0) {
           showAlert(
             'Worksheet Complete',
-            `+${result.pointsAwarded} willpower points earned!`
+            `+${result.pointsAwarded} XP earned!`
           );
         } else if (asDraft) {
           showAlert('Draft Saved', 'You can resume this worksheet anytime.');
@@ -120,7 +120,7 @@ export const WorksheetScreen: React.FC<Props> = ({
         if (!asDraft && result.pointsAwarded > 0) {
           showAlert(
             'Worksheet Complete',
-            `+${result.pointsAwarded} willpower points earned!`
+            `+${result.pointsAwarded} XP earned!`
           );
         } else if (asDraft) {
           showAlert('Draft Saved', 'You can resume this worksheet anytime.');

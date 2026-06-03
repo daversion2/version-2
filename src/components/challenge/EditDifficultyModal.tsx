@@ -48,7 +48,7 @@ export const EditDifficultyModal: React.FC<Props> = ({
   const pointsDelta = selected - currentDifficulty;
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.overlay} onPress={handleCancel}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>Edit Difficulty</Text>

@@ -56,7 +56,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
     }
 
     const pointsText = challenge.points_awarded
-      ? `This will remove ${challenge.points_awarded} points from your Willpower Bank.`
+      ? `This will remove ${challenge.points_awarded} XP.`
       : '';
 
     showConfirm(
@@ -69,7 +69,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
           showAlert(
             'Challenge Deleted',
             result.pointsRemoved > 0
-              ? `Removed ${result.pointsRemoved} points from your Willpower Bank.`
+              ? `Removed ${result.pointsRemoved} XP.`
               : 'Challenge has been deleted.',
             () => navigation.goBack()
           );

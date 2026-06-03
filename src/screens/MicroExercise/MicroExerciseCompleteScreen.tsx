@@ -49,7 +49,7 @@ export const MicroExerciseCompleteScreen: React.FC<Props> = ({ navigation, route
         {pointsAwarded > 0 && (
           <View style={styles.pointsBadge}>
             <Ionicons name="flash" size={14} color={Colors.secondary} />
-            <Text style={styles.pointsText}>+{pointsAwarded} willpower points</Text>
+            <Text style={styles.pointsText}>+{pointsAwarded} XP</Text>
           </View>
         )}
 

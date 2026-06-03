@@ -11,7 +11,7 @@ interface Props {
 
 export const PlanIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Ionicons name="clipboard" size={36} color={Colors.primary} style={styles.icon} />

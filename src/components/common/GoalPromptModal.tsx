@@ -12,7 +12,7 @@ interface Props {
 
 export const GoalPromptModal: React.FC<Props> = ({ visible, onSetupGoal, onDismiss }) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Ionicons name="flag" size={36} color={Colors.primary} style={styles.icon} />

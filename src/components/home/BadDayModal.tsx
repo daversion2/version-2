@@ -41,7 +41,7 @@ export const BadDayModal: React.FC<BadDayModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Close button */}

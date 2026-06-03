@@ -190,7 +190,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
   });
 
   return (
-    <Modal visible={visible} transparent animationType="none">
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
       <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
         <Animated.View
           style={[

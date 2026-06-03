@@ -217,8 +217,8 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       setShowLogModal(false);
       const mp = await getMeasurementProgress(user.uid, goal);
       setMeasurementProgress(mp);
-    } catch (e) {
-      console.error('Failed to log progress:', e);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to log progress.');
     }
   };
 

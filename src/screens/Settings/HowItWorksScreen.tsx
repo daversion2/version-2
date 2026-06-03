@@ -87,14 +87,14 @@ export const HowItWorksScreen: React.FC = () => {
           Start a program to build momentum with a structured plan. Track your existing habits alongside it. Use challenges to push yourself on days you want an extra edge. When a program ends, its activities become habits — and the cycle continues.
         </Text>
         <Text style={[styles.description, { marginBottom: 0, fontStyle: 'italic' }]}>
-          Everything you do earns willpower points, builds your streak, and grows your Willpower Bank.
+          Everything you do earns XP, builds your streak, and grows your XP Bank.
         </Text>
       </Card>
 
       {/* Divider */}
       <View style={styles.divider} />
 
-      <Text style={styles.heading}>How the Willpower Bank Works</Text>
+      <Text style={styles.heading}>How XP Works</Text>
 
       {/* Earning Points */}
       <Card style={styles.card}>

@@ -338,7 +338,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none">
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
       <View style={styles.overlayContainer}>
         {/* Animated dark background */}
         <Animated.View

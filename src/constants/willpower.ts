@@ -1,4 +1,4 @@
-// Willpower Bank Configuration
+// XP Bank Configuration
 // These values can be adjusted to tune the gamification system
 
 export const STREAK_MULTIPLIERS = [

@@ -134,8 +134,12 @@ export const ProgramDashboardScreen: React.FC<Props> = ({ navigation, route }) =
           style: 'destructive',
           onPress: async () => {
             if (!user?.uid || !enrollment) return;
-            await abandonProgram(user.uid, enrollment.id);
-            navigation.popToTop();
+            try {
+              await abandonProgram(user.uid, enrollment.id);
+              navigation.popToTop();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to abandon program.');
+            }
           },
         },
       ]
@@ -144,7 +148,11 @@ export const ProgramDashboardScreen: React.FC<Props> = ({ navigation, route }) =
 
   const handleEducationalViewed = async () => {
     if (!user?.uid || !enrollment || !todayContent) return;
-    await markEducationalContentViewed(user.uid, enrollment.id, todayContent.dayNumber);
+    try {
+      await markEducationalContentViewed(user.uid, enrollment.id, todayContent.dayNumber);
+    } catch (error) {
+      console.error('Error marking educational content viewed:', error);
+    }
   };
 
   if (loading || !enrollment || !program) {

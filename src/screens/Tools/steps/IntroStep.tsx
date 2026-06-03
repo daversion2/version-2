@@ -105,7 +105,7 @@ export const IntroStep: React.FC<IntroStepProps> = ({ template }) => {
         </View>
         <View style={styles.metaItem}>
           <Ionicons name="flash-outline" size={14} color={Colors.gray} />
-          <Text style={styles.metaText}>+2 willpower points</Text>
+          <Text style={styles.metaText}>+2 XP</Text>
         </View>
       </Animated.View>
 

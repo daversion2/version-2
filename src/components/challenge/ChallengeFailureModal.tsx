@@ -67,7 +67,7 @@ export const ChallengeFailureModal: React.FC<ChallengeFailureModalProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Progress indicator */}

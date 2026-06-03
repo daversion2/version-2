@@ -11,13 +11,13 @@ interface Props {
 
 export const PointsIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Ionicons name="flash" size={36} color={Colors.primary} style={styles.icon} />
-          <Text style={styles.title}>Willpower Points</Text>
+          <Text style={styles.title}>XP</Text>
           <Text style={styles.body}>
-            Every time you complete a habit, challenge, or reflection, you earn Willpower Points.
+            Every time you complete a habit, challenge, or reflection, you earn XP.
           </Text>
           <View style={styles.bulletList}>
             <Text style={styles.bullet}>

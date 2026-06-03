@@ -20,7 +20,7 @@ describe('Onboarding Steps', () => {
   it('has correct step titles in order', () => {
     expect(ONBOARDING_STEPS[0].title).toBe('Challenge Yourself Daily');
     expect(ONBOARDING_STEPS[1].title).toBe('Build Habits That Stick');
-    expect(ONBOARDING_STEPS[2].title).toBe('Grow Your Willpower Bank');
+    expect(ONBOARDING_STEPS[2].title).toBe('Introducing the XP Bank');
     expect(ONBOARDING_STEPS[3].title).toBe('Embrace the Suck');
   });
 
@@ -36,9 +36,9 @@ describe('Onboarding Steps', () => {
     expect(step.body).toContain('discipline');
   });
 
-  it('third step introduces Willpower Bank gamification', () => {
+  it('third step introduces XP Bank gamification', () => {
     const step = ONBOARDING_STEPS[2];
-    expect(step.body).toContain('Willpower Points');
+    expect(step.body).toContain('XP');
     expect(step.body).toContain('Level up');
     expect(step.body).toContain('Beginner Mind');
     expect(step.body).toContain('Willpower Legend');

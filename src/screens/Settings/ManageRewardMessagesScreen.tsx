@@ -51,12 +51,16 @@ export const ManageRewardMessagesScreen: React.FC = () => {
 
   const load = async () => {
     if (!user) return;
-    const [userMsgs, globalMsgs] = await Promise.all([
-      getUserRewardMessages(user.uid),
-      getActiveRewardMessages(),
-    ]);
-    setUserMessages(userMsgs);
-    setGlobalMessages(globalMsgs);
+    try {
+      const [userMsgs, globalMsgs] = await Promise.all([
+        getUserRewardMessages(user.uid),
+        getActiveRewardMessages(),
+      ]);
+      setUserMessages(userMsgs);
+      setGlobalMessages(globalMsgs);
+    } catch (error) {
+      console.error('Error loading reward messages:', error);
+    }
   };
 
   useEffect(() => {
@@ -90,8 +94,12 @@ export const ManageRewardMessagesScreen: React.FC = () => {
 
   const handleToggleFavorite = async (msg: UserRewardMessage) => {
     if (!user) return;
-    await toggleFavorite(user.uid, msg.id, !msg.is_favorite);
-    await load();
+    try {
+      await toggleFavorite(user.uid, msg.id, !msg.is_favorite);
+      await load();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
   };
 
   const handleDelete = (msg: UserRewardMessage) => {

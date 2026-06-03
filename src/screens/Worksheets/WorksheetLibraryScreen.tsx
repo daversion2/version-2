@@ -32,8 +32,12 @@ export const WorksheetLibraryScreen: React.FC<{ navigation: any }> = ({
 
   const loadDrafts = useCallback(async () => {
     if (!user) return;
-    const d = await getDraftWorksheets(user.uid);
-    setDrafts(d);
+    try {
+      const d = await getDraftWorksheets(user.uid);
+      setDrafts(d);
+    } catch (error) {
+      console.error('Error loading drafts:', error);
+    }
   }, [user]);
 
   useFocusEffect(

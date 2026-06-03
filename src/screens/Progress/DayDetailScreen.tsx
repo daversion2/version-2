@@ -10,7 +10,6 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getCompletionLogsWithNames,
   EnrichedCompletionLog,
-  getTotalPoints,
   deleteCompletionLog,
 } from '../../services/progress';
 import { updateChallengeCompletion, getChallengeById } from '../../services/challenges';
@@ -48,10 +47,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
 
   const refreshData = useCallback(async () => {
     if (!user) return;
-    const [enriched] = await Promise.all([
-      getCompletionLogsWithNames(user.uid, date),
-      getTotalPoints(user.uid, date),
-    ]);
+    const enriched = await getCompletionLogsWithNames(user.uid, date);
     setLogs(enriched);
     const dayPts = enriched.reduce((sum, l) => sum + l.points, 0);
     setTotalPoints(dayPts);
@@ -108,11 +104,11 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
 
     showConfirm(
       'Delete Habit Entry',
-      `Delete "${log.name}"? This will remove ${log.points} points from your Willpower Bank.`,
+      `Delete "${log.name}"? This will remove ${log.points} XP.`,
       async () => {
         try {
           await deleteCompletionLog(user.uid, log.id);
-          showAlert('Deleted', `Removed ${log.points} points from your Willpower Bank.`);
+          showAlert('Deleted', `Removed ${log.points} XP.`);
           refreshData();
         } catch (error) {
           showAlert('Error', 'Failed to delete. Please try again.');

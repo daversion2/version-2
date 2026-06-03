@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -110,8 +111,8 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
       } else {
         navigation.goBack();
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to save action plan.');
     } finally {
       setSaving(false);
     }

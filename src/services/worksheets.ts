@@ -28,7 +28,7 @@ const logsRef = (userId: string) =>
   collection(db, 'users', userId, 'completionLogs');
 
 /**
- * Save a new worksheet entry. Awards willpower points if not a draft.
+ * Save a new worksheet entry. Awards XP if not a draft.
  */
 export const saveWorksheetEntry = async (
   userId: string,
@@ -222,7 +222,7 @@ export const getWorksheetsByGoal = async (
 
 /**
  * Save a completed micro-exercise entry.
- * Awards 2 willpower points (same as worksheet base).
+ * Awards 2 XP (same as worksheet base).
  */
 export const saveMicroExerciseEntry = async (
   userId: string,

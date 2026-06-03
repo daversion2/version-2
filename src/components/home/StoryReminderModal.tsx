@@ -42,7 +42,7 @@ export const StoryReminderModal: React.FC<StoryReminderModalProps> = ({
   if (!visible || !proofPoint) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           <ScrollView showsVerticalScrollIndicator={false}>

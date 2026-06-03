@@ -44,6 +44,11 @@ export const OnboardingScreen: React.FC = () => {
   const [timerStarted, setTimerStarted] = useState(false);
   const timerProgress = useRef(new Animated.Value(1)).current;
 
+  // Expandable science sections
+  const [showWelcomeScience, setShowWelcomeScience] = useState(false);
+  const [showSettleScience, setShowSettleScience] = useState(false);
+  const [showMantraScience, setShowMantraScience] = useState(false);
+
   // Screen 5: Mantra
   const [mantra, setMantra] = useState('');
 
@@ -165,14 +170,26 @@ export const OnboardingScreen: React.FC = () => {
       <View style={styles.welcomeContent}>
         <Text style={styles.welcomeTitle}>Welcome to{'\n'}Neuro Nudge</Text>
         <Text style={styles.welcomeSubtitle}>
-          Neuro Nudge is all about taking action. We're going to start with a short, 60-second exercise where you will sit quietly and observe your thoughts.
+          We're going to start with a short, 60-second exercise. You'll sit quietly and observe your thoughts — that's it.
         </Text>
-        <Text style={styles.welcomeWhyTitle}>Why are we doing this?</Text>
-        <Text style={styles.welcomeWhyBody}>
-          Your brain doesn't need much time to shift.{'\n\n'}
-          In a 2026 Harvard study, measurable brainwave changes appeared in complete beginners within 2–3 minutes of their very first meditation. Alpha and theta waves — the signatures of calm, focused awareness — rose. Mind-wandering activity dropped.{'\n\n'}
-          The secret isn't emptying your mind. It's watching it. When you observe your thoughts instead of chasing them, your brain's threat center quiets and your reasoning center strengthens. That's the whole game.
-        </Text>
+        <TouchableOpacity
+          style={styles.expandToggle}
+          onPress={() => setShowWelcomeScience(!showWelcomeScience)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.expandToggleTextLight}>See why this works</Text>
+          <Ionicons
+            name={showWelcomeScience ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={Colors.white}
+            style={{ opacity: 0.8 }}
+          />
+        </TouchableOpacity>
+        {showWelcomeScience && (
+          <Text style={styles.welcomeWhyBody}>
+            Your brain doesn't need long to shift. A 2026 Harvard study found measurable brainwave changes in beginners within 2–3 minutes of their first meditation. The trick isn't emptying your mind — it's watching it.
+          </Text>
+        )}
       </View>
       <Button
         title="Let's go →"
@@ -188,16 +205,6 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderScreen2 = () => (
     <View style={styles.stageContent}>
-      <View style={styles.neuroCallout}>
-        <View style={styles.neuroCalloutHeader}>
-          <Ionicons name="bulb-outline" size={20} color={Colors.primary} />
-          <Text style={styles.neuroCalloutLabel}>NEUROSCIENCE</Text>
-        </View>
-        <Text style={styles.neuroCalloutText}>
-          Your brain's default mode network activates the moment you stop doing. That's when your real thought patterns surface — the ones that run on autopilot all day. This 60-second sit is designed to make them visible.
-        </Text>
-      </View>
-
       <View style={styles.intentionBox}>
         <Text style={styles.intentionTitle}>Your only job</Text>
         <Text style={styles.intentionBody}>
@@ -206,6 +213,27 @@ export const OnboardingScreen: React.FC = () => {
           Just observe.
         </Text>
       </View>
+
+      <TouchableOpacity
+        style={styles.expandToggleDark}
+        onPress={() => setShowSettleScience(!showSettleScience)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
+        <Text style={styles.expandToggleText}>Why this works</Text>
+        <Ionicons
+          name={showSettleScience ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={Colors.primary}
+        />
+      </TouchableOpacity>
+      {showSettleScience && (
+        <View style={styles.expandedContent}>
+          <Text style={styles.expandedText}>
+            When you stop doing, your brain's default mode network kicks in — surfacing the thought patterns that run on autopilot all day. This 60 seconds makes them visible.
+          </Text>
+        </View>
+      )}
     </View>
   );
 
@@ -267,13 +295,13 @@ export const OnboardingScreen: React.FC = () => {
         There's a lot going on in there, right?
       </Text>
       <Text style={styles.bridgeBody}>
-        That's completely normal. Your brain generates thousands of thoughts a day — and many of them are negative. You probably noticed a few during that minute.
+        That's normal — your brain generates thousands of thoughts a day, and many of them are negative. Left unchecked, they quietly shape your decisions, motivation, and habits.
       </Text>
-      <Text style={styles.bridgeBody}>
-        Left unchecked, those background thoughts quietly shape your decisions, your motivation, and your habits. Most people never even notice them running.
+      <Text style={styles.bridgeKickerHeadline}>
+        That's why we use a redirect mantra
       </Text>
       <Text style={styles.bridgeKicker}>
-        That's why we use a redirect mantra — a short phrase you repeat in your head when negativity shows up. Your brain can only hold one thought at a time. Give it the mantra, and the negative thought has nowhere to go.
+        A short phrase you repeat when negativity shows up. Your brain can only hold one thought at a time. Give it the mantra, and the negative thought has nowhere to go.
       </Text>
     </View>
   );
@@ -285,22 +313,10 @@ export const OnboardingScreen: React.FC = () => {
   const renderScreen5 = () => (
     <View style={styles.stageContent}>
       <Text style={styles.stageIntro}>
-        Pick a redirect mantra — a short phrase you'll say to yourself when your mind drifts.
+        Pick your redirect mantra
       </Text>
-      <View style={styles.scienceCard}>
-        <Ionicons name="bulb-outline" size={18} color={Colors.primary} />
-        <Text style={styles.scienceText}>
-          Research shows that self-directed speech activates your prefrontal cortex — the part of your brain responsible for focus and self-control. A short, personal mantra interrupts autopilot thinking and gives your brain a clear instruction to follow.
-        </Text>
-      </View>
-      <View style={styles.howToCard}>
-        <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
-        <Text style={styles.scienceText}>
-          Here's how it works: when you catch a negative thought, repeat your mantra silently — over and over — until the thought passes. Your brain was already running on repeat. This just changes what it's repeating.
-        </Text>
-      </View>
       <Text style={styles.mantraSubtext}>
-        You can write your own or tap one below to start.
+        A short phrase you'll repeat when your mind drifts. Write your own or tap one below.
       </Text>
       <TextInput
         style={styles.mantraInput}
@@ -325,6 +341,32 @@ export const OnboardingScreen: React.FC = () => {
           </TouchableOpacity>
         ))}
       </View>
+      <View style={styles.howToCard}>
+        <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
+        <Text style={styles.scienceText}>
+          Catch a negative thought, repeat your mantra silently — over and over — until it passes.
+        </Text>
+      </View>
+      <TouchableOpacity
+        style={styles.expandToggleDark}
+        onPress={() => setShowMantraScience(!showMantraScience)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
+        <Text style={styles.expandToggleText}>Why mantras work</Text>
+        <Ionicons
+          name={showMantraScience ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={Colors.primary}
+        />
+      </TouchableOpacity>
+      {showMantraScience && (
+        <View style={styles.expandedContent}>
+          <Text style={styles.expandedText}>
+            Self-directed speech activates your prefrontal cortex — the brain region responsible for focus and self-control. A personal mantra interrupts autopilot thinking and gives your brain a clear instruction.
+          </Text>
+        </View>
+      )}
     </View>
   );
 
@@ -356,7 +398,7 @@ export const OnboardingScreen: React.FC = () => {
         {/* Additional habit selection */}
         <Text style={styles.habitSectionLabel}>+ ONE MORE HABIT</Text>
         <Text style={styles.habitSectionBody}>
-          Research is clear — fewer habits to start increase the probability of lasting change. Pick one additional habit. You can build from here.
+          Start with just one. You can always add more later.
         </Text>
 
         {availableHabits.map((habit) => {
@@ -719,14 +761,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     lineHeight: 24,
   },
-  welcomeWhyTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.lg,
-    color: Colors.white,
-    textAlign: 'center',
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.sm,
-  },
   welcomeWhyBody: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
@@ -734,35 +768,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.85,
     lineHeight: 22,
+    marginTop: Spacing.md,
   },
 
-  // Screen 2: Settle
-  neuroCallout: {
-    backgroundColor: Colors.primary + '08',
-    borderRadius: BorderRadius.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-    padding: Spacing.lg,
-    marginBottom: Spacing.xl,
-  },
-  neuroCalloutHeader: {
+  // Expandable toggle (light bg — used on Screens 2, 5)
+  expandToggleDark: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
-  neuroCalloutLabel: {
+  expandToggleText: {
     fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     color: Colors.primary,
-    letterSpacing: 1,
   },
-  neuroCalloutText: {
+  // Expandable toggle (dark bg — used on Screen 1 welcome)
+  expandToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  expandToggleTextLight: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.white,
+    opacity: 0.8,
+  },
+  // Expanded content area
+  expandedContent: {
+    backgroundColor: Colors.primary + '08',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  expandedText: {
     fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     color: Colors.dark,
-    lineHeight: 22,
+    lineHeight: 20,
   },
+
+  // Screen 2: Settle
   intentionBox: {
     backgroundColor: Colors.lightGray,
     borderRadius: BorderRadius.md,
@@ -847,24 +897,21 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: Spacing.lg,
   },
+  bridgeKickerHeadline: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.primary,
+    lineHeight: 26,
+    marginBottom: Spacing.xs,
+  },
   bridgeKicker: {
-    fontFamily: Fonts.secondaryBold,
+    fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.primary,
     lineHeight: 24,
-    marginTop: Spacing.sm,
   },
 
   // Screen 5: Mantra
-  scienceCard: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    backgroundColor: Colors.primary + '08',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    alignItems: 'flex-start',
-  },
   howToCard: {
     flexDirection: 'row',
     gap: Spacing.sm,

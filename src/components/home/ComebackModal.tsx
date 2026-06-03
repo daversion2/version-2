@@ -63,7 +63,7 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={resetAndDismiss}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Progress indicator */}
@@ -177,6 +177,9 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
               >
                 <Text style={styles.primaryButtonText}>Continue</Text>
               </TouchableOpacity>
+              <TouchableOpacity style={styles.dismissLink} onPress={resetAndDismiss}>
+                <Text style={styles.dismissText}>Not now</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -224,6 +227,9 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                 activeOpacity={0.8}
               >
                 <Text style={styles.primaryButtonText}>Let's Do This</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dismissLink} onPress={resetAndDismiss}>
+                <Text style={styles.dismissText}>Not now</Text>
               </TouchableOpacity>
             </View>
           )}

@@ -402,7 +402,7 @@ export const updateChallengeCompletion = async (
     });
   }
 
-  // 4. Adjust user's totalWillpowerPoints
+  // 4. Adjust user's XP total
   if (pointsDelta !== 0) {
     await adjustWillpowerPoints(userId, pointsDelta);
   }

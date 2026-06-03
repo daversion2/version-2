@@ -335,7 +335,7 @@ export const completeProgramDay = async (
 
   await updateDoc(ref, updates);
 
-  // Award willpower points if succeeded
+  // Award XP if succeeded
   let willpowerResult;
   if (succeeded && pointsAwarded > 0) {
     willpowerResult = await updateWillpowerStats(userId, pointsAwarded);

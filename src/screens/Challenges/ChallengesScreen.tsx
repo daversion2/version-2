@@ -24,12 +24,16 @@ export const ChallengesScreen: React.FC = () => {
     useCallback(() => {
       if (!user) return;
       (async () => {
-        const [s, c] = await Promise.all([
-          getChallengeSummaryStats(user.uid),
-          getPastChallenges(user.uid),
-        ]);
-        setStats(s);
-        setChallenges(c);
+        try {
+          const [s, c] = await Promise.all([
+            getChallengeSummaryStats(user.uid),
+            getPastChallenges(user.uid),
+          ]);
+          setStats(s);
+          setChallenges(c);
+        } catch (error) {
+          console.error('Error loading challenges:', error);
+        }
       })();
     }, [user])
   );

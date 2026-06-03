@@ -110,7 +110,7 @@ export const IconPickerModal: React.FC<Props> = ({
   }, [searchQuery, filteredCategories]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modal} onPress={() => {}}>
           <View style={styles.header}>

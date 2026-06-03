@@ -127,7 +127,7 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.navRow}>
           <View>
             <Text style={styles.label}>How It Works</Text>
-            <Text style={styles.desc}>Learn how the Willpower Bank and points system work</Text>
+            <Text style={styles.desc}>Learn how XP and the points system work</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>

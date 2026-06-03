@@ -16,8 +16,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     body: 'Pair your challenges with daily habits. Consistency compounds. Track your progress and build lasting discipline.',
   },
   {
-    title: 'Introducing the Willpower Bank',
-    body: 'Every challenge and habit earns you Willpower Points based on difficulty. We use these points to track progress and gamify uncomfortable tasks. Unlock multipliers with consistency.',
+    title: 'Introducing the XP Bank',
+    body: 'Every challenge and habit earns you XP based on difficulty. We use XP to track progress and gamify uncomfortable tasks. Unlock multipliers with consistency.',
   },
   {
     title: 'Embrace Discomfort',
