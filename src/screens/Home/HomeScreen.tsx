@@ -25,9 +25,10 @@ import {
   updateWillpowerStats,
   getWillpowerStats,
 } from '../../services/willpower';
-import { HabitDifficulty, Quadrant } from '../../types';
+import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
+import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { PlanIntroModal } from '../../components/common/PlanIntroModal';
@@ -74,6 +75,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
+  const [celebrationVisible, setCelebrationVisible] = useState(false);
+  const [celebrationStreak, setCelebrationStreak] = useState(0);
   const [activeProgram, setActiveProgram] = useState<ProgramEnrollment | null>(null);
   const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
   const [programDayNumber, setProgramDayNumber] = useState(0);
@@ -93,7 +96,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [habitTidbit, setHabitTidbit] = useState<NeuroscienceTidbit | null>(null);
   const [habitTidbitVisible, setHabitTidbitVisible] = useState(false);
   const [habitLearnMoreVisible, setHabitLearnMoreVisible] = useState(false);
-  const pendingHabitPointsRef = useRef<{ points: number; alertFn: () => void } | null>(null);
+  const pendingHabitPointsRef = useRef<{ points: number; streak: number; alertFn: () => void } | null>(null);
 
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
@@ -118,13 +121,22 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [pendingAlert]);
 
+  const handleCelebrationDismiss = useCallback(() => {
+    setCelebrationVisible(false);
+    if (pendingAlert) {
+      pendingAlert();
+      setPendingAlert(null);
+    }
+  }, [pendingAlert]);
+
   const handleHabitTidbitDismiss = useCallback(() => {
     setHabitTidbitVisible(false);
     const pending = pendingHabitPointsRef.current;
     if (pending) {
       pendingHabitPointsRef.current = null;
       setEarnedPoints(pending.points);
-      setShowPointsPopup(true);
+      setCelebrationStreak(pending.streak);
+      setCelebrationVisible(true);
       setPendingAlert(() => pending.alertFn);
     }
   }, []);
@@ -143,7 +155,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (pending) {
       pendingHabitPointsRef.current = null;
       setEarnedPoints(pending.points);
-      setShowPointsPopup(true);
+      setCelebrationStreak(pending.streak);
+      setCelebrationVisible(true);
       setPendingAlert(() => pending.alertFn);
     }
   }, []);
@@ -374,10 +387,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setCompletingHabit(habit);
   }, []);
 
-  const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string, quadrantBefore?: Quadrant | null, quadrantAfter?: Quadrant | null) => {
+  const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string) => {
     if (!user || !completingHabit) return;
     try {
-      await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes, quadrantBefore, quadrantAfter);
+      await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes);
 
       // Log team activity if user is in a team
       if (team) {
@@ -396,7 +409,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      // Calculate and award willpower points
+      // Calculate and award XP
       const difficultyNum = difficulty === 'easy' ? 1 : 2;
       const stats = await getWillpowerStats(user.uid);
       const pointsEarned = calculateHabitPoints(difficultyNum, stats.currentStreak);
@@ -439,7 +452,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       };
 
-      // Fetch habit tidbit — show it before points popup for a clean sequence
+      // Fetch habit tidbit — show it before celebration for a clean sequence
       try {
         const tidbit = await selectHabitTidbit(user.uid, {
           streakDays: stats.currentStreak,
@@ -448,17 +461,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         if (tidbit) {
           await recordTidbitShown(user.uid, tidbit.id);
           setHabitTidbit(tidbit);
-          pendingHabitPointsRef.current = { points: pointsEarned, alertFn: showAlerts };
+          pendingHabitPointsRef.current = { points: pointsEarned, streak: updateResult.newStreak, alertFn: showAlerts };
           setHabitTidbitVisible(true);
-          return; // Points popup fires after tidbit is dismissed
+          return; // Celebration fires after tidbit is dismissed
         }
       } catch (err) {
         console.warn('Failed to fetch habit tidbit:', err);
       }
 
-      // No tidbit — show points popup immediately as before
+      // No tidbit — show celebration immediately
       setEarnedPoints(pointsEarned);
-      setShowPointsPopup(true);
+      setCelebrationStreak(updateResult.newStreak);
+      setCelebrationVisible(true);
       setPendingAlert(() => showAlerts);
 
       try {
@@ -615,7 +629,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const onNavigate = useCallback((screen: string, params?: any) => {
     if (screen === '__progressTab') {
-      navigation.getParent()?.navigate('Goals');
+      navigation.getParent()?.navigate('Progress');
       return;
     }
     navigation.navigate(screen as any, params);
@@ -673,6 +687,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onCancel={() => setCompletingHabit(null)}
       />
       </ScrollView>
+      <HabitCelebrationModal
+        visible={celebrationVisible}
+        pointsEarned={earnedPoints}
+        streakDays={celebrationStreak}
+        onDismiss={handleCelebrationDismiss}
+      />
       <PointsPopup
         points={earnedPoints}
         visible={showPointsPopup}

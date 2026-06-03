@@ -38,7 +38,6 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Goals: NavigatorScreenParams<GoalsStackParamList>;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
   Tools: NavigatorScreenParams<WorksheetsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
@@ -119,27 +118,10 @@ export type HomeStackParamList = {
 };
 
 // ============================================================================
-// GOALS STACK
+// GOALS STACK (deprecated — aliased to ProgressStackParamList for compat)
 // ============================================================================
 
-export type GoalsStackParamList = {
-  GoalsScreen: { highlightGoalId?: string } | undefined;
-  OverallProgress: undefined;
-  GoalDashboard: { goalId: string };
-  EditGoal: { goalId: string };
-  GoalCreationFlow: { draftId?: string } | undefined;
-  ChallengeDetail: { challengeId: string };
-  DayDetail: { date: string };
-  ReflectionDetail: undefined;
-  ReflectionEntry: { reflection: DailyReflection };
-  SubmitChallenge: { challengeId: string };
-  CompleteChallenge: { challenge: Challenge };
-  ExtendedChallengeProgress: { challenge: Challenge };
-  HabitDetail: { habitId: string };
-  ProgramDashboard: { enrollmentId: string };
-  CreateChallenge: { forDate?: string } | undefined;
-  ManageHabits: undefined;
-};
+export type GoalsStackParamList = ProgressStackParamList;
 
 // ============================================================================
 // PROGRESS STACK
@@ -147,11 +129,21 @@ export type GoalsStackParamList = {
 
 export type ProgressStackParamList = {
   ProgressScreen: undefined;
+  GoalsProgress: undefined;
   DayDetail: { date: string };
   ReflectionDetail: undefined;
   ReflectionEntry: { reflection: DailyReflection };
   ChallengeDetail: { challengeId: string };
   GoalDashboard: { goalId: string };
+  EditGoal: { goalId: string };
+  GoalCreationFlow: { draftId?: string } | undefined;
+  SubmitChallenge: { challengeId: string };
+  CompleteChallenge: { challenge: Challenge };
+  ExtendedChallengeProgress: { challenge: Challenge };
+  HabitDetail: { habitId: string };
+  ProgramDashboard: { enrollmentId: string };
+  CreateChallenge: { forDate?: string } | undefined;
+  ManageHabits: undefined;
 };
 
 // ============================================================================
@@ -210,9 +202,9 @@ export type AdminStackParamList = {
 export type HomeScreenProps<T extends keyof HomeStackParamList> =
   NativeStackScreenProps<HomeStackParamList, T>;
 
-// Goals Stack
-export type GoalsScreenProps<T extends keyof GoalsStackParamList> =
-  NativeStackScreenProps<GoalsStackParamList, T>;
+// Goals Stack (deprecated — aliased to Progress)
+export type GoalsScreenProps<T extends keyof ProgressStackParamList> =
+  NativeStackScreenProps<ProgressStackParamList, T>;
 
 // Progress Stack
 export type ProgressScreenProps<T extends keyof ProgressStackParamList> =
@@ -236,7 +228,7 @@ export type AuthScreenProps<T extends keyof AuthStackParamList> =
 
 // Navigation prop helpers (for useNavigation hook)
 export type HomeNavigation = NativeStackNavigationProp<HomeStackParamList>;
-export type GoalsNavigation = NativeStackNavigationProp<GoalsStackParamList>;
+export type GoalsNavigation = NativeStackNavigationProp<ProgressStackParamList>;
 export type ProgressNavigation = NativeStackNavigationProp<ProgressStackParamList>;
 export type WorksheetsNavigation = NativeStackNavigationProp<WorksheetsStackParamList>;
 export type SettingsNavigation = NativeStackNavigationProp<SettingsStackParamList>;

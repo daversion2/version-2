@@ -12,27 +12,31 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCompletionLogs,
-  get7DayCompletionRate,
   getWeekComparison,
-  getRecoverySpeed,
-  getDayOfWeekPattern,
-  getHabitHealthScores,
-  HabitHealthScore,
+  getTotalActions,
+  getActiveDaysCount,
+  getActivityTrendByWeek,
+  getBestStreak,
+  getPeriodBreakdown,
+  WeeklyTrendPoint,
 } from '../../services/progress';
-import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { getReflections, getReflectionStats } from '../../services/reflections';
-import { Goal, GoalFollowThrough, DailyReflection, ReflectionGrade } from '../../types';
-import { ReflectionSummaryCard } from '../../components/progress/ReflectionSummaryCard';
-import { GradeLineChart } from '../../components/progress/GradeLineChart';
-import { GoalHealthCard } from '../../components/progress/GoalHealthCard';
-import { ConsistencyCard } from '../../components/progress/ConsistencyCard';
-import { HabitHealthList } from '../../components/progress/HabitHealthList';
-import { DayOfWeekChart } from '../../components/progress/DayOfWeekChart';
+import { getWillpowerStats } from '../../services/willpower';
+import { getActiveGoals } from '../../services/goals';
+import { GoalsEntryRow } from '../../components/progress/GoalsEntryRow';
+import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
+import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
+import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
+import { WeekOverWeekCard } from '../../components/progress/WeekOverWeekCard';
+import { PeriodBreakdownCard } from '../../components/progress/PeriodBreakdownCard';
+import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
 import { ProgressNavigation } from '../../types/navigation';
 
-interface GoalCardData {
-  goal: Goal;
-  followThrough: GoalFollowThrough | null;
+function getStartDateForFilter(filter: TimeFilter): string | undefined {
+  if (filter === 'all') return undefined;
+  const days = filter === '7d' ? 7 : filter === '30d' ? 30 : 90;
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().split('T')[0];
 }
 
 export const ProgressScreen: React.FC = () => {
@@ -40,89 +44,76 @@ export const ProgressScreen: React.FC = () => {
   const navigation = useNavigation<ProgressNavigation>();
 
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<TimeFilter>('30d');
 
-  // Goal health
-  const [goalCards, setGoalCards] = useState<GoalCardData[]>([]);
+  // Goals count
+  const [activeGoalCount, setActiveGoalCount] = useState(0);
 
-  // Consistency
-  const [activeDays, setActiveDays] = useState(0);
-  const [avgDaysToRecover, setAvgDaysToRecover] = useState(0);
-  const [totalGaps, setTotalGaps] = useState(0);
+  // Hero stats
+  const [totalActionCount, setTotalActionCount] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [totalXP, setTotalXP] = useState(0);
+  const [daysActive, setDaysActive] = useState(0);
+
+  // Trend
+  const [trendData, setTrendData] = useState<WeeklyTrendPoint[]>([]);
+
+  // Week-over-week
   const [thisWeek, setThisWeek] = useState(0);
   const [lastWeek, setLastWeek] = useState(0);
-
-  // Habits
-  const [habitScores, setHabitScores] = useState<HabitHealthScore[]>([]);
-
-  // Day-of-week pattern
-  const [dowPattern, setDowPattern] = useState<Record<number, number>>({
-    0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0,
-  });
-
-  // Reflection
-  const [reflections, setReflections] = useState<DailyReflection[]>([]);
-  const [mostRecentGrade, setMostRecentGrade] = useState<ReflectionGrade | null>(null);
-  const [avgGrade, setAvgGrade] = useState<ReflectionGrade | null>(null);
-  const [reflectionStreak, setReflectionStreak] = useState(0);
 
   // Calendar
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
+  // Period breakdown
+  const [habitsCompleted, setHabitsCompleted] = useState(0);
+  const [challengesCompleted, setChallengesCompleted] = useState(0);
+
+  // Personal records
+  const [bestStreak, setBestStreak] = useState(0);
+  const [bestWeek, setBestWeek] = useState(0);
+
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
+      const startDate = getStartDateForFilter(filter);
+
       const [
         goals,
-        rate7,
+        actions,
+        activeDaysResult,
+        trend,
         weekComp,
-        recovery,
-        dowPat,
-        habits,
+        willpower,
+        bestStreakResult,
+        breakdown,
         allLogs,
-        refs,
       ] = await Promise.all([
         getActiveGoals(user.uid),
-        get7DayCompletionRate(user.uid),
+        getTotalActions(user.uid, startDate),
+        getActiveDaysCount(user.uid, startDate),
+        getActivityTrendByWeek(user.uid, startDate),
         getWeekComparison(user.uid),
-        getRecoverySpeed(user.uid),
-        getDayOfWeekPattern(user.uid),
-        getHabitHealthScores(user.uid),
-        getCompletionLogs(user.uid),
-        getReflections(user.uid),
+        getWillpowerStats(user.uid),
+        getBestStreak(user.uid),
+        getPeriodBreakdown(user.uid, startDate),
+        getCompletionLogs(user.uid, startDate),
       ]);
 
-      // Consistency
-      setActiveDays(rate7.activeDays);
+      setActiveGoalCount(goals.length);
+      setTotalActionCount(actions);
+      setDaysActive(activeDaysResult);
+      setTrendData(trend);
       setThisWeek(weekComp.thisWeek);
       setLastWeek(weekComp.lastWeek);
-      setAvgDaysToRecover(recovery.avgDaysToRecover);
-      setTotalGaps(recovery.totalGaps);
-
-      // Habits
-      setHabitScores(habits);
-
-      // Day-of-week
-      setDowPattern(dowPat);
-
-      // Reflections
-      setReflections(refs);
-      if (refs.length > 0) setMostRecentGrade(refs[0].grade);
-
-      // Reflection stats (30 days)
-      try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const rStats = await getReflectionStats(
-          user.uid,
-          thirtyDaysAgo.toISOString().split('T')[0]
-        );
-        if (rStats.totalReflections > 0) setAvgGrade(rStats.averageGradeLetter);
-        setReflectionStreak(rStats.currentStreak);
-      } catch {
-        // non-fatal
-      }
+      setBestWeek(weekComp.bestWeek);
+      setCurrentStreak(willpower.currentStreak);
+      setTotalXP(willpower.totalPoints);
+      setBestStreak(bestStreakResult);
+      setHabitsCompleted(breakdown.habits);
+      setChallengesCompleted(breakdown.challenges);
 
       // Calendar marks
       const marks: Record<string, any> = {};
@@ -130,23 +121,10 @@ export const ProgressScreen: React.FC = () => {
         marks[log.date] = { marked: true, dotColor: Colors.secondary };
       });
       setMarkedDates(marks);
-
-      // Goal health — compute follow-through for each active goal
-      const cards = await Promise.all(
-        goals.map(async (goal) => {
-          try {
-            const ft = await computeGoalFollowThrough(user.uid, goal.id);
-            return { goal, followThrough: ft };
-          } catch {
-            return { goal, followThrough: null };
-          }
-        })
-      );
-      setGoalCards(cards);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, filter]);
 
   useFocusEffect(
     useCallback(() => {
@@ -169,56 +147,31 @@ export const ProgressScreen: React.FC = () => {
         />
       ) : (
         <>
-          {/* Section: Your Goals */}
-          <Text style={styles.sectionTitle}>Your Goals</Text>
-          {goalCards.length === 0 ? (
-            <Text style={styles.emptyText}>
-              No active goals yet. Head to the Goals tab to set one.
-            </Text>
-          ) : (
-            goalCards.map(({ goal, followThrough }) => (
-              <GoalHealthCard
-                key={goal.id}
-                goal={goal}
-                followThrough={followThrough}
-                linkedCount={followThrough?.currentWeekCommitments ?? 0}
-                linkedDoneThisWeek={followThrough?.currentWeekKept ?? 0}
-                onPress={() => navigation.navigate('GoalDashboard', { goalId: goal.id })}
-              />
-            ))
-          )}
-
-          {/* Section: Consistency */}
-          <Text style={[styles.sectionTitle, styles.sectionSpacing]}>Consistency</Text>
-          <ConsistencyCard
-            activeDays={activeDays}
-            totalDays={7}
-            avgDaysToRecover={avgDaysToRecover}
-            totalGaps={totalGaps}
-            thisWeek={thisWeek}
-            lastWeek={lastWeek}
+          {/* Goals Entry */}
+          <GoalsEntryRow
+            count={activeGoalCount}
+            onPress={() => navigation.navigate('GoalsProgress')}
           />
 
-          {/* Section: Reflection Trend */}
-          <Text style={[styles.sectionTitle, styles.sectionSpacing]}>Reflection Trend</Text>
-          <ReflectionSummaryCard
-            mostRecentGrade={mostRecentGrade}
-            averageGradeLetter={avgGrade}
-            journalingStreak={reflectionStreak}
-            onPress={() => navigation.navigate('ReflectionDetail')}
+          {/* Time Filter */}
+          <TimeFilterChips selected={filter} onSelect={setFilter} />
+
+          {/* Hero Stats */}
+          <HeroStatsRow
+            totalActions={totalActionCount}
+            currentStreak={currentStreak}
+            totalXP={totalXP}
+            daysActive={daysActive}
           />
-          <GradeLineChart reflections={reflections} />
 
-          {/* Section: Your Habits */}
-          <Text style={[styles.sectionTitle, styles.sectionSpacing]}>Your Habits</Text>
-          <HabitHealthList habits={habitScores} />
+          {/* Activity Trend */}
+          <ActivityTrendChart data={trendData} />
 
-          {/* Section: When You Show Up */}
-          <Text style={[styles.sectionTitle, styles.sectionSpacing]}>When You Show Up</Text>
-          <DayOfWeekChart pattern={dowPattern} />
+          {/* Week-over-week (only if positive) */}
+          <WeekOverWeekCard thisWeek={thisWeek} lastWeek={lastWeek} />
 
           {/* Activity Calendar */}
-          <Text style={[styles.sectionTitle, styles.sectionSpacing]}>Activity Calendar</Text>
+          <Text style={styles.sectionTitle}>Activity Calendar</Text>
           <Calendar
             markedDates={{
               ...markedDates,
@@ -242,9 +195,20 @@ export const ProgressScreen: React.FC = () => {
             }}
             style={styles.calendar}
           />
+
+          {/* Period Breakdown */}
+          <PeriodBreakdownCard
+            habits={habitsCompleted}
+            challenges={challengesCompleted}
+          />
+
+          {/* Personal Records */}
+          <PersonalRecordsCard
+            bestStreak={bestStreak}
+            bestWeek={bestWeek}
+          />
         </>
       )}
-
     </ScrollView>
   );
 };
@@ -258,16 +222,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     color: Colors.dark,
     marginBottom: Spacing.sm,
-  },
-  sectionSpacing: {
-    marginTop: Spacing.lg,
-  },
-  emptyText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    textAlign: 'center',
-    paddingVertical: Spacing.md,
   },
   calendar: {
     borderRadius: 12,

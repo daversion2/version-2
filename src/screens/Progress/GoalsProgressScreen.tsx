@@ -14,11 +14,10 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveGoals, getAllGoals, computeGoalFollowThrough, getItemsForGoal, getDraftGoals } from '../../services/goals';
-import { getWillpowerStats } from '../../services/willpower';
 import { Goal, GoalFollowThrough, MeasurementProgress } from '../../types';
 import { getMeasurementProgress } from '../../services/measurements';
 import { GOAL_CONSTANTS } from '../../constants/goals';
-import { GoalsNavigation } from '../../types/navigation';
+import { ProgressNavigation } from '../../types/navigation';
 
 interface GoalCardData {
   goal: Goal;
@@ -41,9 +40,15 @@ const getHealthColor = (rate: number): string => {
   return Colors.secondary;
 };
 
-export const GoalsScreen: React.FC = () => {
+const getStatusLabel = (rate: number): string => {
+  if (rate >= 0.7) return 'On track';
+  if (rate >= 0.5) return 'At risk';
+  return 'Falling behind';
+};
+
+export const GoalsProgressScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<GoalsNavigation>();
+  const navigation = useNavigation<ProgressNavigation>();
   const [loading, setLoading] = useState(true);
   const [goalCards, setGoalCards] = useState<GoalCardData[]>([]);
   const [completedGoals, setCompletedGoals] = useState<Goal[]>([]);
@@ -147,6 +152,7 @@ export const GoalsScreen: React.FC = () => {
           const ftPct = Math.round(ftRate * 100);
           const daysLeft = getDaysRemaining(goal.end_date);
           const healthColor = getHealthColor(ftRate);
+          const statusLabel = getStatusLabel(ftRate);
 
           const parts: string[] = [];
           if (linkedCounts.challenges > 0) parts.push(`${linkedCounts.challenges} challenge${linkedCounts.challenges !== 1 ? 's' : ''}`);
@@ -163,6 +169,7 @@ export const GoalsScreen: React.FC = () => {
               <Card style={styles.goalCard}>
                 <View style={styles.goalHeader}>
                   <View style={styles.goalNameRow}>
+                    <View style={[styles.colorDot, { backgroundColor: goal.color || Colors.primary }]} />
                     <Text style={styles.goalName} numberOfLines={2}>{goal.name}</Text>
                   </View>
                   <View style={[styles.ftBadge, { backgroundColor: healthColor + '15' }]}>
@@ -170,27 +177,24 @@ export const GoalsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {goal.identity_statement && (
-                  <Text style={styles.identityPreview} numberOfLines={1}>
-                    {`"${goal.identity_statement}"`}
+                {/* Status label */}
+                <View style={styles.statusRow}>
+                  <View style={[styles.statusDot, { backgroundColor: healthColor }]} />
+                  <Text style={[styles.statusText, { color: healthColor }]}>{statusLabel}</Text>
+                  <Text style={styles.separator}>·</Text>
+                  <Ionicons
+                    name={daysLeft < 0 ? 'alert-circle-outline' : 'time-outline'}
+                    size={13}
+                    color={daysLeft < 0 ? Colors.secondary : Colors.gray}
+                  />
+                  <Text style={[styles.metaText, daysLeft < 0 && { color: Colors.secondary }]}>
+                    {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
                   </Text>
-                )}
+                </View>
 
                 <View style={styles.goalMeta}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="layers-outline" size={14} color={Colors.gray} />
-                    <Text style={styles.metaText}>{linkedSummary}</Text>
-                  </View>
-                  <View style={styles.metaItem}>
-                    <Ionicons
-                      name={daysLeft < 0 ? 'alert-circle-outline' : 'time-outline'}
-                      size={14}
-                      color={daysLeft < 0 ? Colors.secondary : Colors.gray}
-                    />
-                    <Text style={[styles.metaText, daysLeft < 0 && { color: Colors.secondary }]}>
-                      {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
-                    </Text>
-                  </View>
+                  <Ionicons name="layers-outline" size={14} color={Colors.gray} />
+                  <Text style={styles.metaText}>{linkedSummary}</Text>
                 </View>
 
                 {/* Follow-through bar */}
@@ -203,14 +207,6 @@ export const GoalsScreen: React.FC = () => {
                 {followThrough && followThrough.currentWeekCommitments > 0 && (
                   <Text style={styles.weeklyText}>
                     This week: {followThrough.currentWeekKept}/{followThrough.currentWeekCommitments} kept
-                  </Text>
-                )}
-
-                {mp && goal.measurement_type === 'reach_number' && (
-                  <Text style={styles.measurementIndicator}>
-                    {mp.metric_name
-                      ? `${mp.current_value}/${mp.target_value ?? 0} ${mp.metric_name}`
-                      : `${mp.current_value}/${mp.target_value ?? 0}`}
                   </Text>
                 )}
               </Card>
@@ -234,7 +230,7 @@ export const GoalsScreen: React.FC = () => {
         </Text>
       )}
 
-      {/* Completed Goals */}
+      {/* Past Goals */}
       {completedGoals.length > 0 && (
         <>
           <TouchableOpacity
@@ -319,12 +315,21 @@ const styles = StyleSheet.create({
   },
   goalNameRow: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  colorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   goalName: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.lg,
     color: Colors.dark,
     lineHeight: 24,
+    flex: 1,
   },
   ftBadge: {
     paddingHorizontal: Spacing.md,
@@ -335,22 +340,32 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
   },
-  identityPreview: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontStyle: 'italic',
-    marginTop: Spacing.xs,
-  },
-  goalMeta: {
-    flexDirection: 'row',
-    gap: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  metaItem: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+  },
+  separator: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginHorizontal: 2,
+  },
+  goalMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   metaText: {
     fontFamily: Fonts.secondary,
@@ -374,12 +389,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
-    marginTop: Spacing.xs,
-  },
-  measurementIndicator: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.primary,
     marginTop: Spacing.xs,
   },
   capText: {

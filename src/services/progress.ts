@@ -368,6 +368,98 @@ export interface HabitHealthScore {
   currentStreak: number;
 }
 
+// --- New Progress Analytics (accumulation-focused) ---
+
+export const getTotalActions = async (
+  userId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<number> => {
+  const logs = await getCompletionLogs(userId, startDate, endDate);
+  return logs.length;
+};
+
+export const getActiveDaysCount = async (
+  userId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<number> => {
+  const logs = await getCompletionLogs(userId, startDate, endDate);
+  return new Set(logs.map((l) => l.date)).size;
+};
+
+export interface WeeklyTrendPoint {
+  weekStart: string;
+  count: number;
+}
+
+export const getActivityTrendByWeek = async (
+  userId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<WeeklyTrendPoint[]> => {
+  const logs = await getCompletionLogs(userId, startDate, endDate);
+  if (logs.length === 0) return [];
+
+  // Group logs by ISO week (Monday start)
+  const weekMap = new Map<string, number>();
+
+  logs.forEach((log) => {
+    const d = new Date(log.date + 'T00:00:00');
+    const day = d.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + mondayOffset);
+    const weekStart = monday.toISOString().split('T')[0];
+    weekMap.set(weekStart, (weekMap.get(weekStart) || 0) + 1);
+  });
+
+  return [...weekMap.entries()]
+    .map(([weekStart, count]) => ({ weekStart, count }))
+    .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+};
+
+export const getBestStreak = async (userId: string): Promise<number> => {
+  const allLogs = await getCompletionLogs(userId);
+  if (allLogs.length === 0) return 0;
+
+  const uniqueDates = [...new Set(allLogs.map((l) => l.date))].sort();
+  let best = 1;
+  let current = 1;
+
+  for (let i = 1; i < uniqueDates.length; i++) {
+    const prev = new Date(uniqueDates[i - 1] + 'T00:00:00');
+    const curr = new Date(uniqueDates[i] + 'T00:00:00');
+    const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000);
+
+    if (diffDays === 1) {
+      current++;
+      if (current > best) best = current;
+    } else {
+      current = 1;
+    }
+  }
+
+  return best;
+};
+
+export const getPeriodBreakdown = async (
+  userId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<{ habits: number; challenges: number }> => {
+  const logs = await getCompletionLogs(userId, startDate, endDate);
+  let habits = 0;
+  let challenges = 0;
+
+  logs.forEach((log) => {
+    if (log.type === 'nudge') habits++;
+    else if (log.type === 'challenge') challenges++;
+  });
+
+  return { habits, challenges };
+};
+
 export const getHabitHealthScores = async (userId: string): Promise<HabitHealthScore[]> => {
   const [habits, weeklyCounts] = await Promise.all([
     getActiveHabits(userId),
