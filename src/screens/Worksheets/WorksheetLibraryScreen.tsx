@@ -48,6 +48,30 @@ export const WorksheetLibraryScreen: React.FC<{ navigation: any }> = ({
 
   const renderHeader = () => (
     <View>
+      {/* Your Story featured card */}
+      <TouchableOpacity
+        style={styles.storyCard}
+        onPress={() => navigation.navigate('YourStoryLanding')}
+        activeOpacity={0.7}
+      >
+        <View style={styles.storyCardLeft}>
+          <View style={styles.storyIcon}>
+            <Ionicons name="book" size={22} color="#8B6F47" />
+          </View>
+        </View>
+        <View style={styles.storyCardContent}>
+          <Text style={styles.storyCardTitle}>your story</Text>
+          <Text style={styles.storyCardDesc}>
+            Map your hard moments into proof you can survive anything.
+          </Text>
+          <View style={styles.storyCardTag}>
+            <Ionicons name="flask-outline" size={10} color="#8B6F47" />
+            <Text style={styles.storyCardTagText}>narrative identity</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+      </TouchableOpacity>
+
       {/* Drafts banner */}
       {drafts.length > 0 && (
         <TouchableOpacity
@@ -132,6 +156,63 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.md,
     paddingBottom: Spacing.xxl,
+  },
+  storyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderWidth: 1.5,
+    borderColor: '#8B6F47' + '30',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  storyCardLeft: {
+    marginRight: Spacing.md,
+  },
+  storyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#8B6F47' + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  storyCardContent: {
+    flex: 1,
+  },
+  storyCardTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.dark,
+    marginBottom: 2,
+  },
+  storyCardDesc: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 18,
+    marginBottom: Spacing.xs,
+  },
+  storyCardTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    alignSelf: 'flex-start',
+    backgroundColor: '#8B6F47' + '10',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  storyCardTagText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 10,
+    color: '#8B6F47',
   },
   draftBanner: {
     flexDirection: 'row',

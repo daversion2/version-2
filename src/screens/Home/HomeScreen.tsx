@@ -35,7 +35,10 @@ import { PlanIntroModal } from '../../components/common/PlanIntroModal';
 import { GoalPromptModal } from '../../components/common/GoalPromptModal';
 import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
 import { ComebackModal } from '../../components/home/ComebackModal';
+import { StoryReminderModal } from '../../components/home/StoryReminderModal';
 import { saveComebackLog } from '../../services/comebackLogs';
+import { getRandomProofPoint } from '../../services/proofPoints';
+import { ProofPoint } from '../../types';
 import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../services/neuroscienceTidbits';
@@ -91,6 +94,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [goalFollowThrough, setGoalFollowThrough] = useState<Record<string, GoalFollowThrough>>({});
   const [comebackVisible, setComebackVisible] = useState(false);
   const comebackShownRef = useRef(false);
+  const [storyReminderVisible, setStoryReminderVisible] = useState(false);
+  const [storyReminderProofPoint, setStoryReminderProofPoint] = useState<ProofPoint | null>(null);
 
   // Habit tidbit state
   const [habitTidbit, setHabitTidbit] = useState<NeuroscienceTidbit | null>(null);
@@ -244,7 +249,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
 
-      // Detect streak break and show comeback modal (once per day)
+      // Detect streak break and show comeback/story reminder modal (once per day)
       const todayForComeback = getTodayString();
       if (
         !comebackShownRef.current &&
@@ -253,9 +258,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         userProfile?.lastComebackDate !== todayForComeback
       ) {
         comebackShownRef.current = true;
-        setComebackVisible(true);
-        // Mark today so it won't re-trigger on refresh
         markComebackShown(user.uid, todayForComeback).catch(() => {});
+
+        // If user has proof points, show StoryReminder; otherwise show ComebackModal
+        try {
+          const randomProof = await getRandomProofPoint(user.uid);
+          if (randomProof) {
+            setStoryReminderProofPoint(randomProof);
+            setStoryReminderVisible(true);
+          } else {
+            setComebackVisible(true);
+          }
+        } catch {
+          setComebackVisible(true);
+        }
       }
 
       // Fetch all nudge logs once — reused by weekly counts, streaks, and goal follow-through
@@ -780,6 +796,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           }
         }}
         onDismiss={() => setComebackVisible(false)}
+      />
+      <StoryReminderModal
+        visible={storyReminderVisible}
+        proofPoint={storyReminderProofPoint}
+        onSubmit={async (reflection) => {
+          setStoryReminderVisible(false);
+          if (user) {
+            try {
+              await saveComebackLog(user.uid, {
+                barrierReason: 'story_reminder',
+                committedHabitId: '',
+                committedHabitName: reflection || '(no reflection)',
+              });
+            } catch (err) {
+              console.warn('Failed to save story reminder log:', err);
+            }
+          }
+        }}
+        onDismiss={() => setStoryReminderVisible(false)}
       />
       <HabitTidbitModal
         visible={habitTidbitVisible}

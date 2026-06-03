@@ -7,6 +7,9 @@ import { WorksheetLibraryScreen } from '../screens/Worksheets/WorksheetLibrarySc
 import { ToolConversationScreen } from '../screens/Tools/ToolConversationScreen';
 import { WorksheetHistoryScreen } from '../screens/Worksheets/WorksheetHistoryScreen';
 import { WorksheetDetailScreen } from '../screens/Worksheets/WorksheetDetailScreen';
+import { YourStoryLandingScreen } from '../screens/YourStory/YourStoryLandingScreen';
+import { AddProofPointScreen } from '../screens/YourStory/AddProofPointScreen';
+import { ProofPointLibraryScreen } from '../screens/YourStory/ProofPointLibraryScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -57,6 +60,21 @@ export const WorksheetsStack: React.FC = () => (
       name="WorksheetDetail"
       component={WorksheetDetailScreen}
       options={{ title: 'Entry' }}
+    />
+    <Stack.Screen
+      name="YourStoryLanding"
+      component={YourStoryLandingScreen}
+      options={{ title: 'Your Story' }}
+    />
+    <Stack.Screen
+      name="AddProofPoint"
+      component={AddProofPointScreen}
+      options={{ headerShown: false }}
+    />
+    <Stack.Screen
+      name="ProofPointLibrary"
+      component={ProofPointLibraryScreen}
+      options={{ title: 'Your Story' }}
     />
   </Stack.Navigator>
 );

@@ -1,6 +1,19 @@
 // Re-export worksheet types
 export * from './worksheets';
 
+// ============================================================================
+// YOUR STORY (PROOF POINTS)
+// ============================================================================
+
+export interface ProofPoint {
+  id: string;
+  user_id: string;
+  hard_moment: string;
+  what_you_did: string;
+  points_awarded?: number;
+  created_at: string;
+}
+
 // Core data models per spec
 
 export interface Mantra {
@@ -17,7 +30,7 @@ export interface User {
   has_completed_onboarding?: boolean;
   expoPushToken?: string;
   timezone?: string; // IANA timezone e.g. "America/New_York"
-  // Willpower Bank
+  // XP
   totalWillpowerPoints?: number;
   currentStreak?: number;
   lastActivityDate?: string; // YYYY-MM-DD format for streak tracking

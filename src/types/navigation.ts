@@ -159,6 +159,10 @@ export type WorksheetsStackParamList = {
   };
   WorksheetHistory: undefined;
   WorksheetDetail: { entryId: string };
+  // Your Story (Proof Points)
+  YourStoryLanding: undefined;
+  AddProofPoint: undefined;
+  ProofPointLibrary: undefined;
 };
 
 // ============================================================================
