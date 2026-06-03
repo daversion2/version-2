@@ -10,8 +10,6 @@ import {
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
-import { QuadrantGrid } from './QuadrantGrid';
-import { Quadrant } from '../../types';
 
 const HABIT_PROMPTS = [
   'What made today different?',
@@ -29,8 +27,6 @@ interface Props {
   onSubmit: (
     difficulty: 'easy' | 'challenging',
     notes?: string,
-    quadrantBefore?: Quadrant | null,
-    quadrantAfter?: Quadrant | null,
   ) => void;
   onCancel: () => void;
 }
@@ -43,8 +39,6 @@ export const HabitCompletionModal: React.FC<Props> = ({
 }) => {
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
   const [notes, setNotes] = useState('');
-  const [quadrantBefore, setQuadrantBefore] = useState<Quadrant | null>(null);
-  const [quadrantAfter, setQuadrantAfter] = useState<Quadrant | null>(null);
   const [showNotes, setShowNotes] = useState(false);
 
   // Rotate prompt each time the modal opens with a new habit
@@ -56,14 +50,12 @@ export const HabitCompletionModal: React.FC<Props> = ({
   const resetState = () => {
     setSelected(null);
     setNotes('');
-    setQuadrantBefore(null);
-    setQuadrantAfter(null);
     setShowNotes(false);
   };
 
   const handleSubmit = () => {
     if (!selected) return;
-    onSubmit(selected, notes.trim() || undefined, quadrantBefore, quadrantAfter);
+    onSubmit(selected, notes.trim() || undefined);
     resetState();
   };
 
@@ -77,12 +69,6 @@ export const HabitCompletionModal: React.FC<Props> = ({
       <Pressable style={styles.overlay} onPress={handleCancel}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>{habitName}</Text>
-
-          <QuadrantGrid
-            prompt="How did you feel before completing this habit?"
-            selected={quadrantBefore}
-            onSelect={setQuadrantBefore}
-          />
 
           <Text style={styles.subtitle}>How was it?</Text>
 
@@ -119,12 +105,6 @@ export const HabitCompletionModal: React.FC<Props> = ({
               </Text>
             </TouchableOpacity>
           </View>
-
-          <QuadrantGrid
-            prompt="How do you feel now?"
-            selected={quadrantAfter}
-            onSelect={setQuadrantAfter}
-          />
 
           {showNotes ? (
             <TextInput
