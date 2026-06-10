@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -33,6 +33,8 @@ export const RootNavigator: React.FC = () => {
 
   // Handle notification deep links for micro-exercise follow-ups
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     // Handle cold-start: app opened via notification tap
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;

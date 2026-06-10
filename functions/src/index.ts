@@ -2,13 +2,20 @@ import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentUpdated, onDocumentCreated } from "firebase-functions/v2/firestore";
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
+import {
+  Rule,
+  RuleState,
+  buildUserFacts,
+  frequencyAllows,
+  ruleMatches,
+} from "./rulesEngine";
 
 admin.initializeApp();
 const db = admin.firestore();
 const expo = new Expo();
 
-// Global kill switch for push notifications — set to true to re-enable
-const PUSH_NOTIFICATIONS_ENABLED = false;
+// Global kill switch for push notifications — set to false to disable all sends
+const PUSH_NOTIFICATIONS_ENABLED = true;
 
 // Common timezones to check against for hourly scheduled functions.
 // Firestore 'in' queries support up to 30 values, so we can include all major zones.
@@ -1064,5 +1071,107 @@ export const expireStaleChallenges = onSchedule(
     }
 
     console.log("expireStaleChallenges complete");
+  }
+);
+
+// ============================================
+// Rules engine: hourly evaluator for admin-configured push rules
+// Rules live in the `rules/` Firestore collection and are managed from the
+// in-app Admin > Rules screen. Each enabled push rule is evaluated against
+// per-user facts (days since last activity, streak, local hour, ...) with
+// frequency capping recorded at users/{userId}/ruleState/{ruleId}.
+// ============================================
+export const evaluatePushRules = onSchedule(
+  {
+    schedule: "0 * * * *", // Every hour at minute 0
+    timeZone: "UTC",
+  },
+  async () => {
+    if (!PUSH_NOTIFICATIONS_ENABLED) {
+      console.log("Push notifications disabled — skipping rule evaluation");
+      return;
+    }
+
+    const rulesSnap = await db
+      .collection("rules")
+      .where("enabled", "==", true)
+      .get();
+
+    const rules: Rule[] = rulesSnap.docs
+      .map((d) => ({ ...(d.data() as Omit<Rule, "id">), id: d.id }))
+      .filter((r) => r.surface === "push" && r.event === "scheduled_hourly")
+      .sort((a, b) => b.priority - a.priority);
+
+    if (rules.length === 0) {
+      console.log("No enabled push rules — nothing to evaluate");
+      return;
+    }
+    console.log(`Evaluating ${rules.length} push rule(s)...`);
+
+    // Only users with a push token can receive these
+    const usersSnap = await db
+      .collection("users")
+      .where("expoPushToken", "!=", null)
+      .get();
+
+    const nowIso = new Date().toISOString();
+    let sentCount = 0;
+
+    for (const userDoc of usersSnap.docs) {
+      try {
+        const userData = userDoc.data();
+        const pushToken = userData.expoPushToken;
+        if (!pushToken || !Expo.isExpoPushToken(pushToken)) continue;
+
+        const timezone = userData.timezone || "America/New_York";
+        const localHour = getHourInTimezone(timezone);
+        if (localHour < 0) continue; // invalid timezone
+        const todayLocal = getDateInTimezone(timezone);
+        const facts = buildUserFacts(userData, todayLocal, localHour);
+
+        for (const rule of rules) {
+          if (!ruleMatches(rule, facts)) continue;
+
+          const stateRef = db
+            .collection("users")
+            .doc(userDoc.id)
+            .collection("ruleState")
+            .doc(rule.id);
+          const stateSnap = await stateRef.get();
+          const state = stateSnap.exists ? (stateSnap.data() as RuleState) : null;
+
+          // Safety backstop: an hourly push rule with 'always' frequency would
+          // fire 24x/day — cap it to once per day regardless
+          const effectiveRule: Rule =
+            rule.frequency?.type === "always"
+              ? { ...rule, frequency: { type: "once_per_day" } }
+              : rule;
+          if (!frequencyAllows(effectiveRule, state, nowIso, todayLocal)) continue;
+
+          await sendPushNotification(
+            pushToken,
+            rule.content.title,
+            rule.content.body,
+            { rule_id: rule.id }
+          );
+          await stateRef.set(
+            {
+              rule_id: rule.id,
+              last_fired_at: nowIso,
+              last_fired_date: todayLocal,
+              fire_count: admin.firestore.FieldValue.increment(1),
+            },
+            { merge: true }
+          );
+          sentCount++;
+          console.log(`Rule "${rule.name}" fired for user ${userDoc.id}`);
+          break; // at most one rules-engine push per user per run
+        }
+      } catch (error) {
+        console.error(`Error evaluating rules for user ${userDoc.id}:`, error);
+      }
+    }
+
+    console.log(`evaluatePushRules complete — ${sentCount} notification(s) sent`);
   }
 );

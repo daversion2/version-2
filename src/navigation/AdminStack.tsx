@@ -9,6 +9,8 @@ import { AdminFunFactsScreen } from '../screens/Admin/AdminFunFactsScreen';
 import { AdminFunFactEditScreen } from '../screens/Admin/AdminFunFactEditScreen';
 import { AdminTidbitsScreen } from '../screens/Admin/AdminTidbitsScreen';
 import { AdminTidbitEditScreen } from '../screens/Admin/AdminTidbitEditScreen';
+import { AdminRulesScreen } from '../screens/Admin/AdminRulesScreen';
+import { AdminRuleEditScreen } from '../screens/Admin/AdminRuleEditScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
@@ -62,6 +64,16 @@ export const AdminStack: React.FC = () => (
       name="AdminTidbitEdit"
       component={AdminTidbitEditScreen}
       options={{ title: 'Edit Tidbit' }}
+    />
+    <Stack.Screen
+      name="AdminRules"
+      component={AdminRulesScreen}
+      options={{ title: 'Notification & Popup Rules' }}
+    />
+    <Stack.Screen
+      name="AdminRuleEdit"
+      component={AdminRuleEditScreen}
+      options={{ title: 'Edit Rule' }}
     />
   </Stack.Navigator>
 );

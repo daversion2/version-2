@@ -5,12 +5,13 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithCredential,
+  signInWithPopup,
   GoogleAuthProvider,
   User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from './firebase';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { Platform } from 'react-native';
+import { auth, db, googleProvider } from './firebase';
 
 export const signUp = async (email: string, password: string) => {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -39,22 +40,29 @@ export const resetPassword = async (email: string) => {
 };
 
 export const signInWithGoogle = async () => {
-  // Check if device supports Google Play Services (Android)
-  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  let cred;
+  if (Platform.OS === 'web') {
+    cred = await signInWithPopup(auth, googleProvider);
+  } else {
+    const { GoogleSignin } = require('@react-native-google-signin/google-signin');
 
-  // Get user's ID token from Google
-  const signInResult = await GoogleSignin.signIn();
-  const idToken = signInResult.data?.idToken;
+    // Check if device supports Google Play Services (Android)
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-  if (!idToken) {
-    throw new Error('No ID token found');
+    // Get user's ID token from Google
+    const signInResult = await GoogleSignin.signIn();
+    const idToken = signInResult.data?.idToken;
+
+    if (!idToken) {
+      throw new Error('No ID token found');
+    }
+
+    // Create a Google credential with the token
+    const googleCredential = GoogleAuthProvider.credential(idToken);
+
+    // Sign in to Firebase with the Google credential
+    cred = await signInWithCredential(auth, googleCredential);
   }
-
-  // Create a Google credential with the token
-  const googleCredential = GoogleAuthProvider.credential(idToken);
-
-  // Sign in to Firebase with the Google credential
-  const cred = await signInWithCredential(auth, googleCredential);
 
   // Check if user document exists in Firestore
   const userDocRef = doc(db, 'users', cred.user.uid);

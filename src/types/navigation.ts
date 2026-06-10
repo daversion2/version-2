@@ -196,6 +196,8 @@ export type AdminStackParamList = {
   AdminFunFactEdit: { mode: 'create' | 'edit'; funFactId?: string };
   AdminTidbits: undefined;
   AdminTidbitEdit: { mode: 'create' | 'edit'; tidbitId?: string };
+  AdminRules: undefined;
+  AdminRuleEdit: { mode: 'create' | 'edit'; ruleId?: string };
 };
 
 // ============================================================================

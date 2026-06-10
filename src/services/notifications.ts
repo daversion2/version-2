@@ -4,21 +4,23 @@ import { Platform } from 'react-native';
 import { savePushTokenAndTimezone } from './users';
 import * as Localization from 'expo-localization';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export const registerForPushNotifications = async (userId?: string): Promise<string | null> => {
   try {
     console.log('registerForPushNotifications called with userId:', userId);
 
-    if (!Device.isDevice) {
+    if (Platform.OS === 'web' || !Device.isDevice) {
       console.log('Push notifications require a physical device');
       return null;
     }
