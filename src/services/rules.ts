@@ -144,8 +144,14 @@ export const markRuleShown = async (userId: string, ruleId: string): Promise<voi
 // ---------- Defaults ----------
 
 /**
- * The first rules-engine consumer: a configurable "come back" push for users
- * who have gone quiet. Seeded disabled — flip on from the Admin Rules screen.
+ * Default rules, seeded from the Admin Rules screen.
+ *
+ * The Comeback nudge is seeded disabled. The event-triggered rules below it
+ * replaced the legacy hardcoded notification functions, so they're seeded
+ * ENABLED with the original copy — the Cloud Function evaluation points also
+ * auto-seed them (matched by name) the first time their event fires with no
+ * rule present. KEEP IN SYNC with DEFAULT_EVENT_RULES in
+ * functions/src/index.ts.
  */
 export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
@@ -163,6 +169,95 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     content: {
       title: 'We miss you',
       body: "It's been a couple of days. One small win today gets you moving again.",
+    },
+  },
+  {
+    name: 'Challenge failed encouragement',
+    description: "Immediate encouragement when a user's challenge is marked failed.",
+    enabled: true,
+    surface: 'push',
+    event: 'challenge_failed',
+    conditions: [],
+    frequency: { type: 'always' },
+    priority: 20,
+    content: {
+      title: 'Growth Through Effort',
+      body: 'Failure is part of the journey. The fact that you tried is what matters most. Every attempt builds your willpower.',
+    },
+  },
+  {
+    name: 'Team activity',
+    description:
+      'Notify team members when a teammate completes a challenge or habit. Placeholders: {username}, {activity_type}.',
+    enabled: true,
+    surface: 'push',
+    event: 'team_activity',
+    conditions: [],
+    frequency: { type: 'always' },
+    priority: 20,
+    content: {
+      title: 'Team Activity',
+      body: '{username} just completed a {activity_type}!',
+    },
+  },
+  {
+    name: 'Buddy challenge invite',
+    description:
+      "Notify the partner when they're invited to a buddy challenge. Placeholders: {inviter_username}, {challenge_name}.",
+    enabled: true,
+    surface: 'push',
+    event: 'buddy_invite',
+    conditions: [],
+    frequency: { type: 'always' },
+    priority: 20,
+    content: {
+      title: 'Buddy Challenge Invite!',
+      body: '{inviter_username} wants to do "{challenge_name}" with you!',
+    },
+  },
+  {
+    name: 'Buddy nudge',
+    description:
+      'Notify a user when their buddy sends them a nudge. Placeholders: {sender_username}.',
+    enabled: true,
+    surface: 'push',
+    event: 'buddy_nudge',
+    conditions: [],
+    frequency: { type: 'always' },
+    priority: 20,
+    content: {
+      title: 'Buddy Nudge!',
+      body: "{sender_username} sent you a nudge. You've got this!",
+    },
+  },
+  {
+    name: 'Buddy challenge complete',
+    description:
+      'Notify both users when a buddy challenge is completed. Placeholders: {challenge_name}.',
+    enabled: true,
+    surface: 'push',
+    event: 'buddy_both_complete',
+    conditions: [],
+    frequency: { type: 'always' },
+    priority: 20,
+    content: {
+      title: 'Buddy Challenge Complete!',
+      body: 'You both crushed "{challenge_name}"! Check out your reflections.',
+    },
+  },
+  {
+    name: 'Micro-commitment follow-up',
+    description:
+      "Day-after check-in on a micro-exercise commitment. The 'Hour of day' condition sets the local send hour. Placeholders: {commitment}.",
+    enabled: true,
+    surface: 'push',
+    event: 'micro_commitment_followup',
+    conditions: [{ fact: 'local_hour', op: '==', value: 10 }],
+    frequency: { type: 'always' },
+    priority: 20,
+    content: {
+      title: 'How did your commitment go?',
+      body: 'Yesterday you said: "{commitment}"',
     },
   },
 ];

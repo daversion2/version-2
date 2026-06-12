@@ -110,7 +110,7 @@ export const AdminRulesScreen: React.FC = () => {
       showAlert(
         'Defaults Seeded',
         created > 0
-          ? `${created} default rule${created === 1 ? '' : 's'} created (disabled). Enable them when ready.`
+          ? `${created} default rule${created === 1 ? '' : 's'} created. Existing rules were left untouched — review the enable switches.`
           : 'All default rules already exist.'
       );
       loadData();
@@ -214,6 +214,19 @@ export const AdminRulesScreen: React.FC = () => {
               </Card>
             ))
           )}
+
+          {rules.length > 0 && (
+            <TouchableOpacity style={styles.seedLink} onPress={handleSeed} disabled={seeding}>
+              {seeding ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <>
+                  <Ionicons name="refresh-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.seedLinkText}>Seed missing default rules</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -232,6 +245,18 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Colors.lightGray,
+  },
+  seedLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+  },
+  seedLinkText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
   centered: {
     flex: 1,

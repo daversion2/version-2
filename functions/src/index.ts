@@ -3,11 +3,17 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentUpdated, onDocumentCreated } from "firebase-functions/v2/firestore";
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
 import {
+  POOL_PLACEHOLDER_KEYS,
   Rule,
   RuleState,
   buildUserFacts,
+  ctaTargetData,
   frequencyAllows,
+  referencedGlobalKeys,
+  renderTemplate,
+  resolveUserGlobals,
   ruleMatches,
+  truncateForPush,
 } from "./rulesEngine";
 
 admin.initializeApp();
@@ -119,16 +125,6 @@ const getHourInTimezone = (timezone: string): number => {
   }
 };
 
-// Helper to calculate 1-based day number from a start date and today's date (both YYYY-MM-DD)
-const getCurrentDayNumber = (startDate: string, today: string): number => {
-  const start = new Date(startDate + "T00:00:00");
-  const current = new Date(today + "T00:00:00");
-  const diffDays = Math.floor(
-    (current.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  return diffDays + 1;
-};
-
 // Helper to send push notification via Expo
 const sendPushNotification = async (
   pushToken: string,
@@ -165,254 +161,262 @@ const sendPushNotification = async (
 };
 
 // ============================================
-// 1. Hourly check for 8 AM - Start challenge reminder
-// Runs every hour and checks if it's 8 AM in user's timezone
+// Rules engine: event-triggered push rules
+// The Firestore triggers and crons below are thin evaluation points — they
+// detect their event, but whether a push fires (and its copy, conditions,
+// and frequency cap) comes from the matching `rules/` document. When no rule
+// document exists for an event, the default below is auto-seeded ENABLED
+// with the original hardcoded copy, so behavior is continuous and the rule
+// becomes editable from the Admin screen.
+// KEEP IN SYNC with DEFAULT_RULES in src/services/rules.ts (matched by name).
 // ============================================
-export const morningChallengeReminder = onSchedule(
-  {
-    schedule: "0 * * * *", // Every hour at minute 0
-    timeZone: "UTC",
+
+const DEFAULT_EVENT_RULES: Record<string, Omit<Rule, "id" | "created_at" | "updated_at">> = {
+  challenge_failed: {
+    name: "Challenge failed encouragement",
+    description: "Immediate encouragement when a user's challenge is marked failed.",
+    enabled: true,
+    surface: "push",
+    event: "challenge_failed",
+    conditions: [],
+    frequency: { type: "always" },
+    priority: 20,
+    content: {
+      title: "Growth Through Effort",
+      body: "Failure is part of the journey. The fact that you tried is what matters most. Every attempt builds your willpower.",
+    },
   },
-  async () => {
-    console.log("Running morning reminder check...");
-
-    // Only fetch users whose timezone is currently at 8 AM
-    const userDocs = await getUsersAtHour(8);
-    console.log(`Found ${userDocs.length} users at 8 AM`);
-
-    for (const userDoc of userDocs) {
-      try {
-        const userData = userDoc.data();
-        const pushToken = userData.expoPushToken;
-        const timezone = userData.timezone || "America/New_York";
-
-        if (!pushToken) continue;
-
-        const today = getDateInTimezone(timezone);
-
-        // Priority 1: Active program
-        const enrollmentSnapshot = await db
-          .collection("users")
-          .doc(userDoc.id)
-          .collection("programEnrollments")
-          .where("status", "==", "active")
-          .limit(1)
-          .get();
-
-        if (!enrollmentSnapshot.empty) {
-          const enrollment = enrollmentSnapshot.docs[0].data();
-          const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
-          // Skip stale enrollments where dayNumber exceeds program duration
-          if (dayNumber <= (enrollment.duration_days || Infinity)) {
-            await sendPushNotification(
-              pushToken,
-              `Day ${dayNumber} of ${enrollment.program_name}`,
-              "Time to check in for today's challenge."
-            );
-            console.log(`Sent morning program reminder to user ${userDoc.id} (Day ${dayNumber})`);
-          } else {
-            console.log(`Skipping stale enrollment for user ${userDoc.id} (Day ${dayNumber} > ${enrollment.duration_days})`);
-          }
-          continue;
-        }
-
-        // Priority 2: Active habits
-        const habitsSnapshot = await db
-          .collection("users")
-          .doc(userDoc.id)
-          .collection("habits")
-          .where("is_active", "==", true)
-          .get();
-
-        if (!habitsSnapshot.empty) {
-          const habitCount = habitsSnapshot.size;
-          await sendPushNotification(
-            pushToken,
-            "Keep Building",
-            `You have ${habitCount} habit${habitCount === 1 ? "" : "s"} to work on today. Keep building momentum.`
-          );
-          console.log(`Sent morning habit reminder to user ${userDoc.id} (${habitCount} habits)`);
-          continue;
-        }
-
-        // Priority 3: Fallback — challenge reminder
-        const challengesSnapshot = await db
-          .collection("users")
-          .doc(userDoc.id)
-          .collection("challenges")
-          .where("date", "==", today)
-          .limit(1)
-          .get();
-
-        if (challengesSnapshot.empty) {
-          await sendPushNotification(
-            pushToken,
-            "Start Your Challenge",
-            "You haven't set today's challenge yet. What will you conquer today?"
-          );
-          console.log(`Sent morning challenge reminder to user ${userDoc.id} (${timezone})`);
-        }
-      } catch (error) {
-        console.error(`Error processing morning reminder for user ${userDoc.id}:`, error);
-      }
-    }
-  }
-);
-
-// ============================================
-// 2. Hourly check for 8 PM - Complete or congrats
-// Runs every hour and checks if it's 8 PM in user's timezone
-// ============================================
-export const eveningChallengeReminder = onSchedule(
-  {
-    schedule: "0 * * * *", // Every hour at minute 0
-    timeZone: "UTC",
+  team_activity: {
+    name: "Team activity",
+    description: "Notify team members when a teammate completes a challenge or habit. Placeholders: {username}, {activity_type}.",
+    enabled: true,
+    surface: "push",
+    event: "team_activity",
+    conditions: [],
+    frequency: { type: "always" },
+    priority: 20,
+    content: {
+      title: "Team Activity",
+      body: "{username} just completed a {activity_type}!",
+    },
   },
-  async () => {
-    console.log("Running evening reminder check...");
+  buddy_invite: {
+    name: "Buddy challenge invite",
+    description: "Notify the partner when they're invited to a buddy challenge. Placeholders: {inviter_username}, {challenge_name}.",
+    enabled: true,
+    surface: "push",
+    event: "buddy_invite",
+    conditions: [],
+    frequency: { type: "always" },
+    priority: 20,
+    content: {
+      title: "Buddy Challenge Invite!",
+      body: '{inviter_username} wants to do "{challenge_name}" with you!',
+    },
+  },
+  buddy_nudge: {
+    name: "Buddy nudge",
+    description: "Notify a user when their buddy sends them a nudge. Placeholders: {sender_username}.",
+    enabled: true,
+    surface: "push",
+    event: "buddy_nudge",
+    conditions: [],
+    frequency: { type: "always" },
+    priority: 20,
+    content: {
+      title: "Buddy Nudge!",
+      body: "{sender_username} sent you a nudge. You've got this!",
+    },
+  },
+  buddy_both_complete: {
+    name: "Buddy challenge complete",
+    description: "Notify both users when a buddy challenge is completed. Placeholders: {challenge_name}.",
+    enabled: true,
+    surface: "push",
+    event: "buddy_both_complete",
+    conditions: [],
+    frequency: { type: "always" },
+    priority: 20,
+    content: {
+      title: "Buddy Challenge Complete!",
+      body: 'You both crushed "{challenge_name}"! Check out your reflections.',
+    },
+  },
+  micro_commitment_followup: {
+    name: "Micro-commitment follow-up",
+    description: "Day-after check-in on a micro-exercise commitment. The 'Hour of day' condition sets the local send hour. Placeholders: {commitment}.",
+    enabled: true,
+    surface: "push",
+    event: "micro_commitment_followup",
+    conditions: [{ fact: "local_hour", op: "==", value: 10 }],
+    frequency: { type: "always" },
+    priority: 20,
+    content: {
+      title: "How did your commitment go?",
+      body: 'Yesterday you said: "{commitment}"',
+    },
+  },
+};
 
-    // Only fetch users whose timezone is currently at 8 PM
-    const userDocs = await getUsersAtHour(20);
-    console.log(`Found ${userDocs.length} users at 8 PM`);
+/**
+ * Load the highest-priority enabled push rule for an event. If NO rule
+ * document exists for the event (as opposed to existing but disabled), the
+ * default rule is auto-seeded enabled and returned.
+ */
+const getPushRuleForEvent = async (event: string): Promise<Rule | null> => {
+  const snap = await db.collection("rules").where("event", "==", event).get();
 
-    for (const userDoc of userDocs) {
-      try {
-        const userData = userDoc.data();
-        const pushToken = userData.expoPushToken;
-        const timezone = userData.timezone || "America/New_York";
-
-        if (!pushToken) continue;
-
-        const today = getDateInTimezone(timezone);
-
-        // Priority 1: Active program
-        const enrollmentSnapshot = await db
-          .collection("users")
-          .doc(userDoc.id)
-          .collection("programEnrollments")
-          .where("status", "==", "active")
-          .limit(1)
-          .get();
-
-        if (!enrollmentSnapshot.empty) {
-          const enrollment = enrollmentSnapshot.docs[0].data();
-          const dayNumber = getCurrentDayNumber(enrollment.start_date, today);
-
-          // Skip stale enrollments where dayNumber exceeds program duration
-          if (dayNumber > (enrollment.duration_days || Infinity)) {
-            console.log(`Skipping stale enrollment for user ${userDoc.id} (Day ${dayNumber} > ${enrollment.duration_days})`);
-            continue;
-          }
-
-          const percentComplete = Math.round(
-            (dayNumber / enrollment.duration_days) * 100
-          );
-          const milestones = enrollment.milestones || [];
-          const todayMilestone = milestones.find(
-            (m: { day_number: number }) => m.day_number === dayNumber
-          );
-
-          if (todayMilestone?.completed) {
-            const daysRemaining = enrollment.duration_days - dayNumber;
-            await sendPushNotification(
-              pushToken,
-              "Amazing Work Today!",
-              `Day ${dayNumber} of ${enrollment.program_name} — done! ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} to go.`
-            );
-            console.log(`Sent evening program congrats to user ${userDoc.id} (Day ${dayNumber})`);
-          } else {
-            await sendPushNotification(
-              pushToken,
-              `Complete Day ${dayNumber}`,
-              `Don't forget Day ${dayNumber} of ${enrollment.program_name}. You're ${percentComplete}% through!`
-            );
-            console.log(`Sent evening program reminder to user ${userDoc.id} (Day ${dayNumber})`);
-          }
-          continue;
-        }
-
-        // Priority 2: Active habits
-        const habitsSnapshot = await db
-          .collection("users")
-          .doc(userDoc.id)
-          .collection("habits")
-          .where("is_active", "==", true)
-          .get();
-
-        if (!habitsSnapshot.empty) {
-          const totalHabits = habitsSnapshot.size;
-
-          // Count unique habits completed today (single-field query + client-side filter)
-          const logsSnapshot = await db
-            .collection("users")
-            .doc(userDoc.id)
-            .collection("completionLogs")
-            .where("date", "==", today)
-            .get();
-
-          const completedHabitIds = new Set(
-            logsSnapshot.docs
-              .filter((d) => d.data().type === "nudge")
-              .map((d) => d.data().reference_id)
-          );
-          const remaining = totalHabits - completedHabitIds.size;
-
-          if (remaining > 0) {
-            await sendPushNotification(
-              pushToken,
-              "Finish Strong",
-              `You still have ${remaining} habit${remaining === 1 ? "" : "s"} left today. Finish strong.`
-            );
-            console.log(`Sent evening habit reminder to user ${userDoc.id} (${remaining} remaining)`);
-          } else {
-            await sendPushNotification(
-              pushToken,
-              "All Habits Logged!",
-              "All habits logged today. Nice consistency."
-            );
-            console.log(`Sent evening habit congrats to user ${userDoc.id}`);
-          }
-          continue;
-        }
-
-        // Priority 3: Fallback — challenge logic (send at most one notification)
-        const challengesSnapshot = await db
-          .collection("users")
-          .doc(userDoc.id)
-          .collection("challenges")
-          .where("date", "==", today)
-          .get();
-
-        if (challengesSnapshot.empty) continue;
-
-        const allCompleted = challengesSnapshot.docs.every(
-          (d) => d.data().status === "completed"
-        );
-        const anyActive = challengesSnapshot.docs.some(
-          (d) => d.data().status === "active"
-        );
-
-        if (anyActive) {
-          await sendPushNotification(
-            pushToken,
-            "Complete Your Challenge",
-            "Don't forget to complete your challenge today. You've got this!"
-          );
-          console.log(`Sent evening challenge reminder to user ${userDoc.id} (${timezone})`);
-        } else if (allCompleted) {
-          await sendPushNotification(
-            pushToken,
-            "Amazing Work Today!",
-            "You crushed your challenge! Keep the momentum going tomorrow."
-          );
-          console.log(`Sent evening challenge congrats to user ${userDoc.id} (${timezone})`);
-        }
-      } catch (error) {
-        console.error(`Error processing evening reminder for user ${userDoc.id}:`, error);
-      }
-    }
+  if (snap.empty) {
+    const def = DEFAULT_EVENT_RULES[event];
+    if (!def) return null;
+    const now = new Date().toISOString();
+    const ref = await db
+      .collection("rules")
+      .add({ ...def, created_at: now, updated_at: now });
+    console.log(`Auto-seeded default rule for event "${event}" (${ref.id})`);
+    return { ...def, id: ref.id, created_at: now, updated_at: now };
   }
-);
+
+  const rules = snap.docs
+    .map((d) => ({ ...(d.data() as Omit<Rule, "id">), id: d.id }))
+    .filter((r) => r.enabled && r.surface === "push")
+    .sort((a, b) => b.priority - a.priority);
+  return rules[0] ?? null;
+};
+
+// Per-run cache of shared content pools (tidbits, fun facts, reward
+// messages), loaded lazily — only when a rule's content references them.
+type PoolCache = Record<string, string[] | undefined>;
+
+const loadPool = async (key: string, cache: PoolCache): Promise<string[]> => {
+  const cached = cache[key];
+  if (cached) return cached;
+  let values: string[] = [];
+  if (key === "tidbit") {
+    const snap = await db.collection("neuroscienceTidbits").where("active", "==", true).get();
+    values = snap.docs.map((d) => d.data().text).filter(Boolean);
+  } else if (key === "fun_fact") {
+    const snap = await db.collection("funFacts").get();
+    values = snap.docs.map((d) => d.data().fact).filter(Boolean);
+  } else if (key === "reward_message") {
+    const snap = await db.collection("rewardMessages").where("active", "==", true).get();
+    values = snap.docs.map((d) => d.data().text).filter(Boolean);
+  }
+  cache[key] = values;
+  return values;
+};
+
+/**
+ * Resolve the global placeholders a rule references, for one user. Returns
+ * null when any referenced placeholder is unresolvable — per policy the
+ * rule then does not fire for that user at all.
+ */
+const resolveGlobalVars = async (
+  rule: Rule,
+  userId: string,
+  userData: Record<string, any>,
+  poolCache: PoolCache
+): Promise<Record<string, string> | null> => {
+  const keys = referencedGlobalKeys(rule.content);
+  if (keys.length === 0) return {};
+
+  const { vars, missing } = resolveUserGlobals(
+    keys.filter((k) => !POOL_PLACEHOLDER_KEYS.includes(k)),
+    userData
+  );
+  if (missing.length > 0) {
+    console.log(
+      `Rule "${rule.name}": user ${userId} has no value for {${missing.join("}, {")}} — skipping`
+    );
+    return null;
+  }
+
+  for (const key of keys.filter((k) => POOL_PLACEHOLDER_KEYS.includes(k))) {
+    let value: string | null = null;
+    if (key === "proof_point") {
+      const snap = await db.collection("users").doc(userId).collection("proofPoints").get();
+      const entries = snap.docs.map((d) => d.data().what_you_did).filter(Boolean);
+      value = entries.length ? entries[Math.floor(Math.random() * entries.length)] : null;
+    } else {
+      const pool = await loadPool(key, poolCache);
+      value = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+    }
+    if (!value || !String(value).trim()) {
+      console.log(`Rule "${rule.name}": no content for {${key}} (user ${userId}) — skipping`);
+      return null;
+    }
+    vars[key] = truncateForPush(String(value));
+  }
+  return vars;
+};
+
+/**
+ * Evaluate an event-triggered push rule for one recipient: condition match
+ * against their user facts, frequency cap via ruleState, template rendering,
+ * send, and fire recording. Returns true if a push was sent.
+ */
+const fireEventRuleForUser = async (
+  rule: Rule,
+  userId: string,
+  userData: Record<string, any> | undefined,
+  templateVars: Record<string, string>,
+  data?: Record<string, string>
+): Promise<boolean> => {
+  const pushToken = userData?.expoPushToken;
+  if (!userData || !pushToken || !Expo.isExpoPushToken(pushToken)) {
+    console.log(`No valid push token for user ${userId} — skipping rule "${rule.name}"`);
+    return false;
+  }
+
+  const timezone = userData.timezone || "America/New_York";
+  const localHour = getHourInTimezone(timezone);
+  if (localHour < 0) return false; // invalid timezone
+  const todayLocal = getDateInTimezone(timezone);
+  const facts = buildUserFacts(userData, todayLocal, localHour);
+
+  if (!ruleMatches(rule, facts)) {
+    console.log(`Rule "${rule.name}" conditions not met for user ${userId}`);
+    return false;
+  }
+
+  const stateRef = db
+    .collection("users")
+    .doc(userId)
+    .collection("ruleState")
+    .doc(rule.id);
+  const stateSnap = await stateRef.get();
+  const state = stateSnap.exists ? (stateSnap.data() as RuleState) : null;
+  const nowIso = new Date().toISOString();
+  if (!frequencyAllows(rule, state, nowIso, todayLocal)) {
+    console.log(`Rule "${rule.name}" frequency cap blocked user ${userId}`);
+    return false;
+  }
+
+  // Global placeholders ({tidbit}, {why_statement}, ...); unresolvable → no
+  // push for this user. Event vars win on key collisions (e.g. {username}
+  // on team_activity is the teammate, not the recipient).
+  const globalVars = await resolveGlobalVars(rule, userId, userData, {});
+  if (globalVars === null) return false;
+  const vars = { ...globalVars, ...templateVars };
+
+  await sendPushNotification(
+    pushToken,
+    renderTemplate(rule.content.title, vars),
+    renderTemplate(rule.content.body, vars),
+    { rule_id: rule.id, ...ctaTargetData(rule), ...data }
+  );
+  await stateRef.set(
+    {
+      rule_id: rule.id,
+      last_fired_at: nowIso,
+      last_fired_date: todayLocal,
+      fire_count: admin.firestore.FieldValue.increment(1),
+    },
+    { merge: true }
+  );
+  console.log(`Rule "${rule.name}" fired for user ${userId}`);
+  return true;
+};
 
 // ============================================
 // 3. Challenge Failed: Immediate encouragement
@@ -421,46 +425,26 @@ export const eveningChallengeReminder = onSchedule(
 export const onChallengeFailure = onDocumentUpdated(
   "users/{userId}/challenges/{challengeId}",
   async (event) => {
-    console.log("onChallengeFailure triggered");
+    if (!PUSH_NOTIFICATIONS_ENABLED) return;
 
     const beforeData = event.data?.before.data();
     const afterData = event.data?.after.data();
+    if (!beforeData || !afterData) return;
 
-    console.log("Before status:", beforeData?.status);
-    console.log("After status:", afterData?.status);
+    // Only trigger when status changes TO 'failed'
+    if (beforeData.status === "failed" || afterData.status !== "failed") return;
 
-    if (!beforeData || !afterData) {
-      console.log("Missing before or after data");
+    const rule = await getPushRuleForEvent("challenge_failed");
+    if (!rule) {
+      console.log("No enabled challenge_failed rule — skipping");
       return;
     }
 
-    // Only trigger when status changes TO 'failed'
-    if (beforeData.status !== "failed" && afterData.status === "failed") {
-      console.log("Status changed to failed - sending notification");
-      const userId = event.params.userId;
-
-      // Get user's push token
-      const userDoc = await db.collection("users").doc(userId).get();
-      const userData = userDoc.data();
-
-      console.log("User ID:", userId);
-      console.log("Push token:", userData?.expoPushToken);
-
-      if (!userData?.expoPushToken) {
-        console.log("No push token found for user");
-        return;
-      }
-
-      await sendPushNotification(
-        userData.expoPushToken,
-        "Growth Through Effort",
-        "Failure is part of the journey. The fact that you tried is what matters most. Every attempt builds your willpower."
-      );
-
-      console.log(`Sent encouragement to user ${userId} after challenge failure`);
-    } else {
-      console.log("Status change condition not met");
-    }
+    const userId = event.params.userId;
+    const userDoc = await db.collection("users").doc(userId).get();
+    await fireEventRuleForUser(rule, userId, userDoc.data(), {
+      challenge_name: afterData.name || "your challenge",
+    });
   }
 );
 
@@ -472,95 +456,50 @@ export const onChallengeFailure = onDocumentUpdated(
 export const sendTeamActivityNotification = onDocumentCreated(
   "teams/{teamId}/activity/{activityId}",
   async (event) => {
-    console.log("sendTeamActivityNotification triggered");
+    if (!PUSH_NOTIFICATIONS_ENABLED) return;
 
     const activity = event.data?.data();
     const teamId = event.params.teamId;
+    if (!activity) return;
 
-    if (!activity) {
-      console.log("No activity data found");
+    const rule = await getPushRuleForEvent("team_activity");
+    if (!rule) {
+      console.log("No enabled team_activity rule — skipping");
       return;
     }
 
-    console.log("Activity:", activity);
-
     // Get the completing user's username
     const completingUserDoc = await db.collection("users").doc(activity.user_id).get();
-    const completingUserData = completingUserDoc.data();
-    const username = completingUserData?.username || "A teammate";
+    const username = completingUserDoc.data()?.username || "A teammate";
+    const activityType = activity.type === "challenge" ? "challenge" : "habit";
 
-    console.log(`User ${username} completed a ${activity.type}`);
-
-    // Get all team members
+    // Notify all other team members who have opted in
     const membersSnapshot = await db
       .collection("teams")
       .doc(teamId)
       .collection("members")
       .get();
 
-    const notifications: ExpoPushMessage[] = [];
-
     for (const memberDoc of membersSnapshot.docs) {
       const member = memberDoc.data();
 
       // Skip the user who completed the activity
-      if (member.user_id === activity.user_id) {
-        console.log(`Skipping notification for completing user ${member.user_id}`);
-        continue;
-      }
+      if (member.user_id === activity.user_id) continue;
 
-      // Check notification preference based on activity type
+      // Per-member opt-out lives in team settings, separate from the rule
       const settingsKey = activity.type === "challenge"
         ? "challenge_completions"
         : "habit_completions";
-
       if (!member.notification_settings?.[settingsKey]) {
         console.log(`User ${member.user_id} has ${settingsKey} notifications disabled`);
         continue;
       }
 
-      // Get member's push token
       const userDoc = await db.collection("users").doc(member.user_id).get();
-      const userData = userDoc.data();
-      const pushToken = userData?.expoPushToken;
-
-      if (!pushToken) {
-        console.log(`No push token for user ${member.user_id}`);
-        continue;
-      }
-
-      if (!Expo.isExpoPushToken(pushToken)) {
-        console.log(`Invalid push token for user ${member.user_id}`);
-        continue;
-      }
-
-      // Build message without category
-      const activityType = activity.type === "challenge" ? "challenge" : "habit";
-      const title = "Team Activity";
-      const body = `${username} just completed a ${activityType}!`;
-
-      notifications.push({
-        to: pushToken,
-        sound: "default",
-        title,
-        body,
+      await fireEventRuleForUser(rule, member.user_id, userDoc.data(), {
+        username,
+        activity_type: activityType,
       });
-
-      console.log(`Queued notification for user ${member.user_id}`);
-    }
-
-    // Send all notifications
-    if (notifications.length > 0 && PUSH_NOTIFICATIONS_ENABLED) {
-      console.log(`Sending ${notifications.length} notifications`);
-      const chunks = expo.chunkPushNotifications(notifications);
-      for (const chunk of chunks) {
-        await expo.sendPushNotificationsAsync(chunk);
-      }
-      console.log("All team activity notifications sent");
-    } else if (notifications.length > 0) {
-      console.log(`Push notifications disabled — skipping ${notifications.length} team notifications`);
-    } else {
-      console.log("No notifications to send");
     }
   }
 );
@@ -573,40 +512,26 @@ export const sendTeamActivityNotification = onDocumentCreated(
 export const sendBuddyChallengeInvite = onDocumentCreated(
   "buddyChallenges/{buddyChallengeId}",
   async (event) => {
-    console.log("sendBuddyChallengeInvite triggered");
+    if (!PUSH_NOTIFICATIONS_ENABLED) return;
 
     const data = event.data?.data();
-    if (!data) {
-      console.log("No buddy challenge data found");
-      return;
-    }
+    if (!data) return;
 
     // Only notify on pending invites
-    if (data.status !== "pending") {
-      console.log("Buddy challenge status is not pending, skipping");
+    if (data.status !== "pending") return;
+
+    const rule = await getPushRuleForEvent("buddy_invite");
+    if (!rule) {
+      console.log("No enabled buddy_invite rule — skipping");
       return;
     }
 
     const partnerId = data.partner_id;
-    const inviterUsername = data.inviter_username || "A teammate";
-    const challengeName = data.challenge_name || "a challenge";
-
-    // Get partner's push token
     const partnerDoc = await db.collection("users").doc(partnerId).get();
-    const partnerData = partnerDoc.data();
-
-    if (!partnerData?.expoPushToken) {
-      console.log(`No push token for partner ${partnerId}`);
-      return;
-    }
-
-    await sendPushNotification(
-      partnerData.expoPushToken,
-      "Buddy Challenge Invite!",
-      `${inviterUsername} wants to do "${challengeName}" with you!`
-    );
-
-    console.log(`Sent buddy challenge invite notification to partner ${partnerId}`);
+    await fireEventRuleForUser(rule, partnerId, partnerDoc.data(), {
+      inviter_username: data.inviter_username || "A teammate",
+      challenge_name: data.challenge_name || "a challenge",
+    });
   }
 );
 
@@ -617,6 +542,8 @@ export const sendBuddyChallengeInvite = onDocumentCreated(
 export const sendBuddyChallengeNudge = onDocumentUpdated(
   "buddyChallenges/{buddyChallengeId}",
   async (event) => {
+    if (!PUSH_NOTIFICATIONS_ENABLED) return;
+
     const beforeData = event.data?.before.data();
     const afterData = event.data?.after.data();
 
@@ -634,28 +561,22 @@ export const sendBuddyChallengeNudge = onDocumentUpdated(
 
     if (!inviterNudged && !partnerNudged) return;
 
+    const rule = await getPushRuleForEvent("buddy_nudge");
+    if (!rule) {
+      console.log("No enabled buddy_nudge rule — skipping");
+      return;
+    }
+
     // Determine who to notify
     const targetUserId = inviterNudged ? afterData.partner_id : afterData.inviter_id;
     const senderUsername = inviterNudged
       ? (afterData.inviter_username || "Your buddy")
       : (afterData.partner_username || "Your buddy");
 
-    // Get target's push token
     const targetDoc = await db.collection("users").doc(targetUserId).get();
-    const targetData = targetDoc.data();
-
-    if (!targetData?.expoPushToken) {
-      console.log(`No push token for nudge target ${targetUserId}`);
-      return;
-    }
-
-    await sendPushNotification(
-      targetData.expoPushToken,
-      "Buddy Nudge!",
-      `${senderUsername} sent you a nudge. You've got this!`
-    );
-
-    console.log(`Sent nudge notification to ${targetUserId}`);
+    await fireEventRuleForUser(rule, targetUserId, targetDoc.data(), {
+      sender_username: senderUsername,
+    });
   }
 );
 
@@ -667,6 +588,8 @@ export const sendBuddyChallengeNudge = onDocumentUpdated(
 export const sendBuddyBothComplete = onDocumentUpdated(
   "buddyChallenges/{buddyChallengeId}",
   async (event) => {
+    if (!PUSH_NOTIFICATIONS_ENABLED) return;
+
     const beforeData = event.data?.before.data();
     const afterData = event.data?.after.data();
 
@@ -675,51 +598,23 @@ export const sendBuddyBothComplete = onDocumentUpdated(
     // Only trigger when status changes TO 'completed'
     if (beforeData.status === "completed" || afterData.status !== "completed") return;
 
-    const challengeName = afterData.challenge_name || "a challenge";
+    const rule = await getPushRuleForEvent("buddy_both_complete");
+    if (!rule) {
+      console.log("No enabled buddy_both_complete rule — skipping");
+      return;
+    }
+
+    const templateVars = { challenge_name: afterData.challenge_name || "a challenge" };
     const inviterId = afterData.inviter_id;
     const partnerId = afterData.partner_id;
 
-    // Fetch both users' push tokens in parallel
     const [inviterDoc, partnerDoc] = await Promise.all([
       db.collection("users").doc(inviterId).get(),
       db.collection("users").doc(partnerId).get(),
     ]);
 
-    const inviterData = inviterDoc.data();
-    const partnerData = partnerDoc.data();
-
-    const title = "Buddy Challenge Complete!";
-    const body = `You both crushed "${challengeName}"! Check out your reflections.`;
-
-    const notifications: ExpoPushMessage[] = [];
-
-    if (inviterData?.expoPushToken && Expo.isExpoPushToken(inviterData.expoPushToken)) {
-      notifications.push({
-        to: inviterData.expoPushToken,
-        sound: "default",
-        title,
-        body,
-      });
-    }
-
-    if (partnerData?.expoPushToken && Expo.isExpoPushToken(partnerData.expoPushToken)) {
-      notifications.push({
-        to: partnerData.expoPushToken,
-        sound: "default",
-        title,
-        body,
-      });
-    }
-
-    if (notifications.length > 0 && PUSH_NOTIFICATIONS_ENABLED) {
-      const chunks = expo.chunkPushNotifications(notifications);
-      for (const chunk of chunks) {
-        await expo.sendPushNotificationsAsync(chunk);
-      }
-      console.log(`Sent both-complete notifications for buddy challenge ${event.params.buddyChallengeId}`);
-    } else if (notifications.length > 0) {
-      console.log(`Push notifications disabled — skipping buddy both-complete notifications`);
-    }
+    await fireEventRuleForUser(rule, inviterId, inviterDoc.data(), templateVars);
+    await fireEventRuleForUser(rule, partnerId, partnerDoc.data(), templateVars);
   }
 );
 
@@ -931,11 +826,25 @@ export const checkMicroCommitmentFollowUps = onSchedule(
     timeZone: "UTC",
   },
   async () => {
+    if (!PUSH_NOTIFICATIONS_ENABLED) {
+      console.log("Push notifications disabled — skipping commitment follow-ups");
+      return;
+    }
     console.log("Running micro commitment follow-up check...");
 
-    // Only fetch users whose timezone is currently at 10 AM
-    const userDocs = await getUsersAtHour(10);
-    console.log(`Found ${userDocs.length} users at 10 AM`);
+    const rule = await getPushRuleForEvent("micro_commitment_followup");
+    if (!rule) {
+      console.log("No enabled micro_commitment_followup rule — skipping");
+      return;
+    }
+
+    // The rule's "Hour of day ==" condition sets the local send hour
+    const hourCond = rule.conditions.find((c) => c.fact === "local_hour" && c.op === "==");
+    const targetHour = hourCond ? hourCond.value : 10;
+
+    // Only fetch users whose timezone is currently at the target hour
+    const userDocs = await getUsersAtHour(targetHour);
+    console.log(`Found ${userDocs.length} users at hour ${targetHour}`);
 
     for (const userDoc of userDocs) {
       try {
@@ -982,10 +891,11 @@ export const checkMicroCommitmentFollowUps = onSchedule(
               ? commitment.substring(0, 77) + "..."
               : commitment;
 
-          await sendPushNotification(
-            pushToken,
-            "How did your commitment go?",
-            `Yesterday you said: "${displayCommitment}"`,
+          const sent = await fireEventRuleForUser(
+            rule,
+            userDoc.id,
+            userData,
+            { commitment: displayCommitment },
             {
               screen: "MicroExerciseFollowUp",
               entry_id: exerciseDoc.id,
@@ -993,12 +903,10 @@ export const checkMicroCommitmentFollowUps = onSchedule(
             }
           );
 
-          // Mark as sent so we don't send again
-          await exerciseDoc.ref.update({ commitment_follow_up_sent: true });
-
-          console.log(
-            `Sent commitment follow-up to user ${userDoc.id} for entry ${exerciseDoc.id}`
-          );
+          if (sent) {
+            // Mark as sent so we don't send again
+            await exerciseDoc.ref.update({ commitment_follow_up_sent: true });
+          }
         }
       } catch (error) {
         console.error(
@@ -1115,6 +1023,7 @@ export const evaluatePushRules = onSchedule(
       .get();
 
     const nowIso = new Date().toISOString();
+    const poolCache: PoolCache = {};
     let sentCount = 0;
 
     for (const userDoc of usersSnap.docs) {
@@ -1148,11 +1057,16 @@ export const evaluatePushRules = onSchedule(
               : rule;
           if (!frequencyAllows(effectiveRule, state, nowIso, todayLocal)) continue;
 
+          // Global placeholders; unresolvable for this user → try the next
+          // rule rather than sending broken copy
+          const globalVars = await resolveGlobalVars(rule, userDoc.id, userData, poolCache);
+          if (globalVars === null) continue;
+
           await sendPushNotification(
             pushToken,
-            rule.content.title,
-            rule.content.body,
-            { rule_id: rule.id }
+            renderTemplate(rule.content.title, globalVars),
+            renderTemplate(rule.content.body, globalVars),
+            { rule_id: rule.id, ...ctaTargetData(rule) }
           );
           await stateRef.set(
             {

@@ -3,6 +3,7 @@ import {
   conditionMet,
   daysBetween,
   frequencyAllows,
+  renderTemplate,
   ruleMatches,
   selectFiringRules,
 } from '../rulesEngine';
@@ -149,5 +150,75 @@ describe('selectFiringRules', () => {
       '2026-06-10'
     );
     expect(result.map((r) => r.id)).toEqual(['comeback', 'low']);
+  });
+});
+
+describe('renderTemplate', () => {
+  it('replaces known placeholders', () => {
+    expect(
+      renderTemplate('{username} just completed a {activity_type}!', {
+        username: 'Alex',
+        activity_type: 'challenge',
+      })
+    ).toBe('Alex just completed a challenge!');
+  });
+
+  it('leaves unknown placeholders literal so admin typos are visible', () => {
+    expect(renderTemplate('Hi {usernme}', { username: 'Alex' })).toBe('Hi {usernme}');
+  });
+
+  it('replaces repeated placeholders and handles empty vars', () => {
+    expect(renderTemplate('{a} and {a}', { a: 'x' })).toBe('x and x');
+    expect(renderTemplate('No placeholders here', {})).toBe('No placeholders here');
+  });
+
+  it('substitutes empty-string values rather than treating them as missing', () => {
+    expect(renderTemplate('[{name}]', { name: '' })).toBe('[]');
+  });
+});
+
+describe('global placeholders', () => {
+  const { referencedGlobalKeys, resolveUserGlobals, truncateForPush } = require('../rulesEngine');
+
+  it('detects which globals a rule references', () => {
+    expect(
+      referencedGlobalKeys({ title: 'Hey {username}', body: 'Tip: {tidbit} ({streak} days)' })
+    ).toEqual(['username', 'streak', 'tidbit']);
+    expect(referencedGlobalKeys({ title: 'Plain', body: 'No tokens' })).toEqual([]);
+  });
+
+  it('resolves user-document globals and reports missing ones', () => {
+    const { vars, missing } = resolveUserGlobals(
+      ['username', 'why_statement', 'streak', 'xp'],
+      { username: 'Alex', currentStreak: 4, totalWillpowerPoints: 120 }
+    );
+    expect(vars).toEqual({ username: 'Alex', streak: '4', xp: '120' });
+    expect(missing).toEqual(['why_statement']);
+  });
+
+  it('treats numeric zero as a value, not missing', () => {
+    const { vars, missing } = resolveUserGlobals(['streak', 'xp'], {});
+    expect(vars).toEqual({ streak: '0', xp: '0' });
+    expect(missing).toEqual([]);
+  });
+
+  it('resolves the active mantra, falling back to first then legacy field', () => {
+    const mantras = [
+      { id: 'a', text: 'First mantra' },
+      { id: 'b', text: 'Active mantra' },
+    ];
+    expect(resolveUserGlobals(['mantra'], { mantras, active_mantra_id: 'b' }).vars.mantra).toBe(
+      'Active mantra'
+    );
+    expect(resolveUserGlobals(['mantra'], { mantras }).vars.mantra).toBe('First mantra');
+    expect(resolveUserGlobals(['mantra'], { redirect_mantra: 'Legacy' }).vars.mantra).toBe('Legacy');
+    expect(resolveUserGlobals(['mantra'], {}).missing).toEqual(['mantra']);
+  });
+
+  it('truncates long pool content for pushes', () => {
+    expect(truncateForPush('short')).toBe('short');
+    const long = 'x'.repeat(200);
+    expect(truncateForPush(long).length).toBe(120);
+    expect(truncateForPush(long).endsWith('...')).toBe(true);
   });
 });

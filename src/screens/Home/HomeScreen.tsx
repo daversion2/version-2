@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -57,6 +58,10 @@ import { HomeData, HomeCallbacks, WillpowerStatsData } from './sections/types';
 import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/homeLayout';
 import { ZoneHeader } from '../../components/home/ZoneHeader';
 import { getActiveMantraText } from '../../services/mantras';
+import { RuleModal } from '../../components/common/RuleModal';
+import { RuleBanner } from '../../components/common/RuleBanner';
+import { useRuleSurfaces } from '../../hooks/useRuleSurfaces';
+import { CTA_TAB_TARGETS } from '../../types/rules';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
@@ -117,6 +122,50 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Track app opens
   const appOpenTrackedRef = useRef(false);
+
+  // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
+  // The modal is held while any bespoke modal is up so they never stack.
+  const anyModalActive =
+    comebackVisible ||
+    storyReminderVisible ||
+    pointsIntroVisible ||
+    planIntroVisible ||
+    goalPromptVisible ||
+    challengesUnlockVisible ||
+    celebrationVisible ||
+    habitTidbitVisible ||
+    habitLearnMoreVisible ||
+    showPointsPopup ||
+    !!completingHabit;
+  const {
+    modalRule: ruleModalRule,
+    modalVisible: ruleModalVisible,
+    dismissModal: dismissRuleModal,
+    bannerRule: ruleBannerRule,
+    dismissBanner: dismissRuleBanner,
+  } = useRuleSurfaces('app_open', anyModalActive);
+
+  // Rule modal CTA: dismiss, then follow the rule's target (screen or URL)
+  const handleRuleModalCta = useCallback(() => {
+    dismissRuleModal();
+    const target = ruleModalRule?.content.cta_target;
+    if (!target) return;
+    try {
+      if (target.type === 'url' && target.url) {
+        Linking.openURL(target.url).catch((err) =>
+          console.warn('Failed to open CTA URL:', err)
+        );
+      } else if (target.type === 'screen' && target.screen) {
+        if (CTA_TAB_TARGETS.includes(target.screen)) {
+          navigation.getParent()?.navigate(target.screen as any);
+        } else {
+          navigation.navigate(target.screen as any);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to follow CTA target:', err);
+    }
+  }, [dismissRuleModal, ruleModalRule, navigation]);
 
   const handlePopupComplete = useCallback(() => {
     setShowPointsPopup(false);
@@ -677,6 +726,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
       >
+        <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
+
         {zonedLayout.map((group) => (
           <React.Fragment key={group.zone.id}>
             {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
@@ -815,6 +866,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           }
         }}
         onDismiss={() => setStoryReminderVisible(false)}
+      />
+      <RuleModal
+        rule={ruleModalRule}
+        visible={ruleModalVisible}
+        onDismiss={dismissRuleModal}
+        onCtaPress={handleRuleModalCta}
       />
       <HabitTidbitModal
         visible={habitTidbitVisible}

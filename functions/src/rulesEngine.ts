@@ -22,7 +22,12 @@ export type RuleEvent =
   | "app_open"
   | "habit_completed"
   | "challenge_failed"
-  | "reflection_saved";
+  | "reflection_saved"
+  | "team_activity"
+  | "buddy_invite"
+  | "buddy_nudge"
+  | "buddy_both_complete"
+  | "micro_commitment_followup";
 
 export type RuleFrequencyType = "once_ever" | "once_per_day" | "cooldown_hours" | "always";
 
@@ -31,11 +36,30 @@ export interface RuleFrequency {
   hours?: number;
 }
 
+export interface RuleCtaTarget {
+  type: "screen" | "url";
+  screen?: string;
+  url?: string;
+}
+
 export interface RuleContent {
   title: string;
   body: string;
   cta?: string;
+  cta_target?: RuleCtaTarget;
 }
+
+/**
+ * Push data payload entries for a rule's CTA target. The client's
+ * notification-tap handler navigates to `cta_screen` or opens `cta_url`.
+ */
+export const ctaTargetData = (rule: Rule): Record<string, string> => {
+  const target = rule.content?.cta_target;
+  if (!target) return {};
+  if (target.type === "url" && target.url) return { cta_url: target.url };
+  if (target.type === "screen" && target.screen) return { cta_screen: target.screen };
+  return {};
+};
 
 export interface Rule {
   id: string;
@@ -109,6 +133,92 @@ export const frequencyAllows = (
     default:
       return false;
   }
+};
+
+/**
+ * Render {placeholder} tokens in rule content using event-supplied variables
+ * (e.g. {username}, {challenge_name}). Unknown placeholders are left literal
+ * so a typo in the admin UI is visible rather than silently blanked.
+ */
+export const renderTemplate = (text: string, vars: Record<string, string>): string =>
+  text.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? vars[key] : match));
+
+/**
+ * Global placeholders, available on every rule regardless of event. The
+ * first group resolves from the user document; the POOL keys resolve from a
+ * random pick out of a content collection. Policy: if a referenced global
+ * can't be resolved for a user, the rule does NOT fire for them at all.
+ */
+export const GLOBAL_PLACEHOLDER_KEYS = [
+  "username",
+  "why_statement",
+  "mantra",
+  "streak",
+  "xp",
+  "tidbit",
+  "fun_fact",
+  "reward_message",
+  "proof_point",
+];
+
+/** The subset of globals drawn randomly from a content pool. */
+export const POOL_PLACEHOLDER_KEYS = ["tidbit", "fun_fact", "reward_message", "proof_point"];
+
+/** Which global placeholders a rule's content actually references. */
+export const referencedGlobalKeys = (content: { title: string; body: string }): string[] => {
+  const text = `${content.title} ${content.body}`;
+  return GLOBAL_PLACEHOLDER_KEYS.filter((k) => text.includes(`{${k}}`));
+};
+
+/** Keep pool content short enough for a push notification body. */
+export const truncateForPush = (text: string, max = 120): string =>
+  text.length > max ? text.substring(0, max - 3) + "..." : text;
+
+/**
+ * Resolve user-document globals (not pool keys — the caller handles those,
+ * since pools need a Firestore fetch). Empty/absent values land in `missing`.
+ */
+export const resolveUserGlobals = (
+  keys: string[],
+  userData: Record<string, any>
+): { vars: Record<string, string>; missing: string[] } => {
+  const vars: Record<string, string> = {};
+  const missing: string[] = [];
+  for (const key of keys) {
+    let value: string | null = null;
+    switch (key) {
+      case "username":
+        value = userData.username || null;
+        break;
+      case "why_statement":
+        value = userData.why_statement || null;
+        break;
+      case "mantra": {
+        // Mirrors getActiveMantraText: active mantra, else first, else legacy field
+        const mantras = userData.mantras;
+        if (Array.isArray(mantras) && mantras.length > 0) {
+          const active = userData.active_mantra_id
+            ? mantras.find((m: any) => m && m.id === userData.active_mantra_id)
+            : null;
+          value = (active && active.text) || mantras[0]?.text || null;
+        } else {
+          value = userData.redirect_mantra || null;
+        }
+        break;
+      }
+      case "streak":
+        value = String(userData.currentStreak ?? 0);
+        break;
+      case "xp":
+        value = String(userData.totalWillpowerPoints ?? 0);
+        break;
+      default:
+        continue; // pool keys resolved by the caller
+    }
+    if (value === null || String(value).trim() === "") missing.push(key);
+    else vars[key] = String(value);
+  }
+  return { vars, missing };
 };
 
 /** Days between two YYYY-MM-DD dates (today - past). */

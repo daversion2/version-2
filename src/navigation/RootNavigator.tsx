@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, View } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
@@ -15,7 +15,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const navigateToFollowUp = (
   navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList> | null>,
   data: Record<string, string>
-) => {
+): boolean => {
   if (data.screen === 'MicroExerciseFollowUp' && data.entry_id && data.user_id) {
     navigationRef.current?.navigate('Main', {
       screen: 'Home',
@@ -24,7 +24,45 @@ const navigateToFollowUp = (
         params: { entry_id: data.entry_id, user_id: data.user_id },
       },
     });
+    return true;
   }
+  return false;
+};
+
+// Rules-engine CTA targets: pushes carry cta_screen (curated screen/tab name)
+// or cta_url (external link) in their data payload.
+const navigateToRuleCta = (
+  navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList> | null>,
+  data: Record<string, string>
+) => {
+  try {
+    if (data.cta_url) {
+      Linking.openURL(data.cta_url).catch((err) =>
+        console.warn('Failed to open CTA URL:', err)
+      );
+      return;
+    }
+    if (data.cta_screen) {
+      if (data.cta_screen === 'Progress' || data.cta_screen === 'Tools') {
+        navigationRef.current?.navigate('Main', { screen: data.cta_screen } as any);
+      } else {
+        navigationRef.current?.navigate('Main', {
+          screen: 'Home',
+          params: { screen: data.cta_screen },
+        } as any);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to navigate to CTA target:', err);
+  }
+};
+
+const handleNotificationData = (
+  navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList> | null>,
+  data: Record<string, string>
+) => {
+  if (navigateToFollowUp(navigationRef, data)) return;
+  navigateToRuleCta(navigationRef, data);
 };
 
 export const RootNavigator: React.FC = () => {
@@ -39,13 +77,13 @@ export const RootNavigator: React.FC = () => {
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;
       const data = response.notification.request.content.data as Record<string, string>;
-      if (data) navigateToFollowUp(navigationRef, data);
+      if (data) handleNotificationData(navigationRef, data);
     });
 
     // Handle foreground/background: app already open when notification tapped
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, string>;
-      if (data) navigateToFollowUp(navigationRef, data);
+      if (data) handleNotificationData(navigationRef, data);
     });
 
     return () => sub.remove();

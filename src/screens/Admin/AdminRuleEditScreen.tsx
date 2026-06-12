@@ -16,6 +16,7 @@ import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { showAlert } from '../../utils/alert';
 import { getRuleById, createRule, updateRule } from '../../services/rules';
+import { GLOBAL_PLACEHOLDER_KEYS } from '../../services/rulesEngine';
 import {
   Rule,
   RuleCondition,
@@ -29,6 +30,10 @@ import {
   RULE_FACTS,
   RULE_OPERATORS,
   FactKey,
+  PUSH_EVENTS,
+  EVENT_PLACEHOLDERS,
+  RuleCtaTarget,
+  CTA_SCREEN_TARGETS,
 } from '../../types/rules';
 import { AdminNavigation, AdminStackParamList } from '../../types/navigation';
 
@@ -48,6 +53,14 @@ const FREQUENCIES: { value: RuleFrequencyType; label: string }[] = [
 ];
 
 const FACT_KEYS = Object.keys(RULE_FACTS) as FactKey[];
+
+type CtaTargetType = 'none' | 'screen' | 'url';
+
+const CTA_TARGET_TYPES: { value: CtaTargetType; label: string }[] = [
+  { value: 'none', label: 'Nothing (just dismiss)' },
+  { value: 'screen', label: 'Open app screen' },
+  { value: 'url', label: 'Open URL' },
+];
 
 interface ChipRowProps<T extends string> {
   options: { value: T; label: string }[];
@@ -93,6 +106,9 @@ export const AdminRuleEditScreen: React.FC = () => {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [cta, setCta] = useState('');
+  const [ctaTargetType, setCtaTargetType] = useState<CtaTargetType>('none');
+  const [ctaScreen, setCtaScreen] = useState(CTA_SCREEN_TARGETS[0].value);
+  const [ctaUrl, setCtaUrl] = useState('');
 
   useEffect(() => {
     if (mode !== 'edit' || !ruleId) return;
@@ -115,6 +131,14 @@ export const AdminRuleEditScreen: React.FC = () => {
         setTitle(rule.content.title);
         setBody(rule.content.body);
         setCta(rule.content.cta || '');
+        const target = rule.content.cta_target;
+        if (target?.type === 'screen' && target.screen) {
+          setCtaTargetType('screen');
+          setCtaScreen(target.screen);
+        } else if (target?.type === 'url' && target.url) {
+          setCtaTargetType('url');
+          setCtaUrl(target.url);
+        }
       } catch (error: any) {
         showAlert('Error', error.message);
       } finally {
@@ -170,6 +194,19 @@ export const AdminRuleEditScreen: React.FC = () => {
       }
     }
 
+    // CTA targets apply to modal CTAs and push taps; banners have no CTA
+    const ctaTargetApplies = surface === 'modal' || surface === 'push';
+    if (ctaTargetApplies && ctaTargetType === 'url' && !/^https?:\/\/\S+$/.test(ctaUrl.trim())) {
+      showAlert('Invalid URL', 'The CTA URL must start with http:// or https://.');
+      return;
+    }
+    let ctaTarget: RuleCtaTarget | undefined;
+    if (ctaTargetApplies && ctaTargetType === 'screen') {
+      ctaTarget = { type: 'screen', screen: ctaScreen };
+    } else if (ctaTargetApplies && ctaTargetType === 'url') {
+      ctaTarget = { type: 'url', url: ctaUrl.trim() };
+    }
+
     const frequency: RuleFrequency =
       frequencyType === 'cooldown_hours'
         ? { type: frequencyType, hours: parsedHours }
@@ -178,6 +215,7 @@ export const AdminRuleEditScreen: React.FC = () => {
       title: title.trim(),
       body: body.trim(),
       ...(cta.trim() ? { cta: cta.trim() } : {}),
+      ...(ctaTarget ? { cta_target: ctaTarget } : {}),
     };
     const payload: Omit<Rule, 'id' | 'created_at' | 'updated_at'> = {
       name: name.trim(),
@@ -246,10 +284,23 @@ export const AdminRuleEditScreen: React.FC = () => {
           <ChipRow options={SURFACES} selected={surface} onSelect={setSurface} />
           <Text style={styles.fieldLabel}>Evaluated on</Text>
           <ChipRow options={RULE_EVENTS} selected={event} onSelect={setEvent} />
-          {surface === 'push' && event !== 'scheduled_hourly' && (
+          {surface === 'push' && !PUSH_EVENTS.includes(event) && (
             <Text style={styles.warnText}>
-              Push rules are only evaluated on the hourly schedule — pick "Hourly schedule" for
-              push.
+              Push rules aren't evaluated on this event yet — it's a client-side event reserved
+              for in-app surfaces. Pick a server event (Hourly schedule, Challenge failed, the
+              buddy/team events, or Micro-commitment follow-up).
+            </Text>
+          )}
+          {surface !== 'push' && PUSH_EVENTS.includes(event) && (
+            <Text style={styles.warnText}>
+              This event is evaluated server-side for push notifications only — in-app surfaces
+              won't fire on it. Pick "App open" for modals and banners.
+            </Text>
+          )}
+          {surface !== 'push' && !PUSH_EVENTS.includes(event) && event !== 'app_open' && (
+            <Text style={styles.warnText}>
+              In-app surfaces are only evaluated on "App open" so far — this event is planned but
+              not wired yet.
             </Text>
           )}
         </Card>
@@ -328,6 +379,18 @@ export const AdminRuleEditScreen: React.FC = () => {
         {/* Content */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Content</Text>
+          {(EVENT_PLACEHOLDERS[event] ?? []).length > 0 && (
+            <Text style={styles.hintText}>
+              This event fills in placeholders:{' '}
+              {(EVENT_PLACEHOLDERS[event] ?? []).map((p) => `{${p}}`).join(', ')} — use them in
+              the title or body.
+            </Text>
+          )}
+          <Text style={styles.hintText}>
+            Always available: {GLOBAL_PLACEHOLDER_KEYS.map((p) => `{${p}}`).join(', ')}. If a
+            user has no value for one you use (e.g. no why statement), the rule silently skips
+            them.
+          </Text>
           <InputField label="Title" value={title} onChangeText={setTitle} placeholder="We miss you" />
           <InputField
             label="Body"
@@ -338,13 +401,44 @@ export const AdminRuleEditScreen: React.FC = () => {
             numberOfLines={3}
             style={styles.bodyInput}
           />
-          {surface !== 'push' && (
+          {surface === 'modal' && (
             <InputField
-              label="CTA label (optional)"
+              label="CTA label (modal button text, optional — defaults to 'Got it')"
               value={cta}
               onChangeText={setCta}
               placeholder="Get back on track"
             />
+          )}
+
+          {(surface === 'modal' || surface === 'push') && (
+            <>
+              <Text style={styles.fieldLabel}>
+                {surface === 'modal'
+                  ? 'CTA action (what the button does)'
+                  : 'Tap action (where tapping the notification goes)'}
+              </Text>
+              <ChipRow
+                options={CTA_TARGET_TYPES}
+                selected={ctaTargetType}
+                onSelect={setCtaTargetType}
+              />
+              {ctaTargetType === 'screen' && (
+                <ChipRow
+                  options={CTA_SCREEN_TARGETS}
+                  selected={ctaScreen}
+                  onSelect={setCtaScreen}
+                />
+              )}
+              {ctaTargetType === 'url' && (
+                <InputField
+                  label="URL (opens in the browser)"
+                  value={ctaUrl}
+                  onChangeText={setCtaUrl}
+                  placeholder="https://example.com"
+                  autoCapitalize="none"
+                />
+              )}
+            </>
           )}
 
           {/* Preview */}
@@ -352,12 +446,20 @@ export const AdminRuleEditScreen: React.FC = () => {
           <View style={styles.preview}>
             <Text style={styles.previewTitle}>{title || 'Title'}</Text>
             <Text style={styles.previewBody}>{body || 'Body text appears here.'}</Text>
-            {surface !== 'push' && cta.trim() !== '' && (
+            {surface === 'modal' && cta.trim() !== '' && (
               <View style={styles.previewCta}>
                 <Text style={styles.previewCtaText}>{cta}</Text>
               </View>
             )}
           </View>
+          {(surface === 'modal' || surface === 'push') && ctaTargetType !== 'none' && (
+            <Text style={styles.hintText}>
+              {surface === 'modal' ? 'Button opens: ' : 'Tap opens: '}
+              {ctaTargetType === 'screen'
+                ? CTA_SCREEN_TARGETS.find((t) => t.value === ctaScreen)?.label ?? ctaScreen
+                : ctaUrl || '(enter a URL)'}
+            </Text>
+          )}
         </Card>
 
         <Button
