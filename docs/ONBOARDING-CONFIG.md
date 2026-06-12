@@ -1,40 +1,70 @@
-# Onboarding Content Config
+# Onboarding Config
 
-The onboarding flow's content is admin-editable without a deploy — Tier 1 of
-making onboarding data-driven, following the rules-engine philosophy:
-content in a Firestore document, structure in code.
+The onboarding flow is admin-configurable without a deploy, following the
+rules-engine philosophy: **composition and content in a Firestore document,
+renderers in code.**
+
+Tier 1 (June 2026) made the copy and knobs editable; Tier 2 (June 2026)
+made the flow itself **steps-as-data**: the config is an ordered array of
+step objects that can be reordered, switched off, and extended with generic
+info pages.
 
 ## Using it
 
-**Admin → Onboarding Content.** Edit any field, tap Save. Every **new
-signup** sees the new content immediately (existing users never see
-onboarding again). **Reset to Defaults** deletes the override doc and
-reverts to the built-in content.
+**Admin → Onboarding Content.** The screen lists the flow top to bottom —
+one collapsible card per step. Tap a card to edit its content and button
+label. Every **new signup** sees the saved flow immediately (existing users
+never see onboarding again). **Reset to Defaults** deletes the override doc
+and reverts to the built-in 7-step flow.
 
-What's editable:
+Per step you can:
 
-- **All copy** on the 7 screens: welcome title/subtitle/button, the
-  expandable "why this works" science blurbs, the settle box, timer labels,
-  the bridge screen, mantra screen text, habit screen text, reveal title.
-  Use `\n` in a field for a line break.
-- **Timer duration** (seconds) for the sit exercise.
-- **Example mantras** — one per line.
-- **Foundation habit** — which habit-library habit is auto-created (with
-  Day 1 logged), its display name, and weekly target.
-- **Offered habits** — which habits appear as the "+ one more habit"
-  choices (none checked = all except the foundation habit).
+- **Reorder** middle steps with the up/down arrows.
+- **Switch a step off** to skip it (the switch on the card). Welcome and
+  Reveal are structural — always first/last, can't be disabled.
+- **Edit all content** — copy, science blurbs, button labels, timer
+  duration, example mantras (one per line), the foundation habit
+  (id/display name/weekly target), and which habits are offered.
+- **Add an info page** — a generic headline + body (+ optional expandable
+  "why this works") step you can insert anywhere in the middle. These are
+  the only addable/deletable steps; the specialized steps (timer, mantra,
+  habits, …) exist at most once.
+
+### Step types
+
+| Type | Renders | Notes |
+|---|---|---|
+| Welcome | Full-screen intro | Always first |
+| Settle | Intention box + science toggle | |
+| Timer exercise | The 60-second sit (duration configurable) | Also hosts the "Just take me to the app" skip link |
+| Bridge | Headline/body/kicker page | |
+| Info page | Generic headline + body + optional science | Addable/deletable |
+| Mantra picker | Free-text + example chips | Next is gated on a non-empty mantra |
+| Habit picker | Locked foundation habit + pick-one list | Next is gated on a selection |
+| Reveal | Summary + completion | Always last |
+
+### Skipping steps changes completion behavior
+
+- **Mantra picker off** → no mantra is collected or saved; the Reveal hides
+  the mantra card.
+- **Habit picker off** → no habits are created and no Day 1 is logged; the
+  Reveal hides the habit rows.
 
 ## How it works
 
-- Config lives at **`config/onboarding`** (one document). Security: any
-  authenticated user can read (new users read it right after signup);
-  admins write (`firestore.rules` `config/` block).
-- `src/services/onboardingConfig.ts` holds the `OnboardingConfig` type,
-  `DEFAULT_ONBOARDING_CONFIG` (the original hardcoded copy, kept as the
-  permanent fallback), and the fetch/save/reset functions.
-- **Fail-safe by design:** the OnboardingScreen fetch is timeout-guarded
-  (3 s) and every field falls back to the default if missing or the wrong
-  type — a config problem can never break a new user's first screen.
-- The 7-step structure is still code. Making the steps themselves
-  data-driven (reorder/disable/add) is the Tier 2 follow-on, and the config
-  shape was chosen so that's an additive change.
+- Config lives at **`config/onboarding`**: `{ steps: [{ id, type, enabled,
+  next_button, content }] }`. Security: authenticated read (new users read
+  it right after signup), admin write (`firestore.rules` `config/` block).
+- `src/services/onboardingConfig.ts` holds the types, the default flow
+  (original hardcoded copy, kept as the permanent fallback), the
+  **sanitizer**, and fetch/save/reset.
+- **Fail-safe by design** — the sanitizer guarantees a renderable flow no
+  matter what's stored: unknown step types are dropped, duplicate
+  singletons deduped, Welcome/Reveal injected and pinned if missing or
+  misplaced, every content field falls back individually on missing or
+  wrong-typed values, and the OnboardingScreen fetch is timeout-guarded
+  (3 s). Documents saved in the Tier 1 flat shape are migrated on read.
+  The sanitizer is unit-tested (`__tests__/onboardingConfig.test.ts`).
+- Renderers stay in code (`OnboardingScreen.tsx`) — one per step type,
+  driven by `step.content`. Adding a brand-new step *type* is a code
+  change; composing the flow out of existing types is not.

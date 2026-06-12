@@ -6,38 +6,55 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { Dropdown } from '../../components/common/Dropdown';
 import { showAlert, showConfirm } from '../../utils/alert';
 import {
-  OnboardingConfig,
+  OnboardingStep,
   DEFAULT_ONBOARDING_CONFIG,
+  STEP_TYPE_LABELS,
   getOnboardingConfig,
   saveOnboardingConfig,
   resetOnboardingConfig,
+  newTextPageStep,
 } from '../../services/onboardingConfig';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
 
 const HABIT_OPTIONS = HABIT_LIBRARY.map((h) => ({ value: h.id, label: h.name }));
 
+/** Welcome and Reveal are structural: fixed position, always enabled. */
+const isFixed = (step: OnboardingStep) => step.type === 'welcome' || step.type === 'reveal';
+
 export const AdminOnboardingScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState<OnboardingConfig>(DEFAULT_ONBOARDING_CONFIG);
-  // Mantra examples edited as one-per-line text
-  const [mantraExamplesText, setMantraExamplesText] = useState('');
+  const [steps, setSteps] = useState<OnboardingStep[]>(DEFAULT_ONBOARDING_CONFIG.steps);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Mantra examples edited as one-per-line text, keyed by step id
+  const [examplesText, setExamplesText] = useState<Record<string, string>>({});
+
+  const loadSteps = (loaded: OnboardingStep[]) => {
+    setSteps(loaded);
+    const texts: Record<string, string> = {};
+    loaded
+      .filter((s) => s.type === 'mantra_picker')
+      .forEach((s) => {
+        texts[s.id] = ((s.content.examples as string[]) ?? []).join('\n');
+      });
+    setExamplesText(texts);
+  };
 
   useEffect(() => {
     (async () => {
       try {
         const cfg = await getOnboardingConfig();
-        setConfig(cfg);
-        setMantraExamplesText(cfg.mantra_examples.join('\n'));
+        loadSteps(cfg.steps);
       } catch (error: any) {
         showAlert('Error', error.message);
       } finally {
@@ -46,55 +63,84 @@ export const AdminOnboardingScreen: React.FC = () => {
     })();
   }, []);
 
-  const set = <K extends keyof OnboardingConfig>(key: K, value: OnboardingConfig[K]) =>
-    setConfig((prev) => ({ ...prev, [key]: value }));
+  const updateStep = (id: string, updates: Partial<OnboardingStep>) =>
+    setSteps((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
 
-  const setNumeric = (key: 'timer_seconds' | 'foundation_target_per_week', text: string) => {
+  const updateContent = (id: string, key: string, value: any) =>
+    setSteps((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, content: { ...s.content, [key]: value } } : s))
+    );
+
+  const updateNumericContent = (id: string, key: string, text: string) => {
     const n = parseInt(text, 10);
-    set(key, (Number.isNaN(n) ? 0 : n) as any);
+    updateContent(id, key, Number.isNaN(n) ? 0 : n);
   };
 
-  const toggleOfferedHabit = (habitId: string) => {
-    setConfig((prev) => {
-      const offered = prev.offered_habit_ids.includes(habitId)
-        ? prev.offered_habit_ids.filter((id) => id !== habitId)
-        : [...prev.offered_habit_ids, habitId];
-      return { ...prev, offered_habit_ids: offered };
+  const moveStep = (id: string, direction: -1 | 1) =>
+    setSteps((prev) => {
+      const index = prev.findIndex((s) => s.id === id);
+      const target = index + direction;
+      // Keep middle steps strictly between welcome (0) and reveal (last)
+      if (index <= 0 || index >= prev.length - 1) return prev;
+      if (target <= 0 || target >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
     });
+
+  const removeStep = (step: OnboardingStep) => {
+    showConfirm(
+      'Delete Step',
+      `Delete the "${step.content.headline || STEP_TYPE_LABELS[step.type]}" page?`,
+      () => setSteps((prev) => prev.filter((s) => s.id !== step.id)),
+      'Delete'
+    );
+  };
+
+  const addTextPage = () => {
+    const step = newTextPageStep(`${Date.now().toString(36)}`);
+    setSteps((prev) => [...prev.slice(0, prev.length - 1), step, prev[prev.length - 1]]);
+    setExpanded((prev) => ({ ...prev, [step.id]: true }));
   };
 
   const handleSave = async () => {
-    const mantraExamples = mantraExamplesText
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (mantraExamples.length === 0) {
-      showAlert('Missing Mantras', 'Provide at least one example mantra (one per line).');
-      return;
-    }
-    if (config.timer_seconds < 5 || config.timer_seconds > 600) {
-      showAlert('Invalid Timer', 'Timer must be between 5 and 600 seconds.');
-      return;
-    }
-    if (config.foundation_target_per_week < 1 || config.foundation_target_per_week > 7) {
-      showAlert('Invalid Target', 'Foundation habit target must be 1–7 times per week.');
-      return;
-    }
-    const requiredText: (keyof OnboardingConfig)[] = [
-      'welcome_title', 'welcome_subtitle', 'welcome_button', 'settle_title', 'settle_body',
-      'bridge_headline', 'bridge_body', 'mantra_intro', 'habit_intro', 'reveal_title',
-    ];
-    for (const key of requiredText) {
-      if (String(config[key]).trim() === '') {
-        showAlert('Missing Text', `"${key.replace(/_/g, ' ')}" can't be empty.`);
+    // Fold the one-per-line mantra text back into step content
+    const finalSteps = steps.map((s) => {
+      if (s.type !== 'mantra_picker') return s;
+      const examples = (examplesText[s.id] ?? '')
+        .split('\n')
+        .map((t) => t.trim())
+        .filter(Boolean);
+      return { ...s, content: { ...s.content, examples } };
+    });
+
+    for (const s of finalSteps) {
+      if (!s.enabled) continue;
+      if (s.type === 'timer' && (s.content.seconds < 5 || s.content.seconds > 600)) {
+        showAlert('Invalid Timer', 'Timer must be between 5 and 600 seconds.');
+        return;
+      }
+      if (s.type === 'mantra_picker' && (s.content.examples as string[]).length === 0) {
+        showAlert('Missing Mantras', 'Provide at least one example mantra (one per line).');
+        return;
+      }
+      if (
+        s.type === 'habit_picker' &&
+        (s.content.foundation_target_per_week < 1 || s.content.foundation_target_per_week > 7)
+      ) {
+        showAlert('Invalid Target', 'Foundation habit target must be 1–7 times per week.');
+        return;
+      }
+      if (!s.next_button.trim()) {
+        showAlert('Missing Button Label', `The ${STEP_TYPE_LABELS[s.type]} step needs a button label.`);
         return;
       }
     }
 
     setSaving(true);
     try {
-      await saveOnboardingConfig({ ...config, mantra_examples: mantraExamples });
-      showAlert('Saved', 'New signups will see this content immediately.');
+      await saveOnboardingConfig({ steps: finalSteps });
+      showAlert('Saved', 'New signups will see this flow immediately.');
     } catch (error: any) {
       showAlert('Error', error.message);
     } finally {
@@ -105,13 +151,12 @@ export const AdminOnboardingScreen: React.FC = () => {
   const handleReset = () => {
     showConfirm(
       'Reset to Defaults',
-      'This deletes the custom config — onboarding reverts to the built-in content. Continue?',
+      'This deletes the custom config — onboarding reverts to the built-in 7-step flow. Continue?',
       async () => {
         setSaving(true);
         try {
           await resetOnboardingConfig();
-          setConfig(DEFAULT_ONBOARDING_CONFIG);
-          setMantraExamplesText(DEFAULT_ONBOARDING_CONFIG.mantra_examples.join('\n'));
+          loadSteps(DEFAULT_ONBOARDING_CONFIG.steps);
           showAlert('Reset', 'Onboarding is back to the built-in defaults.');
         } catch (error: any) {
           showAlert('Error', error.message);
@@ -121,6 +166,142 @@ export const AdminOnboardingScreen: React.FC = () => {
       },
       'Reset'
     );
+  };
+
+  // ---------- Per-type content fields ----------
+
+  const renderFields = (step: OnboardingStep) => {
+    const set = (key: string) => (t: string) => updateContent(step.id, key, t);
+    switch (step.type) {
+      case 'welcome':
+        return (
+          <>
+            <InputField label="Title" value={step.content.title} onChangeText={set('title')} multiline />
+            <InputField label="Subtitle" value={step.content.subtitle} onChangeText={set('subtitle')} multiline />
+            <InputField label="'See why this works' text (blank = hide toggle)" value={step.content.science} onChangeText={set('science')} multiline />
+          </>
+        );
+      case 'settle':
+        return (
+          <>
+            <InputField label="Box title" value={step.content.box_title} onChangeText={set('box_title')} />
+            <InputField label="Box body" value={step.content.box_body} onChangeText={set('box_body')} multiline />
+            <InputField label="'Why this works' text (blank = hide toggle)" value={step.content.science} onChangeText={set('science')} multiline />
+          </>
+        );
+      case 'timer':
+        return (
+          <>
+            <InputField
+              label="Duration (seconds)"
+              value={String(step.content.seconds)}
+              onChangeText={(t) => updateNumericContent(step.id, 'seconds', t)}
+              keyboardType="numeric"
+            />
+            <InputField label="Before starting" value={step.content.pre_label} onChangeText={set('pre_label')} multiline />
+            <InputField label="Below the ring (before starting)" value={step.content.pre_subtext} onChangeText={set('pre_subtext')} multiline />
+            <InputField label="While running" value={step.content.active_label} onChangeText={set('active_label')} />
+            <InputField label="When done" value={step.content.done_label} onChangeText={set('done_label')} />
+            <InputField label="Start button label" value={step.content.start_button} onChangeText={set('start_button')} />
+          </>
+        );
+      case 'bridge':
+        return (
+          <>
+            <InputField label="Headline" value={step.content.headline} onChangeText={set('headline')} multiline />
+            <InputField label="Body" value={step.content.body} onChangeText={set('body')} multiline />
+            <InputField label="Kicker headline" value={step.content.kicker_headline} onChangeText={set('kicker_headline')} />
+            <InputField label="Kicker body" value={step.content.kicker_body} onChangeText={set('kicker_body')} multiline />
+          </>
+        );
+      case 'text_page':
+        return (
+          <>
+            <InputField label="Headline" value={step.content.headline} onChangeText={set('headline')} multiline />
+            <InputField label="Body" value={step.content.body} onChangeText={set('body')} multiline />
+            <InputField label="'Why this works' text (optional)" value={step.content.science} onChangeText={set('science')} multiline />
+          </>
+        );
+      case 'mantra_picker':
+        return (
+          <>
+            <InputField label="Intro" value={step.content.intro} onChangeText={set('intro')} />
+            <InputField label="Subtext" value={step.content.subtext} onChangeText={set('subtext')} multiline />
+            <InputField
+              label="Example mantras (one per line)"
+              value={examplesText[step.id] ?? ''}
+              onChangeText={(t) => setExamplesText((prev) => ({ ...prev, [step.id]: t }))}
+              multiline
+              numberOfLines={6}
+              style={styles.tallInput}
+            />
+            <InputField label="How-to line" value={step.content.howto} onChangeText={set('howto')} multiline />
+            <InputField label="'Why mantras work' text" value={step.content.science} onChangeText={set('science')} multiline />
+          </>
+        );
+      case 'habit_picker':
+        return (
+          <>
+            <InputField label="Intro" value={step.content.intro} onChangeText={set('intro')} multiline />
+            <InputField label="'+ one more habit' body" value={step.content.section_body} onChangeText={set('section_body')} />
+            <Text style={styles.fieldLabel}>Foundation habit (locked, auto-created with Day 1 logged)</Text>
+            <Dropdown
+              options={HABIT_OPTIONS}
+              selected={step.content.foundation_habit_id}
+              onSelect={(id) => {
+                const habit = HABIT_LIBRARY.find((h) => h.id === id);
+                updateContent(step.id, 'foundation_habit_id', id);
+                if (habit) {
+                  updateContent(step.id, 'foundation_target_per_week', habit.suggested_target_per_week);
+                }
+              }}
+            />
+            <InputField
+              label="Foundation habit display name"
+              value={step.content.foundation_habit_name}
+              onChangeText={set('foundation_habit_name')}
+            />
+            <InputField
+              label="Foundation target (times per week)"
+              value={String(step.content.foundation_target_per_week)}
+              onChangeText={(t) => updateNumericContent(step.id, 'foundation_target_per_week', t)}
+              keyboardType="numeric"
+            />
+            <Text style={styles.fieldLabel}>
+              Offered "+ one more habit" choices (none checked = offer all)
+            </Text>
+            {HABIT_LIBRARY.filter((h) => h.id !== step.content.foundation_habit_id).map((habit) => {
+              const offered = (step.content.offered_habit_ids as string[]) ?? [];
+              const checked = offered.length === 0 || offered.includes(habit.id);
+              return (
+                <TouchableOpacity
+                  key={habit.id}
+                  style={styles.habitToggleRow}
+                  onPress={() => {
+                    const next = offered.includes(habit.id)
+                      ? offered.filter((id) => id !== habit.id)
+                      : [...offered, habit.id];
+                    updateContent(step.id, 'offered_habit_ids', next);
+                  }}
+                >
+                  <Ionicons
+                    name={checked ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={checked ? Colors.primary : Colors.gray}
+                  />
+                  <Text style={styles.habitToggleText}>{habit.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        );
+      case 'reveal':
+        return (
+          <InputField label="Title" value={step.content.title} onChangeText={set('title')} />
+        );
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -135,127 +316,72 @@ export const AdminOnboardingScreen: React.FC = () => {
     <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
       <View style={styles.content}>
         <Text style={styles.headerHint}>
-          Edits apply to every NEW signup immediately — existing users never see onboarding
-          again. Use \n in a field for a line break. "Reset to Defaults" restores the built-in
-          content.
+          The flow runs top to bottom — reorder middle steps with the arrows, switch them off to
+          skip them, or add an info page. Welcome is always first, Reveal always last. Edits
+          apply to every NEW signup immediately. Use \n for a line break.
         </Text>
 
-        {/* Screen 1 */}
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>1 · Welcome</Text>
-          <InputField label="Title" value={config.welcome_title} onChangeText={(t) => set('welcome_title', t)} multiline />
-          <InputField label="Subtitle" value={config.welcome_subtitle} onChangeText={(t) => set('welcome_subtitle', t)} multiline />
-          <InputField label="'See why this works' text" value={config.welcome_science} onChangeText={(t) => set('welcome_science', t)} multiline />
-          <InputField label="Button label" value={config.welcome_button} onChangeText={(t) => set('welcome_button', t)} />
-        </Card>
-
-        {/* Screen 2 */}
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>2 · Settle</Text>
-          <InputField label="Box title" value={config.settle_title} onChangeText={(t) => set('settle_title', t)} />
-          <InputField label="Box body" value={config.settle_body} onChangeText={(t) => set('settle_body', t)} multiline />
-          <InputField label="'Why this works' text" value={config.settle_science} onChangeText={(t) => set('settle_science', t)} multiline />
-        </Card>
-
-        {/* Screen 3 */}
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>3 · Timer</Text>
-          <InputField
-            label="Duration (seconds)"
-            value={String(config.timer_seconds)}
-            onChangeText={(t) => setNumeric('timer_seconds', t)}
-            keyboardType="numeric"
-          />
-          <InputField label="Before starting" value={config.timer_pre_label} onChangeText={(t) => set('timer_pre_label', t)} multiline />
-          <InputField label="Below the ring (before starting)" value={config.timer_pre_subtext} onChangeText={(t) => set('timer_pre_subtext', t)} multiline />
-          <InputField label="While running" value={config.timer_active_label} onChangeText={(t) => set('timer_active_label', t)} />
-          <InputField label="When done" value={config.timer_done_label} onChangeText={(t) => set('timer_done_label', t)} />
-        </Card>
-
-        {/* Screen 4 */}
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>4 · Bridge</Text>
-          <InputField label="Headline" value={config.bridge_headline} onChangeText={(t) => set('bridge_headline', t)} multiline />
-          <InputField label="Body" value={config.bridge_body} onChangeText={(t) => set('bridge_body', t)} multiline />
-          <InputField label="Kicker headline" value={config.bridge_kicker_headline} onChangeText={(t) => set('bridge_kicker_headline', t)} />
-          <InputField label="Kicker body" value={config.bridge_kicker} onChangeText={(t) => set('bridge_kicker', t)} multiline />
-        </Card>
-
-        {/* Screen 5 */}
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>5 · Mantra</Text>
-          <InputField label="Intro" value={config.mantra_intro} onChangeText={(t) => set('mantra_intro', t)} />
-          <InputField label="Subtext" value={config.mantra_subtext} onChangeText={(t) => set('mantra_subtext', t)} multiline />
-          <InputField
-            label="Example mantras (one per line)"
-            value={mantraExamplesText}
-            onChangeText={setMantraExamplesText}
-            multiline
-            numberOfLines={6}
-            style={styles.tallInput}
-          />
-          <InputField label="How-to line" value={config.mantra_howto} onChangeText={(t) => set('mantra_howto', t)} multiline />
-          <InputField label="'Why mantras work' text" value={config.mantra_science} onChangeText={(t) => set('mantra_science', t)} multiline />
-        </Card>
-
-        {/* Screen 6 */}
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>6 · Habits</Text>
-          <InputField label="Intro" value={config.habit_intro} onChangeText={(t) => set('habit_intro', t)} multiline />
-          <InputField label="'+ one more habit' body" value={config.habit_section_body} onChangeText={(t) => set('habit_section_body', t)} />
-          <Text style={styles.fieldLabel}>Foundation habit (locked, auto-created with Day 1 logged)</Text>
-          <Dropdown
-            options={HABIT_OPTIONS}
-            selected={config.foundation_habit_id}
-            onSelect={(id) => {
-              const habit = HABIT_LIBRARY.find((h) => h.id === id);
-              setConfig((prev) => ({
-                ...prev,
-                foundation_habit_id: id,
-                foundation_target_per_week: habit?.suggested_target_per_week ?? prev.foundation_target_per_week,
-              }));
-            }}
-          />
-          <InputField
-            label="Foundation habit display name"
-            value={config.foundation_habit_name}
-            onChangeText={(t) => set('foundation_habit_name', t)}
-          />
-          <InputField
-            label="Foundation target (times per week)"
-            value={String(config.foundation_target_per_week)}
-            onChangeText={(t) => setNumeric('foundation_target_per_week', t)}
-            keyboardType="numeric"
-          />
-          <Text style={styles.fieldLabel}>
-            Offered "+ one more habit" choices ({config.offered_habit_ids.length === 0 ? 'all' : config.offered_habit_ids.length} selected — none checked = offer all)
-          </Text>
-          {HABIT_LIBRARY.filter((h) => h.id !== config.foundation_habit_id).map((habit) => {
-            const checked =
-              config.offered_habit_ids.length === 0 || config.offered_habit_ids.includes(habit.id);
-            const explicit = config.offered_habit_ids.includes(habit.id);
-            return (
+        {steps.map((step, index) => {
+          const fixed = isFixed(step);
+          const isOpen = expanded[step.id] === true;
+          return (
+            <Card key={step.id} style={StyleSheet.flatten([styles.stepCard, !step.enabled ? styles.stepCardDisabled : {}])}>
               <TouchableOpacity
-                key={habit.id}
-                style={styles.habitToggleRow}
-                onPress={() => toggleOfferedHabit(habit.id)}
+                style={styles.stepHeader}
+                onPress={() => setExpanded((prev) => ({ ...prev, [step.id]: !isOpen }))}
               >
-                <Ionicons
-                  name={checked ? 'checkbox' : 'square-outline'}
-                  size={20}
-                  color={explicit || config.offered_habit_ids.length === 0 ? Colors.primary : Colors.gray}
-                />
-                <Text style={styles.habitToggleText}>{habit.name}</Text>
+                <Text style={styles.stepIndex}>{index + 1}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.stepTitle}>
+                    {STEP_TYPE_LABELS[step.type]}
+                    {step.type === 'text_page' && step.content.headline
+                      ? ` — ${step.content.headline}`
+                      : ''}
+                  </Text>
+                  {!step.enabled && <Text style={styles.stepDisabledTag}>Skipped</Text>}
+                </View>
+                {!fixed && (
+                  <>
+                    <TouchableOpacity onPress={() => moveStep(step.id, -1)} hitSlop={8} disabled={index <= 1}>
+                      <Ionicons name="chevron-up" size={20} color={index <= 1 ? Colors.border : Colors.gray} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => moveStep(step.id, 1)} hitSlop={8} disabled={index >= steps.length - 2}>
+                      <Ionicons name="chevron-down" size={20} color={index >= steps.length - 2 ? Colors.border : Colors.gray} />
+                    </TouchableOpacity>
+                    <Switch
+                      value={step.enabled}
+                      onValueChange={(v) => updateStep(step.id, { enabled: v })}
+                      trackColor={{ true: Colors.primary, false: Colors.border }}
+                    />
+                  </>
+                )}
+                <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={Colors.gray} />
               </TouchableOpacity>
-            );
-          })}
-        </Card>
 
-        {/* Screen 7 */}
-        <Card style={styles.section}>
-          <Text style={styles.sectionTitle}>7 · Reveal</Text>
-          <InputField label="Title" value={config.reveal_title} onChangeText={(t) => set('reveal_title', t)} />
-        </Card>
+              {isOpen && (
+                <View style={styles.stepBody}>
+                  {renderFields(step)}
+                  <InputField
+                    label={step.type === 'reveal' ? 'Finish button label' : 'Button label'}
+                    value={step.next_button}
+                    onChangeText={(t) => updateStep(step.id, { next_button: t })}
+                  />
+                  {step.type === 'text_page' && (
+                    <TouchableOpacity style={styles.deleteLink} onPress={() => removeStep(step)}>
+                      <Ionicons name="trash-outline" size={16} color={Colors.secondary} />
+                      <Text style={styles.deleteLinkText}>Delete this page</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </Card>
+          );
+        })}
+
+        <TouchableOpacity style={styles.addLink} onPress={addTextPage}>
+          <Ionicons name="add" size={18} color={Colors.primary} />
+          <Text style={styles.addLinkText}>Add info page</Text>
+        </TouchableOpacity>
 
         <Button title="Save" onPress={handleSave} loading={saving} />
         <TouchableOpacity style={styles.resetLink} onPress={handleReset} disabled={saving}>
@@ -294,14 +420,41 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     lineHeight: 19,
   },
-  section: {
-    marginBottom: Spacing.md,
+  stepCard: {
+    marginBottom: Spacing.sm,
   },
-  sectionTitle: {
+  stepCardDisabled: {
+    opacity: 0.6,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  stepIndex: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary + '15',
+    color: Colors.primary,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    textAlign: 'center',
+    lineHeight: 24,
+    overflow: 'hidden',
+  },
+  stepTitle: {
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.md,
     color: Colors.dark,
-    marginBottom: Spacing.sm,
+  },
+  stepDisabledTag: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
+  },
+  stepBody: {
+    marginTop: Spacing.md,
   },
   fieldLabel: {
     fontFamily: Fonts.secondary,
@@ -324,6 +477,29 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.dark,
+  },
+  addLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+  },
+  addLinkText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
+  deleteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+  },
+  deleteLinkText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
   },
   resetLink: {
     flexDirection: 'row',

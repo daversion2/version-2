@@ -27,7 +27,9 @@ const { width } = Dimensions.get('window');
 
 import {
   OnboardingConfig,
+  OnboardingStep,
   DEFAULT_ONBOARDING_CONFIG,
+  STEP_CONTENT_DEFAULTS,
   getOnboardingConfigWithTimeout,
 } from '../../services/onboardingConfig';
 
@@ -39,30 +41,42 @@ export const OnboardingScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
   const scrollRef = useRef<ScrollView>(null);
 
-  // Navigation
-  const [step, setStep] = useState(1);
-
-  // Admin-configurable content (config/onboarding doc, defaults as fallback)
+  // Admin-configurable flow (config/onboarding doc, defaults as fallback).
+  // The flow is the enabled steps in order; Welcome is always first and
+  // Reveal always last (the config sanitizer guarantees this).
   const [config, setConfig] = useState<OnboardingConfig>(DEFAULT_ONBOARDING_CONFIG);
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
 
-  // Screen 3: Timer
-  const [timerSeconds, setTimerSeconds] = useState(DEFAULT_ONBOARDING_CONFIG.timer_seconds);
+  const steps = config.steps.filter((s) => s.enabled);
+  const currentStep: OnboardingStep | undefined =
+    steps[Math.min(stepIndex, steps.length - 1)];
+
+  // Step contents used outside their own renderer (completion, reveal)
+  const habitStep = config.steps.find((s) => s.type === 'habit_picker');
+  const habitContent = habitStep?.content ?? STEP_CONTENT_DEFAULTS.habit_picker;
+  const habitStepEnabled = habitStep?.enabled === true;
+  const timerContent =
+    config.steps.find((s) => s.type === 'timer')?.content ?? STEP_CONTENT_DEFAULTS.timer;
+
+  // Timer
+  const [timerSeconds, setTimerSeconds] = useState<number>(STEP_CONTENT_DEFAULTS.timer.seconds);
   const [timerStarted, setTimerStarted] = useState(false);
   const timerProgress = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     getOnboardingConfigWithTimeout().then((cfg) => {
       setConfig(cfg);
-      setTimerSeconds(cfg.timer_seconds);
+      const timer = cfg.steps.find((s) => s.type === 'timer');
+      setTimerSeconds(timer?.content.seconds ?? STEP_CONTENT_DEFAULTS.timer.seconds);
       setConfigLoaded(true);
     });
   }, []);
 
-  // Expandable science sections
-  const [showWelcomeScience, setShowWelcomeScience] = useState(false);
-  const [showSettleScience, setShowSettleScience] = useState(false);
-  const [showMantraScience, setShowMantraScience] = useState(false);
+  // Expandable science sections, keyed by step id (text pages are dynamic)
+  const [scienceOpen, setScienceOpen] = useState<Record<string, boolean>>({});
+  const toggleScience = (stepId: string) =>
+    setScienceOpen((prev) => ({ ...prev, [stepId]: !prev[stepId] }));
 
   // Screen 5: Mantra
   const [mantra, setMantra] = useState('');
@@ -98,13 +112,15 @@ export const OnboardingScreen: React.FC = () => {
   // NAVIGATION
   // ============================================================================
 
-  const goToStep = (s: number) => {
-    setStep(s);
+  const goToIndex = (i: number) => {
+    setStepIndex(Math.max(0, Math.min(i, steps.length - 1)));
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
+  const goNext = () => goToIndex(stepIndex + 1);
+
   const handleBack = () => {
-    if (step > 1) goToStep(step - 1);
+    if (stepIndex > 0) goToIndex(stepIndex - 1);
   };
 
   // ============================================================================
@@ -131,42 +147,45 @@ export const OnboardingScreen: React.FC = () => {
     if (!user) return;
     setSaving(true);
     try {
-      // Fall back to the default foundation habit if the configured id is bad
-      const foundationLibraryHabit =
-        HABIT_LIBRARY.find((h) => h.id === config.foundation_habit_id) ??
-        HABIT_LIBRARY.find((h) => h.id === 'morning-meditation')!;
+      // 1+2. Foundation habit (created + Day 1 logged) — only when the
+      // habit step is part of the flow
+      if (habitStepEnabled) {
+        // Fall back to the default foundation habit if the configured id is bad
+        const foundationLibraryHabit =
+          HABIT_LIBRARY.find((h) => h.id === habitContent.foundation_habit_id) ??
+          HABIT_LIBRARY.find((h) => h.id === 'morning-meditation')!;
 
-      // 1. Create the foundation habit
-      const foundationHabitId = await createHabit(user.uid, {
-        name: config.foundation_habit_name,
-        target_count_per_week: config.foundation_target_per_week,
-        action_plan: foundationLibraryHabit.action_plan,
-      });
-
-      // 2. Log today as Day 1 completion
-      await logHabitCompletion(user.uid, foundationHabitId, 'easy');
-
-      // 3. Create the selected additional habit
-      if (selectedHabitId) {
-        const selectedHabit = HABIT_LIBRARY.find((h) => h.id === selectedHabitId)!;
-        await createHabit(user.uid, {
-          name: selectedHabit.name,
-          target_count_per_week: selectedHabit.suggested_target_per_week,
-          action_plan: selectedHabit.action_plan,
+        const foundationHabitId = await createHabit(user.uid, {
+          name: habitContent.foundation_habit_name,
+          target_count_per_week: habitContent.foundation_target_per_week,
+          action_plan: foundationLibraryHabit.action_plan,
         });
+        await logHabitCompletion(user.uid, foundationHabitId, 'easy');
+
+        // 3. Create the selected additional habit
+        if (selectedHabitId) {
+          const selectedHabit = HABIT_LIBRARY.find((h) => h.id === selectedHabitId)!;
+          await createHabit(user.uid, {
+            name: selectedHabit.name,
+            target_count_per_week: selectedHabit.suggested_target_per_week,
+            action_plan: selectedHabit.action_plan,
+          });
+        }
       }
 
-      // 4. Save onboarding data to user doc
-      const mantraObj = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-        text: mantra,
-        created_at: new Date().toISOString(),
-      };
-      await setDoc(doc(db, 'users', user.uid), {
-        redirect_mantra: mantra,
-        mantras: [mantraObj],
-        active_mantra_id: mantraObj.id,
-      }, { merge: true });
+      // 4. Save the mantra — only if one was collected (mantra step in flow)
+      if (mantra.trim()) {
+        const mantraObj = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+          text: mantra,
+          created_at: new Date().toISOString(),
+        };
+        await setDoc(doc(db, 'users', user.uid), {
+          redirect_mantra: mantra,
+          mantras: [mantraObj],
+          active_mantra_id: mantraObj.id,
+        }, { merge: true });
+      }
 
       // 5. Mark onboarding complete
       await markOnboardingComplete(user.uid, true);
@@ -183,31 +202,33 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 1 — WELCOME
   // ============================================================================
 
-  const renderScreen1 = () => (
+  const renderWelcome = (step: OnboardingStep) => (
     <View style={styles.welcomeContainer}>
       <View style={styles.welcomeContent}>
-        <Text style={styles.welcomeTitle}>{config.welcome_title}</Text>
-        <Text style={styles.welcomeSubtitle}>{config.welcome_subtitle}</Text>
-        <TouchableOpacity
-          style={styles.expandToggle}
-          onPress={() => setShowWelcomeScience(!showWelcomeScience)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.expandToggleTextLight}>See why this works</Text>
-          <Ionicons
-            name={showWelcomeScience ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color={Colors.white}
-            style={{ opacity: 0.8 }}
-          />
-        </TouchableOpacity>
-        {showWelcomeScience && (
-          <Text style={styles.welcomeWhyBody}>{config.welcome_science}</Text>
+        <Text style={styles.welcomeTitle}>{step.content.title}</Text>
+        <Text style={styles.welcomeSubtitle}>{step.content.subtitle}</Text>
+        {!!step.content.science && (
+          <TouchableOpacity
+            style={styles.expandToggle}
+            onPress={() => toggleScience(step.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.expandToggleTextLight}>See why this works</Text>
+            <Ionicons
+              name={scienceOpen[step.id] ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={Colors.white}
+              style={{ opacity: 0.8 }}
+            />
+          </TouchableOpacity>
+        )}
+        {scienceOpen[step.id] && !!step.content.science && (
+          <Text style={styles.welcomeWhyBody}>{step.content.science}</Text>
         )}
       </View>
       <Button
-        title={config.welcome_button}
-        onPress={() => goToStep(2)}
+        title={step.next_button}
+        onPress={goNext}
         style={styles.welcomeButton}
       />
     </View>
@@ -217,31 +238,46 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 2 — SETTLE
   // ============================================================================
 
-  const renderScreen2 = () => (
+  const renderScienceToggle = (step: OnboardingStep, label = 'Why this works') =>
+    !!step.content.science && (
+      <>
+        <TouchableOpacity
+          style={styles.expandToggleDark}
+          onPress={() => toggleScience(step.id)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
+          <Text style={styles.expandToggleText}>{label}</Text>
+          <Ionicons
+            name={scienceOpen[step.id] ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={Colors.primary}
+          />
+        </TouchableOpacity>
+        {scienceOpen[step.id] && (
+          <View style={styles.expandedContent}>
+            <Text style={styles.expandedText}>{step.content.science}</Text>
+          </View>
+        )}
+      </>
+    );
+
+  const renderSettle = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
       <View style={styles.intentionBox}>
-        <Text style={styles.intentionTitle}>{config.settle_title}</Text>
-        <Text style={styles.intentionBody}>{config.settle_body}</Text>
+        <Text style={styles.intentionTitle}>{step.content.box_title}</Text>
+        <Text style={styles.intentionBody}>{step.content.box_body}</Text>
       </View>
+      {renderScienceToggle(step)}
+    </View>
+  );
 
-      <TouchableOpacity
-        style={styles.expandToggleDark}
-        onPress={() => setShowSettleScience(!showSettleScience)}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
-        <Text style={styles.expandToggleText}>Why this works</Text>
-        <Ionicons
-          name={showSettleScience ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color={Colors.primary}
-        />
-      </TouchableOpacity>
-      {showSettleScience && (
-        <View style={styles.expandedContent}>
-          <Text style={styles.expandedText}>{config.settle_science}</Text>
-        </View>
-      )}
+  // Generic admin-added info page: bridge-style headline + body + optional science
+  const renderTextPage = (step: OnboardingStep) => (
+    <View style={styles.stageContent}>
+      <Text style={styles.bridgeHeadline}>{step.content.headline}</Text>
+      <Text style={styles.bridgeBody}>{step.content.body}</Text>
+      {renderScienceToggle(step)}
     </View>
   );
 
@@ -249,7 +285,7 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 3 — 60-SECOND SIT
   // ============================================================================
 
-  const renderScreen3 = () => {
+  const renderTimer = (step: OnboardingStep) => {
     const minutes = Math.floor(timerSeconds / 60);
     const seconds = timerSeconds % 60;
     const display = `${minutes}:${String(seconds).padStart(2, '0')}`;
@@ -262,15 +298,15 @@ export const OnboardingScreen: React.FC = () => {
 
     if (!timerStarted && !timerDone) {
       // Pre-start state
-      const preMinutes = Math.floor(config.timer_seconds / 60);
-      const preSeconds = config.timer_seconds % 60;
+      const preMinutes = Math.floor(step.content.seconds / 60);
+      const preSeconds = step.content.seconds % 60;
       return (
         <View style={[styles.stageContent, styles.timerCenter]}>
-          <Text style={styles.timerPreLabel}>{config.timer_pre_label}</Text>
+          <Text style={styles.timerPreLabel}>{step.content.pre_label}</Text>
           <View style={styles.timerRing}>
             <Text style={styles.timerDisplay}>{`${preMinutes}:${String(preSeconds).padStart(2, '0')}`}</Text>
           </View>
-          <Text style={styles.timerPreSubtext}>{config.timer_pre_subtext}</Text>
+          <Text style={styles.timerPreSubtext}>{step.content.pre_subtext}</Text>
         </View>
       );
     }
@@ -279,7 +315,7 @@ export const OnboardingScreen: React.FC = () => {
     return (
       <View style={[styles.stageContent, styles.timerCenter]}>
         <Text style={styles.timerLabel}>
-          {timerDone ? config.timer_done_label : config.timer_active_label}
+          {timerDone ? step.content.done_label : step.content.active_label}
         </Text>
         <Animated.View style={[styles.timerRing, { borderColor }]}>
           <Text style={styles.timerDisplay}>{timerDone ? '✓' : display}</Text>
@@ -297,12 +333,12 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 4 — VALIDATION BRIDGE
   // ============================================================================
 
-  const renderScreen4 = () => (
+  const renderBridge = (step: OnboardingStep) => (
     <View style={[styles.stageContent, styles.bridgeCenter]}>
-      <Text style={styles.bridgeHeadline}>{config.bridge_headline}</Text>
-      <Text style={styles.bridgeBody}>{config.bridge_body}</Text>
-      <Text style={styles.bridgeKickerHeadline}>{config.bridge_kicker_headline}</Text>
-      <Text style={styles.bridgeKicker}>{config.bridge_kicker}</Text>
+      <Text style={styles.bridgeHeadline}>{step.content.headline}</Text>
+      <Text style={styles.bridgeBody}>{step.content.body}</Text>
+      <Text style={styles.bridgeKickerHeadline}>{step.content.kicker_headline}</Text>
+      <Text style={styles.bridgeKicker}>{step.content.kicker_body}</Text>
     </View>
   );
 
@@ -310,10 +346,10 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 5 — MANTRA SELECTION
   // ============================================================================
 
-  const renderScreen5 = () => (
+  const renderMantraPicker = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
-      <Text style={styles.stageIntro}>{config.mantra_intro}</Text>
-      <Text style={styles.mantraSubtext}>{config.mantra_subtext}</Text>
+      <Text style={styles.stageIntro}>{step.content.intro}</Text>
+      <Text style={styles.mantraSubtext}>{step.content.subtext}</Text>
       <TextInput
         style={styles.mantraInput}
         value={mantra}
@@ -324,7 +360,7 @@ export const OnboardingScreen: React.FC = () => {
         returnKeyType="done"
       />
       <View style={styles.mantraExamples}>
-        {config.mantra_examples.map((example) => (
+        {(step.content.examples as string[]).map((example) => (
           <TouchableOpacity
             key={example}
             style={[styles.mantraChip, mantra === example && styles.mantraChipSelected]}
@@ -339,26 +375,9 @@ export const OnboardingScreen: React.FC = () => {
       </View>
       <View style={styles.howToCard}>
         <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
-        <Text style={styles.scienceText}>{config.mantra_howto}</Text>
+        <Text style={styles.scienceText}>{step.content.howto}</Text>
       </View>
-      <TouchableOpacity
-        style={styles.expandToggleDark}
-        onPress={() => setShowMantraScience(!showMantraScience)}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
-        <Text style={styles.expandToggleText}>Why mantras work</Text>
-        <Ionicons
-          name={showMantraScience ? 'chevron-up' : 'chevron-down'}
-          size={16}
-          color={Colors.primary}
-        />
-      </TouchableOpacity>
-      {showMantraScience && (
-        <View style={styles.expandedContent}>
-          <Text style={styles.expandedText}>{config.mantra_science}</Text>
-        </View>
-      )}
+      {renderScienceToggle(step, 'Why mantras work')}
     </View>
   );
 
@@ -366,16 +385,17 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 6 — HABIT SELECTION
   // ============================================================================
 
-  const renderScreen6 = () => {
+  const renderHabitPicker = (step: OnboardingStep) => {
+    const offered = (step.content.offered_habit_ids as string[]) ?? [];
     const availableHabits = HABIT_LIBRARY.filter(
       (h) =>
-        h.id !== config.foundation_habit_id &&
-        (config.offered_habit_ids.length === 0 || config.offered_habit_ids.includes(h.id))
+        h.id !== step.content.foundation_habit_id &&
+        (offered.length === 0 || offered.includes(h.id))
     );
 
     return (
       <View style={styles.stageContent}>
-        <Text style={styles.stageIntro}>{config.habit_intro}</Text>
+        <Text style={styles.stageIntro}>{step.content.intro}</Text>
 
         {/* Locked foundation habit row */}
         <View style={styles.lockedHabitRow}>
@@ -383,9 +403,9 @@ export const OnboardingScreen: React.FC = () => {
             <Ionicons name="lock-closed" size={18} color={Colors.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.lockedHabitName}>{config.foundation_habit_name}</Text>
+            <Text style={styles.lockedHabitName}>{step.content.foundation_habit_name}</Text>
             <Text style={styles.lockedHabitMeta}>
-              {config.foundation_target_per_week}x/week · Your foundation habit
+              {step.content.foundation_target_per_week}x/week · Your foundation habit
             </Text>
           </View>
           <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
@@ -393,7 +413,7 @@ export const OnboardingScreen: React.FC = () => {
 
         {/* Additional habit selection */}
         <Text style={styles.habitSectionLabel}>+ ONE MORE HABIT</Text>
-        <Text style={styles.habitSectionBody}>{config.habit_section_body}</Text>
+        <Text style={styles.habitSectionBody}>{step.content.section_body}</Text>
 
         {availableHabits.map((habit) => {
           const isSelected = selectedHabitId === habit.id;
@@ -424,31 +444,37 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 7 — REVEAL
   // ============================================================================
 
-  const renderScreen7 = () => {
-    const selectedHabit = HABIT_LIBRARY.find((h) => h.id === selectedHabitId);
+  const renderReveal = (step: OnboardingStep) => {
+    const selectedHabit = habitStepEnabled
+      ? HABIT_LIBRARY.find((h) => h.id === selectedHabitId)
+      : undefined;
 
     return (
       <View style={styles.revealContainer}>
-        <Text style={styles.revealTitle}>{config.reveal_title}</Text>
+        <Text style={styles.revealTitle}>{step.content.title}</Text>
 
-        {/* Mantra anchor card */}
-        <View style={styles.mantraCard}>
-          <Text style={styles.mantraCardLabel}>YOUR REDIRECT MANTRA</Text>
-          <Text style={styles.mantraCardText}>"{mantra}"</Text>
-        </View>
+        {/* Mantra anchor card — only if a mantra was collected */}
+        {!!mantra.trim() && (
+          <View style={styles.mantraCard}>
+            <Text style={styles.mantraCardLabel}>YOUR REDIRECT MANTRA</Text>
+            <Text style={styles.mantraCardText}>"{mantra}"</Text>
+          </View>
+        )}
 
-        {/* Habit rows */}
-        <View style={styles.revealHabitRow}>
-          <View style={styles.revealHabitBadge}>
-            <Ionicons name="checkmark" size={16} color={Colors.white} />
+        {/* Habit rows — only if the habit step was part of the flow */}
+        {habitStepEnabled && (
+          <View style={styles.revealHabitRow}>
+            <View style={styles.revealHabitBadge}>
+              <Ionicons name="checkmark" size={16} color={Colors.white} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.revealHabitName}>{habitContent.foundation_habit_name}</Text>
+              <Text style={styles.revealHabitMeta}>
+                {habitContent.foundation_target_per_week}x/week · Day 1 complete
+              </Text>
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.revealHabitName}>{config.foundation_habit_name}</Text>
-            <Text style={styles.revealHabitMeta}>
-              {config.foundation_target_per_week}x/week · Day 1 complete
-            </Text>
-          </View>
-        </View>
+        )}
 
         {selectedHabit && (
           <View style={styles.revealHabitRow}>
@@ -472,8 +498,8 @@ export const OnboardingScreen: React.FC = () => {
   // ============================================================================
 
   const renderDots = () => {
-    const totalDots = 5; // Screens 2-6
-    const currentDot = step - 1; // step 2 = dot 1, step 6 = dot 5
+    const totalDots = steps.length - 2; // middle steps (between welcome and reveal)
+    const currentDot = stepIndex; // index 1 = dot 1, ...
 
     return (
       <View style={styles.dotsRow}>
@@ -496,44 +522,45 @@ export const OnboardingScreen: React.FC = () => {
   // ============================================================================
 
   const renderBottomNav = () => {
-    // Screen 1: handled in renderScreen1
-    if (step === 1) return null;
+    if (!currentStep || currentStep.type === 'welcome') return null;
 
-    // Screen 2: "I'm ready"
-    if (step === 2) {
+    // Reveal: completion button only
+    if (currentStep.type === 'reveal') {
       return (
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-          <Button title="I'm ready" onPress={() => goToStep(3)} style={styles.nextButton} />
+        <View style={styles.navBarCenter}>
+          <Button
+            title={currentStep.next_button}
+            onPress={handleComplete}
+            loading={saving}
+            disabled={saving}
+            style={styles.fullWidthButton}
+          />
         </View>
       );
     }
 
-    // Screen 3: Timer
-    if (step === 3) {
+    const backButton = (
+      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={20} color={Colors.primary} />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+    );
+
+    // Timer: start → (running, no button) → continue, plus the skip link
+    if (currentStep.type === 'timer') {
       const timerDone = timerSeconds === 0 && !timerStarted;
       return (
         <View>
           <View style={styles.navBar}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-              <Text style={styles.backText}>Back</Text>
-            </TouchableOpacity>
+            {backButton}
             {!timerStarted && !timerDone ? (
               <Button
-                title="Start the minute"
+                title={currentStep.content.start_button}
                 onPress={() => setTimerStarted(true)}
                 style={styles.nextButton}
               />
             ) : timerDone ? (
-              <Button
-                title="Continue →"
-                onPress={() => goToStep(4)}
-                style={styles.nextButton}
-              />
+              <Button title={currentStep.next_button} onPress={goNext} style={styles.nextButton} />
             ) : (
               <View style={styles.nextButton} />
             )}
@@ -549,85 +576,34 @@ export const OnboardingScreen: React.FC = () => {
       );
     }
 
-    // Screen 4: Validation bridge
-    if (step === 4) {
-      return (
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-          <Button
-            title="Give me a mantra →"
-            onPress={() => goToStep(5)}
-            style={styles.nextButton}
-          />
-        </View>
-      );
-    }
+    // All other middle steps: back + next, with per-type gating
+    const nextDisabled =
+      currentStep.type === 'mantra_picker'
+        ? !mantra.trim()
+        : currentStep.type === 'habit_picker'
+          ? !selectedHabitId
+          : false;
 
-    // Screen 5: Mantra
-    if (step === 5) {
-      return (
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-          <Button
-            title="This is my redirect →"
-            onPress={() => goToStep(6)}
-            disabled={!mantra.trim()}
-            style={styles.nextButton}
-          />
-        </View>
-      );
-    }
-
-    // Screen 6: Habit selection
-    if (step === 6) {
-      return (
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
-          <Button
-            title="This is my starting point →"
-            onPress={() => goToStep(7)}
-            disabled={!selectedHabitId}
-            style={styles.nextButton}
-          />
-        </View>
-      );
-    }
-
-    // Screen 7: Reveal
-    if (step === 7) {
-      return (
-        <View style={styles.navBarCenter}>
-          <Button
-            title="Keep moving forward →"
-            onPress={handleComplete}
-            loading={saving}
-            disabled={saving}
-            style={styles.fullWidthButton}
-          />
-        </View>
-      );
-    }
-
-    return null;
+    return (
+      <View style={styles.navBar}>
+        {backButton}
+        <Button
+          title={currentStep.next_button}
+          onPress={goNext}
+          disabled={nextDisabled}
+          style={styles.nextButton}
+        />
+      </View>
+    );
   };
 
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
 
-  // Screen 1: Full-screen welcome (no chrome)
   // Hold rendering until the (timeout-guarded) config fetch settles so the
   // user never sees default copy swap to admin copy mid-read
-  if (!configLoaded) {
+  if (!configLoaded || !currentStep) {
     return (
       <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -635,10 +611,11 @@ export const OnboardingScreen: React.FC = () => {
     );
   }
 
-  if (step === 1) return renderScreen1();
+  // Welcome: full-screen layout (no chrome)
+  if (currentStep.type === 'welcome') return renderWelcome(currentStep);
 
-  // Screen 7: Full-screen reveal (no dots)
-  if (step === 7) {
+  // Reveal: full-screen layout (no dots)
+  if (currentStep.type === 'reveal') {
     return (
       <View style={styles.screen}>
         <ScrollView
@@ -647,14 +624,33 @@ export const OnboardingScreen: React.FC = () => {
           contentContainerStyle={[styles.content, { paddingTop: Spacing.xxl }]}
           showsVerticalScrollIndicator={false}
         >
-          {renderScreen7()}
+          {renderReveal(currentStep)}
         </ScrollView>
         {renderBottomNav()}
       </View>
     );
   }
 
-  // Screens 2-6: Standard layout with dots
+  // Middle steps: standard layout with dots
+  const renderCurrentStep = () => {
+    switch (currentStep.type) {
+      case 'settle':
+        return renderSettle(currentStep);
+      case 'timer':
+        return renderTimer(currentStep);
+      case 'bridge':
+        return renderBridge(currentStep);
+      case 'text_page':
+        return renderTextPage(currentStep);
+      case 'mantra_picker':
+        return renderMantraPicker(currentStep);
+      case 'habit_picker':
+        return renderHabitPicker(currentStep);
+      default:
+        return null;
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
@@ -671,11 +667,7 @@ export const OnboardingScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {step === 2 && renderScreen2()}
-        {step === 3 && renderScreen3()}
-        {step === 4 && renderScreen4()}
-        {step === 5 && renderScreen5()}
-        {step === 6 && renderScreen6()}
+        {renderCurrentStep()}
       </ScrollView>
 
       {renderBottomNav()}
