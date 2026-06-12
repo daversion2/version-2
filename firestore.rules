@@ -141,6 +141,18 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // APP CONFIG — config/{docId}
+    // Admin-editable app configuration (e.g. config/onboarding).
+    // All authenticated users can read (new users read onboarding content
+    // right after signup). Only admins can write.
+    // ========================================================================
+    match /config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+    }
+
+    // ========================================================================
     // RULES ENGINE — rules/{docId}
     // Admin-configured triggers for push notifications and in-app popups.
     // All authenticated users can read (the client evaluates modal/banner

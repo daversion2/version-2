@@ -11,6 +11,7 @@ import {
   Animated,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, setDoc } from 'firebase/firestore';
@@ -24,9 +25,11 @@ import { db } from '../../services/firebase';
 
 const { width } = Dimensions.get('window');
 
-const TIMER_DURATION = 60;
-
-import { MANTRA_EXAMPLES } from '../../data/mantras';
+import {
+  OnboardingConfig,
+  DEFAULT_ONBOARDING_CONFIG,
+  getOnboardingConfigWithTimeout,
+} from '../../services/onboardingConfig';
 
 // ============================================================================
 // COMPONENT
@@ -39,10 +42,22 @@ export const OnboardingScreen: React.FC = () => {
   // Navigation
   const [step, setStep] = useState(1);
 
+  // Admin-configurable content (config/onboarding doc, defaults as fallback)
+  const [config, setConfig] = useState<OnboardingConfig>(DEFAULT_ONBOARDING_CONFIG);
+  const [configLoaded, setConfigLoaded] = useState(false);
+
   // Screen 3: Timer
-  const [timerSeconds, setTimerSeconds] = useState(TIMER_DURATION);
+  const [timerSeconds, setTimerSeconds] = useState(DEFAULT_ONBOARDING_CONFIG.timer_seconds);
   const [timerStarted, setTimerStarted] = useState(false);
   const timerProgress = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    getOnboardingConfigWithTimeout().then((cfg) => {
+      setConfig(cfg);
+      setTimerSeconds(cfg.timer_seconds);
+      setConfigLoaded(true);
+    });
+  }, []);
 
   // Expandable science sections
   const [showWelcomeScience, setShowWelcomeScience] = useState(false);
@@ -116,17 +131,20 @@ export const OnboardingScreen: React.FC = () => {
     if (!user) return;
     setSaving(true);
     try {
-      const morningMeditation = HABIT_LIBRARY.find((h) => h.id === 'morning-meditation')!;
+      // Fall back to the default foundation habit if the configured id is bad
+      const foundationLibraryHabit =
+        HABIT_LIBRARY.find((h) => h.id === config.foundation_habit_id) ??
+        HABIT_LIBRARY.find((h) => h.id === 'morning-meditation')!;
 
-      // 1. Create meditation habit
-      const meditationHabitId = await createHabit(user.uid, {
-        name: 'Meditation',
-        target_count_per_week: 5,
-        action_plan: morningMeditation.action_plan,
+      // 1. Create the foundation habit
+      const foundationHabitId = await createHabit(user.uid, {
+        name: config.foundation_habit_name,
+        target_count_per_week: config.foundation_target_per_week,
+        action_plan: foundationLibraryHabit.action_plan,
       });
 
       // 2. Log today as Day 1 completion
-      await logHabitCompletion(user.uid, meditationHabitId, 'easy');
+      await logHabitCompletion(user.uid, foundationHabitId, 'easy');
 
       // 3. Create the selected additional habit
       if (selectedHabitId) {
@@ -168,10 +186,8 @@ export const OnboardingScreen: React.FC = () => {
   const renderScreen1 = () => (
     <View style={styles.welcomeContainer}>
       <View style={styles.welcomeContent}>
-        <Text style={styles.welcomeTitle}>Welcome to{'\n'}Neuro Nudge</Text>
-        <Text style={styles.welcomeSubtitle}>
-          We're going to start with a short, 60-second exercise. You'll sit quietly and observe your thoughts — that's it.
-        </Text>
+        <Text style={styles.welcomeTitle}>{config.welcome_title}</Text>
+        <Text style={styles.welcomeSubtitle}>{config.welcome_subtitle}</Text>
         <TouchableOpacity
           style={styles.expandToggle}
           onPress={() => setShowWelcomeScience(!showWelcomeScience)}
@@ -186,13 +202,11 @@ export const OnboardingScreen: React.FC = () => {
           />
         </TouchableOpacity>
         {showWelcomeScience && (
-          <Text style={styles.welcomeWhyBody}>
-            Your brain doesn't need long to shift. A 2026 Harvard study found measurable brainwave changes in beginners within 2–3 minutes of their first meditation. The trick isn't emptying your mind — it's watching it.
-          </Text>
+          <Text style={styles.welcomeWhyBody}>{config.welcome_science}</Text>
         )}
       </View>
       <Button
-        title="Let's go →"
+        title={config.welcome_button}
         onPress={() => goToStep(2)}
         style={styles.welcomeButton}
       />
@@ -206,12 +220,8 @@ export const OnboardingScreen: React.FC = () => {
   const renderScreen2 = () => (
     <View style={styles.stageContent}>
       <View style={styles.intentionBox}>
-        <Text style={styles.intentionTitle}>Your only job</Text>
-        <Text style={styles.intentionBody}>
-          Sit still. Notice what comes up.{'\n'}
-          Don't try to fix, control, or quiet anything.{'\n'}
-          Just observe.
-        </Text>
+        <Text style={styles.intentionTitle}>{config.settle_title}</Text>
+        <Text style={styles.intentionBody}>{config.settle_body}</Text>
       </View>
 
       <TouchableOpacity
@@ -229,9 +239,7 @@ export const OnboardingScreen: React.FC = () => {
       </TouchableOpacity>
       {showSettleScience && (
         <View style={styles.expandedContent}>
-          <Text style={styles.expandedText}>
-            When you stop doing, your brain's default mode network kicks in — surfacing the thought patterns that run on autopilot all day. This 60 seconds makes them visible.
-          </Text>
+          <Text style={styles.expandedText}>{config.settle_science}</Text>
         </View>
       )}
     </View>
@@ -254,15 +262,15 @@ export const OnboardingScreen: React.FC = () => {
 
     if (!timerStarted && !timerDone) {
       // Pre-start state
+      const preMinutes = Math.floor(config.timer_seconds / 60);
+      const preSeconds = config.timer_seconds % 60;
       return (
         <View style={[styles.stageContent, styles.timerCenter]}>
-          <Text style={styles.timerPreLabel}>When you tap the button, a 60-second timer will begin.</Text>
+          <Text style={styles.timerPreLabel}>{config.timer_pre_label}</Text>
           <View style={styles.timerRing}>
-            <Text style={styles.timerDisplay}>1:00</Text>
+            <Text style={styles.timerDisplay}>{`${preMinutes}:${String(preSeconds).padStart(2, '0')}`}</Text>
           </View>
-          <Text style={styles.timerPreSubtext}>
-            Put the phone down. Close your eyes if you like.{'\n'}The app will wait for you.
-          </Text>
+          <Text style={styles.timerPreSubtext}>{config.timer_pre_subtext}</Text>
         </View>
       );
     }
@@ -271,7 +279,7 @@ export const OnboardingScreen: React.FC = () => {
     return (
       <View style={[styles.stageContent, styles.timerCenter]}>
         <Text style={styles.timerLabel}>
-          {timerDone ? "Time's up. Take a breath." : 'Sit quietly. Notice your thoughts.'}
+          {timerDone ? config.timer_done_label : config.timer_active_label}
         </Text>
         <Animated.View style={[styles.timerRing, { borderColor }]}>
           <Text style={styles.timerDisplay}>{timerDone ? '✓' : display}</Text>
@@ -291,18 +299,10 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderScreen4 = () => (
     <View style={[styles.stageContent, styles.bridgeCenter]}>
-      <Text style={styles.bridgeHeadline}>
-        There's a lot going on in there, right?
-      </Text>
-      <Text style={styles.bridgeBody}>
-        That's normal — your brain generates thousands of thoughts a day, and many of them are negative. Left unchecked, they quietly shape your decisions, motivation, and habits.
-      </Text>
-      <Text style={styles.bridgeKickerHeadline}>
-        That's why we use a redirect mantra
-      </Text>
-      <Text style={styles.bridgeKicker}>
-        A short phrase you repeat when negativity shows up. Your brain can only hold one thought at a time. Give it the mantra, and the negative thought has nowhere to go.
-      </Text>
+      <Text style={styles.bridgeHeadline}>{config.bridge_headline}</Text>
+      <Text style={styles.bridgeBody}>{config.bridge_body}</Text>
+      <Text style={styles.bridgeKickerHeadline}>{config.bridge_kicker_headline}</Text>
+      <Text style={styles.bridgeKicker}>{config.bridge_kicker}</Text>
     </View>
   );
 
@@ -312,12 +312,8 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderScreen5 = () => (
     <View style={styles.stageContent}>
-      <Text style={styles.stageIntro}>
-        Pick your redirect mantra
-      </Text>
-      <Text style={styles.mantraSubtext}>
-        A short phrase you'll repeat when your mind drifts. Write your own or tap one below.
-      </Text>
+      <Text style={styles.stageIntro}>{config.mantra_intro}</Text>
+      <Text style={styles.mantraSubtext}>{config.mantra_subtext}</Text>
       <TextInput
         style={styles.mantraInput}
         value={mantra}
@@ -328,7 +324,7 @@ export const OnboardingScreen: React.FC = () => {
         returnKeyType="done"
       />
       <View style={styles.mantraExamples}>
-        {MANTRA_EXAMPLES.map((example) => (
+        {config.mantra_examples.map((example) => (
           <TouchableOpacity
             key={example}
             style={[styles.mantraChip, mantra === example && styles.mantraChipSelected]}
@@ -343,9 +339,7 @@ export const OnboardingScreen: React.FC = () => {
       </View>
       <View style={styles.howToCard}>
         <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
-        <Text style={styles.scienceText}>
-          Catch a negative thought, repeat your mantra silently — over and over — until it passes.
-        </Text>
+        <Text style={styles.scienceText}>{config.mantra_howto}</Text>
       </View>
       <TouchableOpacity
         style={styles.expandToggleDark}
@@ -362,9 +356,7 @@ export const OnboardingScreen: React.FC = () => {
       </TouchableOpacity>
       {showMantraScience && (
         <View style={styles.expandedContent}>
-          <Text style={styles.expandedText}>
-            Self-directed speech activates your prefrontal cortex — the brain region responsible for focus and self-control. A personal mantra interrupts autopilot thinking and gives your brain a clear instruction.
-          </Text>
+          <Text style={styles.expandedText}>{config.mantra_science}</Text>
         </View>
       )}
     </View>
@@ -375,31 +367,33 @@ export const OnboardingScreen: React.FC = () => {
   // ============================================================================
 
   const renderScreen6 = () => {
-    const availableHabits = HABIT_LIBRARY.filter((h) => h.id !== 'morning-meditation');
+    const availableHabits = HABIT_LIBRARY.filter(
+      (h) =>
+        h.id !== config.foundation_habit_id &&
+        (config.offered_habit_ids.length === 0 || config.offered_habit_ids.includes(h.id))
+    );
 
     return (
       <View style={styles.stageContent}>
-        <Text style={styles.stageIntro}>
-          You've already completed your first meditation. It's now locked in as your foundation habit.
-        </Text>
+        <Text style={styles.stageIntro}>{config.habit_intro}</Text>
 
-        {/* Locked meditation row */}
+        {/* Locked foundation habit row */}
         <View style={styles.lockedHabitRow}>
           <View style={styles.lockedHabitIcon}>
             <Ionicons name="lock-closed" size={18} color={Colors.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.lockedHabitName}>Meditation</Text>
-            <Text style={styles.lockedHabitMeta}>5x/week · Your foundation habit</Text>
+            <Text style={styles.lockedHabitName}>{config.foundation_habit_name}</Text>
+            <Text style={styles.lockedHabitMeta}>
+              {config.foundation_target_per_week}x/week · Your foundation habit
+            </Text>
           </View>
           <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
         </View>
 
         {/* Additional habit selection */}
         <Text style={styles.habitSectionLabel}>+ ONE MORE HABIT</Text>
-        <Text style={styles.habitSectionBody}>
-          Start with just one. You can always add more later.
-        </Text>
+        <Text style={styles.habitSectionBody}>{config.habit_section_body}</Text>
 
         {availableHabits.map((habit) => {
           const isSelected = selectedHabitId === habit.id;
@@ -435,7 +429,7 @@ export const OnboardingScreen: React.FC = () => {
 
     return (
       <View style={styles.revealContainer}>
-        <Text style={styles.revealTitle}>Your starting point</Text>
+        <Text style={styles.revealTitle}>{config.reveal_title}</Text>
 
         {/* Mantra anchor card */}
         <View style={styles.mantraCard}>
@@ -449,8 +443,10 @@ export const OnboardingScreen: React.FC = () => {
             <Ionicons name="checkmark" size={16} color={Colors.white} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.revealHabitName}>Meditation</Text>
-            <Text style={styles.revealHabitMeta}>5x/week · Day 1 complete</Text>
+            <Text style={styles.revealHabitName}>{config.foundation_habit_name}</Text>
+            <Text style={styles.revealHabitMeta}>
+              {config.foundation_target_per_week}x/week · Day 1 complete
+            </Text>
           </View>
         </View>
 
@@ -629,6 +625,16 @@ export const OnboardingScreen: React.FC = () => {
   // ============================================================================
 
   // Screen 1: Full-screen welcome (no chrome)
+  // Hold rendering until the (timeout-guarded) config fetch settles so the
+  // user never sees default copy swap to admin copy mid-read
+  if (!configLoaded) {
+    return (
+      <View style={[styles.screen, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   if (step === 1) return renderScreen1();
 
   // Screen 7: Full-screen reveal (no dots)

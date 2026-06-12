@@ -7,8 +7,6 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Switch,
-  Modal,
-  Pressable,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +14,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
+import { Dropdown } from '../../components/common/Dropdown';
 import { showAlert } from '../../utils/alert';
 import { getRuleById, createRule, updateRule } from '../../services/rules';
 import { GLOBAL_PLACEHOLDER_KEYS } from '../../services/rulesEngine';
@@ -98,73 +97,6 @@ function ChipRow<T extends string>({ options, selected, onSelect }: ChipRowProps
         </TouchableOpacity>
       ))}
     </View>
-  );
-}
-
-interface DropdownProps<T extends string> {
-  options: { value: T; label: string }[];
-  selected: T;
-  onSelect: (value: T) => void;
-  /** Override the closed-state label (e.g. show just the operator symbol). */
-  triggerLabel?: string;
-  compact?: boolean;
-}
-
-function Dropdown<T extends string>({
-  options,
-  selected,
-  onSelect,
-  triggerLabel,
-  compact,
-}: DropdownProps<T>) {
-  const [open, setOpen] = useState(false);
-  const selectedLabel =
-    triggerLabel ?? options.find((o) => o.value === selected)?.label ?? selected;
-  return (
-    <>
-      <TouchableOpacity
-        style={[styles.dropdownTrigger, compact && styles.dropdownTriggerCompact]}
-        onPress={() => setOpen(true)}
-      >
-        <Text style={styles.dropdownTriggerText} numberOfLines={1}>
-          {selectedLabel}
-        </Text>
-        <Ionicons name="chevron-down" size={14} color={Colors.gray} />
-      </TouchableOpacity>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.dropdownOverlay} onPress={() => setOpen(false)}>
-          <Pressable style={styles.dropdownSheet} onPress={() => {}}>
-            <ScrollView>
-              {options.map((opt) => (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[
-                    styles.dropdownOption,
-                    opt.value === selected && styles.dropdownOptionSelected,
-                  ]}
-                  onPress={() => {
-                    onSelect(opt.value);
-                    setOpen(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.dropdownOptionText,
-                      opt.value === selected && styles.dropdownOptionTextSelected,
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                  {opt.value === selected && (
-                    <Ionicons name="checkmark" size={18} color={Colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </>
   );
 }
 
@@ -641,62 +573,6 @@ const styles = StyleSheet.create({
   },
   factDropdownWrap: {
     flex: 1,
-  },
-  dropdownTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
-  dropdownTriggerCompact: {
-    width: 64,
-  },
-  dropdownTriggerText: {
-    flex: 1,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  dropdownOverlay: {
-    flex: 1,
-    backgroundColor: Colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  dropdownSheet: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.xs,
-    width: '100%',
-    maxWidth: 420,
-    maxHeight: 420,
-  },
-  dropdownOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-  },
-  dropdownOptionSelected: {
-    backgroundColor: Colors.primary + '10',
-  },
-  dropdownOptionText: {
-    flex: 1,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  dropdownOptionTextSelected: {
-    fontFamily: Fonts.secondaryBold,
-    color: Colors.primary,
   },
   valueInputWrap: {
     width: 72,
