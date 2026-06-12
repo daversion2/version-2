@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Switch,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +30,6 @@ import {
   RuleSurface,
   RULE_EVENTS,
   RULE_FACTS,
-  RULE_OPERATORS,
   FactKey,
   PUSH_EVENTS,
   EVENT_PLACEHOLDERS,
@@ -53,6 +54,20 @@ const FREQUENCIES: { value: RuleFrequencyType; label: string }[] = [
 ];
 
 const FACT_KEYS = Object.keys(RULE_FACTS) as FactKey[];
+
+const FACT_OPTIONS: { value: FactKey; label: string }[] = FACT_KEYS.map((k) => ({
+  value: k,
+  label: RULE_FACTS[k],
+}));
+
+const OPERATOR_OPTIONS: { value: RuleOperator; label: string }[] = [
+  { value: '==', label: '==   equals' },
+  { value: '!=', label: '!=   does not equal' },
+  { value: '>', label: '>   greater than' },
+  { value: '>=', label: '>=   at least' },
+  { value: '<', label: '<   less than' },
+  { value: '<=', label: '<=   at most' },
+];
 
 type CtaTargetType = 'none' | 'screen' | 'url';
 
@@ -83,6 +98,73 @@ function ChipRow<T extends string>({ options, selected, onSelect }: ChipRowProps
         </TouchableOpacity>
       ))}
     </View>
+  );
+}
+
+interface DropdownProps<T extends string> {
+  options: { value: T; label: string }[];
+  selected: T;
+  onSelect: (value: T) => void;
+  /** Override the closed-state label (e.g. show just the operator symbol). */
+  triggerLabel?: string;
+  compact?: boolean;
+}
+
+function Dropdown<T extends string>({
+  options,
+  selected,
+  onSelect,
+  triggerLabel,
+  compact,
+}: DropdownProps<T>) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel =
+    triggerLabel ?? options.find((o) => o.value === selected)?.label ?? selected;
+  return (
+    <>
+      <TouchableOpacity
+        style={[styles.dropdownTrigger, compact && styles.dropdownTriggerCompact]}
+        onPress={() => setOpen(true)}
+      >
+        <Text style={styles.dropdownTriggerText} numberOfLines={1}>
+          {selectedLabel}
+        </Text>
+        <Ionicons name="chevron-down" size={14} color={Colors.gray} />
+      </TouchableOpacity>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.dropdownOverlay} onPress={() => setOpen(false)}>
+          <Pressable style={styles.dropdownSheet} onPress={() => {}}>
+            <ScrollView>
+              {options.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.dropdownOption,
+                    opt.value === selected && styles.dropdownOptionSelected,
+                  ]}
+                  onPress={() => {
+                    onSelect(opt.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownOptionText,
+                      opt.value === selected && styles.dropdownOptionTextSelected,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                  {opt.value === selected && (
+                    <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -149,19 +231,6 @@ export const AdminRuleEditScreen: React.FC = () => {
 
   const updateCondition = (index: number, updates: Partial<RuleCondition>) => {
     setConditions((prev) => prev.map((c, i) => (i === index ? { ...c, ...updates } : c)));
-  };
-
-  const cycleOperator = (index: number) => {
-    const current = conditions[index].op;
-    const next = RULE_OPERATORS[(RULE_OPERATORS.indexOf(current) + 1) % RULE_OPERATORS.length];
-    updateCondition(index, { op: next });
-  };
-
-  const cycleFact = (index: number, direction: 1 | -1) => {
-    const current = conditions[index].fact;
-    const idx = FACT_KEYS.indexOf(current);
-    const next = FACT_KEYS[(idx + direction + FACT_KEYS.length) % FACT_KEYS.length];
-    updateCondition(index, { fact: next });
   };
 
   const addCondition = () => {
@@ -316,20 +385,20 @@ export const AdminRuleEditScreen: React.FC = () => {
           )}
           {conditions.map((cond, index) => (
             <View key={index} style={styles.conditionRow}>
-              <View style={styles.factPicker}>
-                <TouchableOpacity onPress={() => cycleFact(index, -1)} style={styles.factArrow}>
-                  <Ionicons name="chevron-back" size={16} color={Colors.gray} />
-                </TouchableOpacity>
-                <Text style={styles.factText} numberOfLines={2}>
-                  {RULE_FACTS[cond.fact] ?? cond.fact}
-                </Text>
-                <TouchableOpacity onPress={() => cycleFact(index, 1)} style={styles.factArrow}>
-                  <Ionicons name="chevron-forward" size={16} color={Colors.gray} />
-                </TouchableOpacity>
+              <View style={styles.factDropdownWrap}>
+                <Dropdown
+                  options={FACT_OPTIONS}
+                  selected={cond.fact}
+                  onSelect={(fact) => updateCondition(index, { fact })}
+                />
               </View>
-              <TouchableOpacity style={styles.opButton} onPress={() => cycleOperator(index)}>
-                <Text style={styles.opText}>{cond.op}</Text>
-              </TouchableOpacity>
+              <Dropdown
+                options={OPERATOR_OPTIONS}
+                selected={cond.op}
+                triggerLabel={cond.op}
+                onSelect={(op) => updateCondition(index, { op })}
+                compact
+              />
               <View style={styles.valueInputWrap}>
                 <InputField
                   label=""
@@ -570,37 +639,63 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.xs,
   },
-  factPicker: {
+  factDropdownWrap: {
     flex: 1,
+  },
+  dropdownTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: BorderRadius.sm,
     backgroundColor: Colors.white,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
   },
-  factArrow: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xs,
+  dropdownTriggerCompact: {
+    width: 64,
   },
-  factText: {
+  dropdownTriggerText: {
     flex: 1,
     fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     color: Colors.dark,
-    textAlign: 'center',
   },
-  opButton: {
-    width: 44,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: Colors.primary + '15',
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: Colors.overlay,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: Spacing.lg,
   },
-  opText: {
+  dropdownSheet: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.xs,
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: 420,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+  },
+  dropdownOptionSelected: {
+    backgroundColor: Colors.primary + '10',
+  },
+  dropdownOptionText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  dropdownOptionTextSelected: {
     fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.md,
     color: Colors.primary,
   },
   valueInputWrap: {
