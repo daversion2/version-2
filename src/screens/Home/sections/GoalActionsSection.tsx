@@ -11,6 +11,7 @@ import { Goal, Challenge, Nudge, HabitActionPlan } from '../../../types';
 import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { GOAL_CONSTANTS } from '../../../constants/goals';
 import { formatShortDay } from '../../../utils/date';
+import { formatHabitPlanLine } from '../../../utils/habitPlan';
 
 export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
   const {
@@ -418,13 +419,26 @@ const ChallengeRow: React.FC<{
   );
 };
 
-const PLAN_LABELS: { key: keyof HabitActionPlan; label: string; icon: string }[] = [
-  { key: 'cue', label: 'When & where', icon: 'time-outline' },
+const PLAN_LABELS: {
+  key: keyof HabitActionPlan;
+  label: string;
+  icon: string;
+  fallbackKey?: keyof HabitActionPlan;
+}[] = [
+  { key: 'anchor', label: 'After I…', icon: 'link-outline', fallbackKey: 'cue' },
+  { key: 'pairing', label: 'Pair it with', icon: 'heart-outline' },
   { key: 'environment_change', label: 'Environment tweak', icon: 'home-outline' },
   { key: 'obstacle_plan', label: 'Obstacle plan', icon: 'shield-outline' },
   { key: 'minimum_version', label: 'Minimum version', icon: 'trending-down-outline' },
   { key: 'accountability_person', label: 'Accountability', icon: 'people-outline' },
 ];
+
+/** Resolve a label's value, falling back to a legacy key (e.g. anchor → cue). */
+const planValueFor = (
+  plan: HabitActionPlan,
+  key: keyof HabitActionPlan,
+  fallbackKey?: keyof HabitActionPlan
+): string | undefined => plan[key] || (fallbackKey ? plan[fallbackKey] : undefined);
 
 const HabitRow: React.FC<{
   habit: Nudge;
@@ -437,7 +451,11 @@ const HabitRow: React.FC<{
   const [expanded, setExpanded] = useState(false);
   const target = habit.target_count_per_week;
   const isComplete = done >= target;
-  const hasPlan = habit.action_plan && PLAN_LABELS.some(({ key }) => !!habit.action_plan![key]);
+  const hasPlan =
+    habit.action_plan &&
+    PLAN_LABELS.some(({ key, fallbackKey }) => !!planValueFor(habit.action_plan!, key, fallbackKey));
+  // Inline pre-action cue (anchor + pairing), shown without expanding "My Plan".
+  const planLine = formatHabitPlanLine(habit.action_plan);
 
   return (
     <Card style={styles.actionCard}>
@@ -476,6 +494,11 @@ const HabitRow: React.FC<{
                 Planned for {formatShortDay(plannedForDate)}
               </Text>
             )}
+            {!isComplete && !!planLine && (
+              <Text style={styles.planLine} numberOfLines={1}>
+                {planLine}
+              </Text>
+            )}
           </View>
           <TouchableOpacity
             onPress={() => callbacks.onNavigate('HabitDetail', { habitId: habit.id })}
@@ -502,7 +525,7 @@ const HabitRow: React.FC<{
               />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => callbacks.onNavigate('HabitActionPlan', { habitId: habit.id, prefilled: habit.action_plan })}
+              onPress={() => callbacks.onNavigate('HabitActionPlan', { habitId: habit.id, prefilled: habit.action_plan, supportsPairing: !!habit.supports_pairing, reminder: habit.reminder })}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               activeOpacity={0.7}
             >
@@ -511,8 +534,8 @@ const HabitRow: React.FC<{
           </View>
           {expanded && (
             <View style={styles.planDropdown}>
-              {PLAN_LABELS.map(({ key, label, icon }) => {
-                const value = habit.action_plan![key];
+              {PLAN_LABELS.map(({ key, label, icon, fallbackKey }) => {
+                const value = planValueFor(habit.action_plan!, key, fallbackKey);
                 if (!value) return null;
                 return (
                   <View key={key} style={styles.planItem}>
@@ -530,7 +553,7 @@ const HabitRow: React.FC<{
       ) : (
         <TouchableOpacity
           style={styles.planToggle}
-          onPress={() => callbacks.onNavigate('HabitActionPlan', { habitId: habit.id })}
+          onPress={() => callbacks.onNavigate('HabitActionPlan', { habitId: habit.id, supportsPairing: !!habit.supports_pairing, reminder: habit.reminder })}
           activeOpacity={0.7}
         >
           <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
@@ -762,6 +785,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.gray,
     fontStyle: 'italic',
+  },
+  planLine: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    marginTop: 2,
   },
 
   // Action plan dropdown

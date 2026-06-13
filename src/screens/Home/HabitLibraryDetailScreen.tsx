@@ -21,8 +21,13 @@ import { showAlert } from '../../utils/alert';
 type Props = HomeScreenProps<'HabitLibraryDetail'>;
 
 
-const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string }[] = [
-  { key: 'cue', label: 'When & where' },
+const ACTION_PLAN_LABELS: {
+  key: keyof HabitActionPlan;
+  label: string;
+  fallbackKey?: keyof HabitActionPlan;
+}[] = [
+  { key: 'anchor', label: 'After I…', fallbackKey: 'cue' },
+  { key: 'pairing', label: 'Pair it with' },
   { key: 'environment_change', label: 'Environment tweak' },
   { key: 'obstacle_plan', label: 'Obstacle plan' },
   { key: 'minimum_version', label: 'Minimum version' },
@@ -51,17 +56,20 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
     if (!user) return;
     setAdding(true);
     try {
+      const supportsPairing = !!habit.action_plan.pairing;
       const newHabitId = await createHabit(user.uid, {
         name: habit.name,
         target_count_per_week: habit.suggested_target_per_week,
         ...(selectedGoalIds.length > 0 ? { goal_ids: selectedGoalIds } : {}),
         action_plan: habit.action_plan,
         created_by_user: false,
+        supports_pairing: supportsPairing,
       });
       navigation.navigate('HabitActionPlan', {
         habitId: newHabitId,
         prefilled: habit.action_plan,
         afterSaveRoute: 'ManageHabits',
+        supportsPairing,
       });
     } catch (e: any) {
       showAlert('Error', e.message);
@@ -93,8 +101,9 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
       <Text style={styles.sectionSubtitle}>
         These answers come pre-filled. You'll be able to review and personalise each one after adding.
       </Text>
-      {ACTION_PLAN_LABELS.map(({ key, label }) => {
-        const value = habit.action_plan[key];
+      {ACTION_PLAN_LABELS.map(({ key, label, fallbackKey }) => {
+        const value =
+          habit.action_plan[key] || (fallbackKey ? habit.action_plan[fallbackKey] : undefined);
         if (!value) return null;
         return (
           <Card key={key} style={styles.planCard}>

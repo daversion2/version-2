@@ -17,17 +17,31 @@ import { Card } from '../../components/common/Card';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/habits';
+import { cancelHabitReminder } from '../../services/habitReminders';
 import { Nudge, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 
 type Props = HomeScreenProps<'HabitDetail'>;
 
-const ACTION_PLAN_LABELS: { key: keyof HabitActionPlan; label: string; icon: string }[] = [
-  { key: 'cue', label: 'When & where', icon: 'time-outline' },
+const ACTION_PLAN_LABELS: {
+  key: keyof HabitActionPlan;
+  label: string;
+  icon: string;
+  fallbackKey?: keyof HabitActionPlan;
+}[] = [
+  { key: 'anchor', label: 'After I…', icon: 'link-outline', fallbackKey: 'cue' },
+  { key: 'pairing', label: 'Pair it with', icon: 'heart-outline' },
   { key: 'environment_change', label: 'Environment tweak', icon: 'home-outline' },
   { key: 'obstacle_plan', label: 'Obstacle plan', icon: 'shield-outline' },
   { key: 'minimum_version', label: 'Minimum version', icon: 'trending-down-outline' },
   { key: 'accountability_person', label: 'Accountability', icon: 'people-outline' },
 ];
+
+/** Resolve a label's value, falling back to a legacy key (e.g. anchor → cue). */
+const planValueFor = (
+  plan: HabitActionPlan,
+  key: keyof HabitActionPlan,
+  fallbackKey?: keyof HabitActionPlan
+): string | undefined => plan[key] || (fallbackKey ? plan[fallbackKey] : undefined);
 
 export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { habitId } = route.params;
@@ -75,6 +89,7 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress: async () => {
             if (!user) return;
             try {
+              if (habit) await cancelHabitReminder(habit);
               await updateHabit(user.uid, habitId, { is_active: false });
               navigation.goBack();
             } catch (e: any) {
@@ -270,6 +285,8 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             navigation.navigate('HabitActionPlan', {
               habitId,
               prefilled: habit.action_plan,
+              supportsPairing: !!habit.supports_pairing,
+              reminder: habit.reminder,
             })
           }
           style={styles.editPlanBtn}
@@ -282,9 +299,11 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       </View>
 
       {habit.action_plan &&
-      ACTION_PLAN_LABELS.some(({ key }) => !!habit.action_plan![key]) ? (
-        ACTION_PLAN_LABELS.map(({ key, label, icon }) => {
-          const value = habit.action_plan![key];
+      ACTION_PLAN_LABELS.some(({ key, fallbackKey }) =>
+        !!planValueFor(habit.action_plan!, key, fallbackKey)
+      ) ? (
+        ACTION_PLAN_LABELS.map(({ key, label, icon, fallbackKey }) => {
+          const value = planValueFor(habit.action_plan!, key, fallbackKey);
           if (!value) return null;
           return (
             <Card key={key} style={styles.planCard}>
@@ -303,7 +322,11 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </Text>
           <TouchableOpacity
             onPress={() =>
-              navigation.navigate('HabitActionPlan', { habitId })
+              navigation.navigate('HabitActionPlan', {
+                habitId,
+                supportsPairing: !!habit.supports_pairing,
+                reminder: habit.reminder,
+              })
             }
             style={styles.planEmptyBtn}
           >

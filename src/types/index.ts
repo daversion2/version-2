@@ -214,11 +214,20 @@ export interface DuoStreak {
 }
 
 export interface HabitActionPlan {
-  cue?: string;                    // Q1: implementation intention (when/where)
-  environment_change?: string;     // Q2: environment design
-  obstacle_plan?: string;          // Q3: WOOP obstacle + if-then
-  minimum_version?: string;        // Q4: minimum viable behavior
-  accountability_person?: string;  // Q5: social commitment
+  anchor?: string;                 // Q1: habit-stacking anchor — completes "After I ___"
+  pairing?: string;                // Temptation bundle — completes "...with ___" (optional)
+  environment_change?: string;     // environment design
+  obstacle_plan?: string;          // WOOP obstacle + if-then
+  minimum_version?: string;        // minimum viable behavior
+  accountability_person?: string;  // social commitment
+  cue?: string;                    // DEPRECATED: legacy free-text "when/where". Read-only fallback for habits created before the anchor field; new/edited habits write `anchor` instead.
+}
+
+// Per-habit local reminder, scheduled around the anchor's time of day.
+export interface HabitReminder {
+  time: string;                    // 'HH:mm' in the user's local time
+  enabled: boolean;
+  notificationId?: string;         // Expo local-notification id, for cancel/reschedule
 }
 
 export interface LibraryHabit {
@@ -240,6 +249,8 @@ export interface Nudge {
   target_count_per_week: number; // 1–7
   goal_ids?: string[];
   action_plan?: HabitActionPlan;
+  reminder?: HabitReminder;
+  supports_pairing?: boolean; // habit is suited to temptation bundling (body busy, mind free)
 }
 
 export type Quadrant = 'stressed' | 'energized' | 'depleted' | 'calm';

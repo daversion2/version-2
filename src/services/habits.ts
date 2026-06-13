@@ -59,6 +59,7 @@ export const createHabit = async (
     goal_ids?: string[];
     action_plan?: HabitActionPlan;
     created_by_user?: boolean;
+    supports_pairing?: boolean;
   }
 ): Promise<string> => {
   const { created_by_user, ...rest } = data;

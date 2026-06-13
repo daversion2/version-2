@@ -3,6 +3,7 @@ import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-n
 import type {
   Challenge,
   HabitActionPlan,
+  HabitReminder,
   ActionType,
   TimeCategory,
   DailyReflection,
@@ -69,6 +70,8 @@ export type HomeStackParamList = {
     habitId: string;
     prefilled?: HabitActionPlan;
     afterSaveRoute?: string;
+    supportsPairing?: boolean;
+    reminder?: HabitReminder;
   };
   HabitLibrary: undefined;
   HabitLibraryDetail: { habitId: string };

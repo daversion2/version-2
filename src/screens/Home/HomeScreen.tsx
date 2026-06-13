@@ -18,6 +18,7 @@ import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, acti
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
 import { getActiveHabits, logHabitCompletion, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts } from '../../services/habits';
+import { reconcileHabitReminders } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { getGoalColor } from '../../constants/goalColors';
 import { getUserTeam, logTeamActivity, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
@@ -122,6 +123,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Track app opens
   const appOpenTrackedRef = useRef(false);
+  const remindersReconciledRef = useRef(false);
 
   // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
   // The modal is held while any bespoke modal is up so they never stack.
@@ -294,6 +296,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setPendingInvites(inviteCount);
       setBuddyChallenges(activeBuddies);
       setHabits(habitList);
+      // Once per session: schedule any enabled reminders that aren't scheduled yet
+      // (e.g. saved before reminders shipped, or while permission was denied).
+      if (!remindersReconciledRef.current && user) {
+        remindersReconciledRef.current = true;
+        reconcileHabitReminders(user.uid, habitList).catch(() => {});
+      }
       setTeam(userTeam);
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
@@ -750,6 +758,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <HabitCompletionModal
         visible={!!completingHabit}
         habitName={completingHabit?.name || ''}
+        actionPlan={completingHabit?.action_plan}
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
       />

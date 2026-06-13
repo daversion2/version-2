@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
+import { HabitActionPlan } from '../../types';
+import { formatHabitPlanLine } from '../../utils/habitPlan';
 
 const HABIT_PROMPTS = [
   'What made today different?',
@@ -24,6 +26,7 @@ const getRandomPrompt = (prompts: string[]): string =>
 interface Props {
   visible: boolean;
   habitName: string;
+  actionPlan?: HabitActionPlan;
   onSubmit: (
     difficulty: 'easy' | 'challenging',
     notes?: string,
@@ -34,9 +37,11 @@ interface Props {
 export const HabitCompletionModal: React.FC<Props> = ({
   visible,
   habitName,
+  actionPlan,
   onSubmit,
   onCancel,
 }) => {
+  const planLine = formatHabitPlanLine(actionPlan);
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
@@ -69,6 +74,8 @@ export const HabitCompletionModal: React.FC<Props> = ({
       <Pressable style={styles.overlay} onPress={handleCancel}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Text style={styles.title}>{habitName}</Text>
+
+          {!!planLine && <Text style={styles.planRecap}>{planLine}</Text>}
 
           <Text style={styles.subtitle}>How was it?</Text>
 
@@ -167,12 +174,20 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     textAlign: 'center',
   },
+  planRecap: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
   subtitle: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.gray,
     textAlign: 'center',
     marginBottom: Spacing.lg,
+    marginTop: Spacing.sm,
   },
   buttonRow: {
     flexDirection: 'row',

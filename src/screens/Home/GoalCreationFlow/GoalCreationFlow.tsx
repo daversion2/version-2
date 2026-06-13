@@ -83,7 +83,7 @@ const buildVisualizationActionPlan = (
   }
 
   return {
-    cue: 'After my morning coffee, I sit in a quiet spot and close my eyes for 2 minutes.',
+    anchor: 'have my morning coffee',
     environment_change:
       'Find a quiet space, silence your phone, and close your eyes. A consistent spot helps build the habit.',
     obstacle_plan: obstaclePlan,

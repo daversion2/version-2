@@ -14,6 +14,7 @@ import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveHabits, createHabit, updateHabit } from '../../services/habits';
+import { cancelHabitReminder } from '../../services/habitReminders';
 import { Nudge } from '../../types';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
@@ -123,6 +124,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
       async () => {
         if (!user) return;
         try {
+          await cancelHabitReminder(habit);
           await updateHabit(user.uid, habit.id, { is_active: false });
           await load();
         } catch (e: any) {

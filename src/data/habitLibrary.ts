@@ -9,7 +9,8 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'A short daily walk to start the day with movement and fresh air.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right after I finish breakfast, before I check my phone or open any apps',
+      anchor: 'finish breakfast',
+      pairing: 'a podcast or audiobook',
       environment_change: 'Sleep in comfortable clothes or lay out my shoes and jacket by the front door the night before',
       obstacle_plan: "If it's raining or I'm running late, I'll walk around my building or hallway for 5 minutes instead",
       minimum_version: 'Even just step outside and walk to the end of the street and back — that counts',
@@ -23,7 +24,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Stay hydrated throughout the day with a consistent water intake habit.',
     suggested_target_per_week: 7,
     action_plan: {
-      cue: "I'll drink one glass first thing after waking up, one before each meal, and one before bed",
+      anchor: 'wake up',
       environment_change: 'Keep a large water bottle on my desk and kitchen counter where I can always see it',
       obstacle_plan: "If I forget during a busy day, I'll set a phone reminder at 10am, 1pm, and 4pm",
       minimum_version: "Even if I miss my target, I'll drink at least 4 glasses — better than nothing",
@@ -37,7 +38,8 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Gentle stretching to wind down the body and improve sleep quality.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right after I brush my teeth at night, before I get into bed',
+      anchor: 'get into bed',
+      pairing: 'a calming playlist',
       environment_change: 'Place a yoga mat next to my bed as a visual cue, or keep a stretching routine bookmarked on my phone',
       obstacle_plan: "If I'm too tired or it's gotten too late, I'll do 3 gentle stretches lying in bed instead — it still counts",
       minimum_version: 'Even 2 minutes of slow neck and shoulder rolls counts as the habit',
@@ -51,7 +53,8 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'A consistent, manageable workout routine to build strength and energy.',
     suggested_target_per_week: 4,
     action_plan: {
-      cue: 'Every Monday, Wednesday, Friday, and Saturday immediately after I finish work or before dinner',
+      anchor: 'get home from work',
+      pairing: 'my favorite playlist',
       environment_change: 'Lay out workout clothes the night before and keep my gym bag by the door ready to go',
       obstacle_plan: "If I miss a planned session, I'll do a 10-minute bodyweight workout at home rather than skipping entirely",
       minimum_version: 'Even just 10 minutes of movement — a short walk, some pushups, or a quick YouTube workout',
@@ -65,7 +68,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Replace elevator rides with stair climbing to add movement throughout your day.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Every time I arrive at a building with an elevator, I automatically walk toward the stairs instead',
+      anchor: 'reach a staircase',
       environment_change: "Add a sticky note on my bag or phone case that says 'Take the stairs' as a daily reminder",
       obstacle_plan: "If I'm carrying heavy bags or others need the elevator, I'll commit to at least one floor by stairs each day",
       minimum_version: 'Even one flight of stairs counts — the habit is about choosing movement, not the distance',
@@ -80,7 +83,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'End your shower with a cold burst to build resilience and boost alertness.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'At the very end of my regular shower, right before I turn the water off',
+      anchor: 'get in the shower',
       environment_change: 'Put a waterproof timer or sticky note on the shower wall as a reminder to finish cold',
       obstacle_plan: "If 30 seconds feels impossible, I'll start with 10 seconds and build up — the hardest part is turning the dial",
       minimum_version: 'Even 5 seconds of cold water counts — the habit is about choosing discomfort, not the duration',
@@ -94,7 +97,8 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'A short daily yoga session to build flexibility and body awareness.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right after waking up, before I make coffee or check my phone',
+      anchor: 'wake up',
+      pairing: 'a calming playlist',
       environment_change: 'Roll out my yoga mat the night before so it\'s the first thing I see in the morning',
       obstacle_plan: "If I'm short on time, I'll do 3 sun salutations — that's enough to wake up my body",
       minimum_version: 'Even 3 minutes of gentle stretching on the mat counts as the habit',
@@ -108,7 +112,8 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Prepare at least one nutritious meal from scratch each day.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'At 6pm each evening, I start preparing dinner instead of reaching for takeout apps',
+      anchor: 'get home from work',
+      pairing: 'a podcast or my favorite playlist',
       environment_change: 'Meal prep ingredients on Sunday and keep a list of 5 simple recipes on the fridge',
       obstacle_plan: "If I'm too tired to cook a full meal, I'll make something simple like eggs, a salad, or a smoothie",
       minimum_version: 'Even assembling a healthy plate with whole foods counts — it doesn\'t have to be elaborate',
@@ -122,7 +127,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Break up sitting with a standing or movement break every hour.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Every time my phone or watch buzzes on the hour, I stand up and move for at least one minute',
+      anchor: 'start my workday',
       environment_change: 'Set hourly reminders on my phone or smartwatch during work hours (9am–5pm)',
       obstacle_plan: "If I'm in a meeting or deep in focus, I'll stand up at the next natural break and do a quick stretch",
       minimum_version: 'Even standing up and sitting back down counts — the habit is about breaking the sitting pattern',
@@ -136,7 +141,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Set a consistent bedtime to protect sleep quality and recovery.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'At 10pm, I start my wind-down routine — brush teeth, change clothes, get into bed',
+      anchor: 'see it\'s 10 PM',
       environment_change: 'Set a 10pm alarm labeled "Wind down" and dim all lights in the house at that time',
       obstacle_plan: "If I'm out late or have plans, I'll commit to being in bed within 30 minutes of getting home",
       minimum_version: 'Even being in bed by 11pm on a tough night is better than no bedtime at all',
@@ -150,7 +155,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Cut off caffeine in the afternoon to improve sleep quality.',
     suggested_target_per_week: 7,
     action_plan: {
-      cue: 'At 2pm, I make my last cup of coffee or tea — after that, I switch to water or herbal tea',
+      anchor: 'see it\'s 2 PM',
       environment_change: 'Keep herbal tea or decaf options visible at my desk for the afternoon craving',
       obstacle_plan: "If I'm exhausted in the afternoon, I'll take a 10-minute walk or splash cold water on my face instead",
       minimum_version: 'Even pushing my last coffee from 4pm to 3pm is progress worth counting',
@@ -164,7 +169,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'A quick core exercise to build strength and daily discipline.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right after I finish my morning walk or workout — or right before my shower if I skip the workout',
+      anchor: 'finish my workout',
       environment_change: 'Keep a timer app on my home screen and a mat or towel in a visible spot',
       obstacle_plan: "If 60 seconds feels too hard, I'll do 30 seconds or drop to my knees — any plank is a completed plank",
       minimum_version: 'Even a 15-second plank counts — the habit is showing up for core work daily',
@@ -178,7 +183,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Slow, deep breathing to activate the parasympathetic nervous system and reduce stress.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right after lunch, before I go back to work — I sit quietly and breathe for 5 minutes',
+      anchor: 'have lunch',
       environment_change: 'Block 5 minutes on my calendar after lunch and set a recurring reminder',
       obstacle_plan: "If I forget or skip lunch break, I'll do 1 minute of box breathing at my desk — eyes closed, 4 counts each",
       minimum_version: 'Even 5 slow, intentional breaths counts — the habit is about pausing and resetting',
@@ -192,7 +197,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Increase daily vegetable intake for better nutrition and energy.',
     suggested_target_per_week: 7,
     action_plan: {
-      cue: 'Before I plate any meal, I ask myself: "Where are the vegetables?" and add them first',
+      anchor: 'sit down to eat',
       environment_change: 'Wash and prep vegetables on Sunday so they\'re grab-and-go all week',
       obstacle_plan: "If I'm eating out or ordering in, I'll choose a side salad or vegetable dish instead of fries",
       minimum_version: 'Even adding a handful of spinach to a smoothie or some tomatoes on the side counts',
@@ -206,7 +211,8 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Get outside for fresh air and sustained physical movement.',
     suggested_target_per_week: 4,
     action_plan: {
-      cue: 'Right after work or during my lunch break, I head outside for at least 30 minutes of movement',
+      anchor: 'get home from work',
+      pairing: 'a podcast or audiobook',
       environment_change: 'Keep walking shoes by the door and a go-to route planned so there\'s no decision fatigue',
       obstacle_plan: "If the weather is bad, I'll walk around a mall, do a covered trail, or at minimum stand outside for 10 minutes",
       minimum_version: 'Even 15 minutes outside with intentional movement counts — fresh air and daylight are the goal',
@@ -222,7 +228,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Start each day with a short meditation to build calm focus and mental clarity.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right after I pour my morning coffee or tea, before checking my phone or starting any tasks',
+      anchor: 'have my morning coffee',
       environment_change: 'Place a meditation cushion or designated chair in a visible spot; open my meditation app the night before so it\'s ready',
       obstacle_plan: "If I'm rushed in the morning, I'll do 2 minutes of deep breathing — even that resets my nervous system",
       minimum_version: 'Even 2 minutes of slow, intentional breathing with eyes closed counts as a meditation',
@@ -236,7 +242,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Process your thoughts and emotions with a short daily writing practice.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: "Right before bed, after I've turned off the TV or put my phone down for the night",
+      anchor: 'get into bed',
       environment_change: 'Keep a journal and pen on my nightstand where I\'ll see it every night',
       obstacle_plan: "If I'm too tired for full sentences, I'll bullet point 3 thoughts from the day — that counts",
       minimum_version: 'Even one sentence about how I feel or what I noticed today is a completed journal entry',
@@ -250,7 +256,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Replace evening screen time with reading to wind down and keep learning.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'After I get into bed and plug in my phone to charge — that\'s my signal to open my book instead',
+      anchor: 'get into bed',
       environment_change: 'Keep my current book on my nightstand and move my phone charger across the room to reduce temptation',
       obstacle_plan: "If I'm too tired for a full chapter, I'll read for just 5 minutes — I almost always keep going once I start",
       minimum_version: 'Even one page counts — the habit is about replacing screen time with reading, not hitting a page count',
@@ -264,7 +270,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Build a daily gratitude practice to shift your focus toward what\'s going well.',
     suggested_target_per_week: 7,
     action_plan: {
-      cue: 'Every morning before getting out of bed, or every evening before sleep — whichever flows most naturally',
+      anchor: 'wake up',
       environment_change: 'Keep a gratitude journal on my nightstand, or use a sticky note on my bathroom mirror as a daily reminder',
       obstacle_plan: "If nothing significant comes to mind, I'll be specific and small: the taste of my coffee, a good night's sleep, a kind text",
       minimum_version: 'Even one genuine thing I\'m grateful for counts — quality matters more than quantity',
@@ -278,7 +284,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Protect your sleep quality by giving your mind a screen-free wind-down period.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'At the same time every night, I put my phone on the charger in another room and switch activities',
+      anchor: 'start my bedtime routine',
       environment_change: 'Set a recurring phone alarm for my detox start time and keep a book, journal, or puzzle near the bed as alternatives',
       obstacle_plan: "If I need to be reachable, I'll switch to Do Not Disturb with only calls allowed rather than a full detox",
       minimum_version: 'Even 15 minutes of no-phone time before bed counts as the habit',
@@ -292,7 +298,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Spend 10 minutes learning something new each day to keep your mind sharp.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'During my morning coffee or commute, I open an article, video, or lesson on a topic I\'m curious about',
+      anchor: 'have my morning coffee',
       environment_change: 'Bookmark a learning app or save articles to a "read later" list so content is always ready',
       obstacle_plan: "If I can't find 10 minutes, I'll watch one short educational video or read one interesting article summary",
       minimum_version: 'Even learning a single new word, fact, or concept counts — curiosity is the habit',
@@ -306,7 +312,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Dedicate focused time to developing a specific skill you care about.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right after dinner, before I turn on the TV or start scrolling, I practice my chosen skill for 15 minutes',
+      anchor: 'have dinner',
       environment_change: 'Keep my practice materials (instrument, sketchbook, language app) out and visible — not tucked away',
       obstacle_plan: "If I'm too tired for focused practice, I'll do a lighter version — listen to music in that language, doodle casually, or review notes",
       minimum_version: 'Even 5 minutes of deliberate practice counts — consistency beats intensity',
@@ -320,7 +326,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Plan the next day before bed to reduce decision fatigue and start with clarity.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'Right before I close my laptop for the night, I write down three things I want to accomplish tomorrow',
+      anchor: 'finish my workday',
       environment_change: 'Keep a small notepad next to my laptop or use a pinned note on my phone\'s home screen',
       obstacle_plan: "If I can't think of three, I'll write down just one — the single most important thing for tomorrow",
       minimum_version: 'Even mentally deciding on one priority for tomorrow counts as planning',
@@ -334,7 +340,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Replace passive scrolling with intentional audio learning during downtime.',
     suggested_target_per_week: 4,
     action_plan: {
-      cue: 'Whenever I\'m commuting, walking, or doing chores, I put on a podcast or audiobook instead of music or silence',
+      anchor: 'start my commute',
       environment_change: 'Download episodes in advance and keep my headphones charged and accessible',
       obstacle_plan: "If I don't have time for a full episode, I'll listen to a 10-minute segment — I can always pause and resume",
       minimum_version: 'Even 10 minutes of intentional listening counts as the habit',
@@ -348,7 +354,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Write down everything on your mind to clear mental clutter and reduce anxiety.',
     suggested_target_per_week: 3,
     action_plan: {
-      cue: 'Whenever I feel mentally overwhelmed or scattered, I grab a notebook and write everything down unfiltered',
+      anchor: 'feel mentally scattered',
       environment_change: 'Keep a dedicated "brain dump" notebook at my desk and one on my nightstand',
       obstacle_plan: "If I'm not near a notebook, I'll use my phone\'s notes app to dump thoughts in a quick list",
       minimum_version: 'Even writing down 3 things that are on my mind counts — the goal is to get them out of my head',
@@ -362,7 +368,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'One Pomodoro-style session of uninterrupted, single-task work.',
     suggested_target_per_week: 5,
     action_plan: {
-      cue: 'First thing in my workday, before checking email or messages, I set a 25-minute timer and focus on one task',
+      anchor: 'start my workday',
       environment_change: 'Put my phone in another room, close all unnecessary tabs, and use a focus app to block distractions',
       obstacle_plan: "If I get interrupted, I'll restart the timer — the goal is 25 consecutive minutes, and it's okay to try again",
       minimum_version: 'Even 10 minutes of genuinely focused, single-task work counts as a win',
@@ -376,7 +382,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Spend 5 minutes reviewing and reflecting on your current goals to stay aligned.',
     suggested_target_per_week: 3,
     action_plan: {
-      cue: 'Every Monday, Wednesday, and Friday morning, I open my goals list before starting any tasks',
+      anchor: 'start my workday',
       environment_change: 'Keep my goals written on a card in my wallet, or as the lock screen on my phone',
       obstacle_plan: "If I forget in the morning, I'll review them during a break or before bed — the timing matters less than doing it",
       minimum_version: 'Even glancing at my goals list and thinking about one for 30 seconds counts',
@@ -390,7 +396,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Stay informed without doomscrolling or letting news hijack your mood.',
     suggested_target_per_week: 7,
     action_plan: {
-      cue: 'I check the news once a day at a set time — during my lunch break — and set a 10-minute timer',
+      anchor: 'have lunch',
       environment_change: 'Delete news apps from my phone and only access news through one trusted source on my browser',
       obstacle_plan: "If I catch myself scrolling news outside my set time, I close the app immediately and redirect to something productive",
       minimum_version: 'Even noticing that I\'m consuming news outside my window and choosing to stop counts as the habit',
@@ -404,7 +410,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Mentally rehearse your ideal day or goals to build focus and motivation.',
     suggested_target_per_week: 4,
     action_plan: {
-      cue: 'Right after my morning meditation or breathing practice, I spend 5 minutes visualizing my goals and ideal outcomes',
+      anchor: 'finish my morning meditation',
       environment_change: 'Create a vision board or keep a list of my goals nearby to prompt the visualization',
       obstacle_plan: "If I skip the morning, I'll do a quick 2-minute visualization before an important meeting or task",
       minimum_version: 'Even 1 minute of clearly imagining a positive outcome for one goal counts',
@@ -418,7 +424,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     description: 'Spend time on any creative outlet — drawing, writing, music, or anything that sparks imagination.',
     suggested_target_per_week: 3,
     action_plan: {
-      cue: 'In the evening after dinner, instead of defaulting to a screen, I spend 15–30 minutes on a creative activity',
+      anchor: 'have dinner',
       environment_change: 'Keep creative supplies visible and accessible — sketchpad on the table, guitar out of its case, writing notebook open',
       obstacle_plan: "If I don't feel inspired, I'll set a 10-minute timer and just start — creativity follows action, not the other way around",
       minimum_version: 'Even 5 minutes of doodling, freewriting, or humming a tune counts — the habit is about creating, not perfection',

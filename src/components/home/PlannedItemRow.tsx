@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PlannedItem } from '../../types';
+import { formatHabitPlanLine } from '../../utils/habitPlan';
 
 interface PlannedItemRowProps {
   item: PlannedItem;
@@ -18,6 +19,12 @@ export const PlannedItemRow: React.FC<PlannedItemRowProps> = ({
   const isCompleted = item.status === 'completed';
   const isExpired = item.status === 'expired';
   const isDimmed = isCompleted || isExpired;
+
+  // Surface the habit's anchor + pairing as a pre-action cue while it's still pending.
+  const planLine =
+    !isDimmed && item.type === 'habit'
+      ? formatHabitPlanLine(item.sourceData?.habit?.action_plan)
+      : '';
 
   return (
     <TouchableOpacity
@@ -62,6 +69,12 @@ export const PlannedItemRow: React.FC<PlannedItemRowProps> = ({
           )}
 
         </View>
+
+        {!!planLine && (
+          <Text style={styles.planLine} numberOfLines={1}>
+            {planLine}
+          </Text>
+        )}
       </View>
 
       {/* Calendar export button */}
@@ -116,6 +129,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+  },
+  planLine: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    marginTop: 2,
   },
   calendarButton: {
     padding: Spacing.xs,
