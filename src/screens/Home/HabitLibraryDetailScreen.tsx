@@ -12,7 +12,7 @@ import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
-import { HABIT_LIBRARY } from '../../data/habitLibrary';
+import { HABIT_LIBRARY, getHabitCategory } from '../../data/habitLibrary';
 import { useAuth } from '../../context/AuthContext';
 import { createHabit } from '../../services/habits';
 import { HabitActionPlan } from '../../types';
@@ -50,7 +50,8 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
     );
   }
 
-  const color = Colors.primary;
+  const category = getHabitCategory(habit.category_id);
+  const color = category?.color ?? Colors.primary;
 
   const handleAdd = async () => {
     if (!user) return;
@@ -85,8 +86,21 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
+      {category && (
+        <View style={[styles.categoryChip, { backgroundColor: color + '1A' }]}>
+          <Ionicons name={category.icon as any} size={13} color={color} />
+          <Text style={[styles.categoryText, { color }]}>{category.name}</Text>
+        </View>
+      )}
       <Text style={styles.habitName}>{habit.name}</Text>
       <Text style={styles.description}>{habit.description}</Text>
+
+      {/* Identity framing */}
+      {!!habit.identity && (
+        <View style={[styles.identityCard, { borderLeftColor: color }]}>
+          <Text style={styles.identityText}>{habit.identity}</Text>
+        </View>
+      )}
 
       {/* Suggested frequency */}
       <View style={styles.freqRow}>
@@ -184,6 +198,19 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     lineHeight: 32,
     marginBottom: Spacing.sm,
+  },
+  identityCard: {
+    borderLeftWidth: 3,
+    paddingLeft: Spacing.md,
+    paddingVertical: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  identityText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    fontStyle: 'italic',
+    color: Colors.dark,
+    lineHeight: 22,
   },
   description: {
     fontFamily: Fonts.secondary,

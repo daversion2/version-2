@@ -223,6 +223,14 @@ export interface HabitActionPlan {
   cue?: string;                    // DEPRECATED: legacy free-text "when/where". Read-only fallback for habits created before the anchor field; new/edited habits write `anchor` instead.
 }
 
+// A habit-library category (own taxonomy, separate from challenge LIFE_DOMAINS).
+export interface HabitCategory {
+  id: string;        // matches LibraryHabit.category_id
+  name: string;      // display name
+  icon: string;      // Ionicons name
+  color: string;     // accent color
+}
+
 // Per-habit local reminder, scheduled around the anchor's time of day.
 export interface HabitReminder {
   time: string;                    // 'HH:mm' in the user's local time
@@ -237,6 +245,7 @@ export interface LibraryHabit {
   description: string;
   suggested_target_per_week: number;
   action_plan: HabitActionPlan;
+  identity?: string;               // "Each time I do this, I'm someone who ___" — identity-based framing
 }
 
 export interface Nudge {
