@@ -12,11 +12,14 @@ import {
   Alert,
   Dimensions,
   ActivityIndicator,
+  StyleProp,
+  TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, setDoc } from 'firebase/firestore';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
+import { RichText } from '../../components/common/RichText';
 import { useAuth } from '../../context/AuthContext';
 import { markOnboardingComplete } from '../../services/users';
 import { createHabit, logHabitCompletion } from '../../services/habits';
@@ -28,10 +31,29 @@ const { width } = Dimensions.get('window');
 import {
   OnboardingConfig,
   OnboardingStep,
+  TextStyleOverride,
   DEFAULT_ONBOARDING_CONFIG,
   STEP_CONTENT_DEFAULTS,
   getOnboardingConfigWithTimeout,
 } from '../../services/onboardingConfig';
+
+/**
+ * Merge a field's admin-set size/align override onto its base style. Returns
+ * the base untouched when there's no override, so unstyled copy is unchanged.
+ */
+const fieldStyle = (
+  step: OnboardingStep,
+  field: string,
+  base: StyleProp<TextStyle>
+): StyleProp<TextStyle> => {
+  const o = (step.content.styles ?? {})[field] as TextStyleOverride | undefined;
+  if (!o || (!o.size && !o.align)) return base;
+  return [
+    base,
+    o.size ? { fontSize: FontSizes[o.size] } : null,
+    o.align ? { textAlign: o.align } : null,
+  ];
+};
 
 // ============================================================================
 // COMPONENT
@@ -205,8 +227,8 @@ export const OnboardingScreen: React.FC = () => {
   const renderWelcome = (step: OnboardingStep) => (
     <View style={styles.welcomeContainer}>
       <View style={styles.welcomeContent}>
-        <Text style={styles.welcomeTitle}>{step.content.title}</Text>
-        <Text style={styles.welcomeSubtitle}>{step.content.subtitle}</Text>
+        <RichText style={fieldStyle(step, 'title', styles.welcomeTitle)}>{step.content.title}</RichText>
+        <RichText style={fieldStyle(step, 'subtitle', styles.welcomeSubtitle)}>{step.content.subtitle}</RichText>
         {!!step.content.science && (
           <TouchableOpacity
             style={styles.expandToggle}
@@ -223,7 +245,7 @@ export const OnboardingScreen: React.FC = () => {
           </TouchableOpacity>
         )}
         {scienceOpen[step.id] && !!step.content.science && (
-          <Text style={styles.welcomeWhyBody}>{step.content.science}</Text>
+          <RichText style={fieldStyle(step, 'science', styles.welcomeWhyBody)}>{step.content.science}</RichText>
         )}
       </View>
       <Button
@@ -256,7 +278,7 @@ export const OnboardingScreen: React.FC = () => {
         </TouchableOpacity>
         {scienceOpen[step.id] && (
           <View style={styles.expandedContent}>
-            <Text style={styles.expandedText}>{step.content.science}</Text>
+            <RichText style={fieldStyle(step, 'science', styles.expandedText)}>{step.content.science}</RichText>
           </View>
         )}
       </>
@@ -265,8 +287,8 @@ export const OnboardingScreen: React.FC = () => {
   const renderSettle = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
       <View style={styles.intentionBox}>
-        <Text style={styles.intentionTitle}>{step.content.box_title}</Text>
-        <Text style={styles.intentionBody}>{step.content.box_body}</Text>
+        <RichText style={fieldStyle(step, 'box_title', styles.intentionTitle)}>{step.content.box_title}</RichText>
+        <RichText style={fieldStyle(step, 'box_body', styles.intentionBody)}>{step.content.box_body}</RichText>
       </View>
       {renderScienceToggle(step)}
     </View>
@@ -275,8 +297,8 @@ export const OnboardingScreen: React.FC = () => {
   // Generic admin-added info page: bridge-style headline + body + optional science
   const renderTextPage = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
-      <Text style={styles.bridgeHeadline}>{step.content.headline}</Text>
-      <Text style={styles.bridgeBody}>{step.content.body}</Text>
+      <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
+      <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
       {renderScienceToggle(step)}
     </View>
   );
@@ -302,11 +324,11 @@ export const OnboardingScreen: React.FC = () => {
       const preSeconds = step.content.seconds % 60;
       return (
         <View style={[styles.stageContent, styles.timerCenter]}>
-          <Text style={styles.timerPreLabel}>{step.content.pre_label}</Text>
+          <RichText style={fieldStyle(step, 'pre_label', styles.timerPreLabel)}>{step.content.pre_label}</RichText>
           <View style={styles.timerRing}>
             <Text style={styles.timerDisplay}>{`${preMinutes}:${String(preSeconds).padStart(2, '0')}`}</Text>
           </View>
-          <Text style={styles.timerPreSubtext}>{step.content.pre_subtext}</Text>
+          <RichText style={fieldStyle(step, 'pre_subtext', styles.timerPreSubtext)}>{step.content.pre_subtext}</RichText>
         </View>
       );
     }
@@ -314,9 +336,11 @@ export const OnboardingScreen: React.FC = () => {
     // Active timer or complete
     return (
       <View style={[styles.stageContent, styles.timerCenter]}>
-        <Text style={styles.timerLabel}>
+        <RichText
+          style={fieldStyle(step, timerDone ? 'done_label' : 'active_label', styles.timerLabel)}
+        >
           {timerDone ? step.content.done_label : step.content.active_label}
-        </Text>
+        </RichText>
         <Animated.View style={[styles.timerRing, { borderColor }]}>
           <Text style={styles.timerDisplay}>{timerDone ? '✓' : display}</Text>
         </Animated.View>
@@ -335,10 +359,10 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderBridge = (step: OnboardingStep) => (
     <View style={[styles.stageContent, styles.bridgeCenter]}>
-      <Text style={styles.bridgeHeadline}>{step.content.headline}</Text>
-      <Text style={styles.bridgeBody}>{step.content.body}</Text>
-      <Text style={styles.bridgeKickerHeadline}>{step.content.kicker_headline}</Text>
-      <Text style={styles.bridgeKicker}>{step.content.kicker_body}</Text>
+      <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
+      <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
+      <RichText style={fieldStyle(step, 'kicker_headline', styles.bridgeKickerHeadline)}>{step.content.kicker_headline}</RichText>
+      <RichText style={fieldStyle(step, 'kicker_body', styles.bridgeKicker)}>{step.content.kicker_body}</RichText>
     </View>
   );
 
@@ -348,8 +372,8 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderMantraPicker = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
-      <Text style={styles.stageIntro}>{step.content.intro}</Text>
-      <Text style={styles.mantraSubtext}>{step.content.subtext}</Text>
+      <RichText style={fieldStyle(step, 'intro', styles.stageIntro)}>{step.content.intro}</RichText>
+      <RichText style={fieldStyle(step, 'subtext', styles.mantraSubtext)}>{step.content.subtext}</RichText>
       <TextInput
         style={styles.mantraInput}
         value={mantra}
@@ -375,7 +399,7 @@ export const OnboardingScreen: React.FC = () => {
       </View>
       <View style={styles.howToCard}>
         <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
-        <Text style={styles.scienceText}>{step.content.howto}</Text>
+        <RichText style={fieldStyle(step, 'howto', styles.scienceText)}>{step.content.howto}</RichText>
       </View>
       {renderScienceToggle(step, 'Why mantras work')}
     </View>
@@ -395,7 +419,7 @@ export const OnboardingScreen: React.FC = () => {
 
     return (
       <View style={styles.stageContent}>
-        <Text style={styles.stageIntro}>{step.content.intro}</Text>
+        <RichText style={fieldStyle(step, 'intro', styles.stageIntro)}>{step.content.intro}</RichText>
 
         {/* Locked foundation habit row */}
         <View style={styles.lockedHabitRow}>
@@ -413,7 +437,7 @@ export const OnboardingScreen: React.FC = () => {
 
         {/* Additional habit selection */}
         <Text style={styles.habitSectionLabel}>+ ONE MORE HABIT</Text>
-        <Text style={styles.habitSectionBody}>{step.content.section_body}</Text>
+        <RichText style={fieldStyle(step, 'section_body', styles.habitSectionBody)}>{step.content.section_body}</RichText>
 
         {availableHabits.map((habit) => {
           const isSelected = selectedHabitId === habit.id;
@@ -451,7 +475,7 @@ export const OnboardingScreen: React.FC = () => {
 
     return (
       <View style={styles.revealContainer}>
-        <Text style={styles.revealTitle}>{step.content.title}</Text>
+        <RichText style={fieldStyle(step, 'title', styles.revealTitle)}>{step.content.title}</RichText>
 
         {/* Mantra anchor card — only if a mantra was collected */}
         {!!mantra.trim() && (

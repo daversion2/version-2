@@ -27,6 +27,19 @@ export type OnboardingStepType =
   | 'habit_picker'
   | 'reveal';
 
+/**
+ * Per-field display overrides set from the admin formatting toolbar.
+ * Inline emphasis (bold/italic/underline) lives in the copy string itself as
+ * markdown-lite; these are the whole-field properties that don't.
+ */
+export type TextSizeToken = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'hero';
+export interface TextStyleOverride {
+  size?: TextSizeToken;
+  align?: 'left' | 'center' | 'right';
+}
+/** Map of content field name → its style override (stored under content.styles). */
+export type FieldStyles = Record<string, TextStyleOverride>;
+
 export interface OnboardingStep {
   /** Stable identifier (admin list key). */
   id: string;
@@ -65,6 +78,7 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
       "We're going to start with a short, 60-second exercise. You'll sit quietly and observe your thoughts — that's it.",
     science:
       "Your brain doesn't need long to shift. A 2026 Harvard study found measurable brainwave changes in beginners within 2–3 minutes of their first meditation. The trick isn't emptying your mind — it's watching it.",
+    styles: {},
   },
   settle: {
     box_title: 'Your only job',
@@ -72,6 +86,7 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
       "Sit still. Notice what comes up.\nDon't try to fix, control, or quiet anything.\nJust observe.",
     science:
       "When you stop doing, your brain's default mode network kicks in — surfacing the thought patterns that run on autopilot all day. This 60 seconds makes them visible.",
+    styles: {},
   },
   timer: {
     seconds: 60,
@@ -80,6 +95,7 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
     active_label: 'Sit quietly. Notice your thoughts.',
     done_label: "Time's up. Take a breath.",
     start_button: 'Start the minute',
+    styles: {},
   },
   bridge: {
     headline: "There's a lot going on in there, right?",
@@ -88,11 +104,13 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
     kicker_headline: "That's why we use a redirect mantra",
     kicker_body:
       'A short phrase you repeat when negativity shows up. Your brain can only hold one thought at a time. Give it the mantra, and the negative thought has nowhere to go.',
+    styles: {},
   },
   text_page: {
     headline: 'New page',
     body: 'Write your content here.',
     science: '',
+    styles: {},
   },
   mantra_picker: {
     intro: 'Pick your redirect mantra',
@@ -112,6 +130,7 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
     howto: 'Catch a negative thought, repeat your mantra silently — over and over — until it passes.',
     science:
       'Self-directed speech activates your prefrontal cortex — the brain region responsible for focus and self-control. A personal mantra interrupts autopilot thinking and gives your brain a clear instruction.',
+    styles: {},
   },
   habit_picker: {
     intro: "You've already completed your first meditation. It's now locked in as your foundation habit.",
@@ -120,9 +139,11 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
     foundation_habit_name: 'Meditation',
     foundation_target_per_week: 5,
     offered_habit_ids: [],
+    styles: {},
   },
   reveal: {
     title: 'Your starting point',
+    styles: {},
   },
 };
 
@@ -162,6 +183,27 @@ export const newTextPageStep = (suffix: string): OnboardingStep =>
 
 const configDocRef = () => doc(db, 'config', 'onboarding');
 
+const VALID_SIZES: TextSizeToken[] = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'hero'];
+const VALID_ALIGNS = ['left', 'center', 'right'];
+
+/**
+ * Sanitize the per-field style map: keep only object entries with a recognized
+ * size and/or align, drop everything else. Anything malformed yields {}.
+ */
+const sanitizeStyles = (value: any): FieldStyles => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const clean: FieldStyles = {};
+  for (const field of Object.keys(value)) {
+    const o = value[field];
+    if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
+    const override: TextStyleOverride = {};
+    if (VALID_SIZES.includes(o.size)) override.size = o.size;
+    if (VALID_ALIGNS.includes(o.align)) override.align = o.align;
+    if (override.size || override.align) clean[field] = override;
+  }
+  return clean;
+};
+
 /** Field-level overlay of stored content on a type's defaults, type-checked. */
 const mergeContent = (
   type: OnboardingStepType,
@@ -174,7 +216,9 @@ const mergeContent = (
     const defaultValue = defaults[key];
     const value = stored[key];
     if (value === undefined || value === null) continue;
-    if (Array.isArray(defaultValue)) {
+    if (key === 'styles') {
+      merged[key] = sanitizeStyles(value);
+    } else if (Array.isArray(defaultValue)) {
       if (Array.isArray(value)) merged[key] = value.map(String).filter((s) => s.trim() !== '');
     } else if (typeof defaultValue === 'number') {
       if (typeof value === 'number' && Number.isFinite(value) && value > 0) merged[key] = value;

@@ -13,10 +13,12 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
+import { FormattedField } from '../../components/common/FormattedField';
 import { Dropdown } from '../../components/common/Dropdown';
 import { showAlert, showConfirm } from '../../utils/alert';
 import {
   OnboardingStep,
+  TextStyleOverride,
   DEFAULT_ONBOARDING_CONFIG,
   STEP_TYPE_LABELS,
   getOnboardingConfig,
@@ -75,6 +77,18 @@ export const AdminOnboardingScreen: React.FC = () => {
     const n = parseInt(text, 10);
     updateContent(id, key, Number.isNaN(n) ? 0 : n);
   };
+
+  // Write a field's size/align override into content.styles (dropping it when empty).
+  const updateStyle = (id: string, field: string, override: TextStyleOverride) =>
+    setSteps((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const fieldStyles = { ...(s.content.styles ?? {}) };
+        if (override.size || override.align) fieldStyles[field] = override;
+        else delete fieldStyles[field];
+        return { ...s, content: { ...s.content, styles: fieldStyles } };
+      })
+    );
 
   const moveStep = (id: string, direction: -1 | 1) =>
     setSteps((prev) => {
@@ -172,21 +186,37 @@ export const AdminOnboardingScreen: React.FC = () => {
 
   const renderFields = (step: OnboardingStep) => {
     const set = (key: string) => (t: string) => updateContent(step.id, key, t);
+    // A copy field with the bold/italic/underline + size/align toolbar.
+    const fmt = (
+      field: string,
+      label: string,
+      opts: { multiline?: boolean; numberOfLines?: number } = {}
+    ) => (
+      <FormattedField
+        label={label}
+        value={step.content[field] ?? ''}
+        onChangeText={set(field)}
+        override={(step.content.styles ?? {})[field] ?? {}}
+        onChangeOverride={(o) => updateStyle(step.id, field, o)}
+        multiline={opts.multiline}
+        numberOfLines={opts.numberOfLines}
+      />
+    );
     switch (step.type) {
       case 'welcome':
         return (
           <>
-            <InputField label="Title" value={step.content.title} onChangeText={set('title')} multiline />
-            <InputField label="Subtitle" value={step.content.subtitle} onChangeText={set('subtitle')} multiline />
-            <InputField label="'See why this works' text (blank = hide toggle)" value={step.content.science} onChangeText={set('science')} multiline />
+            {fmt('title', 'Title', { multiline: true })}
+            {fmt('subtitle', 'Subtitle', { multiline: true })}
+            {fmt('science', "'See why this works' text (blank = hide toggle)", { multiline: true })}
           </>
         );
       case 'settle':
         return (
           <>
-            <InputField label="Box title" value={step.content.box_title} onChangeText={set('box_title')} />
-            <InputField label="Box body" value={step.content.box_body} onChangeText={set('box_body')} multiline />
-            <InputField label="'Why this works' text (blank = hide toggle)" value={step.content.science} onChangeText={set('science')} multiline />
+            {fmt('box_title', 'Box title')}
+            {fmt('box_body', 'Box body', { multiline: true })}
+            {fmt('science', "'Why this works' text (blank = hide toggle)", { multiline: true })}
           </>
         );
       case 'timer':
@@ -198,35 +228,35 @@ export const AdminOnboardingScreen: React.FC = () => {
               onChangeText={(t) => updateNumericContent(step.id, 'seconds', t)}
               keyboardType="numeric"
             />
-            <InputField label="Before starting" value={step.content.pre_label} onChangeText={set('pre_label')} multiline />
-            <InputField label="Below the ring (before starting)" value={step.content.pre_subtext} onChangeText={set('pre_subtext')} multiline />
-            <InputField label="While running" value={step.content.active_label} onChangeText={set('active_label')} />
-            <InputField label="When done" value={step.content.done_label} onChangeText={set('done_label')} />
+            {fmt('pre_label', 'Before starting', { multiline: true })}
+            {fmt('pre_subtext', 'Below the ring (before starting)', { multiline: true })}
+            {fmt('active_label', 'While running')}
+            {fmt('done_label', 'When done')}
             <InputField label="Start button label" value={step.content.start_button} onChangeText={set('start_button')} />
           </>
         );
       case 'bridge':
         return (
           <>
-            <InputField label="Headline" value={step.content.headline} onChangeText={set('headline')} multiline />
-            <InputField label="Body" value={step.content.body} onChangeText={set('body')} multiline />
-            <InputField label="Kicker headline" value={step.content.kicker_headline} onChangeText={set('kicker_headline')} />
-            <InputField label="Kicker body" value={step.content.kicker_body} onChangeText={set('kicker_body')} multiline />
+            {fmt('headline', 'Headline', { multiline: true })}
+            {fmt('body', 'Body', { multiline: true })}
+            {fmt('kicker_headline', 'Kicker headline')}
+            {fmt('kicker_body', 'Kicker body', { multiline: true })}
           </>
         );
       case 'text_page':
         return (
           <>
-            <InputField label="Headline" value={step.content.headline} onChangeText={set('headline')} multiline />
-            <InputField label="Body" value={step.content.body} onChangeText={set('body')} multiline />
-            <InputField label="'Why this works' text (optional)" value={step.content.science} onChangeText={set('science')} multiline />
+            {fmt('headline', 'Headline', { multiline: true })}
+            {fmt('body', 'Body', { multiline: true })}
+            {fmt('science', "'Why this works' text (optional)", { multiline: true })}
           </>
         );
       case 'mantra_picker':
         return (
           <>
-            <InputField label="Intro" value={step.content.intro} onChangeText={set('intro')} />
-            <InputField label="Subtext" value={step.content.subtext} onChangeText={set('subtext')} multiline />
+            {fmt('intro', 'Intro')}
+            {fmt('subtext', 'Subtext', { multiline: true })}
             <InputField
               label="Example mantras (one per line)"
               value={examplesText[step.id] ?? ''}
@@ -235,15 +265,15 @@ export const AdminOnboardingScreen: React.FC = () => {
               numberOfLines={6}
               style={styles.tallInput}
             />
-            <InputField label="How-to line" value={step.content.howto} onChangeText={set('howto')} multiline />
-            <InputField label="'Why mantras work' text" value={step.content.science} onChangeText={set('science')} multiline />
+            {fmt('howto', 'How-to line', { multiline: true })}
+            {fmt('science', "'Why mantras work' text", { multiline: true })}
           </>
         );
       case 'habit_picker':
         return (
           <>
-            <InputField label="Intro" value={step.content.intro} onChangeText={set('intro')} multiline />
-            <InputField label="'+ one more habit' body" value={step.content.section_body} onChangeText={set('section_body')} />
+            {fmt('intro', 'Intro', { multiline: true })}
+            {fmt('section_body', "'+ one more habit' body")}
             <Text style={styles.fieldLabel}>Foundation habit (locked, auto-created with Day 1 logged)</Text>
             <Dropdown
               options={HABIT_OPTIONS}
@@ -296,9 +326,7 @@ export const AdminOnboardingScreen: React.FC = () => {
           </>
         );
       case 'reveal':
-        return (
-          <InputField label="Title" value={step.content.title} onChangeText={set('title')} />
-        );
+        return fmt('title', 'Title');
       default:
         return null;
     }
@@ -318,7 +346,9 @@ export const AdminOnboardingScreen: React.FC = () => {
         <Text style={styles.headerHint}>
           The flow runs top to bottom — reorder middle steps with the arrows, switch them off to
           skip them, or add an info page. Welcome is always first, Reveal always last. Edits
-          apply to every NEW signup immediately. Use \n for a line break.
+          apply to every NEW signup immediately. Use \n for a line break. The B / I / U buttons
+          wrap your selected text (or the whole field) to make it bold, italic, or underlined; the
+          size dropdown and alignment buttons set the whole field.
         </Text>
 
         {steps.map((step, index) => {
