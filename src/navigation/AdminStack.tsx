@@ -12,6 +12,11 @@ import { AdminTidbitEditScreen } from '../screens/Admin/AdminTidbitEditScreen';
 import { AdminRulesScreen } from '../screens/Admin/AdminRulesScreen';
 import { AdminRuleEditScreen } from '../screens/Admin/AdminRuleEditScreen';
 import { AdminOnboardingScreen } from '../screens/Admin/AdminOnboardingScreen';
+import { AdminToolsScreen } from '../screens/Admin/AdminToolsScreen';
+import { AdminToolEditScreen } from '../screens/Admin/AdminToolEditScreen';
+import { AdminCategoriesScreen } from '../screens/Admin/AdminCategoriesScreen';
+import { AdminMicroExercisesScreen } from '../screens/Admin/AdminMicroExercisesScreen';
+import { AdminMicroExerciseEditScreen } from '../screens/Admin/AdminMicroExerciseEditScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
@@ -80,6 +85,31 @@ export const AdminStack: React.FC = () => (
       name="AdminOnboarding"
       component={AdminOnboardingScreen}
       options={{ title: 'Onboarding Content' }}
+    />
+    <Stack.Screen
+      name="AdminTools"
+      component={AdminToolsScreen}
+      options={{ title: 'Tools' }}
+    />
+    <Stack.Screen
+      name="AdminToolEdit"
+      component={AdminToolEditScreen}
+      options={{ title: 'Edit Tool' }}
+    />
+    <Stack.Screen
+      name="AdminCategories"
+      component={AdminCategoriesScreen}
+      options={{ title: 'Tool Categories' }}
+    />
+    <Stack.Screen
+      name="AdminMicroExercises"
+      component={AdminMicroExercisesScreen}
+      options={{ title: 'Micro-Exercises' }}
+    />
+    <Stack.Screen
+      name="AdminMicroExerciseEdit"
+      component={AdminMicroExerciseEditScreen}
+      options={{ title: 'Edit Micro-Exercise' }}
     />
   </Stack.Navigator>
 );

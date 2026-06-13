@@ -10,17 +10,18 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MicroExerciseDefinition, MicroExerciseSessionState } from '../../types/microExercise';
-import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
+import { useTools } from '../../context/ToolsContext';
 import { HomeScreenProps } from '../../types/navigation';
 
 type Props = HomeScreenProps<'MicroExerciseComplete'>;
 
 export const MicroExerciseCompleteScreen: React.FC<Props> = ({ navigation, route }) => {
   const { session, exercise, pointsAwarded } = route.params;
+  const { getToolById } = useTools();
 
-  const sourceTemplate = WORKSHEET_TEMPLATES.find(
-    (t) => t.id === exercise.source_template_id
-  );
+  // Only offer "Go Deeper" when the linked tool still exists and is enabled.
+  const sourceTool = getToolById(exercise.source_template_id);
+  const canGoDeeper = !!sourceTool && sourceTool.enabled;
 
   const handleGoDeeper = () => {
     // Navigate to the Tools tab's WorksheetForm screen
@@ -61,11 +62,11 @@ export const MicroExerciseCompleteScreen: React.FC<Props> = ({ navigation, route
           <Text style={styles.doneButtonText}>Done</Text>
         </TouchableOpacity>
 
-        {sourceTemplate && (
+        {canGoDeeper && (
           <TouchableOpacity onPress={handleGoDeeper} style={styles.deeperLink} activeOpacity={0.7}>
             <Text style={styles.deeperLinkText}>
               Want to go deeper? Try the full{' '}
-              <Text style={styles.deeperLinkBold}>{sourceTemplate.name}</Text> worksheet
+              <Text style={styles.deeperLinkBold}>{sourceTool!.name}</Text> worksheet
             </Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
           </TouchableOpacity>

@@ -11,15 +11,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { getWorksheetHistory } from '../../services/worksheets';
-import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
-import { MICRO_EXERCISES } from '../../data/microExercises';
 import { useAuth } from '../../context/AuthContext';
+import { useTools } from '../../context/ToolsContext';
 import { WorksheetEntry } from '../../types';
 
 export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
   navigation,
 }) => {
   const { user } = useAuth();
+  const { tools, getToolById, getMicroExerciseByFeelingKey } = useTools();
   const [entries, setEntries] = useState<WorksheetEntry[]>([]);
   const [filterTemplateId, setFilterTemplateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
 
   const getEntryDisplayName = (entry: WorksheetEntry): string => {
     if (entry.type === 'micro_exercise' && entry.feeling) {
-      const def = MICRO_EXERCISES.find((e) => e.feeling_key === entry.feeling);
+      const def = getMicroExerciseByFeelingKey(entry.feeling);
       return def ? def.feeling_label : entry.template_name;
     }
     return entry.template_name;
@@ -77,9 +77,7 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
     if (entry.type === 'micro_exercise') {
       return entry.micro_commitment || '';
     }
-    const template = WORKSHEET_TEMPLATES.find(
-      (t) => t.id === entry.template_id
-    );
+    const template = getToolById(entry.template_id);
     if (!template) return '';
     const firstField = template.sections[0]?.fields[0];
     if (!firstField) return '';
@@ -178,7 +176,7 @@ export const WorksheetHistoryScreen: React.FC<{ navigation: any }> = ({
             All
           </Text>
         </TouchableOpacity>
-        {WORKSHEET_TEMPLATES.map((t) => (
+        {tools.map((t) => (
           <TouchableOpacity
             key={t.id}
             style={[

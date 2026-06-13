@@ -2,7 +2,9 @@
 // CBT WORKSHEETS
 // ============================================================================
 
-export type WorksheetCategory = 'thoughts' | 'beliefs' | 'behavior';
+// Categories are admin-managed data (see toolsConfig.ts). The original three
+// values — 'thoughts' | 'beliefs' | 'behavior' — remain valid ids.
+export type WorksheetCategory = string;
 
 export type WorksheetFieldType =
   | 'text'

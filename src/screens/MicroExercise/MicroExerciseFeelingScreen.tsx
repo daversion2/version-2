@@ -10,14 +10,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MicroExerciseDefinition, MicroExerciseSessionState } from '../../types/microExercise';
-import { MICRO_EXERCISES, getOrderedFeelingsForTrigger } from '../../data/microExercises';
-import { MicroExerciseTrigger } from '../../types/worksheets';
+import { useTools } from '../../context/ToolsContext';
 import { HomeScreenProps } from '../../types/navigation';
 
 type Props = HomeScreenProps<'MicroExerciseFeeling'>;
 
 export const MicroExerciseFeelingScreen: React.FC<Props> = ({ navigation, route }) => {
   const { trigger_context } = route.params;
+  const { getOrderedFeelingsForTrigger } = useTools();
   const [showAll, setShowAll] = useState(false);
 
   const ordered = getOrderedFeelingsForTrigger(trigger_context);

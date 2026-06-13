@@ -202,6 +202,11 @@ export type AdminStackParamList = {
   AdminRules: undefined;
   AdminRuleEdit: { mode: 'create' | 'edit'; ruleId?: string };
   AdminOnboarding: undefined;
+  AdminTools: undefined;
+  AdminToolEdit: { mode: 'create' | 'edit'; toolId?: string };
+  AdminCategories: undefined;
+  AdminMicroExercises: undefined;
+  AdminMicroExerciseEdit: { mode: 'create' | 'edit'; feelingKey?: string };
 };
 
 // ============================================================================

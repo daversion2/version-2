@@ -4,13 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { SectionRenderer } from '../../components/worksheets/SectionRenderer';
 import { Button } from '../../components/common/Button';
-import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
 import {
   getWorksheetEntryById,
   deleteWorksheetEntry,
 } from '../../services/worksheets';
 import { getGoalById } from '../../services/goals';
 import { useAuth } from '../../context/AuthContext';
+import { useTools } from '../../context/ToolsContext';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { WorksheetEntry, WorksheetTemplate } from '../../types';
 import { WorksheetsScreenProps } from '../../types/navigation';
@@ -20,6 +20,7 @@ type Props = WorksheetsScreenProps<'WorksheetDetail'>;
 export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { entryId } = route.params;
   const { user } = useAuth();
+  const { getToolById } = useTools();
   const [entry, setEntry] = useState<WorksheetEntry | null>(null);
   const [template, setTemplate] = useState<WorksheetTemplate | null>(null);
   const [goalNames, setGoalNames] = useState<Record<string, string>>({});
@@ -31,7 +32,7 @@ export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) =>
       .then(async (e) => {
         setEntry(e);
         if (e) {
-          const t = WORKSHEET_TEMPLATES.find((t) => t.id === e.template_id);
+          const t = getToolById(e.template_id);
           setTemplate(t || null);
           navigation.setOptions({ title: e.template_name });
 

@@ -12,13 +12,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { WorksheetTemplate } from '../../types';
-import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
 import {
   saveWorksheetEntry,
   updateWorksheetEntry,
   getWorksheetEntryById,
 } from '../../services/worksheets';
 import { useAuth } from '../../context/AuthContext';
+import { useTools } from '../../context/ToolsContext';
 import { WorksheetsScreenProps } from '../../types/navigation';
 
 import { generateStepsFromTemplate, calculateResumeStepIndex } from './utils/generateSteps';
@@ -41,10 +41,9 @@ export const ToolConversationScreen: React.FC<Props> = ({
 }) => {
   const { templateId, entryId, resumeDraft } = route.params || {};
   const { user } = useAuth();
+  const { getToolById } = useTools();
 
-  const template = WORKSHEET_TEMPLATES.find(
-    (t) => t.id === templateId
-  ) as WorksheetTemplate;
+  const template = getToolById(templateId) as WorksheetTemplate;
 
   // Step generation
   const steps = useMemo(

@@ -11,24 +11,26 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { WorksheetTemplateCard } from '../../components/worksheets/WorksheetTemplateCard';
-import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
 import { getDraftWorksheets } from '../../services/worksheets';
 import { useAuth } from '../../context/AuthContext';
+import { useTools } from '../../context/ToolsContext';
 import { WorksheetCategory, WorksheetEntry } from '../../types';
-
-const CATEGORIES: { label: string; value: WorksheetCategory | null }[] = [
-  { label: 'All', value: null },
-  { label: 'Thoughts', value: 'thoughts' },
-  { label: 'Beliefs', value: 'beliefs' },
-  { label: 'Behavior', value: 'behavior' },
-];
 
 export const WorksheetLibraryScreen: React.FC<{ navigation: any }> = ({
   navigation,
 }) => {
   const { user } = useAuth();
+  const { enabledTools, categories } = useTools();
   const [selectedCategory, setSelectedCategory] = useState<WorksheetCategory | null>(null);
   const [drafts, setDrafts] = useState<WorksheetEntry[]>([]);
+
+  // "All" chip + only categories that actually have a tool assigned.
+  const filterChips: { label: string; value: WorksheetCategory | null }[] = [
+    { label: 'All', value: null },
+    ...categories
+      .filter((c) => enabledTools.some((t) => t.category === c.id))
+      .map((c) => ({ label: c.label, value: c.id })),
+  ];
 
   const loadDrafts = useCallback(async () => {
     if (!user) return;
@@ -47,8 +49,8 @@ export const WorksheetLibraryScreen: React.FC<{ navigation: any }> = ({
   );
 
   const filteredTemplates = selectedCategory
-    ? WORKSHEET_TEMPLATES.filter((t) => t.category === selectedCategory)
-    : WORKSHEET_TEMPLATES;
+    ? enabledTools.filter((t) => t.category === selectedCategory)
+    : enabledTools;
 
   const renderHeader = () => (
     <View>
@@ -106,7 +108,7 @@ export const WorksheetLibraryScreen: React.FC<{ navigation: any }> = ({
         style={styles.filterRow}
         contentContainerStyle={styles.filterRowContent}
       >
-        {CATEGORIES.map((cat) => {
+        {filterChips.map((cat) => {
           const active = selectedCategory === cat.value;
           return (
             <TouchableOpacity

@@ -12,13 +12,13 @@ import { MoodSelector } from '../../components/worksheets/MoodSelector';
 import { SectionRenderer } from '../../components/worksheets/SectionRenderer';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { Button } from '../../components/common/Button';
-import { WORKSHEET_TEMPLATES } from '../../data/worksheetTemplates';
 import {
   saveWorksheetEntry,
   updateWorksheetEntry,
   getWorksheetEntryById,
 } from '../../services/worksheets';
 import { useAuth } from '../../context/AuthContext';
+import { useTools } from '../../context/ToolsContext';
 import { showAlert } from '../../utils/alert';
 import { WorksheetTemplate } from '../../types';
 import { WorksheetsScreenProps } from '../../types/navigation';
@@ -31,10 +31,9 @@ export const WorksheetScreen: React.FC<Props> = ({
 }) => {
   const { templateId, entryId, resumeDraft } = route.params || {};
   const { user } = useAuth();
+  const { getToolById } = useTools();
 
-  const template = WORKSHEET_TEMPLATES.find(
-    (t) => t.id === templateId
-  ) as WorksheetTemplate;
+  const template = getToolById(templateId) as WorksheetTemplate;
 
   const [responses, setResponses] = useState<Record<string, string | string[]>>({});
   const [moodBefore, setMoodBefore] = useState<number | undefined>();
