@@ -30,6 +30,12 @@ import {
   DEFAULT_MICRO_EXERCISES_CONFIG,
   getMicroExercisesConfigWithTimeout,
 } from '../services/microExercisesConfig';
+import {
+  ChallengeReflectionConfig,
+  ReflectionPrompt,
+  DEFAULT_CHALLENGE_REFLECTION_CONFIG,
+  getChallengeReflectionConfigWithTimeout,
+} from '../services/challengeReflectionConfig';
 import { MicroExerciseTrigger } from '../types/worksheets';
 
 interface ToolsContextType {
@@ -38,6 +44,8 @@ interface ToolsContextType {
   categories: ToolCategory[];
   getToolById: (id: string | undefined) => ToolDefinition | undefined;
   microExercises: MicroExerciseConfigItem[]; // enabled only
+  /** Enabled post-challenge reflection prompts, in display order. */
+  reflectionPrompts: ReflectionPrompt[];
   /** Look up a micro-exercise by feeling key across ALL items (for history labels). */
   getMicroExerciseByFeelingKey: (key: string | undefined) => MicroExerciseConfigItem | undefined;
   getOrderedFeelingsForTrigger: (
@@ -62,14 +70,19 @@ export const ToolsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [microConfig, setMicroConfig] = useState<MicroExercisesConfig>(
     DEFAULT_MICRO_EXERCISES_CONFIG
   );
+  const [reflectionConfig, setReflectionConfig] = useState<ChallengeReflectionConfig>(
+    DEFAULT_CHALLENGE_REFLECTION_CONFIG
+  );
 
   const reload = useCallback(async () => {
-    const [tc, mc] = await Promise.all([
+    const [tc, mc, rc] = await Promise.all([
       getToolsConfigWithTimeout(),
       getMicroExercisesConfigWithTimeout(),
+      getChallengeReflectionConfigWithTimeout(),
     ]);
     setToolsConfig(tc);
     setMicroConfig(mc);
+    setReflectionConfig(rc);
   }, []);
 
   useEffect(() => {
@@ -90,6 +103,7 @@ export const ToolsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const enabledTools = toolsConfig.tools.filter((t) => t.enabled);
   const microExercises = microConfig.exercises.filter((e) => e.enabled);
+  const reflectionPrompts = reflectionConfig.prompts.filter((p) => p.enabled);
 
   const getToolById = useCallback(
     (id: string | undefined) => toolsConfig.tools.find((t) => t.id === id),
@@ -125,6 +139,7 @@ export const ToolsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         categories: toolsConfig.categories,
         getToolById,
         microExercises,
+        reflectionPrompts,
         getMicroExerciseByFeelingKey,
         getOrderedFeelingsForTrigger,
         getDefaultFeelingForTrigger,

@@ -17,6 +17,8 @@ import { AdminToolEditScreen } from '../screens/Admin/AdminToolEditScreen';
 import { AdminCategoriesScreen } from '../screens/Admin/AdminCategoriesScreen';
 import { AdminMicroExercisesScreen } from '../screens/Admin/AdminMicroExercisesScreen';
 import { AdminMicroExerciseEditScreen } from '../screens/Admin/AdminMicroExerciseEditScreen';
+import { AdminReflectionPromptsScreen } from '../screens/Admin/AdminReflectionPromptsScreen';
+import { AdminReflectionPromptEditScreen } from '../screens/Admin/AdminReflectionPromptEditScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
@@ -110,6 +112,16 @@ export const AdminStack: React.FC = () => (
       name="AdminMicroExerciseEdit"
       component={AdminMicroExerciseEditScreen}
       options={{ title: 'Edit Micro-Exercise' }}
+    />
+    <Stack.Screen
+      name="AdminReflectionPrompts"
+      component={AdminReflectionPromptsScreen}
+      options={{ title: 'Reflection Prompts' }}
+    />
+    <Stack.Screen
+      name="AdminReflectionPromptEdit"
+      component={AdminReflectionPromptEditScreen}
+      options={{ title: 'Edit Prompt' }}
     />
   </Stack.Navigator>
 );

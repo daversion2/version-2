@@ -368,6 +368,16 @@ export const AdminDashboardScreen: React.FC = () => {
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
       </Card>
+      <Card
+        style={styles.linkCard}
+        onPress={() => navigation.navigate('AdminReflectionPrompts')}
+      >
+        <View style={styles.linkRow}>
+          <Ionicons name="chatbubbles-outline" size={24} color={Colors.primary} />
+          <Text style={styles.linkText}>Reflection Prompts</Text>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
       {/* Recent Submissions */}
       {recentSubmissions.length > 0 && (
         <>

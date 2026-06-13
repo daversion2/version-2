@@ -16,6 +16,8 @@ import { Button } from '../../components/common/Button';
 import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
+import { useTools } from '../../context/ToolsContext';
+import { ChallengeReflectionFlow } from './components/ChallengeReflectionFlow';
 import { completeChallenge, saveReflectionAnswers, cancelChallenge, getChallengeRepeatStats, getRepeatMilestone, getTotalCompletionCount } from '../../services/challenges';
 import { showConfirm } from '../../utils/alert';
 import {
@@ -52,11 +54,15 @@ type Props = HomeScreenProps<'CompleteChallenge'>;
 
 export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
+  const { reflectionPrompts } = useTools();
   const challenge = route.params?.challenge;
 
   const [result, setResult] = useState<'completed' | 'failed' | null>(null);
   const [difficulty, setDifficulty] = useState(3);
   const [journalEntry, setJournalEntry] = useState('');
+  // Conversational reflection flow state (success path)
+  const [reflecting, setReflecting] = useState(false);
+  const [reflectionAnswers, setReflectionAnswers] = useState<Record<string, string>>({});
   const [failureReflection, setFailureReflection] = useState('');
   const [showPrompts, setShowPrompts] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -88,7 +94,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   // Goal context for the banner + CBT data
   const [goalContext, setGoalContext] = useState<{ name: string; ft: GoalFollowThrough } | null>(null);
   const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
-  const [promptsExpanded, setPromptsExpanded] = useState(false);
 
   useEffect(() => {
     if (!user || !challenge.goal_ids?.length) return;
@@ -568,43 +573,43 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             </View>
           )}
 
-          <View style={styles.journalHeader}>
-            <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Journaling</Text>
-          </View>
-          <Text style={styles.journalSubtext}>Optional — earns bonus points</Text>
+          {reflectionPrompts.length > 0 && (
+            <>
+              <View style={styles.journalHeader}>
+                <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Reflection</Text>
+              </View>
+              <Text style={styles.journalSubtext}>Optional — earns bonus points</Text>
 
-          {/* Inline prompts (collapsed by default) */}
-          <TouchableOpacity
-            style={styles.inlinePromptsToggle}
-            onPress={() => setPromptsExpanded(!promptsExpanded)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="bulb-outline" size={16} color={Colors.primary} />
-            <Text style={styles.inlinePromptsLabel}>Need inspiration?</Text>
-            <Ionicons
-              name={promptsExpanded ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
-          {promptsExpanded && (
-            <View style={styles.inlinePromptsList}>
-              <Text style={styles.promptItem}>• What was the hardest moment, and what were you telling yourself then?</Text>
-              <Text style={styles.promptItem}>• What helped you push through — or what would have helped?</Text>
-              <Text style={styles.promptItem}>• What's one rule or adjustment you'll apply next time?</Text>
-              <Text style={styles.promptItem}>• How do you feel now compared to before?</Text>
-            </View>
+              {journalEntry.trim() ? (
+                <Card style={styles.reflectionReadback}>
+                  <Text style={styles.reflectionReadbackText}>{journalEntry}</Text>
+                  <TouchableOpacity
+                    style={styles.reflectionEditLink}
+                    onPress={() => setReflecting(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="create-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.reflectionEditText}>Edit reflection</Text>
+                  </TouchableOpacity>
+                </Card>
+              ) : (
+                <TouchableOpacity
+                  style={styles.reflectCta}
+                  onPress={() => setReflecting(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="chatbubbles-outline" size={22} color={Colors.success} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.reflectCtaTitle}>Reflect on your win</Text>
+                    <Text style={styles.reflectCtaSubtitle}>
+                      A few quick prompts to lock in what you learned
+                    </Text>
+                  </View>
+                  <Ionicons name="arrow-forward" size={18} color={Colors.success} />
+                </TouchableOpacity>
+              )}
+            </>
           )}
-
-          <InputField
-            label=""
-            value={journalEntry}
-            onChangeText={setJournalEntry}
-            placeholder="Reflect on your experience..."
-            multiline
-            numberOfLines={6}
-            style={styles.journalInput}
-          />
         </>
       )}
 
@@ -676,6 +681,18 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
           setFailureModalVisible(false);
           proceedAfterReward();
         }}
+      />
+      <ChallengeReflectionFlow
+        visible={reflecting}
+        prompts={reflectionPrompts}
+        accentColor={Colors.success}
+        initialAnswers={reflectionAnswers}
+        onComplete={(note, answers) => {
+          setJournalEntry(note);
+          setReflectionAnswers(answers);
+          setReflecting(false);
+        }}
+        onCancel={() => setReflecting(false)}
       />
       {/* Completion Message Prompt Modal */}
       <Modal
@@ -791,6 +808,50 @@ const styles = StyleSheet.create({
   journalInput: {
     minHeight: 120,
     backgroundColor: Colors.white,
+  },
+  reflectCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.success + '10',
+    borderWidth: 1.5,
+    borderColor: Colors.success + '40',
+    borderRadius: 14,
+    padding: Spacing.md,
+  },
+  reflectCtaTitle: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+  },
+  reflectCtaSubtitle: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 2,
+  },
+  reflectionReadback: {
+    backgroundColor: Colors.white,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.success,
+  },
+  reflectionReadbackText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 22,
+  },
+  reflectionEditLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  reflectionEditText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
   modalOverlay: {
     flex: 1,
