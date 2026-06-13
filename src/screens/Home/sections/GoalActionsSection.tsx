@@ -91,7 +91,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
               <Ionicons name="list" size={20} color={Colors.primary} />
               <Text style={styles.goalName}>Your Activities</Text>
             </View>
-            <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits')}>
+            <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}>
               <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
             </TouchableOpacity>
           </View>
@@ -122,7 +122,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
             )}
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => callbacks.onNavigate('ManageHabits')}
+              onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}
               activeOpacity={0.7}
             >
               <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
@@ -258,7 +258,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
               )}
               <TouchableOpacity
                 style={styles.addButton}
-                onPress={() => callbacks.onNavigate('ManageHabits')}
+                onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}
                 activeOpacity={0.7}
               >
                 <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
@@ -309,7 +309,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
             )}
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => callbacks.onNavigate('ManageHabits')}
+              onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}
               activeOpacity={0.7}
             >
               <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
@@ -503,8 +503,9 @@ const HabitRow: React.FC<{
           <TouchableOpacity
             onPress={() => callbacks.onNavigate('HabitDetail', { habitId: habit.id })}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.habitManageBtn}
           >
-            <Ionicons name="stats-chart" size={18} color={Colors.primary} />
+            <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -714,6 +715,9 @@ const styles = StyleSheet.create({
   actionInfo: {
     flex: 1,
     gap: 2,
+  },
+  habitManageBtn: {
+    padding: Spacing.xs,
   },
   actionName: {
     fontFamily: Fonts.primary,

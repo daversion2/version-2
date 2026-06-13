@@ -14,6 +14,9 @@ import { Calendar } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
+import { Button } from '../../components/common/Button';
+import { InputField } from '../../components/common/InputField';
+import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/habits';
@@ -52,6 +55,13 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const [logs, setLogs] = useState<CompletionLog[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Edit mode (name / times-per-week / goals)
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
+  const [editGoalIds, setEditGoalIds] = useState<string[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
+
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
@@ -76,6 +86,36 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       loadData();
     }, [loadData])
   );
+
+  const startEdit = () => {
+    if (!habit) return;
+    setEditName(habit.name);
+    setEditTimesPerWeek(habit.target_count_per_week);
+    setEditGoalIds(habit.goal_ids || []);
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Required', 'Habit name cannot be empty.');
+      return;
+    }
+    if (!user) return;
+    setEditSaving(true);
+    try {
+      await updateHabit(user.uid, habitId, {
+        name: editName.trim(),
+        target_count_per_week: editTimesPerWeek,
+        goal_ids: editGoalIds,
+      } as Partial<Nudge>);
+      setEditing(false);
+      await loadData();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const handleDelete = () => {
     Alert.alert(
@@ -165,7 +205,58 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.habitName}>{habit.name}</Text>
+        {!editing && (
+          <TouchableOpacity onPress={startEdit} style={styles.editHabitBtn}>
+            <Ionicons name="pencil-outline" size={14} color={Colors.primary} />
+            <Text style={styles.editHabitText}>Edit</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Inline edit form: name / times-per-week / goals */}
+      {editing && (
+        <Card style={styles.editCard}>
+          <InputField
+            label="Habit Name"
+            value={editName}
+            onChangeText={setEditName}
+            placeholder="Habit name"
+          />
+          <Text style={styles.editFreqLabel}>Times per week</Text>
+          <View style={styles.editFreqRow}>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <TouchableOpacity
+                key={n}
+                onPress={() => setEditTimesPerWeek(n)}
+                style={[styles.freqChip, editTimesPerWeek === n && styles.freqChipActive]}
+              >
+                <Text
+                  style={[
+                    styles.freqChipText,
+                    editTimesPerWeek === n && { color: Colors.white },
+                  ]}
+                >
+                  {n}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <GoalTagPicker
+            selectedGoalIds={editGoalIds}
+            onChange={setEditGoalIds}
+            onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
+          />
+          <View style={styles.editButtons}>
+            <Button title="Save" onPress={handleSaveEdit} loading={editSaving} style={{ flex: 1 }} />
+            <Button
+              title="Cancel"
+              onPress={() => setEditing(false)}
+              variant="outline"
+              style={{ flex: 1 }}
+            />
+          </View>
+        </Card>
+      )}
 
       {/* Stats Card - 2x2 Grid */}
       <Card style={styles.statsCard}>
@@ -375,6 +466,57 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xxl,
     color: Colors.dark,
     flex: 1,
+  },
+  editHabitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  editHabitText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+  },
+  editCard: {
+    marginBottom: Spacing.lg,
+  },
+  editFreqLabel: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginBottom: Spacing.sm,
+  },
+  editFreqRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  freqChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  freqChipActive: {
+    backgroundColor: Colors.primary,
+  },
+  freqChipText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
+  editButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
   categoryBadge: {
     paddingHorizontal: Spacing.md,

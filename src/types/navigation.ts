@@ -64,7 +64,7 @@ export type HomeStackParamList = {
   EditChallenge: { challenge: Challenge };
   ExtendedChallengeProgress: { challenge: Challenge };
   ChallengeDetail: { challengeId: string };
-  ManageHabits: undefined;
+  ManageHabits: { openAddForm?: boolean } | undefined;
   HabitDetail: { habitId: string };
   HabitActionPlan: {
     habitId: string;
@@ -146,7 +146,7 @@ export type ProgressStackParamList = {
   HabitDetail: { habitId: string };
   ProgramDashboard: { enrollmentId: string };
   CreateChallenge: { forDate?: string } | undefined;
-  ManageHabits: undefined;
+  ManageHabits: { openAddForm?: boolean } | undefined;
 };
 
 // ============================================================================

@@ -21,7 +21,7 @@ import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
 type Props = HomeScreenProps<'ManageHabits'>;
 
-export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
+export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
 
   const [habits, setHabits] = useState<Nudge[]>([]);
@@ -51,6 +51,14 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     load();
   }, [user]);
+
+  // Deep-link: open the add form directly when navigated with openAddForm (the "+" entry point).
+  useEffect(() => {
+    if (route.params?.openAddForm) {
+      setShowForm(true);
+      navigation.setParams({ openAddForm: undefined });
+    }
+  }, [route.params?.openAddForm]);
 
 
   const handleAdd = async () => {
