@@ -7,6 +7,7 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   {
     id: 'thought_record',
     name: 'Challenge That Thought',
+    trigger_line: "A thought keeps replaying and I don't know if it's actually true",
     short_description: 'Catch a negative thought and see how much of it is actually true',
     long_description:
       'When a thought feels like a fact, writing it down changes everything. This exercise helps you slow down, look at what actually happened, and find a version of the story that\'s more accurate — not more positive, just more honest.',
@@ -149,6 +150,7 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   {
     id: 'cognitive_distortions',
     name: 'Name Your Thinking Trap',
+    trigger_line: "Everything feels worse than it probably is and I can't snap out of it",
     short_description: 'Identify the mental patterns that make things feel worse than they are',
     long_description:
       'Your brain runs patterns on autopilot — and some of those patterns distort reality in predictable ways. This exercise helps you name which one is running so you can catch it faster next time.',
@@ -251,6 +253,7 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   {
     id: 'core_belief_arrow',
     name: 'Find the Root',
+    trigger_line: 'The same worry keeps coming back no matter how many times I deal with it',
     short_description: 'Trace a surface worry down to the deeper belief actually driving it',
     long_description:
       'Most recurring thoughts aren\'t really about what they appear to be about. This exercise asks "what would that mean?" again and again until you hit the belief underneath — the one that keeps generating the same thought patterns.',
@@ -370,6 +373,7 @@ export const WORKSHEET_TEMPLATES: WorksheetTemplate[] = [
   {
     id: 'smart_action_plan',
     name: "Turn 'I Should' Into a Plan",
+    trigger_line: "I know what I should do but I'm not doing it",
     short_description:
       "Convert a vague intention into a concrete action you'll actually follow through on",
     long_description:

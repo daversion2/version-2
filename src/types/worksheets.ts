@@ -32,6 +32,9 @@ export interface WorksheetSection {
 export interface WorksheetTemplate {
   id: string;
   name: string;
+  // First-person trigger line shown on the Tools library card — describes the
+  // emotional moment the user is in so they can self-identify and pick a tool.
+  trigger_line: string;
   short_description: string;
   long_description: string;
   category: WorksheetCategory;

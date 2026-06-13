@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -55,6 +55,28 @@ const fieldStyle = (
   ];
 };
 
+// ---------------------------------------------------------------------------
+// Mantra fill-in-the-blank templates
+// A template is a sentence where each run of 2+ underscores is an editable
+// blank, e.g. "I will ___ by ___ if I ___ every day."
+// ---------------------------------------------------------------------------
+const BLANK_RE = /_{2,}/g;
+/** Literal text segments between blanks; blank count === segments.length - 1. */
+const templateSegments = (tpl: string): string[] => tpl.split(BLANK_RE);
+const blankCount = (tpl: string): number => templateSegments(tpl).length - 1;
+/** Interleave the literal segments with the user's blank values. */
+const composeTemplate = (tpl: string, blanks: string[]): string => {
+  const segments = templateSegments(tpl);
+  return segments
+    .map((seg, i) => (i < segments.length - 1 ? seg + (blanks[i] ?? '') : seg))
+    .join('');
+};
+const templateComplete = (tpl: string, blanks: string[]): boolean => {
+  const count = blankCount(tpl);
+  for (let i = 0; i < count; i++) if (!(blanks[i] ?? '').trim()) return false;
+  return count > 0;
+};
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -100,8 +122,46 @@ export const OnboardingScreen: React.FC = () => {
   const toggleScience = (stepId: string) =>
     setScienceOpen((prev) => ({ ...prev, [stepId]: !prev[stepId] }));
 
-  // Screen 5: Mantra
+  // Screen 5: Mantra. Two input modes — a fill-in-the-blank template or
+  // free text — both feed the single committed `mantra` (used for gating,
+  // saving, and the reveal). `mantra` is derived in the effect below.
   const [mantra, setMantra] = useState('');
+  const [customMantra, setCustomMantra] = useState('');
+  const [templateIndex, setTemplateIndex] = useState(-1);
+  const [templateBlanks, setTemplateBlanks] = useState<string[]>([]);
+
+  const mantraTemplates = useMemo<string[]>(() => {
+    const step = config.steps.find((s) => s.type === 'mantra_picker');
+    return (step?.content.templates ?? STEP_CONTENT_DEFAULTS.mantra_picker.templates) as string[];
+  }, [config]);
+
+  // Commit the effective mantra: a fully-filled template wins; otherwise the
+  // free-text value. An incomplete template leaves it empty (CTA stays off).
+  useEffect(() => {
+    if (templateIndex >= 0) {
+      const tpl = mantraTemplates[templateIndex];
+      setMantra(tpl && templateComplete(tpl, templateBlanks) ? composeTemplate(tpl, templateBlanks.map((b) => b.trim())) : '');
+    } else {
+      setMantra(customMantra.trim());
+    }
+  }, [templateIndex, templateBlanks, customMantra, mantraTemplates]);
+
+  const selectTemplate = (index: number) => {
+    if (index === templateIndex) return;
+    setTemplateIndex(index);
+    setTemplateBlanks(new Array(blankCount(mantraTemplates[index] ?? '')).fill(''));
+  };
+  const updateBlank = (i: number, value: string) =>
+    setTemplateBlanks((prev) => {
+      const next = [...prev];
+      next[i] = value;
+      return next;
+    });
+  // Typing your own deselects any template.
+  const onChangeCustomMantra = (text: string) => {
+    setCustomMantra(text);
+    if (templateIndex >= 0) setTemplateIndex(-1);
+  };
 
   // Screen 6: Habit Selection
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
@@ -370,33 +430,77 @@ export const OnboardingScreen: React.FC = () => {
   // SCREEN 5 — MANTRA SELECTION
   // ============================================================================
 
+  // One template card: a sentence whose blanks are inline editable fields
+  // once the card is selected (and read-only underscores otherwise).
+  const renderTemplate = (tpl: string, index: number) => {
+    const selected = templateIndex === index;
+    const segments = templateSegments(tpl);
+    return (
+      <TouchableOpacity
+        key={index}
+        activeOpacity={0.85}
+        onPress={() => selectTemplate(index)}
+        style={[styles.templateCard, selected && styles.templateCardSelected]}
+      >
+        <View style={styles.templateRow}>
+          {segments.map((seg, i) => {
+            const value = templateBlanks[i] ?? '';
+            return (
+              <React.Fragment key={i}>
+                {seg !== '' && <Text style={styles.templateText}>{seg}</Text>}
+                {i < segments.length - 1 &&
+                  (selected ? (
+                    <TextInput
+                      style={[
+                        styles.templateBlankInput,
+                        { width: Math.min(220, Math.max(56, (value.length + 2) * 9)) },
+                      ]}
+                      value={value}
+                      onChangeText={(t) => updateBlank(i, t)}
+                      placeholder="…"
+                      placeholderTextColor={Colors.gray}
+                      autoFocus={i === 0}
+                      returnKeyType="done"
+                    />
+                  ) : (
+                    <Text style={styles.templateBlankPreview}>______</Text>
+                  ))}
+              </React.Fragment>
+            );
+          })}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderMantraPicker = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
       <RichText style={fieldStyle(step, 'intro', styles.stageIntro)}>{step.content.intro}</RichText>
       <RichText style={fieldStyle(step, 'subtext', styles.mantraSubtext)}>{step.content.subtext}</RichText>
+
+      <View style={styles.templatesList}>
+        {(step.content.templates as string[]).map(renderTemplate)}
+      </View>
+
+      <View style={styles.orDivider}>
+        <View style={styles.orLine} />
+        <Text style={styles.orText}>or write your own</Text>
+        <View style={styles.orLine} />
+      </View>
+
       <TextInput
-        style={styles.mantraInput}
-        value={mantra}
-        onChangeText={setMantra}
-        placeholder="Type your mantra..."
+        style={[
+          styles.mantraInput,
+          templateIndex < 0 && !!customMantra.trim() && styles.mantraInputActive,
+        ]}
+        value={customMantra}
+        onChangeText={onChangeCustomMantra}
+        placeholder="Type your own mantra..."
         placeholderTextColor={Colors.gray}
         maxLength={100}
         returnKeyType="done"
       />
-      <View style={styles.mantraExamples}>
-        {(step.content.examples as string[]).map((example) => (
-          <TouchableOpacity
-            key={example}
-            style={[styles.mantraChip, mantra === example && styles.mantraChipSelected]}
-            onPress={() => setMantra(example)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.mantraChipText, mantra === example && styles.mantraChipTextSelected]}>
-              {example}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+
       <View style={styles.howToCard}>
         <Ionicons name="repeat-outline" size={18} color={Colors.secondary} />
         <RichText style={fieldStyle(step, 'howto', styles.scienceText)}>{step.content.howto}</RichText>
@@ -958,42 +1062,82 @@ const styles = StyleSheet.create({
   },
   mantraInput: {
     fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.lg,
     color: Colors.dark,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: Colors.border,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.md,
     backgroundColor: Colors.white,
     textAlign: 'center',
     marginBottom: Spacing.lg,
   },
-  mantraExamples: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
+  mantraInputActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '08',
   },
-  mantraChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
+  // Fill-in-the-blank templates
+  templatesList: {
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  templateCard: {
     borderWidth: 1.5,
     borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
   },
-  mantraChipSelected: {
+  templateCardSelected: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '10',
+    backgroundColor: Colors.primary + '08',
   },
-  mantraChipText: {
+  templateRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    rowGap: Spacing.xs,
+  },
+  templateText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    lineHeight: 30,
+  },
+  templateBlankPreview: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.gray,
+    letterSpacing: 1,
+  },
+  templateBlankInput: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.primary,
+    paddingVertical: Platform.OS === 'ios' ? 2 : 0,
+    paddingHorizontal: 4,
+    marginHorizontal: 2,
+    textAlign: 'center',
+  },
+  orDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  orText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  mantraChipTextSelected: {
-    color: Colors.primary,
-    fontFamily: Fonts.secondaryBold,
+    color: Colors.gray,
   },
 
   // Screen 6: Habit selection

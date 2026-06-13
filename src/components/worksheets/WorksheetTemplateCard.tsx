@@ -57,11 +57,8 @@ export const WorksheetTemplateCard: React.FC<WorksheetTemplateCardProps> = ({
             />
           </View>
           <View style={styles.content}>
-            <Text style={styles.name} numberOfLines={1}>
-              {template.name}
-            </Text>
-            <Text style={styles.description} numberOfLines={3}>
-              {template.short_description}
+            <Text style={styles.triggerLine} numberOfLines={3}>
+              {template.trigger_line}
             </Text>
             <View style={styles.metaRow}>
               <View style={styles.difficultyDots}>
@@ -115,17 +112,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  name: {
+  triggerLine: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
     color: Colors.dark,
-    marginBottom: 2,
-  },
-  description: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: Spacing.xs,
   },
   metaRow: {

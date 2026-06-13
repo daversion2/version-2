@@ -114,18 +114,14 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
   },
   mantra_picker: {
     intro: 'Pick your redirect mantra',
-    subtext: "A short phrase you'll repeat when your mind drifts. Write your own or tap one below.",
-    examples: [
-      'I am not my thoughts',
-      'Progress, not perfection',
-      'One step at a time',
-      'I choose calm over chaos',
-      'I am enough, right now',
-      'Breathe in strength, breathe out doubt',
-      'I trust the process',
-      'Small steps, big changes',
-      'I am building something real',
-      'This moment is mine',
+    subtext: "A short phrase you'll repeat when your mind drifts. Fill in a template below, or write your own.",
+    // Fill-in-the-blank templates; each run of underscores is an editable blank.
+    templates: [
+      'I will ___ by ___ if I ___ every day.',
+      'If I ___ consistently, I will ___ by ___.',
+      "I want ___ bad enough to ___ even when I don't feel like it.",
+      "I have until ___ to ___, and I'm not wasting another day.",
+      '___ by ___. That’s the goal. ___ is how I get there.',
     ],
     howto: 'Catch a negative thought, repeat your mantra silently — over and over — until it passes.',
     science:
@@ -306,7 +302,6 @@ const migrateLegacyFlat = (data: Record<string, any>): OnboardingStep[] => {
   const m = byType('mantra_picker');
   m.content.intro = pick('mantra_intro', m.content.intro);
   m.content.subtext = pick('mantra_subtext', m.content.subtext);
-  m.content.examples = pick('mantra_examples', m.content.examples);
   m.content.howto = pick('mantra_howto', m.content.howto);
   m.content.science = pick('mantra_science', m.content.science);
 

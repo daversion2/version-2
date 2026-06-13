@@ -38,8 +38,8 @@ export const AdminOnboardingScreen: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [steps, setSteps] = useState<OnboardingStep[]>(DEFAULT_ONBOARDING_CONFIG.steps);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  // Mantra examples edited as one-per-line text, keyed by step id
-  const [examplesText, setExamplesText] = useState<Record<string, string>>({});
+  // Mantra templates edited as one-per-line text, keyed by step id
+  const [templatesText, setTemplatesText] = useState<Record<string, string>>({});
 
   const loadSteps = (loaded: OnboardingStep[]) => {
     setSteps(loaded);
@@ -47,9 +47,9 @@ export const AdminOnboardingScreen: React.FC = () => {
     loaded
       .filter((s) => s.type === 'mantra_picker')
       .forEach((s) => {
-        texts[s.id] = ((s.content.examples as string[]) ?? []).join('\n');
+        texts[s.id] = ((s.content.templates as string[]) ?? []).join('\n');
       });
-    setExamplesText(texts);
+    setTemplatesText(texts);
   };
 
   useEffect(() => {
@@ -118,14 +118,14 @@ export const AdminOnboardingScreen: React.FC = () => {
   };
 
   const handleSave = async () => {
-    // Fold the one-per-line mantra text back into step content
+    // Fold the one-per-line mantra templates back into step content
     const finalSteps = steps.map((s) => {
       if (s.type !== 'mantra_picker') return s;
-      const examples = (examplesText[s.id] ?? '')
+      const templates = (templatesText[s.id] ?? '')
         .split('\n')
         .map((t) => t.trim())
         .filter(Boolean);
-      return { ...s, content: { ...s.content, examples } };
+      return { ...s, content: { ...s.content, templates } };
     });
 
     for (const s of finalSteps) {
@@ -134,9 +134,12 @@ export const AdminOnboardingScreen: React.FC = () => {
         showAlert('Invalid Timer', 'Timer must be between 5 and 600 seconds.');
         return;
       }
-      if (s.type === 'mantra_picker' && (s.content.examples as string[]).length === 0) {
-        showAlert('Missing Mantras', 'Provide at least one example mantra (one per line).');
-        return;
+      if (s.type === 'mantra_picker') {
+        const lines = (templatesText[s.id] ?? '').split('\n').map((t) => t.trim()).filter(Boolean);
+        if (lines.length === 0) {
+          showAlert('Missing Templates', 'Provide at least one mantra template (one per line).');
+          return;
+        }
       }
       if (
         s.type === 'habit_picker' &&
@@ -258,9 +261,9 @@ export const AdminOnboardingScreen: React.FC = () => {
             {fmt('intro', 'Intro')}
             {fmt('subtext', 'Subtext', { multiline: true })}
             <InputField
-              label="Example mantras (one per line)"
-              value={examplesText[step.id] ?? ''}
-              onChangeText={(t) => setExamplesText((prev) => ({ ...prev, [step.id]: t }))}
+              label="Mantra templates (one per line — use ___ for each blank the user fills in)"
+              value={templatesText[step.id] ?? ''}
+              onChangeText={(t) => setTemplatesText((prev) => ({ ...prev, [step.id]: t }))}
               multiline
               numberOfLines={6}
               style={styles.tallInput}
