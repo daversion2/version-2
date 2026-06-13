@@ -12,6 +12,7 @@ import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { GOAL_CONSTANTS } from '../../../constants/goals';
 import { formatShortDay } from '../../../utils/date';
 import { formatHabitPlanLine } from '../../../utils/habitPlan';
+import { AddActivityMenu } from '../../../components/home/AddActivityMenu';
 
 export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
   const {
@@ -29,6 +30,17 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
   } = data;
   const challengesUnlocked = data.totalHabitsCompleted >= 3;
   const habitsRemaining = 3 - (data.totalHabitsCompleted ?? 0);
+
+  // "Add activity" chooser (Habit / Challenge)
+  const [addMenuVisible, setAddMenuVisible] = useState(false);
+  const handleAddHabit = () => {
+    setAddMenuVisible(false);
+    callbacks.onNavigate('ManageHabits');
+  };
+  const handleAddChallenge = () => {
+    setAddMenuVisible(false);
+    callbacks.onNavigate('StartChallenge');
+  };
 
   // Planner context lookups
   const plannedTodaySet = useMemo(() => new Set(data.plannedHabitIds), [data.plannedHabitIds]);
@@ -91,9 +103,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
               <Ionicons name="list" size={20} color={Colors.primary} />
               <Text style={styles.goalName}>Your Activities</Text>
             </View>
-            <TouchableOpacity onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}>
-              <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
-            </TouchableOpacity>
+            <AddActivityButton onPress={() => setAddMenuVisible(true)} />
           </View>
           {challengesUnlocked && allChallenges.map((challenge) => (
             <ChallengeRow key={challenge.id} challenge={challenge} callbacks={callbacks} />
@@ -109,26 +119,6 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
               plannedForDate={futureHabitPlanMap.get(habit.id)}
             />
           ))}
-          <View style={styles.addRow}>
-            {challengesUnlocked && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => callbacks.onNavigate('StartChallenge')}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="flash-outline" size={16} color={Colors.primary} />
-                <Text style={styles.addButtonText}>Challenge</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
-              <Text style={styles.addButtonText}>Habit</Text>
-            </TouchableOpacity>
-          </View>
         </View>
         <Card style={styles.emptyCard}>
           <Ionicons name="flag-outline" size={40} color={Colors.primary} />
@@ -142,6 +132,14 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
             style={{ marginTop: Spacing.md }}
           />
         </Card>
+        <AddActivityMenu
+          visible={addMenuVisible}
+          challengesUnlocked={challengesUnlocked}
+          habitsRemaining={habitsRemaining}
+          onSelectHabit={handleAddHabit}
+          onSelectChallenge={handleAddChallenge}
+          onClose={() => setAddMenuVisible(false)}
+        />
       </>
     );
   }
@@ -246,24 +244,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
 
             {/* Quick add */}
             <View style={styles.addRow}>
-              {challengesUnlocked && (
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => callbacks.onNavigate('StartChallenge')}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="flash-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.addButtonText}>Challenge</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
-                <Text style={styles.addButtonText}>Habit</Text>
-              </TouchableOpacity>
+              <AddActivityButton onPress={() => setAddMenuVisible(true)} />
             </View>
           </View>
         );
@@ -277,6 +258,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
               <Ionicons name="list" size={20} color={Colors.primary} />
               <Text style={styles.goalName}>Your Activities</Text>
             </View>
+            <AddActivityButton onPress={() => setAddMenuVisible(true)} />
           </View>
           {unlinkedChallenges.map((challenge) => (
             <ChallengeRow
@@ -296,26 +278,6 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
               plannedForDate={futureHabitPlanMap.get(habit.id)}
             />
           ))}
-          <View style={styles.addRow}>
-            {challengesUnlocked && (
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => callbacks.onNavigate('StartChallenge')}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="flash-outline" size={16} color={Colors.primary} />
-                <Text style={styles.addButtonText}>Challenge</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => callbacks.onNavigate('ManageHabits', { openAddForm: true })}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="repeat-outline" size={16} color={Colors.primary} />
-              <Text style={styles.addButtonText}>Habit</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       )}
 
@@ -330,11 +292,27 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
           <Text style={styles.addGoalText}>Add Another Goal</Text>
         </TouchableOpacity>
       )}
+
+      <AddActivityMenu
+        visible={addMenuVisible}
+        challengesUnlocked={challengesUnlocked}
+        habitsRemaining={habitsRemaining}
+        onSelectHabit={handleAddHabit}
+        onSelectChallenge={handleAddChallenge}
+        onClose={() => setAddMenuVisible(false)}
+      />
     </>
   );
 });
 
 // --- Sub-components ---
+
+const AddActivityButton: React.FC<{ onPress: () => void }> = ({ onPress }) => (
+  <TouchableOpacity style={styles.addActivityBtn} onPress={onPress} activeOpacity={0.7}>
+    <Ionicons name="add" size={18} color={Colors.primary} />
+    <Text style={styles.addActivityText}>Add activity</Text>
+  </TouchableOpacity>
+);
 
 const PlannerBar: React.FC<{ callbacks: HomeSectionProps['callbacks'] }> = ({ callbacks }) => (
   <TouchableOpacity
@@ -869,7 +847,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     marginBottom: Spacing.sm,
   },
-  addButton: {
+  addActivityBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
@@ -880,8 +858,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary + '40',
     backgroundColor: Colors.primary + '08',
   },
-  addButtonText: {
-    fontFamily: Fonts.secondary,
+  addActivityText: {
+    fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.xs,
     color: Colors.primary,
   },
