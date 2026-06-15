@@ -74,6 +74,7 @@ export type HomeStackParamList = {
     reminder?: HabitReminder;
   };
   HabitLibrary: undefined;
+  TraditionalHabits: undefined;
   HabitLibraryDetail: { habitId: string };
   SubmitChallenge: { challengeId: string };
   WriteReview: {

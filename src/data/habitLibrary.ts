@@ -1,4 +1,5 @@
 import { HabitCategory, LibraryHabit } from '../types';
+import { TRADITIONAL_HABIT_CATEGORIES, TRADITIONAL_HABIT_LIBRARY } from './traditionalHabits';
 
 // ─── Categories ──────────────────────────────────────────────────────────────
 // Habit-library taxonomy. Kept separate from the challenge system's LIFE_DOMAINS
@@ -12,8 +13,15 @@ export const HABIT_CATEGORIES: HabitCategory[] = [
   { id: 'Connection', name: 'Connection', icon: 'people-outline', color: '#1976D2' },
 ];
 
+// Resolves a category from either the curated or traditional taxonomy.
 export const getHabitCategory = (categoryId?: string): HabitCategory | undefined =>
-  categoryId ? HABIT_CATEGORIES.find((c) => c.id === categoryId) : undefined;
+  categoryId
+    ? [...HABIT_CATEGORIES, ...TRADITIONAL_HABIT_CATEGORIES].find((c) => c.id === categoryId)
+    : undefined;
+
+// Resolves a library habit by id from either the curated or traditional library.
+export const findLibraryHabit = (habitId: string): LibraryHabit | undefined =>
+  [...HABIT_LIBRARY, ...TRADITIONAL_HABIT_LIBRARY].find((h) => h.id === habitId);
 
 // ─── Habits ──────────────────────────────────────────────────────────────────
 export const HABIT_LIBRARY: LibraryHabit[] = [

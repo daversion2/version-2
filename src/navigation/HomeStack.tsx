@@ -15,6 +15,7 @@ import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
 import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
 import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
 import { HabitLibraryScreen } from '../screens/Home/HabitLibraryScreen';
+import { TraditionalHabitsScreen } from '../screens/Home/TraditionalHabitsScreen';
 import { HabitLibraryDetailScreen } from '../screens/Home/HabitLibraryDetailScreen';
 import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
 import { WriteReviewScreen } from '../screens/Community/WriteReviewScreen';
@@ -132,6 +133,11 @@ export const HomeStack: React.FC = () => (
       name="HabitLibrary"
       component={HabitLibraryScreen}
       options={{ title: 'Habit Library' }}
+    />
+    <Stack.Screen
+      name="TraditionalHabits"
+      component={TraditionalHabitsScreen}
+      options={{ title: 'Traditional Habits' }}
     />
     <Stack.Screen
       name="HabitLibraryDetail"
