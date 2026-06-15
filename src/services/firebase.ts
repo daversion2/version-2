@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence, browserLocalPersistence, GoogleAuthProvider } from '@firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
 export const googleProvider = new GoogleAuthProvider();
@@ -27,6 +27,14 @@ if (Platform.OS === 'web') {
 }
 
 export const auth = initializeAuth(app, { persistence });
-export const db = getFirestore(app);
+
+// On React Native the default Firestore WebChannel transport stalls
+// intermittently, causing reads and writes to hang indefinitely (goals never
+// loading, "Saving..." never finishing). Force long-polling, which is the
+// reliable transport in RN. Web keeps the default (auto-detected) transport.
+export const db =
+  Platform.OS === 'web'
+    ? getFirestore(app)
+    : initializeFirestore(app, { experimentalForceLongPolling: true });
 export default app;
 

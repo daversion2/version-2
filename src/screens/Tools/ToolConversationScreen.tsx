@@ -17,6 +17,7 @@ import {
   updateWorksheetEntry,
   getWorksheetEntryById,
 } from '../../services/worksheets';
+import { getActiveGoals } from '../../services/goals';
 import { useAuth } from '../../context/AuthContext';
 import { useTools } from '../../context/ToolsContext';
 import { WorksheetsScreenProps } from '../../types/navigation';
@@ -88,6 +89,12 @@ export const ToolConversationScreen: React.FC<Props> = ({
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
+
+  // Prefetch active goals so the "attach to a goal" step renders instantly
+  // instead of waiting on a cold Firestore round-trip when it mounts.
+  useEffect(() => {
+    if (user) getActiveGoals(user.uid).catch(() => {});
+  }, [user]);
 
   // Resume draft
   useEffect(() => {

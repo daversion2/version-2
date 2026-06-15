@@ -28,6 +28,38 @@ const logsRef = (userId: string) =>
   collection(db, 'users', userId, 'completionLogs');
 
 /**
+ * Award willpower points and write a completion log for a saved entry.
+ *
+ * Fired in the background (not awaited) by the save paths: these are secondary
+ * writes — the willpower stats update is a contention-prone transaction and the
+ * log is a second round-trip. Awaiting them would block the completion UI on a
+ * slow/flaky connection (the "stuck on Saving" hang). Points are computed
+ * synchronously by the caller, so the UI never needs these to finish; they queue
+ * offline and complete on reconnect.
+ */
+const awardWillpowerAndLog = (
+  userId: string,
+  referenceId: string,
+  points: number,
+  date: string
+): Promise<void> =>
+  Promise.all([
+    updateWillpowerStats(userId, points),
+    addDoc(logsRef(userId), {
+      user_id: userId,
+      type: 'worksheet',
+      reference_id: referenceId,
+      points,
+      difficulty: 1,
+      date,
+    }),
+  ])
+    .then(() => undefined)
+    .catch((e) => {
+      console.warn('[worksheets] background willpower/log write failed', e);
+    });
+
+/**
  * Save a new worksheet entry. Awards XP if not a draft.
  */
 export const saveWorksheetEntry = async (
@@ -66,15 +98,7 @@ export const saveWorksheetEntry = async (
   const docRef = await addDoc(worksheetsRef(userId), entryDoc);
 
   if (!data.is_draft && pointsAwarded > 0) {
-    await updateWillpowerStats(userId, pointsAwarded);
-    await addDoc(logsRef(userId), {
-      user_id: userId,
-      type: 'worksheet',
-      reference_id: docRef.id,
-      points: pointsAwarded,
-      difficulty: 1,
-      date: now.split('T')[0],
-    });
+    void awardWillpowerAndLog(userId, docRef.id, pointsAwarded, now.split('T')[0]);
   }
 
   return { id: docRef.id, pointsAwarded };
@@ -105,9 +129,10 @@ export const updateWorksheetEntry = async (
   if (updates.goal_ids !== undefined) updateData.goal_ids = updates.goal_ids;
 
   let pointsAwarded = 0;
+  const completing = updates.is_draft === false && existing.is_draft;
 
   // Transitioning from draft to completed
-  if (updates.is_draft === false && existing.is_draft) {
+  if (completing) {
     updateData.is_draft = false;
     updateData.completed_at = new Date().toISOString();
 
@@ -122,19 +147,15 @@ export const updateWorksheetEntry = async (
       pointsAwarded += MOOD_IMPROVEMENT_BONUS_POINTS;
     }
     updateData.points_awarded = pointsAwarded;
-
-    await updateWillpowerStats(userId, pointsAwarded);
-    await addDoc(logsRef(userId), {
-      user_id: userId,
-      type: 'worksheet',
-      reference_id: entryId,
-      points: pointsAwarded,
-      difficulty: 1,
-      date: getTodayString(),
-    });
   }
 
+  // Critical write — confirm the entry is marked complete before returning.
   await updateDoc(ref, updateData);
+
+  if (completing) {
+    void awardWillpowerAndLog(userId, entryId, pointsAwarded, getTodayString());
+  }
+
   return { pointsAwarded };
 };
 
@@ -262,15 +283,7 @@ export const saveMicroExerciseEntry = async (
 
   const docRef = await addDoc(worksheetsRef(userId), entryDoc);
 
-  await updateWillpowerStats(userId, pointsAwarded);
-  await addDoc(logsRef(userId), {
-    user_id: userId,
-    type: 'worksheet',
-    reference_id: docRef.id,
-    points: pointsAwarded,
-    difficulty: 1,
-    date: now.split('T')[0],
-  });
+  void awardWillpowerAndLog(userId, docRef.id, pointsAwarded, now.split('T')[0]);
 
   return { id: docRef.id, pointsAwarded };
 };

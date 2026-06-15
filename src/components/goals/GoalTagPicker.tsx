@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { getActiveGoals } from '../../services/goals';
+import { getActiveGoals, getCachedActiveGoals } from '../../services/goals';
 import { Goal } from '../../types';
 
 interface GoalTagPickerProps {
@@ -20,8 +20,11 @@ export const GoalTagPicker: React.FC<GoalTagPickerProps> = ({
   onCreateGoal,
 }) => {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Seed from cache so the picker renders instantly if goals were already
+  // fetched (e.g. prefetched when the tool flow opened); otherwise show a spinner.
+  const cached = user ? getCachedActiveGoals(user.uid) : null;
+  const [goals, setGoals] = useState<Goal[]>(cached || []);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
     if (!user) return;

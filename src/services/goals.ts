@@ -28,7 +28,23 @@ const getTodayStr = (): string => {
 };
 
 /**
- * Get all active goals, sorted by end_date ascending.
+ * In-memory cache of the last fetched active goals, keyed by user. Lets UI that
+ * needs goals on demand (e.g. the worksheet "attach to a goal" step) render
+ * instantly from the last-known list instead of waiting on a cold Firestore
+ * round-trip, while a fresh fetch revalidates in the background.
+ */
+let activeGoalsCache: { userId: string; goals: Goal[] } | null = null;
+
+/**
+ * Synchronously read the cached active goals for a user, or null if none cached.
+ */
+export const getCachedActiveGoals = (userId: string): Goal[] | null =>
+  activeGoalsCache && activeGoalsCache.userId === userId
+    ? activeGoalsCache.goals
+    : null;
+
+/**
+ * Get all active goals, sorted by end_date ascending. Warms the active-goals cache.
  */
 export const getActiveGoals = async (userId: string): Promise<Goal[]> => {
   const q = query(
@@ -41,7 +57,11 @@ export const getActiveGoals = async (userId: string): Promise<Goal[]> => {
     return { id: d.id, ...data, color: data.color || GOAL_COLOR_PALETTE[0] } as Goal;
   });
   // Exclude drafts from active goals list
-  return goals.filter(g => g.draft_status !== 'draft').sort((a, b) => a.end_date.localeCompare(b.end_date));
+  const active = goals
+    .filter(g => g.draft_status !== 'draft')
+    .sort((a, b) => a.end_date.localeCompare(b.end_date));
+  activeGoalsCache = { userId, goals: active };
+  return active;
 };
 
 /**
