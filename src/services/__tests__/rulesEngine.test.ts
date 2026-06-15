@@ -202,6 +202,30 @@ describe('global placeholders', () => {
     expect(missing).toEqual([]);
   });
 
+  it('resolves lifetime counters and reflection streak, defaulting to 0', () => {
+    const populated = resolveUserGlobals(
+      ['habits_completed', 'challenges_completed', 'reflection_streak'],
+      { totalHabitsCompleted: 42, totalChallengesCompleted: 7, reflection_streak: 3 }
+    );
+    expect(populated.vars).toEqual({
+      habits_completed: '42',
+      challenges_completed: '7',
+      reflection_streak: '3',
+    });
+    expect(populated.missing).toEqual([]);
+
+    const empty = resolveUserGlobals(
+      ['habits_completed', 'challenges_completed', 'reflection_streak'],
+      {}
+    );
+    expect(empty.vars).toEqual({
+      habits_completed: '0',
+      challenges_completed: '0',
+      reflection_streak: '0',
+    });
+    expect(empty.missing).toEqual([]);
+  });
+
   it('resolves the active mantra, falling back to first then legacy field', () => {
     const mantras = [
       { id: 'a', text: 'First mantra' },

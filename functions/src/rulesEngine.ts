@@ -155,6 +155,9 @@ export const GLOBAL_PLACEHOLDER_KEYS = [
   "mantra",
   "streak",
   "xp",
+  "habits_completed",
+  "challenges_completed",
+  "reflection_streak",
   "tidbit",
   "fun_fact",
   "reward_message",
@@ -211,6 +214,15 @@ export const resolveUserGlobals = (
         break;
       case "xp":
         value = String(userData.totalWillpowerPoints ?? 0);
+        break;
+      case "habits_completed":
+        value = String(userData.totalHabitsCompleted ?? 0);
+        break;
+      case "challenges_completed":
+        value = String(userData.totalChallengesCompleted ?? 0);
+        break;
+      case "reflection_streak":
+        value = String(userData.reflection_streak ?? 0);
         break;
       default:
         continue; // pool keys resolved by the caller
