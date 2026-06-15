@@ -66,7 +66,7 @@ export const WorksheetLibraryScreen: React.FC<{ navigation: any }> = ({
           </View>
         </View>
         <View style={styles.storyCardContent}>
-          <Text style={styles.storyCardTitle}>your story</Text>
+          <Text style={styles.storyCardTitle}>Proof Points</Text>
           <Text style={styles.storyCardDesc}>
             Map your hard moments into proof you can survive anything.
           </Text>
