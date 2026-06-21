@@ -177,7 +177,10 @@ export const ProgressScreen: React.FC = () => {
           />
 
           {/* Discipline Map */}
-          <DisciplineMap breakdown={arena?.breakdown ?? []} />
+          <DisciplineMap
+            breakdown={arena?.breakdown ?? []}
+            onArenaPress={(arenaId) => navigation.navigate('ArenaDetail', { arenaId })}
+          />
 
           {/* Activity Trend */}
           <ActivityTrendChart data={trendData} />

@@ -165,7 +165,7 @@ Phases 0–2.
 |---|---|---|---|---|
 | **3.1** ✅ | **DONE (2026-06-21).** `getArenaProgress` (Override Score + all-arena breakdown, single load, resolves legacy completions); `OverrideScoreCard` + `DisciplineMap` on the Progress tab. | **Yes, immediately, on existing data** | None (reads) | — |
 | **3.2** ✅ | **DONE (2026-06-21) — reframe-only, per decision.** Difficulty prompts reframed to "How hard was the override?" (challenge) / "How hard was it to push through?" (habit). Reuses the existing `difficulty` value — no new field. | Subtle (copy change) | Low | — |
-| **3.3** | Timer/Stopwatch component, `arenaBaselines` store, Baseline Test screen, Arena Detail screen, Discomfort Shift | Yes (new arena surfaces) | Low-Moderate | — |
+| **3.3** ✅ | **DONE (2026-06-21).** Reusable `Stopwatch`; `arenaBaselines` store + `getDiscomfortShift` (no index); `BaselineTestScreen` (duration/rating/completion modes); `ArenaDetailScreen` (per-arena reps + Discomfort Shift + retest CTA); Discipline Map tiles now tap through to Arena Detail. **Deferred:** tagged-items list on Arena Detail, retest reminders via the rules engine. | Yes (new arena surfaces) | Low-Moderate | — |
 | **3.4** | Instrument + observe alongside XP/Follow-Through | n/a | None | **gates Phase 4** |
 
 **Recommended order:** 3.1 first (fast, visible, zero-risk win that proves the data flows), then

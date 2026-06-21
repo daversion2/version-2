@@ -1,18 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ArenaStat } from '../../services/arenaProgress';
+import { ArenaId } from '../../types';
 
 interface DisciplineMapProps {
   breakdown: ArenaStat[];
+  onArenaPress?: (arenaId: ArenaId) => void;
 }
 
 /**
  * Visual of which arenas the user trains vs avoids. Trained arenas are tinted with
  * their color; untrained ones stay muted — surfacing avoidance patterns over time.
  */
-export const DisciplineMap: React.FC<DisciplineMapProps> = ({ breakdown }) => {
+export const DisciplineMap: React.FC<DisciplineMapProps> = ({ breakdown, onArenaPress }) => {
   if (breakdown.length === 0) return null;
 
   return (
@@ -23,7 +25,7 @@ export const DisciplineMap: React.FC<DisciplineMapProps> = ({ breakdown }) => {
         {breakdown.map((a) => {
           const trained = a.reps > 0;
           return (
-            <View
+            <TouchableOpacity
               key={a.arenaId}
               style={[
                 styles.tile,
@@ -31,6 +33,9 @@ export const DisciplineMap: React.FC<DisciplineMapProps> = ({ breakdown }) => {
                   ? { backgroundColor: a.color + '14', borderColor: a.color }
                   : { backgroundColor: Colors.lightGray, borderColor: Colors.border },
               ]}
+              onPress={() => onArenaPress?.(a.arenaId)}
+              disabled={!onArenaPress}
+              activeOpacity={0.7}
             >
               <Ionicons
                 name={a.icon as any}
@@ -46,7 +51,7 @@ export const DisciplineMap: React.FC<DisciplineMapProps> = ({ breakdown }) => {
               <Text style={[styles.tileReps, { color: trained ? a.color : Colors.gray }]}>
                 {trained ? `${a.reps} rep${a.reps === 1 ? '' : 's'}` : 'Untrained'}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>

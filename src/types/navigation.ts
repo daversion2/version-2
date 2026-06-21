@@ -7,6 +7,7 @@ import type {
   ActionType,
   TimeCategory,
   DailyReflection,
+  ArenaId,
 } from './index';
 import type {
   MicroExerciseSessionState,
@@ -148,6 +149,8 @@ export type ProgressStackParamList = {
   ProgramDashboard: { enrollmentId: string };
   CreateChallenge: { forDate?: string } | undefined;
   ManageHabits: { openAddForm?: boolean } | undefined;
+  ArenaDetail: { arenaId: ArenaId };
+  BaselineTest: { arenaId: ArenaId };
 };
 
 // ============================================================================

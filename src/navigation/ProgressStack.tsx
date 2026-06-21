@@ -17,6 +17,8 @@ import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { CreateChallengeScreen } from '../screens/Home/CreateChallengeScreen';
 import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
+import { ArenaDetailScreen } from '../screens/Arenas/ArenaDetailScreen';
+import { BaselineTestScreen } from '../screens/Arenas/BaselineTestScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<ProgressStackParamList>();
@@ -110,6 +112,16 @@ export const ProgressStack: React.FC = () => (
       name="ManageHabits"
       component={ManageHabitsScreen}
       options={{ title: 'Manage Habits' }}
+    />
+    <Stack.Screen
+      name="ArenaDetail"
+      component={ArenaDetailScreen}
+      options={{ title: 'Arena' }}
+    />
+    <Stack.Screen
+      name="BaselineTest"
+      component={BaselineTestScreen}
+      options={{ title: 'Baseline Test' }}
     />
   </Stack.Navigator>
 );
