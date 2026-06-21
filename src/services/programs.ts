@@ -137,6 +137,7 @@ export const enrollInProgram = async (
     missed_days: [],
     total_points_earned: 0,
     ...(goalIds && goalIds.length > 0 ? { goal_ids: goalIds } : {}),
+    ...(program.arena_id ? { arena_id: program.arena_id } : {}),
     created_at: new Date().toISOString(),
   };
 

@@ -12,7 +12,7 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { WorksheetEntry } from '../types';
+import { WorksheetEntry, ArenaId } from '../types';
 import { MicroExerciseTrigger } from '../types/worksheets';
 import { updateWillpowerStats } from './willpower';
 import { getTodayString } from '../utils/date';
@@ -94,6 +94,7 @@ export const saveWorksheetEntry = async (
   if (data.mood_before !== undefined) entryDoc.mood_before = data.mood_before;
   if (data.mood_after !== undefined) entryDoc.mood_after = data.mood_after;
   if (data.goal_ids && data.goal_ids.length > 0) entryDoc.goal_ids = data.goal_ids;
+  if (data.arena_id !== undefined) entryDoc.arena_id = data.arena_id;
 
   const docRef = await addDoc(worksheetsRef(userId), entryDoc);
 
@@ -115,6 +116,7 @@ export const updateWorksheetEntry = async (
     mood_after?: number;
     is_draft?: boolean;
     goal_ids?: string[];
+    arena_id?: ArenaId;
   }
 ): Promise<{ pointsAwarded: number }> => {
   const ref = doc(db, 'users', userId, 'worksheets', entryId);
@@ -127,6 +129,7 @@ export const updateWorksheetEntry = async (
   if (updates.responses !== undefined) updateData.responses = updates.responses;
   if (updates.mood_after !== undefined) updateData.mood_after = updates.mood_after;
   if (updates.goal_ids !== undefined) updateData.goal_ids = updates.goal_ids;
+  if (updates.arena_id !== undefined) updateData.arena_id = updates.arena_id;
 
   let pointsAwarded = 0;
   const completing = updates.is_draft === false && existing.is_draft;

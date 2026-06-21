@@ -152,3 +152,45 @@ export const saveWhyReflection = async (userId: string): Promise<void> => {
     last_reflected_at: new Date().toISOString(),
   });
 };
+
+/**
+ * Save CBT / safety-net fields to the user-level Why Profile (Phase 2).
+ * Replaces writing this data onto goals[0]. Strips empty values so we never
+ * overwrite existing data with blanks. See docs/arenas-vs-goals-decision.md
+ */
+export const saveWhyProfileCBT = async (
+  userId: string,
+  data: {
+    deeper_why?: string;
+    confidence_baseline?: number;
+    negative_story?: string;
+    past_attempt_story?: string;
+    inner_voice_challenge?: string;
+    inner_voice_response?: string;
+    good_week_description?: string;
+    minimum_action?: string;
+    bonus_actions?: string[];
+    triggers?: string[];
+    trigger_substitutes?: string[];
+    environment_changes?: string;
+    recovery_plan?: string;
+    identity_statement?: string;
+    support_person?: string;
+    cognitive_distortions?: string[];
+  }
+): Promise<void> => {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed) cleaned[key] = trimmed;
+    } else if (Array.isArray(value)) {
+      if (value.length > 0) cleaned[key] = value;
+    } else {
+      cleaned[key] = value; // numbers (e.g. confidence_baseline)
+    }
+  }
+  if (Object.keys(cleaned).length === 0) return;
+  await saveWhyProfile(userId, cleaned as Partial<Omit<WhyProfile, 'id' | 'user_id'>>);
+};

@@ -11,6 +11,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { MoodSelector } from '../../components/worksheets/MoodSelector';
 import { SectionRenderer } from '../../components/worksheets/SectionRenderer';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
+import { ArenaPicker } from '../../components/arenas/ArenaPicker';
 import { Button } from '../../components/common/Button';
 import {
   saveWorksheetEntry,
@@ -20,7 +21,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTools } from '../../context/ToolsContext';
 import { showAlert } from '../../utils/alert';
-import { WorksheetTemplate } from '../../types';
+import { WorksheetTemplate, ArenaId } from '../../types';
 import { WorksheetsScreenProps } from '../../types/navigation';
 
 type Props = WorksheetsScreenProps<'WorksheetForm'>;
@@ -39,6 +40,7 @@ export const WorksheetScreen: React.FC<Props> = ({
   const [moodBefore, setMoodBefore] = useState<number | undefined>();
   const [moodAfter, setMoodAfter] = useState<number | undefined>();
   const [goalIds, setGoalIds] = useState<string[]>([]);
+  const [arenaId, setArenaId] = useState<ArenaId | null>(null);
   const [saving, setSaving] = useState(false);
   const [tipsExpanded, setTipsExpanded] = useState(false);
 
@@ -97,6 +99,7 @@ export const WorksheetScreen: React.FC<Props> = ({
           mood_after: moodAfter,
           is_draft: asDraft,
           goal_ids: goalIds,
+          arena_id: arenaId ?? undefined,
         });
         if (!asDraft && result.pointsAwarded > 0) {
           showAlert(
@@ -114,6 +117,7 @@ export const WorksheetScreen: React.FC<Props> = ({
           mood_before: moodBefore,
           mood_after: moodAfter,
           goal_ids: goalIds.length > 0 ? goalIds : undefined,
+          arena_id: arenaId ?? undefined,
           is_draft: asDraft,
         });
         if (!asDraft && result.pointsAwarded > 0) {
@@ -203,6 +207,13 @@ export const WorksheetScreen: React.FC<Props> = ({
 
       {/* Goal Linking */}
       <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
+
+      {/* Arena (optional) */}
+      <ArenaPicker
+        selectedArenaId={arenaId}
+        onChange={setArenaId}
+        label="Arena (optional)"
+      />
 
       {/* Mood After */}
       <View style={styles.moodAfterContainer}>

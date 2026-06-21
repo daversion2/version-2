@@ -15,9 +15,10 @@ import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveHabits, createHabit, updateHabit } from '../../services/habits';
 import { cancelHabitReminder } from '../../services/habitReminders';
-import { Nudge } from '../../types';
+import { Nudge, ArenaId } from '../../types';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
+import { ArenaPicker } from '../../components/arenas/ArenaPicker';
 
 type Props = HomeScreenProps<'ManageHabits'>;
 
@@ -30,6 +31,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [timesPerWeek, setTimesPerWeek] = useState(3);
   const [goalIds, setGoalIds] = useState<string[]>([]);
+  const [arenaId, setArenaId] = useState<ArenaId | null>(null);
 
   // Edit mode state
   const [editingHabit, setEditingHabit] = useState<Nudge | null>(null);
@@ -37,6 +39,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
   const [editLoading, setEditLoading] = useState(false);
   const [editGoalIds, setEditGoalIds] = useState<string[]>([]);
+  const [editArenaId, setEditArenaId] = useState<ArenaId | null>(null);
 
   const load = async () => {
     if (!user) return;
@@ -62,6 +65,10 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
 
 
   const handleAdd = async () => {
+    if (!arenaId) {
+      showAlert('Pick an arena', 'Choose which override this habit trains.');
+      return;
+    }
     if (!newName.trim()) {
       showAlert('Required', 'Enter a habit name.');
       return;
@@ -72,11 +79,13 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
       const habitId = await createHabit(user.uid, {
         name: newName.trim(),
         target_count_per_week: timesPerWeek,
+        arena_id: arenaId ?? undefined,
         ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
       });
       setNewName('');
       setTimesPerWeek(3);
       setGoalIds([]);
+      setArenaId(null);
       setShowForm(false);
       await load();
       navigation.navigate('HabitActionPlan', {
@@ -95,6 +104,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
     setEditName(habit.name);
     setEditTimesPerWeek(habit.target_count_per_week);
     setEditGoalIds(habit.goal_ids || []);
+    setEditArenaId(habit.arena_id ?? null);
     setShowForm(false);
   };
 
@@ -104,6 +114,10 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handleSaveEdit = async () => {
+    if (!editArenaId) {
+      showAlert('Pick an arena', 'Choose which override this habit trains.');
+      return;
+    }
     if (!editName.trim()) {
       showAlert('Required', 'Habit name cannot be empty.');
       return;
@@ -115,6 +129,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
         name: editName.trim(),
         target_count_per_week: editTimesPerWeek,
         goal_ids: editGoalIds,
+        arena_id: editArenaId,
       } as Partial<Nudge>);
       cancelEdit();
       await load();
@@ -183,6 +198,11 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
               </TouchableOpacity>
             ))}
           </View>
+          <ArenaPicker
+            selectedArenaId={arenaId}
+            onChange={setArenaId}
+            required
+          />
           <GoalTagPicker
             selectedGoalIds={goalIds}
             onChange={setGoalIds}
@@ -192,7 +212,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
             <Button title="Add" onPress={handleAdd} loading={loading} style={{ flex: 1 }} />
             <Button
               title="Cancel"
-              onPress={() => { setShowForm(false); setNewName(''); }}
+              onPress={() => { setShowForm(false); setNewName(''); setArenaId(null); }}
               variant="outline"
               style={{ flex: 1 }}
             />
@@ -233,6 +253,11 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
               </TouchableOpacity>
             ))}
           </View>
+          <ArenaPicker
+            selectedArenaId={editArenaId}
+            onChange={setEditArenaId}
+            required
+          />
           <GoalTagPicker
             selectedGoalIds={editGoalIds}
             onChange={setEditGoalIds}

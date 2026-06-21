@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats } from './willpower';
 import { db } from './firebase';
-import { Challenge, ChallengeStatus, CompletionLog, ChallengeMilestone, ChallengeRepeatStats, ActionType } from '../types';
+import { Challenge, ChallengeStatus, CompletionLog, ChallengeMilestone, ChallengeRepeatStats, ActionType, ArenaId } from '../types';
 import { getTodayString } from '../utils/date';
 
 const challengesRef = (userId: string) =>
@@ -592,6 +592,7 @@ export const updateChallenge = async (
     deadline?: string | null;
     duration_days?: number;
     goal_ids?: string[];
+    arena_id?: ArenaId;
   }
 ): Promise<void> => {
   // Input validation
@@ -636,6 +637,7 @@ export const updateChallenge = async (
   if (updates.description !== undefined) updateData.description = updates.description;
   if (updates.success_criteria !== undefined) updateData.success_criteria = updates.success_criteria;
   if (updates.why !== undefined) updateData.why = updates.why;
+  if (updates.arena_id !== undefined) updateData.arena_id = updates.arena_id;
 
   // Handle deadline (can be set to null to remove)
   if (updates.deadline !== undefined) {

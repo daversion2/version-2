@@ -11,6 +11,7 @@ import {
 import { db } from './firebase';
 import { getRandomRewardMessage, getActiveRewardMessages } from './rewardMessages';
 import { getActiveGoals, computeGoalFollowThrough } from './goals';
+import { getWhyProfile } from './whyDiscovery';
 import { Goal } from '../types';
 
 export interface UserRewardMessage {
@@ -145,24 +146,29 @@ export const seedUserRewardMessagesFromGlobals = async (
 const generateIdentityMessages = async (userId: string): Promise<string[]> => {
   const messages: string[] = [];
   try {
+    const profile = await getWhyProfile(userId);
     const goals = await getActiveGoals(userId);
     for (const goal of goals) {
-      // Identity statement (Q16)
-      if (goal.identity_statement) {
+      // Identity statement (Q16) — prefer user-level WhyProfile, fall back to goal
+      const identityStatement = profile?.identity_statement ?? goal?.identity_statement;
+      if (identityStatement) {
         messages.push(
-          `You said you're becoming "${goal.identity_statement}". This is proof.`
+          `You said you're becoming "${identityStatement}". This is proof.`
         );
       }
-      // Inner voice counter-argument (Q6)
-      if (goal.inner_voice_challenge && goal.inner_voice_response) {
+      // Inner voice counter-argument (Q6) — prefer WhyProfile, fall back to goal
+      const innerVoiceChallenge = profile?.inner_voice_challenge ?? goal?.inner_voice_challenge;
+      const innerVoiceResponse = profile?.inner_voice_response ?? goal?.inner_voice_response;
+      if (innerVoiceChallenge && innerVoiceResponse) {
         messages.push(
-          `Your inner voice said "${goal.inner_voice_challenge}". You said "${goal.inner_voice_response}". You were right.`
+          `Your inner voice said "${innerVoiceChallenge}". You said "${innerVoiceResponse}". You were right.`
         );
       }
-      // Confidence baseline (Q3)
-      if (goal.confidence_baseline) {
+      // Confidence baseline (Q3) — prefer WhyProfile, fall back to goal
+      const confidenceBaseline = profile?.confidence_baseline ?? goal?.confidence_baseline;
+      if (confidenceBaseline) {
         messages.push(
-          `You started at ${goal.confidence_baseline}/10 confidence. Look at you now.`
+          `You started at ${confidenceBaseline}/10 confidence. Look at you now.`
         );
       }
       // Follow-through stats

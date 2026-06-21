@@ -29,7 +29,8 @@ import {
 } from '../../services/goals';
 import { getCompletionLogs } from '../../services/progress';
 import { getMeasurementProgress, logMeasurement } from '../../services/measurements';
-import { Goal, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment, MeasurementProgress } from '../../types';
+import { getWhyProfile } from '../../services/whyDiscovery';
+import { Goal, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment, MeasurementProgress, WhyProfile } from '../../types';
 import { MeasurementProgressSection } from '../../components/goals/MeasurementProgressSection';
 import { LogProgressModal } from '../../components/goals/LogProgressModal';
 
@@ -74,6 +75,7 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const goalId = route.params?.goalId;
 
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [whyProfile, setWhyProfile] = useState<WhyProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
@@ -91,11 +93,13 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!user || !goalId) return;
     setLoading(true);
     try {
-      const [goalData, items, ft] = await Promise.all([
+      const [goalData, items, ft, profile] = await Promise.all([
         getGoalById(user.uid, goalId),
         getItemsForGoal(user.uid, goalId),
         computeGoalFollowThrough(user.uid, goalId),
+        getWhyProfile(user.uid),
       ]);
+      setWhyProfile(profile);
       if (goalData) {
         setGoal(goalData);
         navigation.setOptions({ title: goalData.name });
@@ -266,6 +270,14 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const isActive = goal.status === 'active';
   const ftPct = followThrough ? Math.round(followThrough.followThroughRate * 100) : 0;
 
+  // CBT fields: prefer the user-level WhyProfile, fall back to the goal (legacy).
+  // why_connection stays goal-specific and is read directly from the goal below.
+  const identityStatement = whyProfile?.identity_statement ?? goal.identity_statement;
+  const deeperWhy = whyProfile?.deeper_why ?? goal.deeper_why;
+  const innerVoiceChallenge = whyProfile?.inner_voice_challenge ?? goal.inner_voice_challenge;
+  const innerVoiceResponse = whyProfile?.inner_voice_response ?? goal.inner_voice_response;
+  const confidenceBaseline = whyProfile?.confidence_baseline ?? goal.confidence_baseline;
+
   // Compute per-item breakdown
   const allChallenges = [...challenges, ...pastChallenges];
   const challengesCompleted = allChallenges.filter(c => c.status === 'completed').length;
@@ -304,10 +316,10 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       {/* Identity statement */}
-      {goal.identity_statement && (
+      {identityStatement && (
         <Card style={styles.identityCard}>
           <Text style={styles.identityQuote}>
-            {`"${goal.identity_statement}"`}
+            {`"${identityStatement}"`}
           </Text>
           <Text style={styles.identityLabel}>Who you're becoming</Text>
         </Card>
@@ -430,39 +442,39 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
         </Card>
       )}
 
-      {goal.deeper_why && (
+      {deeperWhy && (
         <Card style={styles.cbtCard}>
           <View style={styles.cbtHeader}>
             <Ionicons name="heart-outline" size={18} color={Colors.primary} />
             <Text style={styles.cbtTitle}>Your Deeper Why</Text>
           </View>
-          <Text style={styles.cbtContent}>{goal.deeper_why}</Text>
+          <Text style={styles.cbtContent}>{deeperWhy}</Text>
         </Card>
       )}
 
-      {goal.inner_voice_challenge && goal.inner_voice_response && (
+      {innerVoiceChallenge && innerVoiceResponse && (
         <Card style={styles.cbtCard}>
           <View style={styles.cbtHeader}>
             <Ionicons name="chatbubbles-outline" size={18} color={Colors.secondary} />
             <Text style={styles.cbtTitle}>Inner Voice</Text>
           </View>
           <Text style={styles.cbtChallenge}>
-            {`"${goal.inner_voice_challenge}"`}
+            {`"${innerVoiceChallenge}"`}
           </Text>
           <Text style={styles.cbtResponse}>
-            Your response: {`"${goal.inner_voice_response}"`}
+            Your response: {`"${innerVoiceResponse}"`}
           </Text>
         </Card>
       )}
 
-      {goal.confidence_baseline != null && (
+      {confidenceBaseline != null && (
         <Card style={styles.cbtCard}>
           <View style={styles.cbtHeader}>
             <Ionicons name="trending-up-outline" size={18} color={Colors.primary} />
             <Text style={styles.cbtTitle}>Confidence Baseline</Text>
           </View>
           <Text style={styles.cbtContent}>
-            You started at {goal.confidence_baseline}/10. Look at your follow-through now.
+            You started at {confidenceBaseline}/10. Look at your follow-through now.
           </Text>
         </Card>
       )}

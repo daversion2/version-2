@@ -28,9 +28,10 @@ import {
   getStreakMultiplier,
   getStreakTierInfo,
 } from '../../services/willpower';
-import { Challenge, BuddyChallenge, Goal, GoalFollowThrough } from '../../types';
+import { Challenge, BuddyChallenge, Goal, GoalFollowThrough, WhyProfile } from '../../types';
 import { onBuddyChallengeUserComplete } from '../../services/buddyChallenge';
 import { getGoalById, computeGoalFollowThrough } from '../../services/goals';
+import { getWhyProfile } from '../../services/whyDiscovery';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { ArenaChip } from '../../components/arenas/ArenaChip';
@@ -96,16 +97,19 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   // Goal context for the banner + CBT data
   const [goalContext, setGoalContext] = useState<{ name: string; ft: GoalFollowThrough } | null>(null);
   const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
+  const [whyProfile, setWhyProfile] = useState<WhyProfile | null>(null);
 
   useEffect(() => {
     if (!user || !challenge.goal_ids?.length) return;
     const goalId = challenge.goal_ids[0];
     (async () => {
       try {
-        const [goal, ft] = await Promise.all([
+        const [goal, ft, profile] = await Promise.all([
           getGoalById(user.uid, goalId),
           computeGoalFollowThrough(user.uid, goalId),
+          getWhyProfile(user.uid),
         ]);
+        setWhyProfile(profile);
         if (goal) {
           setGoalContext({ name: goal.name, ft });
           setGoalCBT(goal);
@@ -378,13 +382,16 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             : `Challenge ${totalCount}. Still here.`;
         }
 
+        // CBT fields: prefer user-level WhyProfile, fall back to the goal (legacy).
+        const identityStatement = whyProfile?.identity_statement ?? goalCBT?.identity_statement;
+        const innerVoiceChallenge = whyProfile?.inner_voice_challenge ?? goalCBT?.inner_voice_challenge;
         // 2A: Identity statement on milestone completions
-        if (repeatMilestone && goalCBT?.identity_statement) {
-          narrativeText = `You said you're becoming "${goalCBT.identity_statement}." Today is evidence.`;
+        if (repeatMilestone && identityStatement) {
+          narrativeText = `You said you're becoming "${identityStatement}." Today is evidence.`;
         }
         // 2B: Inner voice victory on hard challenges (difficulty >= 4)
-        else if (result === 'completed' && difficulty >= 4 && goalCBT?.inner_voice_challenge) {
-          narrativeText = `Your inner voice said: "${goalCBT.inner_voice_challenge}." You did it anyway.`;
+        else if (result === 'completed' && difficulty >= 4 && innerVoiceChallenge) {
+          narrativeText = `Your inner voice said: "${innerVoiceChallenge}." You did it anyway.`;
         }
       } catch (err) {
         console.warn('Failed to compute narrative line:', err);

@@ -4,6 +4,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { getChallengeArenaId } from '../utils/arenaForChallenge';
 import {
   PlannedItem,
   TomorrowPlan,
@@ -208,6 +209,7 @@ export async function convertPlannedChallengesToChallenges(
         date: todayStr,
         difficulty_expected: updated[i].difficulty_expected,
         description: updated[i].description,
+        arena_id: getChallengeArenaId({ name: updated[i].name }),
       });
       updated[i] = { ...updated[i], converted: true };
       convertedCount++;

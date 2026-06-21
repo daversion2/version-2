@@ -31,8 +31,9 @@ import {
   initializeWhyProfile,
   saveWhyIterations,
   completeWhyDiscovery,
+  saveWhyProfileCBT,
 } from '../../services/whyDiscovery';
-import { getActiveGoals, saveGoalCBTData } from '../../services/goals';
+import { getActiveGoals } from '../../services/goals';
 import { HomeScreenProps } from '../../types/navigation';
 
 
@@ -238,18 +239,16 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     setSaving(true);
     try {
-      if (activeGoalId) {
-        await saveGoalCBTData(user.uid, activeGoalId, {
-          negative_story: negativeStory.trim() || undefined,
-          inner_voice_challenge: innerVoiceChallenge.trim() || undefined,
-          inner_voice_response: innerVoiceResponse.trim() || undefined,
-          minimum_action: minimumAction.trim() || undefined,
-          recovery_plan: recoveryPlan.trim() || undefined,
-          triggers: triggers.length > 0 ? triggers : undefined,
-          trigger_substitutes: triggerSubs.length > 0 ? triggerSubs : undefined,
-          identity_statement: identityStatement.trim() || undefined,
-        });
-      }
+      await saveWhyProfileCBT(user.uid, {
+        negative_story: negativeStory.trim() || undefined,
+        inner_voice_challenge: innerVoiceChallenge.trim() || undefined,
+        inner_voice_response: innerVoiceResponse.trim() || undefined,
+        minimum_action: minimumAction.trim() || undefined,
+        recovery_plan: recoveryPlan.trim() || undefined,
+        triggers: triggers.length > 0 ? triggers : undefined,
+        trigger_substitutes: triggerSubs.length > 0 ? triggerSubs : undefined,
+        identity_statement: identityStatement.trim() || undefined,
+      });
       await completeFullOnboarding(user.uid);
       await refreshProfile();
       navigation.goBack();

@@ -699,6 +699,9 @@ export interface ProgramTemplate {
   gradual_build_description: string;
   recommended_mode: ProgramMode;
 
+  // Arena tagging (Phase 1) — the override-training domain this program trains
+  arena_id?: ArenaId;
+
   // Completion reward
   completion_badge_name: string;
   completion_bonus_points: number;
@@ -1091,6 +1094,25 @@ export interface WhyProfile {
   why_statement: string;
   contribution_part?: string;  // "To [this]..."
   impact_part?: string;        // "...so that [this]"
+
+  // CBT / safety-net fields (Phase 2: migrated up from goals[0] to user level).
+  // See docs/arenas-vs-goals-decision.md
+  deeper_why?: string;
+  confidence_baseline?: number;        // 1-10
+  negative_story?: string;
+  past_attempt_story?: string;
+  inner_voice_challenge?: string;
+  inner_voice_response?: string;
+  good_week_description?: string;
+  minimum_action?: string;
+  bonus_actions?: string[];
+  triggers?: string[];
+  trigger_substitutes?: string[];
+  environment_changes?: string;
+  recovery_plan?: string;
+  identity_statement?: string;
+  support_person?: string;
+  cognitive_distortions?: string[];
 
   // Metadata
   created_at: string;
