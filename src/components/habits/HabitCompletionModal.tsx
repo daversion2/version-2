@@ -77,7 +77,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
 
           {!!planLine && <Text style={styles.planRecap}>{planLine}</Text>}
 
-          <Text style={styles.subtitle}>How was it?</Text>
+          <Text style={styles.subtitle}>How hard was it to push through?</Text>
 
           <View style={styles.buttonRow}>
             <TouchableOpacity

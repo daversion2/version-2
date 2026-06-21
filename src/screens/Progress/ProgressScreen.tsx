@@ -21,6 +21,7 @@ import {
   WeeklyTrendPoint,
 } from '../../services/progress';
 import { getWillpowerStats } from '../../services/willpower';
+import { getArenaProgress, ArenaProgress } from '../../services/arenaProgress';
 import { getActiveGoals } from '../../services/goals';
 import { GoalsEntryRow } from '../../components/progress/GoalsEntryRow';
 import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
@@ -29,6 +30,8 @@ import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart
 import { WeekOverWeekCard } from '../../components/progress/WeekOverWeekCard';
 import { PeriodBreakdownCard } from '../../components/progress/PeriodBreakdownCard';
 import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
+import { OverrideScoreCard } from '../../components/progress/OverrideScoreCard';
+import { DisciplineMap } from '../../components/progress/DisciplineMap';
 import { ProgressNavigation } from '../../types/navigation';
 
 function getStartDateForFilter(filter: TimeFilter): string | undefined {
@@ -45,6 +48,9 @@ export const ProgressScreen: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<TimeFilter>('30d');
+
+  // Arena proof layer (Override Score + Discipline Map)
+  const [arena, setArena] = useState<ArenaProgress | null>(null);
 
   // Goals count
   const [activeGoalCount, setActiveGoalCount] = useState(0);
@@ -90,6 +96,7 @@ export const ProgressScreen: React.FC = () => {
         bestStreakResult,
         breakdown,
         allLogs,
+        arenaProgress,
       ] = await Promise.all([
         getActiveGoals(user.uid),
         getTotalActions(user.uid, startDate),
@@ -100,6 +107,7 @@ export const ProgressScreen: React.FC = () => {
         getBestStreak(user.uid),
         getPeriodBreakdown(user.uid, startDate),
         getCompletionLogs(user.uid, startDate),
+        getArenaProgress(user.uid),
       ]);
 
       setActiveGoalCount(goals.length);
@@ -114,6 +122,7 @@ export const ProgressScreen: React.FC = () => {
       setBestStreak(bestStreakResult);
       setHabitsCompleted(breakdown.habits);
       setChallengesCompleted(breakdown.challenges);
+      setArena(arenaProgress);
 
       // Calendar marks
       const marks: Record<string, any> = {};
@@ -153,6 +162,9 @@ export const ProgressScreen: React.FC = () => {
             onPress={() => navigation.navigate('GoalsProgress')}
           />
 
+          {/* Override Score (weekly, independent of the time filter) */}
+          <OverrideScoreCard score={arena?.weekScore ?? 0} />
+
           {/* Time Filter */}
           <TimeFilterChips selected={filter} onSelect={setFilter} />
 
@@ -163,6 +175,9 @@ export const ProgressScreen: React.FC = () => {
             totalXP={totalXP}
             daysActive={daysActive}
           />
+
+          {/* Discipline Map */}
+          <DisciplineMap breakdown={arena?.breakdown ?? []} />
 
           {/* Activity Trend */}
           <ActivityTrendChart data={trendData} />

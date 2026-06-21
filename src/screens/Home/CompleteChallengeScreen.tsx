@@ -527,7 +527,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
       {/* Difficulty */}
       <DifficultySelector
-        label="Actual Difficulty"
+        label="How hard was the override?"
         value={difficulty}
         onChange={setDifficulty}
       />
