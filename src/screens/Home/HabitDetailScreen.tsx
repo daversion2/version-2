@@ -17,6 +17,8 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
+import { ArenaChip } from '../../components/arenas/ArenaChip';
+import { getHabitArenaId } from '../../utils/arenaForHabit';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/habits';
@@ -211,6 +213,11 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.editHabitText}>Edit</Text>
           </TouchableOpacity>
         )}
+      </View>
+
+      {/* Arena */}
+      <View style={styles.arenaRow}>
+        <ArenaChip arenaId={getHabitArenaId(habit ?? {})} size="md" />
       </View>
 
       {/* Inline edit form: name / times-per-week / goals */}
@@ -466,6 +473,10 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xxl,
     color: Colors.dark,
     flex: 1,
+  },
+  arenaRow: {
+    flexDirection: 'row',
+    marginBottom: Spacing.lg,
   },
   editHabitBtn: {
     flexDirection: 'row',

@@ -13,6 +13,7 @@ import {
   ACTION_TYPES,
   ACTION_CATEGORIES,
 } from '../../constants/challengeLibrary';
+import { ArenaChip } from '../arenas/ArenaChip';
 
 interface LibraryChallengeCardProps {
   challenge: LibraryChallenge;
@@ -90,6 +91,8 @@ export const LibraryChallengeCard: React.FC<LibraryChallengeCardProps> = ({
 
         {/* Metadata row */}
         <View style={styles.metadataRow}>
+          <ArenaChip arenaId={challenge.arena_id} />
+
           {showActionType && actionType && actionCategory && (
             <View style={[styles.actionBadge, { backgroundColor: actionCategory.color }]}>
               <Text style={[styles.actionBadgeText, { color: actionCategory.accentColor }]}>

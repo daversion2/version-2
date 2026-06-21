@@ -114,6 +114,7 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
         barrier_type: challenge.barrier_type,
         action_type: challenge.action_type,
         time_category: challenge.time_category,
+        arena_id: challenge.arena_id,
         // Educational content
         neuroscience_explanation: challenge.neuroscience_explanation,
         psychological_benefit: challenge.psychological_benefit,
@@ -268,6 +269,7 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
               barrier_type: challenge.barrier_type,
               action_type: challenge.action_type,
               time_category: challenge.time_category,
+              arena_id: challenge.arena_id,
               neuroscience_explanation: challenge.neuroscience_explanation,
               psychological_benefit: challenge.psychological_benefit,
               what_youll_learn: challenge.what_youll_learn,

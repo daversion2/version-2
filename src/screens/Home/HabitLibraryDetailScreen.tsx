@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ArenaChip } from '../../components/arenas/ArenaChip';
 import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -127,6 +128,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
       const newHabitId = await createHabit(user.uid, {
         name: finalName,
         target_count_per_week: target,
+        arena_id: habit.arena_id,
         ...(selectedGoalIds.length > 0 ? { goal_ids: selectedGoalIds } : {}),
         action_plan: cleanedPlan,
         created_by_user: false,
@@ -164,13 +166,16 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        {category && (
-          <View style={[styles.categoryChip, { backgroundColor: color + '1A' }]}>
-            <Ionicons name={category.icon as any} size={13} color={color} />
-            <Text style={[styles.categoryText, { color }]}>{category.name}</Text>
-          </View>
-        )}
+        {/* Header chips: category + arena */}
+        <View style={styles.chipRow}>
+          {category && (
+            <View style={[styles.categoryChip, { backgroundColor: color + '1A', marginBottom: 0 }]}>
+              <Ionicons name={category.icon as any} size={13} color={color} />
+              <Text style={[styles.categoryText, { color }]}>{category.name}</Text>
+            </View>
+          )}
+          <ArenaChip arenaId={habit.arena_id} size="md" />
+        </View>
 
         {editing ? (
           <>
@@ -380,6 +385,13 @@ const styles = StyleSheet.create({
   categoryText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   habitName: {
     fontFamily: Fonts.primaryBold,

@@ -10,7 +10,7 @@ import {
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan } from '../types';
+import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId } from '../types';
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -57,6 +57,7 @@ export const createHabit = async (
     category_id?: string;
     target_count_per_week: number;
     goal_ids?: string[];
+    arena_id?: ArenaId;
     action_plan?: HabitActionPlan;
     created_by_user?: boolean;
     supports_pairing?: boolean;

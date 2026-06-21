@@ -4,6 +4,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { ArenaChip } from '../../components/arenas/ArenaChip';
+import { getChallengeArenaId } from '../../utils/arenaForChallenge';
 import { useAuth } from '../../context/AuthContext';
 import { getChallengeById, deleteChallenge, getChallengeRepeatStats } from '../../services/challenges';
 import { canSubmitChallenge } from '../../services/submissions';
@@ -102,6 +104,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
             {challenge.status.charAt(0).toUpperCase() + challenge.status.slice(1)}
           </Text>
         </View>
+        <ArenaChip arenaId={getChallengeArenaId(challenge)} size="md" />
       </View>
 
       {/* Repeat Stats */}

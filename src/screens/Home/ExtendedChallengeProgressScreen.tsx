@@ -8,6 +8,8 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { ProgressBar } from '../../components/challenge/ProgressBar';
 import { DailyCheckInList } from '../../components/challenge/DailyCheckInList';
+import { ArenaChip } from '../../components/arenas/ArenaChip';
+import { getChallengeArenaId } from '../../utils/arenaForChallenge';
 import { CheckInModal } from '../../components/challenge/CheckInModal';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -175,6 +177,9 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
           >
             <Ionicons name="pencil" size={18} color={Colors.gray} />
           </TouchableOpacity>
+        </View>
+        <View style={{ flexDirection: 'row', marginTop: Spacing.xs }}>
+          <ArenaChip arenaId={getChallengeArenaId(challenge)} size="md" />
         </View>
         <Text style={styles.dayInfo}>
           Day {Math.min(currentDay, totalMilestones)} of {totalMilestones}

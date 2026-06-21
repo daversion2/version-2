@@ -30,6 +30,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'no-snooze',
     name: 'Get up at the first alarm',
     category_id: 'Body',
+    arena_id: 'impulse_control',
     description: 'When the alarm goes, feet on the floor — no negotiation. The same action, every morning: win the first decision of the day.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -45,6 +46,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'move-20min',
     name: '20 minutes of movement',
     category_id: 'Body',
+    arena_id: 'physical_discomfort',
     description: 'Twenty minutes of intentional movement — walk, workout, run, or yoga. The form is flexible; showing up isn\'t.',
     suggested_target_per_week: 4,
     action_plan: {
@@ -61,6 +63,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'morning-daylight',
     name: 'Get outside in the morning',
     category_id: 'Body',
+    off_thesis: true,
     description: 'Ten minutes of daylight early in the day — real circadian benefit, not vibes. Light and air before the day starts.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -77,6 +80,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'consistent-bedtime',
     name: 'Protect my bedtime',
     category_id: 'Body',
+    arena_id: 'impulse_control',
     description: 'A consistent bedtime to protect sleep and recovery — the foundation everything else runs on.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -92,6 +96,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'wind-down',
     name: 'Screen-free wind-down',
     category_id: 'Body',
+    arena_id: 'deliberate_boredom',
     description: 'A 30-minute screen-free wind-down before bed — read, stretch, or sit quietly. An off-ramp instead of a feed.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -107,6 +112,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'cook-real-meal',
     name: 'Cook one real meal',
     category_id: 'Body',
+    off_thesis: true,
     description: 'Prepare at least one nutritious meal from scratch — an act of looking after yourself that pays off in energy.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -123,6 +129,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'water-only',
     name: 'Water only today',
     category_id: 'Body',
+    arena_id: 'impulse_control',
     description: 'Water is the only thing you drink today — no soda, juice, energy drinks, or alcohol. A daily discipline that cuts empty calories and the small crutches you reach for without thinking.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -140,6 +147,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'phone-free-first-hour',
     name: 'No phone for the first 30 minutes',
     category_id: 'Focus',
+    arena_id: 'deliberate_boredom',
     description: 'Start the day on your own agenda, not your notifications. Phone stays away for the first 30 minutes awake.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -155,6 +163,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'inbox-after-focus',
     name: 'First focus block before email',
     category_id: 'Focus',
+    arena_id: 'cognitive_resistance',
     description: 'A fixed rule: no email, Slack, or group chat until your first focus block is done. Win the morning before the world makes its demands.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -170,6 +179,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'deep-focus-session',
     name: 'One deep focus block',
     category_id: 'Focus',
+    arena_id: 'cognitive_resistance',
     description: 'One Pomodoro-style block of uninterrupted, single-task work — phone away, one tab, timer running.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -185,6 +195,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'plan-tomorrow',
     name: "Set tomorrow's top priority",
     category_id: 'Focus',
+    off_thesis: true,
     description: 'Before you stop for the day, write down tomorrow\'s single most important thing. Same action, same time — reduces decision fatigue and starts the next day with clarity.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -202,6 +213,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'morning-meditation',
     name: '5-minute meditation',
     category_id: 'Mind',
+    arena_id: 'mental_stillness',
     description: 'Five minutes to build calm focus before the day\'s noise — a trained skill, not a mood.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -217,6 +229,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'breathing-break',
     name: 'A real midday pause',
     category_id: 'Mind',
+    arena_id: 'breathwork',
     description: 'A few minutes of slow, deep breathing to reset the nervous system mid-day — a circuit-breaker for stress.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -232,6 +245,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'protect-attention',
     name: 'No social media before noon',
     category_id: 'Mind',
+    arena_id: 'deliberate_boredom',
     description: 'A bright line: no news or social feeds before midday. Start the day on your own agenda, not the feed — and keep the biggest attention sink out of your most valuable hours.',
     suggested_target_per_week: 7,
     action_plan: {
@@ -247,6 +261,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'note-one-good-thing',
     name: 'Name one good thing',
     category_id: 'Mind',
+    off_thesis: true,
     description: 'Not a forced gratitude list — write down one specific good thing from the day, to retrain a mind that defaults to what\'s wrong.',
     suggested_target_per_week: 7,
     action_plan: {
@@ -264,6 +279,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'check-the-numbers',
     name: 'Look at my accounts',
     category_id: 'Money',
+    off_thesis: true,
     description: 'A 2-minute look at your balances — no judgment, just no longer looking away. Avoidance is what makes money scary.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -279,6 +295,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'log-the-spend',
     name: "Track today's spending",
     category_id: 'Money',
+    off_thesis: true,
     description: 'Note what you spent today. Awareness alone changes behavior — you can\'t manage what you refuse to see.',
     suggested_target_per_week: 7,
     action_plan: {
@@ -294,6 +311,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'pay-myself-first',
     name: 'Move money toward a goal',
     category_id: 'Money',
+    off_thesis: true,
     description: 'Once a week, move something — anything — toward savings or a goal before it gets spent. The amount grows; the habit is what matters.',
     suggested_target_per_week: 1,
     action_plan: {
@@ -311,6 +329,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'reach-out',
     name: 'Send one genuine message',
     category_id: 'Connection',
+    arena_id: 'social_discomfort',
     description: 'Send one genuine message to someone you care about — not logistics, just connection. Relationships compound like anything else.',
     suggested_target_per_week: 4,
     action_plan: {
@@ -326,6 +345,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'make-the-call',
     name: 'Call instead of text',
     category_id: 'Connection',
+    arena_id: 'social_discomfort',
     description: 'Once a week, actually call someone instead of texting. Voice beats thumbs for the relationships that matter.',
     suggested_target_per_week: 1,
     action_plan: {
@@ -341,6 +361,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     id: 'phone-free-dinner',
     name: 'Phone-free meal with someone',
     category_id: 'Connection',
+    arena_id: 'social_discomfort',
     description: 'One meal with another person and no phones on the table. Presence is the whole point.',
     suggested_target_per_week: 4,
     action_plan: {

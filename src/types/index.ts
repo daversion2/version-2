@@ -155,6 +155,9 @@ export interface Challenge {
 
   // Goal tagging
   goal_ids?: string[];
+
+  // Arena tagging (Phase 1) — the override-training domain. See docs/arenas-vs-goals-decision.md
+  arena_id?: ArenaId;
 }
 
 // --- Buddy Challenges ---
@@ -242,6 +245,12 @@ export interface LibraryHabit {
   id: string;
   name: string;
   category_id?: string;
+
+  // Arena — the override-training domain this habit trains (Phase 0).
+  // Optional during the goals→arenas transition. See docs/phase-0-arena-taxonomy.md
+  arena_id?: ArenaId;
+  off_thesis?: boolean;            // true = off the override thesis (prune / soft-hide candidate)
+
   description: string;
   suggested_target_per_week: number;
   action_plan: HabitActionPlan;
@@ -257,6 +266,7 @@ export interface Nudge {
   created_by_user: boolean;
   target_count_per_week: number; // 1–7
   goal_ids?: string[];
+  arena_id?: ArenaId; // Arena tagging (Phase 1)
   action_plan?: HabitActionPlan;
   reminder?: HabitReminder;
   supports_pairing?: boolean; // habit is suited to temptation bundling (body busy, mind free)
@@ -303,6 +313,20 @@ export type TimeCategory = 'quick-win' | 'ritual' | 'deep-work' | 'all-day';
 // Action types - whether you do something or resist something
 export type ActionType = 'resist' | 'complete';
 
+// Arenas — the override-training domains ("Training Your Override" direction).
+// Six train overriding a "stop/avoid" signal; impulse_control trains overriding a
+// "go/grab" (craving) signal — same mechanism, opposite direction.
+// Source of truth for arena metadata: src/constants/arenas.ts
+// See docs/phase-0-arena-taxonomy.md
+export type ArenaId =
+  | 'mental_stillness'
+  | 'physical_discomfort'
+  | 'deliberate_boredom'
+  | 'breathwork'
+  | 'social_discomfort'
+  | 'cognitive_resistance'
+  | 'impulse_control';
+
 // Challenge variation - easier/harder alternatives
 export interface ChallengeVariation {
   label: string; // e.g., "Easier", "Harder", "Advanced"
@@ -314,6 +338,12 @@ export interface LibraryChallenge {
   id: string;
   name: string;
   category: string; // Life domain: Physical, Social, Mind
+
+  // Arena — the override-training domain this challenge belongs to (Phase 0).
+  // Optional during the goals→arenas transition. See docs/phase-0-arena-taxonomy.md
+  arena_id?: ArenaId;
+  off_thesis?: boolean; // true = off the override thesis (prune / soft-hide candidate)
+
   difficulty: number; // 1-5 suggested difficulty
   description?: string;
   success_criteria?: string;
@@ -732,6 +762,9 @@ export interface ProgramEnrollment {
 
   // Goal tagging
   goal_ids?: string[];
+
+  // Arena tagging (Phase 1)
+  arena_id?: ArenaId;
 
   // Metadata
   created_at: string;

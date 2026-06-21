@@ -8,6 +8,7 @@ import {
   SAMPLE_CHALLENGES,
   getTimeCategoryFromMinutes,
 } from '../constants/challengeLibrary';
+import { getChallengeArenaId } from '../utils/arenaForChallenge';
 
 /**
  * Public challenge library - curated example challenges users can try.
@@ -48,6 +49,11 @@ const normalizeChallenge = (challenge: LibraryChallenge): LibraryChallenge => {
   // Compute beginner_friendly if not explicitly set
   if (challenge.beginner_friendly === undefined) {
     challenge.beginner_friendly = challenge.difficulty <= 2;
+  }
+
+  // Backfill arena from the tagged seed data (Firestore docs predate arena tagging)
+  if (!challenge.arena_id && !challenge.off_thesis) {
+    challenge.arena_id = getChallengeArenaId(challenge);
   }
 
   return challenge;

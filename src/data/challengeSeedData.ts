@@ -1,8 +1,10 @@
-import { ChallengeVariation } from '../types';
+import { ArenaId, ChallengeVariation } from '../types';
 
 export interface SeedChallenge {
   name: string;
   category: string;
+  arena_id?: ArenaId;
+  off_thesis?: boolean;
   barrier_type: string;
   difficulty: number;
   time_required_minutes: number;
@@ -34,6 +36,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Cold Water Face Splash',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 1,
     time_required_minutes: 5,
@@ -65,6 +68,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Make Your Bed Immediately After Waking',
     category: 'Physical',
+    off_thesis: true,
     barrier_type: 'energy-drainer',
     difficulty: 1,
     time_required_minutes: 5,
@@ -95,6 +99,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Take the Stairs All Day',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'discipline',
     difficulty: 2,
     time_required_minutes: 1440,
@@ -127,6 +132,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Do X Burpees First Thing in the Morning',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'discipline',
     difficulty: 2,
     time_required_minutes: 10,
@@ -159,6 +165,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Eat Something Healthy You Genuinely Dislike',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 2,
     time_required_minutes: 15,
@@ -190,6 +197,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Stretch for X Minutes Without Your Phone',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'discipline',
     difficulty: 2,
     time_required_minutes: 15,
@@ -227,6 +235,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Wake Up Without Hitting Snooze',
     category: 'Physical',
+    arena_id: 'impulse_control',
     barrier_type: 'discipline',
     difficulty: 2,
     time_required_minutes: 5,
@@ -258,6 +267,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Eating After 7 PM',
     category: 'Physical',
+    arena_id: 'impulse_control',
     barrier_type: 'delayed-gratification',
     difficulty: 2,
     time_required_minutes: 300,
@@ -294,6 +304,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Cold Shower for X Minutes',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 10,
@@ -326,6 +337,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Ice Bath / Cold Plunge for X Minutes',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 5,
     time_required_minutes: 30,
@@ -358,6 +370,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Eat Only One Meal Today (OMAD)',
     category: 'Physical',
+    arena_id: 'impulse_control',
     barrier_type: 'delayed-gratification',
     difficulty: 5,
     time_required_minutes: 1440,
@@ -389,6 +402,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Fast for X Hours',
     category: 'Physical',
+    arena_id: 'impulse_control',
     barrier_type: 'delayed-gratification',
     difficulty: 4,
     time_required_minutes: 1440,
@@ -421,6 +435,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Sleep on the Floor',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 4,
     time_required_minutes: 480,
@@ -452,6 +467,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Attend Spin Class — Then Run for X Min',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 5,
     time_required_minutes: 90,
@@ -484,6 +500,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Go an Entire Day Without Sitting',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'discipline',
     difficulty: 4,
     time_required_minutes: 1440,
@@ -517,6 +534,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Carry a Loaded Rucksack for X Miles',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'discipline',
     difficulty: 3,
     time_required_minutes: 60,
@@ -549,6 +567,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Hold a Wall Sit for As Long As You Can',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 10,
@@ -586,6 +605,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Caffeine for the Entire Day',
     category: 'Physical',
+    arena_id: 'impulse_control',
     barrier_type: 'delayed-gratification',
     difficulty: 3,
     time_required_minutes: 1440,
@@ -617,6 +637,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Added Sugar for the Entire Day',
     category: 'Physical',
+    arena_id: 'impulse_control',
     barrier_type: 'delayed-gratification',
     difficulty: 3,
     time_required_minutes: 1440,
@@ -648,6 +669,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Hot Water for the Entire Day',
     category: 'Physical',
+    arena_id: 'physical_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 4,
     time_required_minutes: 1440,
@@ -679,6 +701,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Cooked Food for the Entire Day',
     category: 'Physical',
+    arena_id: 'impulse_control',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 1440,
@@ -715,6 +738,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Call Someone Instead of Texting',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 2,
     time_required_minutes: 10,
@@ -746,6 +770,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: "Introduce Yourself to a Neighbor You've Never Spoken To",
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 2,
     time_required_minutes: 10,
@@ -782,6 +807,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Phone During Any Social Interaction',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'delayed-gratification',
     difficulty: 2,
     time_required_minutes: 1440,
@@ -818,6 +844,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Start a Conversation with X Strangers',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 1440,
@@ -850,6 +877,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Ask Someone for Brutally Honest Feedback About You',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'ego',
     difficulty: 4,
     time_required_minutes: 30,
@@ -881,6 +909,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: "Apologize to Someone You've Wronged",
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'ego',
     difficulty: 4,
     time_required_minutes: 20,
@@ -912,6 +941,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Disagree with Someone Out Loud in a Group Setting',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 5,
@@ -943,6 +973,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Record and Post a Video of Yourself',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'ego',
     difficulty: 4,
     time_required_minutes: 30,
@@ -974,6 +1005,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Eat Alone at a Restaurant — No Phone',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'ego',
     difficulty: 4,
     time_required_minutes: 60,
@@ -1005,6 +1037,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Make a Request You Fully Expect to Be Denied',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'ego',
     difficulty: 4,
     time_required_minutes: 10,
@@ -1036,6 +1069,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Sing or Perform in Front of People',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'ego',
     difficulty: 5,
     time_required_minutes: 60,
@@ -1072,6 +1106,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Complaining for 24 Hours',
     category: 'Social',
+    arena_id: 'impulse_control',
     barrier_type: 'discipline',
     difficulty: 4,
     time_required_minutes: 1440,
@@ -1103,6 +1138,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Gossip for the Entire Day',
     category: 'Social',
+    arena_id: 'impulse_control',
     barrier_type: 'discipline',
     difficulty: 3,
     time_required_minutes: 1440,
@@ -1134,6 +1170,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Say No to Every Non-Essential Request Today',
     category: 'Social',
+    arena_id: 'social_discomfort',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 1440,
@@ -1170,6 +1207,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Sit in Complete Silence for X Minutes',
     category: 'Mind',
+    arena_id: 'mental_stillness',
     barrier_type: 'discipline',
     difficulty: 1,
     time_required_minutes: 5,
@@ -1202,6 +1240,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Write Down Every Excuse You Make Today',
     category: 'Mind',
+    arena_id: 'cognitive_resistance',
     barrier_type: 'discipline',
     difficulty: 2,
     time_required_minutes: 1440,
@@ -1233,6 +1272,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Read for X Minutes Without Stopping',
     category: 'Mind',
+    arena_id: 'cognitive_resistance',
     barrier_type: 'discipline',
     difficulty: 2,
     time_required_minutes: 30,
@@ -1265,6 +1305,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Organize the Most Chaotic Space in Your Life',
     category: 'Mind',
+    off_thesis: true,
     barrier_type: 'energy-drainer',
     difficulty: 2,
     time_required_minutes: 60,
@@ -1297,6 +1338,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Write in a Journal for X Minutes',
     category: 'Mind',
+    arena_id: 'mental_stillness',
     barrier_type: 'discipline',
     difficulty: 2,
     time_required_minutes: 15,
@@ -1329,6 +1371,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Write a Letter to Your Future Self',
     category: 'Mind',
+    arena_id: 'mental_stillness',
     barrier_type: 'energy-drainer',
     difficulty: 2,
     time_required_minutes: 30,
@@ -1365,6 +1408,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Social Media for the First X Hours',
     category: 'Mind',
+    arena_id: 'deliberate_boredom',
     barrier_type: 'delayed-gratification',
     difficulty: 2,
     time_required_minutes: 720,
@@ -1397,6 +1441,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Phone for the First X Hours of the Day',
     category: 'Mind',
+    arena_id: 'deliberate_boredom',
     barrier_type: 'delayed-gratification',
     difficulty: 2,
     time_required_minutes: 60,
@@ -1434,6 +1479,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Deep Work Block for X Minutes — Zero Distractions',
     category: 'Mind',
+    arena_id: 'cognitive_resistance',
     barrier_type: 'discipline',
     difficulty: 3,
     time_required_minutes: 90,
@@ -1467,6 +1513,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Do the Hardest Task on Your List First',
     category: 'Mind',
+    arena_id: 'cognitive_resistance',
     barrier_type: 'discipline',
     difficulty: 3,
     time_required_minutes: 60,
@@ -1498,6 +1545,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: "Tackle the Task You've Been Procrastinating on for Weeks",
     category: 'Mind',
+    arena_id: 'cognitive_resistance',
     barrier_type: 'energy-drainer',
     difficulty: 3,
     time_required_minutes: 120,
@@ -1529,6 +1577,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Sit with an Uncomfortable Emotion for X Minutes',
     category: 'Mind',
+    arena_id: 'mental_stillness',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 15,
@@ -1561,6 +1610,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Journal About Your Biggest Fear in Brutal Detail',
     category: 'Mind',
+    arena_id: 'mental_stillness',
     barrier_type: 'comfort-zone',
     difficulty: 3,
     time_required_minutes: 30,
@@ -1592,6 +1642,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: "Spend X Hours Learning Something You're Terrible At",
     category: 'Mind',
+    arena_id: 'cognitive_resistance',
     barrier_type: 'ego',
     difficulty: 3,
     time_required_minutes: 60,
@@ -1624,6 +1675,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Do Absolutely Nothing for One Hour',
     category: 'Mind',
+    arena_id: 'deliberate_boredom',
     barrier_type: 'discipline',
     difficulty: 4,
     time_required_minutes: 60,
@@ -1655,6 +1707,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Go the Entire Day with Zero Background Noise',
     category: 'Mind',
+    arena_id: 'deliberate_boredom',
     barrier_type: 'discipline',
     difficulty: 4,
     time_required_minutes: 1440,
@@ -1687,6 +1740,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Go an Entire Day Without Speaking',
     category: 'Mind',
+    arena_id: 'mental_stillness',
     barrier_type: 'comfort-zone',
     difficulty: 5,
     time_required_minutes: 1440,
@@ -1718,6 +1772,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Meditate for X Minutes Without Moving',
     category: 'Mind',
+    arena_id: 'mental_stillness',
     barrier_type: 'discipline',
     difficulty: 3,
     time_required_minutes: 20,
@@ -1750,6 +1805,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'Go 24 Hours Without Checking the Time',
     category: 'Mind',
+    arena_id: 'deliberate_boredom',
     barrier_type: 'comfort-zone',
     difficulty: 4,
     time_required_minutes: 1440,
@@ -1786,6 +1842,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Social Media for the Entire Day',
     category: 'Mind',
+    arena_id: 'deliberate_boredom',
     barrier_type: 'delayed-gratification',
     difficulty: 3,
     time_required_minutes: 1440,
@@ -1817,6 +1874,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Phone for X Hours',
     category: 'Mind',
+    arena_id: 'deliberate_boredom',
     barrier_type: 'delayed-gratification',
     difficulty: 3,
     time_required_minutes: 180,
@@ -1849,6 +1907,7 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
   {
     name: 'No Lying — Including White Lies — for 24 Hours',
     category: 'Mind',
+    arena_id: 'impulse_control',
     barrier_type: 'comfort-zone',
     difficulty: 4,
     time_required_minutes: 1440,

@@ -33,6 +33,8 @@ import { onBuddyChallengeUserComplete } from '../../services/buddyChallenge';
 import { getGoalById, computeGoalFollowThrough } from '../../services/goals';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
+import { ArenaChip } from '../../components/arenas/ArenaChip';
+import { getChallengeArenaId } from '../../utils/arenaForChallenge';
 import { getUserTeam, logTeamActivity } from '../../services/teams';
 import { createFeedEntry, createMilestoneFeedEntry, updateFeedEntryMessage } from '../../services/inspirationFeed';
 import { getUser } from '../../services/users';
@@ -458,6 +460,9 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       >
       <Card style={styles.challengeCard}>
         <Text style={styles.challengeName}>{challenge.name}</Text>
+        <View style={{ flexDirection: 'row', marginTop: Spacing.xs, marginBottom: Spacing.xs }}>
+          <ArenaChip arenaId={getChallengeArenaId(challenge)} size="md" />
+        </View>
         <Text style={styles.meta}>
           Expected difficulty: {challenge.difficulty_expected}
         </Text>

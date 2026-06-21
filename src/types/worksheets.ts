@@ -2,6 +2,8 @@
 // CBT WORKSHEETS
 // ============================================================================
 
+import { ArenaId } from './index';
+
 // Categories are admin-managed data (see toolsConfig.ts). The original three
 // values — 'thoughts' | 'beliefs' | 'behavior' — remain valid ids.
 export type WorksheetCategory = string;
@@ -65,6 +67,7 @@ export interface WorksheetEntry {
   mood_after?: number;          // 1-10
   points_awarded?: number;
   goal_ids?: string[];
+  arena_id?: ArenaId; // Arena tagging (Phase 1)
   is_draft: boolean;
   created_at: string;
   completed_at?: string;

@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { createChallenge } from '../../services/challenges';
 import { getUserTeam } from '../../services/teams';
-import { ChallengeType } from '../../types';
+import { ChallengeType, ArenaId } from '../../types';
 import { TouchableOpacity } from 'react-native';
 import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
@@ -24,6 +24,7 @@ import { ChallengeTypeSelector } from '../../components/challenge/ChallengeTypeS
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
+import { ArenaPicker } from '../../components/arenas/ArenaPicker';
 import { SHOW_COMMUNITY } from '../../constants/featureFlags';
 import { getTodayString } from '../../utils/date';
 
@@ -44,12 +45,17 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
   const [challengeType, setChallengeType] = useState<ChallengeType>('daily');
   const [durationDays, setDurationDays] = useState(7);
   const [goalIds, setGoalIds] = useState<string[]>([]);
+  const [arenaId, setArenaId] = useState<ArenaId | null>(null);
 
 
 
   const handleCreate = async () => {
     if (!name.trim()) {
       showAlert('Required', 'Please enter a challenge name.');
+      return;
+    }
+    if (!arenaId) {
+      showAlert('Pick an arena', 'Choose which override this challenge trains.');
       return;
     }
     if (!user) return;
@@ -60,6 +66,7 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
         date: forDate || getTodayString(),
         difficulty_expected: difficulty,
         challenge_type: challengeType,
+        arena_id: arenaId ?? undefined,
         ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),
         ...(description.trim() ? { description: description.trim() } : {}),
         ...(successCriteria.trim() ? { success_criteria: successCriteria.trim() } : {}),
@@ -155,6 +162,12 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
             onTimeChange={setDeadlineTime}
           />
         )}
+
+        <ArenaPicker
+          selectedArenaId={arenaId}
+          onChange={setArenaId}
+          required
+        />
 
         <GoalTagPicker
           selectedGoalIds={goalIds}
