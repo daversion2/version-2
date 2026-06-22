@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
+import { PracticesScreen } from '../screens/Practices/PracticesScreen';
 import { ProgressStack } from './ProgressStack';
 import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
@@ -22,6 +23,8 @@ export const MainTabs: React.FC = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
           if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
+          else if (route.name === 'Practices')
+            iconName = focused ? 'flame' : 'flame-outline';
           else if (route.name === 'Progress')
             iconName = focused ? 'trending-up' : 'trending-up-outline';
           else if (route.name === 'Tools')
@@ -46,6 +49,11 @@ export const MainTabs: React.FC = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeStack} />
+      <Tab.Screen
+        name="Practices"
+        component={PracticesScreen}
+        options={{ headerShown: true, title: 'Practices' }}
+      />
       <Tab.Screen name="Progress" component={ProgressStack} />
       <Tab.Screen name="Tools" component={WorksheetsStack} />
       <Tab.Screen

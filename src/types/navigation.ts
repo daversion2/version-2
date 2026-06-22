@@ -40,6 +40,7 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
+  Practices: undefined;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
   Tools: NavigatorScreenParams<WorksheetsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
