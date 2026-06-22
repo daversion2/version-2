@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PRACTICE_GROUPS, getPracticesByGroup, Practice } from '../../data/practices';
+import { PracticesNavigation } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import {
   getActiveHabits,
@@ -20,15 +21,16 @@ const PracticeCard: React.FC<{
   habit?: Nudge;
   weekDone: number;
   busy: boolean;
+  onOpen: () => void;
   onAdopt: () => void;
   onCheckoff: () => void;
-}> = ({ practice, color, habit, weekDone, busy, onAdopt, onCheckoff }) => {
+}> = ({ practice, color, habit, weekDone, busy, onOpen, onAdopt, onCheckoff }) => {
   const adopted = !!habit;
   const target = habit?.target_count_per_week ?? practice.suggested_target_per_week;
   const complete = adopted && weekDone >= target;
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onOpen} activeOpacity={0.7}>
       <View style={styles.cardHeader}>
         <View style={[styles.iconWrap, { backgroundColor: color + '1A' }]}>
           <Ionicons name={practice.icon as any} size={20} color={color} />
@@ -67,16 +69,20 @@ const PracticeCard: React.FC<{
         )}
       </View>
       <Text style={styles.cardDesc}>{practice.description}</Text>
-      <Text style={styles.cardWhy}>{practice.whyItWorks}</Text>
+      <View style={styles.learnRow}>
+        <Text style={[styles.learnLink, { color }]}>Learn how & why</Text>
+        <Ionicons name="chevron-forward" size={14} color={color} />
+      </View>
       {!practice.core && practice.optional_reason && (
         <Text style={styles.optionalReason}>{practice.optional_reason}</Text>
       )}
-    </View>
+    </TouchableOpacity>
   );
 };
 
 export const PracticesScreen: React.FC = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<PracticesNavigation>();
   const [habits, setHabits] = useState<Nudge[]>([]);
   const [weekly, setWeekly] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -105,7 +111,6 @@ export const PracticesScreen: React.FC = () => {
     }, [load])
   );
 
-  // Resolve the user's adopted habit for a practice: by practice_id, else by exact name.
   const habitForPractice = (practice: Practice): Nudge | undefined =>
     habits.find((h) => h.practice_id === practice.id) ||
     habits.find((h) => h.name.trim().toLowerCase() === practice.name.toLowerCase());
@@ -172,6 +177,7 @@ export const PracticesScreen: React.FC = () => {
                   habit={habit}
                   weekDone={habit ? weekly[habit.id] ?? 0 : 0}
                   busy={busyId === practice.id}
+                  onOpen={() => navigation.navigate('PracticeDetail', { practiceId: practice.id })}
                   onAdopt={() => handleAdopt(practice)}
                   onCheckoff={() => habit && setCompleting(habit)}
                 />
@@ -241,21 +247,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addBtnText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
-  checkBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  checkBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   cardDesc: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: Spacing.sm },
-  cardWhy: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    marginTop: Spacing.xs,
-    fontStyle: 'italic',
-  },
+  learnRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: Spacing.sm },
+  learnLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
   optionalReason: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,

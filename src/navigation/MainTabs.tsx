@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
-import { PracticesScreen } from '../screens/Practices/PracticesScreen';
+import { PracticesStack } from './PracticesStack';
 import { ProgressStack } from './ProgressStack';
 import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
@@ -49,11 +49,7 @@ export const MainTabs: React.FC = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen
-        name="Practices"
-        component={PracticesScreen}
-        options={{ headerShown: true, title: 'Practices' }}
-      />
+      <Tab.Screen name="Practices" component={PracticesStack} />
       <Tab.Screen name="Progress" component={ProgressStack} />
       <Tab.Screen name="Tools" component={WorksheetsStack} />
       <Tab.Screen

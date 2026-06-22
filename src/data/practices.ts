@@ -1,11 +1,12 @@
 // =============================================================================
-// PRACTICE PROTOCOL (V1) — the concrete, recurring practices users do.
+// PRACTICE PROTOCOL — the concrete, recurring practices users do.
 //
-// A Practice is a curated, habit-shaped definition: a user "adopts" one and it
-// becomes a normal habit (with a weekly target + completion + streak). Practices
-// add two things on top of a library habit: a display GROUP (activate/calm/restrain)
-// and a default CORE flag (admin-overridable later). Per-practice baselines /
-// Discomfort Shift are a LATER iteration — not v1.
+// A Practice is a curated, habit-shaped definition (adopt one → it becomes a
+// normal habit with a weekly target + completion + streak), plus a display GROUP
+// (activate/calm/restrain), a default CORE flag (admin-overridable later), and
+// rich "learn" content (how-to, science, tips, variations) shown on the detail
+// screen — the practice's own version of the per-day content Programs carry.
+// Per-practice baselines / Discomfort Shift are a later iteration.
 //
 // See docs/practice-protocol-direction.md
 // =============================================================================
@@ -20,23 +21,40 @@ export interface PracticeGroupDef {
   order: number;
 }
 
+export interface PracticeVariation {
+  label: string;
+  description: string;
+}
+
 export interface Practice {
   id: string;
   name: string;
   group: PracticeGroup;
-  /** Default core/optional designation. Admin-overridable (see direction doc, Resolved #1). */
+  /** Default core/optional designation. Admin-overridable. */
   core: boolean;
   /** Default weekly target (a "process goal"); user-adjustable when adopted. */
   suggested_target_per_week: number;
-  /** What it is / how to do it. */
+  /** One-line overview of what it is. */
   description: string;
-  /** Short "insider knowledge" hook (2–3 sentences). */
+  /** Short "insider knowledge" hook. */
   whyItWorks: string;
   /** Ionicons name. */
   icon: string;
   /** For optional practices: why it isn't part of the core. */
   optional_reason?: string;
   order: number;
+
+  // ---- "Learn" content (shown on the practice detail screen) ----
+  /** Concrete steps to do a session. */
+  howTo: string[];
+  /** The smallest version for a hard day. */
+  minimumVersion?: string;
+  /** Deeper neuroscience explainer (1–2 short paragraphs). */
+  science: string;
+  /** Practical pointers + safety cautions. */
+  tips: string[];
+  /** Named ways to do it. */
+  variations?: PracticeVariation[];
 }
 
 export const PRACTICE_GROUPS: PracticeGroupDef[] = [
@@ -44,21 +62,21 @@ export const PRACTICE_GROUPS: PracticeGroupDef[] = [
     id: 'activate',
     name: 'Activate',
     description: 'Deliberately stress the body — and stay in it.',
-    color: '#FF5B02', // orange
+    color: '#FF5B02',
     order: 1,
   },
   {
     id: 'calm',
     name: 'Calm',
     description: 'Regulate your state and your attention on command.',
-    color: '#217180', // teal
+    color: '#217180',
     order: 2,
   },
   {
     id: 'restrain',
     name: 'Restrain',
     description: 'Resist the urge — for stimulation, for the reward, for more.',
-    color: '#7B61FF', // purple
+    color: '#7B61FF',
     order: 3,
   },
 ];
@@ -73,9 +91,28 @@ export const PRACTICES: Practice[] = [
     suggested_target_per_week: 5,
     description: 'Sit quietly and observe your mind without acting on every urge to move or escape.',
     whyItWorks:
-      "Sitting with no input trains the prefrontal cortex to regulate the brain's default-mode network. It's the foundational override rep — staying when everything says get up.",
+      "Sitting with no input trains the prefrontal cortex to regulate the brain's default-mode network. The foundational override rep — staying when everything says get up.",
     icon: 'flower-outline',
     order: 1,
+    howTo: [
+      'Sit upright somewhere quiet — chair or floor, eyes closed.',
+      'Pick an anchor: the feeling of your breath, or a word you repeat.',
+      'When your mind wanders (it will), notice it and return to the anchor — that return is the rep.',
+      'Let the timer run without checking it.',
+    ],
+    minimumVersion: 'Two minutes watching a single breath in and out.',
+    science:
+      "Sitting with no input shifts activity away from the default-mode network — the wandering, self-referential chatter — toward the prefrontal and anterior cingulate cortex, the circuits of effortful attention. Every time you notice you've drifted and come back, you do one rep of the same control you use to override any urge.",
+    tips: [
+      "Wandering isn't failure — noticing it and returning is the entire exercise.",
+      'Same time, same spot each day makes it automatic.',
+      "Don't chase a 'blank mind'; aim for 'I noticed, and I came back.'",
+    ],
+    variations: [
+      { label: 'Breath focus', description: 'Anchor on the sensation of breathing.' },
+      { label: 'Body scan', description: 'Move attention slowly from head to toe.' },
+      { label: 'Open awareness', description: 'Notice whatever arises without following it.' },
+    ],
   },
   {
     id: 'breathwork',
@@ -85,9 +122,28 @@ export const PRACTICES: Practice[] = [
     suggested_target_per_week: 7,
     description: 'A few minutes of slow, deliberate breathing — longer exhale than inhale.',
     whyItWorks:
-      'Breathing is the one autonomic system you can drive on command. Extending the exhale activates the vagus nerve and shifts you from fight-or-flight to rest-and-recover.',
+      'Breathing is the one autonomic system you can drive on command. Extending the exhale activates the vagus nerve and shifts you toward rest-and-recover.',
     icon: 'pulse-outline',
     order: 2,
+    howTo: [
+      'Sit or lie comfortably.',
+      'Breathe through the nose; make the exhale longer than the inhale.',
+      'Run your chosen pattern for the set time.',
+      'Notice how your state changes from start to finish.',
+    ],
+    minimumVersion: 'Five slow breaths with a long exhale.',
+    science:
+      "You can't consciously lower your heart rate — but you can lengthen your exhale, which stimulates the vagus nerve and the parasympathetic 'rest and recover' branch. It's the fastest manual lever you have on your own physiology, and proof you can change your state instead of waiting for it to pass.",
+    tips: [
+      'A longer exhale than inhale is the active ingredient.',
+      'Nasal breathing beats mouth breathing for most patterns.',
+      'Lightheaded? Return to normal breathing — never force it.',
+    ],
+    variations: [
+      { label: 'Box (4-4-4-4)', description: 'Inhale 4, hold 4, exhale 4, hold 4. Steady and calming.' },
+      { label: '4-7-8', description: 'Inhale 4, hold 7, exhale 8. Strong downshift for sleep or anxiety.' },
+      { label: 'Physiological sigh', description: 'Two inhales through the nose, one long exhale. Fastest reset.' },
+    ],
   },
   {
     id: 'reflection',
@@ -100,6 +156,25 @@ export const PRACTICES: Practice[] = [
       'Naming the moment between the stop signal and your choice sharpens your awareness of it — which is what lets you catch it next time.',
     icon: 'create-outline',
     order: 3,
+    howTo: [
+      "At day's end, take a few quiet minutes.",
+      'Ask: where did I override today? Where did I give in?',
+      'Name what the stop signal felt like in one of those moments.',
+      'Note one thing to do differently tomorrow.',
+    ],
+    minimumVersion: 'One sentence: where did I override today?',
+    science:
+      "Putting words to an experience engages the prefrontal cortex and dampens the amygdala — an effect researchers call 'affect labeling.' Naming the moment between the stop signal and your choice makes it more visible, which is exactly what lets you catch it in real time.",
+    tips: [
+      "Specific beats general — 'I wanted to quit at minute 8' over 'good day.'",
+      "Observe, don't moralize. You're debugging, not judging.",
+      'Pairs naturally with the app’s nightly reflection.',
+    ],
+    variations: [
+      { label: 'Override audit', description: 'Just the two questions: where did you push / give in?' },
+      { label: 'Written journal', description: 'Free-write a few lines.' },
+      { label: 'Gratitude + grit', description: 'One thing you’re grateful for, one hard thing you did.' },
+    ],
   },
   // ---- Activate ----
   {
@@ -113,6 +188,25 @@ export const PRACTICES: Practice[] = [
       'Choosing effort over ease trains the PFC-over-limbic pathway directly, and the post-effort dopamine and mood lift reinforce the choice.',
     icon: 'barbell-outline',
     order: 4,
+    howTo: [
+      'Pick something that makes the body work — lift, run, ruck, hard walk.',
+      'Warm up briefly.',
+      'Push to a point that is genuinely effortful, not just comfortable.',
+      'Finish even when the urge to stop shows up early.',
+    ],
+    minimumVersion: 'Ten minutes of brisk movement, or one hard set.',
+    science:
+      'Choosing exertion engages the prefrontal-cortex-over-limbic pathway and raises norepinephrine and BDNF — which support focus, mood, and learning. The accomplishment and dopamine afterward reinforce the decision to do hard things.',
+    tips: [
+      'Consistency over intensity — four solid sessions beat one heroic one.',
+      'The urge to stop usually peaks early; ride past it.',
+      'Any modality counts; the override is choosing effort.',
+    ],
+    variations: [
+      { label: 'Strength', description: 'Resistance training to real effort.' },
+      { label: 'Cardio', description: 'Run, row, bike, or swim.' },
+      { label: 'Ruck / hard walk', description: 'Weighted or brisk, ideally outdoors.' },
+    ],
   },
   {
     id: 'cold_exposure',
@@ -126,6 +220,25 @@ export const PRACTICES: Practice[] = [
     icon: 'snow-outline',
     optional_reason: 'Needs access to a cold shower or plunge.',
     order: 5,
+    howTo: [
+      'Start the water cold (or fill the plunge).',
+      'Get in deliberately — don’t ease in forever.',
+      'Slow your breathing; resist the gasp and the urge to bolt.',
+      'Stay for your set time, then warm up naturally.',
+    ],
+    minimumVersion: '30 seconds of cold at the end of your shower.',
+    science:
+      "Cold triggers a sharp norepinephrine spike — focus and alertness — and an extended dopamine rise afterward, without the crash other sources cause. Choosing to stay while your body screams 'get out' is a pure rep of acting through stress, and repeated exposure recalibrates what your nervous system counts as a threat (stress inoculation).",
+    tips: [
+      'Control the breath first — long, slow exhales kill the panic.',
+      "It should be cold, not dangerous: warm up after, don't push numbness.",
+      'CAUTION: skip or consult a doctor with heart conditions, pregnancy, or Raynaud’s.',
+    ],
+    variations: [
+      { label: 'Cold shower', description: 'End your shower on full cold.' },
+      { label: 'Cold plunge / ice bath', description: 'Submerge to the neck.' },
+      { label: 'Face dunk', description: 'Bowl of ice water — triggers the dive reflex fast.' },
+    ],
   },
   {
     id: 'heat_exposure',
@@ -139,6 +252,25 @@ export const PRACTICES: Practice[] = [
     icon: 'flame-outline',
     optional_reason: 'Needs access to a sauna or hot bath.',
     order: 6,
+    howTo: [
+      'Enter a sauna or hot bath.',
+      'Settle in and let the heat build.',
+      'Keep your breathing slow; sit with the discomfort instead of fleeing it.',
+      'Stay for your set time; hydrate after.',
+    ],
+    minimumVersion: 'A few minutes of sustained heat, building over time.',
+    science:
+      'Heat stress raises heart rate and core temperature, driving cardiovascular adaptations similar to light exercise, plus heat-shock proteins and a post-session endorphin lift. The override is staying composed while every instinct says leave.',
+    tips: [
+      'Hydrate before and after.',
+      'Build duration gradually; dizziness means get out.',
+      'CAUTION: avoid with heart conditions or pregnancy unless cleared by a doctor.',
+    ],
+    variations: [
+      { label: 'Sauna', description: 'Dry or infrared, ~10–20 min.' },
+      { label: 'Hot bath', description: 'A hot soak when no sauna is available.' },
+      { label: 'Contrast', description: 'Alternate heat and cold.' },
+    ],
   },
   // ---- Restrain ----
   {
@@ -152,6 +284,25 @@ export const PRACTICES: Practice[] = [
       'Constant stimulation downregulates your dopamine baseline. Resisting the urge for input lets it recover — which is what makes willpower feel possible again.',
     icon: 'phone-portrait-outline',
     order: 7,
+    howTo: [
+      'Put the phone in another room — not just face-down.',
+      'Sit with nothing: no screen, no music, no task.',
+      'Let the boredom and the urge to grab something just be there.',
+      'Stay for your set time.',
+    ],
+    minimumVersion: 'Five minutes sitting with no phone and no input.',
+    science:
+      'A constant stream of novelty keeps dopamine elevated and downregulates your baseline — which is why everything else starts to feel boring and willpower feels impossible. Deliberate boredom lets dopamine receptors recover toward baseline. You’re not wasting time; you’re repairing the reward system that makes hard things doable.',
+    tips: [
+      'Phone in another room beats willpower every time.',
+      "Restlessness is the point — that's the urge you're training against.",
+      'Looking out a window counts; a second screen does not.',
+    ],
+    variations: [
+      { label: 'Just sit', description: 'Nothing at all — stare out a window.' },
+      { label: 'Single-task', description: 'Do one thing slowly, with no second screen.' },
+      { label: 'Phone-free walk', description: 'Walk with no phone or earbuds.' },
+    ],
   },
   {
     id: 'fasting',
@@ -165,6 +316,25 @@ export const PRACTICES: Practice[] = [
     icon: 'time-outline',
     optional_reason: 'Skip if you have any medical reason not to fast.',
     order: 8,
+    howTo: [
+      'Pick a window (e.g. 16 hours) or skip one meal.',
+      'When hunger hits, notice it without acting.',
+      'Hydrate — water, black coffee, tea.',
+      'Break the fast calmly when your window ends.',
+    ],
+    minimumVersion: 'Push your first meal back by two hours.',
+    science:
+      "Hunger arrives in waves and passes — it isn't an emergency. Choosing to wait strengthens prefrontal control over immediate reward and builds delay tolerance, the same circuit behind every long-term goal. (Metabolic effects are a bonus; the override is the point.)",
+    tips: [
+      'Hunger comes in waves — ride one out and it fades.',
+      'Hydrate; black coffee blunts appetite.',
+      'CAUTION: not for those with a history of disordered eating, diabetes, pregnancy, or who are underweight — check with a doctor.',
+    ],
+    variations: [
+      { label: '16:8', description: '16-hour fast, 8-hour eating window.' },
+      { label: 'Skip a meal', description: 'Drop one meal deliberately.' },
+      { label: '24-hour', description: 'Advanced: one full day, occasionally.' },
+    ],
   },
 ];
 

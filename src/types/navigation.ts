@@ -40,12 +40,23 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Practices: undefined;
+  Practices: NavigatorScreenParams<PracticesStackParamList>;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
   Tools: NavigatorScreenParams<WorksheetsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
   Admin: NavigatorScreenParams<AdminStackParamList>;
 };
+
+// ============================================================================
+// PRACTICES STACK
+// ============================================================================
+
+export type PracticesStackParamList = {
+  PracticesHome: undefined;
+  PracticeDetail: { practiceId: string };
+};
+
+export type PracticesNavigation = NativeStackNavigationProp<PracticesStackParamList>;
 
 // ============================================================================
 // HOME STACK
