@@ -307,14 +307,14 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
 
 // --- Sub-components ---
 
-const AddActivityButton: React.FC<{ onPress: () => void }> = ({ onPress }) => (
+export const AddActivityButton: React.FC<{ onPress: () => void }> = ({ onPress }) => (
   <TouchableOpacity style={styles.addActivityBtn} onPress={onPress} activeOpacity={0.7}>
     <Ionicons name="add" size={18} color={Colors.primary} />
     <Text style={styles.addActivityText}>Add activity</Text>
   </TouchableOpacity>
 );
 
-const PlannerBar: React.FC<{ callbacks: HomeSectionProps['callbacks'] }> = ({ callbacks }) => (
+export const PlannerBar: React.FC<{ callbacks: HomeSectionProps['callbacks'] }> = ({ callbacks }) => (
   <TouchableOpacity
     style={styles.plannerBar}
     onPress={() => callbacks.onNavigate('WeeklyPlanner')}
@@ -328,7 +328,7 @@ const PlannerBar: React.FC<{ callbacks: HomeSectionProps['callbacks'] }> = ({ ca
   </TouchableOpacity>
 );
 
-const ChallengeRow: React.FC<{
+export const ChallengeRow: React.FC<{
   challenge: Challenge;
   callbacks: HomeSectionProps['callbacks'];
 }> = ({ challenge, callbacks }) => {
@@ -418,7 +418,7 @@ const planValueFor = (
   fallbackKey?: keyof HabitActionPlan
 ): string | undefined => plan[key] || (fallbackKey ? plan[fallbackKey] : undefined);
 
-const HabitRow: React.FC<{
+export const HabitRow: React.FC<{
   habit: Nudge;
   done: number;
   streak: number;
@@ -544,7 +544,7 @@ const HabitRow: React.FC<{
   );
 };
 
-const ProgramRow: React.FC<{
+export const ProgramRow: React.FC<{
   program: any;
   todaysProgramDay: any;
   programDayNumber: number;

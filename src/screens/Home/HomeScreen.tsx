@@ -51,7 +51,6 @@ import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
 import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markComebackShown } from '../../services/users';
-import { runGoalsMigration } from '../../services/dataMigration';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -227,15 +226,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     try {
       // Refresh user profile so totalHabitsCompleted, flags, etc. are current
       await refreshProfile();
-
-      // Run lazy goals migration before loading data
-      const didMigrate = await runGoalsMigration(user.uid);
-      if (didMigrate) {
-        showAlert(
-          'Goals Update',
-          'Your existing challenges, habits, and programs have been organized under a "General" goal. You can reassign them to specific goals anytime.'
-        );
-      }
 
       const [dailyChallenges, extChallenges, habitList, userTeam, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
