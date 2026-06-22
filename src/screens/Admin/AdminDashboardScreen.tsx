@@ -285,6 +285,16 @@ export const AdminDashboardScreen: React.FC = () => {
       <Text style={styles.sectionTitle}>Manage</Text>
       <Card
         style={styles.linkCard}
+        onPress={() => navigation.navigate('AdminArenaAdoption')}
+      >
+        <View style={styles.linkRow}>
+          <Ionicons name="trending-up" size={24} color={Colors.primary} />
+          <Text style={styles.linkText}>Arena Adoption (Phase 3.4)</Text>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+      <Card
+        style={styles.linkCard}
         onPress={() => navigation.navigate('AdminChallenges')}
       >
         <View style={styles.linkRow}>

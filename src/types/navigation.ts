@@ -196,6 +196,7 @@ export type SettingsStackParamList = {
 
 export type AdminStackParamList = {
   AdminDashboard: undefined;
+  AdminArenaAdoption: undefined;
   AdminChallenges: undefined;
   AdminChallengeEdit: { mode: 'create' | 'edit'; challengeId?: string };
   AdminSubmissions: undefined;

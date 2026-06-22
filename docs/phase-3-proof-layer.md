@@ -166,7 +166,7 @@ Phases 0–2.
 | **3.1** ✅ | **DONE (2026-06-21).** `getArenaProgress` (Override Score + all-arena breakdown, single load, resolves legacy completions); `OverrideScoreCard` + `DisciplineMap` on the Progress tab. | **Yes, immediately, on existing data** | None (reads) | — |
 | **3.2** ✅ | **DONE (2026-06-21) — reframe-only, per decision.** Difficulty prompts reframed to "How hard was the override?" (challenge) / "How hard was it to push through?" (habit). Reuses the existing `difficulty` value — no new field. | Subtle (copy change) | Low | — |
 | **3.3** ✅ | **DONE (2026-06-21).** Reusable `Stopwatch`; `arenaBaselines` store + `getDiscomfortShift` (no index); `BaselineTestScreen` (duration/rating/completion modes); `ArenaDetailScreen` (per-arena reps + Discomfort Shift + retest CTA); Discipline Map tiles now tap through to Arena Detail. **Deferred:** tagged-items list on Arena Detail, retest reminders via the rules engine. | Yes (new arena surfaces) | Low-Moderate | — |
-| **3.4** | Instrument + observe alongside XP/Follow-Through | n/a | None | **gates Phase 4** |
+| **3.4** ✅ | **DONE (2026-06-21).** Admin → "Arena Adoption" screen (per-account): Override Score vs lifetime XP, reps by arena, tagging density (stored vs resolved), baseline coverage. **Now:** observe over real usage — that observation IS the Phase-4 gate. (Cross-user aggregate would need a Cloud Function — deferred.) | n/a | None | **gates Phase 4** |
 
 **Recommended order:** 3.1 first (fast, visible, zero-risk win that proves the data flows), then
 decide 3.2, then 3.3 (the big one), with 3.4 instrumentation folded in as we go.
