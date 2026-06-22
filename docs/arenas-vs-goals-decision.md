@@ -1,5 +1,11 @@
 # Decision: Arenas vs. Goals as the Primary Organizing Axis
 
+> **⚠️ Superseded (2026-06-21):** the *arena categorization* framing here is replaced by the
+> **[Practice Protocol direction](./practice-protocol-direction.md)** (concrete practices +
+> challenges; arenas retired as the organizing concept). The Phase 2/3 *infrastructure* this doc
+> drove (CBT→user-level, baselines, Discomfort Shift, Override Score) is kept and reframed; the
+> per-item arena tagging is retired. Retained below for the goals-coupling analysis + history.
+>
 > **Status:** Recommendation for review. Companion to
 > [strategic-direction-audit.md](./strategic-direction-audit.md) (resolves its "Phase 0"
 > decision). Findings here were produced by a multi-agent audit that read the actual code —
