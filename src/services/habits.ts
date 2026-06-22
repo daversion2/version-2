@@ -58,6 +58,7 @@ export const createHabit = async (
     target_count_per_week: number;
     goal_ids?: string[];
     arena_id?: ArenaId;
+    practice_id?: string;
     action_plan?: HabitActionPlan;
     created_by_user?: boolean;
     supports_pairing?: boolean;

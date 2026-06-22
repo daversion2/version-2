@@ -267,6 +267,7 @@ export interface Nudge {
   target_count_per_week: number; // 1–7
   goal_ids?: string[];
   arena_id?: ArenaId; // Arena tagging (Phase 1)
+  practice_id?: string; // links a habit adopted from a Practice (Practice Protocol)
   action_plan?: HabitActionPlan;
   reminder?: HabitReminder;
   supports_pairing?: boolean; // habit is suited to temptation bundling (body busy, mind free)

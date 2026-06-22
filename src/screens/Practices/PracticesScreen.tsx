@@ -1,57 +1,201 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PRACTICE_GROUPS, getPracticesByGroup, Practice } from '../../data/practices';
+import { useAuth } from '../../context/AuthContext';
+import {
+  getActiveHabits,
+  getWeeklyCompletionCounts,
+  createHabit,
+  logHabitCompletion,
+} from '../../services/habits';
+import { Nudge, HabitDifficulty } from '../../types';
+import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 
-const PracticeCard: React.FC<{ practice: Practice; color: string }> = ({ practice, color }) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <View style={[styles.iconWrap, { backgroundColor: color + '1A' }]}>
-        <Ionicons name={practice.icon as any} size={20} color={color} />
-      </View>
-      <View style={styles.cardTitleWrap}>
-        <Text style={styles.cardTitle}>{practice.name}</Text>
-        <Text style={styles.cardTarget}>{practice.suggested_target_per_week}×/week</Text>
-      </View>
-      <View style={[styles.pill, practice.core ? { backgroundColor: color } : styles.pillOptional]}>
-        <Text style={[styles.pillText, practice.core ? { color: Colors.white } : { color: Colors.gray }]}>
-          {practice.core ? 'Core' : 'Optional'}
-        </Text>
-      </View>
-    </View>
-    <Text style={styles.cardDesc}>{practice.description}</Text>
-    <Text style={styles.cardWhy}>{practice.whyItWorks}</Text>
-    {!practice.core && practice.optional_reason && (
-      <Text style={styles.optionalReason}>{practice.optional_reason}</Text>
-    )}
-  </View>
-);
+const PracticeCard: React.FC<{
+  practice: Practice;
+  color: string;
+  habit?: Nudge;
+  weekDone: number;
+  busy: boolean;
+  onAdopt: () => void;
+  onCheckoff: () => void;
+}> = ({ practice, color, habit, weekDone, busy, onAdopt, onCheckoff }) => {
+  const adopted = !!habit;
+  const target = habit?.target_count_per_week ?? practice.suggested_target_per_week;
+  const complete = adopted && weekDone >= target;
 
-export const PracticesScreen: React.FC = () => (
-  <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-    <Text style={styles.intro}>
-      Your daily training. Do these on a regular cadence — small overrides, repeated.
-    </Text>
-
-    {PRACTICE_GROUPS.map((group) => (
-      <View key={group.id} style={styles.group}>
-        <View style={styles.groupHeader}>
-          <View style={[styles.groupDot, { backgroundColor: group.color }]} />
-          <Text style={styles.groupName}>{group.name}</Text>
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.iconWrap, { backgroundColor: color + '1A' }]}>
+          <Ionicons name={practice.icon as any} size={20} color={color} />
         </View>
-        <Text style={styles.groupDesc}>{group.description}</Text>
-        {getPracticesByGroup(group.id).map((practice) => (
-          <PracticeCard key={practice.id} practice={practice} color={group.color} />
-        ))}
+        <View style={styles.cardTitleWrap}>
+          <Text style={styles.cardTitle}>{practice.name}</Text>
+          <Text style={styles.cardTarget}>
+            {adopted ? `${weekDone}/${target} this week` : `${target}×/week`}
+          </Text>
+        </View>
+
+        {!adopted ? (
+          <TouchableOpacity
+            style={[styles.addBtn, { borderColor: color }]}
+            onPress={onAdopt}
+            disabled={busy}
+            activeOpacity={0.7}
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color={color} />
+            ) : (
+              <>
+                <Ionicons name="add" size={16} color={color} />
+                <Text style={[styles.addBtnText, { color }]}>Add</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.checkBtn, complete ? { backgroundColor: Colors.success } : { backgroundColor: color }]}
+            onPress={onCheckoff}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={complete ? 'checkmark' : 'add'} size={20} color={Colors.white} />
+          </TouchableOpacity>
+        )}
       </View>
-    ))}
-  </ScrollView>
-);
+      <Text style={styles.cardDesc}>{practice.description}</Text>
+      <Text style={styles.cardWhy}>{practice.whyItWorks}</Text>
+      {!practice.core && practice.optional_reason && (
+        <Text style={styles.optionalReason}>{practice.optional_reason}</Text>
+      )}
+    </View>
+  );
+};
+
+export const PracticesScreen: React.FC = () => {
+  const { user } = useAuth();
+  const [habits, setHabits] = useState<Nudge[]>([]);
+  const [weekly, setWeekly] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [completing, setCompleting] = useState<Nudge | null>(null);
+
+  const load = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [hs, counts] = await Promise.all([
+        getActiveHabits(user.uid),
+        getWeeklyCompletionCounts(user.uid),
+      ]);
+      setHabits(hs);
+      setWeekly(counts);
+    } catch (err) {
+      console.warn('Failed to load practices:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  // Resolve the user's adopted habit for a practice: by practice_id, else by exact name.
+  const habitForPractice = (practice: Practice): Nudge | undefined =>
+    habits.find((h) => h.practice_id === practice.id) ||
+    habits.find((h) => h.name.trim().toLowerCase() === practice.name.toLowerCase());
+
+  const handleAdopt = async (practice: Practice) => {
+    if (!user) return;
+    setBusyId(practice.id);
+    try {
+      await createHabit(user.uid, {
+        name: practice.name,
+        target_count_per_week: practice.suggested_target_per_week,
+        practice_id: practice.id,
+        created_by_user: false,
+      });
+      await load();
+    } catch (err) {
+      console.warn('Failed to adopt practice:', err);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleSubmitCompletion = async (difficulty: HabitDifficulty, notes?: string) => {
+    const habit = completing;
+    setCompleting(null);
+    if (!user || !habit) return;
+    try {
+      await logHabitCompletion(user.uid, habit.id, difficulty, undefined, notes);
+      await load();
+    } catch (err) {
+      console.warn('Failed to log practice:', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <Text style={styles.intro}>
+          Your daily training. Add a practice to start tracking it, then check it off as you go.
+        </Text>
+
+        {PRACTICE_GROUPS.map((group) => (
+          <View key={group.id} style={styles.group}>
+            <View style={styles.groupHeader}>
+              <View style={[styles.groupDot, { backgroundColor: group.color }]} />
+              <Text style={styles.groupName}>{group.name}</Text>
+            </View>
+            <Text style={styles.groupDesc}>{group.description}</Text>
+            {getPracticesByGroup(group.id).map((practice) => {
+              const habit = habitForPractice(practice);
+              return (
+                <PracticeCard
+                  key={practice.id}
+                  practice={practice}
+                  color={group.color}
+                  habit={habit}
+                  weekDone={habit ? weekly[habit.id] ?? 0 : 0}
+                  busy={busyId === practice.id}
+                  onAdopt={() => handleAdopt(practice)}
+                  onCheckoff={() => habit && setCompleting(habit)}
+                />
+              );
+            })}
+          </View>
+        ))}
+      </ScrollView>
+
+      <HabitCompletionModal
+        visible={!!completing}
+        habitName={completing?.name ?? ''}
+        actionPlan={completing?.action_plan}
+        onSubmit={handleSubmitCompletion}
+        onCancel={() => setCompleting(null)}
+      />
+    </>
+  );
+};
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.lightGray },
   intro: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
@@ -61,11 +205,7 @@ const styles = StyleSheet.create({
   group: { marginBottom: Spacing.xl },
   groupHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   groupDot: { width: 12, height: 12, borderRadius: 6 },
-  groupName: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-  },
+  groupName: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, color: Colors.dark },
   groupDesc: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
@@ -85,29 +225,30 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  iconWrap: {
+  iconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  cardTitleWrap: { flex: 1 },
+  cardTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
+  cardTarget: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 1 },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: Spacing.sm + 2,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    minWidth: 64,
+    justifyContent: 'center',
+  },
+  addBtnText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
+  checkBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitleWrap: { flex: 1 },
-  cardTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
-  cardTarget: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 1 },
-  pill: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-  },
-  pillOptional: { backgroundColor: Colors.lightGray, borderWidth: 1, borderColor: Colors.border },
-  pillText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
-  cardDesc: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-    marginTop: Spacing.sm,
-  },
+  cardDesc: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: Spacing.sm },
   cardWhy: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
