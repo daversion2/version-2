@@ -9,9 +9,6 @@ import { ProgressBar } from '../../../components/challenge/ProgressBar';
 import { HomeSectionProps } from './types';
 import { Goal, Challenge, Nudge, HabitActionPlan } from '../../../types';
 import { ACTION_TYPES } from '../../../constants/challengeLibrary';
-import { ArenaChip } from '../../../components/arenas/ArenaChip';
-import { getChallengeArenaId } from '../../../utils/arenaForChallenge';
-import { getHabitArenaId } from '../../../utils/arenaForHabit';
 import { GOAL_CONSTANTS } from '../../../constants/goals';
 import { formatShortDay } from '../../../utils/date';
 import { formatHabitPlanLine } from '../../../utils/habitPlan';
@@ -357,7 +354,6 @@ const ChallengeRow: React.FC<{
             {challenge.name}
           </Text>
           <View style={styles.actionMeta}>
-            <ArenaChip arenaId={getChallengeArenaId(challenge)} />
             {challenge.action_type && (
               <View
                 style={[
@@ -461,7 +457,6 @@ const HabitRow: React.FC<{
               )}
             </View>
             <View style={styles.habitMetaRow}>
-              <ArenaChip arenaId={getHabitArenaId(habit)} />
               <Text style={styles.metaText}>
                 {done}/{target} this week
               </Text>

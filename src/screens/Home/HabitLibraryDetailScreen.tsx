@@ -12,7 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ArenaChip } from '../../components/arenas/ArenaChip';
 import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -174,7 +173,6 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
               <Text style={[styles.categoryText, { color }]}>{category.name}</Text>
             </View>
           )}
-          <ArenaChip arenaId={habit.arena_id} size="md" />
         </View>
 
         {editing ? (

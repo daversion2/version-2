@@ -15,14 +15,12 @@ import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { updateChallenge } from '../../services/challenges';
-import { Challenge, ArenaId } from '../../types';
+import { Challenge } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { DateTimePicker } from '../../components/common/DateTimePicker';
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
-import { ArenaPicker } from '../../components/arenas/ArenaPicker';
-import { getChallengeArenaId } from '../../utils/arenaForChallenge';
 
 type Props = HomeScreenProps<'EditChallenge'>;
 
@@ -41,7 +39,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [durationDays, setDurationDays] = useState(challenge?.duration_days || 7);
   const [goalIds, setGoalIds] = useState<string[]>(challenge?.goal_ids || []);
-  const [arenaId, setArenaId] = useState<ArenaId | null>(challenge?.arena_id ?? getChallengeArenaId(challenge ?? {}) ?? null);
 
   const isExtended = challenge?.challenge_type === 'extended';
   const completedMilestones = challenge?.milestones?.filter(m => m.completed).length || 0;
@@ -95,7 +92,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       updates.goal_ids = goalIds;
-      updates.arena_id = arenaId ?? undefined;
 
       await updateChallenge(user.uid, challenge.id, updates);
       navigation.goBack();
@@ -202,8 +198,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
             onTimeChange={setDeadlineTime}
           />
         )}
-
-        <ArenaPicker selectedArenaId={arenaId} onChange={setArenaId} />
 
         <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
 
