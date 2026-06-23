@@ -23,7 +23,7 @@ import { HabitStreakInfo } from '../../types';
 import { getGoalColor } from '../../constants/goalColors';
 import { getUserTeam, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
 import { getWillpowerStats } from '../../services/willpower';
-import { HabitDifficulty } from '../../types';
+import { HabitDifficulty, PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
@@ -446,15 +446,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setCompletingHabit(habit);
   }, []);
 
-  const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string) => {
+  const handleHabitComplete = async (input: PracticeCompletionInput) => {
     if (!user || !completingHabit) return;
+    const { difficulty } = input;
     try {
       // Log + team activity + XP all happen in the shared completePractice path.
       const { pointsEarned, streakBefore, willpower: updateResult } = await completePractice(
         user.uid,
         { id: completingHabit.id, name: completingHabit.name },
-        difficulty,
-        { teamId: team?.id, notes }
+        input,
+        { teamId: team?.id }
       );
 
       // Refresh team summary after the shared path logged the activity.
@@ -737,6 +738,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <HabitCompletionModal
         visible={!!completingHabit}
         habitName={completingHabit?.name || ''}
+        practiceId={completingHabit?.practice_id}
         actionPlan={completingHabit?.action_plan}
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}

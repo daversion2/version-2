@@ -10,7 +10,7 @@ import {
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId } from '../types';
+import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
 import { PracticeGroup } from '../data/practices';
 import { getWillpowerStats, calculateHabitPoints, updateWillpowerStats } from './willpower';
 import { logTeamActivity } from './teams';
@@ -87,13 +87,21 @@ export const updateHabit = async (
   await updateDoc(ref, data);
 };
 
+/** Optional detailed tracking + override reflection captured at completion. */
+export interface CompletionExtras {
+  metrics?: Record<string, number | string>;
+  hitHardMoment?: boolean;
+  tactics?: string[];
+}
+
 /**
- * Log a habit completion with optional backdating and notes
+ * Log a habit completion with optional backdating, notes, and tracking/reflection.
  * @param userId - User ID
  * @param habitId - Habit ID
  * @param difficulty - 'easy' (1 pt) or 'challenging' (2 pts)
  * @param date - Optional YYYY-MM-DD date string for backdating (defaults to today)
- * @param notes - Optional notes for this completion
+ * @param notes - Optional free-text notes for this completion
+ * @param extras - Optional per-practice metrics + override reflection
  */
 export const logHabitCompletion = async (
   userId: string,
@@ -101,6 +109,7 @@ export const logHabitCompletion = async (
   difficulty: HabitDifficulty,
   date?: string,
   notes?: string,
+  extras?: CompletionExtras,
 ) => {
   const points = difficulty === 'easy' ? 1 : 2;
   const now = new Date();
@@ -119,6 +128,17 @@ export const logHabitCompletion = async (
   // Only add notes if provided and non-empty
   if (notes && notes.trim()) {
     logData.notes = notes.trim();
+  }
+  // Only persist tracking/reflection fields that are actually set — keeps logs
+  // lean and avoids writing `undefined` (which Firestore rejects).
+  if (extras?.metrics && Object.keys(extras.metrics).length) {
+    logData.metrics = extras.metrics;
+  }
+  if (typeof extras?.hitHardMoment === 'boolean') {
+    logData.hitHardMoment = extras.hitHardMoment;
+  }
+  if (extras?.tactics && extras.tactics.length) {
+    logData.tactics = extras.tactics;
   }
 
   const docRef = await addDoc(logsRef(userId), logData);
@@ -144,10 +164,15 @@ export interface CompletePracticeResult {
 export const completePractice = async (
   userId: string,
   practice: { id: string; name: string },
-  difficulty: HabitDifficulty,
-  opts?: { teamId?: string; notes?: string },
+  input: PracticeCompletionInput,
+  opts?: { teamId?: string },
 ): Promise<CompletePracticeResult> => {
-  const logId = await logHabitCompletion(userId, practice.id, difficulty, undefined, opts?.notes);
+  const { difficulty, notes, metrics, hitHardMoment, tactics } = input;
+  const logId = await logHabitCompletion(userId, practice.id, difficulty, undefined, notes, {
+    metrics,
+    hitHardMoment,
+    tactics,
+  });
 
   if (opts?.teamId) {
     try {
