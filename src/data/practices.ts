@@ -214,37 +214,6 @@ export const PRACTICES: Practice[] = [
       },
     ],
   },
-  {
-    id: 'reflection',
-    name: 'Reflection',
-    group: 'calm',
-    core: true,
-    suggested_target_per_week: 7,
-    description: 'A short end-of-day look back: where did you override, and where did you give in?',
-    whyItWorks:
-      'Naming the moment between the stop signal and your choice sharpens your awareness of it — which is what lets you catch it next time.',
-    icon: 'create-outline',
-    order: 3,
-    howTo: [
-      "At day's end, take a few quiet minutes.",
-      'Ask: where did I override today? Where did I give in?',
-      'Name what the stop signal felt like in one of those moments.',
-      'Note one thing to do differently tomorrow.',
-    ],
-    minimumVersion: 'One sentence: where did I override today?',
-    science:
-      "Putting words to an experience engages the prefrontal cortex and dampens the amygdala — an effect researchers call 'affect labeling.' Naming the moment between the stop signal and your choice makes it more visible, which is exactly what lets you catch it in real time.",
-    tips: [
-      "Specific beats general — 'I wanted to quit at minute 8' over 'good day.'",
-      "Observe, don't moralize. You're debugging, not judging.",
-      'Pairs naturally with the app’s nightly reflection.',
-    ],
-    variations: [
-      { label: 'Override audit', description: 'Just the two questions: where did you push / give in?' },
-      { label: 'Written journal', description: 'Free-write a few lines.' },
-      { label: 'Gratitude + grit', description: 'One thing you’re grateful for, one hard thing you did.' },
-    ],
-  },
   // ---- Activate ----
   {
     id: 'movement',
@@ -435,6 +404,53 @@ export const PRACTICES: Practice[] = [
     resistanceMoment: 'a craving spiked and you wanted to eat',
     tracking: [
       { key: 'duration_hrs', label: 'Fasting window', type: 'duration', unit: 'hrs', min: 12, max: 36, step: 1, default: 16 },
+    ],
+  },
+  {
+    id: 'eat_healthy_unenjoyable',
+    name: 'Eat Healthy Food I Don’t Enjoy',
+    group: 'restrain',
+    core: false,
+    suggested_target_per_week: 5,
+    description: 'Choose the nutritious option over the one you crave — and eat it without doctoring it up.',
+    whyItWorks:
+      'Every meal is a fork between what’s rewarding and what’s good for you. Picking the plain, healthy option is a rep of overriding the reward circuit in real time.',
+    icon: 'nutrition-outline',
+    optional_reason: 'A discipline rep — adopt it if food is one of your battlegrounds.',
+    order: 9,
+    howTo: [
+      'Pick a genuinely healthy option you don’t love — not a tasty “healthy” treat.',
+      'Decide before you’re hungry, so the choice is made before the craving hits.',
+      'Eat it deliberately, without sauces or extras that turn it into something you enjoy.',
+      'When the urge to swap it for something tastier shows up, notice it and let it pass.',
+    ],
+    minimumVersion: 'Swap the most craving-driven item in one meal for something plain and healthy.',
+    science:
+      'Hyper-palatable food is engineered to hijack the same dopamine reward pathway as any other craving. Deliberately choosing food you don’t enjoy — and eating it anyway — is a direct rep of prefrontal control over the reward system. Done often, the pull of the tastiest option loses some of its grip, because you’ve trained the choice instead of feeding the craving.',
+    tips: [
+      'Decide before you’re hungry — willpower is weakest at the moment of craving.',
+      'Don’t disguise it. The point is to sit with “not enjoyable,” not to make it enjoyable.',
+      'Bland and nutritious beats tasty and “healthy” for this rep.',
+      'CAUTION: this is discipline, not deprivation — eat enough, and skip it if you have any history of disordered eating.',
+    ],
+    variations: [
+      { label: 'Plain protein + veg', description: 'A simple whole-food meal, minimally seasoned.' },
+      { label: 'Swap one item', description: 'Replace the most craving-driven part of a meal with a healthy plain option.' },
+      { label: 'No-extras meal', description: 'Eat it without the condiments and add-ons that make it enjoyable.' },
+    ],
+    resistanceMoment: 'you wanted to swap it for something tastier or reach for what you were craving',
+    tracking: [
+      {
+        key: 'meal',
+        label: 'Which meal?',
+        type: 'choice',
+        options: [
+          { value: 'breakfast', label: 'Breakfast' },
+          { value: 'lunch', label: 'Lunch' },
+          { value: 'dinner', label: 'Dinner' },
+          { value: 'snack', label: 'Snack' },
+        ],
+      },
     ],
   },
 ];

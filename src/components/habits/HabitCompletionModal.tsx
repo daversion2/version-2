@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -64,6 +64,15 @@ export const HabitCompletionModal: React.FC<Props> = ({
     setNotes('');
   };
 
+  // Reset on OPEN, not on close. Resetting on submit/cancel would collapse the
+  // sheet while it's still fading out — the user briefly sees the bare default
+  // state. Resetting when it opens keeps the fade-out showing their last input
+  // and guarantees a clean slate next time.
+  useEffect(() => {
+    if (visible) resetState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
   // Toggle setter for choice chips (tap again to clear).
   const setMetric = (key: string, value: number | string) => {
     setMetrics((prev) => {
@@ -94,11 +103,10 @@ export const HabitCompletionModal: React.FC<Props> = ({
       hitHardMoment: hitHardMoment ?? undefined,
       tactics: tactics.length ? tactics : undefined,
     });
-    resetState();
+    // State is reset on next open (see effect above) so the fade-out doesn't flash.
   };
 
   const handleCancel = () => {
-    resetState();
     onCancel();
   };
 
