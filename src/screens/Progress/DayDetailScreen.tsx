@@ -13,11 +13,11 @@ import {
   deleteCompletionLog,
 } from '../../services/progress';
 import { updateChallengeCompletion, getChallengeById } from '../../services/challenges';
-import { getUnloggedHabitsForDate, logHabitCompletion } from '../../services/habits';
+import { getUnloggedHabitsForDate, logHabitCompletion } from '../../services/practices';
 import { updateWillpowerStats } from '../../services/willpower';
 import { isYesterday } from '../../utils/date';
 import { showConfirm, showAlert } from '../../utils/alert';
-import { Nudge, HabitDifficulty } from '../../types';
+import { PracticeInstance, HabitDifficulty } from '../../types';
 import { ProgressScreenProps, ProgressNavigation } from '../../types/navigation';
 
 type Props = ProgressScreenProps<'DayDetail'>;
@@ -31,7 +31,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
 
   // Modal states
   const [backdateModalVisible, setBackdateModalVisible] = useState(false);
-  const [unloggedHabits, setUnloggedHabits] = useState<Nudge[]>([]);
+  const [unloggedHabits, setUnloggedHabits] = useState<PracticeInstance[]>([]);
   const [loadingHabits, setLoadingHabits] = useState(false);
 
   const [editDifficultyModalVisible, setEditDifficultyModalVisible] = useState(false);
@@ -68,7 +68,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       const habits = await getUnloggedHabitsForDate(user.uid, date);
       setUnloggedHabits(habits);
     } catch (error) {
-      showAlert('Error', 'Failed to load habits. Please try again.');
+      showAlert('Error', 'Failed to load practices. Please try again.');
     } finally {
       setLoadingHabits(false);
     }
@@ -94,7 +94,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       showAlert('Success', `Added "${habitName}" (+${points} pts)`);
       refreshData();
     } catch (error) {
-      showAlert('Error', 'Failed to add habit. Please try again.');
+      showAlert('Error', 'Failed to add practice. Please try again.');
     }
   };
 
@@ -103,7 +103,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     if (!user) return;
 
     showConfirm(
-      'Delete Habit Entry',
+      'Delete Practice Entry',
       `Delete "${log.name}"? This will remove ${log.points} XP.`,
       async () => {
         try {
@@ -179,7 +179,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         </View>
         <View style={styles.logMeta}>
           <Text style={styles.metaText}>
-            {item.type === 'challenge' ? 'Challenge' : 'Habit'}
+            {item.type === 'challenge' ? 'Challenge' : 'Practice'}
           </Text>
           {item.completed_at && (
             <Text style={styles.metaText}>
@@ -242,7 +242,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       {/* Add Habit button for yesterday */}
       {isEditable && (
         <Button
-          title="Add Forgotten Habit"
+          title="Add Forgotten Practice"
           onPress={handleOpenBackdateModal}
           variant="outline"
           style={styles.addHabitButton}

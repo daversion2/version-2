@@ -1,6 +1,6 @@
 import {
   Challenge,
-  Nudge,
+  PracticeInstance,
   Team,
   TeamMemberActivitySummary,
   BuddyChallenge,
@@ -24,7 +24,7 @@ export interface WillpowerStatsData {
 export interface HomeData {
   activeChallenges: Challenge[];
   extendedChallenges: Challenge[];
-  habits: Nudge[];
+  habits: PracticeInstance[];
   team: Team | null;
   teamSummary: TeamMemberActivitySummary[];
   weeklyCounts: Record<string, number>;
@@ -56,7 +56,7 @@ export interface HomeData {
 
 export interface HomeCallbacks {
   onNavigate: (screen: string, params?: any) => void;
-  onHabitTap: (habit: Nudge) => void;
+  onHabitTap: (habit: PracticeInstance) => void;
   getItemColor: (goalIds?: string[]) => string;
   onGoalTap?: (goalId: string) => void;
   onCalendarExport?: (item: PlannedItem) => void;

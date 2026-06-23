@@ -151,9 +151,9 @@ export const PrivacySettingsScreen: React.FC = () => {
           <Card style={styles.card}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingTitle}>Habit Completions</Text>
+                <Text style={styles.settingTitle}>Practice Completions</Text>
                 <Text style={styles.settingDesc}>
-                  Get notified when a teammate completes a habit.
+                  Get notified when a teammate completes a practice.
                 </Text>
               </View>
               <Switch

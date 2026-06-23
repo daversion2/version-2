@@ -38,7 +38,7 @@ export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
               <Ionicons name="repeat" size={22} color={Colors.primary} />
             </View>
             <View style={styles.optionInfo}>
-              <Text style={styles.optionName}>Habit</Text>
+              <Text style={styles.optionName}>Practice</Text>
               <Text style={styles.optionDesc}>A repeatable action you do each week</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
@@ -64,7 +64,7 @@ export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
               <View style={styles.optionInfo}>
                 <Text style={[styles.optionName, { color: Colors.gray }]}>Challenge</Text>
                 <Text style={styles.optionDesc}>
-                  {habitsRemaining} more habit{habitsRemaining !== 1 ? 's' : ''} to unlock
+                  {habitsRemaining} more practice{habitsRemaining !== 1 ? 's' : ''} to unlock
                 </Text>
               </View>
             </View>

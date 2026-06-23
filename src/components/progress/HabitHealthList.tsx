@@ -19,8 +19,8 @@ export const HabitHealthList: React.FC<HabitHealthListProps> = ({ habits }) => {
   if (habits.length === 0) {
     return (
       <Card style={styles.card}>
-        <Text style={styles.title}>Your Habits</Text>
-        <Text style={styles.emptyText}>No active habits yet. Add habits to see how you're doing.</Text>
+        <Text style={styles.title}>Your Practices</Text>
+        <Text style={styles.emptyText}>No active practices yet. Add practices to see how you're doing.</Text>
       </Card>
     );
   }
@@ -51,7 +51,7 @@ export const HabitHealthList: React.FC<HabitHealthListProps> = ({ habits }) => {
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Your Habits</Text>
+      <Text style={styles.title}>Your Practices</Text>
 
       {sticky.length > 0 && (
         <>

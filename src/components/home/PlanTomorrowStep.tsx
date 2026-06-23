@@ -8,10 +8,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { Nudge, TomorrowChallenge } from '../../types';
+import { PracticeInstance, TomorrowChallenge } from '../../types';
 
 interface PlanTomorrowStepProps {
-  habits: Nudge[];
+  habits: PracticeInstance[];
   weeklyCounts: Record<string, number>;
   suggestedHabitIds: string[];
   selectedHabitIds: string[];
@@ -83,7 +83,7 @@ export const PlanTomorrowStep: React.FC<PlanTomorrowStepProps> = ({
           {/* ── Habits Section ── */}
           {habits.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Habits</Text>
+              <Text style={styles.sectionLabel}>Practices</Text>
               {habits.map((habit) => {
                 const isSelected = selectedHabitIds.includes(habit.id);
                 const isSuggested = suggestedHabitIds.includes(habit.id);

@@ -11,12 +11,12 @@
  */
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { HabitActionPlan, HabitReminder, Nudge } from '../types';
-import { getHabitById, updateHabit } from './habits';
+import { HabitActionPlan, HabitReminder, PracticeInstance } from '../types';
+import { getHabitById, updateHabit } from './practices';
 
 const ANDROID_CHANNEL = 'habit-reminders';
 
-/** The fields a reminder needs — satisfied by Nudge, or by a lightweight stand-in. */
+/** The fields a reminder needs — satisfied by PracticeInstance, or by a lightweight stand-in. */
 interface RemindableHabit {
   id: string;
   name: string;
@@ -136,7 +136,7 @@ export const cancelHabitReminder = async (habit: RemindableHabit): Promise<void>
  * was denied. Only touches habits missing an id, so it's safe to run on app load.
  * Skips the permission prompt entirely when there's nothing to schedule.
  */
-export const reconcileHabitReminders = async (userId: string, habits: Nudge[]): Promise<void> => {
+export const reconcileHabitReminders = async (userId: string, habits: PracticeInstance[]): Promise<void> => {
   const pending = habits.filter(
     (h) => h.is_active && h.reminder?.enabled && h.reminder.time && !h.reminder.notificationId
   );

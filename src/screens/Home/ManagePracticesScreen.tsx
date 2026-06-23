@@ -14,26 +14,28 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
-import { getActiveHabits, createHabit, updateHabit } from '../../services/habits';
+import { getActiveHabits, createHabit, updateHabit } from '../../services/practices';
 import { cancelHabitReminder } from '../../services/habitReminders';
-import { Nudge } from '../../types';
+import { PracticeInstance } from '../../types';
+import { PRACTICE_GROUPS, PracticeGroup } from '../../data/practices';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
 type Props = HomeScreenProps<'ManageHabits'>;
 
-export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
+export const ManagePracticesScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
 
-  const [habits, setHabits] = useState<Nudge[]>([]);
+  const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
   const [timesPerWeek, setTimesPerWeek] = useState(3);
+  const [newGroup, setNewGroup] = useState<PracticeGroup>('custom');
   const [goalIds, setGoalIds] = useState<string[]>([]);
 
   // Edit mode state
-  const [editingHabit, setEditingHabit] = useState<Nudge | null>(null);
+  const [editingHabit, setEditingHabit] = useState<PracticeInstance | null>(null);
   const [editName, setEditName] = useState('');
   const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
   const [editLoading, setEditLoading] = useState(false);
@@ -45,7 +47,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
       const h = await getActiveHabits(user.uid);
       setHabits(h);
     } catch (e: any) {
-      showAlert('Error', e.message || 'Failed to load habits.');
+      showAlert('Error', e.message || 'Failed to load practices.');
     }
   };
 
@@ -64,7 +66,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleAdd = async () => {
     if (!newName.trim()) {
-      showAlert('Required', 'Enter a habit name.');
+      showAlert('Required', 'Enter a practice name.');
       return;
     }
     if (!user) return;
@@ -73,10 +75,12 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
       const habitId = await createHabit(user.uid, {
         name: newName.trim(),
         target_count_per_week: timesPerWeek,
+        group: newGroup, // user-authored → custom practice (created_by_user defaults true)
         ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
       });
       setNewName('');
       setTimesPerWeek(3);
+      setNewGroup('custom');
       setGoalIds([]);
       setShowForm(false);
       await load();
@@ -91,7 +95,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const startEdit = (habit: Nudge) => {
+  const startEdit = (habit: PracticeInstance) => {
     setEditingHabit(habit);
     setEditName(habit.name);
     setEditTimesPerWeek(habit.target_count_per_week);
@@ -106,7 +110,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
-      showAlert('Required', 'Habit name cannot be empty.');
+      showAlert('Required', 'Practice name cannot be empty.');
       return;
     }
     if (!user || !editingHabit) return;
@@ -116,7 +120,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
         name: editName.trim(),
         target_count_per_week: editTimesPerWeek,
         goal_ids: editGoalIds,
-      } as Partial<Nudge>);
+      } as Partial<PracticeInstance>);
       cancelEdit();
       await load();
     } catch (e: any) {
@@ -126,10 +130,10 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleDeactivate = (habit: Nudge) => {
+  const handleDeactivate = (habit: PracticeInstance) => {
     showConfirm(
       'Deactivate',
-      `Remove "${habit.name}" from your active habits?`,
+      `Remove "${habit.name}" from your active practices?`,
       async () => {
         if (!user) return;
         try {
@@ -137,7 +141,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
           await updateHabit(user.uid, habit.id, { is_active: false });
           await load();
         } catch (e: any) {
-          showAlert('Error', e.message || 'Failed to deactivate habit.');
+          showAlert('Error', e.message || 'Failed to deactivate practice.');
         }
       },
       'Deactivate'
@@ -146,7 +150,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Manage Habits</Text>
+      <Text style={styles.heading}>Manage Practices</Text>
 
       {SHOW_HABIT_LIBRARY && !showForm && !editingHabit && (
         <TouchableOpacity
@@ -162,11 +166,32 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
       {showForm ? (
         <Card style={styles.formCard}>
           <InputField
-            label="Habit Name"
+            label="Practice Name"
             value={newName}
             onChangeText={setNewName}
             placeholder="e.g. Meditate 10 minutes"
           />
+          <Text style={styles.catLabel}>Group</Text>
+          <View style={styles.catRow}>
+            {PRACTICE_GROUPS.map((g) => {
+              const active = newGroup === g.id;
+              return (
+                <TouchableOpacity
+                  key={g.id}
+                  onPress={() => setNewGroup(g.id)}
+                  style={[
+                    styles.groupChip,
+                    { borderColor: g.color },
+                    active && { backgroundColor: g.color },
+                  ]}
+                >
+                  <Text style={[styles.groupChipText, active && { color: Colors.white }]}>
+                    {g.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
           <Text style={styles.catLabel}>Times per week</Text>
           <View style={styles.catRow}>
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
@@ -193,7 +218,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
             <Button title="Add" onPress={handleAdd} loading={loading} style={{ flex: 1 }} />
             <Button
               title="Cancel"
-              onPress={() => { setShowForm(false); setNewName(''); }}
+              onPress={() => { setShowForm(false); setNewName(''); setNewGroup('custom'); }}
               variant="outline"
               style={{ flex: 1 }}
             />
@@ -201,7 +226,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
         </Card>
       ) : !editingHabit ? (
         <Button
-          title="Add New Habit"
+          title="Add New Practice"
           onPress={() => setShowForm(true)}
           style={{ marginHorizontal: Spacing.lg, marginBottom: Spacing.md }}
         />
@@ -210,12 +235,12 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* Edit form (inline, replaces the add button when editing) */}
       {editingHabit && (
         <Card style={styles.formCard}>
-          <Text style={styles.editLabel}>Editing Habit</Text>
+          <Text style={styles.editLabel}>Editing Practice</Text>
           <InputField
-            label="Habit Name"
+            label="Practice Name"
             value={editName}
             onChangeText={setEditName}
-            placeholder="Habit name"
+            placeholder="Practice name"
           />
           <Text style={styles.catLabel}>Times per week</Text>
           <View style={styles.catRow}>
@@ -281,7 +306,7 @@ export const ManageHabitsScreen: React.FC<Props> = ({ navigation, route }) => {
           </Card>
         )}
         ListEmptyComponent={
-          <Text style={styles.empty}>No active habits.</Text>
+          <Text style={styles.empty}>No active practices.</Text>
         }
       />
 
@@ -365,6 +390,17 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
+  },
+  groupChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 2,
+  },
+  groupChipText: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.dark,
   },
   freqChip: {
     width: 36,

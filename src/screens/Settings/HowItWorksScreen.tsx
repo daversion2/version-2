@@ -42,12 +42,12 @@ export const HowItWorksScreen: React.FC = () => {
             <Ionicons name="repeat" size={22} color={Colors.primary} />
           </View>
           <View style={styles.pillarHeaderText}>
-            <Text style={styles.sectionTitle}>Habits</Text>
+            <Text style={styles.sectionTitle}>Practices</Text>
             <Text style={styles.pillarTagline}>Consistent daily actions</Text>
           </View>
         </View>
         <Text style={styles.description}>
-          A habit is something you want to do regularly — exercise, meditate, read, eat clean. You set a weekly target and track your consistency over time.
+          A practice is something you want to do regularly — exercise, meditate, read, eat clean. You set a weekly target and track your consistency over time.
         </Text>
         <View style={styles.bulletList}>
           <Text style={styles.bullet}>{'\u2022'} Set a target (e.g. 5x per week) and log completions</Text>

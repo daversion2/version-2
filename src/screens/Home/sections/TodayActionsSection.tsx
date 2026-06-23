@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
 import { Card } from '../../../components/common/Card';
 import { HomeSectionProps } from './types';
-import { Nudge } from '../../../types';
+import { PracticeInstance } from '../../../types';
 import { AddActivityMenu } from '../../../components/home/AddActivityMenu';
-import { PRACTICE_GROUPS, getPractice, PracticeGroup } from '../../../data/practices';
+import { PRACTICE_GROUPS, resolvePracticeGroup, PracticeGroup } from '../../../data/practices';
 import {
   PlannerBar,
   ChallengeRow,
@@ -17,8 +17,9 @@ import {
 
 /**
  * Practices-first "Today's Actions" (replaces the goal-grouped GoalActionsSection).
- * Groups the user's habits by practice group (Activate/Calm/Restrain) + an "Other"
- * bucket for non-practice habits, then active challenges, then the active program.
+ * Groups the user's practices by group (Activate/Calm/Restrain/Custom), then active
+ * challenges, then the active program. Every habit is a practice — curated ones derive
+ * their group from the catalog, user-authored ones fall under Custom.
  * Goals are no longer the organizing spine. See docs/home-rework-plan.md
  */
 export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
@@ -63,19 +64,19 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
 
   const allChallenges = [...activeChallenges, ...extendedChallenges];
 
-  // Bucket habits by practice group; non-practice habits → "other".
-  const habitsByGroup: Record<PracticeGroup | 'other', Nudge[]> = {
+  // Bucket every practice by its group. Curated practices derive their group from
+  // the catalog; user-authored ones resolve to 'custom'.
+  const habitsByGroup: Record<PracticeGroup, PracticeInstance[]> = {
     activate: [],
     calm: [],
     restrain: [],
-    other: [],
+    custom: [],
   };
   habits.forEach((h) => {
-    const practice = h.practice_id ? getPractice(h.practice_id) : undefined;
-    habitsByGroup[practice?.group ?? 'other'].push(h);
+    habitsByGroup[resolvePracticeGroup(h)].push(h);
   });
 
-  const renderHabit = (habit: Nudge) => (
+  const renderHabit = (habit: PracticeInstance) => (
     <HabitRow
       key={habit.id}
       habit={habit}
@@ -102,7 +103,7 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
         </View>
       )}
 
-      {/* Practices, grouped Activate / Calm / Restrain */}
+      {/* Practices, grouped Activate / Calm / Restrain / Custom */}
       {PRACTICE_GROUPS.map((group) => {
         const groupHabits = habitsByGroup[group.id];
         if (groupHabits.length === 0) return null;
@@ -116,17 +117,6 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
           </View>
         );
       })}
-
-      {/* Other (non-practice) habits */}
-      {habitsByGroup.other.length > 0 && (
-        <View style={styles.group}>
-          <View style={styles.groupHeader}>
-            <View style={[styles.groupDot, { backgroundColor: Colors.gray }]} />
-            <Text style={styles.groupName}>Other</Text>
-          </View>
-          {habitsByGroup.other.map(renderHabit)}
-        </View>
-      )}
 
       {/* Active challenges */}
       {challengesUnlocked && allChallenges.length > 0 && (

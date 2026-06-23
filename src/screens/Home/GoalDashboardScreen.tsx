@@ -30,7 +30,7 @@ import {
 import { getCompletionLogs } from '../../services/progress';
 import { getMeasurementProgress, logMeasurement } from '../../services/measurements';
 import { getWhyProfile } from '../../services/whyDiscovery';
-import { Goal, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment, MeasurementProgress, WhyProfile } from '../../types';
+import { Goal, GoalFollowThrough, Challenge, PracticeInstance, ProgramEnrollment, MeasurementProgress, WhyProfile } from '../../types';
 import { MeasurementProgressSection } from '../../components/goals/MeasurementProgressSection';
 import { LogProgressModal } from '../../components/goals/LogProgressModal';
 
@@ -80,7 +80,7 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [pastChallenges, setPastChallenges] = useState<Challenge[]>([]);
   const [showAllPastChallenges, setShowAllPastChallenges] = useState(false);
-  const [habits, setHabits] = useState<Nudge[]>([]);
+  const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [programEnrollments, setProgramEnrollments] = useState<ProgramEnrollment[]>([]);
   const [followThrough, setFollowThrough] = useState<GoalFollowThrough | null>(null);
   const [activityDates, setActivityDates] = useState<Set<string>>(new Set());
@@ -578,7 +578,7 @@ export const GoalDashboardScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Tagged Habits */}
       {habits.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Habits</Text>
+          <Text style={styles.sectionTitle}>Practices</Text>
           {habits.map(h => (
             <Card
               key={h.id}

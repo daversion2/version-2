@@ -72,7 +72,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
         <View style={styles.statText}>
           <Text style={styles.statMain}>
             <Text style={styles.statNumber}>{habitsThisWeek}</Text>
-            <Text style={styles.statLabel}> habit{habitsThisWeek === 1 ? '' : 's'} this week</Text>
+            <Text style={styles.statLabel}> practice{habitsThisWeek === 1 ? '' : 's'} this week</Text>
           </Text>
           {totalHabits > 0 && (
             <Text style={styles.statSubtitle}>{totalHabits.toLocaleString()} all time</Text>

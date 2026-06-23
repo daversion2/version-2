@@ -12,12 +12,12 @@ import {
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../common/Button';
-import { Nudge, HabitDifficulty } from '../../types';
+import { PracticeInstance, HabitDifficulty } from '../../types';
 
 interface Props {
   visible: boolean;
   date: string;
-  habits: Nudge[];
+  habits: PracticeInstance[];
   loading?: boolean;
   onSubmit: (habitId: string, habitName: string, difficulty: HabitDifficulty, notes?: string) => void;
   onCancel: () => void;
@@ -31,7 +31,7 @@ export const BackdateHabitModal: React.FC<Props> = ({
   onSubmit,
   onCancel,
 }) => {
-  const [selectedHabit, setSelectedHabit] = useState<Nudge | null>(null);
+  const [selectedHabit, setSelectedHabit] = useState<PracticeInstance | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<HabitDifficulty | null>(null);
   const [notes, setNotes] = useState('');
 
@@ -56,7 +56,7 @@ export const BackdateHabitModal: React.FC<Props> = ({
     onCancel();
   };
 
-  const renderHabitItem = ({ item }: { item: Nudge }) => (
+  const renderHabitItem = ({ item }: { item: PracticeInstance }) => (
     <TouchableOpacity
       style={[
         styles.habitItem,
@@ -81,16 +81,16 @@ export const BackdateHabitModal: React.FC<Props> = ({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.overlay} onPress={handleCancel}>
         <Pressable style={styles.card} onPress={() => {}}>
-          <Text style={styles.title}>Add Forgotten Habit</Text>
+          <Text style={styles.title}>Add Forgotten Practice</Text>
           <Text style={styles.subtitle}>For {date}</Text>
 
           {loading ? (
             <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
           ) : habits.length === 0 ? (
-            <Text style={styles.emptyText}>All habits have been logged for this day.</Text>
+            <Text style={styles.emptyText}>All practices have been logged for this day.</Text>
           ) : (
             <>
-              <Text style={styles.sectionLabel}>Select a habit:</Text>
+              <Text style={styles.sectionLabel}>Select a practice:</Text>
               <FlatList
                 data={habits}
                 keyExtractor={(item) => item.id}
@@ -173,7 +173,7 @@ export const BackdateHabitModal: React.FC<Props> = ({
           <View style={styles.actions}>
             {habits.length > 0 && (
               <Button
-                title="Add Habit"
+                title="Add Practice"
                 onPress={handleSubmit}
                 disabled={!selectedHabit || !selectedDifficulty}
                 style={{ flex: 1 }}

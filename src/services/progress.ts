@@ -9,9 +9,9 @@ import {
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
 import { getTodayString } from '../utils/date';
-import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './habits';
+import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './practices';
 import { db } from './firebase';
-import { CompletionLog, Challenge, Nudge, Goal } from '../types';
+import { CompletionLog, Challenge, PracticeInstance, Goal } from '../types';
 import { NO_GOAL_COLOR } from '../constants/goalColors';
 
 export interface EnrichedCompletionLog extends CompletionLog {
@@ -38,7 +38,7 @@ export const getCompletionLogsWithNames = async (
 
   const habitMap = new Map<string, { name: string }>();
   habitSnap.docs.forEach((d) => {
-    const data = d.data() as Nudge;
+    const data = d.data() as PracticeInstance;
     habitMap.set(d.id, { name: data.name });
   });
 
@@ -173,7 +173,7 @@ export const getGoalBreakdown = async (
 
   const habitGoalMap = new Map<string, string[]>();
   habitSnap.docs.forEach((d) => {
-    const data = d.data() as Nudge;
+    const data = d.data() as PracticeInstance;
     habitGoalMap.set(d.id, data.goal_ids || []);
   });
 

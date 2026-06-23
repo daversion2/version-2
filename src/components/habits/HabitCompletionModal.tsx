@@ -15,7 +15,7 @@ import { formatHabitPlanLine } from '../../utils/habitPlan';
 
 const HABIT_PROMPTS = [
   'What made today different?',
-  'How did this habit feel today?',
+  'How did this practice feel today?',
   'Any thoughts on your progress?',
   'What helped you follow through?',
 ];
@@ -135,7 +135,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
 
           <View style={styles.actions}>
             <Button
-              title="Log Habit"
+              title="Log Practice"
               onPress={handleSubmit}
               disabled={!selected}
               style={{ flex: 1 }}

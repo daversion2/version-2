@@ -1,6 +1,6 @@
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
-import { Challenge, Nudge, ArenaId } from '../types';
+import { Challenge, PracticeInstance, ArenaId } from '../types';
 import { getChallengeArenaId } from '../utils/arenaForChallenge';
 import { getHabitArenaId } from '../utils/arenaForHabit';
 import { ARENA_IDS } from '../constants/arenas';
@@ -51,7 +51,7 @@ export const getArenaAdoption = async (userId: string): Promise<ArenaAdoption> =
 
   const habits: AdoptionStat = { total: 0, storedArena: 0, resolved: 0 };
   hSnap.docs.forEach((d) => {
-    const data = d.data() as Nudge;
+    const data = d.data() as PracticeInstance;
     habits.total += 1;
     if (data.arena_id) habits.storedArena += 1;
     if (getHabitArenaId(data)) habits.resolved += 1;

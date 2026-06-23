@@ -19,9 +19,9 @@ import { InputField } from '../../components/common/InputField';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
-import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/habits';
+import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
 import { cancelHabitReminder } from '../../services/habitReminders';
-import { Nudge, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
+import { PracticeInstance, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 
 type Props = HomeScreenProps<'HabitDetail'>;
 
@@ -46,11 +46,11 @@ const planValueFor = (
   fallbackKey?: keyof HabitActionPlan
 ): string | undefined => plan[key] || (fallbackKey ? plan[fallbackKey] : undefined);
 
-export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { habitId } = route.params;
   const { user } = useAuth();
 
-  const [habit, setHabit] = useState<Nudge | null>(null);
+  const [habit, setHabit] = useState<PracticeInstance | null>(null);
   const [stats, setStats] = useState<HabitStats | null>(null);
   const [logs, setLogs] = useState<CompletionLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +97,7 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
-      Alert.alert('Required', 'Habit name cannot be empty.');
+      Alert.alert('Required', 'Practice name cannot be empty.');
       return;
     }
     if (!user) return;
@@ -107,7 +107,7 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
         name: editName.trim(),
         target_count_per_week: editTimesPerWeek,
         goal_ids: editGoalIds,
-      } as Partial<Nudge>);
+      } as Partial<PracticeInstance>);
       setEditing(false);
       await loadData();
     } catch (e: any) {
@@ -119,8 +119,8 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Habit',
-      'Are you sure you want to delete this habit? Your completion history will be preserved.',
+      'Delete Practice',
+      'Are you sure you want to delete this practice? Your completion history will be preserved.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -195,7 +195,7 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   if (!habit || !stats) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Habit not found</Text>
+        <Text style={styles.errorText}>Practice not found</Text>
       </View>
     );
   }
@@ -217,10 +217,10 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       {editing && (
         <Card style={styles.editCard}>
           <InputField
-            label="Habit Name"
+            label="Practice Name"
             value={editName}
             onChangeText={setEditName}
-            placeholder="Habit name"
+            placeholder="Practice name"
           />
           <Text style={styles.editFreqLabel}>Times per week</Text>
           <View style={styles.editFreqRow}>
@@ -409,7 +409,7 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       ) : (
         <Card style={styles.planEmptyCard}>
           <Text style={styles.planEmptyText}>
-            Set yourself up for success — create an action plan for this habit.
+            Set yourself up for success — create an action plan for this practice.
           </Text>
           <TouchableOpacity
             onPress={() =>
@@ -429,7 +429,7 @@ export const HabitDetailScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Delete */}
       <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
         <Ionicons name="trash-outline" size={18} color={Colors.secondary} />
-        <Text style={styles.deleteBtnText}>Delete Habit</Text>
+        <Text style={styles.deleteBtnText}>Delete Practice</Text>
       </TouchableOpacity>
     </ScrollView>
   );

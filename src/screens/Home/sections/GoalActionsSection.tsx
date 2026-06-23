@@ -7,7 +7,7 @@ import { Button } from '../../../components/common/Button';
 import { CountdownTimer } from '../../../components/challenge/CountdownTimer';
 import { ProgressBar } from '../../../components/challenge/ProgressBar';
 import { HomeSectionProps } from './types';
-import { Goal, Challenge, Nudge, HabitActionPlan } from '../../../types';
+import { Goal, Challenge, PracticeInstance, HabitActionPlan } from '../../../types';
 import { ACTION_TYPES } from '../../../constants/challengeLibrary';
 import { GOAL_CONSTANTS } from '../../../constants/goals';
 import { formatShortDay } from '../../../utils/date';
@@ -91,7 +91,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
           <View style={styles.unlockTeaser}>
             <Ionicons name="lock-closed" size={14} color={Colors.secondary} />
             <Text style={styles.unlockTeaserText}>
-              {habitsRemaining} habit{habitsRemaining !== 1 ? 's' : ''} away from unlocking Challenges
+              {habitsRemaining} practice{habitsRemaining !== 1 ? 's' : ''} away from unlocking Challenges
             </Text>
           </View>
         )}
@@ -124,7 +124,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
           <Ionicons name="flag-outline" size={40} color={Colors.primary} />
           <Text style={styles.emptyTitle}>Create Your First Goal</Text>
           <Text style={styles.emptyText}>
-            Goals organize your challenges, habits, and programs into one clear picture.
+            Goals organize your challenges, practices, and programs into one clear picture.
           </Text>
           <Button
             title="Get Started"
@@ -154,7 +154,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
         <View style={styles.unlockTeaser}>
           <Ionicons name="lock-closed" size={14} color={Colors.secondary} />
           <Text style={styles.unlockTeaserText}>
-            {habitsRemaining} habit{habitsRemaining !== 1 ? 's' : ''} away from unlocking Challenges
+            {habitsRemaining} practice{habitsRemaining !== 1 ? 's' : ''} away from unlocking Challenges
           </Text>
         </View>
       )}
@@ -419,7 +419,7 @@ const planValueFor = (
 ): string | undefined => plan[key] || (fallbackKey ? plan[fallbackKey] : undefined);
 
 export const HabitRow: React.FC<{
-  habit: Nudge;
+  habit: PracticeInstance;
   done: number;
   streak: number;
   callbacks: HomeSectionProps['callbacks'];
@@ -536,7 +536,7 @@ export const HabitRow: React.FC<{
           activeOpacity={0.7}
         >
           <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
-          <Text style={styles.planToggleText}>Create a plan for this habit</Text>
+          <Text style={styles.planToggleText}>Create a plan for this practice</Text>
           <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
         </TouchableOpacity>
       )}

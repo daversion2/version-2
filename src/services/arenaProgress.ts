@@ -1,10 +1,10 @@
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
-import { CompletionLog, Challenge, Nudge, ArenaId } from '../types';
+import { CompletionLog, Challenge, PracticeInstance, ArenaId } from '../types';
 import { getChallengeArenaId } from '../utils/arenaForChallenge';
 import { getHabitArenaId } from '../utils/arenaForHabit';
 import { ARENAS } from '../constants/arenas';
-import { getCurrentWeekBounds } from './habits';
+import { getCurrentWeekBounds } from './practices';
 
 // =============================================================================
 // ARENA PROGRESS — the proof-of-growth aggregation (Phase 3.1)
@@ -59,7 +59,7 @@ export const getArenaProgress = async (userId: string): Promise<ArenaProgress> =
   });
   const habitArena = new Map<string, ArenaId | undefined>();
   habitSnap.docs.forEach((d) => {
-    habitArena.set(d.id, getHabitArenaId({ id: d.id, ...d.data() } as Nudge));
+    habitArena.set(d.id, getHabitArenaId({ id: d.id, ...d.data() } as PracticeInstance));
   });
 
   const arenaForLog = (log: LogLike): ArenaId | undefined => {

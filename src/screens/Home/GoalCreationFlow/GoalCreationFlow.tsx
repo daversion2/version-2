@@ -24,7 +24,7 @@ import {
   commitGoalDraft,
   getGoalById,
 } from '../../../services/goals';
-import { createHabit } from '../../../services/habits';
+import { createHabit } from '../../../services/practices';
 import { GOAL_CONSTANTS, CREATION_FLOW_STEPS } from '../../../constants/goals';
 import {
   MeasurementType,
