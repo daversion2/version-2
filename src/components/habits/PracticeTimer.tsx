@@ -1,13 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Slider } from '../common/Slider';
 
-const CHIME = require('../../../assets/sounds/chime.wav');
+// Lazily start the looping chime, returning a stop fn (or null if unavailable).
+// expo-audio + expo-asset are native modules present only in a build compiled
+// with them (the App Store binary) — NOT in the current OTA binary. Requiring
+// them lazily inside try/catch lets the SAME code ship OTA (haptic-only, no
+// crash) and via the native build (full chime). Keep-awake + haptics are in
+// both binaries already, so they always work.
+async function startChimeLoop(): Promise<(() => void) | null> {
+  try {
+    const audio = require('expo-audio');
+    await audio.setAudioModeAsync({ playsInSilentMode: true });
+    const player = audio.createAudioPlayer(require('../../../assets/sounds/chime.wav'));
+    player.loop = true;
+    player.play();
+    return () => {
+      try {
+        player.pause();
+        player.remove();
+      } catch {
+        /* no-op */
+      }
+    };
+  } catch {
+    return null; // native audio not in this binary — the haptic still fires
+  }
+}
 
 interface Props {
   accentColor: string;
@@ -56,7 +79,8 @@ export const PracticeTimer: React.FC<Props> = ({ accentColor, defaultMinutes, on
   const [minutes, setMinutes] = useState(seed);
   const [remaining, setRemaining] = useState(seed * 60);
 
-  const player = useAudioPlayer(CHIME);
+  // Holds the chime's stop fn while it's ringing (null when silent/unavailable).
+  const stopChimeRef = useRef<null | (() => void)>(null);
 
   // Keep the screen awake for the whole active session, so the device doesn't
   // auto-lock mid-meditation. Released when the session ends or the timer unmounts.
@@ -85,35 +109,27 @@ export const PracticeTimer: React.FC<Props> = ({ accentColor, defaultMinutes, on
   // Drive the chime + a safety auto-stop while in the finished state.
   useEffect(() => {
     if (phase !== 'finished') return;
-    let stopTimeout: ReturnType<typeof setTimeout>;
-    (async () => {
-      haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-      try {
-        // Play even when the ringer is on silent — that's the point of an alarm.
-        await setAudioModeAsync({ playsInSilentMode: true });
-        player.loop = true;
-        player.seekTo(0);
-        player.play();
-      } catch {
-        /* audio is best-effort — the haptic + UI still fire */
+    haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+    let cancelled = false;
+    startChimeLoop().then((stop) => {
+      // If we already left 'finished' before the chime loaded, stop it at once.
+      if (cancelled) {
+        stop?.();
+        return;
       }
-    })();
-    stopTimeout = setTimeout(() => {
-      try {
-        player.pause();
-      } catch {
-        /* no-op */
-      }
+      stopChimeRef.current = stop;
+    });
+    const stopTimeout = setTimeout(() => {
+      stopChimeRef.current?.();
+      stopChimeRef.current = null;
     }, ALARM_MAX_MS);
     return () => {
+      cancelled = true;
       clearTimeout(stopTimeout);
-      try {
-        player.pause();
-      } catch {
-        /* no-op */
-      }
+      stopChimeRef.current?.();
+      stopChimeRef.current = null;
     };
-  }, [phase, player]);
+  }, [phase]);
 
   const start = () => {
     setRemaining(minutes * 60);
@@ -175,11 +191,8 @@ export const PracticeTimer: React.FC<Props> = ({ accentColor, defaultMinutes, on
         <TouchableOpacity
           style={[styles.startBtn, { backgroundColor: accentColor }]}
           onPress={() => {
-            try {
-              player.pause();
-            } catch {
-              /* no-op */
-            }
+            stopChimeRef.current?.();
+            stopChimeRef.current = null;
             onDone(minutes);
           }}
           activeOpacity={0.85}
