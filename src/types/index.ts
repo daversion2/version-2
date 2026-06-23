@@ -289,7 +289,18 @@ export interface CompletionLog {
   difficulty: number;
   date: string;
   completed_at?: string; // ISO 8601 timestamp
-  notes?: string; // Optional notes for this completion
+  notes?: string; // Optional notes for this completion — the free-text "I did XYZ"
+  // --- Practice tracking + override reflection (all optional) ---
+  // Detailed, per-practice numeric/categorical tracking, keyed by TrackingField.key
+  // (e.g. { duration_min: 3, water_temp_f: 50, technique: 'breath' }). Numeric values
+  // power dashboard trends; this map is intentionally generic so new metrics need no
+  // schema change. See Practice.tracking in data/practices.ts.
+  metrics?: Record<string, number | string>;
+  // Override reflection: did the rep hit its characteristic resistance moment, and
+  // which shared override tactics did they use (ids from OVERRIDE_TACTICS). Aggregating
+  // `tactics` across all logs is what powers the future Override Playbook.
+  hitHardMoment?: boolean;
+  tactics?: string[];
   // Before/after emotional state tracking (habit check-ins only)
   energyBefore?: -1 | 1 | null;
   moodBefore?: -1 | 1 | null;
@@ -300,6 +311,15 @@ export interface CompletionLog {
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';
+
+/** Everything the completion sheet can capture for one practice rep. */
+export interface PracticeCompletionInput {
+  difficulty: HabitDifficulty;
+  notes?: string;
+  metrics?: Record<string, number | string>;
+  hitHardMoment?: boolean;
+  tactics?: string[];
+}
 
 // =============================================================================
 // CHALLENGE LIBRARY TYPES

@@ -14,7 +14,7 @@ import {
   completePractice,
 } from '../../services/practices';
 import { getUserTeam } from '../../services/teams';
-import { PracticeInstance, HabitDifficulty } from '../../types';
+import { PracticeInstance, HabitDifficulty, PracticeCompletionInput } from '../../types';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 
@@ -111,14 +111,14 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
     }
   };
 
-  const handleSubmitCompletion = async (difficulty: HabitDifficulty, notes?: string) => {
+  const handleSubmitCompletion = async (input: PracticeCompletionInput) => {
     setCompleting(false);
     if (!user || !habit) return;
     const result = await completePractice(
       user.uid,
       { id: habit.id, name: habit.name },
-      difficulty,
-      { teamId, notes }
+      input,
+      { teamId }
     );
     setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
     await load();
@@ -231,6 +231,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
       <HabitCompletionModal
         visible={completing}
         habitName={name}
+        practiceId={practice?.id ?? habit?.practice_id}
         actionPlan={habit?.action_plan}
         onSubmit={handleSubmitCompletion}
         onCancel={() => setCompleting(false)}

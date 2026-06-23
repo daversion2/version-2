@@ -26,6 +26,29 @@ export interface PracticeVariation {
   description: string;
 }
 
+/**
+ * An optional, per-practice metric the user can log on completion. Rendered by a
+ * single generic input in the completion sheet and stored in CompletionLog.metrics
+ * under `key`. Numeric fields feed dashboard trends; 'choice' fields feed distributions.
+ */
+export interface TrackingField {
+  /** Stable storage key, written to CompletionLog.metrics. */
+  key: string;
+  /** Short prompt, e.g. "How long?". */
+  label: string;
+  type: 'duration' | 'number' | 'choice';
+  /** Display unit for number/duration, e.g. 'min', '°F', 'rounds', 'hrs'. */
+  unit?: string;
+  /** Options for type: 'choice'. */
+  options?: { value: string; label: string }[];
+  /** Slider bounds + increment for number/duration fields. */
+  min?: number;
+  max?: number;
+  step?: number;
+  /** Sensible starting value shown before the user touches the slider. */
+  default?: number;
+}
+
 export interface Practice {
   id: string;
   name: string;
@@ -55,6 +78,16 @@ export interface Practice {
   tips: string[];
   /** Named ways to do it. */
   variations?: PracticeVariation[];
+
+  // ---- Post-completion: tracking + override reflection ----
+  /**
+   * The characteristic resistance moment — the predictable "get-out" urge this
+   * practice provokes. Anchors the reflection gate ("Did you hit the moment when
+   * ___?"). Omit for practices with no sharp resistance point.
+   */
+  resistanceMoment?: string;
+  /** Optional detailed metrics the user can log for this practice. */
+  tracking?: TrackingField[];
 }
 
 export const PRACTICE_GROUPS: PracticeGroupDef[] = [
@@ -122,6 +155,20 @@ export const PRACTICES: Practice[] = [
       { label: 'Body scan', description: 'Move attention slowly from head to toe.' },
       { label: 'Open awareness', description: 'Notice whatever arises without following it.' },
     ],
+    resistanceMoment: 'you noticed you’d drifted and wanted to get up or check the time',
+    tracking: [
+      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 60, step: 1, default: 10 },
+      {
+        key: 'technique',
+        label: 'Technique',
+        type: 'choice',
+        options: [
+          { value: 'breath', label: 'Breath focus' },
+          { value: 'body_scan', label: 'Body scan' },
+          { value: 'open', label: 'Open awareness' },
+        ],
+      },
+    ],
   },
   {
     id: 'breathwork',
@@ -152,6 +199,19 @@ export const PRACTICES: Practice[] = [
       { label: 'Box (4-4-4-4)', description: 'Inhale 4, hold 4, exhale 4, hold 4. Steady and calming.' },
       { label: '4-7-8', description: 'Inhale 4, hold 7, exhale 8. Strong downshift for sleep or anxiety.' },
       { label: 'Physiological sigh', description: 'Two inhales through the nose, one long exhale. Fastest reset.' },
+    ],
+    tracking: [
+      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 20, step: 1, default: 5 },
+      {
+        key: 'technique',
+        label: 'Pattern',
+        type: 'choice',
+        options: [
+          { value: 'box', label: 'Box' },
+          { value: '478', label: '4-7-8' },
+          { value: 'sigh', label: 'Physiological sigh' },
+        ],
+      },
     ],
   },
   {
@@ -216,6 +276,20 @@ export const PRACTICES: Practice[] = [
       { label: 'Cardio', description: 'Run, row, bike, or swim.' },
       { label: 'Ruck / hard walk', description: 'Weighted or brisk, ideally outdoors.' },
     ],
+    resistanceMoment: 'the effort bit and you wanted to stop',
+    tracking: [
+      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 120, step: 5, default: 30 },
+      {
+        key: 'type',
+        label: 'Type',
+        type: 'choice',
+        options: [
+          { value: 'strength', label: 'Strength' },
+          { value: 'cardio', label: 'Cardio' },
+          { value: 'ruck', label: 'Ruck / walk' },
+        ],
+      },
+    ],
   },
   {
     id: 'cold_exposure',
@@ -247,6 +321,11 @@ export const PRACTICES: Practice[] = [
       { label: 'Cold shower', description: 'End your shower on full cold.' },
       { label: 'Cold plunge / ice bath', description: 'Submerge to the neck.' },
       { label: 'Face dunk', description: 'Bowl of ice water — triggers the dive reflex fast.' },
+    ],
+    resistanceMoment: 'the cold hit and everything said get out',
+    tracking: [
+      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 12, step: 1, default: 2 },
+      { key: 'water_temp_f', label: 'Water temp', type: 'number', unit: '°F', min: 33, max: 70, step: 1, default: 50 },
     ],
   },
   {
@@ -280,6 +359,11 @@ export const PRACTICES: Practice[] = [
       { label: 'Hot bath', description: 'A hot soak when no sauna is available.' },
       { label: 'Contrast', description: 'Alternate heat and cold.' },
     ],
+    resistanceMoment: 'the heat got intense and you wanted to leave',
+    tracking: [
+      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 45, step: 5, default: 15 },
+      { key: 'temp_f', label: 'Temp', type: 'number', unit: '°F', min: 120, max: 220, step: 5, default: 170 },
+    ],
   },
   // ---- Restrain ----
   {
@@ -312,6 +396,10 @@ export const PRACTICES: Practice[] = [
       { label: 'Single-task', description: 'Do one thing slowly, with no second screen.' },
       { label: 'Phone-free walk', description: 'Walk with no phone or earbuds.' },
     ],
+    resistanceMoment: 'you reached for your phone or something to fill the space',
+    tracking: [
+      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 60, step: 5, default: 10 },
+    ],
   },
   {
     id: 'fasting',
@@ -343,6 +431,10 @@ export const PRACTICES: Practice[] = [
       { label: '16:8', description: '16-hour fast, 8-hour eating window.' },
       { label: 'Skip a meal', description: 'Drop one meal deliberately.' },
       { label: '24-hour', description: 'Advanced: one full day, occasionally.' },
+    ],
+    resistanceMoment: 'a craving spiked and you wanted to eat',
+    tracking: [
+      { key: 'duration_hrs', label: 'Fasting window', type: 'duration', unit: 'hrs', min: 12, max: 36, step: 1, default: 16 },
     ],
   },
 ];
