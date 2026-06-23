@@ -16,9 +16,9 @@ import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-communi
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
-import { updateHabit } from '../../services/habits';
+import { updateHabit } from '../../services/practices';
 import { syncHabitReminder } from '../../services/habitReminders';
-import { HabitActionPlan, Nudge } from '../../types';
+import { HabitActionPlan, PracticeInstance } from '../../types';
 import { ANCHORS, findAnchorByPhrase, defaultTimeForAnchor } from '../../data/anchors';
 
 type Props = HomeScreenProps<'HabitActionPlan'>;
@@ -207,7 +207,7 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
         if (typeof v === 'string' && v.trim()) plan[k] = v.trim();
       });
 
-      const payload: Partial<Nudge> = { action_plan: plan };
+      const payload: Partial<PracticeInstance> = { action_plan: plan };
       // Carry the reminder when there's an anchor to fire it against, or the user turned it on.
       if (plan.anchor || reminderEnabled) {
         payload.reminder = { time: reminderTime, enabled: reminderEnabled };

@@ -10,7 +10,7 @@ import {
   TomorrowPlan,
   TomorrowChallenge,
   Challenge,
-  Nudge,
+  PracticeInstance,
   ProgramEnrollment,
   ProgramDay,
 } from '../types';
@@ -29,7 +29,7 @@ import { getCurrentDayNumber, createChallenge } from './challenges';
 export function buildTodaysPlan(params: {
   activeChallenges: Challenge[];
   extendedChallenges: Challenge[];
-  habits: Nudge[];
+  habits: PracticeInstance[];
   weeklyCounts: Record<string, number>;
   activeProgram: ProgramEnrollment | null;
   todaysProgramDay: ProgramDay | null;
@@ -233,9 +233,9 @@ export async function convertPlannedChallengesToChallenges(
  * Returns habits that still need completions this week and are behind pace.
  */
 export function suggestHabitsForTomorrow(
-  habits: Nudge[],
+  habits: PracticeInstance[],
   weeklyCounts: Record<string, number>
-): Nudge[] {
+): PracticeInstance[] {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const daysPassedThisWeek = dayOfWeek === 0 ? 7 : dayOfWeek;

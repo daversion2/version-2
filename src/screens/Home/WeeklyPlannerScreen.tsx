@@ -17,7 +17,7 @@ import { WeekDayCard } from '../../components/home/WeekDayCard';
 import { useAuth } from '../../context/AuthContext';
 import {
   Challenge,
-  Nudge,
+  PracticeInstance,
   CompletionLog,
   PlannedItem,
   TomorrowChallenge,
@@ -28,7 +28,7 @@ import { loadWeekData, WeekData } from '../../services/weeklyPlan';
 import { saveTomorrowPlan, getTomorrowPlan } from '../../services/dailyPlan';
 import { exportToCalendar } from '../../services/calendarExport';
 import { getActiveChallenges, getActiveExtendedChallenges, getAllChallenges, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
+import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/practices';
 import { getGoalColor } from '../../constants/goalColors';
 import { getActiveGoals } from '../../services/goals';
 import { Goal } from '../../types';
@@ -54,7 +54,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   // Shared data for building today's plan & day cards
-  const [habits, setHabits] = useState<Nudge[]>([]);
+  const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
@@ -89,7 +89,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
     (log: CompletionLog): string => {
       if (log.type === 'nudge') {
         const habit = habits.find((h) => h.id === log.reference_id);
-        return habit?.name || 'Habit';
+        return habit?.name || 'Practice';
       }
       if (log.type === 'challenge') {
         const ch = allChallenges.find((c) => c.id === log.reference_id);
@@ -320,7 +320,7 @@ export const WeeklyPlannerScreen: React.FC<Props> = ({ navigation }) => {
         {/* Weekly Habit Progress (current week only) */}
         {isCurrentWeek && habitProgress.length > 0 && (
           <Card style={styles.habitProgressCard}>
-            <Text style={styles.habitProgressTitle}>Weekly Habit Progress</Text>
+            <Text style={styles.habitProgressTitle}>Weekly Practice Progress</Text>
             {habitProgress.map((h) => (
               <View key={h.id} style={styles.habitProgressRow}>
                 <Text style={styles.habitProgressName} numberOfLines={1}>

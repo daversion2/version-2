@@ -22,7 +22,7 @@ import { Button } from '../../components/common/Button';
 import { RichText } from '../../components/common/RichText';
 import { useAuth } from '../../context/AuthContext';
 import { markOnboardingComplete } from '../../services/users';
-import { createHabit, logHabitCompletion } from '../../services/habits';
+import { createHabit, logHabitCompletion } from '../../services/practices';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
 import { db } from '../../services/firebase';
 
@@ -533,14 +533,14 @@ export const OnboardingScreen: React.FC = () => {
           <View style={{ flex: 1 }}>
             <Text style={styles.lockedHabitName}>{step.content.foundation_habit_name}</Text>
             <Text style={styles.lockedHabitMeta}>
-              {step.content.foundation_target_per_week}x/week · Your foundation habit
+              {step.content.foundation_target_per_week}x/week · Your foundation practice
             </Text>
           </View>
           <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />
         </View>
 
         {/* Additional habit selection */}
-        <Text style={styles.habitSectionLabel}>+ ONE MORE HABIT</Text>
+        <Text style={styles.habitSectionLabel}>+ ONE MORE PRACTICE</Text>
         <RichText style={fieldStyle(step, 'section_body', styles.habitSectionBody)}>{step.content.section_body}</RichText>
 
         {availableHabits.map((habit) => {

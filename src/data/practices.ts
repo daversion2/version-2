@@ -11,7 +11,7 @@
 // See docs/practice-protocol-direction.md
 // =============================================================================
 
-export type PracticeGroup = 'activate' | 'calm' | 'restrain';
+export type PracticeGroup = 'activate' | 'calm' | 'restrain' | 'custom';
 
 export interface PracticeGroupDef {
   id: PracticeGroup;
@@ -78,6 +78,15 @@ export const PRACTICE_GROUPS: PracticeGroupDef[] = [
     description: 'Resist the urge — for stimulation, for the reward, for more.',
     color: '#7B61FF',
     order: 3,
+  },
+  {
+    // User-authored practices (no catalog entry). Visually neutral to signal
+    // "your own / not part of the curated protocol."
+    id: 'custom',
+    name: 'Custom',
+    description: 'Practices you create yourself.',
+    color: '#8A8F98',
+    order: 4,
   },
 ];
 
@@ -352,3 +361,19 @@ export const getPracticesByGroup = (group: PracticeGroup): Practice[] =>
 export const getCorePractices = (): Practice[] => PRACTICES.filter((p) => p.core);
 
 export const getOptionalPractices = (): Practice[] => PRACTICES.filter((p) => !p.core);
+
+/**
+ * Resolve the display group for an adopted practice instance.
+ * - Curated practices derive their group from the catalog (via practice_id).
+ * - Custom (user-authored) practices carry their own `group`; anything missing
+ *   one — including legacy custom habits created before this field existed —
+ *   falls back to 'custom'. Computed at read time, so no data migration.
+ */
+export const resolvePracticeGroup = (instance: {
+  practice_id?: string;
+  group?: PracticeGroup;
+}): PracticeGroup => {
+  const catalog = getPractice(instance.practice_id);
+  if (catalog) return catalog.group;
+  return instance.group ?? 'custom';
+};

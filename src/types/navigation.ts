@@ -53,7 +53,9 @@ export type MainTabParamList = {
 
 export type PracticesStackParamList = {
   PracticesHome: undefined;
-  PracticeDetail: { practiceId: string };
+  // Curated practices open by catalog `practiceId`; user-authored (custom)
+  // practices have no catalog entry and open by their instance `habitId`.
+  PracticeDetail: { practiceId: string } | { habitId: string };
 };
 
 export type PracticesNavigation = NativeStackNavigationProp<PracticesStackParamList>;

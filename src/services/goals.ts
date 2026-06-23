@@ -11,12 +11,12 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import {
-  Goal, GoalStatus, GoalFollowThrough, Challenge, Nudge, ProgramEnrollment,
+  Goal, GoalStatus, GoalFollowThrough, Challenge, PracticeInstance, ProgramEnrollment,
   MeasurementType, MeasurementConfig, GoalObstacle, VisualizationSettings, GoalDraftStatus,
 } from '../types';
 import { GOAL_CONSTANTS } from '../constants/goals';
 import { pickNextGoalColor, GOAL_COLOR_PALETTE } from '../constants/goalColors';
-import { createHabit } from './habits';
+import { createHabit } from './practices';
 import { createChallenge } from './challenges';
 
 const goalsRef = (userId: string) =>
@@ -373,7 +373,7 @@ export const getItemsForGoal = async (
   goalId: string
 ): Promise<{
   challenges: Challenge[];
-  habits: Nudge[];
+  habits: PracticeInstance[];
   programEnrollments: ProgramEnrollment[];
 }> => {
   const challengesQ = query(
@@ -397,7 +397,7 @@ export const getItemsForGoal = async (
 
   return {
     challenges: challengesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Challenge)),
-    habits: habitsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Nudge)),
+    habits: habitsSnap.docs.map(d => ({ id: d.id, ...d.data() } as PracticeInstance)),
     programEnrollments: programsSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProgramEnrollment)),
   };
 };

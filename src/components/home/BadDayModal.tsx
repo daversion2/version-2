@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { Nudge } from '../../types';
+import { PracticeInstance } from '../../types';
 
 interface BadDayModalProps {
   visible: boolean;
-  habits: Nudge[];
+  habits: PracticeInstance[];
   onCommit: (habitId: string) => void;
   onDismiss: () => void;
 }

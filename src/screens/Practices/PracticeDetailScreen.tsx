@@ -5,16 +5,18 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PracticesStackParamList } from '../../types/navigation';
-import { getPractice, PRACTICE_GROUPS } from '../../data/practices';
+import { getPractice, PRACTICE_GROUPS, resolvePracticeGroup } from '../../data/practices';
 import { useAuth } from '../../context/AuthContext';
 import {
   getActiveHabits,
   getWeeklyCompletionCounts,
   createHabit,
-  logHabitCompletion,
-} from '../../services/habits';
-import { Nudge, HabitDifficulty } from '../../types';
+  completePractice,
+} from '../../services/practices';
+import { getUserTeam } from '../../services/teams';
+import { PracticeInstance, HabitDifficulty } from '../../types';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
+import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 
 type Props = NativeStackScreenProps<PracticesStackParamList, 'PracticeDetail'>;
 
@@ -26,28 +28,40 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 );
 
 export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
-  const { practiceId } = route.params;
+  // Curated practices arrive with a catalog `practiceId`; user-authored ones
+  // with an instance `habitId` and no catalog entry.
+  const practiceId = 'practiceId' in route.params ? route.params.practiceId : undefined;
+  const customHabitId = 'habitId' in route.params ? route.params.habitId : undefined;
   const practice = getPractice(practiceId);
   const { user } = useAuth();
 
-  const [habit, setHabit] = useState<Nudge | null>(null);
+  const [habit, setHabit] = useState<PracticeInstance | null>(null);
   const [weekDone, setWeekDone] = useState(0);
   const [busy, setBusy] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [teamId, setTeamId] = useState<string | undefined>(undefined);
+  const [celebration, setCelebration] = useState<{ points: number; streak: number } | null>(null);
 
   const load = useCallback(async () => {
-    if (!user || !practice) return;
-    const [hs, counts] = await Promise.all([
+    if (!user) return;
+    const [hs, counts, team] = await Promise.all([
       getActiveHabits(user.uid),
       getWeeklyCompletionCounts(user.uid),
+      getUserTeam(user.uid),
     ]);
-    const found =
-      hs.find((h) => h.practice_id === practice.id) ||
-      hs.find((h) => h.name.trim().toLowerCase() === practice.name.toLowerCase()) ||
-      null;
+    setTeamId(team?.id);
+    let found: PracticeInstance | null = null;
+    if (practice) {
+      found =
+        hs.find((h) => h.practice_id === practice.id) ||
+        hs.find((h) => h.name.trim().toLowerCase() === practice.name.toLowerCase()) ||
+        null;
+    } else if (customHabitId) {
+      found = hs.find((h) => h.id === customHabitId) || null;
+    }
     setHabit(found);
     setWeekDone(found ? counts[found.id] ?? 0 : 0);
-  }, [user, practice]);
+  }, [user, practice, customHabitId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -55,7 +69,8 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
     }, [load])
   );
 
-  if (!practice) {
+  // Neither a known catalog practice nor a custom instance reference.
+  if (!practice && !customHabitId) {
     return (
       <View style={styles.centered}>
         <Text style={styles.muted}>Practice not found.</Text>
@@ -63,14 +78,25 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
     );
   }
 
-  const group = PRACTICE_GROUPS.find((g) => g.id === practice.group);
+  // A custom practice that has since been deactivated/deleted.
+  if (!practice && !habit) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.muted}>This practice is no longer active.</Text>
+      </View>
+    );
+  }
+
+  const groupId = practice ? practice.group : resolvePracticeGroup(habit ?? {});
+  const group = PRACTICE_GROUPS.find((g) => g.id === groupId);
   const color = group?.color ?? Colors.primary;
+  const name = practice ? practice.name : habit?.name ?? '';
   const adopted = !!habit;
-  const target = habit?.target_count_per_week ?? practice.suggested_target_per_week;
+  const target = habit?.target_count_per_week ?? practice?.suggested_target_per_week ?? 0;
   const complete = adopted && weekDone >= target;
 
   const handleAdopt = async () => {
-    if (!user) return;
+    if (!user || !practice) return;
     setBusy(true);
     try {
       await createHabit(user.uid, {
@@ -88,7 +114,13 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
   const handleSubmitCompletion = async (difficulty: HabitDifficulty, notes?: string) => {
     setCompleting(false);
     if (!user || !habit) return;
-    await logHabitCompletion(user.uid, habit.id, difficulty, undefined, notes);
+    const result = await completePractice(
+      user.uid,
+      { id: habit.id, name: habit.name },
+      difficulty,
+      { teamId, notes }
+    );
+    setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
     await load();
   };
 
@@ -98,14 +130,14 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
         {/* Header */}
         <View style={styles.header}>
           <View style={[styles.iconWrap, { backgroundColor: color + '1A' }]}>
-            <Ionicons name={practice.icon as any} size={28} color={color} />
+            <Ionicons name={(practice?.icon ?? 'ellipse-outline') as any} size={28} color={color} />
           </View>
-          <Text style={styles.name}>{practice.name}</Text>
+          <Text style={styles.name}>{name}</Text>
           <Text style={[styles.groupLabel, { color }]}>
             {group?.name}
-            {!practice.core ? ' · Optional' : ''}
+            {practice && !practice.core ? ' · Optional' : ''}
           </Text>
-          <Text style={styles.overview}>{practice.description}</Text>
+          {practice && <Text style={styles.overview}>{practice.description}</Text>}
         </View>
 
         {/* Adopt / check-off */}
@@ -135,6 +167,9 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
           </TouchableOpacity>
         )}
 
+        {/* Catalog "Learn" content — curated practices only. */}
+        {practice && (
+          <>
         {/* How to */}
         <Section title="How to do it">
           {practice.howTo.map((step, i) => (
@@ -189,14 +224,23 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
             );
           })}
         </Section>
+          </>
+        )}
       </ScrollView>
 
       <HabitCompletionModal
         visible={completing}
-        habitName={practice.name}
+        habitName={name}
         actionPlan={habit?.action_plan}
         onSubmit={handleSubmitCompletion}
         onCancel={() => setCompleting(false)}
+      />
+
+      <HabitCelebrationModal
+        visible={!!celebration}
+        pointsEarned={celebration?.points ?? 0}
+        streakDays={celebration?.streak ?? 0}
+        onDismiss={() => setCelebration(null)}
       />
     </>
   );

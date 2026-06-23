@@ -191,7 +191,7 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
         return true;
       case 6:
         if (!habitName.trim()) {
-          Alert.alert('Required', 'Please name your habit.');
+          Alert.alert('Required', 'Please name your practice.');
           return false;
         }
         return true;
@@ -452,7 +452,7 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
   const renderStage5 = () => (
     <View style={styles.stageContent}>
       <Text style={styles.stageIntro}>
-        Build a habit to work toward this goal — something you can do regularly.
+        Build a practice to work toward this goal — something you can do regularly.
       </Text>
 
       <View style={[styles.actionCard, styles.actionCardSelected]}>
@@ -462,7 +462,7 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
           </View>
           <View style={styles.actionCardTitle}>
             <Text style={styles.actionCardName}>Build a regular practice</Text>
-            <Text style={styles.actionCardType}>Habit</Text>
+            <Text style={styles.actionCardType}>Practice</Text>
           </View>
           <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
         </View>
@@ -482,10 +482,10 @@ export const WhyDiscoveryOnboarding: React.FC = () => {
     return (
       <View style={styles.stageContent}>
         <Text style={styles.stageIntro}>
-          Name your habit — something you can realistically do multiple times a week.
+          Name your practice — something you can realistically do multiple times a week.
         </Text>
 
-        <Text style={styles.promptQuestion}>Habit name</Text>
+        <Text style={styles.promptQuestion}>Practice name</Text>
         <TextInput
           style={styles.singleLineInput}
           value={habitName}

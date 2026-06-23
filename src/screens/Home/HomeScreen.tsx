@@ -13,20 +13,16 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, Nudge, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
+import { Challenge, PracticeInstance, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
-import { getActiveHabits, logHabitCompletion, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts } from '../../services/habits';
+import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts } from '../../services/practices';
 import { reconcileHabitReminders } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { getGoalColor } from '../../constants/goalColors';
-import { getUserTeam, logTeamActivity, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
-import {
-  calculateHabitPoints,
-  updateWillpowerStats,
-  getWillpowerStats,
-} from '../../services/willpower';
+import { getUserTeam, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
+import { getWillpowerStats } from '../../services/willpower';
 import { HabitDifficulty } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
@@ -73,9 +69,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
   const [pendingInvites, setPendingInvites] = useState(0);
   const [buddyChallenges, setBuddyChallenges] = useState<BuddyChallenge[]>([]);
-  const [habits, setHabits] = useState<Nudge[]>([]);
+  const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [completingHabit, setCompletingHabit] = useState<Nudge | null>(null);
+  const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
   const [team, setTeam] = useState<Team | null>(null);
@@ -446,37 +442,30 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleHabitTap = useCallback((habit: Nudge) => {
+  const handleHabitTap = useCallback((habit: PracticeInstance) => {
     setCompletingHabit(habit);
   }, []);
 
   const handleHabitComplete = async (difficulty: HabitDifficulty, notes?: string) => {
     if (!user || !completingHabit) return;
     try {
-      await logHabitCompletion(user.uid, completingHabit.id, difficulty, undefined, notes);
+      // Log + team activity + XP all happen in the shared completePractice path.
+      const { pointsEarned, streakBefore, willpower: updateResult } = await completePractice(
+        user.uid,
+        { id: completingHabit.id, name: completingHabit.name },
+        difficulty,
+        { teamId: team?.id, notes }
+      );
 
-      // Log team activity if user is in a team
+      // Refresh team summary after the shared path logged the activity.
       if (team) {
         try {
-          await logTeamActivity(
-            team.id,
-            user.uid,
-            'habit',
-            completingHabit.name
-          );
-          // Refresh team summary after logging activity
           const summary = await getTeamMemberActivitySummaryOptimized(team.id);
           setTeamSummary(summary);
         } catch (teamErr) {
-          console.warn('Failed to log team activity:', teamErr);
+          console.warn('Failed to refresh team summary:', teamErr);
         }
       }
-
-      // Calculate and award XP
-      const difficultyNum = difficulty === 'easy' ? 1 : 2;
-      const stats = await getWillpowerStats(user.uid);
-      const pointsEarned = calculateHabitPoints(difficultyNum, stats.currentStreak);
-      const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
 
       setCompletingHabit(null);
 
@@ -518,7 +507,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // Fetch habit tidbit — show it before celebration for a clean sequence
       try {
         const tidbit = await selectHabitTidbit(user.uid, {
-          streakDays: stats.currentStreak,
+          streakDays: streakBefore,
           difficulty,
         });
         if (tidbit) {

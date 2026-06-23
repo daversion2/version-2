@@ -14,9 +14,9 @@ import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { useAuth } from '../../context/AuthContext';
-import { DailySummary, ReflectionGrade, DailyReflection, Nudge, TomorrowChallenge } from '../../types';
+import { DailySummary, ReflectionGrade, DailyReflection, PracticeInstance, TomorrowChallenge } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
-import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/habits';
+import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/practices';
 import { saveTomorrowPlan, getTomorrowPlan, suggestHabitsForTomorrow } from '../../services/dailyPlan';
 import { showAlert } from '../../utils/alert';
 import { getTomorrowString } from '../../utils/date';
@@ -44,7 +44,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [badDayShownForGrade, setBadDayShownForGrade] = useState(false);
 
   // Plan Tomorrow state
-  const [allHabits, setAllHabits] = useState<Nudge[]>([]);
+  const [allHabits, setAllHabits] = useState<PracticeInstance[]>([]);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [suggestedHabitIds, setSuggestedHabitIds] = useState<string[]>([]);
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);

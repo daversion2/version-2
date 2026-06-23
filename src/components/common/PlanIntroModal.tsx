@@ -15,14 +15,14 @@ export const PlanIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
       <Pressable style={styles.overlay} onPress={onDismiss}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Ionicons name="clipboard" size={36} color={Colors.primary} style={styles.icon} />
-          <Text style={styles.title}>Your habits have a game plan</Text>
+          <Text style={styles.title}>Your practices have a game plan</Text>
           <Text style={styles.body}>
-            Each habit comes with a built-in action plan — your cues, environment tweaks, and a minimum version for rough days.
+            Each practice comes with a built-in action plan — your cues, environment tweaks, and a minimum version for rough days.
           </Text>
           <View style={styles.tipRow}>
             <Ionicons name="hand-left-outline" size={16} color={Colors.primary} style={{ marginTop: 2 }} />
             <Text style={styles.tipText}>
-              Tap <Text style={styles.tipBold}>"My Plan"</Text> on any habit to see it. You can edit it anytime to make it yours.
+              Tap <Text style={styles.tipBold}>"My Plan"</Text> on any practice to see it. You can edit it anytime to make it yours.
             </Text>
           </View>
           <Button title="Got it" onPress={onDismiss} style={styles.button} />

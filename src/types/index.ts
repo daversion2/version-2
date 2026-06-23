@@ -1,6 +1,10 @@
 // Re-export worksheet types
 export * from './worksheets';
 
+// PracticeGroup is defined alongside the Practice catalog (data layer is
+// self-contained, so this import introduces no cycle).
+import type { PracticeGroup } from '../data/practices';
+
 // ============================================================================
 // YOUR STORY (PROOF POINTS)
 // ============================================================================
@@ -257,7 +261,7 @@ export interface LibraryHabit {
   identity?: string;               // "Each time I do this, I'm someone who ___" — identity-based framing
 }
 
-export interface Nudge {
+export interface PracticeInstance {
   id: string;
   user_id: string;
   name: string;
@@ -268,6 +272,7 @@ export interface Nudge {
   goal_ids?: string[];
   arena_id?: ArenaId; // Arena tagging (Phase 1)
   practice_id?: string; // links a habit adopted from a Practice (Practice Protocol)
+  group?: PracticeGroup; // set on custom (user-authored) practices; curated ones derive group from the catalog via practice_id
   action_plan?: HabitActionPlan;
   reminder?: HabitReminder;
   supports_pairing?: boolean; // habit is suited to temptation bundling (body busy, mind free)
@@ -1024,7 +1029,7 @@ export interface PlannedItem {
   calendarNotes?: string;
   sourceData: {
     challenge?: Challenge;
-    habit?: Nudge;
+    habit?: PracticeInstance;
     program?: ProgramEnrollment;
     programDay?: ProgramDay;
   };

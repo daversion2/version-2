@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { Nudge } from '../../types';
+import { PracticeInstance } from '../../types';
 
 const BARRIER_OPTIONS = [
   'Work was too busy',
@@ -23,7 +23,7 @@ const BARRIER_OPTIONS = [
 
 interface ComebackModalProps {
   visible: boolean;
-  habits: Nudge[];
+  habits: PracticeInstance[];
   onCommit: (habitId: string, habitName: string, barrierReason: string) => void;
   onDismiss: () => void;
 }

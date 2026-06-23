@@ -3,7 +3,7 @@ import {
   getUnloggedHabitsForDate,
   getActiveHabits,
   getCurrentWeekBounds,
-} from '../habits';
+} from '../practices';
 import {
   addMockDocument,
   getMockDB,

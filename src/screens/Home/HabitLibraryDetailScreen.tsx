@@ -20,7 +20,7 @@ import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { findLibraryHabit, getHabitCategory } from '../../data/habitLibrary';
 import { defaultTimeForAnchor } from '../../data/anchors';
 import { useAuth } from '../../context/AuthContext';
-import { createHabit, updateHabit } from '../../services/habits';
+import { createHabit, updateHabit } from '../../services/practices';
 import { syncHabitReminder } from '../../services/habitReminders';
 import { HabitActionPlan } from '../../types';
 import { showAlert } from '../../utils/alert';

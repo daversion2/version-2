@@ -3,22 +3,24 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { PRACTICE_GROUPS, getPracticesByGroup, Practice } from '../../data/practices';
+import { PRACTICE_GROUPS, PRACTICES, getPracticesByGroup, resolvePracticeGroup, Practice } from '../../data/practices';
 import { PracticesNavigation } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import {
   getActiveHabits,
   getWeeklyCompletionCounts,
   createHabit,
-  logHabitCompletion,
-} from '../../services/habits';
-import { Nudge, HabitDifficulty } from '../../types';
+  completePractice,
+} from '../../services/practices';
+import { getUserTeam } from '../../services/teams';
+import { PracticeInstance, HabitDifficulty } from '../../types';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
+import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 
 const PracticeCard: React.FC<{
   practice: Practice;
   color: string;
-  habit?: Nudge;
+  habit?: PracticeInstance;
   weekDone: number;
   busy: boolean;
   onOpen: () => void;
@@ -80,24 +82,64 @@ const PracticeCard: React.FC<{
   );
 };
 
+/**
+ * Card for a user-authored (custom) practice. Always adopted, so it only ever
+ * shows the check-off control — no "Add" button and no catalog "Learn" content.
+ */
+const CustomPracticeCard: React.FC<{
+  habit: PracticeInstance;
+  color: string;
+  weekDone: number;
+  onOpen: () => void;
+  onCheckoff: () => void;
+}> = ({ habit, color, weekDone, onOpen, onCheckoff }) => {
+  const target = habit.target_count_per_week;
+  const complete = weekDone >= target;
+
+  return (
+    <TouchableOpacity style={styles.card} onPress={onOpen} activeOpacity={0.7}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.iconWrap, { backgroundColor: color + '1A' }]}>
+          <Ionicons name="ellipse-outline" size={20} color={color} />
+        </View>
+        <View style={styles.cardTitleWrap}>
+          <Text style={styles.cardTitle}>{habit.name}</Text>
+          <Text style={styles.cardTarget}>{weekDone}/{target} this week</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.checkBtn, complete ? { backgroundColor: Colors.success } : { backgroundColor: color }]}
+          onPress={onCheckoff}
+          activeOpacity={0.8}
+        >
+          <Ionicons name={complete ? 'checkmark' : 'add'} size={20} color={Colors.white} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 export const PracticesScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<PracticesNavigation>();
-  const [habits, setHabits] = useState<Nudge[]>([]);
+  const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [weekly, setWeekly] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [completing, setCompleting] = useState<Nudge | null>(null);
+  const [completing, setCompleting] = useState<PracticeInstance | null>(null);
+  const [teamId, setTeamId] = useState<string | undefined>(undefined);
+  const [celebration, setCelebration] = useState<{ points: number; streak: number } | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
     try {
-      const [hs, counts] = await Promise.all([
+      const [hs, counts, team] = await Promise.all([
         getActiveHabits(user.uid),
         getWeeklyCompletionCounts(user.uid),
+        getUserTeam(user.uid),
       ]);
       setHabits(hs);
       setWeekly(counts);
+      setTeamId(team?.id);
     } catch (err) {
       console.warn('Failed to load practices:', err);
     } finally {
@@ -111,9 +153,26 @@ export const PracticesScreen: React.FC = () => {
     }, [load])
   );
 
-  const habitForPractice = (practice: Practice): Nudge | undefined =>
+  const habitForPractice = (practice: Practice): PracticeInstance | undefined =>
     habits.find((h) => h.practice_id === practice.id) ||
     habits.find((h) => h.name.trim().toLowerCase() === practice.name.toLowerCase());
+
+  // A habit is "custom" when it maps to no catalog practice (by id or name).
+  const isCustom = (h: PracticeInstance): boolean =>
+    !PRACTICES.some(
+      (p) => p.id === h.practice_id || p.name.toLowerCase() === h.name.trim().toLowerCase()
+    );
+  const customHabits = habits.filter(isCustom);
+  const customForGroup = (groupId: Practice['group']): PracticeInstance[] =>
+    customHabits.filter((h) => resolvePracticeGroup(h) === groupId);
+
+  const openCreateForm = () => {
+    // The create form lives in the Home stack's ManageHabits screen.
+    navigation.getParent()?.navigate('Home', {
+      screen: 'ManageHabits',
+      params: { openAddForm: true },
+    });
+  };
 
   const handleAdopt = async (practice: Practice) => {
     if (!user) return;
@@ -138,7 +197,13 @@ export const PracticesScreen: React.FC = () => {
     setCompleting(null);
     if (!user || !habit) return;
     try {
-      await logHabitCompletion(user.uid, habit.id, difficulty, undefined, notes);
+      const result = await completePractice(
+        user.uid,
+        { id: habit.id, name: habit.name },
+        difficulty,
+        { teamId, notes }
+      );
+      setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
       await load();
     } catch (err) {
       console.warn('Failed to log practice:', err);
@@ -183,6 +248,24 @@ export const PracticesScreen: React.FC = () => {
                 />
               );
             })}
+            {/* User-authored practices that belong to this group */}
+            {customForGroup(group.id).map((habit) => (
+              <CustomPracticeCard
+                key={habit.id}
+                habit={habit}
+                color={group.color}
+                weekDone={weekly[habit.id] ?? 0}
+                onOpen={() => navigation.navigate('PracticeDetail', { habitId: habit.id })}
+                onCheckoff={() => setCompleting(habit)}
+              />
+            ))}
+            {/* Create-your-own entry lives in the Custom group */}
+            {group.id === 'custom' && (
+              <TouchableOpacity style={styles.createCard} onPress={openCreateForm} activeOpacity={0.7}>
+                <Ionicons name="add-circle-outline" size={20} color={group.color} />
+                <Text style={[styles.createCardText, { color: group.color }]}>Create your own</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ))}
       </ScrollView>
@@ -193,6 +276,13 @@ export const PracticesScreen: React.FC = () => {
         actionPlan={completing?.action_plan}
         onSubmit={handleSubmitCompletion}
         onCancel={() => setCompleting(null)}
+      />
+
+      <HabitCelebrationModal
+        visible={!!celebration}
+        pointsEarned={celebration?.points ?? 0}
+        streakDays={celebration?.streak ?? 0}
+        onDismiss={() => setCelebration(null)}
       />
     </>
   );
@@ -257,4 +347,16 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     marginTop: Spacing.xs,
   },
+  createCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Colors.gray,
+  },
+  createCardText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
 });

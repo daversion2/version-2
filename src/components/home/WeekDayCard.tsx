@@ -10,14 +10,14 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../common/Card';
 import { PlannedItemRow } from './PlannedItemRow';
 import { DaySummary } from '../../services/weeklyPlan';
-import { Challenge, CompletionLog, Nudge, PlannedItem, TomorrowChallenge } from '../../types';
+import { Challenge, CompletionLog, PracticeInstance, PlannedItem, TomorrowChallenge } from '../../types';
 import { NO_GOAL_COLOR } from '../../constants/goalColors';
 import { formatDayHeader } from '../../utils/date';
 import { suggestHabitsForTomorrow } from '../../services/dailyPlan';
 
 interface WeekDayCardProps {
   summary: DaySummary;
-  habits: Nudge[];
+  habits: PracticeInstance[];
   weeklyCounts: Record<string, number>;
   getItemColor: (goalIds?: string[]) => string;
   getLogName: (log: CompletionLog) => string;
@@ -31,7 +31,7 @@ interface WeekDayCardProps {
 
 const TYPE_LABELS: Record<string, string> = {
   challenge: 'Challenge',
-  nudge: 'Habit',
+  nudge: 'Practice',
   program: 'Program',
 };
 
@@ -210,7 +210,7 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
                 <View>
                   {(summary.plan?.planned_habit_ids || []).length > 0 && (
                     <View style={styles.planSection}>
-                      <Text style={styles.planSectionLabel}>Habits</Text>
+                      <Text style={styles.planSectionLabel}>Practices</Text>
                       {summary.plan!.planned_habit_ids.map((habitId) => {
                         const habit = habits.find((h) => h.id === habitId);
                         if (!habit) return null;
@@ -278,7 +278,7 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
               {/* Habits toggle list */}
               {habits.length > 0 && (
                 <View style={styles.editSection}>
-                  <Text style={styles.editSectionLabel}>Habits</Text>
+                  <Text style={styles.editSectionLabel}>Practices</Text>
                   {habits.map((habit) => {
                     const isSelected = selectedHabitIds.includes(habit.id);
                     const isSuggested = suggestedHabitIds.includes(habit.id);

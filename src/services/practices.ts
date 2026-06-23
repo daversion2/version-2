@@ -10,7 +10,10 @@ import {
   increment,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Nudge, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId } from '../types';
+import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId } from '../types';
+import { PracticeGroup } from '../data/practices';
+import { getWillpowerStats, calculateHabitPoints, updateWillpowerStats } from './willpower';
+import { logTeamActivity } from './teams';
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -39,7 +42,7 @@ export const getCurrentWeekBounds = (): { mondayStr: string; sundayStr: string }
   return { mondayStr: fmt(monday), sundayStr: fmt(sunday) };
 };
 
-export const getActiveHabits = async (userId: string): Promise<Nudge[]> => {
+export const getActiveHabits = async (userId: string): Promise<PracticeInstance[]> => {
   const q = query(habitsRef(userId), where('is_active', '==', true));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({
@@ -47,7 +50,7 @@ export const getActiveHabits = async (userId: string): Promise<Nudge[]> => {
     ...d.data(),
     // Default for habits created before this field existed
     target_count_per_week: d.data().target_count_per_week ?? 3,
-  } as Nudge));
+  } as PracticeInstance));
 };
 
 export const createHabit = async (
@@ -59,6 +62,7 @@ export const createHabit = async (
     goal_ids?: string[];
     arena_id?: ArenaId;
     practice_id?: string;
+    group?: PracticeGroup;
     action_plan?: HabitActionPlan;
     created_by_user?: boolean;
     supports_pairing?: boolean;
@@ -77,7 +81,7 @@ export const createHabit = async (
 export const updateHabit = async (
   userId: string,
   habitId: string,
-  data: Partial<Nudge>
+  data: Partial<PracticeInstance>
 ) => {
   const ref = doc(db, 'users', userId, 'habits', habitId);
   await updateDoc(ref, data);
@@ -120,6 +124,46 @@ export const logHabitCompletion = async (
   const docRef = await addDoc(logsRef(userId), logData);
   await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
   return docRef.id;
+};
+
+export interface CompletePracticeResult {
+  logId: string;
+  pointsEarned: number;
+  /** Streak (in days) as of *before* this completion — used for tidbit selection. */
+  streakBefore: number;
+  willpower: Awaited<ReturnType<typeof updateWillpowerStats>>;
+}
+
+/**
+ * Single source of truth for completing a practice. Beyond logging the
+ * completion it awards willpower XP (with streak multiplier) and — when a
+ * teamId is supplied — logs team activity. Every entry point (Home, Practices
+ * tab, practice detail) should call this so the side effects stay consistent;
+ * each screen renders its own celebration UI from the returned result.
+ */
+export const completePractice = async (
+  userId: string,
+  practice: { id: string; name: string },
+  difficulty: HabitDifficulty,
+  opts?: { teamId?: string; notes?: string },
+): Promise<CompletePracticeResult> => {
+  const logId = await logHabitCompletion(userId, practice.id, difficulty, undefined, opts?.notes);
+
+  if (opts?.teamId) {
+    try {
+      await logTeamActivity(opts.teamId, userId, 'habit', practice.name);
+    } catch (teamErr) {
+      console.warn('Failed to log team activity:', teamErr);
+    }
+  }
+
+  // Award XP using the streak-aware multiplier.
+  const difficultyNum = difficulty === 'easy' ? 1 : 2;
+  const stats = await getWillpowerStats(userId);
+  const pointsEarned = calculateHabitPoints(difficultyNum, stats.currentStreak);
+  const willpower = await updateWillpowerStats(userId, pointsEarned);
+
+  return { logId, pointsEarned, streakBefore: stats.currentStreak, willpower };
 };
 
 /**
@@ -168,7 +212,7 @@ export const getWeeklyCompletionCounts = async (
 export const getUnloggedHabitsForDate = async (
   userId: string,
   date: string
-): Promise<Nudge[]> => {
+): Promise<PracticeInstance[]> => {
   // Get all active habits
   const activeHabits = await getActiveHabits(userId);
 
@@ -194,7 +238,7 @@ export const getUnloggedHabitsForDate = async (
 export const getHabitById = async (
   userId: string,
   habitId: string
-): Promise<Nudge | null> => {
+): Promise<PracticeInstance | null> => {
   const ref = doc(db, 'users', userId, 'habits', habitId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
@@ -202,7 +246,7 @@ export const getHabitById = async (
     id: snap.id,
     ...snap.data(),
     target_count_per_week: snap.data().target_count_per_week ?? 3,
-  } as Nudge;
+  } as PracticeInstance;
 };
 
 /**

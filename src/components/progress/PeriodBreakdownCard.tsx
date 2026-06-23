@@ -20,7 +20,7 @@ export const PeriodBreakdownCard: React.FC<PeriodBreakdownCardProps> = ({
         <View style={styles.stat}>
           <Ionicons name="refresh" size={20} color={Colors.primary} />
           <Text style={styles.value}>{habits}</Text>
-          <Text style={styles.label}>Habits</Text>
+          <Text style={styles.label}>Practices</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.stat}>

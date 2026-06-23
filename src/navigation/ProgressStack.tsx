@@ -13,10 +13,10 @@ import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationF
 import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
-import { HabitDetailScreen } from '../screens/Home/HabitDetailScreen';
+import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { CreateChallengeScreen } from '../screens/Home/CreateChallengeScreen';
-import { ManageHabitsScreen } from '../screens/Home/ManageHabitsScreen';
+import { ManagePracticesScreen } from '../screens/Home/ManagePracticesScreen';
 import { ArenaDetailScreen } from '../screens/Arenas/ArenaDetailScreen';
 import { BaselineTestScreen } from '../screens/Arenas/BaselineTestScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
@@ -95,7 +95,7 @@ export const ProgressStack: React.FC = () => (
     />
     <Stack.Screen
       name="HabitDetail"
-      component={HabitDetailScreen}
+      component={MyPracticeDetailScreen}
       options={{ title: 'Habit Detail' }}
     />
     <Stack.Screen
@@ -110,7 +110,7 @@ export const ProgressStack: React.FC = () => (
     />
     <Stack.Screen
       name="ManageHabits"
-      component={ManageHabitsScreen}
+      component={ManagePracticesScreen}
       options={{ title: 'Manage Habits' }}
     />
     <Stack.Screen

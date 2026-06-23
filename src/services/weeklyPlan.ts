@@ -3,7 +3,7 @@ import {
   PlannedItem,
   TomorrowPlan,
   Challenge,
-  Nudge,
+  PracticeInstance,
   ProgramEnrollment,
   ProgramDay,
 } from '../types';
@@ -43,7 +43,7 @@ export interface WeekData {
 export interface TodayBuildParams {
   activeChallenges: Challenge[];
   extendedChallenges: Challenge[];
-  habits: Nudge[];
+  habits: PracticeInstance[];
   weeklyCounts: Record<string, number>;
   activeProgram: ProgramEnrollment | null;
   todaysProgramDay: ProgramDay | null;
