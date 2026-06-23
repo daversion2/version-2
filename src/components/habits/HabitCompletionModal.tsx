@@ -15,8 +15,9 @@ import { Button } from '../common/Button';
 import { Slider } from '../common/Slider';
 import { HabitActionPlan, PracticeCompletionInput } from '../../types';
 import { formatHabitPlanLine } from '../../utils/habitPlan';
-import { getPractice, TrackingField } from '../../data/practices';
+import { getPractice, PRACTICE_GROUPS, TrackingField } from '../../data/practices';
 import { OVERRIDE_TACTICS } from '../../data/overrideTactics';
+import { PracticeTimer } from './PracticeTimer';
 
 interface Props {
   visible: boolean;
@@ -40,6 +41,16 @@ export const HabitCompletionModal: React.FC<Props> = ({
   const practice = getPractice(practiceId);
   const tracking = practice?.tracking ?? [];
 
+  // Time-in-stillness practices (meditation, breathwork) open to a countdown
+  // timer first, then the user reflects + logs. Everything else opens straight
+  // to the form.
+  const usesTimer = !!practice?.timer;
+  const accent =
+    PRACTICE_GROUPS.find((g) => g.id === practice?.group)?.color ?? Colors.primary;
+  const defaultMinutes =
+    (practice?.tracking?.find((t) => t.key === 'duration_min')?.default as number) ?? 10;
+
+  const [phase, setPhase] = useState<'timer' | 'form'>('form');
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [metrics, setMetrics] = useState<Record<string, number | string>>({});
@@ -56,6 +67,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
   }, [practice]);
 
   const resetState = () => {
+    setPhase(usesTimer ? 'timer' : 'form');
     setSelected(null);
     setExpanded(false);
     setMetrics({});
@@ -63,6 +75,17 @@ export const HabitCompletionModal: React.FC<Props> = ({
     setTactics([]);
     setNotes('');
   };
+
+  // Timer finished (or ended early) → carry the measured minutes into the form,
+  // pre-expanding the depth section so the duration is visible.
+  const handleTimerDone = (minutes: number) => {
+    setMetrics({ duration_min: minutes });
+    setExpanded(true);
+    setPhase('form');
+  };
+
+  // "I already did it" — skip timing, go straight to logging.
+  const handleTimerSkip = () => setPhase('form');
 
   // Reset on OPEN, not on close. Resetting on submit/cancel would collapse the
   // sheet while it's still fading out — the user briefly sees the bare default
@@ -176,6 +199,20 @@ export const HabitCompletionModal: React.FC<Props> = ({
             <Text style={styles.title}>{habitName}</Text>
             {!!planLine && <Text style={styles.planRecap}>{planLine}</Text>}
 
+            {phase === 'timer' ? (
+              // Gate on `visible` so dismissing the sheet unmounts the timer at
+              // once — that fires its cleanup (stop the chime, release keep-awake)
+              // immediately rather than after the modal's fade-out.
+              visible ? (
+                <PracticeTimer
+                  accentColor={accent}
+                  defaultMinutes={defaultMinutes}
+                  onDone={handleTimerDone}
+                  onSkip={handleTimerSkip}
+                />
+              ) : null
+            ) : (
+              <>
             <Text style={styles.subtitle}>How hard was it to push through?</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity
@@ -287,6 +324,8 @@ export const HabitCompletionModal: React.FC<Props> = ({
               <Button title="Log it" onPress={handleSubmit} disabled={!selected} style={{ flex: 1 }} />
               <Button title="Cancel" onPress={handleCancel} variant="outline" style={{ flex: 1 }} />
             </View>
+              </>
+            )}
           </ScrollView>
         </View>
       </View>

@@ -2,7 +2,7 @@
   "expo": {
     "name": "neuro-nudge",
     "slug": "neuro-nudge-v2",
-    "version": "2.1.2",
+    "version": "2.2.0",
     "orientation": "portrait",
     "icon": "./assets/Neuro-Nudge_Logo_Blue.png",
     "userInterfaceStyle": "light",
@@ -52,7 +52,9 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-audio",
+      "expo-asset"
     ],
     "extra": {
       "eas": {

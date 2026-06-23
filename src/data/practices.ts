@@ -88,6 +88,12 @@ export interface Practice {
   resistanceMoment?: string;
   /** Optional detailed metrics the user can log for this practice. */
   tracking?: TrackingField[];
+  /**
+   * Offer an in-app countdown timer (1–30 min) for timing a session in the app.
+   * On finish, the measured minutes prefill the `duration_min` field when logging.
+   * For time-in-stillness practices (meditation, breathwork).
+   */
+  timer?: boolean;
 }
 
 export const PRACTICE_GROUPS: PracticeGroupDef[] = [
@@ -156,6 +162,7 @@ export const PRACTICES: Practice[] = [
       { label: 'Open awareness', description: 'Notice whatever arises without following it.' },
     ],
     resistanceMoment: 'you noticed you’d drifted and wanted to get up or check the time',
+    timer: true,
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 60, step: 1, default: 10 },
       {
@@ -200,6 +207,7 @@ export const PRACTICES: Practice[] = [
       { label: '4-7-8', description: 'Inhale 4, hold 7, exhale 8. Strong downshift for sleep or anxiety.' },
       { label: 'Physiological sigh', description: 'Two inhales through the nose, one long exhale. Fastest reset.' },
     ],
+    timer: true,
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 20, step: 1, default: 5 },
       {
