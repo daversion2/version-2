@@ -23,7 +23,6 @@ export const ReflectionBannerSection: React.FC<HomeSectionProps> = React.memo(({
       hasReflected={data.reflectedToday}
       todaysGrade={data.todaysGrade}
       todaysActionCount={todaysActionCount}
-      goalCount={data.goals.length}
       onPress={() => callbacks.onNavigate('NightlyReflection')}
     />
   );

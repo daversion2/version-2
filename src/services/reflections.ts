@@ -116,6 +116,21 @@ export const buildDailySummary = async (
   const challengesToday = countIn(challengeLogs, date, date);
   const challengesYesterday = countIn(challengeLogs, yesterday, yesterday);
 
+  // Today's override recap — the daily reflection's headline. Pull from today's
+  // practice (nudge) logs: how many reps hit their resistance moment, and which
+  // override tactics got used (aggregated across the day).
+  const todayHabitLogs = habitLogs.filter(l => l.date === date);
+  const overridesToday = todayHabitLogs.filter(l => l.hitHardMoment === true).length;
+  const tacticCounts: Record<string, number> = {};
+  for (const l of todayHabitLogs) {
+    for (const t of l.tactics ?? []) {
+      tacticCounts[t] = (tacticCounts[t] ?? 0) + 1;
+    }
+  }
+  const tacticsToday = Object.entries(tacticCounts)
+    .map(([id, count]) => ({ id, count }))
+    .sort((a, b) => b.count - a.count);
+
   // Build comparisons — only store positive diffs
   const comparisons: DailySummaryComparisons = {};
   const habitDiffWeek = habitsThisWeek - habitsLastWeek;
@@ -133,6 +148,9 @@ export const buildDailySummary = async (
   if (challengeDiffDay > 0) comparisons.challenges_more_vs_yesterday = challengeDiffDay;
 
   return {
+    practices_today: habitsToday,
+    overrides_today: overridesToday,
+    tactics_today: tacticsToday,
     habits_this_week: habitsThisWeek,
     challenges_this_week: challengesThisWeek,
     total_xp: userData.totalWillpowerPoints ?? 0,

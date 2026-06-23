@@ -227,10 +227,10 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Prompts */}
       <View style={styles.promptSection}>
-        <Text style={styles.promptLabel}>What went well today?</Text>
+        <Text style={styles.promptLabel}>Where did you override an urge today?</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="Celebrate your wins, big or small..."
+          placeholder="A moment you chose the hard thing over the easy one..."
           placeholderTextColor={Colors.gray}
           multiline
           numberOfLines={3}
@@ -242,10 +242,10 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.promptSection}>
-        <Text style={styles.promptLabel}>What was hardest?</Text>
+        <Text style={styles.promptLabel}>Where did the urge win?</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="What challenged you most today?"
+          placeholder="Where you gave in — no judgment, just name it..."
           placeholderTextColor={Colors.gray}
           multiline
           numberOfLines={3}

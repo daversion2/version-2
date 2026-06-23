@@ -854,6 +854,12 @@ export interface DailySummaryComparisons {
 }
 
 export interface DailySummary {
+  // Today's override recap (the daily reflection's headline). Practices logged
+  // today, how many hit their resistance moment and pushed through, and the
+  // override tactics used today (ids from OVERRIDE_TACTICS, with counts).
+  practices_today?: number;
+  overrides_today?: number;
+  tactics_today?: { id: string; count: number }[];
   // Progress-focused stats (new format)
   habits_this_week?: number;
   challenges_this_week?: number;

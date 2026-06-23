@@ -4,12 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ReflectionGrade } from '../../types';
 
+// Override-language day grades. The A–F values are preserved underneath (so saved
+// reflections, streaks, and grade stats stay intact); only the framing changes —
+// from "alignment to purpose" to "how you trained your override today."
 const ALIGNMENT_OPTIONS: { grade: ReflectionGrade; label: string; icon: string; color: string }[] = [
-  { grade: 'A', label: 'Fully\naligned', icon: 'compass', color: '#2E7D32' },
-  { grade: 'B', label: 'Mostly\naligned', icon: 'compass-outline', color: '#558B2F' },
+  { grade: 'A', label: 'Dominated', icon: 'flame', color: '#2E7D32' },
+  { grade: 'B', label: 'Showed\nup', icon: 'checkmark-circle', color: '#558B2F' },
   { grade: 'C', label: 'Mixed\nday', icon: 'swap-horizontal', color: '#F9A825' },
-  { grade: 'D', label: 'Drifted', icon: 'trending-down', color: '#EF6C00' },
-  { grade: 'F', label: 'Off\ntrack', icon: 'close-circle-outline', color: '#C62828' },
+  { grade: 'D', label: 'Slipped', icon: 'trending-down', color: '#EF6C00' },
+  { grade: 'F', label: 'Caved', icon: 'close-circle-outline', color: '#C62828' },
 ];
 
 interface GradeSelectorProps {
@@ -19,7 +22,7 @@ interface GradeSelectorProps {
 
 export const GradeSelector: React.FC<GradeSelectorProps> = ({ value, onChange }) => (
   <View style={styles.container}>
-    <Text style={styles.label}>How aligned were you with your purpose today? *</Text>
+    <Text style={styles.label}>How did you train today? *</Text>
     <View style={styles.row}>
       {ALIGNMENT_OPTIONS.map(({ grade, label, icon, color }) => {
         const isSelected = value === grade;
@@ -64,11 +67,11 @@ export const GRADE_COLORS: Record<ReflectionGrade, string> = {
 };
 
 export const GRADE_LABELS: Record<ReflectionGrade, string> = {
-  A: 'Fully aligned',
-  B: 'Mostly aligned',
+  A: 'Dominated',
+  B: 'Showed up',
   C: 'Mixed day',
-  D: 'Drifted',
-  F: 'Off track',
+  D: 'Slipped',
+  F: 'Caved',
 };
 
 const styles = StyleSheet.create({

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../common/Card';
 import { DailySummary } from '../../types';
+import { getTactic } from '../../data/overrideTactics';
 
 interface DailySummaryCardProps {
   summary: DailySummary;
@@ -60,9 +61,57 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
   const totalChallenges = summary.total_challenges_all_time ?? 0;
   const comparisons = buildComparisonMessages(summary);
 
+  const practicesToday = summary.practices_today ?? 0;
+  const overridesToday = summary.overrides_today ?? 0;
+  const tacticsToday = (summary.tactics_today ?? [])
+    .map((t) => ({ ...t, tactic: getTactic(t.id) }))
+    .filter((t) => !!t.tactic);
+
+  const overrideLine =
+    overridesToday > 0
+      ? `You pushed through the hard moment ${overridesToday} time${overridesToday === 1 ? '' : 's'} today.`
+      : practicesToday > 0
+      ? 'You showed up today — no hard moments logged.'
+      : 'No practices logged yet today.';
+
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Your Week at a Glance</Text>
+      {/* Today's override recap — the headline */}
+      <Text style={styles.title}>Today</Text>
+      <Text style={styles.overrideLine}>{overrideLine}</Text>
+
+      <View style={styles.statRow}>
+        <View style={styles.statIcon}>
+          <Ionicons name="flame" size={20} color={Colors.secondary} />
+        </View>
+        <View style={styles.statText}>
+          <Text style={styles.statMain}>
+            <Text style={styles.statNumber}>{practicesToday}</Text>
+            <Text style={styles.statLabel}> practice{practicesToday === 1 ? '' : 's'} logged today</Text>
+          </Text>
+        </View>
+      </View>
+
+      {tacticsToday.length > 0 && (
+        <View style={styles.tacticsBlock}>
+          <Text style={styles.tacticsHeading}>Your moves today</Text>
+          <View style={styles.tacticsRow}>
+            {tacticsToday.map(({ id, count, tactic }) => (
+              <View key={id} style={styles.tacticChip}>
+                <Ionicons name={tactic!.icon as any} size={13} color={Colors.primary} />
+                <Text style={styles.tacticChipText}>
+                  {tactic!.label}
+                  {count > 1 ? ` ×${count}` : ''}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <View style={styles.weekDivider} />
+
+      <Text style={styles.weekTitle}>This week</Text>
 
       {/* Habits stat row */}
       <View style={styles.statRow}>
@@ -132,6 +181,57 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.lg,
     color: Colors.dark,
+    marginBottom: Spacing.xs,
+  },
+  overrideLine: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    marginBottom: Spacing.md,
+    lineHeight: 22,
+  },
+  tacticsBlock: {
+    marginTop: Spacing.xs,
+  },
+  tacticsHeading: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
+  },
+  tacticsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  tacticChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  tacticChipText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+  },
+  weekDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.md,
+  },
+  weekTitle: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: Spacing.md,
   },
   statRow: {

@@ -10,7 +10,6 @@ interface NightlyReflectionBannerProps {
   hasReflected: boolean;
   todaysGrade?: ReflectionGrade;
   todaysActionCount?: number;
-  goalCount?: number;
   onPress: () => void;
 }
 
@@ -18,7 +17,6 @@ export const NightlyReflectionBanner: React.FC<NightlyReflectionBannerProps> = (
   hasReflected,
   todaysGrade,
   todaysActionCount = 0,
-  goalCount = 0,
   onPress,
 }) => {
   const isEvening = new Date().getHours() >= 20;
@@ -40,8 +38,8 @@ export const NightlyReflectionBanner: React.FC<NightlyReflectionBannerProps> = (
 
   // Build recap subtitle
   const recapText = todaysActionCount > 0
-    ? `${todaysActionCount} action${todaysActionCount !== 1 ? 's' : ''} completed across ${goalCount} goal${goalCount !== 1 ? 's' : ''}`
-    : 'Add to today\'s story';
+    ? `${todaysActionCount} rep${todaysActionCount !== 1 ? 's' : ''} logged — close out today`
+    : 'Recap how you trained today';
 
   // After 8pm — prominent dark banner with recap framing
   if (isEvening) {
