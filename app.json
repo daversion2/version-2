@@ -54,7 +54,15 @@
       "@react-native-community/datetimepicker",
       "@react-native-google-signin/google-signin",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {
