@@ -56,6 +56,21 @@ export type PracticesStackParamList = {
   // Curated practices open by catalog `practiceId`; user-authored (custom)
   // practices have no catalog entry and open by their instance `habitId`.
   PracticeDetail: { practiceId: string } | { habitId: string };
+  // Forward "Start" flow (Ready → Go → Capture) for an adopted curated practice.
+  // Only offered for catalog practices that carry briefing (`ready`) content.
+  PracticeSession: PracticeSessionParams;
+};
+
+/**
+ * Params for the forward practice-session flow. Shared so the flow can be hosted
+ * from any stack that lists practices (Practices tab, Home tab) — `goBack` then
+ * returns to wherever it was launched.
+ */
+export type PracticeSessionParams = {
+  practiceId: string; // catalog id — drives the Ready brief, flow, tracking
+  habitId: string; // adopted instance id to log the completion against
+  habitName: string;
+  teamId?: string;
 };
 
 export type PracticesNavigation = NativeStackNavigationProp<PracticesStackParamList>;
@@ -66,6 +81,9 @@ export type PracticesNavigation = NativeStackNavigationProp<PracticesStackParamL
 
 export type HomeStackParamList = {
   HomeScreen: undefined;
+  // Forward practice-session flow, also hosted here so taps from the Home list
+  // run the new flow and return to Home (not the Practices tab) when done.
+  PracticeSession: PracticeSessionParams;
   StartChallenge: { forDate?: string } | undefined;
   CreateChallenge: { forDate?: string } | undefined;
   PastChallenges: { forDate?: string } | undefined;

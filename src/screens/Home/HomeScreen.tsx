@@ -26,6 +26,7 @@ import { getWillpowerStats } from '../../services/willpower';
 import { HabitDifficulty, PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
+import { getPractice } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
@@ -442,9 +443,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleHabitTap = useCallback((habit: PracticeInstance) => {
-    setCompletingHabit(habit);
-  }, []);
+  const handleHabitTap = useCallback(
+    (habit: PracticeInstance) => {
+      // Curated practices with a briefing run the forward Ready → Go → Capture
+      // flow (hosted in this stack, so it returns to Home when done). Everything
+      // else keeps the quick retroactive "log it" modal.
+      const practice = getPractice(habit.practice_id);
+      if (practice?.ready) {
+        navigation.navigate('PracticeSession', {
+          practiceId: practice.id,
+          habitId: habit.id,
+          habitName: habit.name,
+          teamId: team?.id,
+        });
+        return;
+      }
+      setCompletingHabit(habit);
+    },
+    [navigation, team?.id]
+  );
 
   const handleHabitComplete = async (input: PracticeCompletionInput) => {
     if (!user || !completingHabit) return;

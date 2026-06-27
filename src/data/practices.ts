@@ -94,6 +94,32 @@ export interface Practice {
    * For time-in-stillness practices (meditation, breathwork).
    */
   timer?: boolean;
+
+  // ---- Practice-session flow (Ready → Go → Capture) ----
+  // See docs/practice-experience-build-plan.md
+  /**
+   * Which "middle beat" the forward PracticeSession runs:
+   * - 'timer'  — phone-present, an in-app timer guides the rep (see `timerDisplay`).
+   * - 'away'   — phone-down handoff; they do it offline and log after.
+   * - 'moment' — a single decision (pre-commit → confirm), no session.
+   */
+  flow: 'timer' | 'away' | 'moment';
+  /** How the timer renders, when flow === 'timer'. */
+  timerDisplay?: 'countdown' | 'pacer' | 'hidden';
+  /**
+   * Pre-practice briefing copy shown on the Ready screen. Each block is optional;
+   * `expect` is omitted for practices with no difficulty spike (e.g. breathwork).
+   */
+  ready?: {
+    /** The difficulty-arc warning — where/when it gets hard. */
+    expect?: string;
+    /** The single anchor or technique to hold onto. */
+    focus: string;
+    /** The urge to name, forward-facing (a reframe of `resistanceMoment`). */
+    overrideUrge?: string;
+    /** The handoff button label, e.g. "Begin" / "Put your phone down". */
+    handoffCta?: string;
+  };
 }
 
 export const PRACTICE_GROUPS: PracticeGroupDef[] = [
@@ -163,6 +189,13 @@ export const PRACTICES: Practice[] = [
     ],
     resistanceMoment: 'you noticed you’d drifted and wanted to get up or check the time',
     timer: true,
+    flow: 'timer',
+    timerDisplay: 'countdown',
+    ready: {
+      expect: "Urges to move, fidget, or stop will come in waves. That's normal — that's the practice.",
+      focus: "Notice the urge. Don't act on it. Return to the breath.",
+      handoffCta: 'Begin',
+    },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 60, step: 1, default: 10 },
       {
@@ -208,6 +241,13 @@ export const PRACTICES: Practice[] = [
       { label: 'Physiological sigh', description: 'Two inhales through the nose, one long exhale. Fastest reset.' },
     ],
     timer: true,
+    flow: 'timer',
+    timerDisplay: 'pacer',
+    ready: {
+      // No `expect` block — breathwork has no difficulty spike.
+      focus: "Make the exhale longer than the inhale. Let the pace do the work — don't rush back to normal.",
+      handoffCta: 'Begin',
+    },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 20, step: 1, default: 5 },
       {
@@ -254,6 +294,8 @@ export const PRACTICES: Practice[] = [
       { label: 'Ruck / hard walk', description: 'Weighted or brisk, ideally outdoors.' },
     ],
     resistanceMoment: 'the effort bit and you wanted to stop',
+    // Parked: scope undecided (too broad). No briefing yet — see build plan.
+    flow: 'away',
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 120, step: 5, default: 30 },
       {
@@ -300,6 +342,13 @@ export const PRACTICES: Practice[] = [
       { label: 'Face dunk', description: 'Bowl of ice water — triggers the dive reflex fast.' },
     ],
     resistanceMoment: 'the cold hit and everything said get out',
+    flow: 'away',
+    ready: {
+      expect: 'The first 30 seconds are the worst. Your body will scream to get out. Then it quiets.',
+      focus: 'Long, slow exhales. Control the gasp. That’s the whole job.',
+      overrideUrge: 'You’ll want out. You’re practicing not obeying that urge.',
+      handoffCta: 'Put your phone down',
+    },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 12, step: 1, default: 2 },
       { key: 'water_temp_f', label: 'Water temp', type: 'number', unit: '°F', min: 33, max: 70, step: 1, default: 50 },
@@ -337,6 +386,13 @@ export const PRACTICES: Practice[] = [
       { label: 'Contrast', description: 'Alternate heat and cold.' },
     ],
     resistanceMoment: 'the heat got intense and you wanted to leave',
+    flow: 'away',
+    ready: {
+      expect: 'The first minutes are easy. The urge to leave builds slowly and peaks near the end.',
+      focus: 'Stay loose. Slow, steady breathing. Don’t fight the heat — settle into it.',
+      overrideUrge: 'When it peaks, you’ll want to bail. Sit with it a little longer.',
+      handoffCta: 'Put your phone down',
+    },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 45, step: 5, default: 15 },
       { key: 'temp_f', label: 'Temp', type: 'number', unit: '°F', min: 120, max: 220, step: 5, default: 170 },
@@ -374,6 +430,14 @@ export const PRACTICES: Practice[] = [
       { label: 'Phone-free walk', description: 'Walk with no phone or earbuds.' },
     ],
     resistanceMoment: 'you reached for your phone or something to fill the space',
+    flow: 'timer',
+    timerDisplay: 'hidden',
+    ready: {
+      expect: "A few minutes in, you'll feel restless and reach for your phone. That pull is the whole point.",
+      focus: 'Do nothing. Let your mind wander. No input, no scrolling, no escape.',
+      overrideUrge: 'The urge to pick up your phone. Leave it face-down.',
+      handoffCta: 'Phone face-down',
+    },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 60, step: 5, default: 10 },
     ],
@@ -410,6 +474,9 @@ export const PRACTICES: Practice[] = [
       { label: '24-hour', description: 'Advanced: one full day, occasionally.' },
     ],
     resistanceMoment: 'a craving spiked and you wanted to eat',
+    // Parked: needs its own background-state model (12–36 hr, hunger waves). No
+    // session briefing yet — see build plan.
+    flow: 'away',
     tracking: [
       { key: 'duration_hrs', label: 'Fasting window', type: 'duration', unit: 'hrs', min: 12, max: 36, step: 1, default: 16 },
     ],
@@ -447,6 +514,14 @@ export const PRACTICES: Practice[] = [
       { label: 'No-extras meal', description: 'Eat it without the condiments and add-ons that make it enjoyable.' },
     ],
     resistanceMoment: 'you wanted to swap it for something tastier or reach for what you were craving',
+    // 'moment' flow (pre-commit → confirm) is built in Phase 5; briefing copy is
+    // ready now so the data is complete.
+    flow: 'moment',
+    ready: {
+      focus: 'Pick the harder option before the craving hits — then eat it plainly.',
+      overrideUrge: 'The pull to swap it for something you’d enjoy more.',
+      handoffCta: 'I’m committing',
+    },
     tracking: [
       {
         key: 'meal',

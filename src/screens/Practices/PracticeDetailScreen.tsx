@@ -27,7 +27,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </View>
 );
 
-export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
+export const PracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   // Curated practices arrive with a catalog `practiceId`; user-authored ones
   // with an instance `habitId` and no catalog entry.
   const practiceId = 'practiceId' in route.params ? route.params.practiceId : undefined;
@@ -111,6 +111,17 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
     }
   };
 
+  // Forward "Start" flow — only for adopted curated practices with a briefing.
+  const handleStart = () => {
+    if (!habit || !practice) return;
+    navigation.navigate('PracticeSession', {
+      practiceId: practice.id,
+      habitId: habit.id,
+      habitName: habit.name,
+      teamId,
+    });
+  };
+
   const handleSubmitCompletion = async (input: PracticeCompletionInput) => {
     setCompleting(false);
     if (!user || !habit) return;
@@ -154,6 +165,28 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
               <Text style={styles.ctaText}>Add to my practices · {target}×/week</Text>
             )}
           </TouchableOpacity>
+        ) : practice?.ready ? (
+          // Curated practice with a briefing → forward "Start" flow, plus a
+          // quieter retroactive "already did it" path.
+          <>
+            <TouchableOpacity
+              style={[
+                styles.cta,
+                { marginBottom: Spacing.sm },
+                complete ? { backgroundColor: Colors.success } : { backgroundColor: color },
+              ]}
+              onPress={handleStart}
+              activeOpacity={0.85}
+            >
+              <Ionicons name={complete ? 'checkmark' : 'play'} size={18} color={Colors.white} />
+              <Text style={styles.ctaText}>
+                {complete ? `Done · ${weekDone}/${target} this week` : `Start · ${weekDone}/${target} this week`}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryCta} onPress={() => setCompleting(true)} activeOpacity={0.7}>
+              <Text style={styles.secondaryCtaText}>Already did it — just log it</Text>
+            </TouchableOpacity>
+          </>
         ) : (
           <TouchableOpacity
             style={[styles.cta, complete ? { backgroundColor: Colors.success } : { backgroundColor: color }]}
@@ -267,6 +300,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   ctaText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
+  secondaryCta: { alignItems: 'center', paddingVertical: Spacing.xs, marginBottom: Spacing.lg },
+  secondaryCtaText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    textDecorationLine: 'underline',
+  },
   section: {
     backgroundColor: Colors.cardBg,
     borderRadius: BorderRadius.lg,

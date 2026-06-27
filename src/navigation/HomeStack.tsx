@@ -12,6 +12,7 @@ import { ActionChallengesScreen } from '../screens/Home/BarrierChallengesScreen'
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
 import { ManagePracticesScreen } from '../screens/Home/ManagePracticesScreen';
+import { PracticeSessionScreen } from '../screens/Practices/PracticeSessionScreen';
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
 import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
 import { HabitLibraryScreen } from '../screens/Home/HabitLibraryScreen';
@@ -113,6 +114,11 @@ export const HomeStack: React.FC = () => (
       name="ChallengeDetail"
       component={ChallengeDetailScreen}
       options={{ title: 'Challenge' }}
+    />
+    <Stack.Screen
+      name="PracticeSession"
+      component={PracticeSessionScreen}
+      options={{ title: '' }}
     />
     <Stack.Screen
       name="ManageHabits"
