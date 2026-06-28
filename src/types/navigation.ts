@@ -40,7 +40,6 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Practices: NavigatorScreenParams<PracticesStackParamList>;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
   Tools: NavigatorScreenParams<WorksheetsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
@@ -48,23 +47,12 @@ export type MainTabParamList = {
 };
 
 // ============================================================================
-// PRACTICES STACK
+// PRACTICE SESSION
 // ============================================================================
-
-export type PracticesStackParamList = {
-  PracticesHome: undefined;
-  // Curated practices open by catalog `practiceId`; user-authored (custom)
-  // practices have no catalog entry and open by their instance `habitId`.
-  PracticeDetail: { practiceId: string } | { habitId: string };
-  // Forward "Start" flow (Ready → Go → Capture) for an adopted curated practice.
-  // Only offered for catalog practices that carry briefing (`ready`) content.
-  PracticeSession: PracticeSessionParams;
-};
 
 /**
  * Params for the forward practice-session flow. Shared so the flow can be hosted
- * from any stack that lists practices (Practices tab, Home tab) — `goBack` then
- * returns to wherever it was launched.
+ * from any stack that launches it (Home) — `goBack` returns to where it started.
  */
 export type PracticeSessionParams = {
   practiceId: string; // catalog id — drives the Ready brief, flow, tracking
@@ -72,8 +60,6 @@ export type PracticeSessionParams = {
   habitName: string;
   teamId?: string;
 };
-
-export type PracticesNavigation = NativeStackNavigationProp<PracticesStackParamList>;
 
 // ============================================================================
 // HOME STACK
@@ -98,6 +84,9 @@ export type HomeStackParamList = {
   ExtendedChallengeProgress: { challenge: Challenge };
   ChallengeDetail: { challengeId: string };
   ManageHabits: { openAddForm?: boolean } | undefined;
+  // Curated practices open by catalog `practiceId`; user-authored (custom)
+  // practices open by their instance `habitId`. (Was in the retired Practices tab.)
+  PracticeDetail: { practiceId: string } | { habitId: string };
   HabitDetail: { habitId: string };
   HabitActionPlan: {
     habitId: string;

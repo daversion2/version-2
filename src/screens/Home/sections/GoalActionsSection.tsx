@@ -41,6 +41,10 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
     setAddMenuVisible(false);
     callbacks.onNavigate('StartChallenge');
   };
+  const handleAddProgram = () => {
+    setAddMenuVisible(false);
+    callbacks.onNavigate('ProgramDiscovery');
+  };
 
   // Planner context lookups
   const plannedTodaySet = useMemo(() => new Set(data.plannedHabitIds), [data.plannedHabitIds]);
@@ -138,6 +142,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
           habitsRemaining={habitsRemaining}
           onSelectHabit={handleAddHabit}
           onSelectChallenge={handleAddChallenge}
+          onSelectProgram={handleAddProgram}
           onClose={() => setAddMenuVisible(false)}
         />
       </>
@@ -299,6 +304,7 @@ export const GoalActionsSection: React.FC<HomeSectionProps> = React.memo(({ data
         habitsRemaining={habitsRemaining}
         onSelectHabit={handleAddHabit}
         onSelectChallenge={handleAddChallenge}
+        onSelectProgram={handleAddProgram}
         onClose={() => setAddMenuVisible(false)}
       />
     </>

@@ -49,6 +49,10 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
     setAddMenuVisible(false);
     callbacks.onNavigate('StartChallenge');
   };
+  const handleAddProgram = () => {
+    setAddMenuVisible(false);
+    callbacks.onNavigate('ProgramDiscovery');
+  };
 
   const plannedTodaySet = useMemo(() => new Set(data.plannedHabitIds), [data.plannedHabitIds]);
   const futureHabitPlanMap = useMemo(() => {
@@ -163,6 +167,7 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
         habitsRemaining={remaining}
         onSelectHabit={handleAddHabit}
         onSelectChallenge={handleAddChallenge}
+        onSelectProgram={handleAddProgram}
         onClose={() => setAddMenuVisible(false)}
       />
     </>

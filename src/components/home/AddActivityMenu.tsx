@@ -9,12 +9,13 @@ interface AddActivityMenuProps {
   habitsRemaining: number;
   onSelectHabit: () => void;
   onSelectChallenge: () => void;
+  onSelectProgram: () => void;
   onClose: () => void;
 }
 
 /**
- * Bottom-sheet chooser for adding a new activity (Habit or Challenge).
- * Challenges appear locked until the user has completed 3 habits.
+ * Bottom-sheet chooser for adding a new activity (Practice, Challenge, or Program).
+ * Challenges appear locked until the user has completed 3 practices.
  */
 export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
   visible,
@@ -22,6 +23,7 @@ export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
   habitsRemaining,
   onSelectHabit,
   onSelectChallenge,
+  onSelectProgram,
   onClose,
 }) => {
   return (
@@ -32,7 +34,7 @@ export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
           <Text style={styles.title}>Add activity</Text>
           <Text style={styles.subtitle}>What would you like to add?</Text>
 
-          {/* Habit */}
+          {/* Practice */}
           <TouchableOpacity style={styles.option} onPress={onSelectHabit} activeOpacity={0.7}>
             <View style={[styles.optionIcon, { backgroundColor: Colors.primary + '15' }]}>
               <Ionicons name="repeat" size={22} color={Colors.primary} />
@@ -69,6 +71,18 @@ export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
               </View>
             </View>
           )}
+
+          {/* Program */}
+          <TouchableOpacity style={styles.option} onPress={onSelectProgram} activeOpacity={0.7}>
+            <View style={[styles.optionIcon, { backgroundColor: Colors.primary + '15' }]}>
+              <Ionicons name="map" size={22} color={Colors.primary} />
+            </View>
+            <View style={styles.optionInfo}>
+              <Text style={styles.optionName}>Explore programs</Text>
+              <Text style={styles.optionDesc}>A guided multi-day sequence</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
             <Text style={styles.cancelText}>Cancel</Text>

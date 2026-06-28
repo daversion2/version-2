@@ -11,7 +11,8 @@ import { ChallengeLibraryScreen } from '../screens/Home/ChallengeLibraryScreen';
 import { ActionChallengesScreen } from '../screens/Home/BarrierChallengesScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
-import { ManagePracticesScreen } from '../screens/Home/ManagePracticesScreen';
+import { PracticesScreen } from '../screens/Practices/PracticesScreen';
+import { PracticeDetailScreen } from '../screens/Practices/PracticeDetailScreen';
 import { PracticeSessionScreen } from '../screens/Practices/PracticeSessionScreen';
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
 import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
@@ -122,8 +123,13 @@ export const HomeStack: React.FC = () => (
     />
     <Stack.Screen
       name="ManageHabits"
-      component={ManagePracticesScreen}
-      options={{ title: 'Habits' }}
+      component={PracticesScreen}
+      options={{ title: 'Practices' }}
+    />
+    <Stack.Screen
+      name="PracticeDetail"
+      component={PracticeDetailScreen}
+      options={{ title: '' }}
     />
     <Stack.Screen
       name="HabitDetail"

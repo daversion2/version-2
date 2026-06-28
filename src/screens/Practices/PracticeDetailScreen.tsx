@@ -1,24 +1,17 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { PracticesStackParamList } from '../../types/navigation';
+import { HomeScreenProps } from '../../types/navigation';
 import { getPractice, PRACTICE_GROUPS, resolvePracticeGroup } from '../../data/practices';
 import { useAuth } from '../../context/AuthContext';
-import {
-  getActiveHabits,
-  getWeeklyCompletionCounts,
-  createHabit,
-  completePractice,
-} from '../../services/practices';
-import { getUserTeam } from '../../services/teams';
-import { PracticeInstance, HabitDifficulty, PracticeCompletionInput } from '../../types';
-import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
-import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
+import { getActiveHabits, getWeeklyCompletionCounts, createHabit } from '../../services/practices';
+import { PracticeInstance } from '../../types';
 
-type Props = NativeStackScreenProps<PracticesStackParamList, 'PracticeDetail'>;
+// Learn + adopt + status. Doing reps (completion) lives on Home, so detail carries
+// no completion CTA — it's the "understand it / add it to my protocol" screen.
+type Props = HomeScreenProps<'PracticeDetail'>;
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <View style={styles.section}>
@@ -27,7 +20,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </View>
 );
 
-export const PracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
   // Curated practices arrive with a catalog `practiceId`; user-authored ones
   // with an instance `habitId` and no catalog entry.
   const practiceId = 'practiceId' in route.params ? route.params.practiceId : undefined;
@@ -38,18 +31,13 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => 
   const [habit, setHabit] = useState<PracticeInstance | null>(null);
   const [weekDone, setWeekDone] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [teamId, setTeamId] = useState<string | undefined>(undefined);
-  const [celebration, setCelebration] = useState<{ points: number; streak: number } | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [hs, counts, team] = await Promise.all([
+    const [hs, counts] = await Promise.all([
       getActiveHabits(user.uid),
       getWeeklyCompletionCounts(user.uid),
-      getUserTeam(user.uid),
     ]);
-    setTeamId(team?.id);
     let found: PracticeInstance | null = null;
     if (practice) {
       found =
@@ -111,33 +99,8 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => 
     }
   };
 
-  // Forward "Start" flow — only for adopted curated practices with a briefing.
-  const handleStart = () => {
-    if (!habit || !practice) return;
-    navigation.navigate('PracticeSession', {
-      practiceId: practice.id,
-      habitId: habit.id,
-      habitName: habit.name,
-      teamId,
-    });
-  };
-
-  const handleSubmitCompletion = async (input: PracticeCompletionInput) => {
-    setCompleting(false);
-    if (!user || !habit) return;
-    const result = await completePractice(
-      user.uid,
-      { id: habit.id, name: habit.name },
-      input,
-      { teamId }
-    );
-    setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
-    await load();
-  };
-
   return (
-    <>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <View style={[styles.iconWrap, { backgroundColor: color + '1A' }]}>
@@ -151,7 +114,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => 
           {practice && <Text style={styles.overview}>{practice.description}</Text>}
         </View>
 
-        {/* Adopt / check-off */}
+        {/* Adopt (un-adopted) or a read-only status (adopted). Completion is on Home. */}
         {!adopted ? (
           <TouchableOpacity
             style={[styles.cta, { backgroundColor: color }]}
@@ -165,39 +128,17 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => 
               <Text style={styles.ctaText}>Add to my practices · {target}×/week</Text>
             )}
           </TouchableOpacity>
-        ) : practice?.ready ? (
-          // Curated practice with a briefing → forward "Start" flow, plus a
-          // quieter retroactive "already did it" path.
-          <>
-            <TouchableOpacity
-              style={[
-                styles.cta,
-                { marginBottom: Spacing.sm },
-                complete ? { backgroundColor: Colors.success } : { backgroundColor: color },
-              ]}
-              onPress={handleStart}
-              activeOpacity={0.85}
-            >
-              <Ionicons name={complete ? 'checkmark' : 'play'} size={18} color={Colors.white} />
-              <Text style={styles.ctaText}>
-                {complete ? `Done · ${weekDone}/${target} this week` : `Start · ${weekDone}/${target} this week`}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.secondaryCta} onPress={() => setCompleting(true)} activeOpacity={0.7}>
-              <Text style={styles.secondaryCtaText}>Already did it — just log it</Text>
-            </TouchableOpacity>
-          </>
         ) : (
-          <TouchableOpacity
-            style={[styles.cta, complete ? { backgroundColor: Colors.success } : { backgroundColor: color }]}
-            onPress={() => setCompleting(true)}
-            activeOpacity={0.85}
-          >
-            <Ionicons name={complete ? 'checkmark' : 'add'} size={18} color={Colors.white} />
-            <Text style={styles.ctaText}>
-              {complete ? `Done · ${weekDone}/${target} this week` : `Log it · ${weekDone}/${target} this week`}
+          <View style={[styles.statusPill, { borderColor: color }]}>
+            <Ionicons
+              name={complete ? 'checkmark-circle' : 'ellipse-outline'}
+              size={18}
+              color={complete ? Colors.success : color}
+            />
+            <Text style={[styles.statusText, { color }]}>
+              In your practices · {weekDone}/{target} this week
             </Text>
-          </TouchableOpacity>
+          </View>
         )}
 
         {/* Catalog "Learn" content — curated practices only. */}
@@ -259,24 +200,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => 
         </Section>
           </>
         )}
-      </ScrollView>
-
-      <HabitCompletionModal
-        visible={completing}
-        habitName={name}
-        practiceId={practice?.id ?? habit?.practice_id}
-        actionPlan={habit?.action_plan}
-        onSubmit={handleSubmitCompletion}
-        onCancel={() => setCompleting(false)}
-      />
-
-      <HabitCelebrationModal
-        visible={!!celebration}
-        pointsEarned={celebration?.points ?? 0}
-        streakDays={celebration?.streak ?? 0}
-        onDismiss={() => setCelebration(null)}
-      />
-    </>
+    </ScrollView>
   );
 };
 
@@ -300,13 +224,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   ctaText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
-  secondaryCta: { alignItems: 'center', paddingVertical: Spacing.xs, marginBottom: Spacing.lg },
-  secondaryCtaText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    textDecorationLine: 'underline',
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    marginBottom: Spacing.lg,
   },
+  statusText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
   section: {
     backgroundColor: Colors.cardBg,
     borderRadius: BorderRadius.lg,
