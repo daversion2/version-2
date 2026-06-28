@@ -24,10 +24,19 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 export const Slider: React.FC<Props> = ({ value, min, max, step = 1, onChange, color = Colors.primary }) => {
   const [width, setWidth] = useState(0);
   const widthRef = useRef(0);
-  const startXRef = useRef(0);
+  // Absolute X (in window coords) of the track's left edge, so we can map any
+  // touch — tap or drag, on the thumb or the bare track — to a track-relative x.
+  const trackLeftRef = useRef(0);
+  const trackRef = useRef<View>(null);
   // Keep the latest onChange so the once-created PanResponder never goes stale.
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const measureTrack = () => {
+    trackRef.current?.measureInWindow((x) => {
+      trackLeftRef.current = x;
+    });
+  };
 
   const valueFromX = (x: number): number => {
     const w = widthRef.current;
@@ -41,13 +50,19 @@ export const Slider: React.FC<Props> = ({ value, min, max, step = 1, onChange, c
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        const x = evt.nativeEvent.locationX;
-        startXRef.current = x;
-        onChangeRef.current(valueFromX(x));
+      // Claim the gesture aggressively so a parent ScrollView can't steal the drag.
+      onMoveShouldSetPanResponderCapture: () => true,
+      // gesture.x0 / moveX are absolute window coordinates and are the same
+      // whether the touch lands on the thumb, the fill, or the bare track —
+      // unlike evt.locationX, which is relative to the specific child touched.
+      onPanResponderGrant: (_evt, gesture) => {
+        onChangeRef.current(valueFromX(gesture.x0 - trackLeftRef.current));
+        // Refresh the cached left edge for the rest of this drag in case the
+        // screen scrolled after the last layout pass.
+        measureTrack();
       },
       onPanResponderMove: (_evt, gesture) => {
-        onChangeRef.current(valueFromX(startXRef.current + gesture.dx));
+        onChangeRef.current(valueFromX(gesture.moveX - trackLeftRef.current));
       },
     }),
   ).current;
@@ -59,10 +74,11 @@ export const Slider: React.FC<Props> = ({ value, min, max, step = 1, onChange, c
     const w = e.nativeEvent.layout.width;
     widthRef.current = w;
     setWidth(w);
+    measureTrack();
   };
 
   return (
-    <View style={styles.track} onLayout={onLayout} {...pan.panHandlers}>
+    <View ref={trackRef} style={styles.track} onLayout={onLayout} {...pan.panHandlers}>
       <View style={styles.line} />
       <View style={[styles.fill, { width: filled, backgroundColor: color }]} />
       <View
