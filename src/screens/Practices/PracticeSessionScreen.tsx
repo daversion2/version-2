@@ -9,14 +9,15 @@ import { completePractice } from '../../services/practices';
 import { PracticeCompletionInput } from '../../types';
 import { PracticeReady } from '../../components/habits/PracticeReady';
 import { PracticeTimer } from '../../components/habits/PracticeTimer';
+import { PracticeBreathPacer } from '../../components/habits/PracticeBreathPacer';
 import { PracticeCaptureForm } from '../../components/habits/PracticeCaptureForm';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 
-// Structural props (only `route.params` + `navigation.goBack`) so the same screen
-// can be registered in any stack — Practices tab and Home tab both host it.
+// Structural props so the same screen can be registered in any stack. Needs
+// goBack (return to caller) and navigate (open the practice's learn content).
 interface Props {
   route: { params: PracticeSessionParams };
-  navigation: { goBack: () => void };
+  navigation: { goBack: () => void; navigate: (...args: any[]) => void };
 }
 
 type Step = 'ready' | 'go' | 'capture';
@@ -43,6 +44,8 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   const [step, setStep] = useState<Step>('ready');
   // Minutes measured by the timer, carried into Capture as a seed (null = untimed).
   const [timerMinutes, setTimerMinutes] = useState<number | null>(null);
+  // Pattern the breath pacer guided, seeded into Capture's `technique` field.
+  const [pacerTechnique, setPacerTechnique] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<{ points: number; streak: number } | null>(null);
 
   if (!practice) {
@@ -58,6 +61,12 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
 
   const handleTimerDone = (minutes: number) => {
     setTimerMinutes(minutes);
+    setStep('capture');
+  };
+
+  const handlePacerDone = (minutes: number, technique: string) => {
+    setTimerMinutes(minutes);
+    setPacerTechnique(technique);
     setStep('capture');
   };
 
@@ -79,9 +88,28 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
 
   return (
     <View style={styles.screen}>
-      {step === 'ready' && <PracticeReady practice={practice} onBegin={handleBegin} />}
+      {step === 'ready' && (
+        <PracticeReady
+          practice={practice}
+          onBegin={handleBegin}
+          onLearn={() => navigation.navigate('PracticeDetail', { practiceId })}
+        />
+      )}
 
-      {step === 'go' && practice.flow === 'timer' && (
+      {step === 'go' && practice.flow === 'timer' && practice.timerDisplay === 'pacer' && (
+        <View style={styles.goWrap}>
+          <PracticeBreathPacer
+            accentColor={accent}
+            defaultMinutes={
+              (practice.tracking?.find((t) => t.key === 'duration_min')?.default as number) ?? 5
+            }
+            onDone={handlePacerDone}
+            onSkip={() => setStep('capture')}
+          />
+        </View>
+      )}
+
+      {step === 'go' && practice.flow === 'timer' && practice.timerDisplay !== 'pacer' && (
         <View style={styles.goWrap}>
           <PracticeTimer
             accentColor={accent}
@@ -124,7 +152,14 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
           <Text style={styles.captureTitle}>{habitName}</Text>
           <PracticeCaptureForm
             practiceId={practiceId}
-            initialMetrics={timerMinutes != null ? { duration_min: timerMinutes } : undefined}
+            initialMetrics={
+              timerMinutes != null
+                ? {
+                    duration_min: timerMinutes,
+                    ...(pacerTechnique ? { technique: pacerTechnique } : {}),
+                  }
+                : undefined
+            }
             initialExpanded={timerMinutes != null}
             onSubmit={handleSubmit}
             onCancel={() => navigation.goBack()}
