@@ -67,6 +67,14 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
             doneToday={doneTodaySet.has(habit.id)}
             onPress={() => callbacks.onHabitTap(habit)}
             onEditGoal={() => setEditingHabit(habit)}
+            onOpenPlan={() =>
+              callbacks.onNavigate('HabitActionPlan', {
+                habitId: habit.id,
+                prefilled: habit.action_plan,
+                supportsPairing: !!habit.supports_pairing,
+                reminder: habit.reminder,
+              })
+            }
           />
         );
       })}

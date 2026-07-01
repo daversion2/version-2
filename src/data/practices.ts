@@ -347,7 +347,10 @@ export const BUNDLED_PRACTICES: Practice[] = [
     group: 'activate',
     intensity: 'challenging',
     color: '#FF5B02',
-    core: true,
+    // Retired — merged with Deliberate Boredom into 'unplugged_cardio'. Kept
+    // (active: false) so already-adopted instances still resolve.
+    core: false,
+    active: false,
     suggested_target_per_week: 4,
     description: 'Intentional physical effort — a workout, a hard walk, anything that makes the body work.',
     whyItWorks:
@@ -386,6 +389,62 @@ export const BUNDLED_PRACTICES: Practice[] = [
           { value: 'strength', label: 'Strength' },
           { value: 'cardio', label: 'Cardio' },
           { value: 'ruck', label: 'Ruck / walk' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'unplugged_cardio',
+    name: 'Unplugged Cardio',
+    group: 'activate',
+    intensity: 'challenging',
+    color: '#FF5B02',
+    core: true,
+    suggested_target_per_week: 4,
+    description:
+      'Run or walk with no phone, music, or screens — physical effort and mental stillness at the same time.',
+    whyItWorks:
+      'You train two overrides at once: pushing through effort and resisting the pull for input. The body works while the mind learns to sit with boredom.',
+    icon: 'walk-outline',
+    order: 4,
+    howTo: [
+      'Put your phone fully away — no music, podcast, or screen.',
+      'Get on the treadmill (or head outside) at a pace that takes real effort.',
+      'When the urge to grab your phone or ease off shows up, notice it and keep going.',
+      'Finish your set time, then log it.',
+    ],
+    minimumVersion: 'Ten minutes walking with no phone and no audio.',
+    science:
+      'Choosing exertion engages the prefrontal-cortex-over-limbic pathway and raises norepinephrine and BDNF — which support focus and mood. Removing all input at the same time lets your dopamine baseline recover instead of chasing novelty. Doing both together is a double rep: the body works while the mind practices staying with discomfort.',
+    tips: [
+      'Phone in a bag or locker beats willpower — remove the option entirely.',
+      'Boredom and the urge to stop both peak early; ride past them.',
+      'A treadmill makes it easy to hold effort and stay put, but any steady, screen-free cardio counts.',
+    ],
+    variations: [
+      { label: 'Treadmill walk', description: 'A steady incline walk, no screen.' },
+      { label: 'Treadmill run', description: 'A run at genuine effort, no audio.' },
+      { label: 'Outdoors, unplugged', description: 'Walk or run outside with no phone or earbuds.' },
+    ],
+    resistanceMoment: 'the effort bit, or you wanted to reach for your phone or music',
+    flow: 'away',
+    ready: {
+      expect:
+        'The urge to reach for your phone or put on music will come — and the effort will bite. Both are the point.',
+      focus: 'Just move. No screen, no audio. Let your mind wander and stay with the effort.',
+      overrideUrge: 'The pull to grab your phone, put on a podcast, or stop early.',
+      handoffCta: 'Put your phone away',
+    },
+    tracking: [
+      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 120, step: 5, default: 30 },
+      {
+        key: 'pace',
+        label: 'Pace',
+        type: 'choice',
+        options: [
+          { value: 'walk', label: 'Walk' },
+          { value: 'run', label: 'Run' },
+          { value: 'mixed', label: 'Mixed' },
         ],
       },
     ],
@@ -489,7 +548,10 @@ export const BUNDLED_PRACTICES: Practice[] = [
     group: 'restrain',
     intensity: 'challenging',
     color: '#7B61FF',
-    core: true,
+    // Retired — merged with Movement into 'unplugged_cardio'. Kept
+    // (active: false) so already-adopted instances still resolve.
+    core: false,
+    active: false,
     suggested_target_per_week: 3,
     description: 'No phone, no input — sit with nothing and let the boredom be there.',
     whyItWorks:

@@ -1,12 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { PracticeInstance } from '../../types';
+import { PracticeInstance, HabitActionPlan } from '../../types';
 import { IntensityTierDef } from '../../data/practices';
 
 const FLAME_COLOR = '#FF7A1A';
 const MAX_DOTS = 7; // weekly targets are 1–7
+
+// The "game plan" (action plan) fields shown in the My Plan dropdown. Mirrors
+// the set used on the old home habit rows.
+const PLAN_LABELS: {
+  key: keyof HabitActionPlan;
+  label: string;
+  icon: string;
+  fallbackKey?: keyof HabitActionPlan;
+}[] = [
+  { key: 'anchor', label: 'After I…', icon: 'link-outline', fallbackKey: 'cue' },
+  { key: 'pairing', label: 'Pair it with', icon: 'heart-outline' },
+  { key: 'environment_change', label: 'Environment tweak', icon: 'home-outline' },
+  { key: 'obstacle_plan', label: 'Obstacle plan', icon: 'shield-outline' },
+  { key: 'minimum_version', label: 'Minimum version', icon: 'trending-down-outline' },
+  { key: 'accountability_person', label: 'Accountability', icon: 'people-outline' },
+];
+
+/** Resolve a label's value, falling back to a legacy key (e.g. anchor → cue). */
+const planValueFor = (
+  plan: HabitActionPlan,
+  key: keyof HabitActionPlan,
+  fallbackKey?: keyof HabitActionPlan
+): string | undefined => plan[key] || (fallbackKey ? plan[fallbackKey] : undefined);
 
 interface PracticeCardProps {
   habit: PracticeInstance;
@@ -26,6 +49,8 @@ interface PracticeCardProps {
   onPress: () => void;
   /** Open the weekly-goal sheet. */
   onEditGoal: () => void;
+  /** Open the game plan (HabitActionPlanScreen) to create/edit the action plan. */
+  onOpenPlan: () => void;
 }
 
 /**
@@ -34,18 +59,22 @@ interface PracticeCardProps {
  * weekly-goal chip, and a Start / Done-today action. See the home redesign.
  */
 export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
-  ({ habit, color, tier, icon, why, weeklyDone, doneToday, onPress, onEditGoal }) => {
+  ({ habit, color, tier, icon, why, weeklyDone, doneToday, onPress, onEditGoal, onOpenPlan }) => {
+    const [expanded, setExpanded] = useState(false);
     // A weekly target of 0 (or missing) means the user hasn't set a goal yet —
     // the card invites them to instead of assuming a default.
     const hasGoal = (habit.target_count_per_week || 0) >= 1;
     const target = Math.min(habit.target_count_per_week || 0, MAX_DOTS);
     const filled = Math.min(weeklyDone, target);
+    const hasPlan =
+      !!habit.action_plan &&
+      PLAN_LABELS.some(({ key, fallbackKey }) => !!planValueFor(habit.action_plan!, key, fallbackKey));
 
     return (
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [styles.card, doneToday && styles.cardDone, pressed && styles.cardPressed]}
-      >
+      <View style={[styles.card, doneToday && styles.cardDone]}>
+        {/* Start-press area: banner + body. The game plan sits outside this so
+            tapping/expanding the plan never starts the practice. */}
+        <Pressable onPress={onPress} style={({ pressed }) => [pressed && styles.cardPressed]}>
         {/* Banner — colored by the practice */}
         <View style={[styles.banner, { backgroundColor: color }]}>
           <View style={styles.meter}>
@@ -123,7 +152,52 @@ export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
             )}
           </View>
         </View>
-      </Pressable>
+        </Pressable>
+
+        {/* Game plan (action plan) — outside the start-press area */}
+        <View style={styles.planSection}>
+          {hasPlan ? (
+            <>
+              <View style={styles.planToggle}>
+                <TouchableOpacity
+                  style={styles.planToggleLeft}
+                  onPress={() => setExpanded((e) => !e)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
+                  <Text style={styles.planToggleText}>My Plan</Text>
+                  <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={onOpenPlan} hitSlop={8} activeOpacity={0.7}>
+                  <Text style={styles.planEditText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+              {expanded && (
+                <View style={styles.planDropdown}>
+                  {PLAN_LABELS.map(({ key, label, icon: fieldIcon, fallbackKey }) => {
+                    const value = planValueFor(habit.action_plan!, key, fallbackKey);
+                    if (!value) return null;
+                    return (
+                      <View key={key} style={styles.planItem}>
+                        <Ionicons name={fieldIcon as any} size={14} color={Colors.primary} style={{ marginTop: 1 }} />
+                        <View style={styles.planItemContent}>
+                          <Text style={styles.planItemLabel}>{label}</Text>
+                          <Text style={styles.planItemValue}>{value}</Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </>
+          ) : (
+            <TouchableOpacity style={styles.planToggle} onPress={onOpenPlan} activeOpacity={0.7}>
+              <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
+              <Text style={styles.planToggleText}>Create a plan for this practice</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
     );
   }
 );
@@ -171,7 +245,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg + 1, color: Colors.white },
   bigIcon: { position: 'absolute', right: 10, bottom: 6 },
 
-  body: { padding: Spacing.md },
+  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
   why: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm - 1, color: Colors.gray, lineHeight: 19 },
 
   foot: {
@@ -237,4 +311,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success + '1F',
   },
   doneText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.success },
+
+  // Game plan (action plan) section
+  planSection: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
+  planToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGray,
+  },
+  planToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, flex: 1 },
+  planToggleText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.primary, flex: 1 },
+  planEditText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.primary },
+  planDropdown: { marginTop: Spacing.sm, gap: Spacing.sm },
+  planItem: { flexDirection: 'row', gap: Spacing.sm },
+  planItemContent: { flex: 1 },
+  planItemLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.dark, marginBottom: 1 },
+  planItemValue: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, lineHeight: 18 },
 });
