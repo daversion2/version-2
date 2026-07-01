@@ -5,10 +5,12 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 
 interface AddActivityMenuProps {
   visible: boolean;
-  challengesUnlocked: boolean;
-  habitsRemaining: number;
+  /** Show the Challenge option. Off when challenges live in their own tab. */
+  showChallenge?: boolean;
+  challengesUnlocked?: boolean;
+  habitsRemaining?: number;
   onSelectHabit: () => void;
-  onSelectChallenge: () => void;
+  onSelectChallenge?: () => void;
   onSelectProgram: () => void;
   onClose: () => void;
 }
@@ -19,8 +21,9 @@ interface AddActivityMenuProps {
  */
 export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
   visible,
-  challengesUnlocked,
-  habitsRemaining,
+  showChallenge = true,
+  challengesUnlocked = false,
+  habitsRemaining = 0,
   onSelectHabit,
   onSelectChallenge,
   onSelectProgram,
@@ -47,7 +50,7 @@ export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
           </TouchableOpacity>
 
           {/* Challenge */}
-          {challengesUnlocked ? (
+          {showChallenge && (challengesUnlocked ? (
             <TouchableOpacity style={styles.option} onPress={onSelectChallenge} activeOpacity={0.7}>
               <View style={[styles.optionIcon, { backgroundColor: Colors.secondary + '15' }]}>
                 <Ionicons name="flash" size={22} color={Colors.secondary} />
@@ -70,7 +73,7 @@ export const AddActivityMenu: React.FC<AddActivityMenuProps> = ({
                 </Text>
               </View>
             </View>
-          )}
+          ))}
 
           {/* Program */}
           <TouchableOpacity style={styles.option} onPress={onSelectProgram} activeOpacity={0.7}>

@@ -40,10 +40,31 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
+  Challenges: NavigatorScreenParams<ChallengesStackParamList>;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
   Tools: NavigatorScreenParams<WorksheetsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
   Admin: NavigatorScreenParams<AdminStackParamList>;
+};
+
+// The Challenges tab reuses the challenge-flow screens (they also stay in the
+// Home stack for goal/planner entry points). Param shapes are picked from
+// HomeStackParamList so the shared screen components stay type-compatible.
+export type ChallengesStackParamList = Pick<
+  HomeStackParamList,
+  | 'CreateChallenge'
+  | 'PastChallenges'
+  | 'ChallengeLibrary'
+  | 'ActionChallenges'
+  | 'CompleteChallenge'
+  | 'EditChallenge'
+  | 'ExtendedChallengeProgress'
+  | 'ChallengeDetail'
+  | 'SubmitChallenge'
+  | 'BuddyPickPartner'
+  | 'GoalCreationFlow'
+> & {
+  ChallengesHome: undefined;
 };
 
 // ============================================================================
@@ -246,6 +267,10 @@ export type AdminStackParamList = {
 // Home Stack
 export type HomeScreenProps<T extends keyof HomeStackParamList> =
   NativeStackScreenProps<HomeStackParamList, T>;
+
+// Challenges Stack
+export type ChallengesScreenProps<T extends keyof ChallengesStackParamList> =
+  NativeStackScreenProps<ChallengesStackParamList, T>;
 
 // Goals Stack (deprecated — aliased to Progress)
 export type GoalsScreenProps<T extends keyof ProgressStackParamList> =
