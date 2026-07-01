@@ -1,6 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeStackParamList } from '../types/navigation';
 import { HomeScreen } from '../screens/Home/HomeScreen';
@@ -66,20 +65,12 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="HomeScreen"
       component={HomeScreen}
-      options={({ navigation }) => ({
+      options={{
         title: 'Home',
         headerLeft: () => (
           <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
         ),
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('CustomizeHome')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="options-outline" size={22} color={Colors.primary} />
-          </TouchableOpacity>
-        ),
-      })}
+      }}
     />
     <Stack.Screen
       name="StartChallenge"
