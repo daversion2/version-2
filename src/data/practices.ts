@@ -21,6 +21,52 @@ export interface PracticeGroupDef {
   order: number;
 }
 
+/**
+ * How extreme a practice is — the home page orders practices by this (gentle →
+ * extreme) and badges each card with a 1–3 flame meter. Orthogonal to `group`:
+ * intensity is "how hard," group is "what kind of training." See the home
+ * "Your Practices" list.
+ */
+export type IntensityLevel = 'foundational' | 'challenging' | 'extreme';
+
+export interface IntensityTierDef {
+  id: IntensityLevel;
+  /** Display label, e.g. "Foundational". */
+  label: string;
+  /** Sort + flame count (1 = gentlest, 3 = most extreme). */
+  flames: 1 | 2 | 3;
+  /** One-line description of the tier. */
+  description: string;
+}
+
+/** Foundational → Challenging → Extreme, in display order. */
+export const INTENSITY_TIERS: IntensityTierDef[] = [
+  { id: 'foundational', label: 'Foundational', flames: 1, description: 'Stillness & attention — anyone can start today.' },
+  { id: 'challenging', label: 'Challenging', flames: 2, description: 'Real effort or willpower, but low risk.' },
+  { id: 'extreme', label: 'Extreme', flames: 3, description: 'The most intense — work up to these.' },
+];
+
+/** Sort weight for each tier (lower = gentler/higher on the list). */
+export const INTENSITY_ORDER: Record<IntensityLevel, number> = {
+  foundational: 0,
+  challenging: 1,
+  extreme: 2,
+};
+
+const INTENSITY_TIER_BY_ID: Record<IntensityLevel, IntensityTierDef> = INTENSITY_TIERS.reduce(
+  (acc, t) => {
+    acc[t.id] = t;
+    return acc;
+  },
+  {} as Record<IntensityLevel, IntensityTierDef>
+);
+
+export const getIntensityTier = (level?: IntensityLevel): IntensityTierDef | undefined =>
+  level ? INTENSITY_TIER_BY_ID[level] : undefined;
+
+/** Neutral fallback color for practices with no `color` set (e.g. custom habits). */
+export const DEFAULT_PRACTICE_COLOR = '#217180';
+
 export interface PracticeVariation {
   label: string;
   description: string;
@@ -67,6 +113,16 @@ export interface Practice {
   optional_reason?: string;
   order: number;
 
+  /**
+   * How extreme this practice is. Drives the home list ordering (gentle →
+   * extreme) and the 1–3 flame meter on the card. Optional so remote/legacy
+   * catalog docs without it still validate; falls back to 'foundational' for
+   * sorting via getPracticeIntensity().
+   */
+  intensity?: IntensityLevel;
+  /** Accent color for the practice card banner. Falls back to DEFAULT_PRACTICE_COLOR. */
+  color?: string;
+
   // ---- "Learn" content (shown on the practice detail screen) ----
   /** Concrete steps to do a session. */
   howTo: string[];
@@ -94,6 +150,14 @@ export interface Practice {
    * For time-in-stillness practices (meditation, breathwork).
    */
   timer?: boolean;
+
+  /**
+   * Whether this practice is shown to users for adoption. Retired practices set
+   * `active: false` — hidden from browse but still resolvable so already-adopted
+   * instances keep working. Absent = active (the bundled defaults). Managed via the
+   * Firestore catalog + admin editor. See services/practiceCatalog.ts.
+   */
+  active?: boolean;
 
   // ---- Practice-session flow (Ready → Go → Capture) ----
   // See docs/practice-experience-build-plan.md
@@ -155,12 +219,20 @@ export const PRACTICE_GROUPS: PracticeGroupDef[] = [
   },
 ];
 
-export const PRACTICES: Practice[] = [
+/**
+ * The practices shipped inside the binary — the default/fallback catalog. The
+ * live catalog (see the cache below) is seeded from these and then replaced at
+ * runtime by the validated Firestore catalog, so the app always works offline,
+ * on first launch, or if a remote fetch fails.
+ */
+export const BUNDLED_PRACTICES: Practice[] = [
   // ---- Calm ----
   {
     id: 'meditation',
     name: 'Meditation',
     group: 'calm',
+    intensity: 'foundational',
+    color: '#217180',
     core: true,
     suggested_target_per_week: 5,
     description: 'Sit quietly and observe your mind without acting on every urge to move or escape.',
@@ -214,6 +286,8 @@ export const PRACTICES: Practice[] = [
     id: 'breathwork',
     name: 'Breathwork',
     group: 'calm',
+    intensity: 'foundational',
+    color: '#2BB7C4',
     core: true,
     suggested_target_per_week: 7,
     description: 'A few minutes of slow, deliberate breathing — longer exhale than inhale.',
@@ -239,6 +313,8 @@ export const PRACTICES: Practice[] = [
       { label: 'Box (4-4-4-4)', description: 'Inhale 4, hold 4, exhale 4, hold 4. Steady and calming.' },
       { label: '4-7-8', description: 'Inhale 4, hold 7, exhale 8. Strong downshift for sleep or anxiety.' },
       { label: 'Physiological sigh', description: 'Two inhales through the nose, one long exhale. Fastest reset.' },
+      { label: 'Coherent (6-6)', description: 'Inhale 6, exhale 6. No holds — ~5.5 breaths/min, the sweet spot for HRV. Best for longer sessions.' },
+      { label: 'Extended exhale (4-8)', description: 'Inhale 4, exhale 8. No holds — the gentlest pattern and the purest long-exhale downshift.' },
     ],
     timer: true,
     flow: 'timer',
@@ -258,6 +334,8 @@ export const PRACTICES: Practice[] = [
           { value: 'box', label: 'Box' },
           { value: '478', label: '4-7-8' },
           { value: 'sigh', label: 'Physiological sigh' },
+          { value: 'coherent', label: 'Coherent' },
+          { value: 'extended', label: 'Extended exhale' },
         ],
       },
     ],
@@ -267,6 +345,8 @@ export const PRACTICES: Practice[] = [
     id: 'movement',
     name: 'Movement',
     group: 'activate',
+    intensity: 'challenging',
+    color: '#FF5B02',
     core: true,
     suggested_target_per_week: 4,
     description: 'Intentional physical effort — a workout, a hard walk, anything that makes the body work.',
@@ -314,6 +394,8 @@ export const PRACTICES: Practice[] = [
     id: 'cold_exposure',
     name: 'Cold Exposure',
     group: 'activate',
+    intensity: 'extreme',
+    color: '#2F8FD9',
     core: false,
     suggested_target_per_week: 3,
     description: 'A cold shower or plunge — get in, and stay past the urge to get out.',
@@ -358,6 +440,8 @@ export const PRACTICES: Practice[] = [
     id: 'heat_exposure',
     name: 'Heat Exposure',
     group: 'activate',
+    intensity: 'extreme',
+    color: '#E0461F',
     core: false,
     suggested_target_per_week: 2,
     description: 'Sauna or sustained heat — sit with the discomfort and stay calm in it.',
@@ -403,6 +487,8 @@ export const PRACTICES: Practice[] = [
     id: 'deliberate_boredom',
     name: 'Deliberate Boredom',
     group: 'restrain',
+    intensity: 'challenging',
+    color: '#7B61FF',
     core: true,
     suggested_target_per_week: 3,
     description: 'No phone, no input — sit with nothing and let the boredom be there.',
@@ -446,6 +532,8 @@ export const PRACTICES: Practice[] = [
     id: 'fasting',
     name: 'Fasting',
     group: 'restrain',
+    intensity: 'extreme',
+    color: '#5B3FE0',
     core: false,
     suggested_target_per_week: 1,
     description: 'A deliberate fasting window — sit with hunger without acting on it.',
@@ -485,6 +573,8 @@ export const PRACTICES: Practice[] = [
     id: 'eat_healthy_unenjoyable',
     name: 'Eat Healthy Food I Don’t Enjoy',
     group: 'restrain',
+    intensity: 'challenging',
+    color: '#4C9A4C',
     core: false,
     suggested_target_per_week: 5,
     description: 'Choose the nutritious option over the one you crave — and eat it without doctoring it up.',
@@ -538,20 +628,71 @@ export const PRACTICES: Practice[] = [
   },
 ];
 
-const PRACTICE_BY_ID: Record<string, Practice> = PRACTICES.reduce((acc, p) => {
-  acc[p.id] = p;
-  return acc;
-}, {} as Record<string, Practice>);
+// ============================================================================
+// Live catalog cache
+//
+// `getPractice` & friends are called synchronously all over the app, so the
+// catalog lives in a module-level cache seeded with the bundled defaults. At
+// startup the app fetches the Firestore catalog, validates it, and swaps it in
+// via setPracticeCatalog() — no call site changes. See services/practiceCatalog.ts.
+// ============================================================================
 
+const indexById = (list: Practice[]): Record<string, Practice> =>
+  list.reduce((acc, p) => {
+    acc[p.id] = p;
+    return acc;
+  }, {} as Record<string, Practice>);
+
+let catalog: Practice[] = BUNDLED_PRACTICES;
+let catalogById: Record<string, Practice> = indexById(BUNDLED_PRACTICES);
+
+/**
+ * Replace the live catalog (e.g. with the validated Firestore catalog). Falls
+ * back to the bundled defaults if given an empty list, so the app never ends up
+ * with zero practices.
+ */
+export const setPracticeCatalog = (list: Practice[]): void => {
+  catalog = list.length ? list : BUNDLED_PRACTICES;
+  catalogById = indexById(catalog);
+};
+
+/** Every practice in the live catalog, including retired (`active === false`) ones. */
+export const getAllPractices = (): Practice[] => catalog;
+
+/** Resolve any practice by id — including retired ones, so adopted instances still work. */
 export const getPractice = (id?: string | null): Practice | undefined =>
-  id ? PRACTICE_BY_ID[id] : undefined;
+  id ? catalogById[id] : undefined;
 
+/** Active practices in a group, for browsing/adoption (retired ones are hidden). */
 export const getPracticesByGroup = (group: PracticeGroup): Practice[] =>
-  PRACTICES.filter((p) => p.group === group).sort((a, b) => a.order - b.order);
+  catalog
+    .filter((p) => p.group === group && p.active !== false)
+    .sort((a, b) => a.order - b.order);
 
-export const getCorePractices = (): Practice[] => PRACTICES.filter((p) => p.core);
+export const getCorePractices = (): Practice[] =>
+  catalog.filter((p) => p.core && p.active !== false);
 
-export const getOptionalPractices = (): Practice[] => PRACTICES.filter((p) => !p.core);
+/**
+ * The practices auto-seeded onto every user's home on first load — the core set
+ * (no equipment/medical barriers), ordered gentle → extreme to match the home
+ * list. Optional practices (Cold/Heat/Fasting/Eat-Healthy) stay available to add.
+ */
+export const getDefaultSeedPractices = (): Practice[] => {
+  // Prefer the live catalog's core set; fall back to the bundled core practices
+  // if the live catalog somehow yields none (e.g. a remote catalog missing the
+  // core flag), so a new user always gets their starter practices.
+  const core = getCorePractices();
+  const list = core.length > 0 ? core : BUNDLED_PRACTICES.filter((p) => p.core);
+  return [...list].sort((a, b) => {
+    const ai = INTENSITY_ORDER[a.intensity ?? 'foundational'];
+    const bi = INTENSITY_ORDER[b.intensity ?? 'foundational'];
+    if (ai !== bi) return ai - bi;
+    return a.order - b.order;
+  });
+};
+
+export const getOptionalPractices = (): Practice[] =>
+  catalog.filter((p) => !p.core && p.active !== false);
 
 /**
  * Resolve the display group for an adopted practice instance.
@@ -567,4 +708,36 @@ export const resolvePracticeGroup = (instance: {
   const catalog = getPractice(instance.practice_id);
   if (catalog) return catalog.group;
   return instance.group ?? 'custom';
+};
+
+/**
+ * Resolve the intensity tier for an adopted practice instance. Curated practices
+ * read it from the catalog; custom/legacy ones (no catalog match, or a catalog
+ * doc without the field) fall back to 'foundational' so they sort to the top of
+ * the gentle → extreme list rather than disappearing.
+ */
+export const getPracticeIntensity = (instance: {
+  practice_id?: string;
+}): IntensityLevel => getPractice(instance.practice_id)?.intensity ?? 'foundational';
+
+/** Resolve the accent color for an adopted practice instance (banner color). */
+export const getPracticeColor = (instance: {
+  practice_id?: string;
+}): string => getPractice(instance.practice_id)?.color ?? DEFAULT_PRACTICE_COLOR;
+
+/**
+ * Comparator that orders adopted practice instances gentle → extreme for the
+ * home list: by intensity tier first, then the catalog's own `order`, then name.
+ */
+export const compareByIntensity = (
+  a: { practice_id?: string; name: string },
+  b: { practice_id?: string; name: string }
+): number => {
+  const ai = INTENSITY_ORDER[getPracticeIntensity(a)];
+  const bi = INTENSITY_ORDER[getPracticeIntensity(b)];
+  if (ai !== bi) return ai - bi;
+  const ao = getPractice(a.practice_id)?.order ?? 999;
+  const bo = getPractice(b.practice_id)?.order ?? 999;
+  if (ao !== bo) return ao - bo;
+  return a.name.localeCompare(b.name);
 };

@@ -62,6 +62,11 @@ export const markChallengesUnlockSeen = async (userId: string): Promise<void> =>
   await setDoc(doc(db, 'users', userId), { has_seen_challenges_unlock: true }, { merge: true });
 };
 
+/** One-time flag: the default practices have been seeded onto this user's home. */
+export const markPracticesSeeded = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_seeded_practices: true }, { merge: true });
+};
+
 export const markComebackShown = async (userId: string, date: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { lastComebackDate: date }, { merge: true });
 };

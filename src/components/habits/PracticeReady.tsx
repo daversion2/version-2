@@ -8,6 +8,8 @@ interface Props {
   practice: Practice;
   /** Proceed to the "Go" beat (start the timer, or hand off the phone). */
   onBegin: () => void;
+  /** Open the full learn content (how-to / science / tips). Hidden if omitted. */
+  onLearn?: () => void;
 }
 
 /** One briefing block — an icon, an uppercase label, and a line of copy. */
@@ -32,7 +34,7 @@ const ReadyBlock: React.FC<{ icon: string; label: string; text: string; accent: 
  * they're about to override, then hands off to the Go beat.
  * Driven entirely by the practice's `ready` content; renders nothing if absent.
  */
-export const PracticeReady: React.FC<Props> = ({ practice, onBegin }) => {
+export const PracticeReady: React.FC<Props> = ({ practice, onBegin, onLearn }) => {
   const accent = PRACTICE_GROUPS.find((g) => g.id === practice.group)?.color ?? Colors.primary;
   const ready = practice.ready;
   if (!ready) return null;
@@ -57,6 +59,14 @@ export const PracticeReady: React.FC<Props> = ({ practice, onBegin }) => {
         <ReadyBlock icon="locate-outline" label="Focus on" text={ready.focus} accent={accent} />
         {ready.overrideUrge && (
           <ReadyBlock icon="flame-outline" label="The override" text={ready.overrideUrge} accent={accent} />
+        )}
+
+        {onLearn && (
+          <TouchableOpacity style={styles.learnRow} onPress={onLearn} activeOpacity={0.7}>
+            <Ionicons name="book-outline" size={16} color={accent} />
+            <Text style={[styles.learnText, { color: accent }]}>Learn how &amp; why</Text>
+            <Ionicons name="chevron-forward" size={14} color={accent} />
+          </TouchableOpacity>
         )}
       </ScrollView>
 
@@ -118,6 +128,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   blockText: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.dark, lineHeight: 22 },
+  learnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  learnText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
   footer: { padding: Spacing.lg, paddingTop: Spacing.sm },
   cta: {
     flexDirection: 'row',

@@ -68,6 +68,8 @@ export interface User {
   has_seen_plan_intro?: boolean;
   has_dismissed_goal_prompt?: boolean;
   has_seen_challenges_unlock?: boolean;
+  // Default practices auto-seeded onto the home (one-time, on first load)
+  has_seeded_practices?: boolean;
   // Comeback modal
   lastComebackDate?: string; // YYYY-MM-DD — prevents re-showing on same day
   // App usage tracking

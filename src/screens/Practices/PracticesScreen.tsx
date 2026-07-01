@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { PRACTICE_GROUPS, PRACTICES, getPracticesByGroup, resolvePracticeGroup, Practice, PracticeGroup } from '../../data/practices';
+import { PRACTICE_GROUPS, getAllPractices, getPracticesByGroup, resolvePracticeGroup, Practice, PracticeGroup } from '../../data/practices';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveHabits, getWeeklyCompletionCounts, createHabit, updateHabit } from '../../services/practices';
@@ -35,8 +35,10 @@ const PracticeCard: React.FC<{
   onRemove: () => void;
 }> = ({ practice, color, habit, weekDone, busy, onOpen, onAdopt, onEdit, onRemove }) => {
   const adopted = !!habit;
-  const target = habit?.target_count_per_week ?? practice.suggested_target_per_week;
-  const complete = adopted && weekDone >= target;
+  // A target of 0 means the practice is adopted but has no weekly goal yet.
+  const hasGoal = adopted && (habit!.target_count_per_week || 0) >= 1;
+  const target = hasGoal ? habit!.target_count_per_week : practice.suggested_target_per_week;
+  const complete = hasGoal && weekDone >= target;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onOpen} activeOpacity={0.7}>
@@ -47,7 +49,11 @@ const PracticeCard: React.FC<{
         <View style={styles.cardTitleWrap}>
           <Text style={styles.cardTitle}>{practice.name}</Text>
           <Text style={styles.cardTarget}>
-            {adopted ? `${weekDone}/${target} this week` : `${target}×/week`}
+            {!adopted
+              ? `${target}×/week`
+              : hasGoal
+              ? `${weekDone}/${target} this week`
+              : 'Set a goal'}
           </Text>
         </View>
 
@@ -192,7 +198,7 @@ export const PracticesScreen: React.FC<Props> = ({ navigation, route }) => {
     habits.find((h) => h.name.trim().toLowerCase() === practice.name.toLowerCase());
 
   const isCustom = (h: PracticeInstance): boolean =>
-    !PRACTICES.some(
+    !getAllPractices().some(
       (p) => p.id === h.practice_id || p.name.toLowerCase() === h.name.trim().toLowerCase()
     );
   const customHabits = habits.filter(isCustom);

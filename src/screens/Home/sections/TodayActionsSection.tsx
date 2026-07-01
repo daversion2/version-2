@@ -1,34 +1,26 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
-import { Card } from '../../../components/common/Card';
 import { HomeSectionProps } from './types';
-import { PracticeInstance } from '../../../types';
 import { AddActivityMenu } from '../../../components/home/AddActivityMenu';
-import { PRACTICE_GROUPS, resolvePracticeGroup, PracticeGroup } from '../../../data/practices';
 import {
   PlannerBar,
   ChallengeRow,
-  HabitRow,
   ProgramRow,
   AddActivityButton,
 } from './GoalActionsSection';
 
 /**
- * Practices-first "Today's Actions" (replaces the goal-grouped GoalActionsSection).
- * Groups the user's practices by group (Activate/Calm/Restrain/Custom), then active
- * challenges, then the active program. Every habit is a practice — curated ones derive
- * their group from the catalog, user-authored ones fall under Custom.
- * Goals are no longer the organizing spine. See docs/home-rework-plan.md
+ * "Today's Actions" — challenges, the active program, and the plan-tomorrow bar.
+ * Practices now live in their own PracticesSection (the home centerpiece), so
+ * they are no longer rendered here. Challenges stay gated behind 3 completions.
+ * See the home redesign.
  */
 export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
   const {
     activeChallenges,
     extendedChallenges,
-    habits,
-    weeklyCounts,
-    habitStreaks,
     activeProgram,
     todaysProgramDay,
     programDayNumber,
@@ -54,45 +46,7 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
     callbacks.onNavigate('ProgramDiscovery');
   };
 
-  const plannedTodaySet = useMemo(() => new Set(data.plannedHabitIds), [data.plannedHabitIds]);
-  const futureHabitPlanMap = useMemo(() => {
-    const map = new Map<string, string>();
-    if (!data.weeklyPlans) return map;
-    for (const date of Object.keys(data.weeklyPlans).sort()) {
-      for (const habitId of data.weeklyPlans[date].planned_habit_ids) {
-        if (!map.has(habitId)) map.set(habitId, date);
-      }
-    }
-    return map;
-  }, [data.weeklyPlans]);
-
   const allChallenges = [...activeChallenges, ...extendedChallenges];
-
-  // Bucket every practice by its group. Curated practices derive their group from
-  // the catalog; user-authored ones resolve to 'custom'.
-  const habitsByGroup: Record<PracticeGroup, PracticeInstance[]> = {
-    activate: [],
-    calm: [],
-    restrain: [],
-    custom: [],
-  };
-  habits.forEach((h) => {
-    habitsByGroup[resolvePracticeGroup(h)].push(h);
-  });
-
-  const renderHabit = (habit: PracticeInstance) => (
-    <HabitRow
-      key={habit.id}
-      habit={habit}
-      done={weeklyCounts[habit.id] || 0}
-      streak={habitStreaks[habit.id]?.currentStreak || 0}
-      callbacks={callbacks}
-      isDueToday={plannedTodaySet.has(habit.id)}
-      plannedForDate={futureHabitPlanMap.get(habit.id)}
-    />
-  );
-
-  const isEmpty = habits.length === 0 && allChallenges.length === 0 && !activeProgram;
 
   return (
     <>
@@ -106,21 +60,6 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
           </Text>
         </View>
       )}
-
-      {/* Practices, grouped Activate / Calm / Restrain / Custom */}
-      {PRACTICE_GROUPS.map((group) => {
-        const groupHabits = habitsByGroup[group.id];
-        if (groupHabits.length === 0) return null;
-        return (
-          <View key={group.id} style={styles.group}>
-            <View style={styles.groupHeader}>
-              <View style={[styles.groupDot, { backgroundColor: group.color }]} />
-              <Text style={styles.groupName}>{group.name}</Text>
-            </View>
-            {groupHabits.map(renderHabit)}
-          </View>
-        );
-      })}
 
       {/* Active challenges */}
       {challengesUnlocked && allChallenges.length > 0 && (
@@ -144,17 +83,6 @@ export const TodayActionsSection: React.FC<HomeSectionProps> = React.memo(({ dat
           programCheckedIn={programCheckedIn}
           callbacks={callbacks}
         />
-      )}
-
-      {/* Empty state */}
-      {isEmpty && (
-        <Card style={styles.emptyCard}>
-          <Ionicons name="flame-outline" size={40} color={Colors.primary} />
-          <Text style={styles.emptyTitle}>Start your protocol</Text>
-          <Text style={styles.emptyText}>
-            Head to the Practices tab to add your daily training — then check it off right here.
-          </Text>
-        </Card>
       )}
 
       <View style={styles.addRow}>
@@ -195,13 +123,5 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   unlockTeaserText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.secondary },
-  emptyCard: { alignItems: 'center', padding: Spacing.lg, gap: Spacing.sm },
-  emptyTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
-  emptyText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    textAlign: 'center',
-  },
   addRow: { marginTop: Spacing.sm },
 });

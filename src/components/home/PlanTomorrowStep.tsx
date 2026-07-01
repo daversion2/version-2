@@ -108,7 +108,7 @@ export const PlanTomorrowStep: React.FC<PlanTomorrowStepProps> = ({
                     <View style={styles.habitInfo}>
                       <Text style={styles.habitName}>{habit.name}</Text>
                       <Text style={styles.habitProgress}>
-                        {done}/{target} this week
+                        {target >= 1 ? `${done}/${target} this week` : 'No goal set'}
                       </Text>
                     </View>
                     {isSuggested && (

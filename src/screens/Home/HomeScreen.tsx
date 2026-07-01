@@ -17,7 +17,7 @@ import { Challenge, PracticeInstance, Team, TeamMemberActivitySummary, BuddyChal
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
-import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts } from '../../services/practices';
+import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, seedDefaultPractices } from '../../services/practices';
 import { reconcileHabitReminders } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { getGoalColor } from '../../constants/goalColors';
@@ -47,7 +47,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markComebackShown } from '../../services/users';
+import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markComebackShown, markPracticesSeeded, getUserProfile } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -74,6 +74,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
+  const [completedTodayIds, setCompletedTodayIds] = useState<string[]>([]);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
   const [team, setTeam] = useState<Team | null>(null);
   const [teamSummary, setTeamSummary] = useState<TeamMemberActivitySummary[]>([]);
@@ -120,6 +121,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Track app opens
   const appOpenTrackedRef = useRef(false);
   const remindersReconciledRef = useRef(false);
+  const seedAttemptedRef = useRef(false);
 
   // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
   // The modal is held while any bespoke modal is up so they never stack.
@@ -224,6 +226,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // Refresh user profile so totalHabitsCompleted, flags, etc. are current
       await refreshProfile();
 
+      // One-time: seed the default practices onto the home BEFORE fetching habits,
+      // so they show on the very first load (no race with a separate effect). The
+      // persisted `has_seeded_practices` flag means later deletions stick, and
+      // seedDefaultPractices is idempotent (skips already-adopted practices).
+      if (!seedAttemptedRef.current) {
+        seedAttemptedRef.current = true;
+        try {
+          const prof = await getUserProfile(user.uid);
+          if (!prof?.has_seeded_practices) {
+            const created = await seedDefaultPractices(user.uid);
+            await markPracticesSeeded(user.uid);
+            if (created > 0) console.log(`[home] seeded ${created} default practices`);
+          }
+        } catch (err) {
+          console.warn('Failed to seed default practices:', err);
+          seedAttemptedRef.current = false; // allow a retry on the next load
+        }
+      }
+
       const [dailyChallenges, extChallenges, habitList, userTeam, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
@@ -323,6 +344,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       try {
         cachedNudgeLogs = await fetchAllNudgeLogs(user.uid);
         setWeeklyCounts(getWeeklyCompletionCountsFromLogs(cachedNudgeLogs));
+        // Habit ids logged today — powers the hero counter + card "Done today" state.
+        const todayStr = getTodayString();
+        setCompletedTodayIds(
+          cachedNudgeLogs.filter((l) => l.date === todayStr).map((l) => l.reference_id)
+        );
         if (habitList.length > 0) {
           setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList.map(h => h.id)));
         }
@@ -485,6 +511,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
+      // Optimistically flip the card to "Done today" (loadData reconciles on next focus).
+      const completedId = completingHabit.id;
+      setCompletedTodayIds((prev) => (prev.includes(completedId) ? prev : [...prev, completedId]));
+
       setCompletingHabit(null);
 
       // Show one-time points intro on first habit completion after onboarding
@@ -640,6 +670,26 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [user, plannedHabitIds]);
 
+  // --- Weekly goal (per-practice commitment) ---
+
+  const handleSetWeeklyGoal = useCallback(
+    async (habitId: string, target: number) => {
+      if (!user) return;
+      // Optimistic: reflect the new target immediately on the card.
+      setHabits((prev) =>
+        prev.map((h) => (h.id === habitId ? { ...h, target_count_per_week: target } : h))
+      );
+      try {
+        await updateHabit(user.uid, habitId, { target_count_per_week: target });
+      } catch (err) {
+        console.warn('Failed to update weekly goal:', err);
+        // Reload to resync if the write failed.
+        loadData();
+      }
+    },
+    [user, loadData]
+  );
+
   // --- Layout & Section Props ---
 
   const layout = useMemo(
@@ -688,6 +738,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     hasCompletedWhyDiscovery,
     plannedHabitIds,
     weeklyPlans,
+    completedTodayIds,
+    userName: userProfile?.username ?? null,
   }), [
     activeChallenges, extendedChallenges, habits, team, teamSummary,
     weeklyCounts, habitStreaks, pendingInvites, buddyChallenges,
@@ -695,6 +747,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     goals, showReflectionBanner, reflectedToday, todaysGrade,
     willpowerStats, goalFollowThrough, totalHabitsCompleted, activeMantra,
     whyStatement, hasCompletedWhyDiscovery, plannedHabitIds, weeklyPlans,
+    completedTodayIds, userProfile?.username,
   ]);
 
   const onNavigate = useCallback((screen: string, params?: any) => {
@@ -718,7 +771,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     onPlannedItemPress: handlePlannedItemPress,
     onAddTodayChallenge: handleAddTodayChallenge,
     onToggleTodayHabit: handleToggleTodayHabit,
-  }), [onNavigate, handleHabitTap, getItemColor, onGoalTap, handleCalendarExport, handlePlannedItemPress, handleAddTodayChallenge, handleToggleTodayHabit]);
+    onSetWeeklyGoal: handleSetWeeklyGoal,
+  }), [onNavigate, handleHabitTap, getItemColor, onGoalTap, handleCalendarExport, handlePlannedItemPress, handleAddTodayChallenge, handleToggleTodayHabit, handleSetWeeklyGoal]);
 
 
   return (

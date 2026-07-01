@@ -52,6 +52,10 @@ export interface HomeData {
   plannedHabitIds: string[];
   // Weekly plans for planner context (future dates -> TomorrowPlan)
   weeklyPlans: Record<string, TomorrowPlan>;
+  // Habit ids completed today (powers the hero counter + card "Done today" state)
+  completedTodayIds: string[];
+  // Display name for the hero greeting (null if none set)
+  userName: string | null;
 }
 
 export interface HomeCallbacks {
@@ -63,6 +67,8 @@ export interface HomeCallbacks {
   onPlannedItemPress?: (item: PlannedItem) => void;
   onAddTodayChallenge?: (challenge: TomorrowChallenge) => Promise<void>;
   onToggleTodayHabit?: (habitId: string) => void;
+  /** Persist a practice's weekly commitment (target_count_per_week). */
+  onSetWeeklyGoal?: (habitId: string, target: number) => void;
 }
 
 export interface HomeSectionProps {

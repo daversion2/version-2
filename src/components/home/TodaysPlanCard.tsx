@@ -270,7 +270,9 @@ export const TodaysPlanCard: React.FC<TodaysPlanCardProps> = ({
                           <View style={styles.habitPickerInfo}>
                             <Text style={styles.habitPickerName}>{habit.name}</Text>
                             <Text style={styles.habitPickerProgress}>
-                              {done}/{habit.target_count_per_week} this week
+                              {habit.target_count_per_week >= 1
+                                ? `${done}/${habit.target_count_per_week} this week`
+                                : 'No goal set'}
                             </Text>
                           </View>
                         </TouchableOpacity>

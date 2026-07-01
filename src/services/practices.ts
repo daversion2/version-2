@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
-import { PracticeGroup } from '../data/practices';
+import { PracticeGroup, getDefaultSeedPractices } from '../data/practices';
 import { getWillpowerStats, calculateHabitPoints, updateWillpowerStats } from './willpower';
 import { logTeamActivity } from './teams';
 
@@ -76,6 +76,38 @@ export const createHabit = async (
     created_by_user: created_by_user ?? true,
   });
   return docRef.id;
+};
+
+/**
+ * Seed the default (core) practices onto a user's home as adopted instances, so
+ * practices are present by default with no "add" step. Idempotent: skips any
+ * default whose practice_id the user has already adopted (so re-running, or a
+ * user who curated their own, never gets duplicates). Returns the number created.
+ *
+ * Guard the call with the user's `has_seeded_practices` flag so a user's later
+ * deletions stick (we seed once, not every load).
+ */
+export const seedDefaultPractices = async (userId: string): Promise<number> => {
+  const existing = await getActiveHabits(userId);
+  const adopted = new Set(
+    existing.map((h) => h.practice_id).filter((id): id is string => !!id)
+  );
+
+  let created = 0;
+  for (const p of getDefaultSeedPractices()) {
+    if (adopted.has(p.id)) continue;
+    await createHabit(userId, {
+      name: p.name,
+      // No preset weekly target — the user sets their own goal from the home
+      // card ("Set a goal"). 0 = unset. See hasWeeklyGoal() / PracticeCard.
+      target_count_per_week: 0,
+      practice_id: p.id,
+      group: p.group,
+      created_by_user: false,
+    });
+    created++;
+  }
+  return created;
 };
 
 export const updateHabit = async (

@@ -298,7 +298,9 @@ export const WeekDayCard: React.FC<WeekDayCardProps> = ({
                         <View style={styles.habitInfo}>
                           <Text style={styles.habitName}>{habit.name}</Text>
                           <Text style={styles.habitProgress}>
-                            {done}/{habit.target_count_per_week} this week
+                            {habit.target_count_per_week >= 1
+                              ? `${done}/${habit.target_count_per_week} this week`
+                              : 'No goal set'}
                           </Text>
                         </View>
                         {isSuggested && (

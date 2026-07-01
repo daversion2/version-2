@@ -21,8 +21,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Button } from '../../components/common/Button';
 import { RichText } from '../../components/common/RichText';
 import { useAuth } from '../../context/AuthContext';
-import { markOnboardingComplete } from '../../services/users';
-import { createHabit, logHabitCompletion } from '../../services/practices';
+import { markOnboardingComplete, markPracticesSeeded } from '../../services/users';
+import { createHabit, logHabitCompletion, seedDefaultPractices } from '../../services/practices';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
 import { db } from '../../services/firebase';
 
@@ -213,6 +213,14 @@ export const OnboardingScreen: React.FC = () => {
     if (!user) return;
     setSaving(true);
     try {
+      // Seed the default practices so the home isn't empty when onboarding is
+      // skipped. Best-effort — the home also seeds as a fallback.
+      try {
+        await seedDefaultPractices(user.uid);
+        await markPracticesSeeded(user.uid);
+      } catch (seedErr) {
+        console.warn('Failed to seed default practices on skip:', seedErr);
+      }
       await markOnboardingComplete(user.uid);
       await refreshProfile();
     } catch (error: any) {
@@ -267,6 +275,15 @@ export const OnboardingScreen: React.FC = () => {
           mantras: [mantraObj],
           active_mantra_id: mantraObj.id,
         }, { merge: true });
+      }
+
+      // 4b. Seed the default practices onto the home (core set). Idempotent —
+      // skips any already adopted (e.g. a foundation habit linked to a practice).
+      try {
+        await seedDefaultPractices(user.uid);
+        await markPracticesSeeded(user.uid);
+      } catch (seedErr) {
+        console.warn('Failed to seed default practices on complete:', seedErr);
       }
 
       // 5. Mark onboarding complete

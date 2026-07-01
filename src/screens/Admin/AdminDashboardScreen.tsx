@@ -295,6 +295,16 @@ export const AdminDashboardScreen: React.FC = () => {
       </Card>
       <Card
         style={styles.linkCard}
+        onPress={() => navigation.navigate('AdminPractices')}
+      >
+        <View style={styles.linkRow}>
+          <Ionicons name="flame" size={24} color={Colors.primary} />
+          <Text style={styles.linkText}>Practices</Text>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+      <Card
+        style={styles.linkCard}
         onPress={() => navigation.navigate('AdminChallenges')}
       >
         <View style={styles.linkRow}>

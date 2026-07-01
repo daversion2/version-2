@@ -2,13 +2,16 @@ import { HomeLayoutItem } from '../types';
 
 export const SECTION_IDS = [
   // Zone 1: Welcome
-  'greeting',
+  'hero',
   'mantra',
-  // Zone 2: Your Goals + Today's Actions
+  // Zone 2: Your Practices
+  'practices',
+  // Zone 3: Today's Actions (challenges, program, plan)
   'goal_actions',
-  // Zone 3: Reflect
+  // Zone 4: Reflect
   'reflection_banner',
   // Legacy (kept for backward compat with custom layouts)
+  'greeting',
   'buddy_invites',
   'team_activity',
 ] as const;
@@ -17,6 +20,7 @@ export type HomeSectionId = (typeof SECTION_IDS)[number];
 
 const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
   // Legacy sections hidden from default layout
+  'greeting', // replaced by the hero
   'buddy_invites',
   'team_activity',
 ]);
@@ -36,9 +40,11 @@ export interface ZoneDefinition {
 export const ZONE_CONFIG: ZoneDefinition[] = [
   {
     id: 'welcome',
+    // No ZoneHeader is rendered for the welcome zone — the hero and the
+    // PracticesSection's own "Your practices" header stand in for it.
     label: 'Welcome',
     icon: 'sunny-outline',
-    sectionIds: ['greeting', 'mantra'],
+    sectionIds: ['hero', 'mantra', 'practices'],
   },
   {
     id: 'goals_actions',
@@ -57,7 +63,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'legacy',
     label: 'More',
     icon: 'grid-outline',
-    sectionIds: ['buddy_invites', 'team_activity'],
+    sectionIds: ['greeting', 'buddy_invites', 'team_activity'],
   },
 ];
 
@@ -69,21 +75,25 @@ for (const zone of ZONE_CONFIG) {
 }
 
 export const SECTION_LABELS: Record<HomeSectionId, string> = {
-  greeting: 'Greeting',
+  hero: 'Welcome',
   mantra: 'Redirect Mantra',
-  goal_actions: 'Goals & Actions',
+  practices: 'Your Practices',
+  goal_actions: 'Challenges & Programs',
   reflection_banner: 'Nightly Reflection',
   // Legacy
+  greeting: 'Greeting',
   buddy_invites: 'Buddy Invites',
   team_activity: 'Team Activity',
 };
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
-  greeting: 'sunny-outline',
+  hero: 'sunny-outline',
   mantra: 'megaphone-outline',
+  practices: 'flame-outline',
   goal_actions: 'flag-outline',
   reflection_banner: 'moon-outline',
   // Legacy
+  greeting: 'sunny-outline',
   buddy_invites: 'person-add-outline',
   team_activity: 'people-outline',
 };
