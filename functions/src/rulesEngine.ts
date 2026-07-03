@@ -47,6 +47,8 @@ export interface RuleContent {
   body: string;
   cta?: string;
   cta_target?: RuleCtaTarget;
+  /** Modal rules only: opens a bespoke client flow (e.g. "comeback") instead of RuleModal. */
+  component?: string;
 }
 
 /**
@@ -264,6 +266,7 @@ export const buildUserFacts = (
     app_open_count: userData.app_open_count || 0,
     days_since_signup: signupDate ? daysBetween(todayLocal, signupDate) : 0,
     active_goal_count: 0,
+    active_habit_count: 0, // client-only fact (needs a subcollection read); push rules can't use it
     local_hour: localHour,
     ...extras,
   };

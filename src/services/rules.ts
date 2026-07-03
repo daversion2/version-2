@@ -155,6 +155,28 @@ export const markRuleShown = async (userId: string, ruleId: string): Promise<voi
  */
 export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
+    name: 'Comeback check-in',
+    description:
+      'Streak-break check-in on app open. Opens the bespoke comeback flow (barrier → recommit) ' +
+      '— or the story reminder if the user has proof points. Title/body are the first step; ' +
+      'the later steps are fixed. Replaced the hardcoded HomeScreen trigger.',
+    enabled: true,
+    surface: 'modal',
+    event: 'app_open',
+    conditions: [
+      { fact: 'current_streak', op: '==', value: 0 },
+      { fact: 'active_habit_count', op: '>=', value: 1 },
+    ],
+    frequency: { type: 'once_per_day' },
+    // Above generic app_open modals: a broken streak beats announcements.
+    priority: 50,
+    content: {
+      title: 'Welcome Back',
+      body: "You've been away for a couple days. That's okay — life happens. Let's figure out what's next.",
+      component: 'comeback',
+    },
+  },
+  {
     name: 'Comeback nudge',
     description: 'Re-engage users who have been inactive for a couple of days.',
     enabled: false,

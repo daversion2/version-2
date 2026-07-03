@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Rule, RuleEvent } from '../types/rules';
+import { Rule, RuleEvent, RuleFacts } from '../types/rules';
 import { buildUserFacts } from '../services/rulesEngine';
 import { evaluateRulesForUser, markRuleShown } from '../services/rules';
 import { resolveRuleContent } from '../services/ruleGlobals';
+import { getActiveHabits } from '../services/practices';
 import { getTodayString } from '../utils/date';
 
 /**
@@ -30,10 +31,18 @@ export const useRuleSurfaces = (event: RuleEvent, holdModal: boolean) => {
     evaluatedRef.current = true;
     (async () => {
       try {
+        // active_habit_count needs a subcollection read (defaults to 0 in
+        // buildUserFacts); on a failed fetch, rules conditioned on it just
+        // don't fire this open.
+        const extras: RuleFacts = {};
+        try {
+          extras.active_habit_count = (await getActiveHabits(user.uid)).length;
+        } catch {}
         const facts = buildUserFacts(
           userProfile as unknown as Record<string, any>,
           getTodayString(),
-          new Date().getHours()
+          new Date().getHours(),
+          extras
         );
         const rules = await evaluateRulesForUser(user.uid, event, facts);
         const profile = userProfile as unknown as Record<string, any>;

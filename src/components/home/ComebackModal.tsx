@@ -24,6 +24,9 @@ const BARRIER_OPTIONS = [
 interface ComebackModalProps {
   visible: boolean;
   habits: PracticeInstance[];
+  /** Step-1 copy, admin-editable via the "Comeback check-in" rule. */
+  title?: string;
+  body?: string;
   onCommit: (habitId: string, habitName: string, barrierReason: string) => void;
   onDismiss: () => void;
 }
@@ -31,6 +34,8 @@ interface ComebackModalProps {
 export const ComebackModal: React.FC<ComebackModalProps> = ({
   visible,
   habits,
+  title = 'Welcome Back',
+  body = "You've been away for a couple days. That's okay — life happens. Let's figure out what's next.",
   onCommit,
   onDismiss,
 }) => {
@@ -82,10 +87,8 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
               <View style={styles.iconRow}>
                 <Ionicons name="refresh" size={32} color={Colors.secondary} />
               </View>
-              <Text style={styles.title}>Welcome Back</Text>
-              <Text style={styles.body}>
-                You've been away for a couple days. That's okay — life happens. Let's figure out what's next.
-              </Text>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.body}>{body}</Text>
               <TouchableOpacity
                 style={styles.primaryButton}
                 onPress={() => setStep(2)}

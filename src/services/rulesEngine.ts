@@ -192,6 +192,7 @@ export const buildUserFacts = (
     app_open_count: userData.app_open_count || 0,
     days_since_signup: signupDate ? daysBetween(todayLocal, signupDate) : 0,
     active_goal_count: 0, // requires a subcollection read; supplied via extras when needed
+    active_habit_count: 0, // requires a subcollection read; supplied via extras when needed
     local_hour: localHour,
     ...extras,
   };

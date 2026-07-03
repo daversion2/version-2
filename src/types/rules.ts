@@ -20,6 +20,7 @@ export const RULE_FACTS = {
   app_open_count: 'App opens (lifetime)',
   days_since_signup: 'Days since signup',
   active_goal_count: 'Active goals',
+  active_habit_count: 'Active practices',
   local_hour: 'Hour of day in user timezone (0–23)',
 } as const;
 
@@ -133,6 +134,13 @@ export const CTA_SCREEN_TARGETS: { value: string; label: string }[] = [
 /** Tab-level targets that need parent-navigator handling. */
 export const CTA_TAB_TARGETS = ['Progress', 'Tools'];
 
+/**
+ * Bespoke in-app flows a modal rule can open instead of the generic RuleModal.
+ * The rule still owns the trigger (conditions, frequency, enabled) and the
+ * title/body copy; the component owns the interaction beyond the first step.
+ */
+export type RuleModalComponent = 'comeback';
+
 export interface RuleContent {
   title: string;
   body: string;
@@ -140,6 +148,8 @@ export interface RuleContent {
   cta?: string;
   /** Optional destination for the modal CTA / push notification tap. */
   cta_target?: RuleCtaTarget;
+  /** When set on a modal rule, opens this bespoke flow instead of RuleModal. */
+  component?: RuleModalComponent;
 }
 
 export interface Rule {

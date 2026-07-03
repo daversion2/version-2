@@ -33,6 +33,7 @@ import {
   PUSH_EVENTS,
   EVENT_PLACEHOLDERS,
   RuleCtaTarget,
+  RuleModalComponent,
   CTA_SCREEN_TARGETS,
 } from '../../types/rules';
 import { AdminNavigation, AdminStackParamList } from '../../types/navigation';
@@ -123,6 +124,9 @@ export const AdminRuleEditScreen: React.FC = () => {
   const [ctaTargetType, setCtaTargetType] = useState<CtaTargetType>('none');
   const [ctaScreen, setCtaScreen] = useState(CTA_SCREEN_TARGETS[0].value);
   const [ctaUrl, setCtaUrl] = useState('');
+  // Bespoke-flow marker (e.g. the comeback flow). Set in code, not the UI —
+  // loaded and written back so editing a rule never strips it.
+  const [component, setComponent] = useState<RuleModalComponent | undefined>(undefined);
 
   useEffect(() => {
     if (mode !== 'edit' || !ruleId) return;
@@ -145,6 +149,7 @@ export const AdminRuleEditScreen: React.FC = () => {
         setTitle(rule.content.title);
         setBody(rule.content.body);
         setCta(rule.content.cta || '');
+        setComponent(rule.content.component);
         const target = rule.content.cta_target;
         if (target?.type === 'screen' && target.screen) {
           setCtaTargetType('screen');
@@ -217,6 +222,7 @@ export const AdminRuleEditScreen: React.FC = () => {
       body: body.trim(),
       ...(cta.trim() ? { cta: cta.trim() } : {}),
       ...(ctaTarget ? { cta_target: ctaTarget } : {}),
+      ...(component ? { component } : {}),
     };
     const payload: Omit<Rule, 'id' | 'created_at' | 'updated_at'> = {
       name: name.trim(),
@@ -380,6 +386,13 @@ export const AdminRuleEditScreen: React.FC = () => {
         {/* Content */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Content</Text>
+          {component === 'comeback' && (
+            <Text style={styles.hintText}>
+              This rule opens the bespoke comeback flow (barrier → recommit, or the user's own
+              story if they have proof points). Title and body are its first step; the later
+              steps and buttons are fixed in the app, so the CTA fields below don't apply.
+            </Text>
+          )}
           {(EVENT_PLACEHOLDERS[event] ?? []).length > 0 && (
             <Text style={styles.hintText}>
               This event fills in placeholders:{' '}
@@ -402,7 +415,7 @@ export const AdminRuleEditScreen: React.FC = () => {
             numberOfLines={3}
             style={styles.bodyInput}
           />
-          {surface === 'modal' && (
+          {surface === 'modal' && !component && (
             <InputField
               label="CTA label (modal button text, optional — defaults to 'Got it')"
               value={cta}
@@ -411,7 +424,7 @@ export const AdminRuleEditScreen: React.FC = () => {
             />
           )}
 
-          {(surface === 'modal' || surface === 'push') && (
+          {(surface === 'modal' || surface === 'push') && !component && (
             <>
               <Text style={styles.fieldLabel}>
                 {surface === 'modal'
@@ -453,7 +466,7 @@ export const AdminRuleEditScreen: React.FC = () => {
               </View>
             )}
           </View>
-          {(surface === 'modal' || surface === 'push') && ctaTargetType !== 'none' && (
+          {(surface === 'modal' || surface === 'push') && !component && ctaTargetType !== 'none' && (
             <Text style={styles.hintText}>
               {surface === 'modal' ? 'Button opens: ' : 'Tap opens: '}
               {ctaTargetType === 'screen'

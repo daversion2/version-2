@@ -70,8 +70,8 @@ export interface User {
   has_seen_challenges_unlock?: boolean;
   // Default practices auto-seeded onto the home (one-time, on first load)
   has_seeded_practices?: boolean;
-  // Comeback modal
-  lastComebackDate?: string; // YYYY-MM-DD — prevents re-showing on same day
+  // LEGACY — comeback gating now lives in ruleState for the "Comeback check-in" rule
+  lastComebackDate?: string;
   // App usage tracking
   app_open_count?: number;
   // Deferred onboarding

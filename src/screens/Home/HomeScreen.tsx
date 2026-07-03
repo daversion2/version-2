@@ -47,7 +47,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markComebackShown, markPracticesSeeded, getUserProfile } from '../../services/users';
+import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, getUserProfile } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -95,10 +95,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
   const [goalFollowThrough, setGoalFollowThrough] = useState<Record<string, GoalFollowThrough>>({});
-  const [comebackVisible, setComebackVisible] = useState(false);
-  const comebackShownRef = useRef(false);
-  const [storyReminderVisible, setStoryReminderVisible] = useState(false);
+  // Comeback flow (fired by the "Comeback check-in" rule — see DEFAULT_RULES).
+  // Which variant shows depends on whether the user has proof points.
   const [storyReminderProofPoint, setStoryReminderProofPoint] = useState<ProofPoint | null>(null);
+  const [comebackProofChecked, setComebackProofChecked] = useState(false);
 
   // Habit tidbit state
   const [habitTidbit, setHabitTidbit] = useState<NeuroscienceTidbit | null>(null);
@@ -126,8 +126,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
   // The modal is held while any bespoke modal is up so they never stack.
   const anyModalActive =
-    comebackVisible ||
-    storyReminderVisible ||
     pointsIntroVisible ||
     planIntroVisible ||
     goalPromptVisible ||
@@ -144,6 +142,22 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     bannerRule: ruleBannerRule,
     dismissBanner: dismissRuleBanner,
   } = useRuleSurfaces('app_open', anyModalActive);
+
+  // A modal rule marked component:'comeback' opens the bespoke comeback flow
+  // in the rule-modal slot instead of the generic RuleModal.
+  const comebackRule = ruleModalRule?.content.component === 'comeback' ? ruleModalRule : null;
+
+  // Prefetch a proof point while the rule modal waits to show: with one, the
+  // StoryReminder variant renders; without (or on error), the comeback flow.
+  useEffect(() => {
+    if (!comebackRule || !user || comebackProofChecked) return;
+    (async () => {
+      try {
+        setStoryReminderProofPoint(await getRandomProofPoint(user.uid));
+      } catch {}
+      setComebackProofChecked(true);
+    })();
+  }, [comebackRule, user, comebackProofChecked]);
 
   // Rule modal CTA: dismiss, then follow the rule's target (screen or URL)
   const handleRuleModalCta = useCallback(() => {
@@ -314,30 +328,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
 
-      // Detect streak break and show comeback/story reminder modal (once per day)
-      const todayForComeback = getTodayString();
-      if (
-        !comebackShownRef.current &&
-        wpStats.currentStreak === 0 &&
-        habitList.length > 0 &&
-        userProfile?.lastComebackDate !== todayForComeback
-      ) {
-        comebackShownRef.current = true;
-        markComebackShown(user.uid, todayForComeback).catch(() => {});
-
-        // If user has proof points, show StoryReminder; otherwise show ComebackModal
-        try {
-          const randomProof = await getRandomProofPoint(user.uid);
-          if (randomProof) {
-            setStoryReminderProofPoint(randomProof);
-            setStoryReminderVisible(true);
-          } else {
-            setComebackVisible(true);
-          }
-        } catch {
-          setComebackVisible(true);
-        }
-      }
+      // Streak-break comeback check-in now fires via the rules engine
+      // ("Comeback check-in" rule, app_open) — see the comebackRule block above.
 
       // Fetch all nudge logs once — reused by weekly counts, streaks, and goal follow-through
       let cachedNudgeLogs: Awaited<ReturnType<typeof fetchAllNudgeLogs>> = [];
@@ -878,11 +870,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }}
         onDismiss={() => setChallengesUnlockVisible(false)}
       />
-<ComebackModal
-        visible={comebackVisible}
+      {/* The "Comeback check-in" rule fires the bespoke comeback/story flow in
+          the rule-modal slot; every other modal rule gets the generic RuleModal.
+          Visibility waits on the proof-point check so the right variant shows. */}
+      {comebackRule && !storyReminderProofPoint && (
+      <ComebackModal
+        visible={ruleModalVisible && comebackProofChecked}
         habits={habits}
+        title={comebackRule.content.title}
+        body={comebackRule.content.body}
         onCommit={async (habitId, habitName, barrierReason) => {
-          setComebackVisible(false);
+          dismissRuleModal();
           if (!user) return;
           try {
             // Add habit to today's plan
@@ -907,13 +905,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             console.warn('Failed to save comeback commitment:', err);
           }
         }}
-        onDismiss={() => setComebackVisible(false)}
+        onDismiss={dismissRuleModal}
       />
+      )}
+      {comebackRule && storyReminderProofPoint && (
       <StoryReminderModal
-        visible={storyReminderVisible}
+        visible={ruleModalVisible && comebackProofChecked}
         proofPoint={storyReminderProofPoint}
         onSubmit={async (reflection) => {
-          setStoryReminderVisible(false);
+          dismissRuleModal();
           if (user) {
             try {
               await saveComebackLog(user.uid, {
@@ -926,14 +926,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             }
           }
         }}
-        onDismiss={() => setStoryReminderVisible(false)}
+        onDismiss={dismissRuleModal}
       />
+      )}
+      {!comebackRule && (
       <RuleModal
         rule={ruleModalRule}
         visible={ruleModalVisible}
         onDismiss={dismissRuleModal}
         onCtaPress={handleRuleModalCta}
       />
+      )}
       <HabitTidbitModal
         visible={habitTidbitVisible}
         tidbit={habitTidbit}
