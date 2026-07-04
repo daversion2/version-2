@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PracticeSessionParams } from '../../types/navigation';
@@ -10,7 +10,7 @@ import { PracticeCompletionInput } from '../../types';
 import { PracticeReady } from '../../components/habits/PracticeReady';
 import { PracticeTimer } from '../../components/habits/PracticeTimer';
 import { PracticeBreathPacer } from '../../components/habits/PracticeBreathPacer';
-import { PracticeCaptureForm } from '../../components/habits/PracticeCaptureForm';
+import { PracticeCaptureFlow } from '../../components/habits/PracticeCaptureFlow';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 
 // Structural props so the same screen can be registered in any stack. Needs
@@ -144,27 +144,21 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       )}
 
       {step === 'capture' && (
-        <ScrollView
-          contentContainerStyle={styles.captureContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Text style={styles.captureTitle}>{habitName}</Text>
-          <PracticeCaptureForm
-            practiceId={practiceId}
-            initialMetrics={
-              timerMinutes != null
-                ? {
-                    duration_min: timerMinutes,
-                    ...(pacerTechnique ? { technique: pacerTechnique } : {}),
-                  }
-                : undefined
-            }
-            initialExpanded={timerMinutes != null}
-            onSubmit={handleSubmit}
-            onCancel={() => navigation.goBack()}
-          />
-        </ScrollView>
+        <PracticeCaptureFlow
+          practiceId={practiceId}
+          title={habitName}
+          accentColor={accent}
+          initialMetrics={
+            timerMinutes != null
+              ? {
+                  duration_min: timerMinutes,
+                  ...(pacerTechnique ? { technique: pacerTechnique } : {}),
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          onCancel={() => navigation.goBack()}
+        />
       )}
 
       <HabitCelebrationModal
@@ -213,13 +207,4 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   doneText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
-
-  captureContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
-  captureTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
 });

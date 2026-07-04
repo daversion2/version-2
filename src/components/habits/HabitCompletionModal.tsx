@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { HabitActionPlan, PracticeCompletionInput } from '../../types';
 import { formatHabitPlanLine } from '../../utils/habitPlan';
 import { getPractice, PRACTICE_GROUPS } from '../../data/practices';
 import { PracticeTimer } from './PracticeTimer';
-import { PracticeCaptureForm } from './PracticeCaptureForm';
+import { PracticeCaptureFlow } from './PracticeCaptureFlow';
 
 interface Props {
   visible: boolean;
@@ -18,10 +27,12 @@ interface Props {
 }
 
 /**
- * Retroactive "Log it" sheet for a practice rep. Time-in-stillness practices
- * (meditation, breathwork) open to a countdown timer first, then the user reflects
- * + logs; everything else opens straight to the Capture form. The Capture beat
- * itself lives in <PracticeCaptureForm>, shared with the forward PracticeSession flow.
+ * Retroactive "Log it" flow for a practice rep — a full-screen modal, matching
+ * the forward PracticeSession and post-challenge reflection experiences.
+ * Time-in-stillness practices (meditation, breathwork) open to a countdown
+ * timer first, then the user reflects + logs; everything else opens straight
+ * to the Capture flow. The Capture beat itself lives in <PracticeCaptureFlow>,
+ * shared with the forward PracticeSession flow.
  */
 export const HabitCompletionModal: React.FC<Props> = ({
   visible,
@@ -41,14 +52,14 @@ export const HabitCompletionModal: React.FC<Props> = ({
     (practice?.tracking?.find((t) => t.key === 'duration_min')?.default as number) ?? 10;
 
   const [phase, setPhase] = useState<'timer' | 'form'>('form');
-  // Minutes measured by the timer, carried into the form as a seed (null = untimed).
+  // Minutes measured by the timer, carried into the flow as a seed (null = untimed).
   const [timerMinutes, setTimerMinutes] = useState<number | null>(null);
-  // Bumped on each open to force a fresh <PracticeCaptureForm> (resets its state).
+  // Bumped on each open to force a fresh <PracticeCaptureFlow> (resets its state).
   const [openKey, setOpenKey] = useState(0);
 
   // Reset on OPEN, not on close. Resetting on submit/cancel would collapse the
-  // sheet while it's still fading out — the user briefly sees the bare default
-  // state. Resetting when it opens keeps the fade-out showing their last input
+  // flow while it's still animating out — the user briefly sees the bare default
+  // state. Resetting when it opens keeps the exit showing their last input
   // and guarantees a clean slate next time.
   useEffect(() => {
     if (visible) {
@@ -59,7 +70,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  // Timer finished (or ended early) → carry the measured minutes into the form.
+  // Timer finished (or ended early) → carry the measured minutes into the flow.
   const handleTimerDone = (minutes: number) => {
     setTimerMinutes(minutes);
     setPhase('form');
@@ -69,64 +80,84 @@ export const HabitCompletionModal: React.FC<Props> = ({
   const handleTimerSkip = () => setPhase('form');
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.overlay}>
-        {/* Backdrop sits BEHIND the card as an absolute sibling — not an ancestor
-            of the ScrollView — so it can dismiss on outside-tap without stealing
-            the scroll gesture. */}
-        <Pressable style={styles.backdrop} onPress={onCancel} />
-        <View style={styles.card}>
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onCancel}
+    >
+      {phase === 'timer' ? (
+        <SafeAreaView style={styles.timerScreen}>
+          <View style={styles.timerHeader}>
+            <TouchableOpacity onPress={onCancel} style={styles.headerButton}>
+              <Ionicons name="close" size={22} color={Colors.gray} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            contentContainerStyle={styles.timerBody}
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={styles.title}>{habitName}</Text>
             {!!planLine && <Text style={styles.planRecap}>{planLine}</Text>}
-
-            {phase === 'timer' ? (
-              // Gate on `visible` so dismissing the sheet unmounts the timer at
-              // once — that fires its cleanup (stop the chime, release keep-awake)
-              // immediately rather than after the modal's fade-out.
-              visible ? (
-                <PracticeTimer
-                  accentColor={accent}
-                  defaultMinutes={defaultMinutes}
-                  onDone={handleTimerDone}
-                  onSkip={handleTimerSkip}
-                />
-              ) : null
-            ) : (
-              <PracticeCaptureForm
-                key={openKey}
-                practiceId={practiceId}
-                initialMetrics={timerMinutes != null ? { duration_min: timerMinutes } : undefined}
-                initialExpanded={timerMinutes != null}
-                onSubmit={onSubmit}
-                onCancel={onCancel}
+            {/* Gate on `visible` so dismissing the modal unmounts the timer at
+                once — that fires its cleanup (stop the chime, release keep-awake)
+                immediately rather than after the modal's slide-out. */}
+            {visible ? (
+              <PracticeTimer
+                accentColor={accent}
+                defaultMinutes={defaultMinutes}
+                onDone={handleTimerDone}
+                onSkip={handleTimerSkip}
               />
-            )}
+            ) : null}
           </ScrollView>
-        </View>
-      </View>
+        </SafeAreaView>
+      ) : (
+        <PracticeCaptureFlow
+          key={openKey}
+          practiceId={practiceId}
+          title={habitName}
+          accentColor={accent}
+          initialMetrics={timerMinutes != null ? { duration_min: timerMinutes } : undefined}
+          onSubmit={onSubmit}
+          onCancel={onCancel}
+        />
+      )}
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  timerScreen: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#FAFBFC',
+  },
+  timerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  headerButton: {
+    padding: Spacing.xs,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
-  },
-  card: {
+    justifyContent: 'center',
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  timerBody: {
+    flexGrow: 1,
+    justifyContent: 'center',
     padding: Spacing.lg,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '85%',
+    paddingBottom: Spacing.xxl,
   },
   title: {
     fontFamily: Fonts.primaryBold,
