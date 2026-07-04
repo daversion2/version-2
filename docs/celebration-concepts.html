@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neuro-Nudge — Practice Completion Celebration Concepts</title>
+<style>
+  :root {
+    --teal: #217180; --teal2: #2A8F9F; --teal3: #33ADBF;
+    --orange: #FF5B02; --amber: #FFA500;
+    --dark: #16323a; --light: #F4F6F7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px;
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #0e1c21; color: #e8eef0;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #8fa8ae; font-size: 14px; margin-bottom: 24px; }
+  .controls { margin-bottom: 20px; }
+  .controls button {
+    background: var(--teal2); color: white; border: 0; border-radius: 20px;
+    padding: 10px 22px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .controls button:hover { background: var(--teal3); }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .phone {
+    width: 300px; border-radius: 28px; overflow: hidden;
+    background: #1a2e34; border: 2px solid #2c464e;
+    display: flex; flex-direction: column;
+  }
+  .phone .label {
+    padding: 12px 16px 4px; font-weight: 700; font-size: 15px;
+  }
+  .phone .desc {
+    padding: 0 16px 10px; font-size: 12px; color: #8fa8ae; line-height: 1.45; min-height: 68px;
+  }
+  .phone .tech { color: var(--teal3); font-weight: 600; }
+  .stage { position: relative; height: 480px; background: #223d45; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .replay {
+    position: absolute; bottom: 10px; right: 10px; z-index: 5;
+    background: rgba(255,255,255,0.12); color: #dfe9eb; border: 0;
+    border-radius: 14px; padding: 6px 14px; font-size: 12px; cursor: pointer;
+  }
+  .replay:hover { background: rgba(255,255,255,0.22); }
+</style>
+</head>
+<body>
+<h1>Practice completion — celebration concepts</h1>
+<div class="sub">
+  Canvas approximations of what each library would render in the app. Colors match the app theme.
+  Concepts B–D replace (or layer onto) the current 16-dot burst in HabitCelebrationModal.
+</div>
+<div class="controls"><button onclick="playAll()">▶ Play all</button></div>
+
+<div class="row">
+  <div class="phone">
+    <div class="label">A · Current</div>
+    <div class="desc">What ships today: <span class="tech">RN Animated</span>. Card scales in,
+      16 dots radiate outward and fade. One-shot, linear feel.</div>
+    <div class="stage"><canvas id="c0" width="600" height="960"></canvas>
+      <button class="replay" onclick="run(0)">↻ replay</button></div>
+  </div>
+
+  <div class="phone">
+    <div class="label">B · Ring close + spring pop</div>
+    <div class="desc"><span class="tech">Skia</span> gradient arc sweeps shut like a fitness ring,
+      snaps with a glow tick, then the points card lands with a <span class="tech">Reanimated
+      withSpring</span> overshoot. Streak dots fill one by one with <span class="tech">withDelay</span>.</div>
+    <div class="stage"><canvas id="c1" width="600" height="960"></canvas>
+      <button class="replay" onclick="run(1)">↻ replay</button></div>
+  </div>
+
+  <div class="phone">
+    <div class="label">C · Full confetti</div>
+    <div class="desc"><span class="tech">Lottie</span>-style celebration: ~90 tumbling ribbons and
+      flakes launched in a cone with gravity and drag — much richer than radial dots. Points card
+      springs in beneath it.</div>
+    <div class="stage"><canvas id="c2" width="600" height="960"></canvas>
+      <button class="replay" onclick="run(2)">↻ replay</button></div>
+  </div>
+
+  <div class="phone">
+    <div class="label">D · Shockwave + ember glow</div>
+    <div class="desc"><span class="tech">Skia</span> radial shockwave rings + blurred glow pulse
+      behind the number; orange streak embers drift upward like sparks. Calmer, more "trained a
+      rep" than "won a prize."</div>
+    <div class="stage"><canvas id="c3" width="600" height="960"></canvas>
+      <button class="replay" onclick="run(3)">↻ replay</button></div>
+  </div>
+</div>
+
+<script>
+const TEAL='#217180', TEAL2='#2A8F9F', TEAL3='#33ADBF', ORANGE='#FF5B02', AMBER='#FFA500';
+const PALETTE=[TEAL,TEAL2,TEAL3,ORANGE,AMBER];
+const W=600,H=960,CX=W/2;
+
+// deterministic rng so replays look identical
+function rng(seed){ let s=seed; return ()=>{ s=(s*1103515245+12345)%2147483648; return s/2147483648; }; }
+function ease(t){ return t<0 ? 0 : t>1 ? 1 : 1-Math.pow(1-t,3); }
+// underdamped spring 0→1 with overshoot
+function spring(t){ if(t<0) return 0; return 1 - Math.exp(-6*t)*Math.cos(11*t); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+function card(ctx, y, scale, alpha, points, streakText){
+  if(alpha<=0||scale<=0) return;
+  ctx.save();
+  ctx.globalAlpha=clamp(alpha,0,1);
+  ctx.translate(CX,y); ctx.scale(scale,scale);
+  ctx.fillStyle='#ffffff';
+  ctx.beginPath(); ctx.roundRect(-170,-110,340,220,32); ctx.fill();
+  ctx.fillStyle=TEAL; ctx.font='800 64px -apple-system, sans-serif'; ctx.textAlign='center';
+  ctx.fillText('+'+points+' pts',0,-14);
+  ctx.fillStyle='#6b8288'; ctx.font='600 30px -apple-system, sans-serif';
+  ctx.fillText(streakText,0,44);
+  ctx.restore();
+}
+
+function overlay(ctx,alpha){
+  ctx.fillStyle='#223d45'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(10,22,26,'+(0.55*clamp(alpha,0,1))+')'; ctx.fillRect(0,0,W,H);
+}
+
+// ---------- A: current 16-dot burst ----------
+function drawCurrent(ctx,t){
+  overlay(ctx,ease(t/0.2));
+  const s=0.8+0.2*ease(t/0.35);
+  card(ctx,H/2,s,ease(t/0.3),15,'3-day streak');
+  const r=rng(7);
+  for(let i=0;i<16;i++){
+    const ang=(i/16)*Math.PI*2, delay=r()*0.15, d=(120+r()*120);
+    const p=ease((t-0.25-delay)/1.2);
+    const fade= p<0.05?p/0.05 : p>0.45? clamp(1-(p-0.45)/0.5,0,1) : 1;
+    if(p<=0||fade<=0) continue;
+    ctx.globalAlpha=fade;
+    ctx.fillStyle=PALETTE[i%5];
+    ctx.beginPath();
+    ctx.arc(CX+Math.cos(ang)*d*p, H/2+Math.sin(ang)*d*p, 5+r()*4, 0, 7); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+
+// ---------- B: ring close + spring ----------
+function drawRing(ctx,t){
+  overlay(ctx,ease(t/0.2));
+  const ringY=H/2-130, R=110;
+  const sweep=ease(t/1.1); // ring fills over ~1.1s
+  // track
+  ctx.lineWidth=18; ctx.lineCap='round';
+  ctx.strokeStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath(); ctx.arc(CX,ringY,R,0,Math.PI*2); ctx.stroke();
+  // gradient arc
+  if(sweep>0){
+    const g=ctx.createLinearGradient(CX-R,ringY,CX+R,ringY);
+    g.addColorStop(0,TEAL); g.addColorStop(0.6,TEAL3); g.addColorStop(1,AMBER);
+    ctx.strokeStyle=g;
+    ctx.shadowColor=TEAL3; ctx.shadowBlur=sweep>=1?26:10;
+    ctx.beginPath(); ctx.arc(CX,ringY,R,-Math.PI/2,-Math.PI/2+sweep*Math.PI*2); ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+  // snap flash + check when ring closes
+  const closeT=t-1.1;
+  if(closeT>0){
+    const flash=clamp(1-closeT/0.35,0,1);
+    if(flash>0){ ctx.globalAlpha=flash*0.5; ctx.strokeStyle='#fff'; ctx.lineWidth=18;
+      ctx.beginPath(); ctx.arc(CX,ringY,R+10*(1-flash),0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1; }
+    const cs=spring(closeT/0.7);
+    ctx.save(); ctx.translate(CX,ringY); ctx.scale(cs,cs);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=16; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(-38,4); ctx.lineTo(-8,34); ctx.lineTo(46,-30); ctx.stroke();
+    ctx.restore();
+    // tick particles on snap
+    const r=rng(3);
+    for(let i=0;i<10;i++){
+      const ang=r()*Math.PI*2, p=ease((closeT-r()*0.08)/0.6);
+      if(p<=0) continue;
+      ctx.globalAlpha=clamp(1-p,0,1); ctx.fillStyle=i%2?AMBER:TEAL3;
+      ctx.beginPath(); ctx.arc(CX+Math.cos(ang)*(R+14+60*p), ringY+Math.sin(ang)*(R+14+60*p),4,0,7); ctx.fill();
+      ctx.globalAlpha=1;
+    }
+  }
+  // points card springs up after close
+  const cardT=t-1.35;
+  const cs=spring(cardT/0.8);
+  card(ctx, H/2+190-40*clamp(cs,0,1.15), 0.9+0.1*cs, ease(cardT/0.25), 15, '');
+  // streak dots fill one by one (withDelay stagger)
+  for(let i=0;i<7;i++){
+    const on=ease((t-1.5-i*0.12)/0.2);
+    const x=CX-108+i*36, y=H/2+252;
+    ctx.fillStyle='rgba(107,130,136,0.35)';
+    ctx.beginPath(); ctx.arc(x,y,9,0,7); ctx.fill();
+    if(on>0 && i<3){
+      ctx.fillStyle=ORANGE; ctx.globalAlpha=on;
+      ctx.beginPath(); ctx.arc(x,y,9+3*(1-on),0,7); ctx.fill(); ctx.globalAlpha=1;
+    }
+  }
+  if(t>1.7){ ctx.fillStyle='#cfdde0'; ctx.font='600 26px -apple-system, sans-serif';
+    ctx.textAlign='center'; ctx.globalAlpha=ease((t-1.7)/0.3);
+    ctx.fillText('3-day streak',CX,H/2+310); ctx.globalAlpha=1; }
+}
+
+// ---------- C: lottie-style confetti ----------
+const confetti=[]; const cr=rng(42);
+for(let i=0;i<90;i++){
+  const ang=-Math.PI/2+(cr()-0.5)*1.5;
+  confetti.push({
+    vx:Math.cos(ang)*(240+cr()*420), vy:Math.sin(ang)*(620+cr()*560),
+    w:7+cr()*10, h:12+cr()*14, rot:cr()*Math.PI*2, vr:(cr()-0.5)*14,
+    color:PALETTE[Math.floor(cr()*5)], delay:cr()*0.25, ribbon:cr()>0.5, drift:(cr()-0.5)*60
+  });
+}
+function drawConfetti(ctx,t){
+  overlay(ctx,ease(t/0.2));
+  const cs=spring((t-0.15)/0.8);
+  card(ctx,H/2+120,0.9+0.1*cs,ease((t-0.15)/0.25),15,'3-day streak');
+  const G=1500, drag=0.9;
+  for(const p of confetti){
+    const pt=t-p.delay; if(pt<=0) continue;
+    const life=clamp(1-(pt-1.6)/0.8,0,1); if(life<=0) continue;
+    const d=1-Math.exp(-drag*pt);
+    const x=CX+(p.vx/drag)*d+p.drift*pt;
+    const y=H/2-60+(p.vy/drag)*d+0.5*G*pt*pt*0.55;
+    if(y>H+30) continue;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(p.rot+p.vr*pt);
+    ctx.globalAlpha=life; ctx.fillStyle=p.color;
+    if(p.ribbon){ ctx.scale(1,Math.abs(Math.sin(pt*9+p.rot))*0.8+0.2); }
+    ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    ctx.restore();
+  }
+}
+
+// ---------- D: shockwave + embers ----------
+const embers=[]; const er=rng(11);
+for(let i=0;i<26;i++){
+  embers.push({ x:(er()-0.5)*260, delay:0.3+er()*1.3, up:220+er()*260,
+    drift:(er()-0.5)*90, size:2.5+er()*4, c:er()>0.4?ORANGE:AMBER });
+}
+function drawShockwave(ctx,t){
+  overlay(ctx,ease(t/0.2));
+  // shockwave rings
+  for(let k=0;k<3;k++){
+    const p=ease((t-0.05-k*0.22)/1.0);
+    if(p<=0||p>=1) continue;
+    ctx.globalAlpha=(1-p)*0.55;
+    ctx.strokeStyle=k===2?AMBER:TEAL3; ctx.lineWidth=10*(1-p)+2;
+    ctx.beginPath(); ctx.arc(CX,H/2-40,40+p*300,0,7); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  // pulsing glow behind number
+  const glowP=0.6+0.4*Math.sin(t*3);
+  const g=ctx.createRadialGradient(CX,H/2-40,10,CX,H/2-40,190);
+  g.addColorStop(0,'rgba(51,173,191,'+(0.5*glowP*ease(t/0.4))+')');
+  g.addColorStop(1,'rgba(51,173,191,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // big number, spring in
+  const ns=spring((t-0.1)/0.8);
+  if(ns>0){
+    ctx.save(); ctx.translate(CX,H/2-40); ctx.scale(ns,ns);
+    ctx.shadowColor=TEAL3; ctx.shadowBlur=34*glowP;
+    ctx.fillStyle='#fff'; ctx.font='800 96px -apple-system, sans-serif'; ctx.textAlign='center';
+    ctx.fillText('+15',0,10);
+    ctx.shadowBlur=0; ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.font='600 30px -apple-system, sans-serif'; ctx.fillText('WORTH IT',0,64);
+    ctx.restore();
+  }
+  // streak embers rising
+  for(const e of embers){
+    const p=(t-e.delay)/1.8; if(p<=0||p>=1) continue;
+    ctx.globalAlpha=Math.sin(p*Math.PI)*0.9;
+    ctx.fillStyle=e.c; ctx.shadowColor=e.c; ctx.shadowBlur=8;
+    ctx.beginPath();
+    ctx.arc(CX+e.x+Math.sin(p*7)*e.drift*0.3, H/2+140-p*e.up, e.size*(1-p*0.5),0,7);
+    ctx.fill(); ctx.shadowBlur=0; ctx.globalAlpha=1;
+  }
+  const st=ease((t-0.9)/0.4);
+  if(st>0){ ctx.globalAlpha=st; ctx.fillStyle=AMBER;
+    ctx.font='700 28px -apple-system, sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🔥 3-day streak · ×1.5 multiplier',CX,H/2+210); ctx.globalAlpha=1; }
+}
+
+// ---------- runner ----------
+const draws=[drawCurrent,drawRing,drawConfetti,drawShockwave];
+const starts=[0,0,0,0];
+function run(i){ starts[i]=performance.now(); }
+function playAll(){ const n=performance.now(); for(let i=0;i<4;i++) starts[i]=n; }
+function frame(now){
+  for(let i=0;i<4;i++){
+    const ctx=document.getElementById('c'+i).getContext('2d');
+    const t=(now-starts[i])/1000;
+    ctx.clearRect(0,0,W,H);
+    draws[i](ctx, t>3.2?3.2:t); // hold final frame
+  }
+  requestAnimationFrame(frame);
+}
+playAll(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
