@@ -128,8 +128,8 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
             <Ionicons name={practice.icon as any} size={32} color={accent} />
           </View>
           <Text style={styles.handoffTitle}>Set your phone down.</Text>
-          {!!practice.ready?.overrideUrge && (
-            <Text style={styles.handoffBody}>{practice.ready.overrideUrge}</Text>
+          {!!practice.ready?.override && (
+            <Text style={styles.handoffBody}>{practice.ready.override}</Text>
           )}
           <Text style={styles.handoffHint}>Come back and log it when you’re done.</Text>
           <TouchableOpacity

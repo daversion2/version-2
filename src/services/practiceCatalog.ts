@@ -45,7 +45,19 @@ export const validatePractice = (raw: any): Practice | null => {
   const okStrings = isStr(raw.id) && isStr(raw.name) && isStr(raw.description) && isStr(raw.icon);
   const okContent = isStr(raw.whyItWorks) && isStr(raw.science) && isStrArray(raw.howTo) && isStrArray(raw.tips);
   if (!okEnum || !okStrings || !okContent) return null;
-  return raw as Practice;
+  const practice = raw as Practice;
+  // Legacy remote docs may still carry the old ready shape (`expect` +
+  // `overrideUrge`, since merged into `override`). Normalize here so the Ready
+  // screen keeps its override block until the doc is re-saved from the admin
+  // editor, which writes the new shape.
+  const ready = raw.ready;
+  if (ready && !ready.override && (ready.expect || ready.overrideUrge)) {
+    practice.ready = {
+      ...ready,
+      override: [ready.expect, ready.overrideUrge].filter(isStr).join(' '),
+    };
+  }
+  return practice;
 };
 
 /** Read every catalog doc, validated. Drops malformed docs (logged). */

@@ -171,16 +171,20 @@ export interface Practice {
   /** How the timer renders, when flow === 'timer'. */
   timerDisplay?: 'countdown' | 'pacer' | 'hidden';
   /**
-   * Pre-practice briefing copy shown on the Ready screen. Each block is optional;
-   * `expect` is omitted for practices with no difficulty spike (e.g. breathwork).
+   * Pre-practice briefing copy shown on the Ready screen, in narrative order:
+   * the task → what will try to stop you → the anchor to hold onto.
    */
   ready?: {
-    /** The difficulty-arc warning — where/when it gets hard. */
-    expect?: string;
-    /** The single anchor or technique to hold onto. */
+    /** The concrete procedure — what they're physically about to do (setup + duration). */
+    whatYouDo?: string;
+    /**
+     * The urge to override: when it arrives, and that not obeying it is the rep.
+     * Replaces the former `expect` + `overrideUrge` pair (they always restated
+     * the same fact). Omit for practices with no difficulty spike (e.g. breathwork).
+     */
+    override?: string;
+    /** The single anchor or technique to hold onto when the urge hits. */
     focus: string;
-    /** The urge to name, forward-facing (a reframe of `resistanceMoment`). */
-    overrideUrge?: string;
     /** The handoff button label, e.g. "Begin" / "Put your phone down". */
     handoffCta?: string;
   };
@@ -264,8 +268,9 @@ export const BUNDLED_PRACTICES: Practice[] = [
     flow: 'timer',
     timerDisplay: 'countdown',
     ready: {
-      expect: "Urges to move, fidget, or stop will come in waves. That's normal — that's the practice.",
-      focus: "Notice the urge. Don't act on it. Return to the breath.",
+      whatYouDo: 'Sit upright somewhere quiet, eyes closed, and stay with your breath until the timer ends.',
+      override: "Urges to move, fidget, or stop will come in waves. Not acting on them is the rep.",
+      focus: 'When your mind wanders, notice — and return to the breath. Every return counts.',
       handoffCta: 'Begin',
     },
     tracking: [
@@ -320,7 +325,8 @@ export const BUNDLED_PRACTICES: Practice[] = [
     flow: 'timer',
     timerDisplay: 'pacer',
     ready: {
-      // No `expect` block — breathwork has no difficulty spike.
+      whatYouDo: 'A few minutes of slow nasal breathing — the pacer sets the rhythm, you follow it.',
+      // No `override` block — breathwork has no difficulty spike.
       focus: "Make the exhale longer than the inhale. Let the pace do the work — don't rush back to normal.",
       handoffCta: 'Begin',
     },
@@ -429,10 +435,11 @@ export const BUNDLED_PRACTICES: Practice[] = [
     resistanceMoment: 'the effort bit, or you wanted to reach for your phone or music',
     flow: 'away',
     ready: {
-      expect:
-        'The urge to reach for your phone or put on music will come — and the effort will bite. Both are the point.',
-      focus: 'Just move. No screen, no audio. Let your mind wander and stay with the effort.',
-      overrideUrge: 'The pull to grab your phone, put on a podcast, or stop early.',
+      whatYouDo:
+        'Walk or run at real effort — treadmill or outside — with no phone, music, or screens, for your set time.',
+      override:
+        'A few minutes in, the pull for your phone or a podcast will show up — and the effort will bite. Not reaching, not stopping early: that’s the rep.',
+      focus: 'Just move. Let your mind wander and stay with the effort.',
       handoffCta: 'Put your phone away',
     },
     tracking: [
@@ -485,9 +492,10 @@ export const BUNDLED_PRACTICES: Practice[] = [
     resistanceMoment: 'the cold hit and everything said get out',
     flow: 'away',
     ready: {
-      expect: 'The first 30 seconds are the worst. Your body will scream to get out. Then it quiets.',
+      whatYouDo: 'Get into a cold shower or plunge — deliberately, not inch by inch — and stay for your set time.',
+      override:
+        'The first 30 seconds are the worst — your body will scream to get out, then it quiets. Not obeying that scream is the rep.',
       focus: 'Long, slow exhales. Control the gasp. That’s the whole job.',
-      overrideUrge: 'You’ll want out. You’re practicing not obeying that urge.',
       handoffCta: 'Put your phone down',
     },
     tracking: [
@@ -531,9 +539,10 @@ export const BUNDLED_PRACTICES: Practice[] = [
     resistanceMoment: 'the heat got intense and you wanted to leave',
     flow: 'away',
     ready: {
-      expect: 'The first minutes are easy. The urge to leave builds slowly and peaks near the end.',
+      whatYouDo: 'Sit in a sauna or hot bath and let the heat build for your set time. Hydrate after.',
+      override:
+        'The first minutes are easy — the urge to leave builds slowly and peaks near the end. Staying through the peak is the rep.',
       focus: 'Stay loose. Slow, steady breathing. Don’t fight the heat — settle into it.',
-      overrideUrge: 'When it peaks, you’ll want to bail. Sit with it a little longer.',
       handoffCta: 'Put your phone down',
     },
     tracking: [
@@ -581,9 +590,10 @@ export const BUNDLED_PRACTICES: Practice[] = [
     flow: 'timer',
     timerDisplay: 'hidden',
     ready: {
-      expect: "A few minutes in, you'll feel restless and reach for your phone. That pull is the whole point.",
+      whatYouDo: 'Sit with nothing — no screen, no music, no task — for your set time.',
+      override:
+        "A few minutes in, you'll feel restless and reach for your phone. That pull is the whole point — leaving it face-down is the rep.",
       focus: 'Do nothing. Let your mind wander. No input, no scrolling, no escape.',
-      overrideUrge: 'The urge to pick up your phone. Leave it face-down.',
       handoffCta: 'Phone face-down',
     },
     tracking: [
@@ -670,8 +680,10 @@ export const BUNDLED_PRACTICES: Practice[] = [
     // ready now so the data is complete.
     flow: 'moment',
     ready: {
-      focus: 'Pick the harder option before the craving hits — then eat it plainly.',
-      overrideUrge: 'The pull to swap it for something you’d enjoy more.',
+      whatYouDo:
+        'Choose a plain, genuinely healthy option for your next meal — decided now, before the craving hits — and eat it as-is.',
+      override: 'The pull to swap it for something you’d enjoy more. Eating it plainly anyway is the rep.',
+      focus: 'Don’t doctor it up. No sauces, no extras — sit with “not enjoyable.”',
       handoffCta: 'I’m committing',
     },
     tracking: [

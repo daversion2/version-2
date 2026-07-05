@@ -124,9 +124,9 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
   const [optionalReason, setOptionalReason] = useState('');
   const [flow, setFlow] = useState<Practice['flow']>('away');
   const [timerDisplay, setTimerDisplay] = useState<string>('');
-  const [readyExpect, setReadyExpect] = useState('');
-  const [readyFocus, setReadyFocus] = useState('');
+  const [readyWhatYouDo, setReadyWhatYouDo] = useState('');
   const [readyOverride, setReadyOverride] = useState('');
+  const [readyFocus, setReadyFocus] = useState('');
   const [readyCta, setReadyCta] = useState('');
 
   useEffect(() => {
@@ -156,9 +156,11 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
           setOptionalReason(p.optional_reason ?? '');
           setFlow(p.flow);
           setTimerDisplay(p.timerDisplay ?? '');
-          setReadyExpect(p.ready?.expect ?? '');
+          // Legacy docs (expect/overrideUrge) arrive already normalized into
+          // `override` by validatePractice; saving writes the new shape.
+          setReadyWhatYouDo(p.ready?.whatYouDo ?? '');
+          setReadyOverride(p.ready?.override ?? '');
           setReadyFocus(p.ready?.focus ?? '');
-          setReadyOverride(p.ready?.overrideUrge ?? '');
           setReadyCta(p.ready?.handoffCta ?? '');
         }
       } finally {
@@ -179,8 +181,8 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       readyFocus.trim().length > 0
         ? {
             focus: readyFocus.trim(),
-            ...(readyExpect.trim() ? { expect: readyExpect.trim() } : {}),
-            ...(readyOverride.trim() ? { overrideUrge: readyOverride.trim() } : {}),
+            ...(readyWhatYouDo.trim() ? { whatYouDo: readyWhatYouDo.trim() } : {}),
+            ...(readyOverride.trim() ? { override: readyOverride.trim() } : {}),
             ...(readyCta.trim() ? { handoffCta: readyCta.trim() } : {}),
           }
         : undefined;
@@ -321,9 +323,9 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       <View style={styles.divider} />
       <Text style={styles.sectionTitle}>Override & briefing</Text>
       <Field label="Resistance moment (optional)" value={resistanceMoment} onChange={setResistanceMoment} multiline hint="The signature 'get-out' urge, e.g. 'the cold hit and everything said get out'" />
-      <Field label="Ready · Focus" value={readyFocus} onChange={setReadyFocus} multiline hint="Required to show a briefing. The one anchor/technique." />
-      <Field label="Ready · What to expect (optional)" value={readyExpect} onChange={setReadyExpect} multiline />
-      <Field label="Ready · The override (optional)" value={readyOverride} onChange={setReadyOverride} multiline />
+      <Field label="Ready · What you'll do (optional)" value={readyWhatYouDo} onChange={setReadyWhatYouDo} multiline hint="The concrete procedure — setup + duration, 1–2 sentences." />
+      <Field label="Ready · The override (optional)" value={readyOverride} onChange={setReadyOverride} multiline hint="The urge: when it arrives, and that not obeying it is the rep. Omit if no difficulty spike." />
+      <Field label="Ready · Focus" value={readyFocus} onChange={setReadyFocus} multiline hint="Required to show a briefing. The one anchor/technique to hold onto." />
       <Field label="Ready · Handoff button (optional)" value={readyCta} onChange={setReadyCta} hint='e.g. "Begin" / "Put your phone down"' />
 
       <Text style={styles.note}>

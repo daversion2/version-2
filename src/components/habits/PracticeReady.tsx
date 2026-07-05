@@ -29,10 +29,11 @@ const ReadyBlock: React.FC<{ icon: string; label: string; text: string; accent: 
 );
 
 /**
- * The "Ready" beat — a ~15-second briefing before a practice rep. Primes the user
- * for the difficulty arc (expect), the one anchor to hold (focus), and the urge
- * they're about to override, then hands off to the Go beat.
- * Driven entirely by the practice's `ready` content; renders nothing if absent.
+ * The "Ready" beat — a ~15-second briefing before a practice rep, in narrative
+ * order: the task (what you'll do) → the urge that will rise against you (the
+ * override) → the one anchor to hold when it does (focus). Then hands off to
+ * the Go beat. Driven entirely by the practice's `ready` content; renders
+ * nothing if absent.
  */
 export const PracticeReady: React.FC<Props> = ({ practice, onBegin, onLearn }) => {
   const accent = PRACTICE_GROUPS.find((g) => g.id === practice.group)?.color ?? Colors.primary;
@@ -53,13 +54,13 @@ export const PracticeReady: React.FC<Props> = ({ practice, onBegin, onLearn }) =
           <Text style={styles.subhead}>Before you begin</Text>
         </View>
 
-        {ready.expect && (
-          <ReadyBlock icon="time-outline" label="What to expect" text={ready.expect} accent={accent} />
+        {ready.whatYouDo && (
+          <ReadyBlock icon="list-outline" label="What you'll do" text={ready.whatYouDo} accent={accent} />
+        )}
+        {ready.override && (
+          <ReadyBlock icon="flame-outline" label="The override" text={ready.override} accent={accent} />
         )}
         <ReadyBlock icon="locate-outline" label="Focus on" text={ready.focus} accent={accent} />
-        {ready.overrideUrge && (
-          <ReadyBlock icon="flame-outline" label="The override" text={ready.overrideUrge} accent={accent} />
-        )}
 
         {onLearn && (
           <TouchableOpacity style={styles.learnRow} onPress={onLearn} activeOpacity={0.7}>
