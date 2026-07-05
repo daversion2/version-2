@@ -118,8 +118,9 @@ export const AdminReflectionPromptsScreen: React.FC = () => {
       <View style={styles.content}>
         <Text style={styles.headerHint}>
           These prompts make up the conversational reflection a user walks through after
-          completing a challenge. They're shown one per screen, in order. Changes apply to
-          everyone on their next app open.
+          completing a challenge or logging a practice — both flows ask the identical
+          questions. They're shown one per screen, in order. Changes apply to everyone on
+          their next app open.
         </Text>
 
         {config.prompts.map((prompt, index) => (

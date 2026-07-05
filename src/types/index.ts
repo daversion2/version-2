@@ -298,11 +298,15 @@ export interface CompletionLog {
   // power dashboard trends; this map is intentionally generic so new metrics need no
   // schema change. See Practice.tracking in data/practices.ts.
   metrics?: Record<string, number | string>;
-  // Override reflection: did the rep hit its characteristic resistance moment, and
-  // which shared override tactics did they use (ids from OVERRIDE_TACTICS). Aggregating
-  // `tactics` across all logs is what powers the future Override Playbook.
+  // Override reflection. `hitHardMoment` is derived from the shared reflection flow
+  // (a described hardest moment counts as one) and still powers the daily summary.
+  // `tactics` (OVERRIDE_TACTICS ids) were captured by the pre-2026-07 gate/chips UI;
+  // historical logs keep them but the unified reflection flow no longer collects them.
   hitHardMoment?: boolean;
   tactics?: string[];
+  // Structured answers from the shared reflection flow, keyed by prompt id
+  // (only non-blank answers). `notes` holds the joined human-readable note.
+  reflection?: Record<string, string>;
   // Before/after emotional state tracking (habit check-ins only)
   energyBefore?: -1 | 1 | null;
   moodBefore?: -1 | 1 | null;
@@ -321,6 +325,8 @@ export interface PracticeCompletionInput {
   metrics?: Record<string, number | string>;
   hitHardMoment?: boolean;
   tactics?: string[];
+  /** Structured answers from the shared reflection flow, keyed by prompt id. */
+  reflection?: Record<string, string>;
 }
 
 // =============================================================================

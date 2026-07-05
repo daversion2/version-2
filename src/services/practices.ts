@@ -124,6 +124,8 @@ export interface CompletionExtras {
   metrics?: Record<string, number | string>;
   hitHardMoment?: boolean;
   tactics?: string[];
+  /** Structured answers from the shared reflection flow, keyed by prompt id. */
+  reflection?: Record<string, string>;
 }
 
 /**
@@ -172,6 +174,9 @@ export const logHabitCompletion = async (
   if (extras?.tactics && extras.tactics.length) {
     logData.tactics = extras.tactics;
   }
+  if (extras?.reflection && Object.keys(extras.reflection).length) {
+    logData.reflection = extras.reflection;
+  }
 
   const docRef = await addDoc(logsRef(userId), logData);
   await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
@@ -199,11 +204,12 @@ export const completePractice = async (
   input: PracticeCompletionInput,
   opts?: { teamId?: string },
 ): Promise<CompletePracticeResult> => {
-  const { difficulty, notes, metrics, hitHardMoment, tactics } = input;
+  const { difficulty, notes, metrics, hitHardMoment, tactics, reflection } = input;
   const logId = await logHabitCompletion(userId, practice.id, difficulty, undefined, notes, {
     metrics,
     hitHardMoment,
     tactics,
+    reflection,
   });
 
   if (opts?.teamId) {

@@ -1,9 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Colors, Spacing } from '../../constants/theme';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { showAlert } from '../../utils/alert';
+import { ReflectionInputStyle } from '../../data/challengeReflectionPrompts';
 import {
   ChallengeReflectionConfig,
   ReflectionPrompt,
@@ -111,15 +119,70 @@ export const AdminReflectionPromptEditScreen: React.FC<Props> = ({ navigation, r
           onChangeText={(t) => update({ helper_text: t })}
           multiline
         />
-        <InputField
-          label="Max length (optional, leave blank for no limit)"
-          value={item.max_length ? String(item.max_length) : ''}
-          onChangeText={(t) => {
-            const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
-            update({ max_length: Number.isFinite(n) && n > 0 ? n : undefined });
-          }}
-          keyboardType="number-pad"
-        />
+
+        <Text style={styles.styleLabel}>Answer input</Text>
+        <View style={styles.styleRow}>
+          {INPUT_STYLES.map((s) => {
+            const active = (item.input ?? 'text') === s.value;
+            return (
+              <TouchableOpacity
+                key={s.value}
+                style={[styles.styleChip, active && styles.styleChipActive]}
+                onPress={() => update({ input: s.value })}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.styleChipText, active && styles.styleChipTextActive]}>
+                  {s.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Text style={styles.styleHint}>
+          {INPUT_STYLES.find((s) => s.value === (item.input ?? 'text'))?.hint}
+        </Text>
+
+        {(item.input ?? 'text') === 'choice' && (
+          <>
+            <InputField
+              label='"Yes" button label'
+              value={item.yes_label ?? ''}
+              onChangeText={(t) => update({ yes_label: t })}
+              placeholder="Yes, it was real"
+            />
+            <InputField
+              label='"No" button label'
+              value={item.no_label ?? ''}
+              onChangeText={(t) => update({ no_label: t })}
+              placeholder="No, not really"
+            />
+            <InputField
+              label='Follow-up question (shown after "No"; blank for none)'
+              value={item.followup_prompt ?? ''}
+              onChangeText={(t) => update({ followup_prompt: t })}
+              placeholder="What's the truer thought?"
+              multiline
+            />
+            <InputField
+              label="Follow-up placeholder"
+              value={item.followup_placeholder ?? ''}
+              onChangeText={(t) => update({ followup_placeholder: t })}
+              placeholder="The truth is…"
+            />
+          </>
+        )}
+
+        {(item.input ?? 'text') !== 'choice' && (
+          <InputField
+            label="Max length (optional, leave blank for no limit)"
+            value={item.max_length ? String(item.max_length) : ''}
+            onChangeText={(t) => {
+              const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
+              update({ max_length: Number.isFinite(n) && n > 0 ? n : undefined });
+            }}
+            keyboardType="number-pad"
+          />
+        )}
 
         <View style={{ marginTop: Spacing.lg }}>
           <Button title="Save" onPress={handleSave} loading={saving} />
@@ -131,8 +194,46 @@ export const AdminReflectionPromptEditScreen: React.FC<Props> = ({ navigation, r
 
 export default AdminReflectionPromptEditScreen;
 
+const INPUT_STYLES: { value: ReflectionInputStyle; label: string; hint: string }[] = [
+  { value: 'text', label: 'Text', hint: 'A multiline textarea — the default.' },
+  {
+    value: 'oneliner',
+    label: 'One-liner',
+    hint: 'A single line for one concrete takeaway (pair with a short max length).',
+  },
+  {
+    value: 'choice',
+    label: 'Yes / No',
+    hint: 'Two tap buttons, with an optional follow-up line revealed on "No".',
+  },
+];
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
+  styleLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+  },
+  styleRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
+  styleChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  styleChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primary },
+  styleChipText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  styleChipTextActive: { color: Colors.white },
+  styleHint: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginBottom: Spacing.md,
+  },
   centered: {
     flex: 1,
     justifyContent: 'center',

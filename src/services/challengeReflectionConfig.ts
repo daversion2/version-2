@@ -1,20 +1,24 @@
 /**
- * Admin-configurable post-challenge reflection prompts (success path).
+ * Admin-configurable reflection prompts — shared by the post-challenge
+ * reflection AND the practice Capture flow, so both ask the identical
+ * questions.
  *
  * Mirrors microExercisesConfig.ts / toolsConfig.ts: the prompt list lives in
- * the config/challengeReflectionPrompts Firestore document, editable from
- * Admin > Reflection Prompts, with DEFAULT_REFLECTION_PROMPTS as the bundled
- * default and "Reset to defaults" source.
+ * the config/challengeReflectionPrompts Firestore document (the historical
+ * id, kept for continuity), editable from Admin > Reflection Prompts, with
+ * DEFAULT_REFLECTION_PROMPTS as the bundled default and "Reset to defaults"
+ * source.
  *
- * The conversational reflection flow (ChallengeReflectionFlow) renders the
- * enabled prompts one-per-screen; the answers are joined back into the
- * existing Challenge.reflection_note string — no Firestore schema change.
+ * The conversational reflection flow renders the enabled prompts
+ * one-per-screen; the answers are joined into Challenge.reflection_note /
+ * the practice completion log's notes — no Firestore schema change.
  */
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import {
   DEFAULT_REFLECTION_PROMPTS,
   ReflectionPromptDefinition,
+  ReflectionInputStyle,
 } from '../data/challengeReflectionPrompts';
 
 /** A configurable reflection prompt — a definition plus an enabled flag. */
@@ -43,12 +47,23 @@ const sanitizePrompt = (raw: any, idx: number): ReflectionPrompt | null => {
     typeof raw.max_length === 'number' && raw.max_length > 0
       ? Math.floor(raw.max_length)
       : undefined;
+  const input: ReflectionInputStyle =
+    raw.input === 'oneliner' || raw.input === 'choice' ? raw.input : 'text';
   return {
     id: asString(raw.id).trim() || `prompt-${idx}`,
     prompt,
     placeholder: asString(raw.placeholder).trim() || undefined,
     helper_text: asString(raw.helper_text).trim() || undefined,
     max_length,
+    input,
+    // Choice extras only make sense on a choice prompt; blank labels fall
+    // back to Yes/No at render time.
+    yes_label: input === 'choice' ? asString(raw.yes_label).trim() || undefined : undefined,
+    no_label: input === 'choice' ? asString(raw.no_label).trim() || undefined : undefined,
+    followup_prompt:
+      input === 'choice' ? asString(raw.followup_prompt).trim() || undefined : undefined,
+    followup_placeholder:
+      input === 'choice' ? asString(raw.followup_placeholder).trim() || undefined : undefined,
     enabled: raw.enabled !== false,
   };
 };
@@ -98,11 +113,15 @@ export const getChallengeReflectionConfigWithTimeout = (
 
 // ---------- Admin writes ----------
 
+// Firestore rejects `undefined` field values — drop them before writing.
+const stripUndefined = (obj: Record<string, any>) =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+
 export const saveChallengeReflectionConfig = async (
   config: ChallengeReflectionConfig
 ): Promise<void> => {
   await setDoc(configDocRef(), {
-    prompts: sanitizeChallengeReflectionConfig(config).prompts,
+    prompts: sanitizeChallengeReflectionConfig(config).prompts.map(stripUndefined),
     updated_at: new Date().toISOString(),
   });
 };
@@ -116,5 +135,6 @@ export const newReflectionPrompt = (suffix: string): ReflectionPrompt => ({
   prompt: '',
   placeholder: '',
   helper_text: '',
+  input: 'text',
   enabled: true,
 });
