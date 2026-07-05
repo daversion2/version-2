@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neuro-Nudge — Unified Reflection Flow Mockup</title>
+<style>
+  :root {
+    --teal: #217180; --teal2: #2A8F9F; --teal3: #33ADBF;
+    --orange: #FF5B02;
+    --dark: #2B2B2B; --gray: #656565; --light-gray: #F2F2F2;
+    --border: #E0E0E0; --screen-bg: #FAFBFC;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px;
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #0e1c21; color: #e8eef0;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #8fa8ae; font-size: 14px; margin-bottom: 20px; max-width: 720px; line-height: 1.5; }
+
+  .layout { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+
+  /* ── Context toggle ─────────────────────────────── */
+  .context-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+  .context-toggle button {
+    background: #1a2e34; color: #8fa8ae; border: 1.5px solid #2c464e;
+    border-radius: 20px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .context-toggle button.active { color: #fff; }
+  .context-toggle button.active.practice { background: var(--orange); border-color: var(--orange); }
+  .context-toggle button.active.challenge { background: var(--teal); border-color: var(--teal); }
+
+  /* ── Phone frame ────────────────────────────────── */
+  .phone {
+    width: 360px; height: 720px; border-radius: 36px; overflow: hidden;
+    background: var(--screen-bg); border: 3px solid #2c464e;
+    display: flex; flex-direction: column; position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  /* Progress bar */
+  .progress-track { height: 3px; background: var(--border); }
+  .progress-fill { height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s ease, background 0.3s ease; }
+
+  /* Header */
+  .flow-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px 8px;
+  }
+  .hdr-btn {
+    width: 40px; height: 40px; border-radius: 20px; border: 0;
+    background: #fff; color: var(--dark); font-size: 17px; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center;
+  }
+  .hdr-btn.hidden { visibility: hidden; }
+  .hdr-btn.close { color: var(--gray); }
+  .hdr-title {
+    flex: 1; text-align: center; font-weight: 700; font-size: 15px; color: var(--dark);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 8px;
+  }
+
+  /* Step area */
+  .step-area { flex: 1; overflow-y: auto; position: relative; }
+  .step {
+    position: absolute; inset: 0; padding: 20px 22px 40px; overflow-y: auto;
+  }
+  .step.enter-forward { animation: slideInFwd 0.32s cubic-bezier(0.2, 0.8, 0.3, 1); }
+  .step.enter-backward { animation: slideInBwd 0.32s cubic-bezier(0.2, 0.8, 0.3, 1); }
+  @keyframes slideInFwd {
+    from { transform: translateX(48px) scale(0.97); opacity: 0; }
+    to   { transform: translateX(0) scale(1); opacity: 1; }
+  }
+  @keyframes slideInBwd {
+    from { transform: translateX(-48px) scale(0.97); opacity: 0; }
+    to   { transform: translateX(0) scale(1); opacity: 1; }
+  }
+
+  /* Chat bubble */
+  .typing {
+    display: inline-flex; gap: 6px; align-items: center;
+    padding: 15px 20px; border-radius: 16px; border-bottom-left-radius: 4px;
+    margin-bottom: 20px;
+  }
+  .typing .dot { width: 8px; height: 8px; border-radius: 4px; animation: pulse 0.9s infinite; }
+  .typing .dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing .dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+  .bubble {
+    padding: 15px 20px; border-radius: 16px; border-bottom-left-radius: 4px;
+    border-left: 3px solid; margin-bottom: 14px;
+    animation: bubbleIn 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  @keyframes bubbleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .bubble .q { font-size: 16px; color: var(--dark); line-height: 1.5; margin: 0; }
+  .bubble .helper { font-size: 13px; color: var(--gray); font-style: italic; margin: 6px 0 0; line-height: 1.45; }
+
+  .optional-badge { font-size: 12px; color: var(--gray); font-style: italic; margin: 0 0 14px; }
+
+  /* Inputs */
+  textarea, .oneliner {
+    width: 100%; font-family: inherit; font-size: 16px; color: var(--dark);
+    background: var(--light-gray); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; line-height: 1.4; outline: none; resize: none;
+  }
+  textarea { min-height: 130px; }
+  .oneliner { min-height: 0; }
+  textarea:focus, .oneliner:focus { border-color: currentColor; }
+  .char-count { font-size: 12px; color: var(--gray); text-align: right; margin-top: 6px; }
+
+  /* Choice buttons (Q3) */
+  .choice-row { display: flex; gap: 10px; margin: 4px 0 14px; }
+  .choice-btn {
+    flex: 1; padding: 16px 10px; border-radius: 12px; border: 1.5px solid var(--border);
+    background: #fff; cursor: pointer; text-align: center;
+  }
+  .choice-btn .ico { font-size: 22px; display: block; margin-bottom: 6px; }
+  .choice-btn .lbl { font-size: 14px; font-weight: 700; color: var(--dark); }
+  .choice-btn.sel-protect { background: var(--gray); border-color: var(--gray); }
+  .choice-btn.sel-lie { border-width: 1.5px; }
+  .choice-btn.selected .lbl { color: #fff; }
+  .followup { animation: bubbleIn 0.25s ease; }
+  .followup .fu-label { font-size: 13px; font-weight: 700; color: var(--dark); margin: 10px 0 8px; }
+
+  /* Footer */
+  .flow-footer { padding: 10px 22px 26px; }
+  .skip-link {
+    display: block; width: 100%; background: none; border: 0; color: var(--gray);
+    font-size: 14px; padding: 9px; cursor: pointer; margin-bottom: 6px;
+  }
+  .next-btn {
+    display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px;
+    border: 0; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 700;
+    color: #fff; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    transition: opacity 0.15s ease;
+  }
+  .next-btn:disabled { opacity: 0.4; box-shadow: none; cursor: default; }
+
+  /* Summary + logged screens */
+  .summary-title { font-size: 20px; font-weight: 800; color: var(--dark); margin: 4px 0 4px; }
+  .summary-sub { font-size: 13px; color: var(--gray); margin: 0 0 16px; }
+  .note-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px;
+    margin-bottom: 14px;
+  }
+  .note-card .nq { font-size: 12px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 3px; }
+  .note-card .na { font-size: 15px; color: var(--dark); line-height: 1.45; margin: 0 0 12px; }
+  .note-card .na:last-child { margin-bottom: 0; }
+  .takeaway-card {
+    border-radius: 14px; padding: 16px; margin-bottom: 14px; color: #fff;
+  }
+  .takeaway-card .tk-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.85; margin: 0 0 5px; }
+  .takeaway-card .tk-text { font-size: 17px; font-weight: 700; line-height: 1.4; margin: 0; }
+  .empty-note { font-size: 14px; color: var(--gray); font-style: italic; }
+
+  .logged-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; }
+  .logged-ring {
+    width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 42px; margin-bottom: 18px;
+    animation: popIn 0.45s cubic-bezier(0.2, 1.4, 0.4, 1);
+  }
+  @keyframes popIn { 0% { transform: scale(0.3); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+  .logged-title { font-size: 22px; font-weight: 800; color: var(--dark); margin: 0 0 6px; }
+  .logged-sub { font-size: 14px; color: var(--gray); margin: 0 0 4px; max-width: 240px; line-height: 1.5; }
+
+  /* ── Side panel ─────────────────────────────────── */
+  .panel { width: 400px; }
+  .panel h2 { font-size: 15px; margin: 0 0 12px; color: #cfe0e4; }
+  .step-list { list-style: none; margin: 0 0 24px; padding: 0; }
+  .step-list li {
+    padding: 12px 14px; border-radius: 12px; border: 1px solid #2c464e; margin-bottom: 8px;
+    background: #14262c; transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .step-list li.current { border-color: var(--teal3); background: #1a333b; }
+  .step-list .q { font-size: 14px; font-weight: 700; color: #e8eef0; margin: 0 0 3px; }
+  .step-list .mech { font-size: 12px; color: var(--teal3); font-weight: 600; margin: 0 0 3px; }
+  .step-list .why { font-size: 12px; color: #8fa8ae; line-height: 1.45; margin: 0; }
+  .notes { font-size: 12.5px; color: #8fa8ae; line-height: 1.55; border-top: 1px solid #2c464e; padding-top: 14px; }
+  .notes strong { color: #cfe0e4; }
+  .reset-link { background: none; border: 0; color: var(--teal3); font-size: 13px; cursor: pointer; padding: 0; margin-top: 10px; text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>Unified reflection flow — practices &amp; challenges</h1>
+<div class="sub">
+  One identical five-question flow for both contexts. Toggle between a practice and a challenge —
+  only the header and accent change; every question, input, and transition is the same.
+  All questions are skippable; the flow logs either way.
+</div>
+
+<div class="layout">
+  <div>
+    <div class="context-toggle">
+      <button id="ctx-practice" class="practice" onclick="setContext('practice')">Practice · Cold Shower</button>
+      <button id="ctx-challenge" class="challenge" onclick="setContext('challenge')">Challenge · No Sugar for 24 Hours</button>
+    </div>
+
+    <div class="phone">
+      <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+      <div class="flow-header">
+        <button class="hdr-btn" id="back-btn" onclick="goBack()">←</button>
+        <div class="hdr-title" id="hdr-title"></div>
+        <button class="hdr-btn close" onclick="restart()">✕</button>
+      </div>
+      <div class="step-area" id="step-area"></div>
+      <div class="flow-footer" id="footer"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>What each question is doing</h2>
+    <ul class="step-list" id="step-list"></ul>
+    <div class="notes">
+      <strong>Design notes for this mockup</strong><br>
+      · Q3 is a two-tap choice instead of a textarea — the binary phrasing invites a tap, and
+      "Lying to me" opens an optional reframe line ("What's the truer thought?"), which is the
+      classic CBT move. Easy to flatten back to a plain textarea if you prefer.<br>
+      · Q5 is a single line with an 80-character cap to force one concrete takeaway; it's pinned
+      at the top of the summary so it reads like the headline of the rep.<br>
+      · The close ✕ and every Skip work exactly like the current challenge flow.
+      <br><button class="reset-link" onclick="restart()">↻ Restart flow</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── The five shared questions ─────────────────────────────
+  const STEPS = [
+    {
+      id: 'hardest',
+      q: 'What was the hardest moment?',
+      helper: 'Put yourself back there for a second.',
+      mech: 'Episodic anchoring',
+      why: 'Recalling the specific moment (not the whole event) makes the memory — and the win — concrete.',
+      type: 'text',
+      placeholder: 'The hardest part was…',
+    },
+    {
+      id: 'thought',
+      q: 'What were you telling yourself?',
+      helper: 'The exact words, if you can catch them.',
+      mech: 'Automatic thought surfacing',
+      why: 'Naming the inner narration turns a vague urge into an inspectable thought.',
+      type: 'text',
+      placeholder: '“I was thinking…”',
+    },
+    {
+      id: 'verdict',
+      q: 'Was that thought protecting you or lying to you?',
+      helper: 'Urges usually dress up as protection.',
+      mech: 'Thought challenging',
+      why: 'Forces a verdict on the automatic thought instead of letting it pass unexamined.',
+      type: 'choice',
+    },
+    {
+      id: 'identity',
+      q: 'What does pushing through tell you about yourself?',
+      helper: 'Finish the sentence honestly — no false modesty.',
+      mech: 'Identity integration',
+      why: 'Converts the rep from “a thing I did” into “evidence of who I am.”',
+      type: 'text',
+      placeholder: 'I’m the kind of person who…',
+    },
+    {
+      id: 'takeaway',
+      q: 'What’s one thing to remember for next time?',
+      helper: 'One line. Keep it concrete.',
+      mech: 'Implementation intention',
+      why: 'A single takeaway, not an open question — short enough to actually resurface before the next rep.',
+      type: 'oneliner',
+      placeholder: 'Next time: …',
+      maxLen: 80,
+    },
+  ];
+
+  const CONTEXTS = {
+    practice:  { title: 'Cold Shower', accent: '#FF5B02' },
+    challenge: { title: 'No Sugar for 24 Hours', accent: '#217180' },
+  };
+
+  // ── State ────────────────────────────────────────────────
+  let context = 'practice';
+  let index = 0;                  // 0..4 questions, 5 = summary, 6 = logged
+  let direction = 'forward';
+  let answers = {};               // id -> string
+  let verdict = null;             // 'protect' | 'lie' | null
+  let reframe = '';
+  let typingTimer = null;
+
+  const accent = () => CONTEXTS[context].accent;
+
+  function setContext(ctx) {
+    context = ctx;
+    restart();
+  }
+
+  function restart() {
+    index = 0; direction = 'forward';
+    answers = {}; verdict = null; reframe = '';
+    render();
+  }
+
+  function answered(step) {
+    if (step.type === 'choice') return verdict !== null;
+    return (answers[step.id] || '').trim().length > 0;
+  }
+
+  function goNext() {
+    direction = 'forward';
+    index++;
+    render();
+  }
+
+  function goBack() {
+    if (index <= 0) return;
+    direction = 'backward';
+    index--;
+    render();
+  }
+
+  function logIt() {
+    direction = 'forward';
+    index = 6;
+    render();
+  }
+
+  // ── Render ───────────────────────────────────────────────
+  function render() {
+    clearTimeout(typingTimer);
+
+    // Context toggle highlight
+    document.getElementById('ctx-practice').classList.toggle('active', context === 'practice');
+    document.getElementById('ctx-challenge').classList.toggle('active', context === 'challenge');
+
+    // Header
+    document.getElementById('hdr-title').textContent = CONTEXTS[context].title;
+    document.getElementById('back-btn').classList.toggle('hidden', index === 0 || index >= 6);
+
+    // Progress
+    const fill = document.getElementById('progress');
+    fill.style.background = accent();
+    fill.style.width = (Math.min(index + 1, STEPS.length) / STEPS.length * 100) + '%';
+
+    // Side panel highlight
+    renderPanel();
+
+    const area = document.getElementById('step-area');
+    area.innerHTML = '';
+    const stepEl = document.createElement('div');
+    stepEl.className = 'step ' + (direction === 'forward' ? 'enter-forward' : 'enter-backward');
+    area.appendChild(stepEl);
+
+    if (index < STEPS.length) renderQuestion(stepEl, STEPS[index]);
+    else if (index === STEPS.length) renderSummary(stepEl);
+    else renderLogged(stepEl);
+
+    renderFooter();
+  }
+
+  function renderQuestion(el, step) {
+    // Typing indicator, then the bubble.
+    const a = accent();
+    el.innerHTML = `
+      <div class="typing" style="background:${a}12">
+        <span class="dot" style="background:${a}"></span>
+        <span class="dot" style="background:${a}"></span>
+        <span class="dot" style="background:${a}"></span>
+      </div>`;
+
+    typingTimer = setTimeout(() => {
+      el.innerHTML = `
+        <div class="bubble" style="background:${a}10; border-left-color:${a}">
+          <p class="q">${step.q}</p>
+          ${step.helper ? `<p class="helper">${step.helper}</p>` : ''}
+        </div>
+        <p class="optional-badge">Optional — skip if it doesn't apply</p>
+        <div id="input-slot"></div>`;
+      renderInput(document.getElementById('input-slot'), step);
+    }, 500);
+  }
+
+  function renderInput(slot, step) {
+    const a = accent();
+
+    if (step.type === 'text') {
+      slot.innerHTML = `<textarea id="ta" placeholder="${step.placeholder}" style="color:${'var(--dark)'}"></textarea>`;
+      const ta = document.getElementById('ta');
+      ta.value = answers[step.id] || '';
+      ta.style.setProperty('border-color', ta.value ? a : 'var(--border)');
+      ta.oninput = () => { answers[step.id] = ta.value; renderFooter(); };
+      ta.onfocus = () => ta.style.borderColor = a;
+      ta.onblur = () => ta.style.borderColor = 'var(--border)';
+      setTimeout(() => ta.focus(), 250);
+    }
+
+    if (step.type === 'oneliner') {
+      slot.innerHTML = `
+        <input class="oneliner" id="ol" placeholder="${step.placeholder}" maxlength="${step.maxLen}">
+        <div class="char-count" id="cc"></div>`;
+      const ol = document.getElementById('ol');
+      const cc = document.getElementById('cc');
+      ol.value = answers[step.id] || '';
+      const upd = () => { cc.textContent = ol.value.length + '/' + step.maxLen; };
+      upd();
+      ol.oninput = () => { answers[step.id] = ol.value; upd(); renderFooter(); };
+      ol.onfocus = () => ol.style.borderColor = a;
+      ol.onblur = () => ol.style.borderColor = 'var(--border)';
+      setTimeout(() => ol.focus(), 250);
+    }
+
+    if (step.type === 'choice') {
+      slot.innerHTML = `
+        <div class="choice-row">
+          <button class="choice-btn" id="ch-protect">
+            <span class="ico">🛡️</span><span class="lbl">Protecting me</span>
+          </button>
+          <button class="choice-btn" id="ch-lie">
+            <span class="ico">🎭</span><span class="lbl">Lying to me</span>
+          </button>
+        </div>
+        <div id="followup-slot"></div>`;
+
+      const paint = () => {
+        const p = document.getElementById('ch-protect');
+        const l = document.getElementById('ch-lie');
+        p.className = 'choice-btn' + (verdict === 'protect' ? ' selected sel-protect' : '');
+        l.className = 'choice-btn' + (verdict === 'lie' ? ' selected sel-lie' : '');
+        l.style.background = verdict === 'lie' ? a : '#fff';
+        l.style.borderColor = verdict === 'lie' ? a : 'var(--border)';
+        p.style.background = verdict === 'protect' ? 'var(--gray)' : '#fff';
+        p.style.borderColor = verdict === 'protect' ? 'var(--gray)' : 'var(--border)';
+
+        const fu = document.getElementById('followup-slot');
+        if (verdict === 'lie') {
+          fu.innerHTML = `
+            <div class="followup">
+              <p class="fu-label">What's the truer thought?</p>
+              <input class="oneliner" id="rf" placeholder="The truth is…">
+            </div>`;
+          const rf = document.getElementById('rf');
+          rf.value = reframe;
+          rf.oninput = () => { reframe = rf.value; };
+          rf.onfocus = () => rf.style.borderColor = a;
+          rf.onblur = () => rf.style.borderColor = 'var(--border)';
+        } else {
+          fu.innerHTML = '';
+        }
+      };
+
+      document.getElementById('ch-protect').onclick = () => {
+        verdict = (verdict === 'protect') ? null : 'protect';
+        paint(); renderFooter();
+      };
+      document.getElementById('ch-lie').onclick = () => {
+        verdict = (verdict === 'lie') ? null : 'lie';
+        paint(); renderFooter();
+      };
+      paint();
+    }
+  }
+
+  function verdictText() {
+    if (verdict === 'protect') return 'It was protecting me.';
+    if (verdict === 'lie') {
+      return 'It was lying to me.' + (reframe.trim() ? ' The truer thought: ' + reframe.trim() : '');
+    }
+    return '';
+  }
+
+  function renderSummary(el) {
+    const a = accent();
+    const takeaway = (answers['takeaway'] || '').trim();
+
+    const pairs = STEPS
+      .filter(s => s.id !== 'takeaway')
+      .map(s => ({ q: s.q, a: s.type === 'choice' ? verdictText() : (answers[s.id] || '').trim() }))
+      .filter(p => p.a.length > 0);
+
+    let noteHtml;
+    if (pairs.length === 0 && !takeaway) {
+      noteHtml = `<div class="note-card"><p class="empty-note">No reflection this time — logging the rep on its own.</p></div>`;
+    } else {
+      noteHtml =
+        (takeaway ? `
+          <div class="takeaway-card" style="background:${a}">
+            <p class="tk-label">Remember for next time</p>
+            <p class="tk-text">${escapeHtml(takeaway)}</p>
+          </div>` : '') +
+        (pairs.length ? `
+          <div class="note-card">
+            ${pairs.map(p => `<p class="nq">${p.q}</p><p class="na">${escapeHtml(p.a)}</p>`).join('')}
+          </div>` : '');
+    }
+
+    el.innerHTML = `
+      <p class="summary-title">Your reflection</p>
+      <p class="summary-sub">This is what gets saved with the rep.</p>
+      ${noteHtml}`;
+  }
+
+  function renderLogged(el) {
+    const a = accent();
+    const takeaway = (answers['takeaway'] || '').trim();
+    el.innerHTML = `
+      <div class="logged-wrap">
+        <div class="logged-ring" style="background:${a}">✓</div>
+        <p class="logged-title">Logged.</p>
+        <p class="logged-sub">${takeaway
+          ? 'Your takeaway is pinned — you’ll see it again right before your next rep:<br><em>“' + escapeHtml(takeaway) + '”</em>'
+          : 'Another rep in the bank.'}</p>
+      </div>`;
+  }
+
+  function renderFooter() {
+    const footer = document.getElementById('footer');
+    const a = accent();
+
+    if (index >= 6) {
+      footer.innerHTML = `<button class="next-btn" style="background:${a}" onclick="restart()">Start over</button>`;
+      return;
+    }
+    if (index === STEPS.length) {
+      footer.innerHTML = `<button class="next-btn" style="background:${a}" onclick="logIt()">Log it ✓</button>`;
+      return;
+    }
+
+    const step = STEPS[index];
+    const ok = answered(step);
+    const isLastQ = index === STEPS.length - 1;
+    footer.innerHTML = `
+      ${!ok ? `<button class="skip-link" onclick="goNext()">${isLastQ ? 'Skip to summary' : 'Skip'}</button>` : ''}
+      <button class="next-btn" style="background:${a}" onclick="goNext()" ${ok ? '' : 'disabled'}>
+        ${isLastQ ? 'Review' : 'Next'} ${isLastQ ? '' : '→'}
+      </button>`;
+  }
+
+  function renderPanel() {
+    const list = document.getElementById('step-list');
+    list.innerHTML = STEPS.map((s, i) => `
+      <li class="${i === index ? 'current' : ''}">
+        <p class="q">${i + 1}. ${s.q}</p>
+        <p class="mech">${s.mech}</p>
+        <p class="why">${s.why}</p>
+      </li>`).join('');
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  render();
+</script>
+</body>
+</html>
