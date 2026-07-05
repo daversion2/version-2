@@ -215,9 +215,10 @@
     <ul class="step-list" id="step-list"></ul>
     <div class="notes">
       <strong>Design notes for this mockup</strong><br>
-      · Q3 is a two-tap choice instead of a textarea — the binary phrasing invites a tap, and
-      "Lying to me" opens an optional reframe line ("What's the truer thought?"), which is the
-      classic CBT move. Easy to flatten back to a plain textarea if you prefer.<br>
+      · Q3 is a two-tap reality check instead of a textarea — the example of a
+      talk-you-out-of-it thought lives in the helper line under the question, and answering
+      "No, not really" opens an optional reframe ("What's the truer thought?"), the classic
+      CBT move. Easy to flatten back to a plain textarea if you prefer.<br>
       · Q5 is a single line with an 80-character cap to force one concrete takeaway; it's pinned
       at the top of the summary so it reads like the headline of the rep.<br>
       · The close ✕ and every Skip work exactly like the current challenge flow.
@@ -249,10 +250,10 @@
     },
     {
       id: 'verdict',
-      q: 'Was that thought protecting you or lying to you?',
-      helper: 'Urges usually dress up as protection.',
+      q: 'Was that thought grounded in reality?',
+      helper: 'Or was it just talking you out of it — like “one won’t hurt” or “you’ve done enough for today.”',
       mech: 'Thought challenging',
-      why: 'Forces a verdict on the automatic thought instead of letting it pass unexamined.',
+      why: 'A reality check on the automatic thought, with an example of the kind that talks you out of things.',
       type: 'choice',
     },
     {
@@ -415,10 +416,10 @@
       slot.innerHTML = `
         <div class="choice-row">
           <button class="choice-btn" id="ch-protect">
-            <span class="ico">🛡️</span><span class="lbl">Protecting me</span>
+            <span class="ico">⚖️</span><span class="lbl">Yes, it was real</span>
           </button>
           <button class="choice-btn" id="ch-lie">
-            <span class="ico">🎭</span><span class="lbl">Lying to me</span>
+            <span class="ico">🎭</span><span class="lbl">No, not really</span>
           </button>
         </div>
         <div id="followup-slot"></div>`;
@@ -463,9 +464,9 @@
   }
 
   function verdictText() {
-    if (verdict === 'protect') return 'It was protecting me.';
+    if (verdict === 'protect') return 'Yes — it was grounded in reality.';
     if (verdict === 'lie') {
-      return 'It was lying to me.' + (reframe.trim() ? ' The truer thought: ' + reframe.trim() : '');
+      return 'No — it was talking me out of it.' + (reframe.trim() ? ' The truer thought: ' + reframe.trim() : '');
     }
     return '';
   }
