@@ -13,7 +13,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { Practice, PRACTICE_GROUPS } from '../../data/practices';
+import { Practice, PRACTICE_GROUPS, getIntensityTier } from '../../data/practices';
 import {
   getAllPracticeCatalogItems,
   setPracticeActive,
@@ -133,6 +133,13 @@ export const AdminPracticesScreen: React.FC = () => {
                 <View style={styles.badge}>
                   <Text style={styles.badgeTextMuted}>{p.flow}</Text>
                 </View>
+                {!!p.intensity && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeTextMuted}>
+                      {'🔥'.repeat(getIntensityTier(p.intensity)?.flames ?? 1)}
+                    </Text>
+                  </View>
+                )}
                 {retired && (
                   <View style={[styles.badge, { backgroundColor: Colors.secondary + '20' }]}>
                     <Text style={[styles.badgeText, { color: Colors.secondary }]}>Retired</Text>

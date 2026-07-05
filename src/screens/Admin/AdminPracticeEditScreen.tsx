@@ -13,7 +13,13 @@ import {
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import { AdminScreenProps } from '../../types/navigation';
-import { Practice, PracticeGroup, PRACTICE_GROUPS } from '../../data/practices';
+import {
+  Practice,
+  PracticeGroup,
+  PRACTICE_GROUPS,
+  INTENSITY_TIERS,
+  IntensityLevel,
+} from '../../data/practices';
 import {
   getAllPracticeCatalogItems,
   upsertPracticeCatalogItem,
@@ -103,6 +109,8 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('ellipse-outline');
   const [group, setGroup] = useState<PracticeGroup>('custom');
+  // '' = no tier set (no flames shown); otherwise an IntensityLevel id.
+  const [intensity, setIntensity] = useState<string>('');
   const [core, setCore] = useState(false);
   const [active, setActive] = useState(true);
   const [target, setTarget] = useState('3');
@@ -134,6 +142,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
           setDescription(p.description);
           setIcon(p.icon);
           setGroup(p.group);
+          setIntensity(p.intensity ?? '');
           setCore(p.core);
           setActive(p.active !== false);
           setTarget(String(p.suggested_target_per_week));
@@ -199,6 +208,11 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       ...(ready ? { ready } : {}),
     } as Practice;
 
+    // Explicitly set or clear the tier — the `original` spread would otherwise
+    // resurrect a cleared intensity on save.
+    if (intensity) merged.intensity = intensity as IntensityLevel;
+    else delete merged.intensity;
+
     if (!validatePractice(merged)) {
       Alert.alert(
         'Missing fields',
@@ -249,6 +263,24 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
         onChange={(v) => setGroup(v as PracticeGroup)}
         options={PRACTICE_GROUPS.map((g) => ({ value: g.id, label: g.name }))}
       />
+
+      <ChipPicker
+        label="Difficulty tier (the flame icons)"
+        value={intensity}
+        onChange={setIntensity}
+        options={[
+          { value: '', label: 'None' },
+          ...INTENSITY_TIERS.map((t) => ({
+            value: t.id,
+            label: `${'🔥'.repeat(t.flames)} ${t.label}`,
+          })),
+        ]}
+      />
+      {!!intensity && (
+        <Text style={styles.tierHint}>
+          {INTENSITY_TIERS.find((t) => t.id === intensity)?.description}
+        </Text>
+      )}
 
       <View style={styles.row}>
         <View style={styles.rowHalf}>
@@ -345,4 +377,12 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: Colors.border, marginVertical: Spacing.md },
   sectionTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, marginBottom: Spacing.md },
   note: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: Spacing.md, fontStyle: 'italic' },
+  tierHint: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+    fontStyle: 'italic',
+  },
 });
