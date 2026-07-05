@@ -12,26 +12,24 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import {
   getCompletionLogs,
-  getWeekComparison,
   getTotalActions,
+  getTotalPoints,
   getActiveDaysCount,
   getActivityTrendByWeek,
-  getBestStreak,
-  getPeriodBreakdown,
   WeeklyTrendPoint,
 } from '../../services/progress';
 import { getWillpowerStats } from '../../services/willpower';
-import { getArenaProgress, ArenaProgress } from '../../services/arenaProgress';
-import { getActiveGoals } from '../../services/goals';
-import { GoalsEntryRow } from '../../components/progress/GoalsEntryRow';
+import {
+  getPracticeProgress,
+  PracticeProgress,
+} from '../../services/practiceProgress';
 import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
 import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
 import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
-import { WeekOverWeekCard } from '../../components/progress/WeekOverWeekCard';
-import { PeriodBreakdownCard } from '../../components/progress/PeriodBreakdownCard';
 import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
 import { OverrideScoreCard } from '../../components/progress/OverrideScoreCard';
-import { DisciplineMap } from '../../components/progress/DisciplineMap';
+import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
+import { TrainingQualityCard } from '../../components/progress/TrainingQualityCard';
 import { ProgressNavigation } from '../../types/navigation';
 
 function getStartDateForFilter(filter: TimeFilter): string | undefined {
@@ -49,36 +47,21 @@ export const ProgressScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<TimeFilter>('30d');
 
-  // Arena proof layer (Override Score + Discipline Map)
-  const [arena, setArena] = useState<ArenaProgress | null>(null);
-
-  // Goals count
-  const [activeGoalCount, setActiveGoalCount] = useState(0);
+  // Practice-protocol aggregation (volume grid, quality, override score, records)
+  const [progress, setProgress] = useState<PracticeProgress | null>(null);
 
   // Hero stats
-  const [totalActionCount, setTotalActionCount] = useState(0);
+  const [completions, setCompletions] = useState(0);
+  const [points, setPoints] = useState(0);
   const [currentStreak, setCurrentStreak] = useState(0);
-  const [totalXP, setTotalXP] = useState(0);
   const [daysActive, setDaysActive] = useState(0);
 
   // Trend
   const [trendData, setTrendData] = useState<WeeklyTrendPoint[]>([]);
 
-  // Week-over-week
-  const [thisWeek, setThisWeek] = useState(0);
-  const [lastWeek, setLastWeek] = useState(0);
-
   // Calendar
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-
-  // Period breakdown
-  const [habitsCompleted, setHabitsCompleted] = useState(0);
-  const [challengesCompleted, setChallengesCompleted] = useState(0);
-
-  // Personal records
-  const [bestStreak, setBestStreak] = useState(0);
-  const [bestWeek, setBestWeek] = useState(0);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -87,42 +70,29 @@ export const ProgressScreen: React.FC = () => {
       const startDate = getStartDateForFilter(filter);
 
       const [
-        goals,
         actions,
+        periodPoints,
         activeDaysResult,
         trend,
-        weekComp,
         willpower,
-        bestStreakResult,
-        breakdown,
         allLogs,
-        arenaProgress,
+        practiceProgress,
       ] = await Promise.all([
-        getActiveGoals(user.uid),
         getTotalActions(user.uid, startDate),
+        getTotalPoints(user.uid, startDate),
         getActiveDaysCount(user.uid, startDate),
         getActivityTrendByWeek(user.uid, startDate),
-        getWeekComparison(user.uid),
         getWillpowerStats(user.uid),
-        getBestStreak(user.uid),
-        getPeriodBreakdown(user.uid, startDate),
         getCompletionLogs(user.uid, startDate),
-        getArenaProgress(user.uid),
+        getPracticeProgress(user.uid, startDate),
       ]);
 
-      setActiveGoalCount(goals.length);
-      setTotalActionCount(actions);
+      setCompletions(actions);
+      setPoints(periodPoints);
       setDaysActive(activeDaysResult);
       setTrendData(trend);
-      setThisWeek(weekComp.thisWeek);
-      setLastWeek(weekComp.lastWeek);
-      setBestWeek(weekComp.bestWeek);
       setCurrentStreak(willpower.currentStreak);
-      setTotalXP(willpower.totalPoints);
-      setBestStreak(bestStreakResult);
-      setHabitsCompleted(breakdown.habits);
-      setChallengesCompleted(breakdown.challenges);
-      setArena(arenaProgress);
+      setProgress(practiceProgress);
 
       // Calendar marks
       const marks: Record<string, any> = {};
@@ -156,37 +126,39 @@ export const ProgressScreen: React.FC = () => {
         />
       ) : (
         <>
-          {/* Goals Entry */}
-          <GoalsEntryRow
-            count={activeGoalCount}
-            onPress={() => navigation.navigate('GoalsProgress')}
-          />
-
           {/* Override Score (weekly, independent of the time filter) */}
-          <OverrideScoreCard score={arena?.weekScore ?? 0} />
+          <OverrideScoreCard
+            score={progress?.weekScore ?? 0}
+            lastWeekScore={progress?.lastWeekScore ?? 0}
+          />
 
           {/* Time Filter */}
           <TimeFilterChips selected={filter} onSelect={setFilter} />
 
           {/* Hero Stats */}
           <HeroStatsRow
-            totalActions={totalActionCount}
+            completions={completions}
+            points={points}
             currentStreak={currentStreak}
-            totalXP={totalXP}
             daysActive={daysActive}
           />
 
-          {/* Discipline Map */}
-          <DisciplineMap
-            breakdown={arena?.breakdown ?? []}
-            onArenaPress={(arenaId) => navigation.navigate('ArenaDetail', { arenaId })}
-          />
+          {/* Training Volume (per-practice card grid + challenges strip) */}
+          {progress && (
+            <TrainingVolumeSection
+              groups={progress.groups}
+              challenges={progress.challenges}
+              onPracticePress={(habitId) =>
+                navigation.navigate('HabitDetail', { habitId })
+              }
+            />
+          )}
+
+          {/* Training Quality */}
+          {progress && <TrainingQualityCard quality={progress.quality} />}
 
           {/* Activity Trend */}
           <ActivityTrendChart data={trendData} />
-
-          {/* Week-over-week (only if positive) */}
-          <WeekOverWeekCard thisWeek={thisWeek} lastWeek={lastWeek} />
 
           {/* Activity Calendar */}
           <Text style={styles.sectionTitle}>Activity Calendar</Text>
@@ -214,17 +186,8 @@ export const ProgressScreen: React.FC = () => {
             style={styles.calendar}
           />
 
-          {/* Period Breakdown */}
-          <PeriodBreakdownCard
-            habits={habitsCompleted}
-            challenges={challengesCompleted}
-          />
-
           {/* Personal Records */}
-          <PersonalRecordsCard
-            bestStreak={bestStreak}
-            bestWeek={bestWeek}
-          />
+          {progress && <PersonalRecordsCard records={progress.records} />}
         </>
       )}
     </ScrollView>

@@ -3,28 +3,28 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 
 interface HeroStatsRowProps {
-  totalActions: number;
+  completions: number;
+  points: number;
   currentStreak: number;
-  totalXP: number;
   daysActive: number;
 }
 
 export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
-  totalActions,
+  completions,
+  points,
   currentStreak,
-  totalXP,
   daysActive,
 }) => {
   const stats = [
-    { value: totalActions, label: 'Actions' },
+    { value: completions, label: 'Completions' },
+    { value: points, label: 'Points' },
     { value: currentStreak, label: 'Streak' },
-    { value: totalXP, label: 'XP' },
-    { value: daysActive, label: 'Days Active' },
+    { value: daysActive, label: 'Active Days' },
   ];
 
   return (
     <View style={styles.container}>
-      {stats.map((stat, i) => (
+      {stats.map((stat) => (
         <View key={stat.label} style={styles.statCard}>
           <Text style={styles.value}>
             {stat.value >= 1000 ? `${(stat.value / 1000).toFixed(1)}k` : stat.value}
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBg,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.xs - 1,
     color: Colors.gray,
     textAlign: 'center',
   },
