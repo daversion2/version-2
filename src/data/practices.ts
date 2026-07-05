@@ -183,6 +183,12 @@ export interface Practice {
      * the same fact). Omit for practices with no difficulty spike (e.g. breathwork).
      */
     override?: string;
+    /**
+     * @deprecated Legacy mirror of `override`, written on catalog save so
+     * production bundles from before the Ready rework (which read this field)
+     * keep their override block. Remove once that OTA is fully rolled out.
+     */
+    overrideUrge?: string;
     /** The single anchor or technique to hold onto when the urge hits. */
     focus: string;
     /** The handoff button label, e.g. "Begin" / "Put your phone down". */

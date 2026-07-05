@@ -115,10 +115,19 @@ export const loadPracticeCatalog = async (): Promise<void> => {
  */
 export const getAllPracticeCatalogItems = async (): Promise<Practice[]> => fetchPracticeCatalog();
 
-/** Create or overwrite a catalog doc (doc id = practice id). */
+/**
+ * Create or overwrite a catalog doc (doc id = practice id). Mirrors
+ * `ready.override` into the legacy `overrideUrge` field so production bundles
+ * from before the Ready rework keep their override block; drop the mirror once
+ * that OTA is fully rolled out.
+ */
 export const upsertPracticeCatalogItem = async (practice: Practice): Promise<void> => {
+  const ready = practice.ready?.override
+    ? { ...practice.ready, overrideUrge: practice.ready.override }
+    : practice.ready;
   await setDoc(doc(db, COLLECTION, practice.id), {
     ...practice,
+    ...(ready ? { ready } : {}),
     updated_at: new Date().toISOString(),
   });
 };
