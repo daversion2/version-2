@@ -20,9 +20,11 @@ import { doc, setDoc } from 'firebase/firestore';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import { RichText } from '../../components/common/RichText';
+import { FadeRise } from '../../components/common/FadeRise';
+import { HoldToCommitButton } from '../../components/common/HoldToCommitButton';
 import { useAuth } from '../../context/AuthContext';
 import { markOnboardingComplete, markPracticesSeeded, setStartingPractice } from '../../services/users';
-import { createHabit, logHabitCompletion, seedDefaultPractices } from '../../services/practices';
+import { createHabit, getActiveHabits, logHabitCompletion, seedDefaultPractices } from '../../services/practices';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
 import { getAllPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
 import { db } from '../../services/firebase';
@@ -200,7 +202,12 @@ export const OnboardingScreen: React.FC = () => {
   // NAVIGATION
   // ============================================================================
 
+  // Which way the last navigation went — the incoming step slides in from
+  // that side. Set before the index updates so the new step reads it on mount.
+  const navDirectionRef = useRef<1 | -1>(1);
+
   const goToIndex = (i: number) => {
+    navDirectionRef.current = i >= stepIndex ? 1 : -1;
     setStepIndex(Math.max(0, Math.min(i, steps.length - 1)));
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
@@ -290,13 +297,18 @@ export const OnboardingScreen: React.FC = () => {
       if (practiceStepEnabled && selectedPracticeId) {
         const practice = getAllPractices().find((p) => p.id === selectedPracticeId);
         if (practice) {
-          await createHabit(user.uid, {
-            name: practice.name,
-            target_count_per_week: 0,
-            practice_id: practice.id,
-            group: practice.group,
-            created_by_user: false,
-          });
+          // Idempotent: a user re-running onboarding (reset flag, deferred
+          // flows) may already have this practice adopted — don't duplicate it.
+          const existing = await getActiveHabits(user.uid);
+          if (!existing.some((h) => h.practice_id === practice.id)) {
+            await createHabit(user.uid, {
+              name: practice.name,
+              target_count_per_week: 0,
+              practice_id: practice.id,
+              group: practice.group,
+              created_by_user: false,
+            });
+          }
           await setStartingPractice(user.uid, practice.id);
         }
       }
@@ -328,32 +340,40 @@ export const OnboardingScreen: React.FC = () => {
   const renderWelcome = (step: OnboardingStep) => (
     <View style={styles.welcomeContainer}>
       <View style={styles.welcomeContent}>
-        <RichText style={fieldStyle(step, 'title', styles.welcomeTitle)}>{step.content.title}</RichText>
-        <RichText style={fieldStyle(step, 'subtitle', styles.welcomeSubtitle)}>{step.content.subtitle}</RichText>
+        <FadeRise>
+          <RichText style={fieldStyle(step, 'title', styles.welcomeTitle)}>{step.content.title}</RichText>
+        </FadeRise>
+        <FadeRise delay={300}>
+          <RichText style={fieldStyle(step, 'subtitle', styles.welcomeSubtitle)}>{step.content.subtitle}</RichText>
+        </FadeRise>
         {!!step.content.science && (
-          <TouchableOpacity
-            style={styles.expandToggle}
-            onPress={() => toggleScience(step.id)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.expandToggleTextLight}>See why this works</Text>
-            <Ionicons
-              name={scienceOpen[step.id] ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={Colors.white}
-              style={{ opacity: 0.8 }}
-            />
-          </TouchableOpacity>
+          <FadeRise delay={550}>
+            <TouchableOpacity
+              style={styles.expandToggle}
+              onPress={() => toggleScience(step.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.expandToggleTextLight}>See why this works</Text>
+              <Ionicons
+                name={scienceOpen[step.id] ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={Colors.white}
+                style={{ opacity: 0.8 }}
+              />
+            </TouchableOpacity>
+          </FadeRise>
         )}
         {scienceOpen[step.id] && !!step.content.science && (
           <RichText style={fieldStyle(step, 'science', styles.welcomeWhyBody)}>{step.content.science}</RichText>
         )}
       </View>
-      <Button
-        title={step.next_button}
-        onPress={goNext}
-        style={styles.welcomeButton}
-      />
+      <FadeRise delay={700}>
+        <Button
+          title={step.next_button}
+          onPress={goNext}
+          style={styles.welcomeButton}
+        />
+      </FadeRise>
     </View>
   );
 
@@ -387,11 +407,13 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderSettle = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
-      <View style={styles.intentionBox}>
-        <RichText style={fieldStyle(step, 'box_title', styles.intentionTitle)}>{step.content.box_title}</RichText>
-        <RichText style={fieldStyle(step, 'box_body', styles.intentionBody)}>{step.content.box_body}</RichText>
-      </View>
-      {renderScienceToggle(step)}
+      <FadeRise>
+        <View style={styles.intentionBox}>
+          <RichText style={fieldStyle(step, 'box_title', styles.intentionTitle)}>{step.content.box_title}</RichText>
+          <RichText style={fieldStyle(step, 'box_body', styles.intentionBody)}>{step.content.box_body}</RichText>
+        </View>
+      </FadeRise>
+      <FadeRise delay={250}>{renderScienceToggle(step)}</FadeRise>
     </View>
   );
 
@@ -400,12 +422,16 @@ export const OnboardingScreen: React.FC = () => {
   const renderTextPage = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
       {!!step.content.headline && (
-        <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
+        <FadeRise>
+          <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
+        </FadeRise>
       )}
       {!!step.content.body && (
-        <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
+        <FadeRise delay={step.content.headline ? 250 : 0}>
+          <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
+        </FadeRise>
       )}
-      {renderScienceToggle(step)}
+      <FadeRise delay={450}>{renderScienceToggle(step)}</FadeRise>
     </View>
   );
 
@@ -430,11 +456,17 @@ export const OnboardingScreen: React.FC = () => {
       const preSeconds = step.content.seconds % 60;
       return (
         <View style={[styles.stageContent, styles.timerCenter]}>
-          <RichText style={fieldStyle(step, 'pre_label', styles.timerPreLabel)}>{step.content.pre_label}</RichText>
-          <View style={styles.timerRing}>
-            <Text style={styles.timerDisplay}>{`${preMinutes}:${String(preSeconds).padStart(2, '0')}`}</Text>
-          </View>
-          <RichText style={fieldStyle(step, 'pre_subtext', styles.timerPreSubtext)}>{step.content.pre_subtext}</RichText>
+          <FadeRise>
+            <RichText style={fieldStyle(step, 'pre_label', styles.timerPreLabel)}>{step.content.pre_label}</RichText>
+          </FadeRise>
+          <FadeRise delay={250}>
+            <View style={styles.timerRing}>
+              <Text style={styles.timerDisplay}>{`${preMinutes}:${String(preSeconds).padStart(2, '0')}`}</Text>
+            </View>
+          </FadeRise>
+          <FadeRise delay={450}>
+            <RichText style={fieldStyle(step, 'pre_subtext', styles.timerPreSubtext)}>{step.content.pre_subtext}</RichText>
+          </FadeRise>
         </View>
       );
     }
@@ -452,9 +484,11 @@ export const OnboardingScreen: React.FC = () => {
         </Animated.View>
         {timerDone ? (
           !!step.content.done_body && (
-            <RichText style={fieldStyle(step, 'done_body', styles.timerDoneBody)}>
-              {step.content.done_body}
-            </RichText>
+            <FadeRise delay={350}>
+              <RichText style={fieldStyle(step, 'done_body', styles.timerDoneBody)}>
+                {step.content.done_body}
+              </RichText>
+            </FadeRise>
           )
         ) : (
           <Text style={styles.timerSubtext}>The app will continue automatically.</Text>
@@ -469,10 +503,16 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderBridge = (step: OnboardingStep) => (
     <View style={[styles.stageContent, styles.bridgeCenter]}>
-      <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
-      <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
-      <RichText style={fieldStyle(step, 'kicker_headline', styles.bridgeKickerHeadline)}>{step.content.kicker_headline}</RichText>
-      <RichText style={fieldStyle(step, 'kicker_body', styles.bridgeKicker)}>{step.content.kicker_body}</RichText>
+      <FadeRise>
+        <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
+      </FadeRise>
+      <FadeRise delay={250}>
+        <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
+      </FadeRise>
+      <FadeRise delay={450}>
+        <RichText style={fieldStyle(step, 'kicker_headline', styles.bridgeKickerHeadline)}>{step.content.kicker_headline}</RichText>
+        <RichText style={fieldStyle(step, 'kicker_body', styles.bridgeKicker)}>{step.content.kicker_body}</RichText>
+      </FadeRise>
     </View>
   );
 
@@ -634,32 +674,37 @@ export const OnboardingScreen: React.FC = () => {
 
     return (
       <View style={styles.stageContent}>
-        <RichText style={fieldStyle(step, 'headline', styles.stageIntro)}>{step.content.headline}</RichText>
+        <FadeRise>
+          <RichText style={fieldStyle(step, 'headline', styles.stageIntro)}>{step.content.headline}</RichText>
+        </FadeRise>
         {!!step.content.subtext && (
-          <RichText style={fieldStyle(step, 'subtext', styles.mantraSubtext)}>{step.content.subtext}</RichText>
+          <FadeRise delay={200}>
+            <RichText style={fieldStyle(step, 'subtext', styles.mantraSubtext)}>{step.content.subtext}</RichText>
+          </FadeRise>
         )}
 
-        {available.map((practice) => {
+        {available.map((practice, index) => {
           const isSelected = selectedPracticeId === practice.id;
           const accent = practice.color ?? DEFAULT_PRACTICE_COLOR;
           return (
-            <TouchableOpacity
-              key={practice.id}
-              style={[styles.habitRow, isSelected && styles.habitRowSelected]}
-              onPress={() => setSelectedPracticeId(practice.id)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.practiceRowIcon, { backgroundColor: accent + '18' }]}>
-                <Ionicons name={practice.icon as any} size={20} color={accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.habitRowName, isSelected && styles.habitRowNameSelected]}>
-                  {practice.name}
-                </Text>
-                <Text style={styles.practiceRowDescription}>{practice.description}</Text>
-              </View>
-              {isSelected && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}
-            </TouchableOpacity>
+            <FadeRise key={practice.id} delay={350 + index * 70}>
+              <TouchableOpacity
+                style={[styles.habitRow, isSelected && styles.habitRowSelected]}
+                onPress={() => setSelectedPracticeId(practice.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.practiceRowIcon, { backgroundColor: accent + '18' }]}>
+                  <Ionicons name={practice.icon as any} size={20} color={accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.habitRowName, isSelected && styles.habitRowNameSelected]}>
+                    {practice.name}
+                  </Text>
+                  <Text style={styles.practiceRowDescription}>{practice.description}</Text>
+                </View>
+                {isSelected && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}
+              </TouchableOpacity>
+            </FadeRise>
           );
         })}
       </View>
@@ -681,25 +726,31 @@ export const OnboardingScreen: React.FC = () => {
 
     return (
       <View style={styles.revealContainer}>
-        <RichText style={fieldStyle(step, 'title', styles.revealTitle)}>{step.content.title}</RichText>
+        <FadeRise style={{ width: '100%' }}>
+          <RichText style={fieldStyle(step, 'title', styles.revealTitle)}>{step.content.title}</RichText>
+        </FadeRise>
         {!!step.content.body && (
-          <RichText style={fieldStyle(step, 'body', styles.revealBody)}>{step.content.body}</RichText>
+          <FadeRise delay={250} style={{ width: '100%' }}>
+            <RichText style={fieldStyle(step, 'body', styles.revealBody)}>{step.content.body}</RichText>
+          </FadeRise>
         )}
 
         {/* Starting-point practice card — only if picked via the practice picker */}
         {startingPractice && (
-          <View style={styles.startingPointCard}>
-            <Text style={styles.mantraCardLabel}>YOUR STARTING POINT</Text>
-            <View style={styles.startingPointRow}>
-              <View style={[styles.practiceRowIcon, { backgroundColor: startingAccent + '18' }]}>
-                <Ionicons name={startingPractice.icon as any} size={20} color={startingAccent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.revealHabitName}>{startingPractice.name}</Text>
-                <Text style={styles.revealHabitMeta}>{startingPractice.description}</Text>
+          <FadeRise delay={500} style={{ width: '100%' }}>
+            <View style={styles.startingPointCard}>
+              <Text style={styles.mantraCardLabel}>YOUR STARTING POINT</Text>
+              <View style={styles.startingPointRow}>
+                <View style={[styles.practiceRowIcon, { backgroundColor: startingAccent + '18' }]}>
+                  <Ionicons name={startingPractice.icon as any} size={20} color={startingAccent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.revealHabitName}>{startingPractice.name}</Text>
+                  <Text style={styles.revealHabitMeta}>{startingPractice.description}</Text>
+                </View>
               </View>
             </View>
-          </View>
+          </FadeRise>
         )}
 
         {/* Mantra anchor card — only if a mantra was collected */}
@@ -835,15 +886,32 @@ export const OnboardingScreen: React.FC = () => {
       );
     }
 
+    // Practice picker: committing to a starting point takes a press-and-hold —
+    // a first small act of deliberate effort.
+    if (currentStep.type === 'practice_picker') {
+      return (
+        <View>
+          <View style={styles.navBar}>
+            {backButton}
+            <HoldToCommitButton
+              title={currentStep.next_button}
+              onCommit={goNext}
+              disabled={!selectedPracticeId}
+              style={styles.nextButton}
+            />
+          </View>
+          <Text style={styles.holdHint}>{selectedPracticeId ? 'Press and hold' : ' '}</Text>
+        </View>
+      );
+    }
+
     // All other middle steps: back + next, with per-type gating
     const nextDisabled =
       currentStep.type === 'mantra_picker'
         ? !mantra.trim()
         : currentStep.type === 'habit_picker'
           ? !selectedHabitId
-          : currentStep.type === 'practice_picker'
-            ? !selectedPracticeId
-            : false;
+          : false;
 
     return (
       <View style={styles.navBar}>
@@ -930,7 +998,17 @@ export const OnboardingScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {renderCurrentStep()}
+        {/* Keyed by step id: each step change remounts the content, sliding
+            the page in from the travel direction and replaying the FadeRise
+            staggers inside. */}
+        <FadeRise
+          key={currentStep.id}
+          duration={300}
+          distance={0}
+          horizontalDistance={56 * navDirectionRef.current}
+        >
+          {renderCurrentStep()}
+        </FadeRise>
       </ScrollView>
 
       {renderBottomNav()}
@@ -986,6 +1064,14 @@ const styles = StyleSheet.create({
   fullWidthButton: { width: width - Spacing.lg * 2 },
   skipOnboardingButton: { alignItems: 'center', paddingVertical: Spacing.md, paddingBottom: Spacing.lg },
   skipOnboardingText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, textDecorationLine: 'underline' },
+  holdHint: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textAlign: 'center',
+    paddingBottom: Spacing.md,
+    minHeight: FontSizes.xs + Spacing.md,
+  },
 
   // Shared content
   stageContent: { flex: 1 },
