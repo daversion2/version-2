@@ -137,6 +137,7 @@ export type HomeStackParamList = {
   };
   ProgramFailed: { enrollmentId: string };
   NightlyReflection: undefined;
+  JourneyCheckin: undefined;
   CustomizeHome: undefined;
   GoalCreationFlow: { draftId?: string } | undefined;
   GoalDashboard: { goalId: string };

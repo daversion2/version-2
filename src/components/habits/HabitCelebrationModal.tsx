@@ -19,6 +19,8 @@ interface HabitCelebrationModalProps {
   visible: boolean;
   pointsEarned: number;
   streakDays: number;
+  /** Optional line under the points, e.g. the first-try double-points note. */
+  bonusLabel?: string | null;
   onDismiss: () => void;
 }
 
@@ -97,6 +99,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
   visible,
   pointsEarned,
   streakDays,
+  bonusLabel,
   onDismiss,
 }) => {
   const [dismissed, setDismissed] = useState(false);
@@ -198,6 +201,13 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
         >
           <Text style={styles.pointsText}>+{pointsEarned}</Text>
           <Text style={styles.pointsLabel}>pts</Text>
+
+          {!!bonusLabel && (
+            <View style={styles.bonusRow}>
+              <Ionicons name="sparkles" size={14} color={AMBER} />
+              <Text style={styles.bonusText}>{bonusLabel}</Text>
+            </View>
+          )}
 
           {streakDays > 0 && (
             <>
@@ -314,6 +324,18 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     opacity: 0.7,
     marginBottom: Spacing.md,
+  },
+  bonusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  bonusText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
   },
   dotsRow: {
     flexDirection: 'row',

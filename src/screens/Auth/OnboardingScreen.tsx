@@ -27,6 +27,8 @@ import { markOnboardingComplete, markPracticesSeeded, setStartingPractice } from
 import { createHabit, getActiveHabits, logHabitCompletion, seedDefaultPractices } from '../../services/practices';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
 import { getAllPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
+import { saveJourneyCheckin } from '../../services/checkins';
+import { CheckinScaleRow } from '../../components/checkin/CheckinScaleRow';
 import { db } from '../../services/firebase';
 
 const { width } = Dimensions.get('window');
@@ -174,6 +176,15 @@ export const OnboardingScreen: React.FC = () => {
   // Practice picker — the one practice chosen as the starting point
   const [selectedPracticeId, setSelectedPracticeId] = useState<string | null>(null);
 
+  // Baseline check-in — 1–5 per metric, saved as journey_checkins.baseline
+  const [checkinAnswers, setCheckinAnswers] = useState<{
+    mood: number | null;
+    focus: number | null;
+    motivation: number | null;
+  }>({ mood: null, focus: null, motivation: null });
+  const checkinComplete =
+    checkinAnswers.mood !== null && checkinAnswers.focus !== null && checkinAnswers.motivation !== null;
+
   // Screen 7: Saving
   const [saving, setSaving] = useState(false);
 
@@ -320,6 +331,20 @@ export const OnboardingScreen: React.FC = () => {
         await markPracticesSeeded(user.uid);
       } catch (seedErr) {
         console.warn('Failed to seed default practices on complete:', seedErr);
+      }
+
+      // 4c. Baseline check-in — the day-14/28 retakes measure against this.
+      // Best-effort: a failed write shouldn't block finishing onboarding.
+      if (checkinComplete) {
+        try {
+          await saveJourneyCheckin(user.uid, 'baseline', {
+            mood: checkinAnswers.mood!,
+            focus: checkinAnswers.focus!,
+            motivation: checkinAnswers.motivation!,
+          });
+        } catch (checkinErr) {
+          console.warn('Failed to save baseline check-in:', checkinErr);
+        }
       }
 
       // 5. Mark onboarding complete
@@ -712,6 +737,40 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // ============================================================================
+  // BASELINE CHECK-IN — 3 questions, 1–5, saved on completion
+  // ============================================================================
+
+  const renderCheckin = (step: OnboardingStep) => (
+    <View style={styles.stageContent}>
+      <FadeRise>
+        <RichText style={fieldStyle(step, 'headline', styles.stageIntro)}>{step.content.headline}</RichText>
+      </FadeRise>
+      {!!step.content.subtext && (
+        <FadeRise delay={200}>
+          <RichText style={fieldStyle(step, 'subtext', styles.mantraSubtext)}>{step.content.subtext}</RichText>
+        </FadeRise>
+      )}
+      {(
+        [
+          { key: 'mood', label: step.content.q_mood },
+          { key: 'focus', label: step.content.q_focus },
+          { key: 'motivation', label: step.content.q_motivation },
+        ] as const
+      ).map((q, index) => (
+        <FadeRise key={q.key} delay={350 + index * 120}>
+          <CheckinScaleRow
+            label={q.label}
+            value={checkinAnswers[q.key]}
+            onChange={(v) => setCheckinAnswers((prev) => ({ ...prev, [q.key]: v }))}
+            lowLabel={step.content.scale_low}
+            highLabel={step.content.scale_high}
+          />
+        </FadeRise>
+      ))}
+    </View>
+  );
+
+  // ============================================================================
   // REVEAL / SEND-OFF
   // ============================================================================
 
@@ -911,7 +970,9 @@ export const OnboardingScreen: React.FC = () => {
         ? !mantra.trim()
         : currentStep.type === 'habit_picker'
           ? !selectedHabitId
-          : false;
+          : currentStep.type === 'checkin'
+            ? !checkinComplete
+            : false;
 
     return (
       <View style={styles.navBar}>
@@ -977,6 +1038,8 @@ export const OnboardingScreen: React.FC = () => {
         return renderHabitPicker(currentStep);
       case 'practice_picker':
         return renderPracticePicker(currentStep);
+      case 'checkin':
+        return renderCheckin(currentStep);
       default:
         return null;
     }

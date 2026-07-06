@@ -126,6 +126,7 @@ export const CTA_SCREEN_TARGETS: { value: string; label: string }[] = [
   { value: 'GoalCreationFlow', label: 'Create a goal' },
   { value: 'ManageHabits', label: 'Manage habits' },
   { value: 'NightlyReflection', label: 'Nightly reflection' },
+  { value: 'JourneyCheckin', label: 'Journey check-in (day 14/28)' },
   { value: 'WeeklyPlanner', label: 'Weekly planner' },
   { value: 'ProgramDiscovery', label: 'Programs' },
   { value: 'Progress', label: 'Progress tab' },

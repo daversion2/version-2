@@ -7,28 +7,40 @@ interface HeroStatsRowProps {
   points: number;
   currentStreak: number;
   daysActive: number;
+  /** Sampler stat: distinct practices completed at least once, of the catalog total. */
+  practicesTried?: number;
+  practicesTotal?: number;
 }
+
+const formatValue = (value: number): string =>
+  value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value);
 
 export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
   completions,
   points,
   currentStreak,
   daysActive,
+  practicesTried,
+  practicesTotal,
 }) => {
-  const stats = [
-    { value: completions, label: 'Completions' },
-    { value: points, label: 'Points' },
-    { value: currentStreak, label: 'Streak' },
-    { value: daysActive, label: 'Active Days' },
+  const stats: { value: string; label: string }[] = [
+    { value: formatValue(completions), label: 'Completions' },
+    { value: formatValue(points), label: 'Points' },
+    { value: formatValue(currentStreak), label: 'Streak' },
+    { value: formatValue(daysActive), label: 'Active Days' },
   ];
+  if (practicesTried !== undefined && practicesTotal !== undefined && practicesTotal > 0) {
+    stats.push({
+      value: `${Math.min(practicesTried, practicesTotal)}/${practicesTotal}`,
+      label: 'Tried',
+    });
+  }
 
   return (
     <View style={styles.container}>
       {stats.map((stat) => (
         <View key={stat.label} style={styles.statCard}>
-          <Text style={styles.value}>
-            {stat.value >= 1000 ? `${(stat.value / 1000).toFixed(1)}k` : stat.value}
-          </Text>
+          <Text style={styles.value}>{stat.value}</Text>
           <Text style={styles.label}>{stat.label}</Text>
         </View>
       ))}

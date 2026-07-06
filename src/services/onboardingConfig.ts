@@ -26,6 +26,7 @@ export type OnboardingStepType =
   | 'mantra_picker'
   | 'habit_picker'
   | 'practice_picker'
+  | 'checkin'
   | 'reveal';
 
 /**
@@ -64,13 +65,14 @@ export const STEP_TYPE_LABELS: Record<OnboardingStepType, string> = {
   mantra_picker: 'Mantra picker',
   habit_picker: 'Habit picker',
   practice_picker: 'Practice picker',
+  checkin: 'Baseline check-in',
   reveal: 'Send-off',
 };
 
 /** Types that may appear at most once. text_page is freely addable. */
 const SINGLETON_TYPES: OnboardingStepType[] = [
   'welcome', 'settle', 'timer', 'bridge', 'mantra_picker', 'habit_picker',
-  'practice_picker', 'reveal',
+  'practice_picker', 'checkin', 'reveal',
 ];
 
 /**
@@ -79,7 +81,7 @@ const SINGLETON_TYPES: OnboardingStepType[] = [
  * structural and never absent.
  */
 export const ADDABLE_SINGLETON_TYPES: OnboardingStepType[] = [
-  'settle', 'timer', 'bridge', 'mantra_picker', 'habit_picker', 'practice_picker',
+  'settle', 'timer', 'bridge', 'mantra_picker', 'habit_picker', 'practice_picker', 'checkin',
 ];
 
 /**
@@ -167,6 +169,19 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
     offered_practice_ids: [],
     styles: {},
   },
+  checkin: {
+    headline: 'Before you start — set your baseline.',
+    subtext:
+      "Three questions, ten seconds. You'll answer them again in two weeks and in four, and see what changed.",
+    // Question labels mirror the promise on the science page (metrics are fixed;
+    // labels are editable copy)
+    q_mood: 'Mood stability',
+    q_focus: 'Focus',
+    q_motivation: 'Baseline motivation',
+    scale_low: 'Rough',
+    scale_high: 'Solid',
+    styles: {},
+  },
   reveal: {
     title: "You've already done more than most people will today.",
     // Body copy above the summary cards ('' = hidden)
@@ -184,6 +199,7 @@ const STEP_NEXT_DEFAULTS: Record<OnboardingStepType, string> = {
   mantra_picker: 'This is my redirect →',
   habit_picker: 'This is my starting point →',
   practice_picker: 'This is my starting point →',
+  checkin: 'Baseline set →',
   reveal: "Let's go →",
 };
 
@@ -259,6 +275,9 @@ export const DEFAULT_ONBOARDING_CONFIG: OnboardingConfig = {
       "This isn't a productivity hack. It's neuroscience.",
       "Cold exposure increases dopamine by up to 250% — without dependence or crash.\n\nMeditation and cold exposure produce overlapping changes in brain activity. Both strengthen prefrontal control over the reactive brain. Different routes, same destination.\n\nPeople who regularly practice distress tolerance show measurably greater connectivity between the brain's decision-making and emotional regulation centers. That connectivity is trainable.\n\nWithin two to four weeks of consistent practice, most people report improvements in mood stability, focus, and baseline motivation."
     ),
+    // Baseline right after the 2–4 week promise — the day-14/28 retakes
+    // measure against these answers.
+    defaultStep('checkin'),
     infoPage(
       'the-override',
       'Pick your starting point →',

@@ -23,6 +23,7 @@ import {
   getPracticeProgress,
   PracticeProgress,
 } from '../../services/practiceProgress';
+import { getAllPractices } from '../../data/practices';
 import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
 import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
 import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
@@ -41,7 +42,7 @@ function getStartDateForFilter(filter: TimeFilter): string | undefined {
 }
 
 export const ProgressScreen: React.FC = () => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigation = useNavigation<ProgressNavigation>();
 
   const [loading, setLoading] = useState(true);
@@ -141,6 +142,10 @@ export const ProgressScreen: React.FC = () => {
             points={points}
             currentStreak={currentStreak}
             daysActive={daysActive}
+            practicesTried={userProfile?.practices_tried ?? 0}
+            practicesTotal={
+              getAllPractices().filter((p) => p.active !== false && p.group !== 'custom').length
+            }
           />
 
           {/* Training Volume (per-practice card grid + challenges strip) */}

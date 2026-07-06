@@ -18,7 +18,9 @@ import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, acti
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
 import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, seedDefaultPractices } from '../../services/practices';
-import { reconcileHabitReminders } from '../../services/habitReminders';
+import { reconcileHabitReminders, syncHabitReminder } from '../../services/habitReminders';
+import { registerForPushNotifications } from '../../services/notifications';
+import { FirstRepReminderModal } from '../../components/home/FirstRepReminderModal';
 import { HabitStreakInfo } from '../../types';
 import { getGoalColor } from '../../constants/goalColors';
 import { getUserTeam, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
@@ -47,7 +49,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, getUserProfile } from '../../services/users';
+import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, markReminderPromptSeen, getUserProfile } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -83,6 +85,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationStreak, setCelebrationStreak] = useState(0);
+  const [celebrationBonus, setCelebrationBonus] = useState<string | null>(null);
   const [activeProgram, setActiveProgram] = useState<ProgramEnrollment | null>(null);
   const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
   const [programDayNumber, setProgramDayNumber] = useState(0);
@@ -104,7 +107,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [habitTidbit, setHabitTidbit] = useState<NeuroscienceTidbit | null>(null);
   const [habitTidbitVisible, setHabitTidbitVisible] = useState(false);
   const [habitLearnMoreVisible, setHabitLearnMoreVisible] = useState(false);
-  const pendingHabitPointsRef = useRef<{ points: number; streak: number; alertFn: () => void } | null>(null);
+  const pendingHabitPointsRef = useRef<{ points: number; streak: number; bonus: string | null; alertFn: () => void } | null>(null);
 
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
@@ -117,6 +120,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Challenges unlock modal (after 3 habit completions)
   const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
+  const [reminderPromptVisible, setReminderPromptVisible] = useState(false);
 
   // Track app opens
   const appOpenTrackedRef = useRef(false);
@@ -130,6 +134,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     planIntroVisible ||
     goalPromptVisible ||
     challengesUnlockVisible ||
+    reminderPromptVisible ||
     celebrationVisible ||
     habitTidbitVisible ||
     habitLearnMoreVisible ||
@@ -197,6 +202,44 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [pendingAlert]);
 
+  // The habit the first-rep reminder attaches to: the onboarding starting
+  // point when present, else the first practice on the home.
+  const reminderTargetHabit = useMemo(
+    () => habits.find((h) => h.practice_id === userProfile?.starting_practice_id) ?? habits[0],
+    [habits, userProfile?.starting_practice_id]
+  );
+
+  const handleReminderPickTime = useCallback(
+    async (time: string) => {
+      setReminderPromptVisible(false);
+      if (!user) return;
+      try {
+        await markReminderPromptSeen(user.uid);
+        // Permission ask rides the goodwill of the first rep — this also
+        // registers the push token the journey rules send to.
+        await registerForPushNotifications(user.uid);
+        if (reminderTargetHabit) {
+          await updateHabit(user.uid, reminderTargetHabit.id, {
+            reminder: { time, enabled: true },
+          });
+          await syncHabitReminder(user.uid, reminderTargetHabit.id, reminderTargetHabit.reminder);
+        }
+        await refreshProfile();
+      } catch (err) {
+        console.warn('Failed to set first-rep reminder:', err);
+      }
+    },
+    [user, reminderTargetHabit, refreshProfile]
+  );
+
+  const handleReminderDismiss = useCallback(() => {
+    setReminderPromptVisible(false);
+    if (!user) return;
+    markReminderPromptSeen(user.uid)
+      .then(() => refreshProfile())
+      .catch(() => {});
+  }, [user, refreshProfile]);
+
   const handleHabitTidbitDismiss = useCallback(() => {
     setHabitTidbitVisible(false);
     const pending = pendingHabitPointsRef.current;
@@ -204,6 +247,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       pendingHabitPointsRef.current = null;
       setEarnedPoints(pending.points);
       setCelebrationStreak(pending.streak);
+      setCelebrationBonus(pending.bonus);
       setCelebrationVisible(true);
       setPendingAlert(() => pending.alertFn);
     }
@@ -224,6 +268,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       pendingHabitPointsRef.current = null;
       setEarnedPoints(pending.points);
       setCelebrationStreak(pending.streak);
+      setCelebrationBonus(pending.bonus);
       setCelebrationVisible(true);
       setPendingAlert(() => pending.alertFn);
     }
@@ -440,6 +485,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [userProfile, habits]);
 
+  // Post-first-rep reminder prompt: once, right after the first-ever
+  // completion, when no other modal is up — the moment they're most willing
+  // to commit to tomorrow's rep (and to grant notification permission).
+  useEffect(() => {
+    if (!userProfile || reminderPromptVisible) return;
+    if (userProfile.has_seen_reminder_prompt) return;
+    if ((userProfile.totalHabitsCompleted ?? 0) < 1) return;
+    if (habits.length === 0 || anyModalActive) return;
+    const timer = setTimeout(() => setReminderPromptVisible(true), 1000);
+    return () => clearTimeout(timer);
+  }, [userProfile, habits, anyModalActive, reminderPromptVisible]);
+
   // Show goal prompt on second app open if user has no goals
   useEffect(() => {
     if (!userProfile || goals.length > 0) return;
@@ -486,12 +543,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const { difficulty } = input;
     try {
       // Log + team activity + XP all happen in the shared completePractice path.
-      const { pointsEarned, streakBefore, willpower: updateResult } = await completePractice(
+      const { pointsEarned, streakBefore, firstTry, willpower: updateResult } = await completePractice(
         user.uid,
         { id: completingHabit.id, name: completingHabit.name },
         input,
         { teamId: team?.id }
       );
+      const bonusLabel = firstTry ? 'First time trying this practice — points doubled' : null;
 
       // Refresh team summary after the shared path logged the activity.
       if (team) {
@@ -553,7 +611,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         if (tidbit) {
           await recordTidbitShown(user.uid, tidbit.id);
           setHabitTidbit(tidbit);
-          pendingHabitPointsRef.current = { points: pointsEarned, streak: updateResult.newStreak, alertFn: showAlerts };
+          pendingHabitPointsRef.current = { points: pointsEarned, streak: updateResult.newStreak, bonus: bonusLabel, alertFn: showAlerts };
           setHabitTidbitVisible(true);
           return; // Celebration fires after tidbit is dismissed
         }
@@ -564,6 +622,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // No tidbit — show celebration immediately
       setEarnedPoints(pointsEarned);
       setCelebrationStreak(updateResult.newStreak);
+      setCelebrationBonus(bonusLabel);
       setCelebrationVisible(true);
       setPendingAlert(() => showAlerts);
 
@@ -812,6 +871,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={celebrationVisible}
         pointsEarned={earnedPoints}
         streakDays={celebrationStreak}
+        bonusLabel={celebrationBonus}
         onDismiss={handleCelebrationDismiss}
       />
       <PointsPopup
@@ -870,6 +930,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           navigation.navigate('StartChallenge');
         }}
         onDismiss={() => setChallengesUnlockVisible(false)}
+      />
+      <FirstRepReminderModal
+        visible={reminderPromptVisible}
+        practiceName={reminderTargetHabit?.name ?? 'your practice'}
+        onPickTime={handleReminderPickTime}
+        onDismiss={handleReminderDismiss}
       />
       {/* The "Comeback check-in" rule fires the bespoke comeback/story flow in
           the rule-modal slot; every other modal rule gets the generic RuleModal.

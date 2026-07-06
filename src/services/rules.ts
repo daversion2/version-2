@@ -354,7 +354,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
     name: 'Journey day 14: two-week check-in',
     description:
-      'Midpoint of the research window (2–4 weeks). Prompts the user to take stock. Taps through to Progress.',
+      'Midpoint of the research window (2–4 weeks). Taps through to the check-in screen — same 3 questions as the onboarding baseline.',
     enabled: true,
     surface: 'push',
     event: 'scheduled_hourly',
@@ -366,8 +366,8 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'Two weeks in. Notice anything?',
-      body: 'The research window is two to four weeks. Mood, focus, drive — take stock, then look at your training volume.',
-      cta_target: { type: 'screen', screen: 'Progress' },
+      body: 'Same three questions as day one — mood, focus, motivation. Ten seconds, then see them side by side.',
+      cta_target: { type: 'screen', screen: 'JourneyCheckin' },
     },
   },
   {
@@ -411,7 +411,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
     name: 'Journey day 28: the science said 2–4 weeks',
     description:
-      'Pays off the onboarding promise (screen 7: improvements within 2–4 weeks). Taps through to Progress.',
+      'Pays off the onboarding promise (screen 7: improvements within 2–4 weeks). Taps through to the check-in screen for the final retake.',
     enabled: true,
     surface: 'push',
     event: 'scheduled_hourly',
@@ -423,8 +423,8 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'The science said two to four weeks.',
-      body: "You're there. Mood stability, focus, baseline motivation — notice anything? Your training volume tells the story.",
-      cta_target: { type: 'screen', screen: 'Progress' },
+      body: "You're there. Retake your day-one baseline — mood, focus, motivation — and see the data for yourself.",
+      cta_target: { type: 'screen', screen: 'JourneyCheckin' },
     },
   },
   {

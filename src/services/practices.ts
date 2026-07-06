@@ -188,6 +188,8 @@ export interface CompletePracticeResult {
   pointsEarned: number;
   /** Streak (in days) as of *before* this completion — used for tidbit selection. */
   streakBefore: number;
+  /** First-ever completion of this practice — points were doubled. */
+  firstTry: boolean;
   willpower: Awaited<ReturnType<typeof updateWillpowerStats>>;
 }
 
@@ -206,12 +208,14 @@ export const completePractice = async (
 ): Promise<CompletePracticeResult> => {
   const { difficulty, notes, metrics, hitHardMoment, tactics, reflection } = input;
 
-  // First-ever completion of this practice → bump the user's sampler counter.
-  // Powers the {practices_tried} rule placeholder ("You've tried N practices")
-  // and, later, the first-try bonus. Best-effort: never block the completion.
+  // First-ever completion of this practice → bump the user's sampler counter
+  // (powers the {practices_tried} rule placeholder) and flag the first-try
+  // bonus. Best-effort: never block the completion.
+  let firstTry = false;
   try {
     const prior = await getHabitCompletionLogs(userId, practice.id);
-    if (prior.length === 0) {
+    firstTry = prior.length === 0;
+    if (firstTry) {
       await updateDoc(doc(db, 'users', userId), { practices_tried: increment(1) });
     }
   } catch (err) {
@@ -233,13 +237,15 @@ export const completePractice = async (
     }
   }
 
-  // Award XP using the streak-aware multiplier.
+  // Award XP using the streak-aware multiplier; first time trying a practice
+  // pays double — sampling the catalog is itself the behavior we reward.
   const difficultyNum = difficulty === 'easy' ? 1 : 2;
   const stats = await getWillpowerStats(userId);
-  const pointsEarned = calculateHabitPoints(difficultyNum, stats.currentStreak);
+  const basePoints = calculateHabitPoints(difficultyNum, stats.currentStreak);
+  const pointsEarned = firstTry ? basePoints * 2 : basePoints;
   const willpower = await updateWillpowerStats(userId, pointsEarned);
 
-  return { logId, pointsEarned, streakBefore: stats.currentStreak, willpower };
+  return { logId, pointsEarned, streakBefore: stats.currentStreak, firstTry, willpower };
 };
 
 /**

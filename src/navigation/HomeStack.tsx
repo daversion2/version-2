@@ -30,6 +30,7 @@ import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
+import { JourneyCheckinScreen } from '../screens/Home/JourneyCheckinScreen';
 import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
 import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationFlow';
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
@@ -206,6 +207,11 @@ export const HomeStack: React.FC = () => (
       name="NightlyReflection"
       component={NightlyReflectionScreen}
       options={{ title: 'Nightly Reflection' }}
+    />
+    <Stack.Screen
+      name="JourneyCheckin"
+      component={JourneyCheckinScreen}
+      options={{ title: 'Check-in' }}
     />
     <Stack.Screen
       name="CustomizeHome"

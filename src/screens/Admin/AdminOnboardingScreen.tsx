@@ -384,6 +384,22 @@ export const AdminOnboardingScreen: React.FC = () => {
             })}
           </>
         );
+      case 'checkin':
+        return (
+          <>
+            {fmt('headline', 'Headline', { multiline: true })}
+            {fmt('subtext', 'Subtext', { multiline: true })}
+            <Text style={styles.fieldLabel}>
+              Question labels (the three metrics are fixed — mood / focus / motivation — these
+              are just their display names, compared again at day 14 and 28)
+            </Text>
+            <InputField label="Question 1 (mood)" value={step.content.q_mood} onChangeText={set('q_mood')} />
+            <InputField label="Question 2 (focus)" value={step.content.q_focus} onChangeText={set('q_focus')} />
+            <InputField label="Question 3 (motivation)" value={step.content.q_motivation} onChangeText={set('q_motivation')} />
+            <InputField label="Scale anchor — low (1)" value={step.content.scale_low} onChangeText={set('scale_low')} />
+            <InputField label="Scale anchor — high (5)" value={step.content.scale_high} onChangeText={set('scale_high')} />
+          </>
+        );
       case 'reveal':
         return (
           <>

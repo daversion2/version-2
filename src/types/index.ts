@@ -76,6 +76,11 @@ export interface User {
   // Distinct practices completed at least once (denormalized; powers the
   // {practices_tried} rule placeholder and the month-1 sampler stat)
   practices_tried?: number;
+  // Journey check-ins (baseline from onboarding, day-14/28 retakes) —
+  // see src/services/checkins.ts
+  journey_checkins?: Record<string, { mood: number; focus: number; motivation: number; date: string }>;
+  // One-time flag: the post-first-rep reminder prompt has been shown
+  has_seen_reminder_prompt?: boolean;
   // LEGACY — comeback gating now lives in ruleState for the "Comeback check-in" rule
   lastComebackDate?: string;
   // App usage tracking
