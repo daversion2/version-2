@@ -73,6 +73,9 @@ export interface User {
   // Practice catalog id picked as the starting point during onboarding —
   // surfaced first (with a badge) on the home practices list
   starting_practice_id?: string;
+  // Distinct practices completed at least once (denormalized; powers the
+  // {practices_tried} rule placeholder and the month-1 sampler stat)
+  practices_tried?: number;
   // LEGACY — comeback gating now lives in ruleState for the "Comeback check-in" rule
   lastComebackDate?: string;
   // App usage tracking

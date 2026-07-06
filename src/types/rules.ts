@@ -22,6 +22,7 @@ export const RULE_FACTS = {
   active_goal_count: 'Active goals',
   active_habit_count: 'Active practices',
   local_hour: 'Hour of day in user timezone (0–23)',
+  completed_today: 'Completed a rep today (0/1)',
 } as const;
 
 export type FactKey = keyof typeof RULE_FACTS;

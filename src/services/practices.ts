@@ -205,6 +205,19 @@ export const completePractice = async (
   opts?: { teamId?: string },
 ): Promise<CompletePracticeResult> => {
   const { difficulty, notes, metrics, hitHardMoment, tactics, reflection } = input;
+
+  // First-ever completion of this practice → bump the user's sampler counter.
+  // Powers the {practices_tried} rule placeholder ("You've tried N practices")
+  // and, later, the first-try bonus. Best-effort: never block the completion.
+  try {
+    const prior = await getHabitCompletionLogs(userId, practice.id);
+    if (prior.length === 0) {
+      await updateDoc(doc(db, 'users', userId), { practices_tried: increment(1) });
+    }
+  } catch (err) {
+    console.warn('Failed to update practices_tried counter:', err);
+  }
+
   const logId = await logHabitCompletion(userId, practice.id, difficulty, undefined, notes, {
     metrics,
     hitHardMoment,

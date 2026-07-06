@@ -160,6 +160,7 @@ export const GLOBAL_PLACEHOLDER_KEYS = [
   "habits_completed",
   "challenges_completed",
   "reflection_streak",
+  "practices_tried",
   "tidbit",
   "fun_fact",
   "reward_message",
@@ -226,6 +227,10 @@ export const resolveUserGlobals = (
       case "reflection_streak":
         value = String(userData.reflection_streak ?? 0);
         break;
+      case "practices_tried":
+        // Denormalized counter bumped on a practice's first-ever completion
+        value = String(userData.practices_tried ?? 0);
+        break;
       default:
         continue; // pool keys resolved by the caller
     }
@@ -268,6 +273,9 @@ export const buildUserFacts = (
     active_goal_count: 0,
     active_habit_count: 0, // client-only fact (needs a subcollection read); push rules can't use it
     local_hour: localHour,
+    // days_since_last_activity falls back to the signup date, so it can't
+    // distinguish "trained today" from "signed up today" — this can.
+    completed_today: userData.lastActivityDate === todayLocal ? 1 : 0,
     ...extras,
   };
 };
