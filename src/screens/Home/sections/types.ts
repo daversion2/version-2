@@ -54,6 +54,8 @@ export interface HomeData {
   weeklyPlans: Record<string, TomorrowPlan>;
   // Habit ids completed today (powers the hero counter + card "Done today" state)
   completedTodayIds: string[];
+  // Practice catalog id picked as the starting point during onboarding
+  startingPracticeId: string | null;
   // Display name for the hero greeting (null if none set)
   userName: string | null;
 }

@@ -4,8 +4,8 @@
  * Admin > Onboarding Content. Each step has a type (from the fixed registry
  * below — the renderers stay in code), an enabled flag, a next-button
  * label, and per-type content. Admins can reorder/disable middle steps and
- * add generic "Info page" (text_page) steps; Welcome is always first and
- * Reveal always last.
+ * add "Info page" (text_page) steps or any absent singleton step; Welcome is
+ * always first and Reveal (the send-off) always last.
  *
  * FAIL-SAFE: onboarding is a brand-new user's first experience, so reads
  * sanitize aggressively — unknown step types are dropped, missing content
@@ -25,6 +25,7 @@ export type OnboardingStepType =
   | 'text_page'
   | 'mantra_picker'
   | 'habit_picker'
+  | 'practice_picker'
   | 'reveal';
 
 /**
@@ -62,22 +63,37 @@ export const STEP_TYPE_LABELS: Record<OnboardingStepType, string> = {
   text_page: 'Info page',
   mantra_picker: 'Mantra picker',
   habit_picker: 'Habit picker',
-  reveal: 'Reveal',
+  practice_picker: 'Practice picker',
+  reveal: 'Send-off',
 };
 
 /** Types that may appear at most once. text_page is freely addable. */
 const SINGLETON_TYPES: OnboardingStepType[] = [
-  'welcome', 'settle', 'timer', 'bridge', 'mantra_picker', 'habit_picker', 'reveal',
+  'welcome', 'settle', 'timer', 'bridge', 'mantra_picker', 'habit_picker',
+  'practice_picker', 'reveal',
 ];
 
-/** Default content per step type — the original hardcoded copy. */
+/**
+ * Singleton types the admin can add back into the flow when absent (e.g. after
+ * the default flow dropped a step type they still want). Welcome/reveal are
+ * structural and never absent.
+ */
+export const ADDABLE_SINGLETON_TYPES: OnboardingStepType[] = [
+  'settle', 'timer', 'bridge', 'mantra_picker', 'habit_picker', 'practice_picker',
+];
+
+/**
+ * Default content per step type. NOTE: stored configs materialize every field
+ * on save (mergeContent fills from these defaults), so changing an existing
+ * field's default only affects flows that were never saved. NEW fields must
+ * default to a no-op ('' = hidden) so previously saved flows don't change —
+ * the default flow below opts into them per step.
+ */
 export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, any>> = {
   welcome: {
-    title: 'Welcome to\nNeuro Nudge',
-    subtitle:
-      "We're going to start with a short, 60-second exercise. You'll sit quietly and observe your thoughts — that's it.",
-    science:
-      "Your brain doesn't need long to shift. A 2026 Harvard study found measurable brainwave changes in beginners within 2–3 minutes of their first meditation. The trick isn't emptying your mind — it's watching it.",
+    title: "Your brain didn't get weak on its own.",
+    subtitle: "Something changed. And it wasn't you.",
+    science: '',
     styles: {},
   },
   settle: {
@@ -90,11 +106,17 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
   },
   timer: {
     seconds: 60,
-    pre_label: 'When you tap the button, a 60-second timer will begin.',
-    pre_subtext: 'Put the phone down. Close your eyes if you like.\nThe app will wait for you.',
-    active_label: 'Sit quietly. Notice your thoughts.',
-    done_label: "Time's up. Take a breath.",
-    start_button: 'Start the minute',
+    pre_label: "Don't take our word for it. Try this.",
+    pre_subtext:
+      "Close your eyes. Don't check anything. Don't do anything. Just breathe for 60 seconds.\n\nNotice what happens.",
+    active_label: 'Eyes closed. Just breathe.',
+    done_label:
+      "That urge to grab your phone? That restlessness? That's not weakness. That's your nervous system showing you exactly what we're talking about.",
+    // Second paragraph shown under done_label ('' = hidden)
+    done_body: '',
+    start_button: 'Start 60 seconds',
+    // Low-prominence skip link under the start button ('' = no skip)
+    skip_label: '',
     styles: {},
   },
   bridge: {
@@ -137,40 +159,116 @@ export const STEP_CONTENT_DEFAULTS: Record<OnboardingStepType, Record<string, an
     offered_habit_ids: [],
     styles: {},
   },
+  practice_picker: {
+    headline:
+      'Every practice here trains the same thing: your ability to act when your brain says stop.',
+    subtext: 'Pick one to start with.',
+    // Practice catalog ids offered as cards (empty = all active practices)
+    offered_practice_ids: [],
+    styles: {},
+  },
   reveal: {
-    title: 'Your starting point',
+    title: "You've already done more than most people will today.",
+    // Body copy above the summary cards ('' = hidden)
+    body: '',
     styles: {},
   },
 };
 
 const STEP_NEXT_DEFAULTS: Record<OnboardingStepType, string> = {
-  welcome: "Let's go →",
+  welcome: "Let's talk about it →",
   settle: "I'm ready",
-  timer: 'Continue →',
+  timer: "There's a way out →",
   bridge: 'Give me a mantra →',
   text_page: 'Continue →',
   mantra_picker: 'This is my redirect →',
   habit_picker: 'This is my starting point →',
-  reveal: 'Keep moving forward →',
+  practice_picker: 'This is my starting point →',
+  reveal: "Let's go →",
 };
 
-const defaultStep = (type: OnboardingStepType, id?: string): OnboardingStep => ({
+const defaultStep = (
+  type: OnboardingStepType,
+  id?: string,
+  overrides?: Record<string, any>
+): OnboardingStep => ({
   id: id ?? type,
   type,
   enabled: true,
   next_button: STEP_NEXT_DEFAULTS[type],
-  content: { ...STEP_CONTENT_DEFAULTS[type] },
+  content: { ...STEP_CONTENT_DEFAULTS[type], ...(overrides ?? {}) },
 });
 
+/** A fresh step of any type with its default content (admin "add step"). */
+export const newDefaultStep = (type: OnboardingStepType): OnboardingStep => defaultStep(type);
+
+const infoPage = (
+  id: string,
+  next: string,
+  headline: string,
+  body: string,
+  styles?: FieldStyles
+): OnboardingStep => ({
+  ...defaultStep('text_page', id, { headline, body, ...(styles ? { styles } : {}) }),
+  next_button: next,
+});
+
+/**
+ * The built-in flow — the 10-screen "Training Your Override" onboarding
+ * (docs/neuro-nudge-onboarding.md): hook → villain → mechanism → cost →
+ * 60-second felt experience → recovery → science → the override → pick a
+ * practice → send them in.
+ */
 export const DEFAULT_ONBOARDING_CONFIG: OnboardingConfig = {
   steps: [
     defaultStep('welcome'),
-    defaultStep('settle'),
-    defaultStep('timer'),
-    defaultStep('bridge'),
-    defaultStep('mantra_picker'),
-    defaultStep('habit_picker'),
-    defaultStep('reveal'),
+    infoPage(
+      'name-the-enemy',
+      'Keep going →',
+      '',
+      'Every app, every feed, every notification was engineered with one goal: keep you coming back.\n\nNot to help you. Not to make you better. To hold your attention as long as possible — because your attention is worth money.',
+      // Body-only page — bump the copy so it carries the screen
+      { body: { size: 'lg' } }
+    ),
+    infoPage(
+      'the-mechanism',
+      'What does that mean? →',
+      "Here's what that does to your brain.",
+      'Your brain runs on dopamine — the chemical behind motivation, focus, and reward. It evolved to fire when you did something hard or meaningful. Hunt, build, connect, create.\n\nModern technology hijacks that system. Every scroll, every like, every notification delivers a small dopamine hit — fast, easy, and endless. Over time, your brain adapts. It downregulates. It produces fewer receptors. The same stimulation that used to feel rewarding starts to feel flat.'
+    ),
+    infoPage(
+      'the-real-cost',
+      'Feel it for yourself →',
+      'It means sitting still starts to feel unbearable.',
+      "Hard tasks feel impossible. Boredom feels like a crisis. The things that actually matter — the work, the relationships, the goals — start losing to whatever's easiest and most stimulating right now.\n\nThis isn't laziness. It's not a character flaw. Your brain was optimized for the environment it was given. The problem is that environment was designed to make you dependent — not capable."
+    ),
+    defaultStep('timer', undefined, {
+      done_body: "Now here's the good news.",
+      skip_label: 'Skip',
+      styles: { pre_label: { size: 'xl' } },
+    }),
+    infoPage(
+      'recovery',
+      'This is what the research shows →',
+      'Your prefrontal cortex is the part of your brain responsible for decisions, focus, and self-control.',
+      "Overstimulation weakens it — shifting control toward the reactive, impulsive part of your brain. But it's not permanent. The prefrontal cortex responds to training.\n\nThe tool is deliberate discomfort. When you voluntarily do something hard — sit in silence, hold a cold plunge, go for a walk without your phone — and you don't quit, your brain registers that. The prefrontal cortex strengthens its grip. Distress tolerance builds. Over time, your baseline shifts."
+    ),
+    infoPage(
+      'the-science',
+      'So what do you actually do? →',
+      "This isn't a productivity hack. It's neuroscience.",
+      "Cold exposure increases dopamine by up to 250% — without dependence or crash.\n\nMeditation and cold exposure produce overlapping changes in brain activity. Both strengthen prefrontal control over the reactive brain. Different routes, same destination.\n\nPeople who regularly practice distress tolerance show measurably greater connectivity between the brain's decision-making and emotional regulation centers. That connectivity is trainable.\n\nWithin two to four weeks of consistent practice, most people report improvements in mood stability, focus, and baseline motivation."
+    ),
+    infoPage(
+      'the-override',
+      'Pick your starting point →',
+      'This app is built around one idea: the override.',
+      "The moment your brain says stop — and you don't.\n\nNot because you forced it. Because you've trained for it. Practices grounded in neuroscience, designed to rebuild what overstimulation eroded. You don't have to do all of them. You just have to start with one."
+    ),
+    defaultStep('practice_picker'),
+    defaultStep('reveal', undefined, {
+      body: "You sat still for 60 seconds. You learned what's actually happening in your brain. You picked a direction.\n\nNow go do the thing.",
+    }),
   ],
 };
 
@@ -265,14 +363,19 @@ export const sanitizeSteps = (raw: any[]): OnboardingStep[] => {
   return [welcome ?? defaultStep('welcome'), ...middle, reveal ?? defaultStep('reveal')];
 };
 
-/** Migrate a Tier 1 flat-field document into the steps shape. */
+/**
+ * Migrate a Tier 1 flat-field document into the steps shape. Tier 1 docs
+ * predate the 10-screen override flow, so they migrate onto the original
+ * 7-step sequence (welcome → settle → timer → bridge → mantra → habit →
+ * reveal), not today's default flow.
+ */
 const migrateLegacyFlat = (data: Record<string, any>): OnboardingStep[] => {
   const pick = (key: string, fallback: any) =>
     data[key] !== undefined && data[key] !== null ? data[key] : fallback;
-  const steps = DEFAULT_ONBOARDING_CONFIG.steps.map((s) => ({
-    ...s,
-    content: { ...s.content },
-  }));
+  const legacyTypes: OnboardingStepType[] = [
+    'welcome', 'settle', 'timer', 'bridge', 'mantra_picker', 'habit_picker', 'reveal',
+  ];
+  const steps = legacyTypes.map((t) => defaultStep(t));
   const byType = (t: OnboardingStepType) => steps.find((s) => s.type === t)!;
 
   const w = byType('welcome');

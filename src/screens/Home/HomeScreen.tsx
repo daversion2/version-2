@@ -731,6 +731,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     plannedHabitIds,
     weeklyPlans,
     completedTodayIds,
+    startingPracticeId: userProfile?.starting_practice_id ?? null,
     userName: userProfile?.username ?? null,
   }), [
     activeChallenges, extendedChallenges, habits, team, teamSummary,
@@ -739,7 +740,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     goals, showReflectionBanner, reflectedToday, todaysGrade,
     willpowerStats, goalFollowThrough, totalHabitsCompleted, activeMantra,
     whyStatement, hasCompletedWhyDiscovery, plannedHabitIds, weeklyPlans,
-    completedTodayIds, userProfile?.username,
+    completedTodayIds, userProfile?.starting_practice_id, userProfile?.username,
   ]);
 
   const onNavigate = useCallback((screen: string, params?: any) => {

@@ -67,6 +67,11 @@ export const markPracticesSeeded = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_seeded_practices: true }, { merge: true });
 };
 
+/** The practice picked as the starting point during onboarding (catalog id). */
+export const setStartingPractice = async (userId: string, practiceId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { starting_practice_id: practiceId }, { merge: true });
+};
+
 export const incrementAppOpenCount = async (userId: string): Promise<void> => {
   const { increment } = await import('firebase/firestore');
   await setDoc(doc(db, 'users', userId), { app_open_count: increment(1) }, { merge: true });

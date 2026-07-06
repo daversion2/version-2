@@ -70,6 +70,9 @@ export interface User {
   has_seen_challenges_unlock?: boolean;
   // Default practices auto-seeded onto the home (one-time, on first load)
   has_seeded_practices?: boolean;
+  // Practice catalog id picked as the starting point during onboarding —
+  // surfaced first (with a badge) on the home practices list
+  starting_practice_id?: string;
   // LEGACY — comeback gating now lives in ruleState for the "Comeback check-in" rule
   lastComebackDate?: string;
   // App usage tracking

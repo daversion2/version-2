@@ -18,17 +18,25 @@ import { Dropdown } from '../../components/common/Dropdown';
 import { showAlert, showConfirm } from '../../utils/alert';
 import {
   OnboardingStep,
+  OnboardingStepType,
   TextStyleOverride,
   DEFAULT_ONBOARDING_CONFIG,
   STEP_TYPE_LABELS,
+  ADDABLE_SINGLETON_TYPES,
   getOnboardingConfig,
   saveOnboardingConfig,
   resetOnboardingConfig,
   newTextPageStep,
+  newDefaultStep,
 } from '../../services/onboardingConfig';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
+import { getAllPractices } from '../../data/practices';
 
 const HABIT_OPTIONS = HABIT_LIBRARY.map((h) => ({ value: h.id, label: h.name }));
+
+/** Curated catalog practices offerable as onboarding starting points. */
+const offerablePractices = () =>
+  getAllPractices().filter((p) => p.active !== false && p.group !== 'custom');
 
 /** Welcome and Reveal are structural: fixed position, always enabled. */
 const isFixed = (step: OnboardingStep) => step.type === 'welcome' || step.type === 'reveal';
@@ -111,11 +119,19 @@ export const AdminOnboardingScreen: React.FC = () => {
     );
   };
 
-  const addTextPage = () => {
-    const step = newTextPageStep(`${Date.now().toString(36)}`);
+  const insertBeforeReveal = (step: OnboardingStep) => {
     setSteps((prev) => [...prev.slice(0, prev.length - 1), step, prev[prev.length - 1]]);
     setExpanded((prev) => ({ ...prev, [step.id]: true }));
   };
+
+  const addTextPage = () => insertBeforeReveal(newTextPageStep(`${Date.now().toString(36)}`));
+
+  // Singleton step types absent from the flow (e.g. after a default-flow
+  // change dropped one) can be added back.
+  const missingSingletons = ADDABLE_SINGLETON_TYPES.filter(
+    (t) => !steps.some((s) => s.type === t)
+  );
+  const addSingleton = (type: OnboardingStepType) => insertBeforeReveal(newDefaultStep(type));
 
   const handleSave = async () => {
     // Fold the one-per-line mantra templates back into step content
@@ -168,7 +184,7 @@ export const AdminOnboardingScreen: React.FC = () => {
   const handleReset = () => {
     showConfirm(
       'Reset to Defaults',
-      'This deletes the custom config — onboarding reverts to the built-in 7-step flow. Continue?',
+      'This deletes the custom config — onboarding reverts to the built-in 10-screen override flow. Continue?',
       async () => {
         setSaving(true);
         try {
@@ -234,8 +250,14 @@ export const AdminOnboardingScreen: React.FC = () => {
             {fmt('pre_label', 'Before starting', { multiline: true })}
             {fmt('pre_subtext', 'Below the ring (before starting)', { multiline: true })}
             {fmt('active_label', 'While running')}
-            {fmt('done_label', 'When done')}
+            {fmt('done_label', 'When done — main copy', { multiline: true })}
+            {fmt('done_body', 'When done — follow-up line (blank = hide)', { multiline: true })}
             <InputField label="Start button label" value={step.content.start_button} onChangeText={set('start_button')} />
+            <InputField
+              label="Skip link label (blank = no skip; skipping still shows the 'when done' copy)"
+              value={step.content.skip_label}
+              onChangeText={set('skip_label')}
+            />
           </>
         );
       case 'bridge':
@@ -328,8 +350,47 @@ export const AdminOnboardingScreen: React.FC = () => {
             })}
           </>
         );
+      case 'practice_picker':
+        return (
+          <>
+            {fmt('headline', 'Headline', { multiline: true })}
+            {fmt('subtext', 'Subtext')}
+            <Text style={styles.fieldLabel}>
+              Offered practices (none checked = offer all active practices). Card copy comes from
+              the practice catalog — edit names/descriptions in Admin → Practices.
+            </Text>
+            {offerablePractices().map((practice) => {
+              const offered = (step.content.offered_practice_ids as string[]) ?? [];
+              const checked = offered.length === 0 || offered.includes(practice.id);
+              return (
+                <TouchableOpacity
+                  key={practice.id}
+                  style={styles.habitToggleRow}
+                  onPress={() => {
+                    const next = offered.includes(practice.id)
+                      ? offered.filter((id) => id !== practice.id)
+                      : [...offered, practice.id];
+                    updateContent(step.id, 'offered_practice_ids', next);
+                  }}
+                >
+                  <Ionicons
+                    name={checked ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={checked ? Colors.primary : Colors.gray}
+                  />
+                  <Text style={styles.habitToggleText}>{practice.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        );
       case 'reveal':
-        return fmt('title', 'Title');
+        return (
+          <>
+            {fmt('title', 'Title', { multiline: true })}
+            {fmt('body', 'Body (blank = hide)', { multiline: true })}
+          </>
+        );
       default:
         return null;
     }
@@ -348,10 +409,10 @@ export const AdminOnboardingScreen: React.FC = () => {
       <View style={styles.content}>
         <Text style={styles.headerHint}>
           The flow runs top to bottom — reorder middle steps with the arrows, switch them off to
-          skip them, or add an info page. Welcome is always first, Reveal always last. Edits
-          apply to every NEW signup immediately. Use \n for a line break. The B / I / U buttons
-          wrap your selected text (or the whole field) to make it bold, italic, or underlined; the
-          size dropdown and alignment buttons set the whole field.
+          skip them, or add pages/steps below. Welcome is always first, the Send-off always last.
+          Edits apply to every NEW signup immediately. Use \n for a line break. The B / I / U
+          buttons wrap your selected text (or the whole field) to make it bold, italic, or
+          underlined; the size dropdown and alignment buttons set the whole field.
         </Text>
 
         {steps.map((step, index) => {
@@ -411,10 +472,18 @@ export const AdminOnboardingScreen: React.FC = () => {
           );
         })}
 
-        <TouchableOpacity style={styles.addLink} onPress={addTextPage}>
-          <Ionicons name="add" size={18} color={Colors.primary} />
-          <Text style={styles.addLinkText}>Add info page</Text>
-        </TouchableOpacity>
+        <View style={styles.addRow}>
+          <TouchableOpacity style={styles.addLink} onPress={addTextPage}>
+            <Ionicons name="add" size={18} color={Colors.primary} />
+            <Text style={styles.addLinkText}>Add info page</Text>
+          </TouchableOpacity>
+          {missingSingletons.map((type) => (
+            <TouchableOpacity key={type} style={styles.addLink} onPress={() => addSingleton(type)}>
+              <Ionicons name="add" size={18} color={Colors.primary} />
+              <Text style={styles.addLinkText}>Add {STEP_TYPE_LABELS[type].toLowerCase()}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <Button title="Save" onPress={handleSave} loading={saving} />
         <TouchableOpacity style={styles.resetLink} onPress={handleReset} disabled={saving}>
@@ -510,6 +579,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.dark,
+  },
+  addRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    columnGap: Spacing.lg,
   },
   addLink: {
     flexDirection: 'row',

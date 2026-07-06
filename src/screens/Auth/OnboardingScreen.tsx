@@ -21,9 +21,10 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Button } from '../../components/common/Button';
 import { RichText } from '../../components/common/RichText';
 import { useAuth } from '../../context/AuthContext';
-import { markOnboardingComplete, markPracticesSeeded } from '../../services/users';
+import { markOnboardingComplete, markPracticesSeeded, setStartingPractice } from '../../services/users';
 import { createHabit, logHabitCompletion, seedDefaultPractices } from '../../services/practices';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
+import { getAllPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
 import { db } from '../../services/firebase';
 
 const { width } = Dimensions.get('window');
@@ -100,6 +101,8 @@ export const OnboardingScreen: React.FC = () => {
   const habitStep = config.steps.find((s) => s.type === 'habit_picker');
   const habitContent = habitStep?.content ?? STEP_CONTENT_DEFAULTS.habit_picker;
   const habitStepEnabled = habitStep?.enabled === true;
+  const practiceStepEnabled =
+    config.steps.find((s) => s.type === 'practice_picker')?.enabled === true;
   const timerContent =
     config.steps.find((s) => s.type === 'timer')?.content ?? STEP_CONTENT_DEFAULTS.timer;
 
@@ -163,8 +166,11 @@ export const OnboardingScreen: React.FC = () => {
     if (templateIndex >= 0) setTemplateIndex(-1);
   };
 
-  // Screen 6: Habit Selection
+  // Habit selection (legacy habit_picker step)
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null);
+
+  // Practice picker — the one practice chosen as the starting point
+  const [selectedPracticeId, setSelectedPracticeId] = useState<string | null>(null);
 
   // Screen 7: Saving
   const [saving, setSaving] = useState(false);
@@ -277,6 +283,24 @@ export const OnboardingScreen: React.FC = () => {
         }, { merge: true });
       }
 
+      // 4a. The practice picked as the starting point. Created before the
+      // default seeding so the (idempotent) seed skips it, then flagged on
+      // the profile so the home surfaces it front and center. No weekly
+      // target is set here — that comes later organically (0 = unset).
+      if (practiceStepEnabled && selectedPracticeId) {
+        const practice = getAllPractices().find((p) => p.id === selectedPracticeId);
+        if (practice) {
+          await createHabit(user.uid, {
+            name: practice.name,
+            target_count_per_week: 0,
+            practice_id: practice.id,
+            group: practice.group,
+            created_by_user: false,
+          });
+          await setStartingPractice(user.uid, practice.id);
+        }
+      }
+
       // 4b. Seed the default practices onto the home (core set). Idempotent —
       // skips any already adopted (e.g. a foundation habit linked to a practice).
       try {
@@ -371,11 +395,16 @@ export const OnboardingScreen: React.FC = () => {
     </View>
   );
 
-  // Generic admin-added info page: bridge-style headline + body + optional science
+  // Generic info page: bridge-style headline + body + optional science.
+  // Either field can be blank (a body-only page reads as a full statement).
   const renderTextPage = (step: OnboardingStep) => (
     <View style={styles.stageContent}>
-      <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
-      <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
+      {!!step.content.headline && (
+        <RichText style={fieldStyle(step, 'headline', styles.bridgeHeadline)}>{step.content.headline}</RichText>
+      )}
+      {!!step.content.body && (
+        <RichText style={fieldStyle(step, 'body', styles.bridgeBody)}>{step.content.body}</RichText>
+      )}
       {renderScienceToggle(step)}
     </View>
   );
@@ -421,11 +450,15 @@ export const OnboardingScreen: React.FC = () => {
         <Animated.View style={[styles.timerRing, { borderColor }]}>
           <Text style={styles.timerDisplay}>{timerDone ? '✓' : display}</Text>
         </Animated.View>
-        <Text style={styles.timerSubtext}>
-          {timerDone
-            ? ''
-            : 'The app will continue automatically.'}
-        </Text>
+        {timerDone ? (
+          !!step.content.done_body && (
+            <RichText style={fieldStyle(step, 'done_body', styles.timerDoneBody)}>
+              {step.content.done_body}
+            </RichText>
+          )
+        ) : (
+          <Text style={styles.timerSubtext}>The app will continue automatically.</Text>
+        )}
       </View>
     );
   };
@@ -586,17 +619,88 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // ============================================================================
-  // SCREEN 7 — REVEAL
+  // PRACTICE PICKER — pick the one practice to start with
+  // ============================================================================
+
+  // Cards come from the practice catalog (admin-editable), so name/description/
+  // icon stay in sync with the rest of the app. An empty offered list = all
+  // active curated practices.
+  const renderPracticePicker = (step: OnboardingStep) => {
+    const offered = (step.content.offered_practice_ids as string[]) ?? [];
+    const available = getAllPractices()
+      .filter((p) => p.active !== false && p.group !== 'custom')
+      .filter((p) => offered.length === 0 || offered.includes(p.id))
+      .sort((a, b) => a.order - b.order);
+
+    return (
+      <View style={styles.stageContent}>
+        <RichText style={fieldStyle(step, 'headline', styles.stageIntro)}>{step.content.headline}</RichText>
+        {!!step.content.subtext && (
+          <RichText style={fieldStyle(step, 'subtext', styles.mantraSubtext)}>{step.content.subtext}</RichText>
+        )}
+
+        {available.map((practice) => {
+          const isSelected = selectedPracticeId === practice.id;
+          const accent = practice.color ?? DEFAULT_PRACTICE_COLOR;
+          return (
+            <TouchableOpacity
+              key={practice.id}
+              style={[styles.habitRow, isSelected && styles.habitRowSelected]}
+              onPress={() => setSelectedPracticeId(practice.id)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.practiceRowIcon, { backgroundColor: accent + '18' }]}>
+                <Ionicons name={practice.icon as any} size={20} color={accent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.habitRowName, isSelected && styles.habitRowNameSelected]}>
+                  {practice.name}
+                </Text>
+                <Text style={styles.practiceRowDescription}>{practice.description}</Text>
+              </View>
+              {isSelected && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
+
+  // ============================================================================
+  // REVEAL / SEND-OFF
   // ============================================================================
 
   const renderReveal = (step: OnboardingStep) => {
     const selectedHabit = habitStepEnabled
       ? HABIT_LIBRARY.find((h) => h.id === selectedHabitId)
       : undefined;
+    const startingPractice = practiceStepEnabled
+      ? getAllPractices().find((p) => p.id === selectedPracticeId)
+      : undefined;
+    const startingAccent = startingPractice?.color ?? DEFAULT_PRACTICE_COLOR;
 
     return (
       <View style={styles.revealContainer}>
         <RichText style={fieldStyle(step, 'title', styles.revealTitle)}>{step.content.title}</RichText>
+        {!!step.content.body && (
+          <RichText style={fieldStyle(step, 'body', styles.revealBody)}>{step.content.body}</RichText>
+        )}
+
+        {/* Starting-point practice card — only if picked via the practice picker */}
+        {startingPractice && (
+          <View style={styles.startingPointCard}>
+            <Text style={styles.mantraCardLabel}>YOUR STARTING POINT</Text>
+            <View style={styles.startingPointRow}>
+              <View style={[styles.practiceRowIcon, { backgroundColor: startingAccent + '18' }]}>
+                <Ionicons name={startingPractice.icon as any} size={20} color={startingAccent} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.revealHabitName}>{startingPractice.name}</Text>
+                <Text style={styles.revealHabitMeta}>{startingPractice.description}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Mantra anchor card — only if a mantra was collected */}
         {!!mantra.trim() && (
@@ -691,7 +795,7 @@ export const OnboardingScreen: React.FC = () => {
       </TouchableOpacity>
     );
 
-    // Timer: start → (running, no button) → continue, plus the skip link
+    // Timer: start → (running, no button) → continue, plus the skip links
     if (currentStep.type === 'timer') {
       const timerDone = timerSeconds === 0 && !timerStarted;
       return (
@@ -710,6 +814,16 @@ export const OnboardingScreen: React.FC = () => {
               <View style={styles.nextButton} />
             )}
           </View>
+          {/* Skipping the sit jumps straight to the done state — the follow-up
+              copy lands whether they did it or not. */}
+          {!timerStarted && !timerDone && !!currentStep.content.skip_label && (
+            <TouchableOpacity
+              onPress={() => setTimerSeconds(0)}
+              style={styles.timerSkipButton}
+            >
+              <Text style={styles.timerSkipText}>{currentStep.content.skip_label}</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={handleSkipOnboarding}
             style={styles.skipOnboardingButton}
@@ -727,7 +841,9 @@ export const OnboardingScreen: React.FC = () => {
         ? !mantra.trim()
         : currentStep.type === 'habit_picker'
           ? !selectedHabitId
-          : false;
+          : currentStep.type === 'practice_picker'
+            ? !selectedPracticeId
+            : false;
 
     return (
       <View style={styles.navBar}>
@@ -791,6 +907,8 @@ export const OnboardingScreen: React.FC = () => {
         return renderMantraPicker(currentStep);
       case 'habit_picker':
         return renderHabitPicker(currentStep);
+      case 'practice_picker':
+        return renderPracticePicker(currentStep);
       default:
         return null;
     }
@@ -1020,6 +1138,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.xl,
   },
+  timerDoneBody: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.primary,
+    textAlign: 'center',
+    marginTop: Spacing.xl,
+    lineHeight: 26,
+  },
+  timerSkipButton: { alignItems: 'center', paddingVertical: Spacing.xs },
+  timerSkipText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    opacity: 0.8,
+  },
 
   // Screen 4: Validation bridge
   bridgeCenter: {
@@ -1232,7 +1365,23 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Screen 7: Reveal
+  // Practice picker
+  practiceRowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  practiceRowDescription: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 2,
+    lineHeight: 17,
+  },
+
+  // Reveal / send-off
   revealContainer: { alignItems: 'center' },
   revealTitle: {
     fontFamily: Fonts.primaryBold,
@@ -1240,6 +1389,28 @@ const styles = StyleSheet.create({
     color: Colors.dark,
     textAlign: 'center',
     marginBottom: Spacing.xl,
+  },
+  revealBody: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: Spacing.xl,
+  },
+  startingPointCard: {
+    width: '100%',
+    backgroundColor: Colors.primary + '10',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  startingPointRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
   },
   mantraCard: {
     width: '100%',

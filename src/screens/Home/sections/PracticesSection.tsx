@@ -21,12 +21,20 @@ import {
  * Start / Done-today action. Practices are owned by default (no "add" step here).
  */
 export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {
-  const { habits, weeklyCounts, completedTodayIds } = data;
+  const { habits, weeklyCounts, completedTodayIds, startingPracticeId } = data;
 
   const [editingHabit, setEditingHabit] = useState<PracticeInstance | null>(null);
 
-  // Gentle → extreme.
-  const ordered = useMemo(() => [...habits].sort(compareByIntensity), [habits]);
+  // The onboarding starting-point practice leads; the rest run gentle → extreme.
+  const ordered = useMemo(
+    () =>
+      [...habits].sort((a, b) => {
+        const aStarting = startingPracticeId && a.practice_id === startingPracticeId ? 0 : 1;
+        const bStarting = startingPracticeId && b.practice_id === startingPracticeId ? 0 : 1;
+        return aStarting - bStarting || compareByIntensity(a, b);
+      }),
+    [habits, startingPracticeId]
+  );
 
   const doneTodaySet = useMemo(() => new Set(completedTodayIds), [completedTodayIds]);
   const doneTodayCount = ordered.reduce((n, h) => (doneTodaySet.has(h.id) ? n + 1 : n), 0);
@@ -55,27 +63,36 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
       {ordered.map((habit) => {
         const practice = getPractice(habit.practice_id);
         const tier = getIntensityTier(getPracticeIntensity(habit))!;
+        const isStartingPoint =
+          !!startingPracticeId && habit.practice_id === startingPracticeId;
         return (
-          <PracticeCard
-            key={habit.id}
-            habit={habit}
-            color={getPracticeColor(habit)}
-            tier={tier}
-            icon={practice?.icon || 'ellipse-outline'}
-            why={practice?.whyItWorks || ''}
-            weeklyDone={weeklyCounts[habit.id] || 0}
-            doneToday={doneTodaySet.has(habit.id)}
-            onPress={() => callbacks.onHabitTap(habit)}
-            onEditGoal={() => setEditingHabit(habit)}
-            onOpenPlan={() =>
-              callbacks.onNavigate('HabitActionPlan', {
-                habitId: habit.id,
-                prefilled: habit.action_plan,
-                supportsPairing: !!habit.supports_pairing,
-                reminder: habit.reminder,
-              })
-            }
-          />
+          <View key={habit.id}>
+            {isStartingPoint && (
+              <View style={styles.startingPointBadge}>
+                <Ionicons name="flag" size={12} color={Colors.secondary} />
+                <Text style={styles.startingPointText}>Your starting point</Text>
+              </View>
+            )}
+            <PracticeCard
+              habit={habit}
+              color={getPracticeColor(habit)}
+              tier={tier}
+              icon={practice?.icon || 'ellipse-outline'}
+              why={practice?.whyItWorks || ''}
+              weeklyDone={weeklyCounts[habit.id] || 0}
+              doneToday={doneTodaySet.has(habit.id)}
+              onPress={() => callbacks.onHabitTap(habit)}
+              onEditGoal={() => setEditingHabit(habit)}
+              onOpenPlan={() =>
+                callbacks.onNavigate('HabitActionPlan', {
+                  habitId: habit.id,
+                  prefilled: habit.action_plan,
+                  supportsPairing: !!habit.supports_pairing,
+                  reminder: habit.reminder,
+                })
+              }
+            />
+          </View>
         );
       })}
 
@@ -102,6 +119,20 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
   count: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
+
+  startingPointBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  startingPointText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
 
   empty: {
     alignItems: 'center',
