@@ -2,22 +2,23 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { GroupVolume, PracticeVolume, ChallengeSummary } from '../../services/practiceProgress';
+import { PracticeVolume, ChallengeSummary } from '../../services/practiceProgress';
 
 interface TrainingVolumeSectionProps {
-  groups: GroupVolume[];
+  practices: PracticeVolume[];
   challenges: ChallengeSummary;
   onPracticePress: (habitId: string) => void;
 }
 
 /**
  * The Discipline Map replacement: per-practice training volume for the selected
- * period, as a 2-up card grid grouped Activate / Calm / Restrain. Reps + points
- * lead; logged metric aggregates are secondary. Adopted practices with zero reps
- * render muted ("Untrained") so avoidance stays visible.
+ * period, as a single 2-up card grid ordered gentle → extreme — no category
+ * grouping, since every practice trains the same thing (the override). Reps +
+ * points lead; logged metric aggregates are secondary. Adopted practices with
+ * zero reps render muted ("Untrained") so avoidance stays visible.
  */
 export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
-  groups,
+  practices,
   challenges,
   onPracticePress,
 }) => (
@@ -27,27 +28,16 @@ export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
       Reps and points always count. Time & temp reflect only the reps where you logged them.
     </Text>
 
-    {groups.length === 0 ? (
+    {practices.length === 0 ? (
       <Text style={styles.empty}>
         Adopt practices from Home to see your training volume here.
       </Text>
     ) : (
-      groups.map((group) => (
-        <View key={group.group}>
-          <View style={styles.groupHeader}>
-            <View style={[styles.groupBar, { backgroundColor: group.color }]} />
-            <Text style={styles.groupName}>{group.name.toUpperCase()}</Text>
-            <Text style={styles.groupSum}>
-              {group.reps} reps · {group.points} pts
-            </Text>
-          </View>
-          <View style={styles.grid}>
-            {group.practices.map((p) => (
-              <PracticeCard key={p.habitId} practice={p} onPress={onPracticePress} />
-            ))}
-          </View>
-        </View>
-      ))
+      <View style={styles.grid}>
+        {practices.map((p) => (
+          <PracticeCard key={p.habitId} practice={p} onPress={onPracticePress} />
+        ))}
+      </View>
     )}
 
     <View style={styles.challengeStrip}>
@@ -135,34 +125,11 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginTop: Spacing.md,
   },
-  groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  groupBar: {
-    width: 4,
-    height: 15,
-    borderRadius: 2,
-  },
-  groupName: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xs,
-    letterSpacing: 1.2,
-    color: Colors.dark,
-  },
-  groupSum: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    marginLeft: 'auto',
-  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm + 2,
+    marginTop: Spacing.md,
   },
   card: {
     width: '48%',

@@ -2,11 +2,8 @@ import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 import { CompletionLog, Challenge, PracticeInstance } from '../types';
 import {
-  PracticeGroup,
-  PRACTICE_GROUPS,
   TrackingField,
   getPractice,
-  resolvePracticeGroup,
   compareByIntensity,
   DEFAULT_PRACTICE_COLOR,
 } from '../data/practices';
@@ -37,15 +34,6 @@ export interface PracticeVolume {
   metricLines: string[];
 }
 
-export interface GroupVolume {
-  group: PracticeGroup;
-  name: string;
-  color: string;
-  reps: number;
-  points: number;
-  practices: PracticeVolume[];
-}
-
 export interface ChallengeSummary {
   completions: number;
   points: number;
@@ -69,7 +57,7 @@ export interface PersonalRecord {
 }
 
 export interface PracticeProgress {
-  groups: GroupVolume[];
+  practices: PracticeVolume[];
   challenges: ChallengeSummary;
   quality: TrainingQuality;
   weekScore: number;
@@ -206,16 +194,13 @@ export const getPracticeProgress = async (
     periodNudgeLogsByHabit.set(l.reference_id, list);
   });
 
-  const activeHabits = habits.filter((h) => h.is_active);
-  const groups: GroupVolume[] = [];
-
-  PRACTICE_GROUPS.forEach((groupDef) => {
-    const members = activeHabits
-      .filter((h) => resolvePracticeGroup(h) === groupDef.id)
-      .sort(compareByIntensity);
-    if (members.length === 0) return;
-
-    const practices: PracticeVolume[] = members.map((h) => {
+  // One flat list — every practice trains the same thing (the override), so
+  // there's no Activate/Calm/Restrain grouping. Ordered gentle → extreme to
+  // match the Home practices section.
+  const practices: PracticeVolume[] = habits
+    .filter((h) => h.is_active)
+    .sort(compareByIntensity)
+    .map((h) => {
       const catalog = getPractice(h.practice_id);
       const habitLogs = periodNudgeLogsByHabit.get(h.id) || [];
       return {
@@ -229,16 +214,6 @@ export const getPracticeProgress = async (
         metricLines: buildMetricLines(catalog?.tracking, habitLogs),
       };
     });
-
-    groups.push({
-      group: groupDef.id,
-      name: groupDef.name,
-      color: groupDef.color,
-      reps: practices.reduce((s, p) => s + p.reps, 0),
-      points: practices.reduce((s, p) => s + p.points, 0),
-      practices,
-    });
-  });
 
   // ---- Challenges summary (in period) ----
   const challengeLogs = periodLogs.filter((l) => l.type === 'challenge');
@@ -324,7 +299,7 @@ export const getPracticeProgress = async (
   }
 
   return {
-    groups,
+    practices,
     challenges: challengeSummary,
     quality,
     weekScore,

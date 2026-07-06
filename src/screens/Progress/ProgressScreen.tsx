@@ -151,7 +151,7 @@ export const ProgressScreen: React.FC = () => {
           {/* Training Volume (per-practice card grid + challenges strip) */}
           {progress && (
             <TrainingVolumeSection
-              groups={progress.groups}
+              practices={progress.practices}
               challenges={progress.challenges}
               onPracticePress={(habitId) =>
                 navigation.navigate('HabitDetail', { habitId })
