@@ -249,14 +249,21 @@ export const completePractice = async (
 };
 
 /**
- * Fetch all nudge-type completion logs for a user.
+ * Fetch nudge-type completion logs for a user.
  * Call this once and pass the result to getWeeklyCompletionCountsFromLogs / getHabitsStreaksFromLogs
  * to avoid redundant Firestore reads.
+ *
+ * Pass `sinceDate` (YYYY-MM-DD) to bound the read — the log collection grows
+ * forever, so hot paths (home screen) should fetch a window, not the full
+ * history. Requires the completionLogs (type, date) composite index.
  */
 export const fetchAllNudgeLogs = async (
-  userId: string
+  userId: string,
+  sinceDate?: string
 ): Promise<CompletionLog[]> => {
-  const q = query(logsRef(userId), where('type', '==', 'nudge'));
+  const q = sinceDate
+    ? query(logsRef(userId), where('type', '==', 'nudge'), where('date', '>=', sinceDate))
+    : query(logsRef(userId), where('type', '==', 'nudge'));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompletionLog));
 };
@@ -283,7 +290,9 @@ export const getWeeklyCompletionCountsFromLogs = (
 export const getWeeklyCompletionCounts = async (
   userId: string
 ): Promise<Record<string, number>> => {
-  const logs = await fetchAllNudgeLogs(userId);
+  // Only this week's logs are counted, so only fetch from Monday onward.
+  const { mondayStr } = getCurrentWeekBounds();
+  const logs = await fetchAllNudgeLogs(userId, mondayStr);
   return getWeeklyCompletionCountsFromLogs(logs);
 };
 

@@ -49,7 +49,7 @@ import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, markReminderPromptSeen, getUserProfile } from '../../services/users';
+import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, markReminderPromptSeen } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -282,8 +282,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      // Refresh user profile so totalHabitsCompleted, flags, etc. are current
-      await refreshProfile();
+      // Refresh user profile so totalHabitsCompleted, flags, etc. are current.
+      // Runs concurrently with the main fetch — only the one-time seed check
+      // below waits on it (it needs the fresh has_seeded_practices flag).
+      const profilePromise = refreshProfile();
+      profilePromise.catch(() => {});
 
       // One-time: seed the default practices onto the home BEFORE fetching habits,
       // so they show on the very first load (no race with a separate effect). The
@@ -292,7 +295,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       if (!seedAttemptedRef.current) {
         seedAttemptedRef.current = true;
         try {
-          const prof = await getUserProfile(user.uid);
+          const prof = await profilePromise;
           if (!prof?.has_seeded_practices) {
             const created = await seedDefaultPractices(user.uid);
             await markPracticesSeeded(user.uid);
@@ -315,9 +318,68 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         getActiveGoals(user.uid),
         getWillpowerStats(user.uid),
       ]);
+      // Everything from the parallel batch renders immediately — practices
+      // especially. Follow-up round-trips (nudge logs, challenge maintenance,
+      // weekly plans) happen below and fill in as they arrive.
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
+      setGoals(activeGoals);
+      setPendingInvites(inviteCount);
+      setBuddyChallenges(activeBuddies);
+      setHabits(habitList);
+      // Once per session: schedule any enabled reminders that aren't scheduled yet
+      // (e.g. saved before reminders shipped, or while permission was denied).
+      if (!remindersReconciledRef.current && user) {
+        remindersReconciledRef.current = true;
+        reconcileHabitReminders(user.uid, habitList).catch(() => {});
+      }
+      setTeam(userTeam);
+      setActiveProgram(enrollment);
+      setWillpowerStats(wpStats);
 
+      // Streak-break comeback check-in now fires via the rules engine
+      // ("Comeback check-in" rule, app_open) — see the comebackRule block above.
+
+      // Fetch nudge logs once — reused by weekly counts, streaks, and goal
+      // follow-through. Windowed to the last 120 days so the read stays flat
+      // as history grows; the only casualty is that a current streak longer
+      // than the window displays capped at it.
+      const logWindowStart = new Date();
+      logWindowStart.setDate(logWindowStart.getDate() - 120);
+      let cachedNudgeLogs: Awaited<ReturnType<typeof fetchAllNudgeLogs>> = [];
+      try {
+        cachedNudgeLogs = await fetchAllNudgeLogs(user.uid, toLocalDateString(logWindowStart));
+        setWeeklyCounts(getWeeklyCompletionCountsFromLogs(cachedNudgeLogs));
+        // Habit ids logged today — powers the hero counter + card "Done today" state.
+        const todayStr = getTodayString();
+        setCompletedTodayIds(
+          cachedNudgeLogs.filter((l) => l.date === todayStr).map((l) => l.reference_id)
+        );
+        if (habitList.length > 0) {
+          setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList.map(h => h.id)));
+        }
+      } catch (err) {
+        console.warn('Nudge logs fetch failed:', err);
+      }
+
+      // Compute follow-through for each goal (reuses cached logs)
+      if (activeGoals.length > 0) {
+        try {
+          const logsForGoals = cachedNudgeLogs.map(l => ({ reference_id: l.reference_id, date: l.date }));
+          const ftEntries = await Promise.all(
+            activeGoals.map(async (g) => {
+              const ft = await computeGoalFollowThrough(user.uid, g.id, logsForGoals);
+              return [g.id, ft] as const;
+            })
+          );
+          setGoalFollowThrough(Object.fromEntries(ftEntries));
+        } catch (err) {
+          console.warn('Follow-through computation failed:', err);
+        }
+      }
+
+      // Challenge maintenance + plan context (after the batch state is set,
+      // so none of it blocks the first render of practices):
       // 1. Expire stale daily challenges from previous days
       // 2. Activate scheduled challenges whose date has arrived
       // 3. Convert planned challenges into real Challenge documents
@@ -357,56 +419,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setWeeklyPlans(futurePlans);
       } catch (err) {
         console.warn('Planned items conversion failed:', err);
-      }
-
-      setGoals(activeGoals);
-      setPendingInvites(inviteCount);
-      setBuddyChallenges(activeBuddies);
-      setHabits(habitList);
-      // Once per session: schedule any enabled reminders that aren't scheduled yet
-      // (e.g. saved before reminders shipped, or while permission was denied).
-      if (!remindersReconciledRef.current && user) {
-        remindersReconciledRef.current = true;
-        reconcileHabitReminders(user.uid, habitList).catch(() => {});
-      }
-      setTeam(userTeam);
-      setActiveProgram(enrollment);
-      setWillpowerStats(wpStats);
-
-      // Streak-break comeback check-in now fires via the rules engine
-      // ("Comeback check-in" rule, app_open) — see the comebackRule block above.
-
-      // Fetch all nudge logs once — reused by weekly counts, streaks, and goal follow-through
-      let cachedNudgeLogs: Awaited<ReturnType<typeof fetchAllNudgeLogs>> = [];
-      try {
-        cachedNudgeLogs = await fetchAllNudgeLogs(user.uid);
-        setWeeklyCounts(getWeeklyCompletionCountsFromLogs(cachedNudgeLogs));
-        // Habit ids logged today — powers the hero counter + card "Done today" state.
-        const todayStr = getTodayString();
-        setCompletedTodayIds(
-          cachedNudgeLogs.filter((l) => l.date === todayStr).map((l) => l.reference_id)
-        );
-        if (habitList.length > 0) {
-          setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList.map(h => h.id)));
-        }
-      } catch (err) {
-        console.warn('Nudge logs fetch failed:', err);
-      }
-
-      // Compute follow-through for each goal (reuses cached logs)
-      if (activeGoals.length > 0) {
-        try {
-          const logsForGoals = cachedNudgeLogs.map(l => ({ reference_id: l.reference_id, date: l.date }));
-          const ftEntries = await Promise.all(
-            activeGoals.map(async (g) => {
-              const ft = await computeGoalFollowThrough(user.uid, g.id, logsForGoals);
-              return [g.id, ft] as const;
-            })
-          );
-          setGoalFollowThrough(Object.fromEntries(ftEntries));
-        } catch (err) {
-          console.warn('Follow-through computation failed:', err);
-        }
       }
 
       // Load program day content and check for missed days

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import * as Localization from 'expo-localization';
 import { subscribeToAuth } from '../services/auth';
@@ -10,10 +10,10 @@ interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: User | null;
   loading: boolean;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<User | null>;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, userProfile: null, loading: true, refreshProfile: async () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, userProfile: null, loading: true, refreshProfile: async () => null });
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -47,15 +47,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  const refreshProfile = async () => {
-    if (user) {
-      const profile = await getUserProfile(user.uid);
-      setUserProfile(profile);
-    }
-  };
+  // Stable identity (keyed on user) — consumers list refreshProfile as an
+  // effect dependency, so a fresh function every render would refire their
+  // data loads in a loop. Returns the fetched profile so callers can use it
+  // without a second Firestore read.
+  const refreshProfile = useCallback(async (): Promise<User | null> => {
+    if (!user) return null;
+    const profile = await getUserProfile(user.uid);
+    setUserProfile(profile);
+    return profile;
+  }, [user]);
+
+  const value = useMemo(
+    () => ({ user, userProfile, loading, refreshProfile }),
+    [user, userProfile, loading, refreshProfile]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, refreshProfile }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
