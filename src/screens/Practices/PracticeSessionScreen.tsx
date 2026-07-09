@@ -92,7 +92,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
         <PracticeReady
           practice={practice}
           onBegin={handleBegin}
-          onLearn={() => navigation.navigate('PracticeDetail', { practiceId })}
+          onLearn={() => navigation.navigate('PracticeDetail', { practiceId, readOnly: true })}
         />
       )}
 

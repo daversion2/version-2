@@ -16,6 +16,7 @@ import { AdminScreenProps } from '../../types/navigation';
 import {
   Practice,
   PracticeGroup,
+  PracticeResearchEntry,
   PRACTICE_GROUPS,
   INTENSITY_TIERS,
   IntensityLevel,
@@ -33,6 +34,19 @@ const TIMER_DISPLAYS: NonNullable<Practice['timerDisplay']>[] = ['countdown', 'p
 
 const linesToArray = (s: string): string[] =>
   s.split('\n').map((l) => l.trim()).filter(Boolean);
+
+// "finding | source | url" per line ⇄ research entries. Entries missing a
+// finding or source are dropped rather than saved half-formed.
+const parseResearch = (s: string): PracticeResearchEntry[] =>
+  linesToArray(s)
+    .map((line) => {
+      const [finding, source, url] = line.split('|').map((p) => p.trim());
+      return { finding: finding ?? '', source: source ?? '', ...(url ? { url } : {}) };
+    })
+    .filter((r) => r.finding && r.source);
+
+const researchToLines = (research?: PracticeResearchEntry[]): string =>
+  (research ?? []).map((r) => [r.finding, r.source, r.url].filter(Boolean).join(' | ')).join('\n');
 
 // ---- small form primitives -------------------------------------------------
 
@@ -120,6 +134,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
   const [howTo, setHowTo] = useState('');
   const [tips, setTips] = useState('');
   const [minimumVersion, setMinimumVersion] = useState('');
+  const [research, setResearch] = useState('');
   const [resistanceMoment, setResistanceMoment] = useState('');
   const [optionalReason, setOptionalReason] = useState('');
   const [flow, setFlow] = useState<Practice['flow']>('away');
@@ -152,6 +167,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
           setHowTo(p.howTo.join('\n'));
           setTips(p.tips.join('\n'));
           setMinimumVersion(p.minimumVersion ?? '');
+          setResearch(researchToLines(p.research));
           setResistanceMoment(p.resistanceMoment ?? '');
           setOptionalReason(p.optional_reason ?? '');
           setFlow(p.flow);
@@ -214,6 +230,10 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
     // resurrect a cleared intensity on save.
     if (intensity) merged.intensity = intensity as IntensityLevel;
     else delete merged.intensity;
+
+    // Always write research explicitly: an empty list is a deliberate blank
+    // (it also stops the catalog merge from backfilling the bundled entries).
+    merged.research = parseResearch(research);
 
     if (!validatePractice(merged)) {
       Alert.alert(
@@ -318,6 +338,13 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       <Field label="How to" value={howTo} onChange={setHowTo} multiline hint="One step per line" />
       <Field label="Tips & cautions" value={tips} onChange={setTips} multiline hint="One per line. Prefix a line with CAUTION: for a warning." />
       <Field label="Minimum version (optional)" value={minimumVersion} onChange={setMinimumVersion} multiline />
+      <Field
+        label="Research (optional)"
+        value={research}
+        onChange={setResearch}
+        multiline
+        hint={'One study per line: finding | source | url\ne.g. Cyclic sighing beat mindfulness for mood in a 1-month RCT. | Stanford, 2023 — Cell Reports Medicine | https://…'}
+      />
       <Field label="Optional reason (optional)" value={optionalReason} onChange={setOptionalReason} multiline hint="Why it isn't core (for optional practices)" />
 
       <View style={styles.divider} />

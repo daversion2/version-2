@@ -73,6 +73,20 @@ export interface PracticeVariation {
 }
 
 /**
+ * One study backing a practice, shown in the "The research" section of the
+ * detail screen: a plain-English takeaway, a citation line (institution / year /
+ * journal), and an optional link opened in the browser.
+ */
+export interface PracticeResearchEntry {
+  /** The finding in plain English — what the study showed. */
+  finding: string;
+  /** Citation line, e.g. "Stanford, 2023 — Cell Reports Medicine". */
+  source: string;
+  /** Link to the study; renders a tappable "View study" when present. */
+  url?: string;
+}
+
+/**
  * An optional, per-practice metric the user can log on completion. Rendered by a
  * single generic input in the completion sheet and stored in CompletionLog.metrics
  * under `key`. Numeric fields feed dashboard trends; 'choice' fields feed distributions.
@@ -134,6 +148,8 @@ export interface Practice {
   tips: string[];
   /** Named ways to do it. */
   variations?: PracticeVariation[];
+  /** Key studies behind the practice — the "The research" section. Hidden when empty. */
+  research?: PracticeResearchEntry[];
 
   // ---- Post-completion: tracking + override reflection ----
   /**
@@ -269,6 +285,23 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Body scan', description: 'Move attention slowly from head to toe.' },
       { label: 'Open awareness', description: 'Notice whatever arises without following it.' },
     ],
+    research: [
+      {
+        finding: 'Just 4 days of 20-minute mindfulness training measurably improved attention, working memory, and executive function.',
+        source: 'UNC Charlotte, 2010 — Consciousness and Cognition',
+        url: 'https://pubmed.ncbi.nlm.nih.gov/20363650/',
+      },
+      {
+        finding: 'A review of 47 clinical trials found meditation programs reliably reduce anxiety, depression, and stress.',
+        source: 'Johns Hopkins, 2014 — JAMA Internal Medicine',
+        url: 'https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/1809754',
+      },
+      {
+        finding: '5 days of meditation training improved attention and self-control more than relaxation training in a randomized trial.',
+        source: 'Univ. of Oregon, 2007 — PNAS',
+        url: 'https://www.pnas.org/doi/10.1073/pnas.0707678104',
+      },
+    ],
     resistanceMoment: 'you noticed you’d drifted and wanted to get up or check the time',
     timer: true,
     flow: 'timer',
@@ -326,6 +359,18 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Physiological sigh', description: 'Two inhales through the nose, one long exhale. Fastest reset.' },
       { label: 'Coherent (6-6)', description: 'Inhale 6, exhale 6. No holds — ~5.5 breaths/min, the sweet spot for HRV. Best for longer sessions.' },
       { label: 'Extended exhale (4-8)', description: 'Inhale 4, exhale 8. No holds — the gentlest pattern and the purest long-exhale downshift.' },
+    ],
+    research: [
+      {
+        finding: '5 minutes a day of cyclic sighing boosted mood and lowered anxiety more than mindfulness meditation in a randomized trial.',
+        source: 'Stanford, 2023 — Cell Reports Medicine',
+        url: 'https://pubmed.ncbi.nlm.nih.gov/36630953/',
+      },
+      {
+        finding: "A systematic review found slow breathing activates the body's calming system — raising heart rate variability and easing anxiety.",
+        source: 'Univ. of Pisa, 2018 — Frontiers in Human Neuroscience',
+        url: 'https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2018.00353/full',
+      },
     ],
     timer: true,
     flow: 'timer',
@@ -438,6 +483,18 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Treadmill run', description: 'A run at genuine effort, no audio.' },
       { label: 'Outdoors, unplugged', description: 'Walk or run outside with no phone or earbuds.' },
     ],
+    research: [
+      {
+        finding: "One year of regular aerobic walking grew older adults' hippocampus ~2%, reversing 1–2 years of age-related shrinkage and boosting memory.",
+        source: 'RCT, 120 adults, 2011 — PNAS',
+        url: 'https://www.pnas.org/doi/10.1073/pnas.1015950108',
+      },
+      {
+        finding: 'Pooling 25 trials, exercise produced a large antidepressant effect — bigger than earlier estimates once publication bias was corrected.',
+        source: 'Meta-analysis of 25 RCTs, 2016 — Journal of Psychiatric Research',
+        url: 'https://www.sciencedirect.com/science/article/abs/pii/S0022395616300383',
+      },
+    ],
     resistanceMoment: 'the effort bit, or you wanted to reach for your phone or music',
     flow: 'away',
     ready: {
@@ -495,6 +552,18 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Cold plunge / ice bath', description: 'Submerge to the neck.' },
       { label: 'Face dunk', description: 'Bowl of ice water — triggers the dive reflex fast.' },
     ],
+    research: [
+      {
+        finding: 'An hour in 14°C water raised noradrenaline ~530% and dopamine ~250% — a huge natural surge in focus-and-drive chemistry.',
+        source: 'Human immersion study, 2000 — European Journal of Applied Physiology',
+        url: 'https://link.springer.com/article/10.1007/s004210050065',
+      },
+      {
+        finding: 'A 30-day daily cold-shower habit cut self-reported sickness absence from work by 29% in a 3,000-person trial.',
+        source: 'RCT, 3,018 adults, 2016 — PLOS ONE',
+        url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0161749',
+      },
+    ],
     resistanceMoment: 'the cold hit and everything said get out',
     flow: 'away',
     ready: {
@@ -541,6 +610,18 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Sauna', description: 'Dry or infrared, ~10–20 min.' },
       { label: 'Hot bath', description: 'A hot soak when no sauna is available.' },
       { label: 'Contrast', description: 'Alternate heat and cold.' },
+    ],
+    research: [
+      {
+        finding: 'Men who used a sauna 4–7 times a week had a 63% lower risk of sudden cardiac death than once-a-week users over 20 years.',
+        source: 'Cohort of 2,315 Finnish men, 2015 — JAMA Internal Medicine',
+        url: 'https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/2130724',
+      },
+      {
+        finding: 'Frequent sauna use (4–7×/week) was linked to a 66% lower risk of dementia and 65% lower Alzheimer’s risk over ~20 years.',
+        source: 'Cohort of 2,315 Finnish men, 2017 — Age and Ageing',
+        url: 'https://academic.oup.com/ageing/article/46/2/245/2654230',
+      },
     ],
     resistanceMoment: 'the heat got intense and you wanted to leave',
     flow: 'away',
@@ -592,6 +673,18 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Single-task', description: 'Do one thing slowly, with no second screen.' },
       { label: 'Phone-free walk', description: 'Walk with no phone or earbuds.' },
     ],
+    research: [
+      {
+        finding: 'People found sitting alone with their thoughts so hard that many chose to give themselves electric shocks instead.',
+        source: 'Univ. of Virginia & Harvard, 2014 — Science',
+        url: 'https://www.science.org/doi/10.1126/science.1250830',
+      },
+      {
+        finding: 'People who did a boring task first came up with more creative ideas afterward — boredom sparks the daydreaming that fuels creativity.',
+        source: 'Univ. of Central Lancashire, 2014 — Creativity Research Journal',
+        url: 'https://www.tandfonline.com/doi/full/10.1080/10400419.2014.901073',
+      },
+    ],
     resistanceMoment: 'you reached for your phone or something to fill the space',
     flow: 'timer',
     timerDisplay: 'hidden',
@@ -639,6 +732,18 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Skip a meal', description: 'Drop one meal deliberately.' },
       { label: '24-hour', description: 'Advanced: one full day, occasionally.' },
     ],
+    research: [
+      {
+        finding: 'Fasting 18+ hours flips your body from burning sugar to burning fat (ketones), boosting stress resistance and cellular repair.',
+        source: 'Review, 2019 — New England Journal of Medicine',
+        url: 'https://www.nejm.org/doi/full/10.1056/NEJMra1905136',
+      },
+      {
+        finding: 'Eating only within a 6-hour early window improved insulin sensitivity and blood pressure in prediabetic men — even without weight loss.',
+        source: 'RCT, 2018 — Cell Metabolism',
+        url: 'https://www.cell.com/cell-metabolism/fulltext/S1550-4131(18)30253-5',
+      },
+    ],
     resistanceMoment: 'a craving spiked and you wanted to eat',
     // Parked: needs its own background-state model (12–36 hr, hunger waves). No
     // session briefing yet — see build plan.
@@ -680,6 +785,18 @@ export const BUNDLED_PRACTICES: Practice[] = [
       { label: 'Plain protein + veg', description: 'A simple whole-food meal, minimally seasoned.' },
       { label: 'Swap one item', description: 'Replace the most craving-driven part of a meal with a healthy plain option.' },
       { label: 'No-extras meal', description: 'Eat it without the condiments and add-ons that make it enjoyable.' },
+    ],
+    research: [
+      {
+        finding: 'Adults with major depression who switched to a healthy diet for 12 weeks were 4× more likely to reach remission than controls.',
+        source: 'RCT (SMILES trial), 2017 — BMC Medicine',
+        url: 'https://link.springer.com/article/10.1186/s12916-017-0791-y',
+      },
+      {
+        finding: 'On an ultra-processed diet people ate ~500 extra calories a day and gained weight — versus losing it on whole foods matched for nutrients.',
+        source: 'Inpatient RCT, 2019 — Cell Metabolism',
+        url: 'https://www.cell.com/cell-metabolism/fulltext/S1550-4131(19)30248-7',
+      },
     ],
     resistanceMoment: 'you wanted to swap it for something tastier or reach for what you were craving',
     // 'moment' flow (pre-commit → confirm) is built in Phase 5; briefing copy is

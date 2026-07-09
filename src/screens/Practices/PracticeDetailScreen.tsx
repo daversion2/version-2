@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -25,6 +25,9 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
   // with an instance `habitId` and no catalog entry.
   const practiceId = 'practiceId' in route.params ? route.params.practiceId : undefined;
   const customHabitId = 'habitId' in route.params ? route.params.habitId : undefined;
+  // Opened mid-session ("Learn more" on the Ready screen): pure reading material,
+  // no adopt/status CTAs — you can't start a session from inside a session.
+  const readOnly = !!route.params.readOnly;
   const practice = getPractice(practiceId);
   const { user } = useAuth();
 
@@ -33,7 +36,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!user || readOnly) return;
     const [hs, counts] = await Promise.all([
       getActiveHabits(user.uid),
       getWeeklyCompletionCounts(user.uid),
@@ -49,7 +52,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
     }
     setHabit(found);
     setWeekDone(found ? counts[found.id] ?? 0 : 0);
-  }, [user, practice, customHabitId]);
+  }, [user, readOnly, practice, customHabitId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -114,8 +117,9 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
           {practice && <Text style={styles.overview}>{practice.description}</Text>}
         </View>
 
-        {/* Adopt (un-adopted) or a read-only status (adopted). Completion is on Home. */}
-        {!adopted ? (
+        {/* Adopt (un-adopted) or a read-only status (adopted). Completion is on Home.
+            Hidden entirely when opened mid-session as reading material. */}
+        {readOnly ? null : !adopted ? (
           <TouchableOpacity
             style={[styles.cta, { backgroundColor: color }]}
             onPress={handleAdopt}
@@ -166,6 +170,30 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
         <Section title="Why it works">
           <Text style={styles.bodyText}>{practice.science}</Text>
         </Section>
+
+        {/* Research */}
+        {practice.research && practice.research.length > 0 && (
+          <Section title="The research">
+            {practice.research.map((r, i) => (
+              <View key={i} style={[styles.researchRow, i > 0 && styles.researchDivider]}>
+                <Text style={styles.researchFinding}>{r.finding}</Text>
+                <View style={styles.researchMeta}>
+                  <Text style={styles.researchSource}>{r.source}</Text>
+                  {r.url && (
+                    <TouchableOpacity
+                      style={styles.researchLinkRow}
+                      onPress={() => Linking.openURL(r.url!)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.researchLink, { color }]}>View study</Text>
+                      <Ionicons name="open-outline" size={13} color={color} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
+          </Section>
+        )}
 
         {/* Variations */}
         {practice.variations && practice.variations.length > 0 && (
@@ -255,6 +283,19 @@ const styles = StyleSheet.create({
   minBox: { borderLeftWidth: 3, paddingLeft: Spacing.sm, marginTop: Spacing.xs },
   minLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray, textTransform: 'uppercase' },
   minText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: 1 },
+  researchRow: { paddingVertical: Spacing.xs },
+  researchDivider: { borderTopWidth: 1, borderTopColor: Colors.border, marginTop: Spacing.xs, paddingTop: Spacing.sm },
+  researchFinding: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
+  researchMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  researchSource: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
+  researchLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  researchLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
   variationRow: { marginBottom: Spacing.sm },
   variationLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
   variationDesc: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, marginTop: 1 },

@@ -107,7 +107,8 @@ export type HomeStackParamList = {
   ManageHabits: { openAddForm?: boolean } | undefined;
   // Curated practices open by catalog `practiceId`; user-authored (custom)
   // practices open by their instance `habitId`. (Was in the retired Practices tab.)
-  PracticeDetail: { practiceId: string } | { habitId: string };
+  // `readOnly` hides adopt/status CTAs — used when opened mid-session as "Learn more".
+  PracticeDetail: { practiceId: string; readOnly?: boolean } | { habitId: string; readOnly?: boolean };
   HabitDetail: { habitId: string };
   HabitActionPlan: {
     habitId: string;

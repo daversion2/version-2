@@ -61,14 +61,6 @@ export const PracticeReady: React.FC<Props> = ({ practice, onBegin, onLearn }) =
           <ReadyBlock icon="flame-outline" label="The override" text={ready.override} accent={accent} />
         )}
         <ReadyBlock icon="locate-outline" label="Focus on" text={ready.focus} accent={accent} />
-
-        {onLearn && (
-          <TouchableOpacity style={styles.learnRow} onPress={onLearn} activeOpacity={0.7}>
-            <Ionicons name="book-outline" size={16} color={accent} />
-            <Text style={[styles.learnText, { color: accent }]}>Learn how &amp; why</Text>
-            <Ionicons name="chevron-forward" size={14} color={accent} />
-          </TouchableOpacity>
-        )}
       </ScrollView>
 
       {/* Handoff */}
@@ -81,11 +73,13 @@ export const PracticeReady: React.FC<Props> = ({ practice, onBegin, onLearn }) =
           <Text style={styles.ctaText}>{ctaLabel}</Text>
           <Ionicons name="arrow-forward" size={18} color={Colors.white} />
         </TouchableOpacity>
-        {/* "Skip the brief" advances the same way — a fast path for veterans.
-            Remembering the preference per-practice is a later iteration. */}
-        <TouchableOpacity style={styles.skip} onPress={onBegin} activeOpacity={0.7}>
-          <Text style={styles.skipText}>I know this one — skip brief</Text>
-        </TouchableOpacity>
+        {onLearn && (
+          <TouchableOpacity style={styles.learnRow} onPress={onLearn} activeOpacity={0.7}>
+            <Ionicons name="book-outline" size={16} color={accent} />
+            <Text style={[styles.learnText, { color: accent }]}>Learn more</Text>
+            <Ionicons name="chevron-forward" size={14} color={accent} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -129,6 +123,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   blockText: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.dark, lineHeight: 22 },
+  footer: { padding: Spacing.lg, paddingTop: Spacing.sm },
   learnRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -138,7 +133,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   learnText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
-  footer: { padding: Spacing.lg, paddingTop: Spacing.sm },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -148,11 +142,4 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   ctaText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
-  skip: { paddingVertical: Spacing.sm, alignItems: 'center' },
-  skipText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    textDecorationLine: 'underline',
-  },
 });
