@@ -39,7 +39,7 @@ const ANCHOR_STEP: StepDef = {
   question: 'After which daily routine will you do this?',
   placeholder: 'e.g. walk the dog, sit down at my desk',
   scienceNote:
-    'Stacking a new habit onto an existing routine ("After I ___, I will ___") borrows a cue your brain already fires automatically — far more reliable than time of day alone.',
+    'Stacking a new practice onto an existing routine ("After I ___, I will ___") borrows a cue your brain already fires automatically — far more reliable than time of day alone.',
 };
 
 const PAIRING_STEP: StepDef = {
@@ -57,7 +57,7 @@ const TEXT_STEPS: StepDef[] = [
     key: 'environment_change',
     question: "What's one thing you can change about your environment to make this easier?",
     placeholder: 'e.g. Put my journal on my nightstand the night before',
-    scienceNote: 'Reducing friction and adding visible cues dramatically boosts habit completion rates.',
+    scienceNote: 'Reducing friction and adding visible cues dramatically boosts practice completion rates.',
   },
   {
     kind: 'text',
@@ -69,14 +69,14 @@ const TEXT_STEPS: StepDef[] = [
   {
     kind: 'text',
     key: 'minimum_version',
-    question: "What's the smallest version of this habit you can do on a really hard day?",
+    question: "What's the smallest version of this practice you can do on a really hard day?",
     placeholder: 'e.g. Even just put on my shoes and step outside',
-    scienceNote: 'A fallback habit prevents all-or-nothing thinking and protects your streak when motivation is low.',
+    scienceNote: 'A fallback version prevents all-or-nothing thinking and protects your streak when motivation is low.',
   },
   {
     kind: 'text',
     key: 'accountability_person',
-    question: 'Who can you tell about this habit for accountability?',
+    question: 'Who can you tell about this practice for accountability?',
     placeholder: "e.g. I'll update my partner every Sunday on how the week went",
     scienceNote: 'Sharing your goal with a specific person raises follow-through rates by ~65%.',
   },
@@ -315,7 +315,7 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
             {!!answers.anchor && (
               <Text style={styles.anchorPreview}>
                 After I <Text style={styles.anchorPreviewStrong}>{answers.anchor}</Text>, I&apos;ll do
-                this habit.
+                this practice.
               </Text>
             )}
 

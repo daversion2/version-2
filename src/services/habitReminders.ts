@@ -54,7 +54,7 @@ export const ensureReminderPermissions = async (): Promise<boolean> => {
   if (finalStatus !== 'granted') return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL, {
-      name: 'Habit reminders',
+      name: 'Practice reminders',
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
