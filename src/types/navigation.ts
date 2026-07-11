@@ -229,8 +229,6 @@ export type AdminStackParamList = {
   AdminCategories: undefined;
   AdminMicroExercises: undefined;
   AdminMicroExerciseEdit: { mode: 'create' | 'edit'; feelingKey?: string };
-  AdminReflectionPrompts: undefined;
-  AdminReflectionPromptEdit: { mode: 'create' | 'edit'; promptId?: string };
   AdminPractices: undefined;
   AdminPracticeEdit: { mode: 'create' | 'edit'; practiceId?: string };
 };

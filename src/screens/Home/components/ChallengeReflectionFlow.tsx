@@ -2,87 +2,54 @@ import React, { useEffect, useState } from 'react';
 import { Modal } from 'react-native';
 import { Colors } from '../../../constants/theme';
 import { StepFlowShell } from '../../../components/common/StepFlowShell';
-import { ReflectionPromptStep } from './ReflectionPromptStep';
-import { ReflectionPrompt } from '../../../services/challengeReflectionConfig';
+import { MindReflectionStep } from './MindReflectionStep';
+import { buildMindReflectionNote } from '../../../data/mindTags';
 
 interface ChallengeReflectionFlowProps {
   visible: boolean;
-  prompts: ReflectionPrompt[];
   accentColor?: string;
-  /** Prefill answers when re-opening to edit a reflection already captured. */
-  initialAnswers?: Record<string, string>;
-  onComplete: (joinedNote: string, answers: Record<string, string>) => void;
+  /** Prefill when re-opening to edit a reflection already captured. */
+  initialText?: string;
+  initialTags?: string[];
+  onComplete: (joinedNote: string, text: string, tags: string[]) => void;
   onCancel: () => void;
 }
 
-/** Build the reflection_note string: drop blank answers, keep prompt + answer. */
-export const buildReflectionNote = (
-  prompts: ReflectionPrompt[],
-  answers: Record<string, string>
-): string =>
-  prompts
-    .map((p) => ({ q: p.prompt, a: (answers[p.id] || '').trim() }))
-    .filter((e) => e.a.length > 0)
-    .map((e) => `${e.q}\n${e.a}`)
-    .join('\n\n')
-    .trim();
-
 /**
- * Conversational post-challenge reflection — a full-screen Modal overlay that
- * walks the user through the admin-configured prompts one per screen, then
- * hands a single joined note back to the host (CompleteChallengeScreen). All
- * prompts are optional; the host's Submit works with or without a reflection.
- * The flow chrome lives in <StepFlowShell>, shared with the practice Capture.
+ * Post-challenge reflection — a full-screen Modal overlay asking the single
+ * mind-noticing question (tags + free text), then handing the joined note plus
+ * the structured pieces back to the host (CompleteChallengeScreen). Entirely
+ * optional; the host's Submit works with or without a reflection. The flow
+ * chrome lives in <StepFlowShell>, shared with the practice Capture.
  */
 export const ChallengeReflectionFlow: React.FC<ChallengeReflectionFlowProps> = ({
   visible,
-  prompts,
   accentColor = Colors.success,
-  initialAnswers,
+  initialText,
+  initialTags,
   onComplete,
   onCancel,
 }) => {
-  const [index, setIndex] = useState(0);
-  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [text, setText] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
 
-  // Reset to the start whenever the flow is (re)opened.
+  // Reset to the prefill whenever the flow is (re)opened.
   useEffect(() => {
     if (visible) {
-      setIndex(0);
-      setDirection('forward');
-      setAnswers(initialAnswers ?? {});
+      setText(initialText ?? '');
+      setTags(initialTags ?? []);
     }
   }, [visible]);
 
-  const total = prompts.length;
-  const current = prompts[index];
-  const isLast = index === total - 1;
-  const canContinue = !!current && (answers[current.id] || '').trim().length > 0;
-
-  const goNext = () => {
-    if (isLast) {
-      onComplete(buildReflectionNote(prompts, answers), answers);
-      return;
-    }
-    setDirection('forward');
-    setIndex((prev) => prev + 1);
+  const toggleTag = (id: string) => {
+    setTags((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
   };
 
-  const goBack = () => {
-    if (index <= 0) return;
-    setDirection('backward');
-    setIndex((prev) => prev - 1);
+  const canContinue = text.trim().length > 0 || tags.length > 0;
+
+  const finish = () => {
+    onComplete(buildMindReflectionNote(text, tags), text.trim(), tags);
   };
-
-  const updateAnswer = (value: string) => {
-    if (!current) return;
-    setAnswers((prev) => ({ ...prev, [current.id]: value }));
-  };
-
-  if (!current) return null;
-
-  const progress = total > 0 ? (index + 1) / total : 0;
 
   return (
     <Modal
@@ -92,24 +59,25 @@ export const ChallengeReflectionFlow: React.FC<ChallengeReflectionFlowProps> = (
       presentationStyle="fullScreen"
     >
       <StepFlowShell
-        progress={progress}
-        stepKey={current.id}
-        direction={direction}
+        progress={1}
+        stepKey="mind-reflection"
+        direction="forward"
         accentColor={accentColor}
-        canGoBack={index > 0}
-        onBack={goBack}
+        canGoBack={false}
+        onBack={() => {}}
         onCancel={onCancel}
         canContinue={canContinue}
         allowSkip
-        nextLabel={isLast ? 'Done' : 'Next'}
-        skipLabel={isLast ? 'Skip & finish' : 'Skip'}
-        isLast={isLast}
-        onNext={goNext}
+        nextLabel="Done"
+        skipLabel="Skip & finish"
+        isLast
+        onNext={finish}
       >
-        <ReflectionPromptStep
-          prompt={current}
-          value={answers[current.id] || ''}
-          onChange={updateAnswer}
+        <MindReflectionStep
+          text={text}
+          onChangeText={setText}
+          selectedTags={tags}
+          onToggleTag={toggleTag}
           color={accentColor}
         />
       </StepFlowShell>

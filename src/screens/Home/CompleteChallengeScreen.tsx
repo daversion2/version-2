@@ -14,7 +14,6 @@ import { Button } from '../../components/common/Button';
 import { DifficultySelector } from '../../components/common/DifficultySelector';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
-import { useTools } from '../../context/ToolsContext';
 import { ChallengeReflectionFlow } from './components/ChallengeReflectionFlow';
 import { completeChallenge, saveReflectionAnswers, cancelChallenge, getChallengeRepeatStats, getRepeatMilestone, getTotalCompletionCount } from '../../services/challenges';
 import { showConfirm } from '../../utils/alert';
@@ -48,15 +47,15 @@ type Props = HomeScreenProps<'CompleteChallenge'>;
 
 export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuth();
-  const { reflectionPrompts } = useTools();
   const challenge = route.params?.challenge;
 
   const [result, setResult] = useState<'completed' | 'failed' | null>(null);
   const [difficulty, setDifficulty] = useState(3);
   const [journalEntry, setJournalEntry] = useState('');
-  // Conversational reflection flow state (success path)
+  // Mind-noticing reflection flow state (success path)
   const [reflecting, setReflecting] = useState(false);
-  const [reflectionAnswers, setReflectionAnswers] = useState<Record<string, string>>({});
+  const [reflectionText, setReflectionText] = useState('');
+  const [reflectionTags, setReflectionTags] = useState<string[]>([]);
   const [failureReflection, setFailureReflection] = useState('');
   const [showPrompts, setShowPrompts] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -194,7 +193,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
       // Save reflection answers for completed challenges
       if (result === 'completed' && trimmedJournal) {
-        await saveReflectionAnswers(user.uid, challenge.id, trimmedJournal);
+        await saveReflectionAnswers(user.uid, challenge.id, trimmedJournal, reflectionTags);
       }
 
       // Check for repeat milestone (5, 10, 25, 50, 100)
@@ -442,42 +441,38 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             </View>
           )}
 
-          {reflectionPrompts.length > 0 && (
-            <>
-              <View style={styles.journalHeader}>
-                <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Reflection</Text>
-              </View>
-              <Text style={styles.journalSubtext}>Optional — earns bonus XP</Text>
+          <View style={styles.journalHeader}>
+            <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Reflection</Text>
+          </View>
+          <Text style={styles.journalSubtext}>Optional — earns bonus XP</Text>
 
-              {journalEntry.trim() ? (
-                <Card style={styles.reflectionReadback}>
-                  <Text style={styles.reflectionReadbackText}>{journalEntry}</Text>
-                  <TouchableOpacity
-                    style={styles.reflectionEditLink}
-                    onPress={() => setReflecting(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="create-outline" size={16} color={Colors.primary} />
-                    <Text style={styles.reflectionEditText}>Edit reflection</Text>
-                  </TouchableOpacity>
-                </Card>
-              ) : (
-                <TouchableOpacity
-                  style={styles.reflectCta}
-                  onPress={() => setReflecting(true)}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="chatbubbles-outline" size={22} color={Colors.success} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.reflectCtaTitle}>Reflect on your win</Text>
-                    <Text style={styles.reflectCtaSubtitle}>
-                      A few quick prompts to lock in what you learned
-                    </Text>
-                  </View>
-                  <Ionicons name="arrow-forward" size={18} color={Colors.success} />
-                </TouchableOpacity>
-              )}
-            </>
+          {journalEntry.trim() ? (
+            <Card style={styles.reflectionReadback}>
+              <Text style={styles.reflectionReadbackText}>{journalEntry}</Text>
+              <TouchableOpacity
+                style={styles.reflectionEditLink}
+                onPress={() => setReflecting(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={16} color={Colors.primary} />
+                <Text style={styles.reflectionEditText}>Edit reflection</Text>
+              </TouchableOpacity>
+            </Card>
+          ) : (
+            <TouchableOpacity
+              style={styles.reflectCta}
+              onPress={() => setReflecting(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubbles-outline" size={22} color={Colors.success} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.reflectCtaTitle}>Reflect on your win</Text>
+                <Text style={styles.reflectCtaSubtitle}>
+                  One quick question — what did you notice your mind doing?
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={18} color={Colors.success} />
+            </TouchableOpacity>
           )}
         </>
       )}
@@ -552,12 +547,13 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       />
       <ChallengeReflectionFlow
         visible={reflecting}
-        prompts={reflectionPrompts}
         accentColor={Colors.success}
-        initialAnswers={reflectionAnswers}
-        onComplete={(note, answers) => {
+        initialText={reflectionText}
+        initialTags={reflectionTags}
+        onComplete={(note, text, tags) => {
           setJournalEntry(note);
-          setReflectionAnswers(answers);
+          setReflectionText(text);
+          setReflectionTags(tags);
           setReflecting(false);
         }}
         onCancel={() => setReflecting(false)}

@@ -12,10 +12,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Slider } from '../common/Slider';
 import { StepFlowShell } from '../common/StepFlowShell';
 import { AppMessage } from '../../screens/Tools/components/AppMessage';
-import { ReflectionPromptStep } from '../../screens/Home/components/ReflectionPromptStep';
-import { buildReflectionNote } from '../../screens/Home/components/ChallengeReflectionFlow';
-import { useTools } from '../../context/ToolsContext';
-import { ReflectionPrompt } from '../../services/challengeReflectionConfig';
+import { MindReflectionStep } from '../../screens/Home/components/MindReflectionStep';
+import { buildMindReflectionNote } from '../../data/mindTags';
 import { PracticeCompletionInput } from '../../types';
 import { getPractice, TrackingField } from '../../data/practices';
 
@@ -34,17 +32,17 @@ interface Props {
 type Step =
   | { kind: 'difficulty'; key: 'difficulty' }
   | { kind: 'tracking'; key: string; field: TrackingField }
-  | { kind: 'prompt'; key: string; prompt: ReflectionPrompt };
+  | { kind: 'reflection'; key: 'reflection' };
 
 /**
  * The "Capture" beat of a practice rep — difficulty (the only required step,
  * so a quick log is still two taps), per-practice tracking, then the SAME
- * admin-configured reflection questions the post-challenge flow asks, rendered
- * through the same <StepFlowShell> + <ReflectionPromptStep>. Answers are
- * joined into the log's notes and stored structured under `reflection`;
- * describing a hardest moment counts as hitting the hard moment for the daily
- * summary. Hosted full-screen by both the forward PracticeSession flow and
- * the retroactive HabitCompletionModal.
+ * single mind-noticing reflection the post-challenge flow asks, rendered
+ * through the same <StepFlowShell> + <MindReflectionStep>. The answer is
+ * joined into the log's notes and stored structured (`reflection` text +
+ * `mindTags`); any noticing — tags or text — counts as hitting the hard
+ * moment for the daily summary. Hosted full-screen by both the forward
+ * PracticeSession flow and the retroactive HabitCompletionModal.
  */
 export const PracticeCaptureFlow: React.FC<Props> = ({
   practiceId,
@@ -56,13 +54,13 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
 }) => {
   const practice = getPractice(practiceId);
   const tracking = practice?.tracking ?? [];
-  const { reflectionPrompts } = useTools();
 
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
   const [metrics, setMetrics] = useState<Record<string, number | string>>(initialMetrics ?? {});
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [reflectionText, setReflectionText] = useState('');
+  const [mindTags, setMindTags] = useState<string[]>([]);
   const submittedRef = useRef(false);
 
   const steps: Step[] = useMemo(() => {
@@ -70,12 +68,10 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     tracking.forEach((field) =>
       list.push({ kind: 'tracking', key: `track_${field.key}`, field })
     );
-    reflectionPrompts.forEach((prompt) =>
-      list.push({ kind: 'prompt', key: `prompt_${prompt.id}`, prompt })
-    );
+    list.push({ kind: 'reflection', key: 'reflection' });
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [practiceId, reflectionPrompts]);
+  }, [practiceId]);
 
   const current = steps[Math.min(index, steps.length - 1)];
   const isLast = index >= steps.length - 1;
@@ -86,8 +82,8 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
         return !!selected;
       case 'tracking':
         return metrics[current.field.key] !== undefined;
-      case 'prompt':
-        return (answers[current.prompt.id] || '').trim().length > 0;
+      case 'reflection':
+        return reflectionText.trim().length > 0 || mindTags.length > 0;
     }
   })();
 
@@ -95,23 +91,20 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     if (!selected || submittedRef.current) return;
     submittedRef.current = true;
 
-    const reflection: Record<string, string> = {};
-    reflectionPrompts.forEach((p) => {
-      const a = (answers[p.id] || '').trim();
-      if (a) reflection[p.id] = a;
-    });
-    const note = buildReflectionNote(reflectionPrompts, answers);
-    // A described hardest moment counts as hitting the hard moment — this is
-    // what feeds the daily summary's "pushed through the hard moment" count.
-    const firstPromptId = reflectionPrompts[0]?.id;
-    const hitHardMoment = firstPromptId && reflection[firstPromptId] ? true : undefined;
+    const text = reflectionText.trim();
+    const note = buildMindReflectionNote(reflectionText, mindTags);
+    // Any noticing — a tag or written text — counts as hitting the hard
+    // moment; this feeds the daily summary's "pushed through the hard moment"
+    // count.
+    const hitHardMoment = text || mindTags.length ? true : undefined;
 
     onSubmit({
       difficulty: selected,
       notes: note || undefined,
       metrics: Object.keys(metrics).length ? metrics : undefined,
       hitHardMoment,
-      reflection: Object.keys(reflection).length ? reflection : undefined,
+      reflection: text ? { noticing: text } : undefined,
+      mindTags: mindTags.length ? mindTags : undefined,
     });
   };
 
@@ -194,14 +187,19 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
   };
 
   const renderStep = () => {
-    // Reflection prompts render the exact same step component as the
-    // post-challenge flow — question bubble, input style, optional badge.
-    if (current.kind === 'prompt') {
+    // The reflection renders the exact same step component as the
+    // post-challenge flow — question bubble, mind tags, free text.
+    if (current.kind === 'reflection') {
       return (
-        <ReflectionPromptStep
-          prompt={current.prompt}
-          value={answers[current.prompt.id] || ''}
-          onChange={(v) => setAnswers((prev) => ({ ...prev, [current.prompt.id]: v }))}
+        <MindReflectionStep
+          text={reflectionText}
+          onChangeText={setReflectionText}
+          selectedTags={mindTags}
+          onToggleTag={(id) =>
+            setMindTags((prev) =>
+              prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+            )
+          }
           color={accentColor}
         />
       );

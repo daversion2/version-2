@@ -298,10 +298,11 @@ export const getChallengeById = async (
 export const saveReflectionAnswers = async (
   userId: string,
   challengeId: string,
-  reflectionNote: string
+  reflectionNote: string,
+  mindTags: string[] = []
 ) => {
   const ref = doc(db, 'users', userId, 'challenges', challengeId);
-  await updateDoc(ref, { reflection_note: reflectionNote });
+  await updateDoc(ref, { reflection_note: reflectionNote, mind_tags: mindTags });
 };
 
 export const getAllChallenges = async (userId: string): Promise<Challenge[]> => {

@@ -130,6 +130,8 @@ export interface Challenge {
   difficulty_actual?: number; // 1-5
   points_awarded?: number;
   reflection_note?: string;
+  /** Selected mind tag ids from the post-challenge reflection (data/mindTags.ts). */
+  mind_tags?: string[];
   reflection_hardest_moment?: string;
   reflection_push_through?: string;
   reflection_next_time?: string;
@@ -246,14 +248,16 @@ export interface CompletionLog {
   // schema change. See Practice.tracking in data/practices.ts.
   metrics?: Record<string, number | string>;
   // Override reflection. `hitHardMoment` is derived from the shared reflection flow
-  // (a described hardest moment counts as one) and still powers the daily summary.
-  // `tactics` (OVERRIDE_TACTICS ids) were captured by the pre-2026-07 gate/chips UI;
-  // historical logs keep them but the unified reflection flow no longer collects them.
+  // (any noticing — a mind tag or written text — counts) and still powers the daily
+  // summary. `tactics` (OVERRIDE_TACTICS ids) were captured by the pre-2026-07
+  // gate/chips UI; historical logs keep them but the reflection no longer collects them.
   hitHardMoment?: boolean;
   tactics?: string[];
-  // Structured answers from the shared reflection flow, keyed by prompt id
-  // (only non-blank answers). `notes` holds the joined human-readable note.
+  // The mind-noticing reflection: free text under the 'noticing' key (historical
+  // logs hold the old five-prompt answers keyed by prompt id) plus the selected
+  // mind tag ids (data/mindTags.ts). `notes` holds the joined human-readable note.
   reflection?: Record<string, string>;
+  mindTags?: string[];
   // Before/after emotional state tracking (habit check-ins only)
   energyBefore?: -1 | 1 | null;
   moodBefore?: -1 | 1 | null;
@@ -272,8 +276,10 @@ export interface PracticeCompletionInput {
   metrics?: Record<string, number | string>;
   hitHardMoment?: boolean;
   tactics?: string[];
-  /** Structured answers from the shared reflection flow, keyed by prompt id. */
+  /** Mind-noticing reflection text, stored under the 'noticing' key. */
   reflection?: Record<string, string>;
+  /** Selected mind tag ids (data/mindTags.ts). */
+  mindTags?: string[];
 }
 
 // =============================================================================

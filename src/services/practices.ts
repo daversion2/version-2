@@ -123,8 +123,10 @@ export interface CompletionExtras {
   metrics?: Record<string, number | string>;
   hitHardMoment?: boolean;
   tactics?: string[];
-  /** Structured answers from the shared reflection flow, keyed by prompt id. */
+  /** Mind-noticing reflection text, stored under the 'noticing' key. */
   reflection?: Record<string, string>;
+  /** Selected mind tag ids (data/mindTags.ts). */
+  mindTags?: string[];
 }
 
 /**
@@ -176,6 +178,9 @@ export const logHabitCompletion = async (
   if (extras?.reflection && Object.keys(extras.reflection).length) {
     logData.reflection = extras.reflection;
   }
+  if (extras?.mindTags && extras.mindTags.length) {
+    logData.mindTags = extras.mindTags;
+  }
 
   const docRef = await addDoc(logsRef(userId), logData);
   await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
@@ -204,7 +209,7 @@ export const completePractice = async (
   practice: { id: string; name: string },
   input: PracticeCompletionInput,
 ): Promise<CompletePracticeResult> => {
-  const { difficulty, notes, metrics, hitHardMoment, tactics, reflection } = input;
+  const { difficulty, notes, metrics, hitHardMoment, tactics, reflection, mindTags } = input;
 
   // First-ever completion of this practice → bump the user's sampler counter
   // (powers the {practices_tried} rule placeholder) and flag the first-try
@@ -225,6 +230,7 @@ export const completePractice = async (
     hitHardMoment,
     tactics,
     reflection,
+    mindTags,
   });
 
   // Award XP using the streak-aware multiplier; first time trying a practice
