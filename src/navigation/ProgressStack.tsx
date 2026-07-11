@@ -15,8 +15,6 @@ import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallen
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { CreateChallengeScreen } from '../screens/Home/CreateChallengeScreen';
-import { ArenaDetailScreen } from '../screens/Arenas/ArenaDetailScreen';
-import { BaselineTestScreen } from '../screens/Arenas/BaselineTestScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<ProgressStackParamList>();
@@ -100,16 +98,6 @@ export const ProgressStack: React.FC = () => (
       name="CreateChallenge"
       component={CreateChallengeScreen}
       options={{ title: 'New Challenge' }}
-    />
-    <Stack.Screen
-      name="ArenaDetail"
-      component={ArenaDetailScreen}
-      options={{ title: 'Arena' }}
-    />
-    <Stack.Screen
-      name="BaselineTest"
-      component={BaselineTestScreen}
-      options={{ title: 'Baseline Test' }}
     />
   </Stack.Navigator>
 );

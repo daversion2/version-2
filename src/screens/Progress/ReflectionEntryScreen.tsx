@@ -5,9 +5,9 @@ import { Card } from '../../components/common/Card';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { DailyReflection } from '../../types';
 import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
-import { GoalsScreenProps } from '../../types/navigation';
+import { ProgressScreenProps } from '../../types/navigation';
 
-type Props = GoalsScreenProps<'ReflectionEntry'>;
+type Props = ProgressScreenProps<'ReflectionEntry'>;
 
 export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
   const reflection = route.params.reflection;

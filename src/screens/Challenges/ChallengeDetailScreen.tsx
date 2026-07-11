@@ -8,14 +8,14 @@ import { useAuth } from '../../context/AuthContext';
 import { getChallengeById, deleteChallenge, getChallengeRepeatStats } from '../../services/challenges';
 import { Challenge, ChallengeRepeatStats } from '../../types';
 import { showConfirm, showAlert } from '../../utils/alert';
-import { GoalsScreenProps, GoalsNavigation } from '../../types/navigation';
+import { ProgressScreenProps, ProgressNavigation } from '../../types/navigation';
 
-type Props = GoalsScreenProps<'ChallengeDetail'>;
+type Props = ProgressScreenProps<'ChallengeDetail'>;
 
 export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
   const { challengeId } = route.params;
   const { user } = useAuth();
-  const navigation = useNavigation<GoalsNavigation>();
+  const navigation = useNavigation<ProgressNavigation>();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [repeatStats, setRepeatStats] = useState<ChallengeRepeatStats | null>(null);

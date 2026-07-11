@@ -2,7 +2,6 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AdminStackParamList } from '../types/navigation';
 import { AdminDashboardScreen } from '../screens/Admin/AdminDashboardScreen';
-import { AdminArenaAdoptionScreen } from '../screens/Admin/AdminArenaAdoptionScreen';
 import { AdminChallengesScreen } from '../screens/Admin/AdminChallengesScreen';
 import { AdminChallengeEditScreen } from '../screens/Admin/AdminChallengeEditScreen';
 import { AdminFunFactsScreen } from '../screens/Admin/AdminFunFactsScreen';
@@ -39,11 +38,6 @@ export const AdminStack: React.FC = () => (
       name="AdminDashboard"
       component={AdminDashboardScreen}
       options={{ title: 'Admin' }}
-    />
-    <Stack.Screen
-      name="AdminArenaAdoption"
-      component={AdminArenaAdoptionScreen}
-      options={{ title: 'Arena Adoption' }}
     />
     <Stack.Screen
       name="AdminChallenges"

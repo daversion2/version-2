@@ -7,7 +7,6 @@ import type {
   ActionType,
   TimeCategory,
   DailyReflection,
-  ArenaId,
 } from './index';
 import type {
   MicroExerciseSessionState,
@@ -159,12 +158,6 @@ export type HomeStackParamList = {
 };
 
 // ============================================================================
-// GOALS STACK (deprecated — aliased to ProgressStackParamList for compat)
-// ============================================================================
-
-export type GoalsStackParamList = ProgressStackParamList;
-
-// ============================================================================
 // PROGRESS STACK
 // ============================================================================
 
@@ -184,8 +177,6 @@ export type ProgressStackParamList = {
   ProgramDashboard: { enrollmentId: string };
   CreateChallenge: { forDate?: string } | undefined;
   ManageHabits: { openAddForm?: boolean } | undefined;
-  ArenaDetail: { arenaId: ArenaId };
-  BaselineTest: { arenaId: ArenaId };
 };
 
 // ============================================================================
@@ -225,7 +216,6 @@ export type SettingsStackParamList = {
 
 export type AdminStackParamList = {
   AdminDashboard: undefined;
-  AdminArenaAdoption: undefined;
   AdminChallenges: undefined;
   AdminChallengeEdit: { mode: 'create' | 'edit'; challengeId?: string };
   AdminFunFacts: undefined;
@@ -258,10 +248,6 @@ export type HomeScreenProps<T extends keyof HomeStackParamList> =
 export type ChallengesScreenProps<T extends keyof ChallengesStackParamList> =
   NativeStackScreenProps<ChallengesStackParamList, T>;
 
-// Goals Stack (deprecated — aliased to Progress)
-export type GoalsScreenProps<T extends keyof ProgressStackParamList> =
-  NativeStackScreenProps<ProgressStackParamList, T>;
-
 // Progress Stack
 export type ProgressScreenProps<T extends keyof ProgressStackParamList> =
   NativeStackScreenProps<ProgressStackParamList, T>;
@@ -284,7 +270,6 @@ export type AuthScreenProps<T extends keyof AuthStackParamList> =
 
 // Navigation prop helpers (for useNavigation hook)
 export type HomeNavigation = NativeStackNavigationProp<HomeStackParamList>;
-export type GoalsNavigation = NativeStackNavigationProp<ProgressStackParamList>;
 export type ProgressNavigation = NativeStackNavigationProp<ProgressStackParamList>;
 export type WorksheetsNavigation = NativeStackNavigationProp<WorksheetsStackParamList>;
 export type SettingsNavigation = NativeStackNavigationProp<SettingsStackParamList>;

@@ -10,20 +10,13 @@ export const SECTION_IDS = [
   'goal_actions',
   // Zone 4: Reflect
   'reflection_banner',
-  // Legacy (kept for backward compat with custom layouts)
-  'greeting',
 ] as const;
 
 export type HomeSectionId = (typeof SECTION_IDS)[number];
 
-const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
-  // Legacy sections hidden from default layout
-  'greeting', // replaced by the hero
-]);
-
 export const DEFAULT_HOME_LAYOUT: HomeLayoutItem[] = SECTION_IDS.map(id => ({
   id,
-  visible: !HIDDEN_SECTIONS.has(id),
+  visible: true,
 }));
 
 export interface ZoneDefinition {
@@ -54,13 +47,6 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     icon: 'moon-outline',
     sectionIds: ['reflection_banner'],
   },
-  // Legacy zone for backward compat with custom layouts
-  {
-    id: 'legacy',
-    label: 'More',
-    icon: 'grid-outline',
-    sectionIds: ['greeting'],
-  },
 ];
 
 export const SECTION_TO_ZONE: Record<HomeSectionId, string> = {} as Record<HomeSectionId, string>;
@@ -76,8 +62,6 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
   practices: 'Your Practices',
   goal_actions: 'Challenges & Programs',
   reflection_banner: 'Nightly Reflection',
-  // Legacy
-  greeting: 'Greeting',
 };
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
@@ -86,6 +70,4 @@ export const SECTION_ICONS: Record<HomeSectionId, string> = {
   practices: 'flame-outline',
   goal_actions: 'flag-outline',
   reflection_banner: 'moon-outline',
-  // Legacy
-  greeting: 'sunny-outline',
 };
