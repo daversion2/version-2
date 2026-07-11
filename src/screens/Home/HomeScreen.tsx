@@ -160,6 +160,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           console.warn('Failed to open CTA URL:', err)
         );
       } else if (target.type === 'screen' && target.screen) {
+        // TODO(tools-tab): the Tools tab is hidden, so CTAs targeting it are
+        // ignored. Remove this guard when the tab returns.
+        if (target.screen === 'Tools') return;
         if (CTA_TAB_TARGETS.includes(target.screen)) {
           navigation.getParent()?.navigate(target.screen as any);
         } else {

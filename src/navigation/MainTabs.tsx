@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
 import { ChallengesStack } from './ChallengesStack';
 import { ProgressStack } from './ProgressStack';
-import { WorksheetsStack } from './WorksheetsStack';
+// TODO(tools-tab): re-enable when the Tools tab returns.
+// import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
 import { AdminStack } from './AdminStack';
 import { useAuth } from '../context/AuthContext';
@@ -51,7 +52,9 @@ export const MainTabs: React.FC = () => {
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Challenges" component={ChallengesStack} />
       <Tab.Screen name="Progress" component={ProgressStack} />
-      <Tab.Screen name="Tools" component={WorksheetsStack} />
+      {/* TODO(tools-tab): Tools tab temporarily hidden from users — revisit later.
+          Re-enable here and at the other TODO(tools-tab) sites (grep for the tag). */}
+      {/* <Tab.Screen name="Tools" component={WorksheetsStack} /> */}
       <Tab.Screen
         name="Settings"
         component={SettingsStack}

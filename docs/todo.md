@@ -2,18 +2,9 @@
 
 ## Challenges
 
-> remove success criteria from setup
-
-> simplify and rework post-practice and challenge completion
->> 1 question -> "what did you notice your mind doing during this practice" (in italics it will say "studying your mind in stressful situations is good for xyz")
-
-> Add priming questions before doing a challenge (what to keep top of mind during this practice)
->> question for first one
->> after that it resurfaces what they said last time.
+> Am I happy with challenge flow now?
 
 > Do we keep custom challenges and remove custom practices?
-
-> Make description field multi-line text box
 
 ## Nightly Reflection
 
@@ -24,12 +15,12 @@
 
 > comb through this in detail to ensure it all works still
 
-
+> 
 
 
 ## Big Picture Change to App
 
-> remove tools
+> remove tools — DONE (hidden, not deleted): Tools tab and all entry points into it are disabled behind `TODO(tools-tab)` comments (grep for the tag to restore or fully remove). Revisit whether to delete the Tools/worksheets code entirely.
 
 > remove goals (old way of doing them)
 
@@ -38,3 +29,10 @@
 > rework home screen data that is shown (2 of 3 practices this week...don't like that)
 
 > remove the plan your week stuff
+
+## Ideas
+
+> allow users to create circuits with rounds of cold plunges, suanas, meditation, etc... so could be like:
+- 3 min cold plunge
+- 10 min sauna
+repeat 3 times

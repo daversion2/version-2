@@ -21,7 +21,9 @@ export const MicroExerciseCompleteScreen: React.FC<Props> = ({ navigation, route
 
   // Only offer "Go Deeper" when the linked tool still exists and is enabled.
   const sourceTool = getToolById(exercise.source_template_id);
-  const canGoDeeper = !!sourceTool && sourceTool.enabled;
+  // TODO(tools-tab): "Go Deeper" disabled while the Tools tab is hidden — it
+  // navigates into that tab. Restore to `!!sourceTool && sourceTool.enabled`.
+  const canGoDeeper = false;
 
   const handleGoDeeper = () => {
     // Navigate to the Tools tab's WorksheetForm screen

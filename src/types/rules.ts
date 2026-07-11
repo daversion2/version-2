@@ -113,7 +113,8 @@ export const CTA_SCREEN_TARGETS: { value: string; label: string }[] = [
   { value: 'JourneyCheckin', label: 'Journey check-in (day 14/28)' },
   { value: 'ProgramDiscovery', label: 'Programs' },
   { value: 'Progress', label: 'Progress tab' },
-  { value: 'Tools', label: 'Tools tab' },
+  // TODO(tools-tab): re-add when the Tools tab is un-hidden.
+  // { value: 'Tools', label: 'Tools tab' },
 ];
 
 /** Tab-level targets that need parent-navigator handling. */

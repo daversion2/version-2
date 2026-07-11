@@ -43,7 +43,10 @@ const navigateToRuleCta = (
       return;
     }
     if (data.cta_screen) {
-      if (data.cta_screen === 'Progress' || data.cta_screen === 'Tools') {
+      // TODO(tools-tab): the Tools tab is hidden, so pushes targeting it are
+      // ignored. When the tab returns, restore 'Tools' to the tab branch below.
+      if (data.cta_screen === 'Tools') return;
+      if (data.cta_screen === 'Progress') {
         navigationRef.current?.navigate('Main', { screen: data.cta_screen } as any);
       } else {
         navigationRef.current?.navigate('Main', {
