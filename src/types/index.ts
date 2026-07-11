@@ -81,6 +81,9 @@ export interface User {
   journey_checkins?: Record<string, { mood: number; focus: number; motivation: number; date: string }>;
   // One-time flag: the post-first-rep reminder prompt has been shown
   has_seen_reminder_prompt?: boolean;
+  // One-time flag: the post-first-practice Debrief (recovery science, pleasure
+  // trap, research) has been viewed — gates both the auto-trigger and home card
+  has_seen_debrief?: boolean;
   // LEGACY — comeback gating now lives in ruleState for the "Comeback check-in" rule
   lastComebackDate?: string;
   // App usage tracking

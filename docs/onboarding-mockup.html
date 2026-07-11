@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuro-Nudge — Onboarding Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #217180;
+    --teal-dark: #17525d;
+    --orange: #FF5B02;
+    --dark: #2B2B2B;
+    --gray: #656565;
+    --light: #F2F2F2;
+    --border: #E0E0E0;
+    --white: #FFFFFF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Poppins', -apple-system, sans-serif;
+    background: #1a1d1e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    color: var(--dark);
+  }
+
+  /* ---------- Phone frame ---------- */
+  .phone {
+    width: 390px;
+    height: 812px;
+    background: var(--white);
+    border-radius: 48px;
+    box-shadow: 0 0 0 12px #0c0d0d, 0 0 0 14px #333, 0 40px 80px rgba(0,0,0,.6);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .statusbar {
+    height: 54px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px 0;
+    font-size: 14px;
+    font-weight: 600;
+    position: relative;
+    z-index: 30;
+  }
+  .statusbar .island {
+    position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+    width: 110px; height: 28px; background: #000; border-radius: 20px;
+  }
+  .statusbar .icons { letter-spacing: 2px; font-size: 12px; }
+
+  /* ---------- Progress ---------- */
+  .progress {
+    display: flex; gap: 5px; padding: 10px 24px 0; flex-shrink: 0;
+    position: relative; z-index: 30;
+  }
+  .progress span {
+    flex: 1; height: 4px; border-radius: 2px; background: var(--border);
+    transition: background .4s;
+  }
+  .progress span.done { background: var(--teal); }
+  .progress span.active { background: var(--orange); }
+
+  /* ---------- Screens ---------- */
+  .screens { flex: 1; position: relative; overflow: hidden; }
+  .screen {
+    position: absolute; inset: 0;
+    padding: 28px 28px 16px;
+    display: flex; flex-direction: column;
+    opacity: 0; transform: translateX(40px);
+    pointer-events: none;
+    transition: opacity .45s ease, transform .45s ease;
+    overflow-y: auto;
+  }
+  .screen.active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+  .screen.exit-left { transform: translateX(-40px); }
+
+  .screen.dark-screen { color: var(--white); }
+
+  h1 { font-size: 27px; font-weight: 700; line-height: 1.28; letter-spacing: -.3px; }
+  p.body { font-size: 16.5px; line-height: 1.55; color: var(--dark); }
+  .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--teal); margin-bottom: 14px;
+  }
+  .dark-screen .eyebrow { color: #7fd0de; }
+
+  /* staggered line reveal */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* ---------- Bottom nav ---------- */
+  .nav {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px 28px;
+    position: relative; z-index: 30;
+    background: transparent;
+  }
+  .back-btn {
+    background: none; border: none; font-family: inherit;
+    color: var(--teal); font-size: 15px; font-weight: 600; cursor: pointer;
+    padding: 10px; visibility: hidden;
+  }
+  .back-btn.show { visibility: visible; }
+  .cta {
+    background: var(--orange); color: #fff; border: none; cursor: pointer;
+    font-family: inherit; font-size: 16px; font-weight: 700;
+    padding: 15px 26px; border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(255,91,2,.35);
+    transition: opacity .4s, transform .2s, box-shadow .2s;
+  }
+  .cta:active { transform: scale(.96); }
+  .cta.locked { opacity: .25; pointer-events: none; box-shadow: none; }
+  .cta-hint {
+    position: absolute; right: 24px; bottom: 86px; font-size: 12.5px;
+    color: var(--gray); font-weight: 500; opacity: 0; transition: opacity .4s;
+    pointer-events: none;
+  }
+  .cta-hint.show { opacity: 1; }
+  .phone.dark-mode { background: var(--dark); }
+  .phone.dark-mode .statusbar { color: #fff; }
+  .phone.dark-mode .back-btn { color: #7fd0de; }
+  .phone.dark-mode .cta-hint { color: #aaa; }
+
+  /* =========================================================
+     SCREEN 1 — Hook (notifications keep interrupting)
+  ========================================================= */
+  #s1 { justify-content: center; }
+  #s1 .notif-zone {
+    position: absolute; top: 6px; left: 16px; right: 16px; z-index: 20;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .notif {
+    background: rgba(255,255,255,.97);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 12px 14px;
+    display: flex; gap: 12px; align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,.15);
+    transform: translateY(-90px); opacity: 0;
+    animation: notifIn .5s cubic-bezier(.2,.9,.3,1.2) forwards;
+  }
+  .notif.leaving { animation: notifOut .4s ease forwards; }
+  @keyframes notifIn { to { transform: translateY(0); opacity: 1; } }
+  @keyframes notifOut { to { transform: translateY(-90px); opacity: 0; } }
+  .notif .app-ico {
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+  }
+  .notif .nt { font-size: 12.5px; line-height: 1.3; }
+  .notif .nt b { font-size: 12.5px; }
+  #s1 h1 { font-size: 30px; margin-bottom: 18px; }
+  #s1 .sub { font-size: 17px; color: var(--gray); line-height: 1.55; }
+  #s1 .sub b { color: var(--teal); font-weight: 700; }
+  #s1 .counter-line {
+    margin-top: 26px; font-size: 13px; color: var(--gray); font-weight: 500;
+  }
+  #s1 .counter-line strong { color: var(--orange); font-weight: 800; font-size: 15px; }
+
+  /* =========================================================
+     SCREEN 2 — Name the Enemy (flip cards)
+  ========================================================= */
+  #s2 .cards { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+  .flip-card { perspective: 900px; cursor: pointer; height: 96px; }
+  .flip-inner {
+    position: relative; width: 100%; height: 100%;
+    transform-style: preserve-3d; transition: transform .55s cubic-bezier(.4,.1,.2,1);
+  }
+  .flip-card.flipped .flip-inner { transform: rotateX(180deg); }
+  .flip-face {
+    position: absolute; inset: 0; backface-visibility: hidden;
+    border-radius: 16px; padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .flip-front {
+    background: var(--light); border: 1px solid var(--border);
+  }
+  .flip-front .fc-icon {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .flip-front .fc-label { font-size: 16px; font-weight: 600; }
+  .flip-front .fc-tap {
+    margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--teal);
+    animation: pulseTap 1.6s ease-in-out infinite;
+  }
+  @keyframes pulseTap { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+  .flip-back {
+    background: var(--dark); color: #fff; transform: rotateX(180deg);
+    flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px;
+  }
+  .flip-back .fb-title { font-size: 13px; font-weight: 700; color: #ff8b4d; letter-spacing: .5px; }
+  .flip-back .fb-desc { font-size: 12.5px; line-height: 1.35; color: #d9d9d9; }
+  #s2 .punchline {
+    margin-top: 20px; font-size: 18px; font-weight: 700; line-height: 1.4;
+    opacity: 0; transform: translateY(12px); transition: all .6s ease;
+  }
+  #s2 .punchline.in { opacity: 1; transform: translateY(0); }
+  #s2 .punchline em { font-style: normal; color: var(--orange); }
+
+  /* =========================================================
+     SCREEN 3 — Dopamine (tap-to-scroll graph)
+  ========================================================= */
+  #s3 .graph-wrap {
+    margin-top: 18px; background: var(--dark); border-radius: 20px;
+    padding: 18px 16px 14px; position: relative;
+  }
+  #s3 .graph-label {
+    display: flex; justify-content: space-between; font-size: 11px; font-weight: 600;
+    color: #9a9a9a; margin-bottom: 6px; letter-spacing: .5px;
+  }
+  #s3 svg { display: block; width: 100%; height: 150px; }
+  #s3 .scroll-btn {
+    margin: 18px auto 0; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: none; border: none; cursor: pointer; font-family: inherit;
+    position: relative;
+  }
+  .burst-particle {
+    position: absolute; left: 50%; top: 28px; font-size: 19px; pointer-events: none; z-index: 5;
+    animation: burst .95s ease-out forwards;
+  }
+  @keyframes burst {
+    from { transform: translate(-50%, 0) scale(.5); opacity: 1; }
+    to   { transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(1.35); opacity: 0; }
+  }
+  .reward-pill {
+    position: absolute; left: 50%; top: -10px; pointer-events: none; z-index: 6;
+    background: var(--teal); color: #fff; font-size: 12px; font-weight: 700;
+    padding: 6px 13px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(33,113,128,.35);
+    animation: pillUp 1.15s ease-out forwards;
+  }
+  @keyframes pillUp {
+    0%   { opacity: 0; transform: translate(-50%, 10px) scale(.8); }
+    18%  { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+    100% { opacity: 0; transform: translate(-50%, -38px) scale(1); }
+  }
+  #s3 .thumb {
+    width: 74px; height: 74px; border-radius: 50%;
+    background: linear-gradient(145deg, var(--teal), var(--teal-dark));
+    color: #fff; font-size: 30px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(33,113,128,.4);
+    transition: transform .1s;
+    user-select: none;
+  }
+  #s3 .scroll-btn:active .thumb { transform: scale(.9); }
+  #s3 .scroll-btn .lbl { font-size: 13px; font-weight: 700; color: var(--teal); letter-spacing: 1px; }
+  #s3 .flat-msg {
+    margin-top: 16px; font-size: 15.5px; line-height: 1.5; font-weight: 500;
+    opacity: 0; transform: translateY(10px); transition: all .6s;
+  }
+  #s3 .flat-msg.in { opacity: 1; transform: translateY(0); }
+  #s3 .flat-msg b { color: var(--orange); }
+
+  /* =========================================================
+     SCREEN 4 — Pleasure Trap (Then/Now slider)
+  ========================================================= */
+  #s4 .worlds {
+    position: relative; margin-top: 18px; border-radius: 20px; overflow: hidden;
+    height: 240px; border: 1px solid var(--border);
+  }
+  .world { position: absolute; inset: 0; padding: 22px; transition: opacity .15s linear; }
+  .world .w-era { font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+  .world ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .world li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
+  .world li .wi { font-size: 20px; flex-shrink: 0; }
+  .world-then { background: linear-gradient(160deg, #e8f2f4, #d3e7ea); color: var(--teal-dark); }
+  .world-then .w-era { color: var(--teal); }
+  .world-now { background: linear-gradient(160deg, #2B2B2B, #444); color: #eee; opacity: 0; }
+  .world-now .w-era { color: #ff8b4d; }
+  #s4 .slider-row { margin-top: 16px; }
+  #s4 input[type=range] {
+    width: 100%; appearance: none; -webkit-appearance: none; height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--orange));
+    outline: none; cursor: grab;
+  }
+  #s4 input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%;
+    background: #fff; border: 3px solid var(--dark);
+    box-shadow: 0 3px 10px rgba(0,0,0,.3); cursor: grab;
+  }
+  #s4 .slider-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--gray); margin-top: 6px; }
+  #s4 .trap-reveal {
+    margin-top: 18px; opacity: 0; transform: translateY(10px); transition: all .6s;
+  }
+  #s4 .trap-reveal.in { opacity: 1; transform: translateY(0); }
+  #s4 .trap-reveal .trap-name {
+    font-size: 19px; font-weight: 800; color: var(--orange); margin-bottom: 8px;
+  }
+  #s4 .trap-reveal p { font-size: 14.5px; line-height: 1.5; color: var(--dark); }
+  #s4 .drag-hint { font-size: 12.5px; color: var(--gray); text-align: center; margin-top: 10px; font-weight: 500; }
+
+  /* =========================================================
+     SCREEN 5 — 60-second moment
+  ========================================================= */
+  #s5 { justify-content: center; }
+  #s5 .pre-timer, #s5 .post-timer { display: flex; flex-direction: column; gap: 18px; }
+  #s5 .post-timer { display: none; }
+  #s5 .start-btn {
+    margin-top: 10px; background: var(--teal); color: #fff; border: none; cursor: pointer;
+    font-family: inherit; font-size: 17px; font-weight: 700;
+    padding: 18px; border-radius: 16px; width: 100%;
+    box-shadow: 0 8px 22px rgba(33,113,128,.35);
+  }
+  #s5 .skip-link {
+    background: none; border: none; font-family: inherit; cursor: pointer;
+    color: var(--gray); font-size: 13px; text-decoration: underline; padding: 6px;
+  }
+  .timer-overlay {
+    position: absolute; inset: 0; background: var(--dark); z-index: 40;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; gap: 8px;
+  }
+  .timer-overlay.on { display: flex; }
+  .timer-overlay .t-num {
+    font-size: 88px; font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: 2px;
+  }
+  .timer-overlay .t-word { font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: #888; }
+  .timer-overlay .t-skip {
+    position: absolute; bottom: 46px; background: none; border: none; color: #666;
+    font-family: inherit; font-size: 13px; cursor: pointer; text-decoration: underline;
+  }
+  .timer-overlay .t-demo {
+    position: absolute; top: 60px; right: 20px; background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.15); color: #999; font-family: inherit;
+    font-size: 11px; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+  }
+  #s5 .post-timer .urge { font-size: 17px; line-height: 1.55; font-weight: 500; }
+  #s5 .post-timer .urge b { color: var(--teal); }
+  #s5 .post-timer .good-news { font-size: 20px; font-weight: 800; color: var(--orange); }
+
+  /* =========================================================
+     SCREEN 6 — Hold the button (deliberate discomfort)
+  ========================================================= */
+  #s6 .hold-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 20px;
+  }
+  #s6 .hold-ring { position: relative; width: 150px; height: 150px; }
+  #s6 .hold-ring svg { transform: rotate(-90deg); }
+  #s6 .hold-btn {
+    position: absolute; inset: 14px; border-radius: 50%;
+    background: linear-gradient(145deg, var(--orange), #d94d00);
+    border: none; color: #fff; font-family: inherit; font-weight: 800; font-size: 15px;
+    cursor: pointer; box-shadow: 0 10px 26px rgba(255,91,2,.4);
+    user-select: none; -webkit-user-select: none; touch-action: none;
+    transition: transform .15s;
+  }
+  #s6 .hold-btn:active { transform: scale(.95); }
+  #s6 .hold-msg { font-size: 14.5px; font-weight: 600; color: var(--gray); min-height: 22px; text-align: center; transition: color .3s; }
+  #s6 .hold-msg.taunt { color: var(--orange); }
+  #s6 .recovery-body { margin-top: 16px; display: none; }
+  #s6 .recovery-body.show { display: block; animation: fadeUp .6s ease; }
+  #s6 .recovery-body p { font-size: 14px; line-height: 1.55; color: var(--dark); margin-bottom: 12px; }
+  #s6 .recovery-body b { color: var(--teal); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  /* =========================================================
+     SCREEN 7 — Science stat cards
+  ========================================================= */
+  #s7 .stats { display: flex; flex-direction: column; gap: 13px; margin-top: 20px; }
+  .stat-card {
+    border-radius: 16px; padding: 16px 18px; border: 1px solid var(--border);
+    background: var(--white); box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    opacity: 0; transform: translateY(16px); transition: all .55s ease;
+    display: flex; gap: 14px; align-items: center;
+  }
+  .stat-card.in { opacity: 1; transform: none; }
+  .stat-card .big {
+    font-size: 30px; font-weight: 800; color: var(--teal); min-width: 96px;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .stat-card .big.orange { color: var(--orange); }
+  .stat-card .desc { font-size: 12.5px; line-height: 1.4; color: var(--gray); }
+  .stat-card .desc b { color: var(--dark); }
+
+  /* =========================================================
+     SCREEN 8 — The Override (dark, cinematic)
+  ========================================================= */
+  #s8 { justify-content: center; align-items: center; text-align: center; }
+  #s8 .pulse-ring {
+    width: 120px; height: 120px; border-radius: 50%; position: relative; margin-bottom: 34px;
+    background: radial-gradient(circle, rgba(255,91,2,.25), transparent 70%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #s8 .pulse-ring::before, #s8 .pulse-ring::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid rgba(255,91,2,.5);
+    animation: ripple 2.4s ease-out infinite;
+  }
+  #s8 .pulse-ring::after { animation-delay: 1.2s; }
+  @keyframes ripple { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+  #s8 .core {
+    width: 58px; height: 58px; border-radius: 50%; background: var(--orange);
+    box-shadow: 0 0 40px rgba(255,91,2,.8);
+    animation: corePulse 2.4s ease-in-out infinite;
+  }
+  @keyframes corePulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  #s8 .stop-line { font-size: 26px; font-weight: 800; line-height: 1.35; color: #fff; }
+  #s8 .stop-line .and { color: var(--orange); }
+  #s8 .sub { margin-top: 20px; font-size: 15px; line-height: 1.6; color: #bbb; max-width: 300px; }
+  #s8 .sub b { color: #fff; }
+
+  /* =========================================================
+     SCREEN 9 — Pick a practice
+  ========================================================= */
+  #s9 .practices { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .practice {
+    border: 2px solid var(--border); border-radius: 14px; padding: 13px 15px;
+    display: flex; gap: 13px; align-items: center; cursor: pointer;
+    transition: border-color .25s, background .25s, transform .15s;
+    background: #fff;
+  }
+  .practice:active { transform: scale(.98); }
+  .practice .p-ico {
+    width: 40px; height: 40px; border-radius: 11px; background: var(--light);
+    display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+    transition: background .25s;
+  }
+  .practice .p-name { font-size: 14.5px; font-weight: 700; }
+  .practice .p-desc { font-size: 12px; color: var(--gray); line-height: 1.3; }
+  .practice .p-check {
+    margin-left: auto; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: transparent; transition: all .25s;
+  }
+  .practice.selected { border-color: var(--teal); background: #eef6f7; }
+  .practice.selected .p-ico { background: var(--teal); }
+  .practice.selected .p-check { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .practice-note {
+    margin-top: 12px; padding: 10px 13px; border-radius: 10px;
+    background: #FFF4EC; border: 1px solid #FFDFC9;
+    font-size: 11.5px; line-height: 1.45; color: var(--gray);
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .practice-note .pn-ico { flex-shrink: 0; font-size: 13px; line-height: 1.4; }
+  .practice-note b { color: var(--dark); }
+
+  /* =========================================================
+     SCREEN 10 — Send them in
+  ========================================================= */
+  #s10 { justify-content: center; }
+  #s10 .done-list { display: flex; flex-direction: column; gap: 16px; margin: 26px 0; }
+  #s10 .done-item {
+    display: flex; gap: 14px; align-items: center;
+    opacity: 0; transform: translateX(-16px); transition: all .5s ease;
+  }
+  #s10 .done-item.in { opacity: 1; transform: none; }
+  #s10 .done-item .dm {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--teal); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
+  }
+  #s10 .done-item .dt { font-size: 15px; font-weight: 600; }
+  #s10 .done-item .dt small { display: block; font-weight: 400; font-size: 12.5px; color: var(--gray); }
+  #s10 .go-line {
+    font-size: 30px; font-weight: 800; color: var(--dark);
+    opacity: 0; transform: translateY(12px); transition: all .6s ease .2s;
+  }
+  #s10 .go-line.in { opacity: 1; transform: none; }
+  #s10 .go-line em { font-style: normal; color: var(--orange); }
+
+  /* demo end toast */
+  .end-toast {
+    position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%) translateY(20px);
+    background: var(--dark); color: #fff; font-size: 13px; font-weight: 600;
+    padding: 12px 20px; border-radius: 12px; opacity: 0; transition: all .4s; z-index: 50;
+    white-space: nowrap;
+  }
+  .end-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="statusbar">
+    <span>5:00</span>
+    <div class="island"></div>
+    <span class="icons">••• ᯤ ▮</span>
+  </div>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="screens">
+
+    <!-- ============ SCREEN 1: Hook ============ -->
+    <section class="screen" id="s1">
+      <div class="notif-zone" id="notifZone"></div>
+      <h1 class="reveal">Every app, every product is engineered to hook you.</h1>
+      <p class="sub reveal">This app is designed to help you <b>take back control of your mind.</b></p>
+      <p class="counter-line reveal">Notifications that interrupted this sentence: <strong id="notifCount">0</strong></p>
+    </section>
+
+    <!-- ============ SCREEN 2: Name the Enemy ============ -->
+    <section class="screen" id="s2">
+      <div class="eyebrow">The playbook</div>
+      <h1>Everything you use every day was designed with one goal.</h1>
+      <div class="cards">
+        <div class="flip-card" data-flip>
+          <div class="flip-inner">
+            <div class="flip-face flip-front">
+              <div class="fc-icon">📱</div>
+              <div class="fc-label">Your feed</div>
+              <div class="fc-tap">Tap</div>
+            </div>
+            <div class="flip-face flip-back">
+              <div class="fb-title">INFINITE SCROLL</div>
+              <div class="fb-desc">No natural stopping point. The feed never ends — by design. Stopping is your job, and they know you're bad at it.</div>
+            </div>
+          </div>
+        </div>
+        <div class="flip-card" data-flip>
+          <div class="flip-inner">
+            <div class="flip-face flip-front">
+              <div class="fc-icon">🔔</div>
+              <div class="fc-label">Your notifications</div>
+              <div class="fc-tap">Tap</div>
+            </div>
+            <div class="flip-face flip-back">
+              <div class="fb-title">VARIABLE REWARDS</div>
+              <div class="fb-desc">Sometimes it's important. Usually it's not. That unpredictability is the same mechanic that keeps people at slot machines.</div>
+            </div>
+          </div>
+        </div>
+        <div class="flip-card" data-flip>
+          <div class="flip-inner">
+            <div class="flip-face flip-front">
+              <div class="fc-icon">🍟</div>
+              <div class="fc-label">Your snacks</div>
+              <div class="fc-tap">Tap</div>
+            </div>
+            <div class="flip-face flip-back">
+              <div class="fb-title">THE BLISS POINT</div>
+              <div class="fb-desc">Salt, sugar, and fat tuned in a lab for maximum craving and minimum satisfaction — so one bite always asks for another.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="punchline" id="punchline2">
+        Not to help you. Not to make you better. <em>To turn you into a repeat customer.</em>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 3: Dopamine ============ -->
+    <section class="screen" id="s3">
+      <div class="eyebrow">The mechanism</div>
+      <h1>Here's how it works.</h1>
+      <p class="body" style="margin-top:10px; font-size:14.5px;">Your brain's drive system runs on dopamine. Every scroll delivers a hit — fast, easy, engineered. Try it:</p>
+      <div class="graph-wrap">
+        <div class="graph-label"><span>YOUR DOPAMINE</span><span id="graphState">baseline</span></div>
+        <svg viewBox="0 0 330 150" id="dopGraph" preserveAspectRatio="none">
+          <line x1="0" y1="55" x2="330" y2="55" stroke="#555" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="4" y="48" fill="#888" font-size="9" font-family="Poppins">how good things used to feel</text>
+          <path id="dopPath" d="" fill="none" stroke="#FF5B02" stroke-width="2.5" stroke-linejoin="round"/>
+          <circle id="dopDot" r="4" fill="#FF5B02"/>
+        </svg>
+      </div>
+      <button class="scroll-btn" id="scrollBtn">
+        <div class="thumb">👆</div>
+        <span class="lbl" id="scrollLbl">TAP TO SCROLL</span>
+      </button>
+      <div class="flat-msg" id="flatMsg">
+        Feel that? Each hit lands a little flatter. Your brain <b>downregulates</b> — fewer receptors, weaker response. The stimulation that used to feel rewarding starts to feel like nothing.
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 4: Pleasure Trap ============ -->
+    <section class="screen" id="s4">
+      <div class="eyebrow">The real cost</div>
+      <h1>Your reward system was built for a different world.</h1>
+      <div class="worlds">
+        <div class="world world-then" id="worldThen">
+          <div class="w-era">≈ 50,000 years ago</div>
+          <ul>
+            <li><span class="wi">🏹</span> Food took hunting. Hours of effort for one reward.</li>
+            <li><span class="wi">🔥</span> Connection took real presence, around a fire.</li>
+            <li><span class="wi">⛰️</span> Pleasure was scarce — and earned.</li>
+          </ul>
+        </div>
+        <div class="world world-now" id="worldNow">
+          <div class="w-era">Today</div>
+          <ul>
+            <li><span class="wi">🛵</span> Food arrives in 20 minutes, engineered to crave.</li>
+            <li><span class="wi">📱</span> "Connection" is a like from someone you've never met.</li>
+            <li><span class="wi">♾️</span> Pleasure is abundant, effortless — and everywhere.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="slider-row">
+        <input type="range" id="eraSlider" min="0" max="100" value="0">
+        <div class="slider-labels"><span>THEN</span><span>NOW</span></div>
+        <div class="drag-hint" id="dragHint">Drag the slider forward in time →</div>
+      </div>
+      <div class="trap-reveal" id="trapReveal">
+        <div class="trap-name">Researchers call this the pleasure trap.</div>
+        <p>A world of abundant, effortless, engineered pleasure that your reward system was never built to handle. This isn't laziness. It's not a character flaw. Your brain adapted perfectly to the environment it evolved in — it's just not the one you're living in now.</p>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 5: 60 seconds ============ -->
+    <section class="screen" id="s5">
+      <div class="pre-timer" id="preTimer">
+        <div class="eyebrow">Feel it for yourself</div>
+        <h1>Don't take our word for it. Try this.</h1>
+        <p class="body">Close your eyes. Don't check anything. Don't do anything. Just breathe for 60 seconds.<br><br>Notice what happens.</p>
+        <button class="start-btn" id="startTimer">Start 60 seconds</button>
+        <button class="skip-link" id="skipTimer">Skip</button>
+      </div>
+      <div class="post-timer" id="postTimer">
+        <div class="eyebrow">What you just felt</div>
+        <p class="urge">That urge to grab your phone? That restlessness? <b>That's not weakness.</b> That's a nervous system that's used to constant input, showing you exactly what we're talking about.</p>
+        <p class="good-news">Now here's the good news.</p>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 6: Recovery / Hold ============ -->
+    <section class="screen" id="s6">
+      <div class="eyebrow">The way out</div>
+      <h1>Dopamine doesn't just create craving. It also fuels self-control.</h1>
+      <div class="hold-stage">
+        <div class="hold-ring">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <circle cx="75" cy="75" r="68" fill="none" stroke="#E0E0E0" stroke-width="6"/>
+            <circle id="holdArc" cx="75" cy="75" r="68" fill="none" stroke="#217180" stroke-width="6"
+                    stroke-linecap="round" stroke-dasharray="427" stroke-dashoffset="427"/>
+          </svg>
+          <button class="hold-btn" id="holdBtn">HOLD<br>5 SEC</button>
+        </div>
+        <div class="hold-msg" id="holdMsg">Press and hold. Don't let go.</div>
+      </div>
+      <div class="recovery-body" id="recoveryBody">
+        <p>What you just did — feeling the pull to quit and not quitting — is the whole method. The same dopamine driving that scroll also powers your <b>prefrontal cortex</b>: the part of your brain responsible for decisions, focus, and self-control. It responds to training.</p>
+        <p>It's not a new idea. Over 2,000 years ago, the Stoics practiced voluntary hardship on purpose — going without, sitting with discomfort, choosing the hard thing — so they'd never be at the mercy of either. Same principle. Distress tolerance builds. Over time, your baseline shifts.</p>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 7: The science ============ -->
+    <section class="screen" id="s7">
+      <div class="eyebrow">The research</div>
+      <h1>This isn't just a mindset thing. There's real neuroscience underneath it.</h1>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="big orange" id="stat250">+0%</div>
+          <div class="desc"><b>Plasma dopamine after cold water immersion</b> in controlled studies — a real, sustained increase, not a spike-and-crash.</div>
+        </div>
+        <div class="stat-card">
+          <div class="big">2<span style="font-size:18px;">paths</span></div>
+          <div class="desc"><b>Meditation and cold exposure work through different pathways</b> — but both are linked to better regulation between the brain's impulse-driven and decision-making systems.</div>
+        </div>
+        <div class="stat-card">
+          <div class="big" style="font-size:22px; line-height:1.15;">train-<br>able</div>
+          <div class="desc"><b>Regular meditators show differences in brain connectivity</b> between regions tied to emotional reactivity and executive control — patterns that appear trainable, not fixed.</div>
+        </div>
+        <div class="stat-card">
+          <div class="big orange" style="font-size:22px; line-height:1.15;">weeks,<br>not years</div>
+          <div class="desc"><b>Many people who stick with practices like these</b> report improvements in mood stability, focus, and motivation within a few weeks.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 8: The Override ============ -->
+    <section class="screen dark-screen" id="s8">
+      <div class="pulse-ring"><div class="core"></div></div>
+      <div class="stop-line reveal">The moment your brain says stop — <span class="and">and you don't.</span></div>
+      <p class="sub reveal">Not because you forced it. Because you've <b>trained</b> for it. Seven practices, grounded in neuroscience, designed to rebuild what overstimulation eroded. You don't have to do all of them. You just have to start with one.</p>
+    </section>
+
+    <!-- ============ SCREEN 9: Pick a practice ============ -->
+    <section class="screen" id="s9">
+      <div class="eyebrow">Your starting point</div>
+      <h1>Pick one. Just one.</h1>
+      <div class="practices" id="practiceList">
+        <div class="practice" data-name="Meditation"><div class="p-ico">🧘</div><div><div class="p-name">Meditation</div><div class="p-desc">Sit with your thoughts. Don't run from them.</div></div><div class="p-check">✓</div></div>
+        <div class="practice" data-name="Breathwork"><div class="p-ico">🌬️</div><div><div class="p-name">Breathwork</div><div class="p-desc">Use your breath to regulate your nervous system.</div></div><div class="p-check">✓</div></div>
+        <div class="practice" data-name="Cold Exposure"><div class="p-ico">🧊</div><div><div class="p-name">Cold Exposure</div><div class="p-desc">Teach your brain that discomfort isn't danger.</div></div><div class="p-check">✓</div></div>
+        <div class="practice" data-name="Heat Exposure"><div class="p-ico">🔥</div><div><div class="p-name">Heat Exposure</div><div class="p-desc">Deliberate stress. Deliberate recovery.</div></div><div class="p-check">✓</div></div>
+        <div class="practice" data-name="Unstimulated Walking"><div class="p-ico">🚶</div><div><div class="p-name">Unstimulated Walking</div><div class="p-desc">Move without input. Let your mind wander.</div></div><div class="p-check">✓</div></div>
+        <div class="practice" data-name="Eat Something You Dislike"><div class="p-ico">🥦</div><div><div class="p-name">Eat Something Healthy You Dislike</div><div class="p-desc">Override preference. Do what's good over what's easy.</div></div><div class="p-check">✓</div></div>
+      </div>
+      <div class="practice-note">
+        <span class="pn-ico">⚠️</span>
+        <span><b>Cold and heat exposure</b> put real stress on the body. Check with your doctor before starting — especially if you have a heart, blood pressure, or other medical condition.</span>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN 10: Send them in ============ -->
+    <section class="screen" id="s10">
+      <div class="eyebrow">Ready</div>
+      <div class="done-list">
+        <div class="done-item"><div class="dm">✓</div><div class="dt">You sat still for 60 seconds<small>and felt what constant input has done</small></div></div>
+        <div class="done-item"><div class="dm">✓</div><div class="dt">You learned what's happening in your brain<small>dopamine, downregulation, and the way back</small></div></div>
+        <div class="done-item"><div class="dm">✓</div><div class="dt" id="pickedLine">You picked a direction<small id="pickedSub">your first practice is waiting</small></div></div>
+      </div>
+      <div class="go-line" id="goLine">Now go <em>do the thing.</em></div>
+    </section>
+
+  </div>
+
+  <span class="cta-hint" id="ctaHint"></span>
+  <div class="nav">
+    <button class="back-btn" id="backBtn">← Back</button>
+    <button class="cta" id="ctaBtn">Let's talk about it →</button>
+  </div>
+
+  <!-- fullscreen timer overlay -->
+  <div class="timer-overlay" id="timerOverlay">
+    <button class="t-demo" id="demoSpeed">demo: ×10 speed</button>
+    <div class="t-word">breathe</div>
+    <div class="t-num" id="timerNum">60</div>
+    <button class="t-skip" id="timerSkip">Skip</button>
+  </div>
+
+  <div class="end-toast" id="endToast">🎉 End of onboarding — user lands in the app</div>
+</div>
+
+<script>
+(function () {
+  const SCREENS = [
+    { id: 's1',  cta: "Let's talk about it →" },
+    { id: 's2',  cta: "Learn more →", gated: true, hint: "Tap all three cards" },
+    { id: 's3',  cta: "What does that mean? →", gated: true, hint: "Keep tapping…" },
+    { id: 's4',  cta: "Feel it for yourself →", gated: true, hint: "Drag the slider to Now" },
+    { id: 's5',  cta: "There's a way out →", gated: true, hint: "Try the 60 seconds (or skip)" },
+    { id: 's6',  cta: "This is what the research shows →", gated: true, hint: "Hold the button for 5 seconds" },
+    { id: 's7',  cta: "So what do you actually do? →" },
+    { id: 's8',  cta: "Pick your starting point →" },
+    { id: 's9',  cta: "This is my starting point →", gated: true, hint: "Choose a practice" },
+    { id: 's10', cta: "Let's go →" },
+  ];
+  let current = 0;
+  let selectedPractice = null;
+
+  const progress = document.getElementById('progress');
+  const backBtn = document.getElementById('backBtn');
+  const ctaBtn = document.getElementById('ctaBtn');
+  const ctaHint = document.getElementById('ctaHint');
+  const phone = document.getElementById('phone');
+
+  SCREENS.forEach(() => progress.appendChild(document.createElement('span')));
+
+  function unlockCTA() {
+    ctaBtn.classList.remove('locked');
+    ctaHint.classList.remove('show');
+  }
+
+  function show(i) {
+    const prev = current;
+    current = i;
+    document.querySelectorAll('.screen').forEach((s, idx) => {
+      s.classList.toggle('active', idx === i);
+      s.classList.toggle('exit-left', idx < i);
+    });
+    progress.querySelectorAll('span').forEach((seg, idx) => {
+      seg.classList.toggle('done', idx < i);
+      seg.classList.toggle('active', idx === i);
+    });
+    const cfg = SCREENS[i];
+    ctaBtn.textContent = cfg.cta;
+    ctaBtn.classList.toggle('locked', !!cfg.gated);
+    ctaHint.textContent = cfg.hint || '';
+    ctaHint.classList.toggle('show', !!cfg.gated);
+    backBtn.classList.toggle('show', i > 0);
+    phone.classList.toggle('dark-mode', cfg.id === 's8');
+    inits[cfg.id] && inits[cfg.id]();
+  }
+
+  ctaBtn.addEventListener('click', () => {
+    if (current < SCREENS.length - 1) show(current + 1);
+    else {
+      const toast = document.getElementById('endToast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+  });
+  backBtn.addEventListener('click', () => current > 0 && show(current - 1));
+
+  /* ============ Screen 1: incoming notifications ============ */
+  const NOTIFS = [
+    { ico: '📸', bg: '#fde3ef', title: 'socialgram', body: 'jess_k and 14 others liked your post' },
+    { ico: '🎬', bg: '#e3e9fd', title: 'streamly', body: 'New episode just dropped. Watch now?' },
+    { ico: '🍔', bg: '#fdf0e3', title: 'snackdash', body: '🔥 30% off your usual order — 1 hour only' },
+    { ico: '💬', bg: '#e3fdec', title: 'chatter', body: 'You have 3 unread messages' },
+    { ico: '🎮', bg: '#f3e3fd', title: 'tapquest', body: 'Your streak expires in 2 hours!' },
+  ];
+  let s1Timers = [];
+  function initS1() {
+    s1Timers.forEach(clearTimeout); s1Timers = [];
+    const zone = document.getElementById('notifZone');
+    const count = document.getElementById('notifCount');
+    zone.innerHTML = ''; count.textContent = '0';
+    document.querySelectorAll('#s1 .reveal').forEach((el, i) => {
+      el.classList.remove('in');
+      s1Timers.push(setTimeout(() => el.classList.add('in'), 300 + i * 700));
+    });
+    let n = 0;
+    NOTIFS.forEach((nt, i) => {
+      s1Timers.push(setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'notif';
+        el.innerHTML = `<div class="app-ico" style="background:${nt.bg}">${nt.ico}</div><div class="nt"><b>${nt.title}</b><br>${nt.body}</div>`;
+        zone.appendChild(el);
+        count.textContent = ++n;
+        s1Timers.push(setTimeout(() => { el.classList.add('leaving'); setTimeout(() => el.remove(), 400); }, 2600));
+      }, 1200 + i * 1500));
+    });
+  }
+
+  /* ============ Screen 2: flip cards ============ */
+  let flipped = new Set();
+  document.querySelectorAll('[data-flip]').forEach((card, idx) => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('flipped');
+      flipped.add(idx);
+      if (flipped.size === 3) {
+        document.getElementById('punchline2').classList.add('in');
+        if (SCREENS[current].id === 's2') unlockCTA();
+      }
+    });
+  });
+  function initS2() {
+    if (flipped.size === 3) unlockCTA();
+  }
+
+  /* ============ Screen 3: dopamine graph ============ */
+  const TAPS_NEEDED = 4;
+  let s3 = null;
+  function initS3() {
+    s3 = { taps: 0, x: 0, base: 55, pts: [[0, 55]] };
+    drawGraph();
+    document.getElementById('flatMsg').classList.remove('in');
+    document.getElementById('scrollLbl').textContent = 'TAP TO SCROLL';
+    document.getElementById('graphState').textContent = 'baseline';
+  }
+  function drawGraph() {
+    const path = document.getElementById('dopPath');
+    path.setAttribute('d', 'M' + s3.pts.map(p => p.join(',')).join(' L'));
+    const last = s3.pts[s3.pts.length - 1];
+    const dot = document.getElementById('dopDot');
+    dot.setAttribute('cx', last[0]); dot.setAttribute('cy', last[1]);
+  }
+  const REWARDS = ['+18 likes ❤️', 'New follower! 🎉', '+7 comments 💬', 'Streak +1 🔥', '+42 views ✨'];
+  const BURST_EMOJI = ['❤️', '👍', '✨', '🔥', '😍', '💬'];
+  function celebrate(tapNum) {
+    const btn = document.getElementById('scrollBtn');
+    for (let i = 0; i < 8; i++) {
+      const p = document.createElement('span');
+      p.className = 'burst-particle';
+      p.textContent = BURST_EMOJI[Math.floor(Math.random() * BURST_EMOJI.length)];
+      p.style.setProperty('--dx', (Math.random() * 130 - 65) + 'px');
+      p.style.setProperty('--dy', (-45 - Math.random() * 75) + 'px');
+      p.style.animationDelay = (Math.random() * 0.12) + 's';
+      btn.appendChild(p);
+      setTimeout(() => p.remove(), 1150);
+    }
+    const pill = document.createElement('span');
+    pill.className = 'reward-pill';
+    pill.textContent = REWARDS[(tapNum - 1) % REWARDS.length];
+    btn.appendChild(pill);
+    setTimeout(() => pill.remove(), 1250);
+  }
+  document.getElementById('scrollBtn').addEventListener('click', () => {
+    if (!s3 || s3.taps >= TAPS_NEEDED + 2) return;
+    s3.taps++;
+    celebrate(s3.taps);                                   // party on screen…
+    const spike = Math.max(10, 62 - s3.taps * 13);        // …while each spike shrinks
+    s3.base = Math.min(126, s3.base + 15);                // and the baseline sinks
+    const x1 = s3.x + 26, x2 = s3.x + 52;
+    s3.pts.push([x1, Math.max(8, s3.base - spike)], [x2, s3.base]);
+    s3.x = x2;
+    drawGraph();
+    const state = document.getElementById('graphState');
+    const lbl = document.getElementById('scrollLbl');
+    if (s3.taps === 1)      { state.textContent = 'nice hit ✨'; lbl.textContent = 'AGAIN'; }
+    else if (s3.taps === 2) { state.textContent = 'smaller hit…'; lbl.textContent = 'AGAIN'; }
+    else if (s3.taps === 3) { state.textContent = 'barely anything'; lbl.textContent = 'ONE MORE'; }
+    if (s3.taps === TAPS_NEEDED) {
+      state.textContent = 'flat.';
+      lbl.textContent = 'THAT\'S THE POINT';
+      document.getElementById('flatMsg').classList.add('in');
+      unlockCTA();
+    }
+  });
+
+  /* ============ Screen 4: era slider ============ */
+  const eraSlider = document.getElementById('eraSlider');
+  let s4Done = false;
+  eraSlider.addEventListener('input', () => {
+    const v = eraSlider.value / 100;
+    document.getElementById('worldNow').style.opacity = v;
+    document.getElementById('worldThen').style.opacity = 1 - v;
+    if (v > 0.92 && !s4Done) {
+      s4Done = true;
+      document.getElementById('trapReveal').classList.add('in');
+      document.getElementById('dragHint').style.opacity = 0;
+      if (SCREENS[current].id === 's4') unlockCTA();
+    }
+  });
+  function initS4() { if (s4Done) unlockCTA(); }
+
+  /* ============ Screen 5: 60-second timer ============ */
+  const overlay = document.getElementById('timerOverlay');
+  const timerNum = document.getElementById('timerNum');
+  let timerInt = null, timeLeft = 60, speed = 1;
+  function finishTimer() {
+    clearInterval(timerInt); timerInt = null;
+    overlay.classList.remove('on');
+    document.getElementById('preTimer').style.display = 'none';
+    document.getElementById('postTimer').style.display = 'flex';
+    unlockCTA();
+  }
+  document.getElementById('startTimer').addEventListener('click', () => {
+    timeLeft = 60; speed = 1;
+    timerNum.textContent = 60;
+    overlay.classList.add('on');
+    timerInt = setInterval(() => {
+      timeLeft -= speed;
+      if (timeLeft <= 0) { timerNum.textContent = 0; finishTimer(); }
+      else timerNum.textContent = Math.ceil(timeLeft);
+    }, 1000);
+  });
+  document.getElementById('demoSpeed').addEventListener('click', () => { speed = speed === 1 ? 10 : 1; });
+  document.getElementById('timerSkip').addEventListener('click', finishTimer);
+  document.getElementById('skipTimer').addEventListener('click', finishTimer);
+
+  /* ============ Screen 6: hold button ============ */
+  const HOLD_MS = 5000;
+  const holdBtn = document.getElementById('holdBtn');
+  const holdArc = document.getElementById('holdArc');
+  const holdMsg = document.getElementById('holdMsg');
+  const CIRC = 427;
+  let holdStart = null, holdRAF = null, holdDone = false, quitCount = 0;
+  const HOLD_LINES = [
+    [0.15, 'Your brain says this is pointless.'],
+    [0.4,  'It says let go. Check something.'],
+    [0.65, 'This is the rep. Right here.'],
+    [0.85, 'Almost. Don\'t quit.'],
+  ];
+  function holdFrame(ts) {
+    const p = Math.min(1, (ts - holdStart) / HOLD_MS);
+    holdArc.style.strokeDashoffset = CIRC * (1 - p);
+    for (const [at, line] of HOLD_LINES) {
+      if (p >= at) { holdMsg.textContent = line; holdMsg.classList.remove('taunt'); }
+    }
+    if (p >= 1) {
+      holdDone = true;
+      holdBtn.textContent = 'DONE';
+      holdBtn.style.background = 'linear-gradient(145deg, #217180, #17525d)';
+      holdMsg.textContent = 'That pull you felt to let go? You just overrode it.';
+      document.getElementById('recoveryBody').classList.add('show');
+      unlockCTA();
+      return;
+    }
+    holdRAF = requestAnimationFrame(holdFrame);
+  }
+  function startHold(e) {
+    if (holdDone) return;
+    e.preventDefault();
+    holdStart = performance.now();
+    holdRAF = requestAnimationFrame(holdFrame);
+  }
+  function endHold() {
+    if (holdDone || holdStart === null) return;
+    cancelAnimationFrame(holdRAF);
+    holdStart = null;
+    holdArc.style.strokeDashoffset = CIRC;
+    quitCount++;
+    holdMsg.textContent = quitCount === 1 ? 'You let go. That\'s the reflex we\'re talking about. Again.' : 'The urge to quit is the whole point. One more try.';
+    holdMsg.classList.add('taunt');
+  }
+  holdBtn.addEventListener('pointerdown', startHold);
+  holdBtn.addEventListener('pointerup', endHold);
+  holdBtn.addEventListener('pointerleave', endHold);
+  function initS6() { if (holdDone) unlockCTA(); }
+
+  /* ============ Screen 7: stat cards ============ */
+  let s7Ran = false;
+  function initS7() {
+    if (s7Ran) return;
+    s7Ran = true;
+    document.querySelectorAll('#s7 .stat-card').forEach((c, i) => {
+      setTimeout(() => c.classList.add('in'), 300 + i * 450);
+    });
+    // count-up for 250%
+    setTimeout(() => {
+      const el = document.getElementById('stat250');
+      let v = 0;
+      const int = setInterval(() => {
+        v += 10;
+        el.textContent = '+' + v + '%';
+        if (v >= 250) clearInterval(int);
+      }, 30);
+    }, 400);
+  }
+
+  /* ============ Screen 8: reveal ============ */
+  function initS8() {
+    document.querySelectorAll('#s8 .reveal').forEach((el, i) => {
+      el.classList.remove('in');
+      setTimeout(() => el.classList.add('in'), 400 + i * 900);
+    });
+  }
+
+  /* ============ Screen 9: practice picker ============ */
+  document.querySelectorAll('.practice').forEach(p => {
+    p.addEventListener('click', () => {
+      document.querySelectorAll('.practice').forEach(x => x.classList.remove('selected'));
+      p.classList.add('selected');
+      selectedPractice = p.dataset.name;
+      unlockCTA();
+    });
+  });
+  function initS9() { if (selectedPractice) unlockCTA(); }
+
+  /* ============ Screen 10: recap ============ */
+  function initS10() {
+    if (selectedPractice) {
+      document.getElementById('pickedLine').innerHTML =
+        `You picked <b style="color:var(--teal)">${selectedPractice}</b><small>your first practice is waiting</small>`;
+    }
+    document.querySelectorAll('#s10 .done-item').forEach((el, i) => {
+      el.classList.remove('in');
+      setTimeout(() => el.classList.add('in'), 300 + i * 500);
+    });
+    const go = document.getElementById('goLine');
+    go.classList.remove('in');
+    setTimeout(() => go.classList.add('in'), 2100);
+  }
+
+  const inits = { s1: initS1, s6: initS6, s2: initS2, s3: initS3, s4: initS4, s7: initS7, s8: initS8, s9: initS9, s10: initS10 };
+
+  show(0);
+})();
+</script>
+</body>
+</html>

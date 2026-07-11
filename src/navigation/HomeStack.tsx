@@ -13,6 +13,7 @@ import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScre
 import { PracticesScreen } from '../screens/Practices/PracticesScreen';
 import { PracticeDetailScreen } from '../screens/Practices/PracticeDetailScreen';
 import { PracticeSessionScreen } from '../screens/Practices/PracticeSessionScreen';
+import { DebriefScreen } from '../screens/Home/DebriefScreen';
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
 import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
 import { HabitLibraryScreen } from '../screens/Home/HabitLibraryScreen';
@@ -112,6 +113,11 @@ export const HomeStack: React.FC = () => (
       name="PracticeSession"
       component={PracticeSessionScreen}
       options={{ title: '' }}
+    />
+    <Stack.Screen
+      name="Debrief"
+      component={DebriefScreen}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="ManageHabits"

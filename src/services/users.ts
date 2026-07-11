@@ -46,6 +46,10 @@ export const clearDeferredOnboardingProgress = async (userId: string): Promise<v
   await setDoc(doc(db, 'users', userId), { deferred_onboarding_progress: deleteField() }, { merge: true });
 };
 
+export const markDebriefSeen = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_seen_debrief: true }, { merge: true });
+};
+
 export const markPointsIntroSeen = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_seen_points_intro: true }, { merge: true });
 };

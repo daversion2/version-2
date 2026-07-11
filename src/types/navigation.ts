@@ -91,6 +91,9 @@ export type HomeStackParamList = {
   // Forward practice-session flow, also hosted here so taps from the Home list
   // run the new flow and return to Home (not the Practices tab) when done.
   PracticeSession: PracticeSessionParams;
+  // One-time post-first-practice Debrief (recovery science, pleasure trap,
+  // research) — triggered from the session flow or the home fallback card
+  Debrief: undefined;
   StartChallenge: { forDate?: string } | undefined;
   CreateChallenge: { forDate?: string } | undefined;
   PastChallenges: { forDate?: string } | undefined;

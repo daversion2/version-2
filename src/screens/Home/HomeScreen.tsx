@@ -504,6 +504,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (!userProfile || reminderPromptVisible) return;
     if (userProfile.has_seen_reminder_prompt) return;
     if ((userProfile.totalHabitsCompleted ?? 0) < 1) return;
+    // The Debrief owns the post-first-practice moment — this RN Modal would
+    // render on top of it. It shows once the Debrief is done (flag flips).
+    if (!userProfile.has_seen_debrief) return;
     if (habits.length === 0 || anyModalActive) return;
     const timer = setTimeout(() => setReminderPromptVisible(true), 1000);
     return () => clearTimeout(timer);
@@ -561,7 +564,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         input,
         { teamId: team?.id }
       );
-      const bonusLabel = firstTry ? 'First time trying this practice — points doubled' : null;
+      const bonusLabel = firstTry ? 'First time trying this practice — XP doubled' : null;
 
       // Refresh team summary after the shared path logged the activity.
       if (team) {
@@ -609,7 +612,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         if (updateResult.newTierReached && updateResult.tierInfo) {
           showAlert(
             'Streak Milestone!',
-            `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x points on all activities!`
+            `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x XP on all activities!`
           );
         }
       };
@@ -851,6 +854,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       >
         <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
 
+        {/* Post-first-practice Debrief fallback — shows until the one-time
+            Debrief sequence has been viewed (see DebriefScreen) */}
+        {!userProfile?.has_seen_debrief && homeData.totalHabitsCompleted > 0 && (
+          <TouchableOpacity
+            style={debriefStyles.card}
+            onPress={() => navigation.navigate('Debrief')}
+            activeOpacity={0.85}
+          >
+            <View style={debriefStyles.iconWrap}>
+              <Ionicons name="flash" size={18} color={Colors.white} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={debriefStyles.title}>See what just happened in your brain</Text>
+              <Text style={debriefStyles.sub}>Your first practice did more than you think — 1 min</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+          </TouchableOpacity>
+        )}
+
         {zonedLayout.map((group) => (
           <React.Fragment key={group.zone.id}>
             {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
@@ -893,7 +915,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       />
       <PointsIntroModal
         visible={pointsIntroVisible}
-        onDismiss={() => setPointsIntroVisible(false)}
+        onDismiss={() => {
+          setPointsIntroVisible(false);
+          // Quick-log path for the first-ever completion: chain into the
+          // one-time Debrief once this native modal has fully torn down
+          // (navigating during its dismissal drops the action on iOS).
+          if (!userProfile?.has_seen_debrief && (userProfile?.totalHabitsCompleted ?? 0) > 0) {
+            setTimeout(() => navigation.navigate('Debrief'), 300);
+          }
+        }}
       />
       <PlanIntroModal
         visible={planIntroVisible}
@@ -1038,4 +1068,30 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
 
+});
+
+const debriefStyles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    // The hero below pulls itself up by Spacing.lg to escape the scroll
+    // padding — this margin is what it consumes, keeping the card clear.
+    marginBottom: Spacing.lg + Spacing.sm,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  sub: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 1 },
 });

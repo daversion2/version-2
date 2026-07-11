@@ -14,10 +14,15 @@ import { PracticeCaptureFlow } from '../../components/habits/PracticeCaptureFlow
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 
 // Structural props so the same screen can be registered in any stack. Needs
-// goBack (return to caller) and navigate (open the practice's learn content).
+// goBack (return to caller), navigate (open the practice's learn content),
+// and replace (swap this screen for the post-first-practice Debrief).
 interface Props {
   route: { params: PracticeSessionParams };
-  navigation: { goBack: () => void; navigate: (...args: any[]) => void };
+  navigation: {
+    goBack: () => void;
+    navigate: (...args: any[]) => void;
+    replace: (name: string, params?: object) => void;
+  };
 }
 
 type Step = 'ready' | 'go' | 'capture';
@@ -37,7 +42,7 @@ type Step = 'ready' | 'go' | 'capture';
 export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) => {
   const { practiceId, habitId, habitName, teamId } = route.params;
   const practice = getPractice(practiceId);
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const accent = PRACTICE_GROUPS.find((g) => g.id === practice?.group)?.color ?? Colors.primary;
 
@@ -82,8 +87,22 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   };
 
   const dismissCelebration = () => {
+    // First completed practice → the one-time Debrief (the intellectual half
+    // of onboarding: recovery science, pleasure trap, research). The home
+    // card is the fallback if this never fires or they bail partway.
+    const showDebrief = !!userProfile && userProfile.has_seen_debrief !== true;
     setCelebration(null);
-    navigation.goBack();
+    // Navigate only after the native celebration Modal has fully torn down —
+    // actions dispatched during its dismissal are silently dropped on iOS.
+    setTimeout(() => {
+      if (showDebrief) {
+        // Single atomic action: swap this screen for the Debrief, so its own
+        // goBack lands on the caller (Home), not back in this session.
+        navigation.replace('Debrief');
+      } else {
+        navigation.goBack();
+      }
+    }, 300);
   };
 
   return (

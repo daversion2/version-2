@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 import { useAuth } from '../context/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
-import { OnboardingScreen } from '../screens/Auth/OnboardingScreen';
+import { OverrideOnboardingScreen } from '../screens/Auth/OverrideOnboardingScreen';
 import { Colors } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -105,7 +105,7 @@ export const RootNavigator: React.FC = () => {
         {!user ? (
           <Stack.Screen name="Auth" component={AuthStack} />
         ) : needsOnboarding ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Onboarding" component={OverrideOnboardingScreen} />
         ) : (
           <Stack.Screen name="Main" component={MainTabs} />
         )}
