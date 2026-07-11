@@ -7,9 +7,6 @@ import {
   ReflectionGrade,
   Goal,
   GoalFollowThrough,
-  PlannedItem,
-  TomorrowChallenge,
-  TomorrowPlan,
 } from '../../../types';
 
 export interface WillpowerStatsData {
@@ -41,10 +38,6 @@ export interface HomeData {
   // Why Discovery
   whyStatement: string | null;
   hasCompletedWhyDiscovery: boolean;
-  // Plan Tomorrow
-  plannedHabitIds: string[];
-  // Weekly plans for planner context (future dates -> TomorrowPlan)
-  weeklyPlans: Record<string, TomorrowPlan>;
   // Habit ids completed today (powers the hero counter + card "Done today" state)
   completedTodayIds: string[];
   // Practice catalog id picked as the starting point during onboarding
@@ -58,10 +51,6 @@ export interface HomeCallbacks {
   onHabitTap: (habit: PracticeInstance) => void;
   getItemColor: (goalIds?: string[]) => string;
   onGoalTap?: (goalId: string) => void;
-  onCalendarExport?: (item: PlannedItem) => void;
-  onPlannedItemPress?: (item: PlannedItem) => void;
-  onAddTodayChallenge?: (challenge: TomorrowChallenge) => Promise<void>;
-  onToggleTodayHabit?: (habitId: string) => void;
   /** Persist a practice's weekly commitment (target_count_per_week). */
   onSetWeeklyGoal?: (habitId: string, target: number) => void;
 }

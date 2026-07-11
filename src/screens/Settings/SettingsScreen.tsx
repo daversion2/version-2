@@ -182,7 +182,6 @@ export const SettingsScreen: React.FC = () => {
           onPress={async () => {
             if (!user) return;
             await setDoc(doc(db, 'users', user.uid), {
-              has_seen_plan_intro: true,
               has_seen_points_intro: true,
               has_dismissed_goal_prompt: false,
               app_open_count: 2,
@@ -198,7 +197,6 @@ export const SettingsScreen: React.FC = () => {
           onPress={async () => {
             if (!user) return;
             await setDoc(doc(db, 'users', user.uid), {
-              has_seen_plan_intro: true,
               has_seen_points_intro: true,
               has_dismissed_goal_prompt: true,
               has_seen_challenges_unlock: false,
@@ -235,7 +233,6 @@ export const SettingsScreen: React.FC = () => {
             if (!user) return;
             const { deleteField } = await import('firebase/firestore');
             await setDoc(doc(db, 'users', user.uid), {
-              has_seen_plan_intro: deleteField(),
               has_seen_points_intro: deleteField(),
               has_dismissed_goal_prompt: deleteField(),
               has_seen_challenges_unlock: deleteField(),

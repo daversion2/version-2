@@ -13,7 +13,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, PracticeInstance, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
+import { Challenge, PracticeInstance, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, seedDefaultPractices } from '../../services/practices';
@@ -30,7 +30,6 @@ import { getPractice } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
-import { PlanIntroModal } from '../../components/common/PlanIntroModal';
 import { GoalPromptModal } from '../../components/common/GoalPromptModal';
 import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
 import { ComebackModal } from '../../components/home/ComebackModal';
@@ -42,12 +41,10 @@ import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../services/neuroscienceTidbits';
 import { NeuroscienceTidbit } from '../../types';
-import { convertPlannedChallengesToChallenges, getTomorrowPlan, saveTomorrowPlan } from '../../services/dailyPlan';
-import { exportToCalendar } from '../../services/calendarExport';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, markPlanIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, markReminderPromptSeen } from '../../services/users';
+import { markPointsIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, markReminderPromptSeen } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -84,8 +81,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
   const [programDayNumber, setProgramDayNumber] = useState(0);
   const [programCheckedIn, setProgramCheckedIn] = useState(false);
-  const [plannedHabitIds, setPlannedHabitIds] = useState<string[]>([]);
-  const [weeklyPlans, setWeeklyPlans] = useState<Record<string, TomorrowPlan>>({});
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
@@ -106,9 +101,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
 
-  // Plan intro modal (one-time, first home screen landing after onboarding)
-  const [planIntroVisible, setPlanIntroVisible] = useState(false);
-
   // Goal prompt modal (Day 2 - second app open, no goals)
   const [goalPromptVisible, setGoalPromptVisible] = useState(false);
 
@@ -125,7 +117,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // The modal is held while any bespoke modal is up so they never stack.
   const anyModalActive =
     pointsIntroVisible ||
-    planIntroVisible ||
     goalPromptVisible ||
     challengesUnlockVisible ||
     reminderPromptVisible ||
@@ -366,47 +357,22 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      // Challenge maintenance + plan context (after the batch state is set,
-      // so none of it blocks the first render of practices):
+      // Challenge maintenance (after the batch state is set, so none of it
+      // blocks the first render of practices):
       // 1. Expire stale daily challenges from previous days
       // 2. Activate scheduled challenges whose date has arrived
-      // 3. Convert planned challenges into real Challenge documents
-      // 4. Load planned habit IDs for Today's Plan
       try {
         const todayStr = getTodayString();
         const expiredCount = await expireStaleDailyChallenges(user.uid, todayStr);
         const activatedCount = await activateScheduledChallenges(user.uid, todayStr);
-        const convertedCount = await convertPlannedChallengesToChallenges(user.uid, todayStr);
-        if (expiredCount > 0 || activatedCount > 0 || convertedCount > 0) {
+        if (expiredCount > 0 || activatedCount > 0) {
           const refreshedChallenges = await getActiveChallenges(user.uid);
           setActiveChallenges(refreshedChallenges);
           const refreshedExtended = await getActiveExtendedChallenges(user.uid);
           setExtendedChallenges(refreshedExtended);
         }
-        // Load planned habit IDs for today
-        const todayPlan = await getTomorrowPlan(user.uid, todayStr);
-        if (todayPlan?.planned_habit_ids) {
-          setPlannedHabitIds(todayPlan.planned_habit_ids);
-        }
-
-        // Load future plans for this week (for planner context on habit rows)
-        const today = new Date();
-        const futurePlans: Record<string, TomorrowPlan> = {};
-        const futureDates: string[] = [];
-        for (let i = 1; i <= 6; i++) {
-          const d = new Date(today);
-          d.setDate(today.getDate() + i);
-          futureDates.push(toLocalDateString(d));
-        }
-        const planResults = await Promise.all(
-          futureDates.map((date) => getTomorrowPlan(user.uid, date))
-        );
-        planResults.forEach((plan, idx) => {
-          if (plan) futurePlans[futureDates[idx]] = plan;
-        });
-        setWeeklyPlans(futurePlans);
       } catch (err) {
-        console.warn('Planned items conversion failed:', err);
+        console.warn('Challenge maintenance failed:', err);
       }
 
       // Load program day content and check for missed days
@@ -462,16 +428,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [user]);
 
-  // Show one-time plan intro after onboarding OR after first habit creation (if skipped onboarding)
-  useEffect(() => {
-    if (!userProfile) return;
-    if (planIntroVisible) return; // Already showing
-    if (!userProfile.has_seen_plan_intro && habits.length > 0) {
-      // Small delay so the home screen renders first
-      const timer = setTimeout(() => setPlanIntroVisible(true), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [userProfile, habits]);
 
   // Post-first-rep reminder prompt: once, right after the first-ever
   // completion, when no other modal is up — the moment they're most willing
@@ -494,8 +450,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (goalPromptVisible) return; // Already showing
     if (
       (userProfile.app_open_count ?? 0) >= 2 &&
-      !userProfile.has_dismissed_goal_prompt &&
-      userProfile.has_seen_plan_intro // Don't stack with plan intro
+      !userProfile.has_dismissed_goal_prompt
     ) {
       const timer = setTimeout(() => setGoalPromptVisible(true), 800);
       return () => clearTimeout(timer);
@@ -616,90 +571,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  // --- Calendar Export ---
-
-  const handleCalendarExport = useCallback(async (item: PlannedItem) => {
-    await exportToCalendar({
-      title: item.calendarTitle || item.title,
-      notes: item.calendarNotes,
-      startDate: item.calendarStartDate,
-      endDate: item.calendarEndDate,
-    });
-  }, []);
-
-  // --- Planned Item Press ---
-
-  const handlePlannedItemPress = useCallback((item: PlannedItem) => {
-    switch (item.type) {
-      case 'habit': {
-        const habit = item.sourceData.habit;
-        if (habit) handleHabitTap(habit);
-        break;
-      }
-      case 'daily_challenge': {
-        const challenge = item.sourceData.challenge;
-        if (challenge) navigation.navigate('CompleteChallenge' as any, { challenge });
-        break;
-      }
-      case 'extended_milestone': {
-        const challenge = item.sourceData.challenge;
-        if (challenge) navigation.navigate('ExtendedChallengeProgress' as any, { challengeId: challenge.id });
-        break;
-      }
-      case 'program_checkin': {
-        const program = item.sourceData.program;
-        if (program) navigation.navigate('ProgramDashboard' as any, { enrollmentId: program.id });
-        break;
-      }
-    }
-  }, [handleHabitTap, navigation]);
-
-  // --- Add to Today ---
-
-  const handleAddTodayChallenge = useCallback(async (challenge: TomorrowChallenge) => {
-    if (!user) return;
-    try {
-      const todayStr = getTodayString();
-      await createChallenge(user.uid, {
-        name: challenge.name,
-        date: todayStr,
-        difficulty_expected: challenge.difficulty_expected,
-        description: challenge.description,
-      });
-      // Refresh challenges list
-      const refreshed = await getActiveChallenges(user.uid);
-      setActiveChallenges(refreshed);
-    } catch (err) {
-      console.warn('Failed to add today challenge:', err);
-      showAlert('Error', 'Could not create challenge.');
-    }
-  }, [user]);
-
-  const handleToggleTodayHabit = useCallback(async (habitId: string) => {
-    if (!user) return;
-    const updated = plannedHabitIds.includes(habitId)
-      ? plannedHabitIds.filter((id) => id !== habitId)
-      : [...plannedHabitIds, habitId];
-    setPlannedHabitIds(updated);
-
-    // Persist to today's plan doc
-    try {
-      const todayStr = getTodayString();
-      const existingPlan = await getTomorrowPlan(user.uid, todayStr);
-      await saveTomorrowPlan(user.uid, {
-        user_id: user.uid,
-        date: todayStr,
-        planned_habit_ids: updated,
-        planned_challenges: existingPlan?.planned_challenges || [],
-        dismissed_habit_ids: existingPlan?.dismissed_habit_ids || [],
-        created_at: existingPlan?.created_at || new Date().toISOString(),
-        source: 'manual',
-      });
-    } catch (err) {
-      console.warn('Failed to save planned habits:', err);
-    }
-  }, [user, plannedHabitIds]);
-
   // --- Weekly goal (per-practice commitment) ---
 
   const handleSetWeeklyGoal = useCallback(
@@ -762,8 +633,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     activeMantra,
     whyStatement,
     hasCompletedWhyDiscovery,
-    plannedHabitIds,
-    weeklyPlans,
     completedTodayIds,
     startingPracticeId: userProfile?.starting_practice_id ?? null,
     userName: userProfile?.username ?? null,
@@ -773,7 +642,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     activeProgram, todaysProgramDay, programDayNumber, programCheckedIn,
     goals, showReflectionBanner, reflectedToday, todaysGrade,
     willpowerStats, goalFollowThrough, totalHabitsCompleted, activeMantra,
-    whyStatement, hasCompletedWhyDiscovery, plannedHabitIds, weeklyPlans,
+    whyStatement, hasCompletedWhyDiscovery,
     completedTodayIds, userProfile?.starting_practice_id, userProfile?.username,
   ]);
 
@@ -794,12 +663,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     onHabitTap: handleHabitTap,
     getItemColor,
     onGoalTap,
-    onCalendarExport: handleCalendarExport,
-    onPlannedItemPress: handlePlannedItemPress,
-    onAddTodayChallenge: handleAddTodayChallenge,
-    onToggleTodayHabit: handleToggleTodayHabit,
     onSetWeeklyGoal: handleSetWeeklyGoal,
-  }), [onNavigate, handleHabitTap, getItemColor, onGoalTap, handleCalendarExport, handlePlannedItemPress, handleAddTodayChallenge, handleToggleTodayHabit, handleSetWeeklyGoal]);
+  }), [onNavigate, handleHabitTap, getItemColor, onGoalTap, handleSetWeeklyGoal]);
 
 
   return (
@@ -885,20 +750,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           }
         }}
       />
-      <PlanIntroModal
-        visible={planIntroVisible}
-        onDismiss={async () => {
-          setPlanIntroVisible(false);
-          if (user) {
-            try {
-              await markPlanIntroSeen(user.uid);
-              await refreshProfile();
-            } catch (err) {
-              console.warn('Failed to mark plan intro seen:', err);
-            }
-          }
-        }}
-      />
       <GoalPromptModal
         visible={goalPromptVisible}
         onSetupGoal={async () => {
@@ -952,23 +803,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           dismissRuleModal();
           if (!user) return;
           try {
-            // Add habit to today's plan
-            const todayStr = getTodayString();
-            const updated = plannedHabitIds.includes(habitId)
-              ? plannedHabitIds
-              : [...plannedHabitIds, habitId];
-            setPlannedHabitIds(updated);
-            const existingPlan = await getTomorrowPlan(user.uid, todayStr);
-            await saveTomorrowPlan(user.uid, {
-              user_id: user.uid,
-              date: todayStr,
-              planned_habit_ids: updated,
-              planned_challenges: existingPlan?.planned_challenges || [],
-              dismissed_habit_ids: existingPlan?.dismissed_habit_ids || [],
-              created_at: existingPlan?.created_at || new Date().toISOString(),
-              source: 'manual',
-            });
-            // Save comeback log
             await saveComebackLog(user.uid, { barrierReason, committedHabitId: habitId, committedHabitName: habitName });
           } catch (err) {
             console.warn('Failed to save comeback commitment:', err);

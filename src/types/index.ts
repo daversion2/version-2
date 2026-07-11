@@ -61,7 +61,6 @@ export interface User {
   onboarding_reflection?: string;
   // One-time intro flags
   has_seen_points_intro?: boolean;
-  has_seen_plan_intro?: boolean;
   has_dismissed_goal_prompt?: boolean;
   has_seen_challenges_unlock?: boolean;
   // Default practices auto-seeded onto the home (one-time, on first load)
@@ -761,59 +760,6 @@ export interface MeasurementProgress {
   trend?: number[];
   days_remaining?: number;
   metric_name?: string;
-}
-
-// ============================================================================
-// DAILY PLANNER
-// ============================================================================
-
-export type PlannedItemType =
-  | 'daily_challenge'
-  | 'extended_milestone'
-  | 'habit'
-  | 'program_checkin';
-
-export type PlannedItemStatus = 'completed' | 'pending' | 'expired';
-
-export interface PlannedItem {
-  id: string;
-  type: PlannedItemType;
-  title: string;
-  subtitle?: string;
-  status: PlannedItemStatus;
-  icon: string;                    // Ionicons name
-  iconColor: string;
-  deadline?: string;               // HH:MM or ISO
-  sortKey: number;
-  calendarTitle?: string;
-  calendarStartDate?: Date;
-  calendarEndDate?: Date;
-  calendarNotes?: string;
-  sourceData: {
-    challenge?: Challenge;
-    habit?: PracticeInstance;
-    program?: ProgramEnrollment;
-    programDay?: ProgramDay;
-  };
-}
-
-export interface TomorrowPlan {
-  id: string;
-  user_id: string;
-  date: string;                    // YYYY-MM-DD (the date being planned FOR)
-  planned_habit_ids: string[];
-  planned_challenges: TomorrowChallenge[];
-  dismissed_habit_ids: string[];
-  created_at: string;
-  source: 'reflection' | 'manual';
-}
-
-export interface TomorrowChallenge {
-  name: string;
-  category_id?: string;
-  difficulty_expected: number;
-  description?: string;
-  converted: boolean;
 }
 
 // ============================================================================

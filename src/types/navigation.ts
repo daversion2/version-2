@@ -138,7 +138,6 @@ export type HomeStackParamList = {
   WhyScreen: undefined;
   WhyDiscoveryFlow: undefined;
   DeferredOnboarding: undefined;
-  WeeklyPlanner: undefined;
   MicroExerciseFeeling: { trigger_context: MicroExerciseTrigger };
   MicroExerciseQuestion: {
     session: MicroExerciseSessionState;

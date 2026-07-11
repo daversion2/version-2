@@ -14,14 +14,11 @@ import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { useAuth } from '../../context/AuthContext';
-import { DailySummary, ReflectionGrade, DailyReflection, PracticeInstance, TomorrowChallenge } from '../../types';
+import { DailySummary, ReflectionGrade, DailyReflection, PracticeInstance } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
-import { getActiveHabits, getWeeklyCompletionCounts } from '../../services/practices';
-import { saveTomorrowPlan, getTomorrowPlan, suggestHabitsForTomorrow } from '../../services/dailyPlan';
+import { getActiveHabits } from '../../services/practices';
 import { showAlert } from '../../utils/alert';
-import { getTomorrowString } from '../../utils/date';
 import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
-import { PlanTomorrowStep } from '../../components/home/PlanTomorrowStep';
 import { BadDayModal } from '../../components/home/BadDayModal';
 
 type Props = HomeScreenProps<'NightlyReflection'>;
@@ -43,12 +40,8 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [badDayModalVisible, setBadDayModalVisible] = useState(false);
   const [badDayShownForGrade, setBadDayShownForGrade] = useState(false);
 
-  // Plan Tomorrow state
+  // Habit list for the bad-day commit modal
   const [allHabits, setAllHabits] = useState<PracticeInstance[]>([]);
-  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
-  const [suggestedHabitIds, setSuggestedHabitIds] = useState<string[]>([]);
-  const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>([]);
-  const [plannedChallenges, setPlannedChallenges] = useState<TomorrowChallenge[]>([]);
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -80,31 +73,12 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         setWhyReflection(existing.prompt_why_connection || '');
       }
 
-      // Load data for Plan Tomorrow step
+      // Load habits for the bad-day commit modal
       try {
-        const [habitList, weekCounts] = await Promise.all([
-          getActiveHabits(user.uid),
-          getWeeklyCompletionCounts(user.uid),
-        ]);
+        const habitList = await getActiveHabits(user.uid);
         setAllHabits(habitList);
-        setWeeklyCounts(weekCounts);
-
-        const suggestions = suggestHabitsForTomorrow(habitList, weekCounts);
-        const suggIds = suggestions.map((h) => h.id);
-        setSuggestedHabitIds(suggIds);
-
-        // Load existing tomorrow plan or pre-select suggested habits
-        const tomorrowStr = getTomorrowString();
-        const existingPlan = await getTomorrowPlan(user.uid, tomorrowStr);
-        if (existingPlan) {
-          setSelectedHabitIds(existingPlan.planned_habit_ids || []);
-          setPlannedChallenges(existingPlan.planned_challenges || []);
-        } else {
-          // Pre-select suggested habits by default
-          setSelectedHabitIds(suggIds);
-        }
       } catch (err) {
-        console.warn('Plan Tomorrow data load failed:', err);
+        console.warn('Habit list load failed:', err);
       }
     } catch (e) {
       console.error(e);
@@ -132,23 +106,6 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         daily_summary: summary,
         created_at: new Date().toISOString(),
       });
-      // Save tomorrow plan if any habits or challenges are planned
-      const tomorrowStr = getTomorrowString();
-      if (selectedHabitIds.length > 0 || plannedChallenges.length > 0) {
-        try {
-          await saveTomorrowPlan(user.uid, {
-            user_id: user.uid,
-            date: tomorrowStr,
-            planned_habit_ids: selectedHabitIds,
-            planned_challenges: plannedChallenges.map((c) => ({ ...c, converted: false })),
-            dismissed_habit_ids: [],
-            created_at: new Date().toISOString(),
-            source: 'reflection',
-          });
-        } catch (err) {
-          console.warn('Failed to save tomorrow plan:', err);
-        }
-      }
 
       showAlert('Reflection Saved', 'Great job reflecting on your day!');
       navigation.goBack();
@@ -215,13 +172,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       <BadDayModal
         visible={badDayModalVisible}
         habits={allHabits}
-        onCommit={(habitId) => {
-          setBadDayModalVisible(false);
-          // Auto-select the committed habit in Plan Tomorrow
-          setSelectedHabitIds((prev) =>
-            prev.includes(habitId) ? prev : [...prev, habitId]
-          );
-        }}
+        onCommit={() => setBadDayModalVisible(false)}
         onDismiss={() => setBadDayModalVisible(false)}
       />
 
@@ -270,27 +221,6 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           editable={!isReadOnly}
         />
       </View>
-
-      {/* Plan Tomorrow */}
-      <PlanTomorrowStep
-        habits={allHabits}
-        weeklyCounts={weeklyCounts}
-        suggestedHabitIds={suggestedHabitIds}
-        selectedHabitIds={selectedHabitIds}
-        onToggleHabit={(habitId) =>
-          setSelectedHabitIds((prev) =>
-            prev.includes(habitId)
-              ? prev.filter((id) => id !== habitId)
-              : [...prev, habitId]
-          )
-        }
-        plannedChallenges={plannedChallenges}
-        onAddChallenge={(ch) => setPlannedChallenges((prev) => [...prev, ch])}
-        onRemoveChallenge={(index) =>
-          setPlannedChallenges((prev) => prev.filter((_, i) => i !== index))
-        }
-        isReadOnly={isReadOnly}
-      />
 
       {/* Why Connection Prompt (rotating daily) */}
       {userProfile?.why_statement ? (
