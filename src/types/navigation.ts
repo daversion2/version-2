@@ -103,7 +103,7 @@ export type HomeStackParamList = {
   EditChallenge: { challenge: Challenge };
   ExtendedChallengeProgress: { challenge: Challenge };
   ChallengeDetail: { challengeId: string };
-  ManageHabits: { openAddForm?: boolean } | undefined;
+  ManageHabits: undefined;
   // Curated practices open by catalog `practiceId`; user-authored (custom)
   // practices open by their instance `habitId`. (Was in the retired Practices tab.)
   // `readOnly` hides adopt/status CTAs — used when opened mid-session as "Learn more".
@@ -175,7 +175,7 @@ export type ProgressStackParamList = {
   HabitDetail: { habitId: string };
   ProgramDashboard: { enrollmentId: string };
   CreateChallenge: { forDate?: string } | undefined;
-  ManageHabits: { openAddForm?: boolean } | undefined;
+  ManageHabits: undefined;
 };
 
 // ============================================================================

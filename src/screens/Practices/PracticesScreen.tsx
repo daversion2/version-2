@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { PRACTICE_GROUPS, getAllPractices, getPracticesByGroup, resolvePracticeGroup, Practice, PracticeGroup } from '../../data/practices';
+import { PRACTICE_GROUPS, getAllPractices, getPracticesByGroup, resolvePracticeGroup, Practice } from '../../data/practices';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveHabits, getWeeklyCompletionCounts, createHabit, updateHabit } from '../../services/practices';
@@ -137,24 +137,16 @@ const FREQ = [1, 2, 3, 4, 5, 6, 7];
 
 /**
  * The single practice management screen: browse the curated protocol by group,
- * adopt practices, create your own, and edit/remove what you've adopted. Reached
- * from Home → Add activity → Practice (route name 'ManageHabits'). Doing reps
+ * adopt practices, and edit/remove what you've adopted. Reached from
+ * Home → Add activity → Practice (route name 'ManageHabits'). Doing reps
  * (completion) lives on Home; this screen never logs a completion.
  */
-export const PracticesScreen: React.FC<Props> = ({ navigation, route }) => {
+export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [weekly, setWeekly] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  // Create-custom form
-  const [showForm, setShowForm] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newGroup, setNewGroup] = useState<PracticeGroup>('custom');
-  const [timesPerWeek, setTimesPerWeek] = useState(3);
-  const [goalIds, setGoalIds] = useState<string[]>([]);
-  const [formLoading, setFormLoading] = useState(false);
 
   // Edit form
   const [editingHabit, setEditingHabit] = useState<PracticeInstance | null>(null);
@@ -184,14 +176,6 @@ export const PracticesScreen: React.FC<Props> = ({ navigation, route }) => {
       load();
     }, [load])
   );
-
-  // Deep-link: open the create form directly (the "Add practice" entry point).
-  useEffect(() => {
-    if (route.params?.openAddForm) {
-      setShowForm(true);
-      navigation.setParams({ openAddForm: undefined });
-    }
-  }, [route.params?.openAddForm]);
 
   const habitForPractice = (practice: Practice): PracticeInstance | undefined =>
     habits.find((h) => h.practice_id === practice.id) ||
@@ -223,44 +207,11 @@ export const PracticesScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const resetCreateForm = () => {
-    setNewName('');
-    setNewGroup('custom');
-    setTimesPerWeek(3);
-    setGoalIds([]);
-  };
-
-  const handleCreate = async () => {
-    if (!newName.trim()) {
-      showAlert('Required', 'Enter a practice name.');
-      return;
-    }
-    if (!user) return;
-    setFormLoading(true);
-    try {
-      const habitId = await createHabit(user.uid, {
-        name: newName.trim(),
-        target_count_per_week: timesPerWeek,
-        group: newGroup,
-        ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
-      });
-      resetCreateForm();
-      setShowForm(false);
-      await load();
-      navigation.navigate('HabitActionPlan', { habitId, afterSaveRoute: 'ManageHabits' });
-    } catch (e: any) {
-      showAlert('Error', e.message);
-    } finally {
-      setFormLoading(false);
-    }
-  };
-
   const startEdit = (habit: PracticeInstance) => {
     setEditingHabit(habit);
     setEditName(habit.name);
     setEditTimesPerWeek(habit.target_count_per_week);
     setEditGoalIds(habit.goal_ids || []);
-    setShowForm(false);
   };
 
   const cancelEdit = () => {
@@ -322,65 +273,12 @@ export const PracticesScreen: React.FC<Props> = ({ navigation, route }) => {
         Your practice protocol. Add practices to your routine, then check them off on Home.
       </Text>
 
-      {SHOW_HABIT_LIBRARY && !showForm && !editingHabit && (
+      {SHOW_HABIT_LIBRARY && !editingHabit && (
         <TouchableOpacity style={styles.libraryBtn} onPress={() => navigation.navigate('HabitLibrary')}>
           <Ionicons name="library-outline" size={16} color={Colors.secondary} />
           <Text style={styles.libraryBtnText}>Browse Habit Library</Text>
           <Ionicons name="chevron-forward" size={14} color={Colors.secondary} />
         </TouchableOpacity>
-      )}
-
-      {/* Create-custom form */}
-      {showForm && (
-        <Card style={styles.formCard}>
-          <InputField
-            label="Practice Name"
-            value={newName}
-            onChangeText={setNewName}
-            placeholder="e.g. Read 10 pages"
-          />
-          <Text style={styles.formLabel}>Group</Text>
-          <View style={styles.chipRow}>
-            {PRACTICE_GROUPS.map((g) => {
-              const active = newGroup === g.id;
-              return (
-                <TouchableOpacity
-                  key={g.id}
-                  onPress={() => setNewGroup(g.id)}
-                  style={[styles.groupChip, { borderColor: g.color }, active && { backgroundColor: g.color }]}
-                >
-                  <Text style={[styles.groupChipText, active && { color: Colors.white }]}>{g.name}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <Text style={styles.formLabel}>Times per week</Text>
-          <View style={styles.chipRow}>
-            {FREQ.map((n) => (
-              <TouchableOpacity
-                key={n}
-                onPress={() => setTimesPerWeek(n)}
-                style={[styles.freqChip, timesPerWeek === n && styles.freqChipActive]}
-              >
-                <Text style={[styles.freqChipText, timesPerWeek === n && { color: Colors.white }]}>{n}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <GoalTagPicker
-            selectedGoalIds={goalIds}
-            onChange={setGoalIds}
-            onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
-          />
-          <View style={styles.formButtons}>
-            <Button title="Add" onPress={handleCreate} loading={formLoading} style={{ flex: 1 }} />
-            <Button
-              title="Cancel"
-              onPress={() => { setShowForm(false); resetCreateForm(); }}
-              variant="outline"
-              style={{ flex: 1 }}
-            />
-          </View>
-        </Card>
       )}
 
       {/* Edit form */}
@@ -412,49 +310,50 @@ export const PracticesScreen: React.FC<Props> = ({ navigation, route }) => {
         </Card>
       )}
 
-      {PRACTICE_GROUPS.map((group) => (
-        <View key={group.id} style={styles.group}>
-          <View style={styles.groupHeader}>
-            <View style={[styles.groupDot, { backgroundColor: group.color }]} />
-            <Text style={styles.groupName}>{group.name}</Text>
-          </View>
-          <Text style={styles.groupDesc}>{group.description}</Text>
-          {getPracticesByGroup(group.id).map((practice) => {
-            const habit = habitForPractice(practice);
-            return (
-              <PracticeCard
-                key={practice.id}
-                practice={practice}
-                color={group.color}
+      {PRACTICE_GROUPS.map((group) => {
+        const curated = getPracticesByGroup(group.id);
+        const custom = customForGroup(group.id);
+        // Custom-practice creation was removed; the Custom group only appears
+        // for users who still have previously created practices in it.
+        if (curated.length === 0 && custom.length === 0) return null;
+        return (
+          <View key={group.id} style={styles.group}>
+            <View style={styles.groupHeader}>
+              <View style={[styles.groupDot, { backgroundColor: group.color }]} />
+              <Text style={styles.groupName}>{group.name}</Text>
+            </View>
+            <Text style={styles.groupDesc}>{group.description}</Text>
+            {curated.map((practice) => {
+              const habit = habitForPractice(practice);
+              return (
+                <PracticeCard
+                  key={practice.id}
+                  practice={practice}
+                  color={group.color}
+                  habit={habit}
+                  weekDone={habit ? weekly[habit.id] ?? 0 : 0}
+                  busy={busyId === practice.id}
+                  onOpen={() => navigation.navigate('PracticeDetail', { practiceId: practice.id })}
+                  onAdopt={() => handleAdopt(practice)}
+                  onEdit={() => habit && startEdit(habit)}
+                  onRemove={() => habit && handleRemove(habit)}
+                />
+              );
+            })}
+            {custom.map((habit) => (
+              <CustomPracticeCard
+                key={habit.id}
                 habit={habit}
-                weekDone={habit ? weekly[habit.id] ?? 0 : 0}
-                busy={busyId === practice.id}
-                onOpen={() => navigation.navigate('PracticeDetail', { practiceId: practice.id })}
-                onAdopt={() => handleAdopt(practice)}
-                onEdit={() => habit && startEdit(habit)}
-                onRemove={() => habit && handleRemove(habit)}
+                color={group.color}
+                weekDone={weekly[habit.id] ?? 0}
+                onOpen={() => navigation.navigate('PracticeDetail', { habitId: habit.id })}
+                onEdit={() => startEdit(habit)}
+                onRemove={() => handleRemove(habit)}
               />
-            );
-          })}
-          {customForGroup(group.id).map((habit) => (
-            <CustomPracticeCard
-              key={habit.id}
-              habit={habit}
-              color={group.color}
-              weekDone={weekly[habit.id] ?? 0}
-              onOpen={() => navigation.navigate('PracticeDetail', { habitId: habit.id })}
-              onEdit={() => startEdit(habit)}
-              onRemove={() => handleRemove(habit)}
-            />
-          ))}
-          {group.id === 'custom' && !showForm && !editingHabit && (
-            <TouchableOpacity style={styles.createCard} onPress={() => setShowForm(true)} activeOpacity={0.7}>
-              <Ionicons name="add-circle-outline" size={20} color={group.color} />
-              <Text style={[styles.createCardText, { color: group.color }]}>Create your own</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ))}
+            ))}
+          </View>
+        );
+      })}
     </ScrollView>
   );
 };
@@ -481,8 +380,6 @@ const styles = StyleSheet.create({
   formLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, marginBottom: Spacing.sm },
   editLabel: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.primary, marginBottom: Spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: Spacing.md },
-  groupChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs + 2, borderRadius: BorderRadius.full, borderWidth: 2 },
-  groupChipText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xs, color: Colors.dark },
   freqChip: {
     width: 36,
     height: 36,
@@ -534,16 +431,4 @@ const styles = StyleSheet.create({
   learnRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: Spacing.sm },
   learnLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
   optionalReason: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.secondary, marginTop: Spacing.xs },
-  createCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: Colors.gray,
-  },
-  createCardText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
 });
