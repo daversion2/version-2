@@ -13,7 +13,6 @@ import { db } from './firebase';
 import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
 import { PracticeGroup, getDefaultSeedPractices } from '../data/practices';
 import { getWillpowerStats, calculateHabitPoints, updateWillpowerStats } from './willpower';
-import { logTeamActivity } from './teams';
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -195,16 +194,15 @@ export interface CompletePracticeResult {
 
 /**
  * Single source of truth for completing a practice. Beyond logging the
- * completion it awards willpower XP (with streak multiplier) and — when a
- * teamId is supplied — logs team activity. Every entry point (Home, Practices
- * tab, practice detail) should call this so the side effects stay consistent;
- * each screen renders its own celebration UI from the returned result.
+ * completion it awards willpower XP (with streak multiplier). Every entry
+ * point (Home, Practices tab, practice detail) should call this so the side
+ * effects stay consistent; each screen renders its own celebration UI from
+ * the returned result.
  */
 export const completePractice = async (
   userId: string,
   practice: { id: string; name: string },
   input: PracticeCompletionInput,
-  opts?: { teamId?: string },
 ): Promise<CompletePracticeResult> => {
   const { difficulty, notes, metrics, hitHardMoment, tactics, reflection } = input;
 
@@ -228,14 +226,6 @@ export const completePractice = async (
     tactics,
     reflection,
   });
-
-  if (opts?.teamId) {
-    try {
-      await logTeamActivity(opts.teamId, userId, 'habit', practice.name);
-    } catch (teamErr) {
-      console.warn('Failed to log team activity:', teamErr);
-    }
-  }
 
   // Award XP using the streak-aware multiplier; first time trying a practice
   // pays double — sampling the catalog is itself the behavior we reward.

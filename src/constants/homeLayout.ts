@@ -12,8 +12,6 @@ export const SECTION_IDS = [
   'reflection_banner',
   // Legacy (kept for backward compat with custom layouts)
   'greeting',
-  'buddy_invites',
-  'team_activity',
 ] as const;
 
 export type HomeSectionId = (typeof SECTION_IDS)[number];
@@ -21,8 +19,6 @@ export type HomeSectionId = (typeof SECTION_IDS)[number];
 const HIDDEN_SECTIONS: Set<HomeSectionId> = new Set([
   // Legacy sections hidden from default layout
   'greeting', // replaced by the hero
-  'buddy_invites',
-  'team_activity',
 ]);
 
 export const DEFAULT_HOME_LAYOUT: HomeLayoutItem[] = SECTION_IDS.map(id => ({
@@ -63,7 +59,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     id: 'legacy',
     label: 'More',
     icon: 'grid-outline',
-    sectionIds: ['greeting', 'buddy_invites', 'team_activity'],
+    sectionIds: ['greeting'],
   },
 ];
 
@@ -82,8 +78,6 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
   reflection_banner: 'Nightly Reflection',
   // Legacy
   greeting: 'Greeting',
-  buddy_invites: 'Buddy Invites',
-  team_activity: 'Team Activity',
 };
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
@@ -94,6 +88,4 @@ export const SECTION_ICONS: Record<HomeSectionId, string> = {
   reflection_banner: 'moon-outline',
   // Legacy
   greeting: 'sunny-outline',
-  buddy_invites: 'person-add-outline',
-  team_activity: 'people-outline',
 };

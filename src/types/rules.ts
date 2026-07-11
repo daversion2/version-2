@@ -48,19 +48,11 @@ export type RuleEvent =
   | 'habit_completed'
   | 'challenge_failed' // Cloud Function Firestore trigger (push rules)
   | 'reflection_saved'
-  | 'team_activity' // Cloud Function Firestore trigger (push rules)
-  | 'buddy_invite' // Cloud Function Firestore trigger (push rules)
-  | 'buddy_nudge' // Cloud Function Firestore trigger (push rules)
-  | 'buddy_both_complete' // Cloud Function Firestore trigger (push rules)
   | 'micro_commitment_followup'; // Cloud Function cron (push rules)
 
 export const RULE_EVENTS: { value: RuleEvent; label: string }[] = [
   { value: 'scheduled_hourly', label: 'Hourly schedule' },
   { value: 'challenge_failed', label: 'Challenge failed' },
-  { value: 'team_activity', label: 'Team member activity' },
-  { value: 'buddy_invite', label: 'Buddy challenge invite' },
-  { value: 'buddy_nudge', label: 'Buddy nudge sent' },
-  { value: 'buddy_both_complete', label: 'Buddy challenge complete' },
   { value: 'micro_commitment_followup', label: 'Micro-commitment follow-up' },
   { value: 'app_open', label: 'App open' },
   { value: 'habit_completed', label: 'Habit completed' },
@@ -75,10 +67,6 @@ export const RULE_EVENTS: { value: RuleEvent; label: string }[] = [
 export const PUSH_EVENTS: RuleEvent[] = [
   'scheduled_hourly',
   'challenge_failed',
-  'team_activity',
-  'buddy_invite',
-  'buddy_nudge',
-  'buddy_both_complete',
   'micro_commitment_followup',
 ];
 
@@ -88,10 +76,6 @@ export const PUSH_EVENTS: RuleEvent[] = [
  */
 export const EVENT_PLACEHOLDERS: Partial<Record<RuleEvent, string[]>> = {
   challenge_failed: ['challenge_name'],
-  team_activity: ['username', 'activity_type'],
-  buddy_invite: ['inviter_username', 'challenge_name'],
-  buddy_nudge: ['sender_username'],
-  buddy_both_complete: ['challenge_name'],
   micro_commitment_followup: ['commitment'],
 };
 

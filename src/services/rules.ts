@@ -208,66 +208,6 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     },
   },
   {
-    name: 'Team activity',
-    description:
-      'Notify team members when a teammate completes a challenge or habit. Placeholders: {username}, {activity_type}.',
-    enabled: true,
-    surface: 'push',
-    event: 'team_activity',
-    conditions: [],
-    frequency: { type: 'always' },
-    priority: 20,
-    content: {
-      title: 'Team Activity',
-      body: '{username} just completed a {activity_type}!',
-    },
-  },
-  {
-    name: 'Buddy challenge invite',
-    description:
-      "Notify the partner when they're invited to a buddy challenge. Placeholders: {inviter_username}, {challenge_name}.",
-    enabled: true,
-    surface: 'push',
-    event: 'buddy_invite',
-    conditions: [],
-    frequency: { type: 'always' },
-    priority: 20,
-    content: {
-      title: 'Buddy Challenge Invite!',
-      body: '{inviter_username} wants to do "{challenge_name}" with you!',
-    },
-  },
-  {
-    name: 'Buddy nudge',
-    description:
-      'Notify a user when their buddy sends them a nudge. Placeholders: {sender_username}.',
-    enabled: true,
-    surface: 'push',
-    event: 'buddy_nudge',
-    conditions: [],
-    frequency: { type: 'always' },
-    priority: 20,
-    content: {
-      title: 'Buddy Nudge!',
-      body: "{sender_username} sent you a nudge. You've got this!",
-    },
-  },
-  {
-    name: 'Buddy challenge complete',
-    description:
-      'Notify both users when a buddy challenge is completed. Placeholders: {challenge_name}.',
-    enabled: true,
-    surface: 'push',
-    event: 'buddy_both_complete',
-    conditions: [],
-    frequency: { type: 'always' },
-    priority: 20,
-    content: {
-      title: 'Buddy Challenge Complete!',
-      body: 'You both crushed "{challenge_name}"! Check out your reflections.',
-    },
-  },
-  {
     name: 'Micro-commitment follow-up',
     description:
       "Day-after check-in on a micro-exercise commitment. The 'Hour of day' condition sets the local send hour. Placeholders: {commitment}.",

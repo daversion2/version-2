@@ -40,7 +40,7 @@ type Step = 'ready' | 'go' | 'capture';
  *  - 'moment' → no middle beat; Ready (the pre-commit) goes straight to Capture.
  */
 export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { practiceId, habitId, habitName, teamId } = route.params;
+  const { practiceId, habitId, habitName } = route.params;
   const practice = getPractice(practiceId);
   const { user, userProfile } = useAuth();
 
@@ -80,8 +80,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
     const result = await completePractice(
       user.uid,
       { id: habitId, name: habitName },
-      input,
-      { teamId }
+      input
     );
     setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
   };

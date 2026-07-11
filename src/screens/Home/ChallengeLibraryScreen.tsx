@@ -253,30 +253,6 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
         challenge={selectedChallenge}
         onClose={() => setDetailModalVisible(false)}
         onUseChallenge={handleUseChallenge}
-        onInviteBuddy={(challenge, duration) => {
-          setDetailModalVisible(false);
-          const isExtended = duration > 1;
-          navigation.navigate('BuddyPickPartner', {
-            challengeData: {
-              name: challenge.name,
-              challenge_type: isExtended ? 'extended' : 'daily',
-              difficulty_expected: challenge.difficulty,
-              ...(isExtended ? { duration_days: duration } : {}),
-              description: challenge.description,
-              success_criteria: challenge.success_criteria,
-              why: challenge.why,
-              library_challenge_id: challenge.id,
-              barrier_type: challenge.barrier_type,
-              action_type: challenge.action_type,
-              time_category: challenge.time_category,
-              arena_id: challenge.arena_id,
-              neuroscience_explanation: challenge.neuroscience_explanation,
-              psychological_benefit: challenge.psychological_benefit,
-              what_youll_learn: challenge.what_youll_learn,
-              common_resistance: challenge.common_resistance,
-            },
-          });
-        }}
         isCreating={isCreatingChallenge}
       />
     </View>

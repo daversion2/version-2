@@ -5,7 +5,6 @@ import { AdminDashboardScreen } from '../screens/Admin/AdminDashboardScreen';
 import { AdminArenaAdoptionScreen } from '../screens/Admin/AdminArenaAdoptionScreen';
 import { AdminChallengesScreen } from '../screens/Admin/AdminChallengesScreen';
 import { AdminChallengeEditScreen } from '../screens/Admin/AdminChallengeEditScreen';
-import { AdminSubmissionsScreen } from '../screens/Admin/AdminSubmissionsScreen';
 import { AdminFunFactsScreen } from '../screens/Admin/AdminFunFactsScreen';
 import { AdminFunFactEditScreen } from '../screens/Admin/AdminFunFactEditScreen';
 import { AdminTidbitsScreen } from '../screens/Admin/AdminTidbitsScreen';
@@ -55,11 +54,6 @@ export const AdminStack: React.FC = () => (
       name="AdminChallengeEdit"
       component={AdminChallengeEditScreen}
       options={{ title: 'Edit Challenge' }}
-    />
-    <Stack.Screen
-      name="AdminSubmissions"
-      component={AdminSubmissionsScreen}
-      options={{ title: 'Review Submissions' }}
     />
     <Stack.Screen
       name="AdminFunFacts"

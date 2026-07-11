@@ -60,8 +60,6 @@ export type ChallengesStackParamList = Pick<
   | 'EditChallenge'
   | 'ExtendedChallengeProgress'
   | 'ChallengeDetail'
-  | 'SubmitChallenge'
-  | 'BuddyPickPartner'
   | 'GoalCreationFlow'
 > & {
   ChallengesHome: undefined;
@@ -79,7 +77,6 @@ export type PracticeSessionParams = {
   practiceId: string; // catalog id — drives the Ready brief, flow, tracking
   habitId: string; // adopted instance id to log the completion against
   habitName: string;
-  teamId?: string;
 };
 
 // ============================================================================
@@ -123,14 +120,6 @@ export type HomeStackParamList = {
   HabitLibrary: undefined;
   TraditionalHabits: undefined;
   HabitLibraryDetail: { habitId: string };
-  SubmitChallenge: { challengeId: string };
-  WriteReview: {
-    libraryChallengeId: string;
-    challengeName: string;
-    completionId: string;
-  };
-  BuddyPickPartner: { challengeData: Partial<Challenge> };
-  BuddyInvites: undefined;
   ProgramDiscovery: undefined;
   ProgramDetail: { programId: string };
   ProgramDashboard: { enrollmentId: string };
@@ -189,7 +178,6 @@ export type ProgressStackParamList = {
   GoalDashboard: { goalId: string };
   EditGoal: { goalId: string };
   GoalCreationFlow: { draftId?: string } | undefined;
-  SubmitChallenge: { challengeId: string };
   CompleteChallenge: { challenge: Challenge };
   ExtendedChallengeProgress: { challenge: Challenge };
   HabitDetail: { habitId: string };
@@ -227,12 +215,6 @@ export type SettingsStackParamList = {
   SettingsScreen: undefined;
   ManageRewardMessages: undefined;
   HowItWorks: undefined;
-  Team: undefined;
-  CreateTeam: undefined;
-  JoinTeam: undefined;
-  TeamDetail: { teamId: string };
-  MySubmissions: undefined;
-  PrivacySettings: undefined;
   EditProfile: undefined;
   WhyScreen: undefined;
 };
@@ -246,7 +228,6 @@ export type AdminStackParamList = {
   AdminArenaAdoption: undefined;
   AdminChallenges: undefined;
   AdminChallengeEdit: { mode: 'create' | 'edit'; challengeId?: string };
-  AdminSubmissions: undefined;
   AdminFunFacts: undefined;
   AdminFunFactEdit: { mode: 'create' | 'edit'; funFactId?: string };
   AdminTidbits: undefined;

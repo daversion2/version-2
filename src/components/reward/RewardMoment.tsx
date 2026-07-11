@@ -19,7 +19,6 @@ interface RewardMomentProps {
   narrativeLine: string;
   pointsEarned: number;
   streakMultiplier: number;
-  buddyBonusPoints?: number;
   challengeResult: 'completed' | 'failed';
   repeatMilestone?: number | null;
   totalChallengesCompleted?: number;
@@ -142,7 +141,6 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   narrativeLine,
   pointsEarned,
   streakMultiplier,
-  buddyBonusPoints,
   challengeResult,
   totalChallengesCompleted,
   tidbit,
@@ -314,9 +312,6 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   let pointsText = `+${pointsEarned} XP`;
   if (streakMultiplier > 1) {
     pointsText += ` (${streakMultiplier}x streak)`;
-  }
-  if (buddyBonusPoints && buddyBonusPoints > 0) {
-    pointsText += ` +${buddyBonusPoints} buddy bonus`;
   }
 
   // Generate particles — varied sizes and distances for visual depth

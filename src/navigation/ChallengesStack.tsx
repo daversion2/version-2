@@ -19,9 +19,7 @@ import { ActionChallengesScreen } from '../screens/Home/BarrierChallengesScreen'
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
 import { EditChallengeScreen } from '../screens/Home/EditChallengeScreen';
-import { BuddyPickPartnerScreen } from '../screens/Home/BuddyPickPartnerScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
-import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
 import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationFlow';
 
 const Stack = createNativeStackNavigator<ChallengesStackParamList>();
@@ -82,16 +80,6 @@ export const ChallengesStack: React.FC = () => (
       name="ChallengeDetail"
       component={ChallengeDetailScreen as any}
       options={{ title: 'Challenge' }}
-    />
-    <Stack.Screen
-      name="SubmitChallenge"
-      component={SubmitChallengeScreen as any}
-      options={{ title: 'Submit Challenge' }}
-    />
-    <Stack.Screen
-      name="BuddyPickPartner"
-      component={BuddyPickPartnerScreen as any}
-      options={{ title: 'Pick a Teammate' }}
     />
     <Stack.Screen
       name="GoalCreationFlow"

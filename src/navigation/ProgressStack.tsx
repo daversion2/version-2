@@ -10,7 +10,6 @@ import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScre
 import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
 import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
 import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationFlow';
-import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
@@ -76,11 +75,6 @@ export const ProgressStack: React.FC = () => (
       name="GoalCreationFlow"
       component={GoalCreationFlow}
       options={{ title: 'New Goal', headerShown: false }}
-    />
-    <Stack.Screen
-      name="SubmitChallenge"
-      component={SubmitChallengeScreen}
-      options={{ title: 'Submit' }}
     />
     <Stack.Screen
       name="CompleteChallenge"

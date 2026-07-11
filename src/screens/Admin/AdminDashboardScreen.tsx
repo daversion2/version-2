@@ -14,11 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { getUserStats, getLibraryStats } from '../../services/admin';
-import { getSubmissionStats, getPendingSubmissions } from '../../services/submissions';
 import { reseedPrograms } from '../../utils/seedPrograms';
 import { seedRewardMessages } from '../../utils/seedRewardMessages';
 import { seedNeuroscienceTidbits } from '../../utils/seedTidbits';
-import { ChallengeSubmission } from '../../types';
 import { AdminNavigation } from '../../types/navigation';
 
 export const AdminDashboardScreen: React.FC = () => {
@@ -35,30 +33,18 @@ export const AdminDashboardScreen: React.FC = () => {
     byCategory: Record<string, number>;
     byBarrierType: Record<string, number>;
   } | null>(null);
-  const [submissionStats, setSubmissionStats] = useState<{
-    pending: number;
-    approved: number;
-    rejected: number;
-    withdrawn: number;
-    approvalRate: number;
-  } | null>(null);
-  const [recentSubmissions, setRecentSubmissions] = useState<ChallengeSubmission[]>([]);
   const [reseeding, setReseeding] = useState(false);
   const [seedingMessages, setSeedingMessages] = useState(false);
   const [seedingTidbits, setSeedingTidbits] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [users, library, submissions, pending] = await Promise.all([
+      const [users, library] = await Promise.all([
         getUserStats(),
         getLibraryStats(),
-        getSubmissionStats(),
-        getPendingSubmissions(),
       ]);
       setUserStats(users);
       setLibraryStats(library);
-      setSubmissionStats(submissions);
-      setRecentSubmissions(pending.slice(0, 3)); // Show first 3
     } catch (error) {
       console.error('Error loading admin dashboard:', error);
     } finally {
@@ -186,29 +172,6 @@ export const AdminDashboardScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Submission Stats */}
-      <Text style={styles.sectionTitle}>Submissions</Text>
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: Colors.secondary }]}>
-            {submissionStats?.pending || 0}
-          </Text>
-          <Text style={styles.statLabel}>Pending</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: Colors.primary }]}>
-            {submissionStats?.approved || 0}
-          </Text>
-          <Text style={styles.statLabel}>Approved</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>
-            {submissionStats?.approvalRate?.toFixed(0) || 0}%
-          </Text>
-          <Text style={styles.statLabel}>Rate</Text>
-        </View>
-      </View>
-
       {/* Quick Actions */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.actionsRow}>
@@ -315,21 +278,6 @@ export const AdminDashboardScreen: React.FC = () => {
       </Card>
       <Card
         style={styles.linkCard}
-        onPress={() => navigation.navigate('AdminSubmissions')}
-      >
-        <View style={styles.linkRow}>
-          <Ionicons name="document-text" size={24} color={Colors.primary} />
-          <Text style={styles.linkText}>Review Submissions</Text>
-          {(submissionStats?.pending || 0) > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{submissionStats?.pending}</Text>
-            </View>
-          )}
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
-      <Card
-        style={styles.linkCard}
         onPress={() => navigation.navigate('AdminFunFacts')}
       >
         <View style={styles.linkRow}>
@@ -398,21 +346,6 @@ export const AdminDashboardScreen: React.FC = () => {
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
       </Card>
-      {/* Recent Submissions */}
-      {recentSubmissions.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Recent Submissions</Text>
-          {recentSubmissions.map((sub) => (
-            <Card key={sub.id} style={styles.submissionPreview}>
-              <View style={styles.submissionRow}>
-                <Text style={styles.submissionName} numberOfLines={1}>
-                  {sub.name}
-                </Text>
-              </View>
-            </Card>
-          ))}
-        </>
-      )}
     </ScrollView>
   );
 };

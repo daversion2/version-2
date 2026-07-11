@@ -6,7 +6,6 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { getChallengeById, deleteChallenge, getChallengeRepeatStats } from '../../services/challenges';
-import { canSubmitChallenge } from '../../services/submissions';
 import { Challenge, ChallengeRepeatStats } from '../../types';
 import { showConfirm, showAlert } from '../../utils/alert';
 import { GoalsScreenProps, GoalsNavigation } from '../../types/navigation';
@@ -19,8 +18,6 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
   const navigation = useNavigation<GoalsNavigation>();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [canSubmit, setCanSubmit] = useState(false);
-  const [submitReason, setSubmitReason] = useState<string | undefined>();
   const [repeatStats, setRepeatStats] = useState<ChallengeRepeatStats | null>(null);
 
   useFocusEffect(
@@ -30,17 +27,9 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
         const c = await getChallengeById(user.uid, challengeId);
         setChallenge(c);
         if (c) {
-
           // Fetch repeat stats for this challenge name
           const stats = await getChallengeRepeatStats(user.uid, c.name);
           setRepeatStats(stats);
-
-          // Check if challenge can be submitted to library
-          if (c.status === 'completed') {
-            const eligibility = await canSubmitChallenge(user.uid, challengeId);
-            setCanSubmit(eligibility.canSubmit);
-            setSubmitReason(eligibility.reason);
-          }
         }
       })();
     }, [user, challengeId])
@@ -231,22 +220,6 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
         </Card>
       ) : null}
 
-      {/* Submit to Library - only for completed challenges */}
-      {challenge.status === 'completed' && (
-        <View style={styles.submitSection}>
-          {canSubmit ? (
-            <Button
-              title="Submit to Library"
-              variant="secondary"
-              onPress={() => navigation.navigate('SubmitChallenge', { challengeId })}
-              style={styles.submitButton}
-            />
-          ) : submitReason ? (
-            <Text style={styles.submitReasonText}>{submitReason}</Text>
-          ) : null}
-        </View>
-      )}
-
       {challenge.status !== 'active' && (
         <Button
           title="Delete Challenge"
@@ -343,19 +316,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.dark,
     marginBottom: 2,
-  },
-  submitSection: {
-    marginTop: Spacing.lg,
-  },
-  submitButton: {
-    marginBottom: Spacing.sm,
-  },
-  submitReasonText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
   },
   deleteButton: {
     marginTop: Spacing.lg,

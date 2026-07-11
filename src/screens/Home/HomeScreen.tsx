@@ -13,17 +13,15 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, PracticeInstance, Team, TeamMemberActivitySummary, BuddyChallenge, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
+import { Challenge, PracticeInstance, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough, PlannedItem, TomorrowChallenge, TomorrowPlan } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
-import { getPendingInviteCount, getActiveBuddyChallenges } from '../../services/buddyChallenge';
 import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, seedDefaultPractices } from '../../services/practices';
 import { reconcileHabitReminders, syncHabitReminder } from '../../services/habitReminders';
 import { registerForPushNotifications } from '../../services/notifications';
 import { FirstRepReminderModal } from '../../components/home/FirstRepReminderModal';
 import { HabitStreakInfo } from '../../types';
 import { getGoalColor } from '../../constants/goalColors';
-import { getUserTeam, getTeamMemberActivitySummaryOptimized } from '../../services/teams';
 import { getWillpowerStats } from '../../services/willpower';
 import { HabitDifficulty, PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
@@ -70,16 +68,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
-  const [pendingInvites, setPendingInvites] = useState(0);
-  const [buddyChallenges, setBuddyChallenges] = useState<BuddyChallenge[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [completedTodayIds, setCompletedTodayIds] = useState<string[]>([]);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
-  const [team, setTeam] = useState<Team | null>(null);
-  const [teamSummary, setTeamSummary] = useState<TeamMemberActivitySummary[]>([]);
   const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
@@ -307,13 +301,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      const [dailyChallenges, extChallenges, habitList, userTeam, inviteCount, activeBuddies, enrollment, activeGoals, wpStats] = await Promise.all([
+      const [dailyChallenges, extChallenges, habitList, enrollment, activeGoals, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
-        getUserTeam(user.uid),
-        getPendingInviteCount(user.uid),
-        getActiveBuddyChallenges(user.uid),
         getActiveEnrollment(user.uid),
         getActiveGoals(user.uid),
         getWillpowerStats(user.uid),
@@ -324,8 +315,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
       setGoals(activeGoals);
-      setPendingInvites(inviteCount);
-      setBuddyChallenges(activeBuddies);
       setHabits(habitList);
       // Once per session: schedule any enabled reminders that aren't scheduled yet
       // (e.g. saved before reminders shipped, or while permission was denied).
@@ -333,7 +322,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         remindersReconciledRef.current = true;
         reconcileHabitReminders(user.uid, habitList).catch(() => {});
       }
-      setTeam(userTeam);
       setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
 
@@ -440,18 +428,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setProgramCheckedIn(false);
       }
 
-      // Fetch team activity summary if user has a team
-      if (userTeam) {
-        try {
-          const summary = await getTeamMemberActivitySummaryOptimized(userTeam.id);
-          setTeamSummary(summary);
-        } catch (err) {
-          console.warn('Team activity summary failed:', err);
-        }
-      } else {
-        setTeamSummary([]);
-      }
-
       // Check nightly reflection status
       try {
         const reflected = await hasReflectedToday(user.uid);
@@ -544,37 +520,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           practiceId: practice.id,
           habitId: habit.id,
           habitName: habit.name,
-          teamId: team?.id,
         });
         return;
       }
       setCompletingHabit(habit);
     },
-    [navigation, team?.id]
+    [navigation]
   );
 
   const handleHabitComplete = async (input: PracticeCompletionInput) => {
     if (!user || !completingHabit) return;
     const { difficulty } = input;
     try {
-      // Log + team activity + XP all happen in the shared completePractice path.
+      // Log + XP all happen in the shared completePractice path.
       const { pointsEarned, streakBefore, firstTry, willpower: updateResult } = await completePractice(
         user.uid,
         { id: completingHabit.id, name: completingHabit.name },
-        input,
-        { teamId: team?.id }
+        input
       );
       const bonusLabel = firstTry ? 'First time trying this practice — XP doubled' : null;
-
-      // Refresh team summary after the shared path logged the activity.
-      if (team) {
-        try {
-          const summary = await getTeamMemberActivitySummaryOptimized(team.id);
-          setTeamSummary(summary);
-        } catch (teamErr) {
-          console.warn('Failed to refresh team summary:', teamErr);
-        }
-      }
 
       // Optimistically flip the card to "Done today" (loadData reconciles on next focus).
       const completedId = completingHabit.id;
@@ -782,12 +746,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     activeChallenges,
     extendedChallenges,
     habits,
-    team,
-    teamSummary,
     weeklyCounts,
     habitStreaks,
-    pendingInvites,
-    buddyChallenges,
     activeProgram,
     todaysProgramDay,
     programDayNumber,
@@ -808,8 +768,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     startingPracticeId: userProfile?.starting_practice_id ?? null,
     userName: userProfile?.username ?? null,
   }), [
-    activeChallenges, extendedChallenges, habits, team, teamSummary,
-    weeklyCounts, habitStreaks, pendingInvites, buddyChallenges,
+    activeChallenges, extendedChallenges, habits,
+    weeklyCounts, habitStreaks,
     activeProgram, todaysProgramDay, programDayNumber, programCheckedIn,
     goals, showReflectionBanner, reflectedToday, todaysGrade,
     willpowerStats, goalFollowThrough, totalHabitsCompleted, activeMantra,

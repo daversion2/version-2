@@ -1,9 +1,6 @@
 import {
   Challenge,
   PracticeInstance,
-  Team,
-  TeamMemberActivitySummary,
-  BuddyChallenge,
   ProgramEnrollment,
   ProgramDay,
   HabitStreakInfo,
@@ -25,12 +22,8 @@ export interface HomeData {
   activeChallenges: Challenge[];
   extendedChallenges: Challenge[];
   habits: PracticeInstance[];
-  team: Team | null;
-  teamSummary: TeamMemberActivitySummary[];
   weeklyCounts: Record<string, number>;
   habitStreaks: Record<string, HabitStreakInfo>;
-  pendingInvites: number;
-  buddyChallenges: BuddyChallenge[];
   activeProgram: ProgramEnrollment | null;
   todaysProgramDay: ProgramDay | null;
   programDayNumber: number;

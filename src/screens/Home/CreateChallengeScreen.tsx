@@ -15,7 +15,6 @@ import { Button } from '../../components/common/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { createChallenge } from '../../services/challenges';
-import { getUserTeam } from '../../services/teams';
 import { ChallengeType } from '../../types';
 import { TouchableOpacity } from 'react-native';
 import { showAlert } from '../../utils/alert';
@@ -24,7 +23,6 @@ import { ChallengeTypeSelector } from '../../components/challenge/ChallengeTypeS
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
 import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
-import { SHOW_COMMUNITY } from '../../constants/featureFlags';
 import { getTodayString } from '../../utils/date';
 
 type Props = HomeScreenProps<'CreateChallenge'>;
@@ -169,39 +167,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
           style={{ marginTop: Spacing.md }}
         />
 
-        {SHOW_COMMUNITY && (
-          <TouchableOpacity
-            style={styles.buddyButton}
-            onPress={async () => {
-              if (!name.trim()) {
-                showAlert('Required', 'Please enter a challenge name first.');
-                return;
-              }
-              // Check if user has a team
-              if (!user) return;
-              const team = await getUserTeam(user.uid);
-              if (!team) {
-                showAlert('No Team', 'You need to be on a team to do buddy challenges.');
-                return;
-              }
-              navigation.navigate('BuddyPickPartner', {
-                challengeData: {
-                  name: name.trim(),
-                  challenge_type: challengeType,
-                  difficulty_expected: difficulty,
-                  ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),
-                  ...(description.trim() ? { description: description.trim() } : {}),
-                  ...(successCriteria.trim() ? { success_criteria: successCriteria.trim() } : {}),
-                  ...(why.trim() ? { why: why.trim() } : {}),
-                },
-              });
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="people" size={18} color={Colors.primary} />
-            <Text style={styles.buddyButtonText}>Do It With a Teammate</Text>
-          </TouchableOpacity>
-        )}
       </ScrollView>
 
     </KeyboardAvoidingView>
@@ -239,21 +204,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.dark,
-  },
-  buddyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    borderRadius: BorderRadius.md,
-  },
-  buddyButtonText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.primary,
   },
 });

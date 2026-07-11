@@ -133,39 +133,6 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
-      {/* Team */}
-      <Card style={styles.card} onPress={() => navigation.navigate('Team')}>
-        <View style={styles.navRow}>
-          <View>
-            <Text style={styles.label}>My Team</Text>
-            <Text style={styles.desc}>Join or create an accountability team</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
-
-      {/* My Submissions */}
-      <Card style={styles.card} onPress={() => navigation.navigate('MySubmissions')}>
-        <View style={styles.navRow}>
-          <View>
-            <Text style={styles.label}>My Submissions</Text>
-            <Text style={styles.desc}>Track challenges you've submitted to the library</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
-
-      {/* Privacy */}
-      <Card style={styles.card} onPress={() => navigation.navigate('PrivacySettings')}>
-        <View style={styles.navRow}>
-          <View>
-            <Text style={styles.label}>Privacy</Text>
-            <Text style={styles.desc}>Control how your activity is shared</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
-
       {/* Send Feedback */}
       <Card style={styles.card} onPress={() => Linking.openURL('https://forms.gle/TNQCzas3JyHs3fNU9')}>
         <View style={styles.navRow}>

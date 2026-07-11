@@ -4,12 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SettingsStackParamList } from '../types/navigation';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
-import { TeamScreen } from '../screens/Community/TeamScreen';
-import { CreateTeamScreen } from '../screens/Community/CreateTeamScreen';
-import { JoinTeamScreen } from '../screens/Community/JoinTeamScreen';
-import { TeamDetailScreen } from '../screens/Community/TeamDetailScreen';
-import { MySubmissionsScreen } from '../screens/Community/MySubmissionsScreen';
-import { PrivacySettingsScreen } from '../screens/Settings/PrivacySettingsScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
 import { ManageRewardMessagesScreen } from '../screens/Settings/ManageRewardMessagesScreen';
 import { WhyScreen } from '../screens/Home/WhyScreen';
@@ -50,36 +44,6 @@ export const SettingsStack: React.FC = () => (
       name="HowItWorks"
       component={HowItWorksScreen}
       options={{ title: 'How It Works' }}
-    />
-    <Stack.Screen
-      name="Team"
-      component={TeamScreen}
-      options={{ title: 'My Team' }}
-    />
-    <Stack.Screen
-      name="CreateTeam"
-      component={CreateTeamScreen}
-      options={{ title: 'Create Team' }}
-    />
-    <Stack.Screen
-      name="JoinTeam"
-      component={JoinTeamScreen}
-      options={{ title: 'Join Team' }}
-    />
-    <Stack.Screen
-      name="TeamDetail"
-      component={TeamDetailScreen}
-      options={{ title: 'Team Activity' }}
-    />
-    <Stack.Screen
-      name="MySubmissions"
-      component={MySubmissionsScreen}
-      options={{ title: 'My Submissions' }}
-    />
-    <Stack.Screen
-      name="PrivacySettings"
-      component={PrivacySettingsScreen}
-      options={{ title: 'Privacy' }}
     />
     <Stack.Screen
       name="EditProfile"

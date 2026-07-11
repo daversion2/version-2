@@ -19,12 +19,8 @@ import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
 import { HabitLibraryScreen } from '../screens/Home/HabitLibraryScreen';
 import { TraditionalHabitsScreen } from '../screens/Home/TraditionalHabitsScreen';
 import { HabitLibraryDetailScreen } from '../screens/Home/HabitLibraryDetailScreen';
-import { SubmitChallengeScreen } from '../screens/Community/SubmitChallengeScreen';
-import { WriteReviewScreen } from '../screens/Community/WriteReviewScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
 import { EditChallengeScreen } from '../screens/Home/EditChallengeScreen';
-import { BuddyPickPartnerScreen } from '../screens/Home/BuddyPickPartnerScreen';
-import { BuddyInvitesScreen } from '../screens/Home/BuddyInvitesScreen';
 import { ProgramDiscoveryScreen } from '../screens/Home/ProgramDiscoveryScreen';
 import { ProgramDetailScreen } from '../screens/Home/ProgramDetailScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
@@ -155,16 +151,6 @@ export const HomeStack: React.FC = () => (
       options={{ title: '' }}
     />
     <Stack.Screen
-      name="SubmitChallenge"
-      component={SubmitChallengeScreen}
-      options={{ title: 'Submit Challenge' }}
-    />
-    <Stack.Screen
-      name="WriteReview"
-      component={WriteReviewScreen}
-      options={{ title: 'Write Review' }}
-    />
-    <Stack.Screen
       name="ExtendedChallengeProgress"
       component={ExtendedChallengeProgressScreen}
       options={{ title: 'Challenge Progress' }}
@@ -173,16 +159,6 @@ export const HomeStack: React.FC = () => (
       name="EditChallenge"
       component={EditChallengeScreen}
       options={{ title: 'Edit Challenge' }}
-    />
-    <Stack.Screen
-      name="BuddyPickPartner"
-      component={BuddyPickPartnerScreen}
-      options={{ title: 'Pick a Teammate' }}
-    />
-    <Stack.Screen
-      name="BuddyInvites"
-      component={BuddyInvitesScreen}
-      options={{ title: 'Buddy Invites' }}
     />
     <Stack.Screen
       name="ProgramDiscovery"

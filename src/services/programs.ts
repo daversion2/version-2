@@ -15,7 +15,6 @@ import { db } from './firebase';
 import { updateWillpowerStats, getStreakMultiplier } from './willpower';
 import { createHabit } from './practices';
 import { getCurrentDayNumber } from './challenges';
-import { createProgramCompletionFeedEntry } from './inspirationFeed';
 import {
   ProgramTemplate,
   ProgramEnrollment,
@@ -525,17 +524,6 @@ export const completeProgram = async (
   // Clear active_program_id
   const userRef = doc(db, 'users', userId);
   await setDoc(userRef, { active_program_id: null }, { merge: true });
-
-  // Create feed entry for community inspiration
-  const userSnap = await getDoc(userRef);
-  const username = userSnap.exists() ? (userSnap.data() as { username?: string }).username : undefined;
-  await createProgramCompletionFeedEntry(
-    userId,
-    username,
-    program.name,
-    program.duration_days,
-    enrollment.mode,
-  );
 
   return {
     totalPoints,

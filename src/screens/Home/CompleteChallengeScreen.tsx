@@ -5,8 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Modal,
-  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeScreenProps } from '../../types/navigation';
@@ -26,17 +24,12 @@ import {
   updateWillpowerStats,
   getWillpowerStats,
   getStreakMultiplier,
-  getStreakTierInfo,
 } from '../../services/willpower';
-import { Challenge, BuddyChallenge, Goal, GoalFollowThrough, WhyProfile } from '../../types';
-import { onBuddyChallengeUserComplete } from '../../services/buddyChallenge';
+import { Challenge, Goal, GoalFollowThrough, WhyProfile } from '../../types';
 import { getGoalById, computeGoalFollowThrough } from '../../services/goals';
 import { getWhyProfile } from '../../services/whyDiscovery';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
-import { getUserTeam, logTeamActivity } from '../../services/teams';
-import { createFeedEntry, createMilestoneFeedEntry, updateFeedEntryMessage } from '../../services/inspirationFeed';
-import { getUser } from '../../services/users';
 import { RewardMoment } from '../../components/reward/RewardMoment';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { ChallengeFailureModal } from '../../components/challenge/ChallengeFailureModal';
@@ -75,7 +68,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [narrativeLine, setNarrativeLine] = useState('');
   const [rewardPoints, setRewardPoints] = useState(0);
   const [rewardStreakMultiplier, setRewardStreakMultiplier] = useState(1);
-  const [rewardBuddyBonus, setRewardBuddyBonus] = useState(0);
   const [rewardResult, setRewardResult] = useState<'completed' | 'failed'>('completed');
   const [rewardRepeatMilestone, setRewardRepeatMilestone] = useState<number | null>(null);
   const [rewardTotalCompleted, setRewardTotalCompleted] = useState(0);
@@ -87,10 +79,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [pendingStreakTier, setPendingStreakTier] = useState<{ streak: number; tierName: string; multiplier: number } | null>(null);
 
   const [failureModalVisible, setFailureModalVisible] = useState(false);
-  const [feedEntryId, setFeedEntryId] = useState<string | null>(null);
-  const feedEntryIdRef = useRef<string | null>(null);
-  const [showMessagePrompt, setShowMessagePrompt] = useState(false);
-  const [completionMessage, setCompletionMessage] = useState('');
 
   // Goal context for the banner + CBT data
   const [goalContext, setGoalContext] = useState<{ name: string; ft: GoalFollowThrough } | null>(null);
@@ -119,26 +107,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   }, [user, challenge.goal_ids]);
 
   // Navigate home after challenge completion
-  // Community "Share a Thought" prompt disabled while community feature is off
   const navigateHome = useCallback(() => {
-    navigation.popToTop();
-  }, [navigation]);
-
-  const handleShareMessage = useCallback(async () => {
-    const currentEntryId = feedEntryIdRef.current;
-    if (currentEntryId && completionMessage.trim()) {
-      try {
-        await updateFeedEntryMessage(currentEntryId, completionMessage);
-      } catch (err) {
-        console.warn('Failed to save completion message:', err);
-      }
-    }
-    setShowMessagePrompt(false);
-    navigation.popToTop();
-  }, [completionMessage, navigation]);
-
-  const handleSkipMessage = useCallback(() => {
-    setShowMessagePrompt(false);
     navigation.popToTop();
   }, [navigation]);
 
@@ -228,21 +197,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         await saveReflectionAnswers(user.uid, challenge.id, trimmedJournal);
       }
 
-      // Log team activity if user is in a team
-      try {
-        const team = await getUserTeam(user.uid);
-        if (team) {
-          await logTeamActivity(
-            team.id,
-            user.uid,
-            'challenge',
-            challenge.name
-          );
-        }
-      } catch (teamErr) {
-        console.warn('Failed to log team activity:', teamErr);
-      }
-
       // Check for repeat milestone (5, 10, 25, 50, 100)
       let repeatMilestone: number | null = null;
       if (result === 'completed') {
@@ -263,88 +217,12 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         : trimmedFailureReflection.length > 0;
       const stats = await getWillpowerStats(user.uid);
 
-      // Add to inspiration feed if completed and difficulty 3+
-      if (result === 'completed' && difficulty >= 3) {
-        try {
-          const userData = await getUser(user.uid);
-          // Default to opted in if not explicitly set
-          const optedIn = userData?.inspiration_feed_opt_in !== false;
-
-          if (optedIn) {
-            const streakInfo = getStreakTierInfo(stats.currentStreak);
-            const entryId = await createFeedEntry(
-              user.uid,
-              difficulty,
-              challenge.name,
-              true,
-              userData?.username,
-              streakInfo.tierName,
-              stats.currentStreak
-            );
-            if (entryId) {
-              feedEntryIdRef.current = entryId;
-              setFeedEntryId(entryId);
-            }
-          }
-        } catch (feedErr) {
-          console.warn('Failed to create inspiration feed entry:', feedErr);
-        }
-      }
       const pointsEarned =
         result === 'completed'
           ? calculateChallengePoints(difficulty, stats.currentStreak, hasReflection)
           : calculateFailedChallengePoints(stats.currentStreak, hasReflection);
 
       const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
-
-      // Handle buddy challenge completion
-      let buddyBonusPoints = 0;
-      let buddyBothComplete = false;
-      if (challenge.is_buddy_challenge && challenge.buddy_challenge_id) {
-        try {
-          const buddyResult = await onBuddyChallengeUserComplete(
-            user.uid,
-            challenge.buddy_challenge_id,
-            result,
-            pointsEarned,
-          );
-          buddyBothComplete = buddyResult.bothComplete;
-          buddyBonusPoints = buddyResult.bonusPoints;
-        } catch (buddyErr) {
-          console.warn('Failed to update buddy challenge:', buddyErr);
-        }
-      }
-
-      // Create milestone feed entries (fire-and-forget)
-      try {
-        const userData = await getUser(user.uid);
-        const optedIn = userData?.inspiration_feed_opt_in !== false;
-        if (optedIn) {
-          if (updateResult.newTierReached && updateResult.tierInfo) {
-            createMilestoneFeedEntry(
-              user.uid,
-              userData?.username,
-              'streak_milestone',
-              undefined,
-              undefined,
-              updateResult.newStreak,
-              updateResult.tierInfo.tierName
-            );
-          }
-          if (repeatMilestone) {
-            createMilestoneFeedEntry(
-              user.uid,
-              userData?.username,
-              'repeat_milestone',
-              repeatMilestone,
-              challenge.name,
-              updateResult.newStreak
-            );
-          }
-        }
-      } catch (milestoneErr) {
-        console.warn('Failed to create milestone feed entry:', milestoneErr);
-      }
 
       // --- Prepare reward moment ---
       const multiplier = getStreakMultiplier(stats.currentStreak);
@@ -425,27 +303,11 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         });
       }
 
-      // Show buddy alert first if applicable
-      if (challenge.is_buddy_challenge && result === 'completed') {
-        if (buddyBothComplete) {
-          showAlert(
-            'Buddy Bonus!',
-            `You and ${challenge.buddy_partner_username || 'your teammate'} both crushed it!\n\n+${buddyBonusPoints} bonus XP earned!`
-          );
-        } else {
-          showAlert(
-            'Waiting for Partner',
-            `Your partner hasn't finished yet. They can see you did it!`
-          );
-        }
-      }
-
       // Show unified reward moment
       setRewardMessage(messageText);
       setNarrativeLine(narrativeText);
-      setRewardPoints(pointsEarned + buddyBonusPoints);
+      setRewardPoints(pointsEarned);
       setRewardStreakMultiplier(multiplier);
-      setRewardBuddyBonus(buddyBonusPoints);
       setRewardResult(result);
       setRewardRepeatMilestone(repeatMilestone);
       setRewardVisible(true);
@@ -661,7 +523,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         narrativeLine={narrativeLine}
         pointsEarned={rewardPoints}
         streakMultiplier={rewardStreakMultiplier}
-        buddyBonusPoints={rewardBuddyBonus > 0 ? rewardBuddyBonus : undefined}
         challengeResult={rewardResult}
         repeatMilestone={rewardRepeatMilestone}
         totalChallengesCompleted={rewardTotalCompleted}
@@ -701,48 +562,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         }}
         onCancel={() => setReflecting(false)}
       />
-      {/* Completion Message Prompt Modal */}
-      <Modal
-        visible={showMessagePrompt}
-        transparent
-        animationType="fade"
-        onRequestClose={handleSkipMessage}
-      >
-        <View style={styles.milestoneOverlay}>
-          <View style={styles.milestoneContent}>
-            <Text style={styles.milestoneTitle}>Share a Thought</Text>
-            <Text style={styles.milestoneMessage}>
-              Want to share something with the community?
-            </Text>
-            <TextInput
-              style={styles.messageInput}
-              value={completionMessage}
-              onChangeText={setCompletionMessage}
-              placeholder="e.g., That was tough but worth it!"
-              placeholderTextColor={Colors.gray}
-              maxLength={150}
-              multiline
-              numberOfLines={3}
-            />
-            <Text style={styles.charCount}>
-              {completionMessage.length}/150
-            </Text>
-            <TouchableOpacity
-              style={[styles.milestoneButton, !completionMessage.trim() && styles.buttonDisabled]}
-              onPress={handleShareMessage}
-              disabled={!completionMessage.trim()}
-            >
-              <Text style={styles.milestoneButtonText}>Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={handleSkipMessage}
-            >
-              <Text style={styles.skipButtonText}>Skip</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -908,47 +727,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.white,
   },
-  milestoneOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  milestoneContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: Spacing.xl,
-    width: '100%',
-    maxWidth: 320,
-    alignItems: 'center',
-  },
-  milestoneTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    marginBottom: Spacing.sm,
-    textAlign: 'center',
-  },
-  milestoneMessage: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-    lineHeight: 22,
-  },
-  milestoneButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: 12,
-  },
-  milestoneButtonText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.white,
-  },
   collapsibleSection: {
     backgroundColor: Colors.white,
     borderRadius: 12,
@@ -1010,39 +788,6 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     lineHeight: 20,
     fontStyle: 'italic',
-  },
-  messageInput: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    padding: Spacing.md,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: Spacing.xs,
-  },
-  charCount: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    alignSelf: 'flex-end',
-    marginBottom: Spacing.md,
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  skipButton: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xl,
-  },
-  skipButtonText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
   },
   // Inline prompts
   inlinePromptsToggle: {
