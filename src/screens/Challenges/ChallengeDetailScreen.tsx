@@ -139,7 +139,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
           <Row label="Actual Difficulty" value={`${challenge.difficulty_actual} / 5`} />
         )}
         {challenge.points_awarded != null && (
-          <Row label="Points Awarded" value={`${challenge.points_awarded}`} />
+          <Row label="XP Awarded" value={`${challenge.points_awarded}`} />
         )}
       </Card>
 

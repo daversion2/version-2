@@ -75,7 +75,7 @@ export const PointsPopup: React.FC<PointsPopupProps> = ({
       pointerEvents="none"
     >
       <Text style={styles.text}>+{points}</Text>
-      <Text style={styles.label}>pts</Text>
+      <Text style={styles.label}>XP</Text>
     </Animated.View>
   );
 };

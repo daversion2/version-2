@@ -311,7 +311,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   if (!visible) return null;
 
   // Build points text (used for failed challenges)
-  let pointsText = `+${pointsEarned} pts`;
+  let pointsText = `+${pointsEarned} XP`;
   if (streakMultiplier > 1) {
     pointsText += ` (${streakMultiplier}x streak)`;
   }
@@ -417,7 +417,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>+{pointsEarned}</Text>
-                <Text style={styles.statLabel}>points{'\n'}earned</Text>
+                <Text style={styles.statLabel}>XP{'\n'}earned</Text>
               </View>
             </View>
 

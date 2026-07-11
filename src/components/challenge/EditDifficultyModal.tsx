@@ -81,7 +81,7 @@ export const EditDifficultyModal: React.FC<Props> = ({
           </View>
 
           <View style={styles.pointsPreview}>
-            <Text style={styles.pointsLabel}>Points change:</Text>
+            <Text style={styles.pointsLabel}>XP change:</Text>
             <Text
               style={[
                 styles.pointsDelta,

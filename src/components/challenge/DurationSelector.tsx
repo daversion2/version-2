@@ -42,7 +42,7 @@ export const DurationSelector: React.FC<Props> = ({ value, onChange, minDays = 3
     </View>
     <View style={styles.infoBox}>
       <Text style={styles.infoText}>
-        You'll check in each day to mark your progress. Every day completed earns you points!
+        You'll check in each day to mark your progress. Every day completed earns you XP!
       </Text>
     </View>
   </View>

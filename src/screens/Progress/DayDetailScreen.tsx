@@ -91,7 +91,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       await updateWillpowerStats(user.uid, points);
 
       setBackdateModalVisible(false);
-      showAlert('Success', `Added "${habitName}" (+${points} pts)`);
+      showAlert('Success', `Added "${habitName}" (+${points} XP)`);
       refreshData();
     } catch (error) {
       showAlert('Error', 'Failed to add practice. Please try again.');
@@ -154,7 +154,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
 
       setEditDifficultyModalVisible(false);
       setEditingChallenge(null);
-      showAlert('Updated', `Difficulty changed. Points: ${deltaText}`);
+      showAlert('Updated', `Difficulty changed. XP: ${deltaText}`);
       refreshData();
     } catch (error) {
       showAlert('Error', 'Failed to update. Please try again.');
@@ -175,7 +175,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
           <Text style={styles.logName} numberOfLines={1}>
             {item.name}
           </Text>
-          <Text style={styles.logPoints}>{item.points} pts</Text>
+          <Text style={styles.logPoints}>{item.points} XP</Text>
         </View>
         <View style={styles.logMeta}>
           <Text style={styles.metaText}>
@@ -230,7 +230,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{totalPoints}</Text>
-            <Text style={styles.summaryLabel}>Points</Text>
+            <Text style={styles.summaryLabel}>XP</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{logs.length}</Text>

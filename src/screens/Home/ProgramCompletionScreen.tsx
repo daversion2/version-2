@@ -122,7 +122,7 @@ export const ProgramCompletionScreen: React.FC<Props> = ({ navigation, route }) 
           </View>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: programColor }]}>{totalPoints}</Text>
-            <Text style={styles.statLabel}>Total Points</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: programColor }]}>{enrollment.grace_days_used}</Text>
@@ -133,7 +133,7 @@ export const ProgramCompletionScreen: React.FC<Props> = ({ navigation, route }) 
           <View style={[styles.bonusBanner, { backgroundColor: programColor + '10' }]}>
             <Ionicons name="star" size={16} color={programColor} />
             <Text style={[styles.bonusText, { color: programColor }]}>
-              +{bonusPoints} bonus points earned!
+              +{bonusPoints} bonus XP earned!
             </Text>
           </View>
         )}

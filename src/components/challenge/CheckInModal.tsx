@@ -121,7 +121,7 @@ export const CheckInModal: React.FC<Props> = ({
                 ))}
               </View>
               <Text style={styles.pointDescription}>
-                {pointLabels[points]} — {points} {points === 1 ? 'point' : 'points'}
+                {pointLabels[points]} — {points} XP
               </Text>
             </>
           )}

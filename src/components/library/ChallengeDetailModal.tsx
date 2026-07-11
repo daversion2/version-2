@@ -272,7 +272,7 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
           </View>
           {selectedDuration > 1 && (
             <Text style={styles.durationHint}>
-              You'll check in each day. Every day completed earns points!
+              You'll check in each day. Every day completed earns XP!
             </Text>
           )}
 

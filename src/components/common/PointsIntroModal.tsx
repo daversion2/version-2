@@ -21,13 +21,13 @@ export const PointsIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
           </Text>
           <View style={styles.bulletList}>
             <Text style={styles.bullet}>
-              <Text style={styles.bulletBold}>Streaks multiply your points</Text> — the more consecutive days you show up, the bigger the bonus.
+              <Text style={styles.bulletBold}>Streaks multiply your XP</Text> — the more consecutive days you show up, the bigger the bonus.
             </Text>
             <Text style={styles.bullet}>
               <Text style={styles.bulletBold}>Harder days earn more</Text> — if it felt tough but you did it anyway, you get extra credit.
             </Text>
           </View>
-          <Text style={styles.footer}>Just keep showing up. The points take care of themselves.</Text>
+          <Text style={styles.footer}>Just keep showing up. The XP takes care of itself.</Text>
           <Button title="Got it" onPress={onDismiss} style={styles.button} />
         </Pressable>
       </Pressable>

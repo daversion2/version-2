@@ -25,7 +25,7 @@ export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
 }) => {
   const stats: { value: string; label: string }[] = [
     { value: formatValue(completions), label: 'Completions' },
-    { value: formatValue(points), label: 'Points' },
+    { value: formatValue(points), label: 'XP' },
     { value: formatValue(currentStreak), label: 'Streak' },
     { value: formatValue(daysActive), label: 'Active Days' },
   ];

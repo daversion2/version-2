@@ -163,14 +163,14 @@ export const ProgramCheckInModal: React.FC<Props> = ({
                   ))}
                 </View>
                 <Text style={styles.pointDescription}>
-                  {pointLabels[points]} — {points} {points === 1 ? 'point' : 'points'}
+                  {pointLabels[points]} — {points} XP
                 </Text>
               </>
             )}
 
             {succeeded === false && (
               <Text style={styles.graceNote}>
-                This will use a grace day. You won't earn points, but your program continues.
+                This will use a grace day. You won't earn XP, but your program continues.
               </Text>
             )}
 

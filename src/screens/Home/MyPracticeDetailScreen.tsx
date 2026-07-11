@@ -287,7 +287,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
               <Ionicons name="flash" size={24} color="#FFD700" />
             </View>
             <Text style={styles.statValue}>{stats.totalPoints}</Text>
-            <Text style={styles.statLabel}>Total Points</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
           </View>
         </View>
       </Card>

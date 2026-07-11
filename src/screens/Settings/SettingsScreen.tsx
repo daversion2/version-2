@@ -63,7 +63,7 @@ export const SettingsScreen: React.FC = () => {
   const handleClearAccount = () => {
     showConfirm(
       'Clear Account',
-      'This will delete ALL your data (challenges, habits, streaks, points, reflections, etc.) and restart from scratch. Your login stays the same. This cannot be undone.',
+      'This will delete ALL your data (challenges, habits, streaks, XP, reflections, etc.) and restart from scratch. Your login stays the same. This cannot be undone.',
       async () => {
         if (!user) return;
         setClearing(true);
@@ -127,7 +127,7 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.navRow}>
           <View>
             <Text style={styles.label}>How It Works</Text>
-            <Text style={styles.desc}>Learn how XP and the points system work</Text>
+            <Text style={styles.desc}>Learn how the XP system works</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>

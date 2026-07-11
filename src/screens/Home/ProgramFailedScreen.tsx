@@ -108,7 +108,7 @@ export const ProgramFailedScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: programColor }]}>{enrollment.total_points_earned}</Text>
-            <Text style={styles.statLabel}>Points Earned</Text>
+            <Text style={styles.statLabel}>XP Earned</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: programColor }]}>{enrollment.grace_days_used}</Text>

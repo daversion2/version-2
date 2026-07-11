@@ -109,7 +109,7 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
         } else {
           showAlert(
             'Day Checked In!',
-            `You earned ${points} Willpower ${points === 1 ? 'Point' : 'Points'} for checking in.`
+            `You earned ${points} XP for checking in.`
           );
         }
       }

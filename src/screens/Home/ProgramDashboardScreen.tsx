@@ -204,7 +204,7 @@ export const ProgramDashboardScreen: React.FC<Props> = ({ navigation, route }) =
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{enrollment.total_points_earned}</Text>
-            <Text style={styles.statLabel}>Points</Text>
+            <Text style={styles.statLabel}>XP</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, graceDaysRemaining === 0 && { color: Colors.secondary }]}>

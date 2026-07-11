@@ -30,7 +30,7 @@ export const HowItWorksScreen: React.FC = () => {
         <View style={styles.bulletList}>
           <Text style={styles.bullet}>{'\u2022'} Daily or multi-day (extended challenges up to 30 days)</Text>
           <Text style={styles.bullet}>{'\u2022'} You create them yourself or pick from the library</Text>
-          <Text style={styles.bullet}>{'\u2022'} Rate the difficulty (1-5) to earn more points</Text>
+          <Text style={styles.bullet}>{'\u2022'} Rate the difficulty (1-5) to earn more XP</Text>
           <Text style={styles.bullet}>{'\u2022'} Best for: trying new things and pushing your edge</Text>
         </View>
       </Card>
@@ -96,21 +96,21 @@ export const HowItWorksScreen: React.FC = () => {
 
       <Text style={styles.heading}>How XP Works</Text>
 
-      {/* Earning Points */}
+      {/* Earning XP */}
       <Card style={styles.card}>
-        <Text style={styles.sectionTitle}>Earning Points</Text>
+        <Text style={styles.sectionTitle}>Earning XP</Text>
         <View style={styles.bulletList}>
           <Text style={styles.bullet}>
-            {'\u2022'} Complete a challenge: 5-25 points (based on difficulty 1-5)
+            {'\u2022'} Complete a challenge: 5-25 XP (based on difficulty 1-5)
           </Text>
           <Text style={styles.bullet}>
-            {'\u2022'} Complete a habit: 3-6 points (based on difficulty)
+            {'\u2022'} Complete a habit: 3-6 XP (based on difficulty)
           </Text>
           <Text style={styles.bullet}>
-            {'\u2022'} Add a reflection: +2 bonus points
+            {'\u2022'} Add a reflection: +2 bonus XP
           </Text>
           <Text style={styles.bullet}>
-            {'\u2022'} Even logging a failed challenge earns 2 points (showing up matters)
+            {'\u2022'} Even logging a failed challenge earns 2 XP (showing up matters)
           </Text>
         </View>
       </Card>
@@ -119,7 +119,7 @@ export const HowItWorksScreen: React.FC = () => {
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>Streak Multipliers</Text>
         <Text style={styles.description}>
-          Build a streak by completing at least one challenge or habit daily. Multipliers increase your point earnings:
+          Build a streak by completing at least one challenge or habit daily. Multipliers increase your XP earnings:
         </Text>
         <View style={styles.tierList}>
           <View style={styles.tierRow}>

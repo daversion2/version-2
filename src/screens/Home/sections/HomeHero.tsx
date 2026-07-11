@@ -55,7 +55,7 @@ export const HomeHero: React.FC<HomeSectionProps> = React.memo(({ data }) => {
       <View style={styles.statRow}>
         <Stat n={`${streak}🔥`} l="Day streak" />
         <Stat n={`${doneToday}/${total}`} l="Done today" />
-        <Stat n={`${points}`} l="Points" />
+        <Stat n={`${points}`} l="XP" />
       </View>
     </View>
   );

@@ -25,7 +25,7 @@ export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
   <View style={styles.section}>
     <Text style={styles.title}>Training Volume</Text>
     <Text style={styles.note}>
-      Reps and points always count. Time & temp reflect only the reps where you logged them.
+      Reps and XP always count. Time & temp reflect only the reps where you logged them.
     </Text>
 
     {practices.length === 0 ? (
@@ -45,7 +45,7 @@ export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
       <View style={styles.challengeBody}>
         <Text style={styles.challengeTitle}>Challenges</Text>
         <Text style={styles.challengeStats}>
-          {challenges.completions} completed · {challenges.points} pts
+          {challenges.completions} completed · {challenges.points} XP
           {challenges.avgDifficulty != null
             ? ` · avg difficulty ${challenges.avgDifficulty} / 5`
             : ''}
@@ -90,7 +90,7 @@ const PracticeCard: React.FC<{
         <>
           <Text style={styles.cardReps}>
             {practice.reps} {practice.reps === 1 ? 'rep' : 'reps'}
-            <Text style={styles.cardPts}> · {practice.points} pts</Text>
+            <Text style={styles.cardPts}> · {practice.points} XP</Text>
           </Text>
           {practice.metricLines.map((line) => (
             <Text key={line} style={styles.cardMetric}>

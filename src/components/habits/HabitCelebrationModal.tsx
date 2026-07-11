@@ -200,7 +200,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
           style={styles.card}
         >
           <Text style={styles.pointsText}>+{pointsEarned}</Text>
-          <Text style={styles.pointsLabel}>pts</Text>
+          <Text style={styles.pointsLabel}>XP</Text>
 
           {!!bonusLabel && (
             <View style={styles.bonusRow}>

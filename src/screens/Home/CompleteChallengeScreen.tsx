@@ -148,7 +148,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       triggerMilestoneHaptic();
       showAlert(
         'Streak Milestone!',
-        `${pendingStreakTier.streak}-Day Streak: ${pendingStreakTier.tierName}!\n\nYou're now earning ${pendingStreakTier.multiplier}x points on all activities!`,
+        `${pendingStreakTier.streak}-Day Streak: ${pendingStreakTier.tierName}!\n\nYou're now earning ${pendingStreakTier.multiplier}x XP on all activities!`,
         () => navigateHome()
       );
       setPendingStreakTier(null);
@@ -430,7 +430,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         if (buddyBothComplete) {
           showAlert(
             'Buddy Bonus!',
-            `You and ${challenge.buddy_partner_username || 'your teammate'} both crushed it!\n\n+${buddyBonusPoints} bonus points earned!`
+            `You and ${challenge.buddy_partner_username || 'your teammate'} both crushed it!\n\n+${buddyBonusPoints} bonus XP earned!`
           );
         } else {
           showAlert(
@@ -543,7 +543,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             style={styles.journalInput}
           />
           <Text style={styles.optionalText}>
-            Optional — earns bonus points
+            Optional — earns bonus XP
           </Text>
         </View>
       )}
@@ -585,7 +585,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
               <View style={styles.journalHeader}>
                 <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Post-Challenge Reflection</Text>
               </View>
-              <Text style={styles.journalSubtext}>Optional — earns bonus points</Text>
+              <Text style={styles.journalSubtext}>Optional — earns bonus XP</Text>
 
               {journalEntry.trim() ? (
                 <Card style={styles.reflectionReadback}>

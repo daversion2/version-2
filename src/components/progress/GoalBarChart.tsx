@@ -28,7 +28,7 @@ export const GoalBarChart: React.FC<Props> = ({ data }) => {
             style={[styles.toggleBtn, mode === 'points' && styles.toggleActive]}
           >
             <Text style={[styles.toggleText, mode === 'points' && styles.toggleActiveText]}>
-              Points
+              XP
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
