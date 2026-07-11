@@ -32,7 +32,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [name, setName] = useState(challenge?.name || '');
   const [difficulty, setDifficulty] = useState(challenge?.difficulty_expected || 3);
   const [description, setDescription] = useState(challenge?.description || '');
-  const [successCriteria, setSuccessCriteria] = useState(challenge?.success_criteria || '');
   const [why, setWhy] = useState(challenge?.why || '');
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
@@ -71,7 +70,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
         name: name.trim(),
         difficulty_expected: difficulty,
         description: description.trim() || undefined,
-        success_criteria: successCriteria.trim() || undefined,
         why: why.trim() || undefined,
       };
 
@@ -166,15 +164,6 @@ export const EditChallengeScreen: React.FC<Props> = ({ route, navigation }) => {
           value={description}
           onChangeText={setDescription}
           placeholder="What will you do?"
-          multiline
-          numberOfLines={3}
-        />
-
-        <InputField
-          label="Success Criteria (optional)"
-          value={successCriteria}
-          onChangeText={setSuccessCriteria}
-          placeholder="How will you know you succeeded?"
           multiline
           numberOfLines={3}
         />

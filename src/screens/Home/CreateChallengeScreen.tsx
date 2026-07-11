@@ -34,7 +34,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
   const [name, setName] = useState('');
   const [difficulty, setDifficulty] = useState(3);
   const [description, setDescription] = useState('');
-  const [successCriteria, setSuccessCriteria] = useState('');
   const [why, setWhy] = useState('');
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
@@ -60,7 +59,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
         challenge_type: challengeType,
         ...(challengeType === 'extended' ? { duration_days: durationDays } : {}),
         ...(description.trim() ? { description: description.trim() } : {}),
-        ...(successCriteria.trim() ? { success_criteria: successCriteria.trim() } : {}),
         ...(why.trim() ? { why: why.trim() } : {}),
         // Only include deadline for daily challenges (extended uses end_date automatically)
         ...(challengeType === 'daily' && deadlineDate ? { deadline: new Date(`${deadlineDate}T${deadlineTime || '23:59'}`).toISOString() } : {}),
@@ -121,15 +119,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
           value={description}
           onChangeText={setDescription}
           placeholder="What will you do?"
-          multiline
-          numberOfLines={3}
-        />
-
-        <InputField
-          label="Success Criteria (optional)"
-          value={successCriteria}
-          onChangeText={setSuccessCriteria}
-          placeholder="How will you know you succeeded?"
           multiline
           numberOfLines={3}
         />

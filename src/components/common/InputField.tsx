@@ -11,7 +11,11 @@ export const InputField: React.FC<InputFieldProps> = ({ label, error, ...props }
   <View style={styles.container}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
-      style={[styles.input, error ? styles.inputError : null]}
+      style={[
+        styles.input,
+        props.multiline ? styles.inputMultiline : null,
+        error ? styles.inputError : null,
+      ]}
       placeholderTextColor={Colors.gray}
       {...props}
     />
@@ -37,6 +41,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 4,
     backgroundColor: Colors.white,
+  },
+  inputMultiline: {
+    minHeight: 88,
+    textAlignVertical: 'top',
   },
   inputError: { borderColor: Colors.secondary },
   error: {
