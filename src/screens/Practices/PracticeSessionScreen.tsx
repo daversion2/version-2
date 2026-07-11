@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -6,6 +6,7 @@ import { PracticeSessionParams } from '../../types/navigation';
 import { getPractice, PRACTICE_GROUPS } from '../../data/practices';
 import { useAuth } from '../../context/AuthContext';
 import { completePractice } from '../../services/practices';
+import { getMindPattern, MindPattern } from '../../services/mindPatterns';
 import { PracticeCompletionInput } from '../../types';
 import { PracticeReady } from '../../components/habits/PracticeReady';
 import { PracticeTimer } from '../../components/habits/PracticeTimer';
@@ -52,6 +53,16 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   // Pattern the breath pacer guided, seeded into Capture's `technique` field.
   const [pacerTechnique, setPacerTechnique] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<{ points: number; streak: number } | null>(null);
+  // The dominant mind tag from recent reps of this practice, shown as the
+  // Ready beat's "Your pattern" block. Best-effort: absent until loaded.
+  const [mindPattern, setMindPattern] = useState<MindPattern | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getMindPattern(user.uid, habitId)
+      .then(setMindPattern)
+      .catch(() => {});
+  }, [user, habitId]);
 
   if (!practice) {
     return (
@@ -109,6 +120,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       {step === 'ready' && (
         <PracticeReady
           practice={practice}
+          mindPattern={mindPattern}
           onBegin={handleBegin}
           onLearn={() => navigation.navigate('PracticeDetail', { practiceId, readOnly: true })}
         />

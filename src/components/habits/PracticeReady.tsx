@@ -3,9 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Practice, PRACTICE_GROUPS } from '../../data/practices';
+import { MindPattern, buildMindPatternText } from '../../services/mindPatterns';
 
 interface Props {
   practice: Practice;
+  /** Dominant mind tag from recent reps of this practice — renders the "Your pattern" block. */
+  mindPattern?: MindPattern | null;
   /** Proceed to the "Go" beat (start the timer, or hand off the phone). */
   onBegin: () => void;
   /** Open the full learn content (how-to / science / tips). Hidden if omitted. */
@@ -31,11 +34,11 @@ const ReadyBlock: React.FC<{ icon: string; label: string; text: string; accent: 
 /**
  * The "Ready" beat — a ~15-second briefing before a practice rep, in narrative
  * order: the task (what you'll do) → the urge that will rise against you (the
- * override) → the one anchor to hold when it does (focus). Then hands off to
- * the Go beat. Driven entirely by the practice's `ready` content; renders
- * nothing if absent.
+ * override) → the user's own recent mind pattern, when one has emerged → the
+ * one anchor to hold when it does (focus). Then hands off to the Go beat.
+ * Driven by the practice's `ready` content; renders nothing if absent.
  */
-export const PracticeReady: React.FC<Props> = ({ practice, onBegin, onLearn }) => {
+export const PracticeReady: React.FC<Props> = ({ practice, mindPattern, onBegin, onLearn }) => {
   const accent = PRACTICE_GROUPS.find((g) => g.id === practice.group)?.color ?? Colors.primary;
   const ready = practice.ready;
   if (!ready) return null;
@@ -59,6 +62,14 @@ export const PracticeReady: React.FC<Props> = ({ practice, onBegin, onLearn }) =
         )}
         {ready.override && (
           <ReadyBlock icon="flame-outline" label="The override" text={ready.override} accent={accent} />
+        )}
+        {mindPattern && (
+          <ReadyBlock
+            icon="eye-outline"
+            label="Your pattern"
+            text={buildMindPatternText(mindPattern)}
+            accent={accent}
+          />
         )}
         <ReadyBlock icon="locate-outline" label="Focus on" text={ready.focus} accent={accent} />
       </ScrollView>
