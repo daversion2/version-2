@@ -4,7 +4,7 @@
  * Usage from the app:
  *   import { seedChallengeLibrary, reseedChallengeLibrary } from '../utils/seedChallengeLibrary';
  *   await seedChallengeLibrary(); // Adds new challenges (skips duplicates)
- *   await reseedChallengeLibrary(); // Clears and re-seeds with all 57 challenges
+ *   await reseedChallengeLibrary(); // Clears and re-seeds with the full curated library
  */
 
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
