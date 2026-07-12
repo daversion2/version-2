@@ -37,7 +37,6 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
   );
 
   const doneTodaySet = useMemo(() => new Set(completedTodayIds), [completedTodayIds]);
-  const doneTodayCount = ordered.reduce((n, h) => (doneTodaySet.has(h.id) ? n + 1 : n), 0);
 
   if (ordered.length === 0) {
     return (
@@ -55,9 +54,6 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Your practices</Text>
-        <Text style={styles.count}>
-          {doneTodayCount} of {ordered.length} done
-        </Text>
       </View>
 
       {ordered.map((habit) => {
@@ -118,7 +114,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   title: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
-  count: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
 
   startingPointBadge: {
     flexDirection: 'row',

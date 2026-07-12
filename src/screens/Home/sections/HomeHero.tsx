@@ -18,13 +18,13 @@ const formatToday = (): string =>
 
 /**
  * Full-bleed teal hero header for the home screen: greeting, a one-line nudge,
- * and three at-a-glance stats (streak / done today / points). Uses negative
+ * and three at-a-glance stats (streak / reps this week / points). Uses negative
  * margins to break out of the ScrollView's padding so it reaches the screen
  * edges, and the safe-area top inset to clear the status bar.
  */
 export const HomeHero: React.FC<HomeSectionProps> = React.memo(({ data }) => {
   const insets = useSafeAreaInsets();
-  const { habits, completedTodayIds, willpowerStats, userName } = data;
+  const { habits, completedTodayIds, weeklyCounts, willpowerStats, userName } = data;
 
   const doneToday = useMemo(() => {
     const set = new Set(completedTodayIds);
@@ -33,6 +33,10 @@ export const HomeHero: React.FC<HomeSectionProps> = React.memo(({ data }) => {
 
   const total = habits.length;
   const left = Math.max(total - doneToday, 0);
+  const weeklyReps = useMemo(
+    () => habits.reduce((n, h) => n + (weeklyCounts[h.id] ?? 0), 0),
+    [weeklyCounts, habits]
+  );
   const streak = willpowerStats?.currentStreak ?? 0;
   const points = willpowerStats?.totalPoints ?? 0;
 
@@ -54,7 +58,7 @@ export const HomeHero: React.FC<HomeSectionProps> = React.memo(({ data }) => {
 
       <View style={styles.statRow}>
         <Stat n={`${streak}🔥`} l="Day streak" />
-        <Stat n={`${doneToday}/${total}`} l="Done today" />
+        <Stat n={`${weeklyReps}`} l="Reps this week" />
         <Stat n={`${points}`} l="XP" />
       </View>
     </View>
