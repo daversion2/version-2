@@ -14,26 +14,20 @@ export const getStreakMultiplier = (streakDays: number): number => {
 // Calculate points for a completed challenge
 export const calculateChallengePoints = (
   difficultyActual: number,
-  streakDays: number,
-  hasReflection: boolean
+  streakDays: number
 ): number => {
   const multiplier = getStreakMultiplier(streakDays);
   const basePoints = difficultyActual;
-  const reflectionBonus = hasReflection ? POINTS.REFLECTION_BONUS : 0;
 
-  return Math.round(basePoints * multiplier) + reflectionBonus;
+  return Math.round(basePoints * multiplier);
 };
 
 // Calculate points for a failed challenge
-export const calculateFailedChallengePoints = (
-  streakDays: number,
-  hasReflection: boolean
-): number => {
+export const calculateFailedChallengePoints = (streakDays: number): number => {
   const multiplier = getStreakMultiplier(streakDays);
   const basePoints = POINTS.FAILED_CHALLENGE;
-  const reflectionBonus = hasReflection ? POINTS.REFLECTION_BONUS : 0;
 
-  return Math.round(basePoints * multiplier) + reflectionBonus;
+  return Math.round(basePoints * multiplier);
 };
 
 // Calculate the buddy bonus delta (extra points when both partners complete)
@@ -178,19 +172,6 @@ export const getWillpowerStats = async (
     currentStreak: validStreak,
     multiplier,
   };
-};
-
-// Check if a challenge has any reflection filled
-export const hasReflection = (challenge: {
-  reflection_hardest_moment?: string;
-  reflection_push_through?: string;
-  reflection_next_time?: string;
-}): boolean => {
-  return !!(
-    challenge.reflection_hardest_moment ||
-    challenge.reflection_push_through ||
-    challenge.reflection_next_time
-  );
 };
 
 // Get Suck Factor tier based on average difficulty (WPQ)

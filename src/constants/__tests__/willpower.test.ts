@@ -63,12 +63,6 @@ describe('Willpower Constants', () => {
       expect(POINTS.FAILED_CHALLENGE).toBe(1);
     });
 
-    it('has REFLECTION_BONUS points defined', () => {
-      expect(POINTS.REFLECTION_BONUS).toBeDefined();
-      expect(typeof POINTS.REFLECTION_BONUS).toBe('number');
-      expect(POINTS.REFLECTION_BONUS).toBe(1);
-    });
-
     it('all point values are positive', () => {
       Object.values(POINTS).forEach((value) => {
         expect(value).toBeGreaterThan(0);

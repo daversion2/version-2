@@ -501,9 +501,9 @@ export const BUNDLED_PRACTICES: Practice[] = [
       whatYouDo:
         'Walk or run at real effort — treadmill or outside — with no phone, music, or screens, for your set time.',
       override:
-        'A few minutes in, the pull for your phone or a podcast will show up — and the effort will bite. Not reaching, not stopping early: that’s the rep.',
+        'A few minutes in, the pull for your phone or a podcast will show up — and the effort will bite. Not reaching, not stopping early: that’s the exercise.',
       focus: 'Just move. Let your mind wander and stay with the effort.',
-      handoffCta: 'Put your phone away',
+      handoffCta: 'Begin',
     },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 120, step: 5, default: 30 },
@@ -571,7 +571,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
       override:
         'The first 30 seconds are the worst — your body will scream to get out, then it quiets. Not obeying that scream is the rep.',
       focus: 'Long, slow exhales. Control the gasp. That’s the whole job.',
-      handoffCta: 'Put your phone down',
+      handoffCta: 'Begin',
     },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 12, step: 1, default: 2 },
@@ -630,7 +630,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
       override:
         'The first minutes are easy — the urge to leave builds slowly and peaks near the end. Staying through the peak is the rep.',
       focus: 'Stay loose. Slow, steady breathing. Don’t fight the heat — settle into it.',
-      handoffCta: 'Put your phone down',
+      handoffCta: 'Begin',
     },
     tracking: [
       { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 45, step: 5, default: 15 },
@@ -705,7 +705,10 @@ export const BUNDLED_PRACTICES: Practice[] = [
     group: 'restrain',
     intensity: 'extreme',
     color: '#5B3FE0',
+    // Retired — cut from the protocol. Kept (active: false) so already-adopted
+    // instances still resolve; ensureCuratedPractices deactivates them on Home.
     core: false,
+    active: false,
     suggested_target_per_week: 1,
     description: 'A deliberate fasting window — sit with hunger without acting on it.',
     whyItWorks:
@@ -807,7 +810,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
         'Choose a plain, genuinely healthy option for your next meal — decided now, before the craving hits — and eat it as-is.',
       override: 'The pull to swap it for something you’d enjoy more. Eating it plainly anyway is the rep.',
       focus: 'Don’t doctor it up. No sauces, no extras — sit with “not enjoyable.”',
-      handoffCta: 'I’m committing',
+      handoffCta: 'Begin',
     },
     tracking: [
       {

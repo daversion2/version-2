@@ -107,9 +107,6 @@ export const HowItWorksScreen: React.FC = () => {
             {'\u2022'} Complete a habit: 3-6 XP (based on difficulty)
           </Text>
           <Text style={styles.bullet}>
-            {'\u2022'} Add a reflection: +2 bonus XP
-          </Text>
-          <Text style={styles.bullet}>
             {'\u2022'} Even logging a failed challenge earns 2 XP (showing up matters)
           </Text>
         </View>

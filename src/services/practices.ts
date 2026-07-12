@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
-import { PracticeGroup, getDefaultSeedPractices } from '../data/practices';
+import { PracticeGroup, getDefaultSeedPractices, getAllPractices } from '../data/practices';
 import { getWillpowerStats, calculateHabitPoints, updateWillpowerStats } from './willpower';
 
 const habitsRef = (userId: string) =>
@@ -82,8 +82,9 @@ export const createHabit = async (
  * home. Practices are the app's focus: the whole curated protocol lives on
  * Home for everyone, with no add/remove step. Idempotent and safe to run on
  * every load — creates missing instances and reactivates deactivated ones
- * (matching by practice_id, falling back to name for legacy instances).
- * Returns the number of instances created or reactivated.
+ * (matching by practice_id, falling back to name for legacy instances), and
+ * deactivates instances of practices retired from the catalog (active: false)
+ * so they disappear from Home. Returns the number of instances changed.
  */
 export const ensureCuratedPractices = async (userId: string): Promise<number> => {
   // All instances, including inactive ones, so a previously removed curated
@@ -110,6 +111,23 @@ export const ensureCuratedPractices = async (userId: string): Promise<number> =>
       changed++;
     } else if (match.is_active === false) {
       await updateDoc(doc(db, 'users', userId, 'habits', match.id), { is_active: true });
+      changed++;
+    }
+  }
+
+  // Retired curated practices (e.g. fasting) come OFF the home. Only curated
+  // instances are touched — a user-authored practice that happens to share a
+  // name keeps working. Logs/history are kept; the instance is just hidden.
+  const retired = getAllPractices().filter((p) => p.active === false);
+  for (const p of retired) {
+    const matches = instances.filter(
+      (h) =>
+        h.is_active !== false &&
+        h.created_by_user === false &&
+        (h.practice_id === p.id || norm(h.name) === norm(p.name))
+    );
+    for (const m of matches) {
+      await updateDoc(doc(db, 'users', userId, 'habits', m.id), { is_active: false });
       changed++;
     }
   }

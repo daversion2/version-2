@@ -142,7 +142,6 @@ const METRIC_RECORDS: {
   { practiceId: 'meditation', metricKey: 'duration_min', pick: 'max', icon: 'flower-outline', label: 'Longest sit', unit: 'min' },
   { practiceId: 'cold_exposure', metricKey: 'water_temp_f', pick: 'min', icon: 'snow-outline', label: 'Coldest plunge', unit: '°F' },
   { practiceId: 'heat_exposure', metricKey: 'temp_f', pick: 'max', icon: 'flame-outline', label: 'Hottest sauna', unit: '°F' },
-  { practiceId: 'fasting', metricKey: 'duration_hrs', pick: 'max', icon: 'time-outline', label: 'Longest fast', unit: 'hrs' },
 ];
 
 /** A completed practice rep or challenge counts as one override. */

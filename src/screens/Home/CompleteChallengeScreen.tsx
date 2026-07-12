@@ -196,17 +196,13 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         }
       }
 
-      // Calculate and award XP
-      // Check EITHER reflection (success journal OR failure reflection)
-      const hasReflection = result === 'completed'
-        ? trimmedJournal.length > 0
-        : trimmedFailureReflection.length > 0;
+      // Calculate and award XP (reflection is optional and never affects points)
       const stats = await getWillpowerStats(user.uid);
 
       const pointsEarned =
         result === 'completed'
-          ? calculateChallengePoints(difficulty, stats.currentStreak, hasReflection)
-          : calculateFailedChallengePoints(stats.currentStreak, hasReflection);
+          ? calculateChallengePoints(difficulty, stats.currentStreak)
+          : calculateFailedChallengePoints(stats.currentStreak);
 
       const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
 

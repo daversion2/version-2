@@ -132,7 +132,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
     transform: [{ scale: buttonScale.value }],
   }));
 
-  const handleWorthIt = () => {
+  const handleDone = () => {
     if (dismissed) return;
     setDismissed(true);
     triggerRewardHaptic();
@@ -234,12 +234,12 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
 
           <Animated.View style={buttonStyle}>
             <TouchableOpacity
-              style={styles.worthItButton}
-              onPress={handleWorthIt}
+              style={styles.doneButton}
+              onPress={handleDone}
               activeOpacity={0.8}
               disabled={dismissed}
             >
-              <Text style={styles.worthItText}>Worth it?</Text>
+              <Text style={styles.doneText}>Done</Text>
             </TouchableOpacity>
           </Animated.View>
         </Animated.View>
@@ -365,13 +365,13 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.dark,
   },
-  worthItButton: {
+  doneButton: {
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xxl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
   },
-  worthItText: {
+  doneText: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.lg,
     color: Colors.white,

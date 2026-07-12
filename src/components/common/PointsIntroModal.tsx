@@ -17,7 +17,7 @@ export const PointsIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
           <Ionicons name="flash" size={36} color={Colors.primary} style={styles.icon} />
           <Text style={styles.title}>XP</Text>
           <Text style={styles.body}>
-            Every time you complete a habit, challenge, or reflection, you earn XP.
+            Every time you complete a habit or challenge, you earn XP.
           </Text>
           <View style={styles.bulletList}>
             <Text style={styles.bullet}>

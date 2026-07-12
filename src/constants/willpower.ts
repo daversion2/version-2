@@ -12,6 +12,5 @@ export const STREAK_MULTIPLIERS = [
 // Points awarded for different actions
 export const POINTS = {
   FAILED_CHALLENGE: 1,
-  REFLECTION_BONUS: 1,
   BUDDY_BONUS_MULTIPLIER: 1.25,
 };

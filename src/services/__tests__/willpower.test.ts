@@ -5,7 +5,6 @@ import {
   calculateHabitPoints,
   getStreakTierInfo,
   getSuckFactorTier,
-  hasReflection,
   subtractWillpowerPoints,
   adjustWillpowerPoints,
   recalculateUserStats,
@@ -49,52 +48,33 @@ describe('Willpower Service', () => {
   });
 
   describe('calculateChallengePoints', () => {
-    it('returns base difficulty when no streak and no reflection', () => {
-      expect(calculateChallengePoints(3, 1, false)).toBe(3);
-      expect(calculateChallengePoints(5, 1, false)).toBe(5);
-    });
-
-    it('adds reflection bonus of 1 point', () => {
-      expect(calculateChallengePoints(3, 1, true)).toBe(4);
-      expect(calculateChallengePoints(5, 1, true)).toBe(6);
+    it('returns base difficulty when no streak', () => {
+      expect(calculateChallengePoints(3, 1)).toBe(3);
+      expect(calculateChallengePoints(5, 1)).toBe(5);
     });
 
     it('applies streak multiplier correctly', () => {
       // 3-day streak = 1.2x multiplier
       // difficulty 5 * 1.2 = 6
-      expect(calculateChallengePoints(5, 3, false)).toBe(6);
-    });
-
-    it('applies both streak multiplier and reflection bonus', () => {
-      // difficulty 5 * 1.2 = 6, + 1 reflection = 7
-      expect(calculateChallengePoints(5, 3, true)).toBe(7);
+      expect(calculateChallengePoints(5, 3)).toBe(6);
     });
 
     it('rounds points correctly', () => {
       // difficulty 3 * 1.2 = 3.6, rounds to 4
-      expect(calculateChallengePoints(3, 3, false)).toBe(4);
+      expect(calculateChallengePoints(3, 3)).toBe(4);
     });
   });
 
   describe('calculateFailedChallengePoints', () => {
     it('returns 1 point for failed challenge with no streak', () => {
-      expect(calculateFailedChallengePoints(1, false)).toBe(1);
-    });
-
-    it('adds reflection bonus of 1 point', () => {
-      expect(calculateFailedChallengePoints(1, true)).toBe(2);
+      expect(calculateFailedChallengePoints(1)).toBe(1);
     });
 
     it('applies streak multiplier', () => {
       // 1 * 1.2 = 1.2, rounds to 1
-      expect(calculateFailedChallengePoints(3, false)).toBe(1);
+      expect(calculateFailedChallengePoints(3)).toBe(1);
       // 1 * 1.5 = 1.5, rounds to 2
-      expect(calculateFailedChallengePoints(7, false)).toBe(2);
-    });
-
-    it('applies both streak multiplier and reflection bonus', () => {
-      // 1 * 1.5 = 1.5 rounds to 2, + 1 reflection = 3
-      expect(calculateFailedChallengePoints(7, true)).toBe(3);
+      expect(calculateFailedChallengePoints(7)).toBe(2);
     });
   });
 
@@ -179,33 +159,6 @@ describe('Willpower Service', () => {
       expect(getSuckFactorTier(2.5).description).toBe('Building strength with balanced challenges');
       expect(getSuckFactorTier(3.5).description).toBe('Pushing beyond your comfort zone');
       expect(getSuckFactorTier(4.5).description).toBe('Consistently tackling the hardest challenges');
-    });
-  });
-
-  describe('hasReflection', () => {
-    it('returns false when no reflection fields are filled', () => {
-      expect(hasReflection({})).toBe(false);
-      expect(hasReflection({ reflection_hardest_moment: '' })).toBe(false);
-    });
-
-    it('returns true when reflection_hardest_moment is filled', () => {
-      expect(hasReflection({ reflection_hardest_moment: 'Some thought' })).toBe(true);
-    });
-
-    it('returns true when reflection_push_through is filled', () => {
-      expect(hasReflection({ reflection_push_through: 'Some thought' })).toBe(true);
-    });
-
-    it('returns true when reflection_next_time is filled', () => {
-      expect(hasReflection({ reflection_next_time: 'Some thought' })).toBe(true);
-    });
-
-    it('returns true when multiple reflection fields are filled', () => {
-      expect(hasReflection({
-        reflection_hardest_moment: 'Thought 1',
-        reflection_push_through: 'Thought 2',
-        reflection_next_time: 'Thought 3',
-      })).toBe(true);
     });
   });
 

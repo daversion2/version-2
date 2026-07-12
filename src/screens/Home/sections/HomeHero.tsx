@@ -40,7 +40,7 @@ export const HomeHero: React.FC<HomeSectionProps> = React.memo(({ data }) => {
     total === 0
       ? 'Add your first practice to start building the override muscle.'
       : left === 0
-      ? "Every practice done today. That's the rep. 🎯"
+      ? "Every practice done today. That's the exercise. 🎯"
       : `${left} practice${left !== 1 ? 's' : ''} left today. Let's get a rep in.`;
 
   return (
