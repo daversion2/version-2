@@ -1,6 +1,6 @@
 # Challenge Library — All Challenges
 
-Pulled from the live Firestore `challengeLibrary` collection (project `version-2-4afa1`) on 2026-07-12, after removing 48 challenges. **26 challenges** remain.
+Pulled from the live Firestore `challengeLibrary` collection (project `version-2-4afa1`) on 2026-07-12, after curating the library down from 74. **25 challenges** remain (the Social category was removed entirely).
 
 To remove a challenge, add `- REMOVE` after its heading and I can delete the docs from Firestore.
 
@@ -8,7 +8,6 @@ To remove a challenge, add `- REMOVE` after its heading and I can delete the doc
 
 - Mind (12)
 - Physical (13)
-- Social (1)
 
 ---
 
@@ -115,7 +114,7 @@ To remove a challenge, add `- REMOVE` after its heading and I can delete the doc
 ### 1 Hour Run
 
 - **Doc ID:** `cy8yMDT03OKcOT9M53Vu`
-- **Meta:** difficulty 5 · deep-work · complete
+- **Meta:** difficulty 5 · deep-work · 60 min · complete · barrier: comfort-zone
 - **Description:** Run (or walk) as far as you can on 1 hour.
 - **Why:** Pushes you to your physical limits within 1 hour
 - **Success criteria:** You moved constantly for 1 hour and have given it your best effort.
@@ -215,14 +214,4 @@ To remove a challenge, add `- REMOVE` after its heading and I can delete the doc
 - **Description:** Choose stairs over elevator or escalator every opportunity today.
 - **Why:** Choosing discomfort when the easy option is available.
 - **Success criteria:** Used stairs instead of elevator/escalator at every opportunity.
-
-## Social (1)
-
-### Ask Someone for Brutally Honest Feedback About You
-
-- **Doc ID:** `OfdKMPGmUitUoY8Yalel`
-- **Meta:** difficulty 4 · ritual · 30 min · complete · barrier: ego
-- **Description:** Pick someone who knows you well. Tell them you want the truth, not comfort. Ask them what your biggest blind spot is, what you're worst at, or what they'd change about you if they could. Then sit there and take it. No defending, no explaining, no deflecting.
-- **Why:** Your ego keeps you from seeing what everyone around you already sees. This rips the blindfold off.
-- **Success criteria:** Asked for brutally honest feedback and listened to the full response without defending yourself.
 

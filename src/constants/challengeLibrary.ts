@@ -195,9 +195,8 @@ export const getTimeCategoryFromMinutes = (minutes: number): string => {
 // =============================================================================
 // LIFE DOMAINS (CATEGORIES)
 // =============================================================================
-// The three core domains of discipline training.
+// The core domains of discipline training.
 // Physical = Body, movement, physical discomfort
-// Social = Relationships, communication, visibility
 // Mind = Inner work - emotional regulation, cognitive discipline, attention
 
 export interface LifeDomainConfig {
@@ -217,14 +216,6 @@ export const LIFE_DOMAINS: Record<string, LifeDomainConfig> = {
     description: 'Body, movement, physical discomfort',
     icon: 'fitness',
     color: '#217180',
-  },
-  Social: {
-    id: 'Social',
-    name: 'Social',
-    shortName: 'Social',
-    description: 'Relationships, communication, visibility',
-    icon: 'chatbubbles',
-    color: '#FF5B02',
   },
   Mind: {
     id: 'Mind',

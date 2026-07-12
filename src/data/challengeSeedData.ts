@@ -23,9 +23,9 @@ export interface SeedChallenge {
 }
 
 // ============================================================================
-// CHALLENGE LIBRARY SEED DATA — 26 Challenges
+// CHALLENGE LIBRARY SEED DATA — 25 Challenges
 // Synced from the live Firestore challengeLibrary collection (2026-07-12)
-// after the library was curated down from 74 to 26. See docs/challenge-library.md
+// after the library was curated down from 74 to 25. See docs/challenge-library.md
 // ============================================================================
 
 export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
@@ -841,43 +841,6 @@ export const CHALLENGE_LIBRARY_SEED_DATA: SeedChallenge[] = [
       { label: 'Easier', description: 'No speaking for 4 hours' },
       { label: 'Harder', description: 'No speaking and no texting unless absolutely necessary' },
       { label: 'Advanced', description: 'No speaking for an entire weekend' },
-    ],
-  },
-
-  // ==========================================================================
-  // SOCIAL
-  // ==========================================================================
-
-  {
-    name: 'Ask Someone for Brutally Honest Feedback About You',
-    category: 'Social',
-    arena_id: 'social_discomfort',
-    barrier_type: 'ego',
-    difficulty: 4,
-    time_required_minutes: 30,
-    time_category: 'ritual',
-    action_type: 'complete',
-    beginner_friendly: false,
-    description: "Pick someone who knows you well. Tell them you want the truth, not comfort. Ask them what your biggest blind spot is, what you're worst at, or what they'd change about you if they could. Then sit there and take it. No defending, no explaining, no deflecting.",
-    success_criteria: 'Asked for brutally honest feedback and listened to the full response without defending yourself.',
-    why: 'Your ego keeps you from seeing what everyone around you already sees. This rips the blindfold off.',
-    neuroscience_explanation: "Honest feedback activates the anterior insula — a region associated with emotional pain. Your brain treats criticism like a physical threat. By sitting with it instead of fighting it, you teach your nervous system that truth isn't dangerous, even when it hurts.",
-    psychological_benefit: 'Increases self-awareness and reduces the gap between who you think you are and who you actually are.',
-    what_youll_learn: 'That the truth about yourself is survivable, and most of the time, you already suspected it.',
-    common_resistance: [
-      'I already know my flaws',
-      "They'll just say something nice",
-      "I don't want to put them in an awkward position",
-    ],
-    real_world_examples: [
-      'Ask a close friend over coffee',
-      'Ask a partner at a calm moment',
-      'Ask a mentor or colleague you trust',
-    ],
-    variations: [
-      { label: 'Easier', description: "Ask what one thing they'd improve about you" },
-      { label: 'Harder', description: 'Ask three different people the same question' },
-      { label: 'Advanced', description: "Ask someone you don't get along with" },
     ],
   },
 ];
