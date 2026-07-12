@@ -16,7 +16,6 @@ import { useAuth } from '../../context/AuthContext';
 import { getProgramById, enrollInProgram } from '../../services/programs';
 import { ProgramTemplate, ProgramMode, ProgramDay } from '../../types';
 import { showAlert } from '../../utils/alert';
-import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 
 type Props = HomeScreenProps<'ProgramDetail'>;
 
@@ -28,7 +27,6 @@ export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [selectedMode, setSelectedMode] = useState<ProgramMode | null>(null);
-  const [goalIds, setGoalIds] = useState<string[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -49,14 +47,9 @@ export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleStartProgram = async () => {
     if (!user || !program || !selectedMode) return;
-    if (goalIds.length === 0) {
-      showAlert('Required', 'Please select at least one goal for this program.');
-      return;
-    }
-
     setEnrolling(true);
     try {
-      await enrollInProgram(user.uid, program.id, selectedMode, goalIds);
+      await enrollInProgram(user.uid, program.id, selectedMode);
       navigation.popToTop();
     } catch (err: any) {
       showAlert('Cannot Start Program', err.message || 'Something went wrong.');
@@ -198,13 +191,6 @@ export const ProgramDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         <BenefitRow icon="star-outline" text={`${program.completion_bonus_points} bonus XP on completion`} color={program.color} />
         <BenefitRow icon="heart-outline" text={`${program.grace_days} grace day${program.grace_days !== 1 ? 's' : ''} if life gets in the way`} color={program.color} />
       </Card>
-
-      <GoalTagPicker
-        selectedGoalIds={goalIds}
-        onChange={setGoalIds}
-        required
-        onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
-      />
 
       {/* Start Button */}
       <Button

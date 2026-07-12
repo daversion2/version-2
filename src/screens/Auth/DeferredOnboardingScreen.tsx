@@ -33,7 +33,6 @@ import {
   completeWhyDiscovery,
   saveWhyProfileCBT,
 } from '../../services/whyDiscovery';
-import { getActiveGoals } from '../../services/goals';
 import { HomeScreenProps } from '../../types/navigation';
 
 
@@ -57,7 +56,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
   const [currentStage, setCurrentStage] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savingProgress, setSavingProgress] = useState(false);
-  const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
 
   // Stage 1: Opening question
   const [openingAnswer, setOpeningAnswer] = useState('');
@@ -91,11 +89,6 @@ export const DeferredOnboardingScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (user) {
       initializeWhyProfile(user.uid).catch(console.warn);
-      getActiveGoals(user.uid)
-        .then((goals) => {
-          if (goals.length > 0) setActiveGoalId(goals[0].id);
-        })
-        .catch(console.warn);
     }
   }, [user]);
 

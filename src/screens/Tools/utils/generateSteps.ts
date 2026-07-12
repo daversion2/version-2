@@ -5,7 +5,6 @@ export type StepType =
   | 'mood_before'
   | 'section_intro'
   | 'field'
-  | 'goal_link'
   | 'mood_after'
   | 'completion';
 
@@ -42,7 +41,6 @@ export function generateStepsFromTemplate(template: WorksheetTemplate): ToolStep
     });
   });
 
-  steps.push({ type: 'goal_link', id: 'goal_link' });
   steps.push({ type: 'mood_after', id: 'mood_after' });
   steps.push({ type: 'completion', id: 'completion' });
 

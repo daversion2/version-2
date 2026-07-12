@@ -178,21 +178,6 @@ export const SettingsScreen: React.FC = () => {
           Dev Testing
         </Text>
         <Button
-          title="Simulate Day 2 (Goal Prompt)"
-          onPress={async () => {
-            if (!user) return;
-            await setDoc(doc(db, 'users', user.uid), {
-              has_seen_points_intro: true,
-              has_dismissed_goal_prompt: false,
-              app_open_count: 2,
-            }, { merge: true });
-            await refreshProfile();
-            showAlert('Done', 'Day 2 state set. Go back to Home to see the goal prompt.');
-          }}
-          variant="outline"
-          style={{ marginBottom: Spacing.sm }}
-        />
-        <Button
           title="Simulate Day 3 (Challenge Unlock)"
           onPress={async () => {
             if (!user) return;

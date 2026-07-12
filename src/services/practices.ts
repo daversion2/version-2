@@ -78,35 +78,42 @@ export const createHabit = async (
 };
 
 /**
- * Seed the default (core) practices onto a user's home as adopted instances, so
- * practices are present by default with no "add" step. Idempotent: skips any
- * default whose practice_id the user has already adopted (so re-running, or a
- * user who curated their own, never gets duplicates). Returns the number created.
- *
- * Guard the call with the user's `has_seeded_practices` flag so a user's later
- * deletions stick (we seed once, not every load).
+ * Ensure every curated practice exists as an ACTIVE instance on the user's
+ * home. Practices are the app's focus: the whole curated protocol lives on
+ * Home for everyone, with no add/remove step. Idempotent and safe to run on
+ * every load — creates missing instances and reactivates deactivated ones
+ * (matching by practice_id, falling back to name for legacy instances).
+ * Returns the number of instances created or reactivated.
  */
-export const seedDefaultPractices = async (userId: string): Promise<number> => {
-  const existing = await getActiveHabits(userId);
-  const adopted = new Set(
-    existing.map((h) => h.practice_id).filter((id): id is string => !!id)
-  );
+export const ensureCuratedPractices = async (userId: string): Promise<number> => {
+  // All instances, including inactive ones, so a previously removed curated
+  // practice is reactivated rather than duplicated.
+  const snap = await getDocs(habitsRef(userId));
+  const instances = snap.docs.map((d) => ({ id: d.id, ...d.data() } as PracticeInstance));
+  const norm = (s: string) => s.trim().toLowerCase();
 
-  let created = 0;
+  let changed = 0;
   for (const p of getDefaultSeedPractices()) {
-    if (adopted.has(p.id)) continue;
-    await createHabit(userId, {
-      name: p.name,
-      // No preset weekly target — the user sets their own goal from the home
-      // card ("Set a goal"). 0 = unset. See hasWeeklyGoal() / PracticeCard.
-      target_count_per_week: 0,
-      practice_id: p.id,
-      group: p.group,
-      created_by_user: false,
-    });
-    created++;
+    const match =
+      instances.find((h) => h.practice_id === p.id) ||
+      instances.find((h) => norm(h.name) === norm(p.name));
+    if (!match) {
+      await createHabit(userId, {
+        name: p.name,
+        // No preset weekly target — the user sets their own goal from the home
+        // card ("Set a goal"). 0 = unset. See hasWeeklyGoal() / PracticeCard.
+        target_count_per_week: 0,
+        practice_id: p.id,
+        group: p.group,
+        created_by_user: false,
+      });
+      changed++;
+    } else if (match.is_active === false) {
+      await updateDoc(doc(db, 'users', userId, 'habits', match.id), { is_active: true });
+      changed++;
+    }
   }
-  return created;
+  return changed;
 };
 
 export const updateHabit = async (

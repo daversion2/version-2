@@ -13,7 +13,6 @@ export function isStepComplete(
   switch (step.type) {
     case 'intro':
     case 'section_intro':
-    case 'goal_link':
     case 'completion':
       return true;
 

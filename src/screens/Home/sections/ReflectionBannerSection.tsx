@@ -7,16 +7,11 @@ export const ReflectionBannerSection: React.FC<HomeSectionProps> = React.memo(({
 
   // Compute today's action count for the recap
   const todaysActionCount = useMemo(() => {
-    let count = 0;
-    // Challenges completed today
-    count += data.activeChallenges.filter(
+    // Challenges completed today (program check-ins now live on the Challenges tab)
+    return data.activeChallenges.filter(
       (c) => c.status === 'completed' && c.completed_at?.startsWith(new Date().toISOString().slice(0, 10))
     ).length;
-    // Habits have weekly counts but not daily — approximate with total weekly actions
-    // Programs checked in today
-    if (data.programCheckedIn) count += 1;
-    return count;
-  }, [data.activeChallenges, data.programCheckedIn]);
+  }, [data.activeChallenges]);
 
   return (
     <NightlyReflectionBanner

@@ -19,8 +19,8 @@ import { Button } from '../../components/common/Button';
 import { FadeRise } from '../../components/common/FadeRise';
 import { HoldToCommitButton } from '../../components/common/HoldToCommitButton';
 import { useAuth } from '../../context/AuthContext';
-import { markOnboardingComplete, markPracticesSeeded, setStartingPractice } from '../../services/users';
-import { createHabit, getActiveHabits, seedDefaultPractices } from '../../services/practices';
+import { markOnboardingComplete, setStartingPractice } from '../../services/users';
+import { createHabit, getActiveHabits, ensureCuratedPractices } from '../../services/practices';
 import { getAllPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
 
 const { width } = Dimensions.get('window');
@@ -691,8 +691,7 @@ export const OverrideOnboardingScreen: React.FC = () => {
     setSaving(true);
     try {
       try {
-        await seedDefaultPractices(user.uid);
-        await markPracticesSeeded(user.uid);
+        await ensureCuratedPractices(user.uid);
       } catch (seedErr) {
         console.warn('Failed to seed default practices on skip:', seedErr);
       }
@@ -728,8 +727,7 @@ export const OverrideOnboardingScreen: React.FC = () => {
       }
 
       try {
-        await seedDefaultPractices(user.uid);
-        await markPracticesSeeded(user.uid);
+        await ensureCuratedPractices(user.uid);
       } catch (seedErr) {
         console.warn('Failed to seed default practices on complete:', seedErr);
       }

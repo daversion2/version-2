@@ -870,16 +870,15 @@ export const getCorePractices = (): Practice[] =>
   catalog.filter((p) => p.core && p.active !== false);
 
 /**
- * The practices auto-seeded onto every user's home on first load — the core set
- * (no equipment/medical barriers), ordered gentle → extreme to match the home
- * list. Optional practices (Cold/Heat/Fasting/Eat-Healthy) stay available to add.
+ * The practices auto-provisioned onto every user's home — the full curated
+ * protocol (core + optional), ordered gentle → extreme to match the home list.
+ * Practices are the app's focus, so all of them live on Home with no add step.
  */
 export const getDefaultSeedPractices = (): Practice[] => {
-  // Prefer the live catalog's core set; fall back to the bundled core practices
-  // if the live catalog somehow yields none (e.g. a remote catalog missing the
-  // core flag), so a new user always gets their starter practices.
-  const core = getCorePractices();
-  const list = core.length > 0 ? core : BUNDLED_PRACTICES.filter((p) => p.core);
+  // Prefer the live catalog; fall back to the bundled practices if the live
+  // catalog somehow yields none, so a new user always gets their practices.
+  const active = catalog.filter((p) => p.active !== false);
+  const list = active.length > 0 ? active : BUNDLED_PRACTICES;
   return [...list].sort((a, b) => {
     const ai = INTENSITY_ORDER[a.intensity ?? 'foundational'];
     const bi = INTENSITY_ORDER[b.intensity ?? 'foundational'];

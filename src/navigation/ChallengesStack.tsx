@@ -20,7 +20,14 @@ import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
 import { EditChallengeScreen } from '../screens/Home/EditChallengeScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
-import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationFlow';
+
+// Programs live under the Challenges tab — guided multi-day sequences are kin
+// to extended challenges, keeping Home focused on practices.
+import { ProgramDiscoveryScreen } from '../screens/Home/ProgramDiscoveryScreen';
+import { ProgramDetailScreen } from '../screens/Home/ProgramDetailScreen';
+import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
+import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
+import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 
 const Stack = createNativeStackNavigator<ChallengesStackParamList>();
 
@@ -82,9 +89,29 @@ export const ChallengesStack: React.FC = () => (
       options={{ title: 'Challenge' }}
     />
     <Stack.Screen
-      name="GoalCreationFlow"
-      component={GoalCreationFlow as any}
-      options={{ title: 'New Goal', headerShown: false }}
+      name="ProgramDiscovery"
+      component={ProgramDiscoveryScreen as any}
+      options={{ title: 'Programs' }}
+    />
+    <Stack.Screen
+      name="ProgramDetail"
+      component={ProgramDetailScreen as any}
+      options={{ title: '' }}
+    />
+    <Stack.Screen
+      name="ProgramDashboard"
+      component={ProgramDashboardScreen as any}
+      options={{ title: 'My Program' }}
+    />
+    <Stack.Screen
+      name="ProgramCompletion"
+      component={ProgramCompletionScreen as any}
+      options={{ title: '', headerShown: false }}
+    />
+    <Stack.Screen
+      name="ProgramFailed"
+      component={ProgramFailedScreen as any}
+      options={{ title: '', headerShown: false }}
     />
   </Stack.Navigator>
 );

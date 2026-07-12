@@ -6,37 +6,32 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { PRACTICE_GROUPS, getAllPractices, getPracticesByGroup, resolvePracticeGroup, Practice } from '../../data/practices';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { getActiveHabits, getWeeklyCompletionCounts, createHabit, updateHabit } from '../../services/practices';
+import { getActiveHabits, getWeeklyCompletionCounts, updateHabit } from '../../services/practices';
 import { cancelHabitReminder } from '../../services/habitReminders';
 import { PracticeInstance } from '../../types';
 import { SHOW_HABIT_LIBRARY } from '../../constants/featureFlags';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
-import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { showAlert, showConfirm } from '../../utils/alert';
 
 type Props = HomeScreenProps<'ManageHabits'>;
 
 /**
- * Curated practice card — adopt it, or (once adopted) see this week's progress and
- * edit/remove it. Completion lives on Home; this screen is for building & managing
- * the protocol, not checking reps off.
+ * Curated practice card — this week's progress + edit. Every curated practice
+ * is always on the user's home (no adopt/remove); completion lives on Home.
+ * This screen is for managing weekly goals and plans, not checking reps off.
  */
 const PracticeCard: React.FC<{
   practice: Practice;
   color: string;
   habit?: PracticeInstance;
   weekDone: number;
-  busy: boolean;
   onOpen: () => void;
-  onAdopt: () => void;
   onEdit: () => void;
-  onRemove: () => void;
-}> = ({ practice, color, habit, weekDone, busy, onOpen, onAdopt, onEdit, onRemove }) => {
-  const adopted = !!habit;
-  // A target of 0 means the practice is adopted but has no weekly goal yet.
-  const hasGoal = adopted && (habit!.target_count_per_week || 0) >= 1;
+}> = ({ practice, color, habit, weekDone, onOpen, onEdit }) => {
+  // A target of 0 means the practice has no weekly goal yet.
+  const hasGoal = !!habit && (habit.target_count_per_week || 0) >= 1;
   const target = hasGoal ? habit!.target_count_per_week : practice.suggested_target_per_week;
   const complete = hasGoal && weekDone >= target;
 
@@ -49,41 +44,18 @@ const PracticeCard: React.FC<{
         <View style={styles.cardTitleWrap}>
           <Text style={styles.cardTitle}>{practice.name}</Text>
           <Text style={styles.cardTarget}>
-            {!adopted
-              ? `${target}×/week`
-              : hasGoal
-              ? `${weekDone}/${target} this week`
-              : 'Set a goal'}
+            {hasGoal ? `${weekDone}/${target} this week` : 'Set a goal'}
           </Text>
         </View>
 
-        {!adopted ? (
-          <TouchableOpacity
-            style={[styles.addBtn, { borderColor: color }]}
-            onPress={onAdopt}
-            disabled={busy}
-            activeOpacity={0.7}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color={color} />
-            ) : (
-              <>
-                <Ionicons name="add" size={16} color={color} />
-                <Text style={[styles.addBtnText, { color }]}>Add</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.manageRow}>
-            {complete && <Ionicons name="checkmark-circle" size={18} color={Colors.success} />}
+        <View style={styles.manageRow}>
+          {complete && <Ionicons name="checkmark-circle" size={18} color={Colors.success} />}
+          {!!habit && (
             <TouchableOpacity onPress={onEdit} style={styles.iconBtn} hitSlop={8}>
               <Ionicons name="pencil-outline" size={18} color={Colors.primary} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={onRemove} style={styles.iconBtn} hitSlop={8}>
-              <Ionicons name="close-circle-outline" size={18} color={Colors.gray} />
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
       </View>
       <Text style={styles.cardDesc}>{practice.description}</Text>
       <View style={styles.learnRow}>
@@ -136,23 +108,21 @@ const CustomPracticeCard: React.FC<{
 const FREQ = [1, 2, 3, 4, 5, 6, 7];
 
 /**
- * The single practice management screen: browse the curated protocol by group,
- * adopt practices, and edit/remove what you've adopted. Reached from
- * Home → Add activity → Practice (route name 'ManageHabits'). Doing reps
- * (completion) lives on Home; this screen never logs a completion.
+ * The single practice management screen: browse the curated protocol by group
+ * and edit weekly goals. Every curated practice lives on Home automatically
+ * (no adopt/remove); doing reps (completion) also lives on Home — this screen
+ * never logs a completion. Route name 'ManageHabits'.
  */
 export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [weekly, setWeekly] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
 
   // Edit form
   const [editingHabit, setEditingHabit] = useState<PracticeInstance | null>(null);
   const [editName, setEditName] = useState('');
   const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
-  const [editGoalIds, setEditGoalIds] = useState<string[]>([]);
   const [editLoading, setEditLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -189,29 +159,10 @@ export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
   const customForGroup = (groupId: Practice['group']): PracticeInstance[] =>
     customHabits.filter((h) => resolvePracticeGroup(h) === groupId);
 
-  const handleAdopt = async (practice: Practice) => {
-    if (!user) return;
-    setBusyId(practice.id);
-    try {
-      await createHabit(user.uid, {
-        name: practice.name,
-        target_count_per_week: practice.suggested_target_per_week,
-        practice_id: practice.id,
-        created_by_user: false,
-      });
-      await load();
-    } catch (err) {
-      console.warn('Failed to adopt practice:', err);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const startEdit = (habit: PracticeInstance) => {
     setEditingHabit(habit);
     setEditName(habit.name);
     setEditTimesPerWeek(habit.target_count_per_week);
-    setEditGoalIds(habit.goal_ids || []);
   };
 
   const cancelEdit = () => {
@@ -230,7 +181,6 @@ export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
       await updateHabit(user.uid, editingHabit.id, {
         name: editName.trim(),
         target_count_per_week: editTimesPerWeek,
-        goal_ids: editGoalIds,
       } as Partial<PracticeInstance>);
       cancelEdit();
       await load();
@@ -270,7 +220,7 @@ export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.intro}>
-        Your practice protocol. Add practices to your routine, then check them off on Home.
+        Your practice protocol. Every practice lives on Home — set weekly goals and plans here.
       </Text>
 
       {SHOW_HABIT_LIBRARY && !editingHabit && (
@@ -298,11 +248,6 @@ export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
-          <GoalTagPicker
-            selectedGoalIds={editGoalIds}
-            onChange={setEditGoalIds}
-            onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
-          />
           <View style={styles.formButtons}>
             <Button title="Save" onPress={handleSaveEdit} loading={editLoading} style={{ flex: 1 }} />
             <Button title="Cancel" onPress={cancelEdit} variant="outline" style={{ flex: 1 }} />
@@ -332,11 +277,8 @@ export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
                   color={group.color}
                   habit={habit}
                   weekDone={habit ? weekly[habit.id] ?? 0 : 0}
-                  busy={busyId === practice.id}
                   onOpen={() => navigation.navigate('PracticeDetail', { practiceId: practice.id })}
-                  onAdopt={() => handleAdopt(practice)}
                   onEdit={() => habit && startEdit(habit)}
-                  onRemove={() => habit && handleRemove(habit)}
                 />
               );
             })}
@@ -413,18 +355,6 @@ const styles = StyleSheet.create({
   cardTitleWrap: { flex: 1 },
   cardTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
   cardTarget: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 1 },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: Spacing.sm + 2,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    minWidth: 64,
-    justifyContent: 'center',
-  },
-  addBtnText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
   manageRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   iconBtn: { padding: Spacing.xs },
   cardDesc: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: Spacing.sm },

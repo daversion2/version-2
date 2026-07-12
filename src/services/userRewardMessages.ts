@@ -10,9 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { getRandomRewardMessage, getActiveRewardMessages } from './rewardMessages';
-import { getActiveGoals, computeGoalFollowThrough } from './goals';
 import { getWhyProfile } from './whyDiscovery';
-import { Goal } from '../types';
 
 export interface UserRewardMessage {
   id: string;
@@ -140,59 +138,37 @@ export const seedUserRewardMessagesFromGlobals = async (
 };
 
 /**
- * Generate identity-framing messages from the user's goal CBT data.
+ * Generate identity-framing messages from the user's Why profile CBT data.
  * These are generated on-the-fly, not stored in Firestore.
  */
 const generateIdentityMessages = async (userId: string): Promise<string[]> => {
   const messages: string[] = [];
   try {
     const profile = await getWhyProfile(userId);
-    const goals = await getActiveGoals(userId);
-    for (const goal of goals) {
-      // Identity statement (Q16) — prefer user-level WhyProfile, fall back to goal
-      const identityStatement = profile?.identity_statement ?? goal?.identity_statement;
-      if (identityStatement) {
-        messages.push(
-          `You said you're becoming "${identityStatement}". This is proof.`
-        );
-      }
-      // Inner voice counter-argument (Q6) — prefer WhyProfile, fall back to goal
-      const innerVoiceChallenge = profile?.inner_voice_challenge ?? goal?.inner_voice_challenge;
-      const innerVoiceResponse = profile?.inner_voice_response ?? goal?.inner_voice_response;
-      if (innerVoiceChallenge && innerVoiceResponse) {
-        messages.push(
-          `Your inner voice said "${innerVoiceChallenge}". You said "${innerVoiceResponse}". You were right.`
-        );
-      }
-      // Confidence baseline (Q3) — prefer WhyProfile, fall back to goal
-      const confidenceBaseline = profile?.confidence_baseline ?? goal?.confidence_baseline;
-      if (confidenceBaseline) {
-        messages.push(
-          `You started at ${confidenceBaseline}/10 confidence. Look at you now.`
-        );
-      }
-      // Follow-through stats
-      try {
-        const ft = await computeGoalFollowThrough(userId, goal.id);
-        if (ft.totalCommitments >= 3) {
-          const pct = Math.round(ft.followThroughRate * 100);
-          messages.push(
-            `${goal.name}: ${ft.keptCommitments}/${ft.totalCommitments} commitments kept. ${pct}% follow-through.`
-          );
-        }
-      } catch {
-        // Skip if follow-through fails
-      }
+    if (profile?.identity_statement) {
+      messages.push(
+        `You said you're becoming "${profile.identity_statement}". This is proof.`
+      );
+    }
+    if (profile?.inner_voice_challenge && profile?.inner_voice_response) {
+      messages.push(
+        `Your inner voice said "${profile.inner_voice_challenge}". You said "${profile.inner_voice_response}". You were right.`
+      );
+    }
+    if (profile?.confidence_baseline) {
+      messages.push(
+        `You started at ${profile.confidence_baseline}/10 confidence. Look at you now.`
+      );
     }
   } catch {
-    // Return empty if goals fail to load
+    // Return empty if the profile fails to load
   }
   return messages;
 };
 
 /**
  * Get a personalized reward message for the user.
- * - 40% chance: identity-framing message from goal CBT data
+ * - 40% chance: identity-framing message from Why-profile CBT data
  * - Otherwise: weighted random from user pool (favorites 3x weight)
  * - Falls back to global pool, then hardcoded default.
  */

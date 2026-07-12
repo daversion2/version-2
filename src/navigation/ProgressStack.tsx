@@ -2,14 +2,10 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ProgressStackParamList } from '../types/navigation';
 import { ProgressScreen } from '../screens/Progress/ProgressScreen';
-import { GoalsProgressScreen } from '../screens/Progress/GoalsProgressScreen';
 import { DayDetailScreen } from '../screens/Progress/DayDetailScreen';
 import { ReflectionDetailScreen } from '../screens/Progress/ReflectionDetailScreen';
 import { ReflectionEntryScreen } from '../screens/Progress/ReflectionEntryScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
-import { GoalDashboardScreen } from '../screens/Home/GoalDashboardScreen';
-import { EditGoalScreen } from '../screens/Home/EditGoalScreen';
-import { GoalCreationFlow } from '../screens/Home/GoalCreationFlow/GoalCreationFlow';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
@@ -35,11 +31,6 @@ export const ProgressStack: React.FC = () => (
       options={{ title: 'Progress' }}
     />
     <Stack.Screen
-      name="GoalsProgress"
-      component={GoalsProgressScreen}
-      options={{ title: 'Your Goals' }}
-    />
-    <Stack.Screen
       name="DayDetail"
       component={DayDetailScreen}
       options={{ title: 'Day Detail' }}
@@ -58,21 +49,6 @@ export const ProgressStack: React.FC = () => (
       name="ChallengeDetail"
       component={ChallengeDetailScreen}
       options={{ title: 'Challenge' }}
-    />
-    <Stack.Screen
-      name="GoalDashboard"
-      component={GoalDashboardScreen}
-      options={{ title: '' }}
-    />
-    <Stack.Screen
-      name="EditGoal"
-      component={EditGoalScreen}
-      options={{ title: 'Edit Goal' }}
-    />
-    <Stack.Screen
-      name="GoalCreationFlow"
-      component={GoalCreationFlow}
-      options={{ title: 'New Goal', headerShown: false }}
     />
     <Stack.Screen
       name="CompleteChallenge"

@@ -16,7 +16,6 @@ import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-communi
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { findLibraryHabit, getHabitCategory } from '../../data/habitLibrary';
 import { defaultTimeForAnchor } from '../../data/anchors';
 import { useAuth } from '../../context/AuthContext';
@@ -76,7 +75,6 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
   const [name, setName] = useState(habit?.name ?? '');
   const [target, setTarget] = useState(habit?.suggested_target_per_week ?? 5);
   const [plan, setPlan] = useState<HabitActionPlan>(habit?.action_plan ?? {});
-  const [selectedGoalIds, setSelectedGoalIds] = useState<string[]>([]);
 
   const seededTime = defaultTimeForAnchor(habit?.action_plan.anchor);
   const [reminderEnabled, setReminderEnabled] = useState(!!seededTime);
@@ -128,7 +126,6 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
         name: finalName,
         target_count_per_week: target,
         arena_id: habit.arena_id,
-        ...(selectedGoalIds.length > 0 ? { goal_ids: selectedGoalIds } : {}),
         action_plan: cleanedPlan,
         created_by_user: false,
         supports_pairing: supportsPairing,
@@ -321,14 +318,6 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
             );
           })
         )}
-
-        {/* Goal picker */}
-        <Text style={[styles.sectionTitle, styles.goalTitle]}>Link to a Goal (optional)</Text>
-        <GoalTagPicker
-          selectedGoalIds={selectedGoalIds}
-          onChange={setSelectedGoalIds}
-          onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
-        />
 
         {/* Add button */}
         <TouchableOpacity

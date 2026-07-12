@@ -22,13 +22,11 @@
 
 > remove tools — DONE (hidden, not deleted): Tools tab and all entry points into it are disabled behind `TODO(tools-tab)` comments (grep for the tag to restore or fully remove). Revisit whether to delete the Tools/worksheets code entirely.
 
-> remove goals (old way of doing them)
+> remove goals (old way of doing them) — DONE: in-depth Goal system deleted (creation flow, dashboard, progress screens, tagging, prompt modal). Weekly practice frequency goals kept. Existing goal docs remain in Firestore but nothing reads them.
 
 > ensure pop-ups are firing correctly. Comeback modal keeps firing
 
 > rework home screen data that is shown (2 of 3 practices this week...don't like that)
-
-> remove the plan your week stuff
 
 ## Ideas
 

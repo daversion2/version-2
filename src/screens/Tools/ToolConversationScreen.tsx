@@ -17,7 +17,6 @@ import {
   updateWorksheetEntry,
   getWorksheetEntryById,
 } from '../../services/worksheets';
-import { getActiveGoals } from '../../services/goals';
 import { useAuth } from '../../context/AuthContext';
 import { useTools } from '../../context/ToolsContext';
 import { WorksheetsScreenProps } from '../../types/navigation';
@@ -31,7 +30,6 @@ import { IntroStep } from './steps/IntroStep';
 import { MoodStep } from './steps/MoodStep';
 import { SectionIntroStep } from './steps/SectionIntroStep';
 import { FieldStep } from './steps/FieldStep';
-import { GoalStep } from './steps/GoalStep';
 import { CompletionStep } from './steps/CompletionStep';
 
 type Props = WorksheetsScreenProps<'WorksheetForm'>;
@@ -57,7 +55,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
   const [responses, setResponses] = useState<Record<string, string | string[]>>({});
   const [moodBefore, setMoodBefore] = useState<number | undefined>();
   const [moodAfter, setMoodAfter] = useState<number | undefined>();
-  const [goalIds, setGoalIds] = useState<string[]>([]);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [saving, setSaving] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(entryId || null);
@@ -90,12 +87,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Prefetch active goals so the "attach to a goal" step renders instantly
-  // instead of waiting on a cold Firestore round-trip when it mounts.
-  useEffect(() => {
-    if (user) getActiveGoals(user.uid).catch(() => {});
-  }, [user]);
-
   // Resume draft
   useEffect(() => {
     if (resumeDraft && entryId && user) {
@@ -104,7 +95,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
           setResponses(entry.responses || {});
           setMoodBefore(entry.mood_before);
           setMoodAfter(entry.mood_after);
-          setGoalIds(entry.goal_ids || []);
           const resumeIdx = calculateResumeStepIndex(
             steps,
             entry.responses || {},
@@ -167,8 +157,7 @@ export const ToolConversationScreen: React.FC<Props> = ({
   const hasAnyData = () => {
     return (
       moodBefore !== undefined ||
-      Object.keys(responses).length > 0 ||
-      goalIds.length > 0
+      Object.keys(responses).length > 0
     );
   };
 
@@ -190,7 +179,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
         responses,
         mood_after: moodAfter,
         is_draft: true,
-        goal_ids: goalIds,
       });
     } else {
       const result = await saveWorksheetEntry(user.uid, {
@@ -199,7 +187,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
         responses,
         mood_before: moodBefore,
         mood_after: moodAfter,
-        goal_ids: goalIds.length > 0 ? goalIds : undefined,
         is_draft: true,
       });
       setDraftId(result.id);
@@ -216,7 +203,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
           responses,
           mood_after: moodAfter,
           is_draft: false,
-          goal_ids: goalIds,
         });
         pointsAwarded = result.pointsAwarded;
       } else {
@@ -226,7 +212,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
           responses,
           mood_before: moodBefore,
           mood_after: moodAfter,
-          goal_ids: goalIds.length > 0 ? goalIds : undefined,
           is_draft: false,
         });
         pointsAwarded = result.pointsAwarded;
@@ -289,9 +274,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
           />
         );
 
-      case 'goal_link':
-        return <GoalStep selectedGoalIds={goalIds} onChange={setGoalIds} />;
-
       case 'completion':
         return (
           <CompletionStep
@@ -319,8 +301,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
         return 'Continue';
       case 'mood_after':
         return saving ? 'Saving...' : 'Complete';
-      case 'goal_link':
-        return 'Continue';
       case 'completion':
         return 'Done';
       default:
@@ -339,7 +319,6 @@ export const ToolConversationScreen: React.FC<Props> = ({
   const showBackButton = currentStepIndex > 0 && !isCompleted;
   const showSkip =
     currentStep?.type === 'mood_before' ||
-    currentStep?.type === 'goal_link' ||
     (currentStep?.type === 'field' && !currentStep.field?.required);
 
   return (

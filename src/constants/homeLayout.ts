@@ -6,9 +6,7 @@ export const SECTION_IDS = [
   'mantra',
   // Zone 2: Your Practices
   'practices',
-  // Zone 3: Today's Actions (challenges, program, plan)
-  'goal_actions',
-  // Zone 4: Reflect
+  // Zone 3: Reflect
   'reflection_banner',
 ] as const;
 
@@ -36,12 +34,6 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     sectionIds: ['hero', 'mantra', 'practices'],
   },
   {
-    id: 'goals_actions',
-    label: "Today's Actions",
-    icon: 'flag-outline',
-    sectionIds: ['goal_actions'],
-  },
-  {
     id: 'reflect',
     label: 'Reflect',
     icon: 'moon-outline',
@@ -60,7 +52,6 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
   hero: 'Welcome',
   mantra: 'Redirect Mantra',
   practices: 'Your Practices',
-  goal_actions: 'Challenges & Programs',
   reflection_banner: 'Nightly Reflection',
 };
 
@@ -68,6 +59,5 @@ export const SECTION_ICONS: Record<HomeSectionId, string> = {
   hero: 'sunny-outline',
   mantra: 'megaphone-outline',
   practices: 'flame-outline',
-  goal_actions: 'flag-outline',
   reflection_banner: 'moon-outline',
 };

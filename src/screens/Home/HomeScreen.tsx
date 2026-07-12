@@ -13,15 +13,13 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, PracticeInstance, ProgramEnrollment, ProgramDay, Goal, GoalFollowThrough } from '../../types';
+import { Challenge, PracticeInstance } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
-import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, seedDefaultPractices } from '../../services/practices';
+import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, ensureCuratedPractices } from '../../services/practices';
 import { reconcileHabitReminders, syncHabitReminder } from '../../services/habitReminders';
 import { registerForPushNotifications } from '../../services/notifications';
 import { FirstRepReminderModal } from '../../components/home/FirstRepReminderModal';
 import { HabitStreakInfo } from '../../types';
-import { getGoalColor } from '../../constants/goalColors';
 import { getWillpowerStats } from '../../services/willpower';
 import { HabitDifficulty, PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
@@ -30,7 +28,6 @@ import { getPractice } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
-import { GoalPromptModal } from '../../components/common/GoalPromptModal';
 import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
 import { ComebackModal } from '../../components/home/ComebackModal';
 import { StoryReminderModal } from '../../components/home/StoryReminderModal';
@@ -43,8 +40,7 @@ import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../
 import { NeuroscienceTidbit } from '../../types';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
-import { getActiveGoals, computeGoalFollowThrough } from '../../services/goals';
-import { markPointsIntroSeen, dismissGoalPrompt, markChallengesUnlockSeen, incrementAppOpenCount, markPracticesSeeded, markReminderPromptSeen } from '../../services/users';
+import { markPointsIntroSeen, markChallengesUnlockSeen, incrementAppOpenCount, markReminderPromptSeen } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -77,16 +73,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationStreak, setCelebrationStreak] = useState(0);
   const [celebrationBonus, setCelebrationBonus] = useState<string | null>(null);
-  const [activeProgram, setActiveProgram] = useState<ProgramEnrollment | null>(null);
-  const [todaysProgramDay, setTodaysProgramDay] = useState<ProgramDay | null>(null);
-  const [programDayNumber, setProgramDayNumber] = useState(0);
-  const [programCheckedIn, setProgramCheckedIn] = useState(false);
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
-  const [goals, setGoals] = useState<Goal[]>([]);
   const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
-  const [goalFollowThrough, setGoalFollowThrough] = useState<Record<string, GoalFollowThrough>>({});
   // Comeback flow (fired by the "Comeback check-in" rule — see DEFAULT_RULES).
   // Which variant shows depends on whether the user has proof points.
   const [storyReminderProofPoint, setStoryReminderProofPoint] = useState<ProofPoint | null>(null);
@@ -101,9 +91,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
 
-  // Goal prompt modal (Day 2 - second app open, no goals)
-  const [goalPromptVisible, setGoalPromptVisible] = useState(false);
-
   // Challenges unlock modal (after 3 habit completions)
   const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
   const [reminderPromptVisible, setReminderPromptVisible] = useState(false);
@@ -117,7 +104,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // The modal is held while any bespoke modal is up so they never stack.
   const anyModalActive =
     pointsIntroVisible ||
-    goalPromptVisible ||
     challengesUnlockVisible ||
     reminderPromptVisible ||
     celebrationVisible ||
@@ -263,44 +249,33 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
 
-  const getItemColor = useCallback((goalIds?: string[]) => {
-    return getGoalColor(goalIds, goals);
-  }, [goals]);
 
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
       // Refresh user profile so totalHabitsCompleted, flags, etc. are current.
-      // Runs concurrently with the main fetch — only the one-time seed check
-      // below waits on it (it needs the fresh has_seeded_practices flag).
-      const profilePromise = refreshProfile();
-      profilePromise.catch(() => {});
+      // Runs concurrently with the main fetch.
+      refreshProfile().catch(() => {});
 
-      // One-time: seed the default practices onto the home BEFORE fetching habits,
-      // so they show on the very first load (no race with a separate effect). The
-      // persisted `has_seeded_practices` flag means later deletions stick, and
-      // seedDefaultPractices is idempotent (skips already-adopted practices).
+      // Once per session, BEFORE fetching habits so they show on the very first
+      // load: ensure the full curated practice protocol is on the home. Creates
+      // missing instances and reactivates removed ones — practices always live
+      // on Home, with no add step.
       if (!seedAttemptedRef.current) {
         seedAttemptedRef.current = true;
         try {
-          const prof = await profilePromise;
-          if (!prof?.has_seeded_practices) {
-            const created = await seedDefaultPractices(user.uid);
-            await markPracticesSeeded(user.uid);
-            if (created > 0) console.log(`[home] seeded ${created} default practices`);
-          }
+          const changed = await ensureCuratedPractices(user.uid);
+          if (changed > 0) console.log(`[home] provisioned ${changed} curated practices`);
         } catch (err) {
-          console.warn('Failed to seed default practices:', err);
+          console.warn('Failed to ensure curated practices:', err);
           seedAttemptedRef.current = false; // allow a retry on the next load
         }
       }
 
-      const [dailyChallenges, extChallenges, habitList, enrollment, activeGoals, wpStats] = await Promise.all([
+      const [dailyChallenges, extChallenges, habitList, wpStats] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
         getActiveHabits(user.uid),
-        getActiveEnrollment(user.uid),
-        getActiveGoals(user.uid),
         getWillpowerStats(user.uid),
       ]);
       // Everything from the parallel batch renders immediately — practices
@@ -308,7 +283,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // weekly plans) happen below and fill in as they arrive.
       setActiveChallenges(dailyChallenges);
       setExtendedChallenges(extChallenges);
-      setGoals(activeGoals);
       setHabits(habitList);
       // Once per session: schedule any enabled reminders that aren't scheduled yet
       // (e.g. saved before reminders shipped, or while permission was denied).
@@ -316,14 +290,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         remindersReconciledRef.current = true;
         reconcileHabitReminders(user.uid, habitList).catch(() => {});
       }
-      setActiveProgram(enrollment);
       setWillpowerStats(wpStats);
 
       // Streak-break comeback check-in now fires via the rules engine
       // ("Comeback check-in" rule, app_open) — see the comebackRule block above.
 
-      // Fetch nudge logs once — reused by weekly counts, streaks, and goal
-      // follow-through. Windowed to the last 120 days so the read stays flat
+      // Fetch nudge logs once — reused by weekly counts and streaks.
+      // Windowed to the last 120 days so the read stays flat
       // as history grows; the only casualty is that a current streak longer
       // than the window displays capped at it.
       const logWindowStart = new Date();
@@ -344,22 +317,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         console.warn('Nudge logs fetch failed:', err);
       }
 
-      // Compute follow-through for each goal (reuses cached logs)
-      if (activeGoals.length > 0) {
-        try {
-          const logsForGoals = cachedNudgeLogs.map(l => ({ reference_id: l.reference_id, date: l.date }));
-          const ftEntries = await Promise.all(
-            activeGoals.map(async (g) => {
-              const ft = await computeGoalFollowThrough(user.uid, g.id, logsForGoals);
-              return [g.id, ft] as const;
-            })
-          );
-          setGoalFollowThrough(Object.fromEntries(ftEntries));
-        } catch (err) {
-          console.warn('Follow-through computation failed:', err);
-        }
-      }
-
       // Challenge maintenance (after the batch state is set, so none of it
       // blocks the first render of practices):
       // 1. Expire stale daily challenges from previous days
@@ -376,25 +333,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       } catch (err) {
         console.warn('Challenge maintenance failed:', err);
-      }
-
-      // Load program day content and check for missed days
-      if (enrollment) {
-        try {
-          await checkAndProcessMissedDays(user.uid, enrollment.id);
-          const content = await getTodaysProgramContent(user.uid, enrollment.id);
-          if (content) {
-            setTodaysProgramDay(content.programDay);
-            setProgramDayNumber(content.dayNumber);
-            setProgramCheckedIn(content.isCheckedIn);
-          }
-        } catch (err) {
-          console.warn('Program data load failed:', err);
-        }
-      } else {
-        setTodaysProgramDay(null);
-        setProgramDayNumber(0);
-        setProgramCheckedIn(false);
       }
 
       // Check nightly reflection status
@@ -446,20 +384,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const timer = setTimeout(() => setReminderPromptVisible(true), 1000);
     return () => clearTimeout(timer);
   }, [userProfile, habits, anyModalActive, reminderPromptVisible]);
-
-  // Show goal prompt on second app open if user has no goals
-  useEffect(() => {
-    if (!userProfile || goals.length > 0) return;
-    if (goalPromptVisible) return; // Already showing
-    if (
-      (userProfile.app_open_count ?? 0) >= 2 &&
-      !userProfile.has_dismissed_goal_prompt
-    ) {
-      const timer = setTimeout(() => setGoalPromptVisible(true), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [userProfile, goals]);
-
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -622,16 +546,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     habits,
     weeklyCounts,
     habitStreaks,
-    activeProgram,
-    todaysProgramDay,
-    programDayNumber,
-    programCheckedIn,
-    goals,
     showReflectionBanner,
     reflectedToday,
     todaysGrade,
     willpowerStats,
-    goalFollowThrough,
     totalHabitsCompleted,
     activeMantra,
     whyStatement,
@@ -642,9 +560,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }), [
     activeChallenges, extendedChallenges, habits,
     weeklyCounts, habitStreaks,
-    activeProgram, todaysProgramDay, programDayNumber, programCheckedIn,
-    goals, showReflectionBanner, reflectedToday, todaysGrade,
-    willpowerStats, goalFollowThrough, totalHabitsCompleted, activeMantra,
+    showReflectionBanner, reflectedToday, todaysGrade,
+    willpowerStats, totalHabitsCompleted, activeMantra,
     whyStatement, hasCompletedWhyDiscovery,
     completedTodayIds, userProfile?.starting_practice_id, userProfile?.username,
   ]);
@@ -657,17 +574,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate(screen as any, params);
   }, [navigation]);
 
-  const onGoalTap = useCallback((goalId: string) => {
-    navigation.navigate('GoalDashboard' as any, { goalId });
-  }, [navigation]);
-
   const homeCallbacks: HomeCallbacks = useMemo(() => ({
     onNavigate,
     onHabitTap: handleHabitTap,
-    getItemColor,
-    onGoalTap,
     onSetWeeklyGoal: handleSetWeeklyGoal,
-  }), [onNavigate, handleHabitTap, getItemColor, onGoalTap, handleSetWeeklyGoal]);
+  }), [onNavigate, handleHabitTap, handleSetWeeklyGoal]);
 
 
   return (
@@ -750,32 +661,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           // (navigating during its dismissal drops the action on iOS).
           if (!userProfile?.has_seen_debrief && (userProfile?.totalHabitsCompleted ?? 0) > 0) {
             setTimeout(() => navigation.navigate('Debrief'), 300);
-          }
-        }}
-      />
-      <GoalPromptModal
-        visible={goalPromptVisible}
-        onSetupGoal={async () => {
-          setGoalPromptVisible(false);
-          if (user) {
-            try {
-              await dismissGoalPrompt(user.uid);
-              await refreshProfile();
-            } catch (err) {
-              console.warn('Failed to dismiss goal prompt:', err);
-            }
-          }
-          navigation.navigate('GoalCreationFlow');
-        }}
-        onDismiss={async () => {
-          setGoalPromptVisible(false);
-          if (user) {
-            try {
-              await dismissGoalPrompt(user.uid);
-              await refreshProfile();
-            } catch (err) {
-              console.warn('Failed to dismiss goal prompt:', err);
-            }
           }
         }}
       />

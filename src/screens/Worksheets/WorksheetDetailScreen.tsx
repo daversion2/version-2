@@ -8,7 +8,6 @@ import {
   getWorksheetEntryById,
   deleteWorksheetEntry,
 } from '../../services/worksheets';
-import { getGoalById } from '../../services/goals';
 import { useAuth } from '../../context/AuthContext';
 import { useTools } from '../../context/ToolsContext';
 import { showAlert, showConfirm } from '../../utils/alert';
@@ -23,7 +22,6 @@ export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) =>
   const { getToolById } = useTools();
   const [entry, setEntry] = useState<WorksheetEntry | null>(null);
   const [template, setTemplate] = useState<WorksheetTemplate | null>(null);
-  const [goalNames, setGoalNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,22 +33,6 @@ export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           const t = getToolById(e.template_id);
           setTemplate(t || null);
           navigation.setOptions({ title: e.template_name });
-
-          // Look up goal names from IDs
-          if (e.goal_ids && e.goal_ids.length > 0) {
-            const names: Record<string, string> = {};
-            await Promise.all(
-              e.goal_ids.map(async (goalId) => {
-                try {
-                  const goal = await getGoalById(user.uid, goalId);
-                  names[goalId] = goal?.name || goalId;
-                } catch {
-                  names[goalId] = goalId;
-                }
-              })
-            );
-            setGoalNames(names);
-          }
         }
       })
       .catch((error) => {
@@ -195,21 +177,6 @@ export const WorksheetDetailScreen: React.FC<Props> = ({ navigation, route }) =>
           readOnly
         />
       ))}
-
-      {/* Goal tags */}
-      {entry.goal_ids && entry.goal_ids.length > 0 && (
-        <View style={styles.goalTagsContainer}>
-          <Text style={styles.goalTagsLabel}>Linked Goals</Text>
-          <View style={styles.goalTags}>
-            {entry.goal_ids.map((id) => (
-              <View key={id} style={styles.goalTag}>
-                <Ionicons name="flag" size={12} color={Colors.primary} />
-                <Text style={styles.goalTagText}>{goalNames[id] || id}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
 
       {/* Delete */}
       <Button

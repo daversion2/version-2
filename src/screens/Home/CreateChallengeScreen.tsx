@@ -22,7 +22,6 @@ import { DateTimePicker } from '../../components/common/DateTimePicker';
 import { ChallengeTypeSelector } from '../../components/challenge/ChallengeTypeSelector';
 import { DurationSelector } from '../../components/challenge/DurationSelector';
 import { MilestonePreview } from '../../components/challenge/MilestonePreview';
-import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { getTodayString } from '../../utils/date';
 
 type Props = HomeScreenProps<'CreateChallenge'>;
@@ -40,7 +39,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
   const [loading, setLoading] = useState(false);
   const [challengeType, setChallengeType] = useState<ChallengeType>('daily');
   const [durationDays, setDurationDays] = useState(7);
-  const [goalIds, setGoalIds] = useState<string[]>([]);
 
 
 
@@ -62,7 +60,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
         ...(why.trim() ? { why: why.trim() } : {}),
         // Only include deadline for daily challenges (extended uses end_date automatically)
         ...(challengeType === 'daily' && deadlineDate ? { deadline: new Date(`${deadlineDate}T${deadlineTime || '23:59'}`).toISOString() } : {}),
-        ...(goalIds.length > 0 ? { goal_ids: goalIds } : {}),
       });
       navigation.popToTop();
     } catch (e: any) {
@@ -142,12 +139,6 @@ export const CreateChallengeScreen: React.FC<Props> = ({ navigation, route }) =>
             onTimeChange={setDeadlineTime}
           />
         )}
-
-        <GoalTagPicker
-          selectedGoalIds={goalIds}
-          onChange={setGoalIds}
-          onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
-        />
 
         <Button
           title="Start Challenge"

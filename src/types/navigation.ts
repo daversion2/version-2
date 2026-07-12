@@ -59,7 +59,11 @@ export type ChallengesStackParamList = Pick<
   | 'EditChallenge'
   | 'ExtendedChallengeProgress'
   | 'ChallengeDetail'
-  | 'GoalCreationFlow'
+  | 'ProgramDiscovery'
+  | 'ProgramDetail'
+  | 'ProgramDashboard'
+  | 'ProgramCompletion'
+  | 'ProgramFailed'
 > & {
   ChallengesHome: undefined;
 };
@@ -131,9 +135,6 @@ export type HomeStackParamList = {
   NightlyReflection: undefined;
   JourneyCheckin: undefined;
   CustomizeHome: undefined;
-  GoalCreationFlow: { draftId?: string } | undefined;
-  GoalDashboard: { goalId: string };
-  EditGoal: { goalId: string };
   MantraScreen: undefined;
   WhyScreen: undefined;
   WhyDiscoveryFlow: undefined;
@@ -162,14 +163,10 @@ export type HomeStackParamList = {
 
 export type ProgressStackParamList = {
   ProgressScreen: undefined;
-  GoalsProgress: undefined;
   DayDetail: { date: string };
   ReflectionDetail: undefined;
   ReflectionEntry: { reflection: DailyReflection };
   ChallengeDetail: { challengeId: string };
-  GoalDashboard: { goalId: string };
-  EditGoal: { goalId: string };
-  GoalCreationFlow: { draftId?: string } | undefined;
   CompleteChallenge: { challenge: Challenge };
   ExtendedChallengeProgress: { challenge: Challenge };
   HabitDetail: { habitId: string };

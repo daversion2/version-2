@@ -11,8 +11,7 @@ import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
 import { getTodayString } from '../utils/date';
 import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './practices';
 import { db } from './firebase';
-import { CompletionLog, Challenge, PracticeInstance, Goal } from '../types';
-import { NO_GOAL_COLOR } from '../constants/goalColors';
+import { CompletionLog, Challenge, PracticeInstance } from '../types';
 
 export interface EnrichedCompletionLog extends CompletionLog {
   name: string;
@@ -57,14 +56,6 @@ export const getCompletionLogsWithNames = async (
     })
     .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
 };
-
-export interface GoalStat {
-  goalId: string;
-  goalName: string;
-  goalColor: string;
-  points: number;
-  completions: number;
-}
 
 const logsRef = (userId: string) =>
   collection(db, 'users', userId, 'completionLogs');
@@ -148,70 +139,6 @@ export const getTotalPoints = async (
   }
 
   return docs.reduce((sum, d) => sum + (d.points as number), 0);
-};
-
-export const getGoalBreakdown = async (
-  userId: string,
-  goals: Goal[],
-  startDate?: string
-): Promise<GoalStat[]> => {
-  const habitsRef = collection(db, 'users', userId, 'habits');
-
-  // Fetch logs, challenges, and habits in parallel
-  const [logSnap, challengeSnap, habitSnap] = await Promise.all([
-    getDocs(query(logsRef(userId))),
-    getDocs(query(challengesRef(userId))),
-    getDocs(query(habitsRef)),
-  ]);
-
-  // Build lookup maps: reference_id -> goal_ids
-  const challengeGoalMap = new Map<string, string[]>();
-  challengeSnap.docs.forEach((d) => {
-    const data = d.data() as Challenge;
-    challengeGoalMap.set(d.id, data.goal_ids || []);
-  });
-
-  const habitGoalMap = new Map<string, string[]>();
-  habitSnap.docs.forEach((d) => {
-    const data = d.data() as PracticeInstance;
-    habitGoalMap.set(d.id, data.goal_ids || []);
-  });
-
-  // Build goal lookup
-  const goalMap = new Map<string, Goal>();
-  goals.forEach((g) => goalMap.set(g.id, g));
-
-  // Filter logs by date and aggregate by goal
-  const stats = new Map<string, { points: number; completions: number }>();
-
-  logSnap.docs.forEach((d) => {
-    const log = d.data() as CompletionLog;
-    if (startDate && log.date < startDate) return;
-
-    const goalIds =
-      log.type === 'challenge'
-        ? challengeGoalMap.get(log.reference_id)
-        : habitGoalMap.get(log.reference_id);
-
-    // Attribute to first linked goal, or 'no-goal'
-    const goalId = goalIds && goalIds.length > 0 ? goalIds[0] : 'no-goal';
-    const existing = stats.get(goalId) || { points: 0, completions: 0 };
-    existing.points += log.points;
-    existing.completions += 1;
-    stats.set(goalId, existing);
-  });
-
-  return Array.from(stats.entries())
-    .map(([goalId, data]) => {
-      const goal = goalMap.get(goalId);
-      return {
-        goalId,
-        goalName: goal?.name || 'No Goal',
-        goalColor: goal?.color || NO_GOAL_COLOR,
-        ...data,
-      };
-    })
-    .sort((a, b) => b.points - a.points);
 };
 
 // Delete a completion log by ID (for habit deletions)

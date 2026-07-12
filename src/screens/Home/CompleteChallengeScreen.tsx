@@ -24,8 +24,7 @@ import {
   getWillpowerStats,
   getStreakMultiplier,
 } from '../../services/willpower';
-import { Challenge, Goal, GoalFollowThrough, WhyProfile } from '../../types';
-import { getGoalById, computeGoalFollowThrough } from '../../services/goals';
+import { Challenge, WhyProfile } from '../../types';
 import { getWhyProfile } from '../../services/whyDiscovery';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
@@ -79,31 +78,19 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
 
   const [failureModalVisible, setFailureModalVisible] = useState(false);
 
-  // Goal context for the banner + CBT data
-  const [goalContext, setGoalContext] = useState<{ name: string; ft: GoalFollowThrough } | null>(null);
-  const [goalCBT, setGoalCBT] = useState<Goal | null>(null);
+  // CBT data (identity statement, inner voice) from the user's Why profile
   const [whyProfile, setWhyProfile] = useState<WhyProfile | null>(null);
 
   useEffect(() => {
-    if (!user || !challenge.goal_ids?.length) return;
-    const goalId = challenge.goal_ids[0];
+    if (!user) return;
     (async () => {
       try {
-        const [goal, ft, profile] = await Promise.all([
-          getGoalById(user.uid, goalId),
-          computeGoalFollowThrough(user.uid, goalId),
-          getWhyProfile(user.uid),
-        ]);
-        setWhyProfile(profile);
-        if (goal) {
-          setGoalContext({ name: goal.name, ft });
-          setGoalCBT(goal);
-        }
+        setWhyProfile(await getWhyProfile(user.uid));
       } catch (err) {
-        console.warn('Failed to load goal context:', err);
+        console.warn('Failed to load why profile:', err);
       }
     })();
-  }, [user, challenge.goal_ids]);
+  }, [user]);
 
   // Navigate home after challenge completion
   const navigateHome = useCallback(() => {
@@ -237,18 +224,13 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         }
       }
 
-      // Compute narrative line — goal-centric framing + CBT identity/inner voice
+      // Compute narrative line — CBT identity/inner voice framing
       let narrativeText = '';
       let totalCount = 0;
       try {
         totalCount = await getTotalCompletionCount(user.uid);
         setRewardTotalCompleted(totalCount);
-        // Use goal context if available for identity-framing
-        if (goalContext) {
-          const kept = goalContext.ft.keptCommitments + 1; // +1 for this completion
-          const total = goalContext.ft.totalCommitments + 1;
-          narrativeText = `${goalContext.name}: ${kept}/${total} commitments kept. You're building proof.`;
-        } else if (totalCount === 1) {
+        if (totalCount === 1) {
           narrativeText = 'Challenge 1. The first of many.';
         } else {
           const streakDays = updateResult.newStreak;
@@ -257,9 +239,8 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             : `Challenge ${totalCount}. Still here.`;
         }
 
-        // CBT fields: prefer user-level WhyProfile, fall back to the goal (legacy).
-        const identityStatement = whyProfile?.identity_statement ?? goalCBT?.identity_statement;
-        const innerVoiceChallenge = whyProfile?.inner_voice_challenge ?? goalCBT?.inner_voice_challenge;
+        const identityStatement = whyProfile?.identity_statement;
+        const innerVoiceChallenge = whyProfile?.inner_voice_challenge;
         // 2A: Identity statement on milestone completions
         if (repeatMilestone && identityStatement) {
           narrativeText = `You said you're becoming "${identityStatement}." Today is evidence.`;
@@ -475,25 +456,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
             </TouchableOpacity>
           )}
         </>
-      )}
-
-      {/* Goal Context Banner */}
-      {goalContext && (
-        <Card style={styles.goalContextBanner}>
-          <View style={styles.goalContextRow}>
-            <Ionicons name="flag" size={18} color={Colors.primary} />
-            <View style={styles.goalContextInfo}>
-              <Text style={styles.goalContextTitle}>
-                This counts toward {goalContext.name}
-              </Text>
-              <Text style={styles.goalContextStats}>
-                {goalContext.ft.keptCommitments}/{goalContext.ft.totalCommitments} commitments kept
-                {goalContext.ft.totalCommitments > 0 &&
-                  ` (${Math.round(goalContext.ft.followThroughRate * 100)}%)`}
-              </Text>
-            </View>
-          </View>
-        </Card>
       )}
 
       <Button
@@ -805,31 +767,5 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.sm,
     marginBottom: Spacing.md,
-  },
-  // Goal context banner
-  goalContextBanner: {
-    backgroundColor: Colors.primary + '10',
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
-    marginTop: Spacing.md,
-  },
-  goalContextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  goalContextInfo: {
-    flex: 1,
-  },
-  goalContextTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  goalContextStats: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.primary,
-    marginTop: 2,
   },
 });

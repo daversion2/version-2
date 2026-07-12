@@ -23,8 +23,8 @@ import { RichText } from '../../components/common/RichText';
 import { FadeRise } from '../../components/common/FadeRise';
 import { HoldToCommitButton } from '../../components/common/HoldToCommitButton';
 import { useAuth } from '../../context/AuthContext';
-import { markOnboardingComplete, markPracticesSeeded, setStartingPractice } from '../../services/users';
-import { createHabit, getActiveHabits, logHabitCompletion, seedDefaultPractices } from '../../services/practices';
+import { markOnboardingComplete, setStartingPractice } from '../../services/users';
+import { createHabit, getActiveHabits, logHabitCompletion, ensureCuratedPractices } from '../../services/practices';
 import { HABIT_LIBRARY } from '../../data/habitLibrary';
 import { getAllPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
 import { saveJourneyCheckin } from '../../services/checkins';
@@ -240,8 +240,7 @@ export const OnboardingScreen: React.FC = () => {
       // Seed the default practices so the home isn't empty when onboarding is
       // skipped. Best-effort — the home also seeds as a fallback.
       try {
-        await seedDefaultPractices(user.uid);
-        await markPracticesSeeded(user.uid);
+        await ensureCuratedPractices(user.uid);
       } catch (seedErr) {
         console.warn('Failed to seed default practices on skip:', seedErr);
       }
@@ -327,8 +326,7 @@ export const OnboardingScreen: React.FC = () => {
       // 4b. Seed the default practices onto the home (core set). Idempotent —
       // skips any already adopted (e.g. a foundation habit linked to a practice).
       try {
-        await seedDefaultPractices(user.uid);
-        await markPracticesSeeded(user.uid);
+        await ensureCuratedPractices(user.uid);
       } catch (seedErr) {
         console.warn('Failed to seed default practices on complete:', seedErr);
       }

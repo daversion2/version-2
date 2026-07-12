@@ -107,7 +107,6 @@ export interface RuleCtaTarget {
  */
 export const CTA_SCREEN_TARGETS: { value: string; label: string }[] = [
   { value: 'StartChallenge', label: 'Start a challenge' },
-  { value: 'GoalCreationFlow', label: 'Create a goal' },
   { value: 'ManageHabits', label: 'Manage habits' },
   { value: 'NightlyReflection', label: 'Nightly reflection' },
   { value: 'JourneyCheckin', label: 'Journey check-in (day 14/28)' },

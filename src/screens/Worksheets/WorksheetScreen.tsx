@@ -10,7 +10,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MoodSelector } from '../../components/worksheets/MoodSelector';
 import { SectionRenderer } from '../../components/worksheets/SectionRenderer';
-import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { Button } from '../../components/common/Button';
 import {
   saveWorksheetEntry,
@@ -38,7 +37,6 @@ export const WorksheetScreen: React.FC<Props> = ({
   const [responses, setResponses] = useState<Record<string, string | string[]>>({});
   const [moodBefore, setMoodBefore] = useState<number | undefined>();
   const [moodAfter, setMoodAfter] = useState<number | undefined>();
-  const [goalIds, setGoalIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [tipsExpanded, setTipsExpanded] = useState(false);
 
@@ -49,7 +47,6 @@ export const WorksheetScreen: React.FC<Props> = ({
           setResponses(entry.responses || {});
           setMoodBefore(entry.mood_before);
           setMoodAfter(entry.mood_after);
-          setGoalIds(entry.goal_ids || []);
         }
       });
     }
@@ -96,7 +93,6 @@ export const WorksheetScreen: React.FC<Props> = ({
           responses,
           mood_after: moodAfter,
           is_draft: asDraft,
-          goal_ids: goalIds,
         });
         if (!asDraft && result.pointsAwarded > 0) {
           showAlert(
@@ -113,7 +109,6 @@ export const WorksheetScreen: React.FC<Props> = ({
           responses,
           mood_before: moodBefore,
           mood_after: moodAfter,
-          goal_ids: goalIds.length > 0 ? goalIds : undefined,
           is_draft: asDraft,
         });
         if (!asDraft && result.pointsAwarded > 0) {
@@ -201,8 +196,6 @@ export const WorksheetScreen: React.FC<Props> = ({
         />
       ))}
 
-      {/* Goal Linking */}
-      <GoalTagPicker selectedGoalIds={goalIds} onChange={setGoalIds} />
 
       {/* Mood After */}
       <View style={styles.moodAfterContainer}>

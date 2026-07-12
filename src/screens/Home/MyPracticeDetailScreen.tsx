@@ -16,7 +16,6 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
-import { GoalTagPicker } from '../../components/goals/GoalTagPicker';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
@@ -59,7 +58,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
-  const [editGoalIds, setEditGoalIds] = useState<string[]>([]);
   const [editSaving, setEditSaving] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -91,7 +89,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     if (!habit) return;
     setEditName(habit.name);
     setEditTimesPerWeek(habit.target_count_per_week);
-    setEditGoalIds(habit.goal_ids || []);
     setEditing(true);
   };
 
@@ -106,7 +103,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
       await updateHabit(user.uid, habitId, {
         name: editName.trim(),
         target_count_per_week: editTimesPerWeek,
-        goal_ids: editGoalIds,
       } as Partial<PracticeInstance>);
       setEditing(false);
       await loadData();
@@ -241,11 +237,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
               </TouchableOpacity>
             ))}
           </View>
-          <GoalTagPicker
-            selectedGoalIds={editGoalIds}
-            onChange={setEditGoalIds}
-            onCreateGoal={() => navigation.navigate('GoalCreationFlow')}
-          />
           <View style={styles.editButtons}>
             <Button title="Save" onPress={handleSaveEdit} loading={editSaving} style={{ flex: 1 }} />
             <Button

@@ -5,8 +5,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ChallengesScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge } from '../../types';
+import { Challenge, ProgramEnrollment } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges } from '../../services/challenges';
+import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
 
 const UNLOCK_AT = 3; // practice check-ins required to unlock challenges
 const EXTENDED_COLOR = '#7B61FF'; // multi-day/extended challenge accent (purple)
@@ -22,6 +23,9 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();
   const [daily, setDaily] = useState<Challenge[]>([]);
   const [extended, setExtended] = useState<Challenge[]>([]);
+  const [program, setProgram] = useState<ProgramEnrollment | null>(null);
+  const [programDayNumber, setProgramDayNumber] = useState(0);
+  const [programCheckedIn, setProgramCheckedIn] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const totalCompleted = userProfile?.totalHabitsCompleted ?? 0;
@@ -32,12 +36,31 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     try {
       await refreshProfile();
-      const [d, e] = await Promise.all([
+      const [d, e, enrollment] = await Promise.all([
         getActiveChallenges(user.uid),
         getActiveExtendedChallenges(user.uid),
+        getActiveEnrollment(user.uid),
       ]);
       setDaily(d);
       setExtended(e);
+      setProgram(enrollment);
+
+      // Program day content + missed-day processing (used to run on Home).
+      if (enrollment) {
+        try {
+          await checkAndProcessMissedDays(user.uid, enrollment.id);
+          const content = await getTodaysProgramContent(user.uid, enrollment.id);
+          if (content) {
+            setProgramDayNumber(content.dayNumber);
+            setProgramCheckedIn(content.isCheckedIn);
+          }
+        } catch (err) {
+          console.warn('Program data load failed:', err);
+        }
+      } else {
+        setProgramDayNumber(0);
+        setProgramCheckedIn(false);
+      }
     } catch (err) {
       console.warn('Failed to load challenges:', err);
     }
@@ -89,6 +112,18 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
             {remaining} more to go — go to my practices
           </Text>
         </TouchableOpacity>
+
+        {/* Programs aren't gated — keep an active enrollment reachable. */}
+        {program && (
+          <View style={styles.lockProgram}>
+            <ProgramCard
+              program={program}
+              dayNumber={programDayNumber}
+              checkedIn={programCheckedIn}
+              onPress={() => navigation.navigate('ProgramDashboard', { enrollmentId: program.id })}
+            />
+          </View>
+        )}
       </ScrollView>
     );
   }
@@ -164,6 +199,26 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
       {!hasActive && (
         <Text style={styles.emptyHint}>No active challenges. Create one or browse the library to start.</Text>
       )}
+
+      {/* Programs — guided multi-day sequences */}
+      <Text style={styles.sectionLabel}>Programs</Text>
+      {program && (
+        <ProgramCard
+          program={program}
+          dayNumber={programDayNumber}
+          checkedIn={programCheckedIn}
+          onPress={() => navigation.navigate('ProgramDashboard', { enrollmentId: program.id })}
+        />
+      )}
+      <View style={styles.links}>
+        <LinkRow
+          icon="map-outline"
+          name="Explore programs"
+          desc="Guided multi-day sequences that build a skill"
+          onPress={() => navigation.navigate('ProgramDiscovery')}
+          last
+        />
+      </View>
     </ScrollView>
   );
 };
@@ -197,6 +252,41 @@ const ChallengeItem: React.FC<{ challenge: Challenge; extended: boolean; onPress
       <View style={[styles.cardBtn, extended && styles.cardBtnExt]}>
         <Ionicons name={extended ? 'play' : 'checkmark'} size={14} color={Colors.white} />
         <Text style={styles.cardBtnText}>{extended ? 'Check in' : 'Complete'}</Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
+/** Active program enrollment card — day counter + today's check-in status. */
+const ProgramCard: React.FC<{
+  program: ProgramEnrollment;
+  dayNumber: number;
+  checkedIn: boolean;
+  onPress: () => void;
+}> = ({ program, dayNumber, checkedIn, onPress }) => (
+  <TouchableOpacity
+    style={[styles.card, styles.cardProgram]}
+    activeOpacity={0.85}
+    onPress={onPress}
+  >
+    <View style={styles.cardRow}>
+      <View style={[styles.cardIcon, styles.cardIconProgram]}>
+        <Ionicons name="rocket" size={20} color={Colors.primary} />
+      </View>
+      <View style={styles.cardMeta}>
+        <Text style={[styles.cardTag, styles.cardTagProgram]}>
+          Day {dayNumber} of {program.duration_days}
+        </Text>
+        <Text style={styles.cardName} numberOfLines={2}>{program.program_name}</Text>
+      </View>
+    </View>
+    <View style={styles.cardFoot}>
+      <Text style={styles.cardProg}>
+        {checkedIn ? 'Checked in today' : 'Not checked in yet'}
+      </Text>
+      <View style={[styles.cardBtn, styles.cardBtnProgram]}>
+        <Ionicons name={checkedIn ? 'checkmark' : 'play'} size={14} color={Colors.white} />
+        <Text style={styles.cardBtnText}>{checkedIn ? 'View' : 'Check in'}</Text>
       </View>
     </View>
   </TouchableOpacity>
@@ -256,6 +346,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardExt: { borderLeftColor: EXTENDED_COLOR },
+  cardProgram: { borderLeftColor: Colors.primary },
+  cardIconProgram: { backgroundColor: Colors.primary + '1F' },
+  cardTagProgram: { color: Colors.primary },
+  cardBtnProgram: { backgroundColor: Colors.primary },
+  lockProgram: { alignSelf: 'stretch', marginTop: Spacing.xl },
   cardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
   cardIcon: {
     width: 40,

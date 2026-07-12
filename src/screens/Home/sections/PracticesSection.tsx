@@ -45,7 +45,7 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
         <Ionicons name="flame-outline" size={40} color={Colors.primary} />
         <Text style={styles.emptyTitle}>Your practices live here</Text>
         <Text style={styles.emptyText}>
-          Add your daily training from the Practices tab — then start and track each rep right here.
+          Your daily training is being set up — start and track each rep right here.
         </Text>
       </View>
     );

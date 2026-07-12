@@ -18,8 +18,7 @@ import {
   updateWhyStatement,
   saveWhyReflection,
 } from '../../services/whyDiscovery';
-import { getActiveGoals } from '../../services/goals';
-import { WhyProfile, Goal } from '../../types';
+import { WhyProfile } from '../../types';
 import { WhyStatementCard } from '../../components/why/WhyStatementCard';
 import { StoryCard } from '../../components/why/StoryCard';
 import { WhyChain } from '../../components/why/WhyChain';
@@ -30,7 +29,6 @@ type Props = HomeScreenProps<'WhyScreen'>;
 export const WhyScreen: React.FC<Props> = ({ navigation }) => {
   const { user, refreshProfile } = useAuth();
   const [whyProfile, setWhyProfile] = useState<WhyProfile | null>(null);
-  const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Edit state
@@ -51,12 +49,8 @@ export const WhyScreen: React.FC<Props> = ({ navigation }) => {
     if (!user) return;
     setLoading(true);
     try {
-      const [profile, activeGoals] = await Promise.all([
-        getWhyProfile(user.uid),
-        getActiveGoals(user.uid),
-      ]);
+      const profile = await getWhyProfile(user.uid);
       setWhyProfile(profile);
-      setGoals(activeGoals);
       if (profile) {
         setEditContribution(profile.contribution_part || '');
         setEditImpact(profile.impact_part || '');
@@ -189,23 +183,6 @@ export const WhyScreen: React.FC<Props> = ({ navigation }) => {
             iterations={whyProfile.why_iterations}
             coreWhyReached={whyProfile.core_why_reached}
           />
-        </View>
-      )}
-
-      {/* Goal Connections */}
-      {goals.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Goal Connections</Text>
-          {goals.map(goal => (
-            <View key={goal.id} style={styles.goalCard}>
-              <Text style={styles.goalName}>{goal.name}</Text>
-              {goal.why_connection ? (
-                <Text style={styles.goalConnection}>{goal.why_connection}</Text>
-              ) : (
-                <Text style={styles.goalNoConnection}>No Why connection yet</Text>
-              )}
-            </View>
-          ))}
         </View>
       )}
 

@@ -229,22 +229,6 @@ export const deleteWorksheetEntry = async (
 };
 
 /**
- * Get entries linked to a specific goal.
- */
-export const getWorksheetsByGoal = async (
-  userId: string,
-  goalId: string
-): Promise<WorksheetEntry[]> => {
-  const q = query(
-    worksheetsRef(userId),
-    where('goal_ids', 'array-contains', goalId),
-    where('is_draft', '==', false)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry));
-};
-
-/**
  * Save a completed micro-exercise entry.
  * Awards 2 XP (same as worksheet base).
  */
