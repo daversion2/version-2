@@ -40,6 +40,16 @@ export interface User {
   lastActivityDate?: string; // YYYY-MM-DD format for streak tracking
   // Admin
   is_admin?: boolean;
+  // Demo mode (admin-only): present while seeded demo data is on the account.
+  // Records the exact counter deltas so disableDemoData can reverse them.
+  // See src/utils/seedDemoData.ts
+  demo_data?: {
+    enabled: boolean;
+    enabled_at: string;
+    xp_added: number;
+    habit_logs_added: number;
+    challenges_completed_added: number;
+  };
   // Programs
   active_program_id?: string; // Denormalized enrollment ID for fast home screen check
   // All-time completion counters (incremented on each completion)

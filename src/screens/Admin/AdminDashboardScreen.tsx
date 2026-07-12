@@ -17,10 +17,13 @@ import { getUserStats, getLibraryStats } from '../../services/admin';
 import { reseedPrograms } from '../../utils/seedPrograms';
 import { seedRewardMessages } from '../../utils/seedRewardMessages';
 import { seedNeuroscienceTidbits } from '../../utils/seedTidbits';
+import { enableDemoData, disableDemoData } from '../../utils/seedDemoData';
+import { useAuth } from '../../context/AuthContext';
 import { AdminNavigation } from '../../types/navigation';
 
 export const AdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation<AdminNavigation>();
+  const { user, userProfile, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userStats, setUserStats] = useState<{
@@ -36,6 +39,7 @@ export const AdminDashboardScreen: React.FC = () => {
   const [reseeding, setReseeding] = useState(false);
   const [seedingMessages, setSeedingMessages] = useState(false);
   const [seedingTidbits, setSeedingTidbits] = useState(false);
+  const [togglingDemo, setTogglingDemo] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -114,6 +118,49 @@ export const AdminDashboardScreen: React.FC = () => {
     } finally {
       setSeedingTidbits(false);
     }
+  };
+
+  const demoEnabled = userProfile?.demo_data?.enabled === true;
+
+  const handleToggleDemoData = () => {
+    if (!user) return;
+    Alert.alert(
+      demoEnabled ? 'Remove Demo Data' : 'Enable Demo Data',
+      demoEnabled
+        ? 'This deletes all seeded demo reps and challenges from YOUR account and restores your real stats. Your real history is untouched. Continue?'
+        : 'This seeds ~8 weeks of realistic practice reps, challenges, and stats into YOUR account for demos. Everything is tagged and fully removable. Your real data is untouched. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: demoEnabled ? 'Remove' : 'Enable',
+          style: demoEnabled ? 'destructive' : 'default',
+          onPress: async () => {
+            setTogglingDemo(true);
+            try {
+              if (demoEnabled) {
+                const { deletedLogs, deletedChallenges } = await disableDemoData(user.uid);
+                Alert.alert(
+                  'Demo Data Removed',
+                  `Deleted ${deletedLogs} demo reps and ${deletedChallenges} demo challenges. Your real stats are restored.`
+                );
+              } else {
+                const { habitLogs, challenges, xp } = await enableDemoData(user.uid);
+                Alert.alert(
+                  'Demo Data Enabled',
+                  `Seeded ${habitLogs} practice reps, ${challenges} challenges, and +${xp} XP. Toggle off here when the demo is done.`
+                );
+              }
+              await refreshProfile();
+            } catch (error) {
+              console.error('Error toggling demo data:', error);
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to toggle demo data.');
+            } finally {
+              setTogglingDemo(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -243,6 +290,41 @@ export const AdminDashboardScreen: React.FC = () => {
           <Text style={styles.actionText}>Add Tidbit</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Demo Data (seeds/removes tagged data on the signed-in admin's own account) */}
+      <Text style={styles.sectionTitle}>Demo</Text>
+      <Card style={styles.linkCard} onPress={togglingDemo ? undefined : handleToggleDemoData}>
+        <View style={styles.linkRow}>
+          {togglingDemo ? (
+            <ActivityIndicator size={24} color={Colors.primary} />
+          ) : (
+            <Ionicons
+              name={demoEnabled ? 'eye' : 'eye-outline'}
+              size={24}
+              color={demoEnabled ? Colors.secondary : Colors.primary}
+            />
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkText}>
+              {togglingDemo
+                ? demoEnabled
+                  ? 'Removing demo data...'
+                  : 'Seeding demo data...'
+                : 'Demo Data (this account)'}
+            </Text>
+            <Text style={styles.demoStateText}>
+              {demoEnabled
+                ? 'ON — seeded reps, challenges & stats are live'
+                : 'Off — tap to seed 8 weeks of demo activity'}
+            </Text>
+          </View>
+          {demoEnabled && !togglingDemo && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>ON</Text>
+            </View>
+          )}
+        </View>
+      </Card>
 
       {/* Management Links */}
       <Text style={styles.sectionTitle}>Manage</Text>
@@ -413,6 +495,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.dark,
+  },
+  demoStateText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 2,
   },
   badge: {
     backgroundColor: Colors.secondary,
