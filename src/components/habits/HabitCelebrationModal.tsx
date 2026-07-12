@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
 import Animated, {
   FadeIn,
-  FadeInDown,
   ZoomIn,
   useAnimatedStyle,
   useSharedValue,
@@ -106,6 +105,12 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
   const flash = useSharedValue(0);
   const rootOpacity = useSharedValue(1);
   const buttonScale = useSharedValue(1);
+  // Drives the points card in (opacity + slide). A shared value rather than a
+  // delayed `entering` animation: inside a native Modal, delayed entering
+  // animations paint the subtree at full opacity for the first frame before
+  // initializing, so the card flashed at open. A shared value starting at 0
+  // is hidden from the very first frame.
+  const cardProgress = useSharedValue(0);
 
   useEffect(() => {
     if (!visible) return;
@@ -117,6 +122,11 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
     buttonScale.value = 1;
     flash.value = 0;
     flash.value = withDelay(CLOSE_AT, withTiming(1, { duration: 350 }));
+    cardProgress.value = 0;
+    cardProgress.value = withDelay(
+      CARD_AT,
+      withSpring(1, { damping: 13, stiffness: 100 })
+    );
     const haptic = setTimeout(() => triggerRewardHaptic(), CLOSE_AT);
     return () => clearTimeout(haptic);
   }, [visible]);
@@ -130,6 +140,14 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
 
   const buttonStyle = useAnimatedStyle(() => ({
     transform: [{ scale: buttonScale.value }],
+  }));
+
+  // Mirrors the old FadeInDown: fade + rise, with the spring's slight
+  // overshoot giving a small upward bounce. Opacity is clamped so the
+  // overshoot never brightens past fully opaque.
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(cardProgress.value, 1),
+    transform: [{ translateY: 25 * (1 - cardProgress.value) }],
   }));
 
   const handleDone = () => {
@@ -195,10 +213,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
         </View>
 
         {/* Points card */}
-        <Animated.View
-          entering={FadeInDown.springify().damping(13).delay(CARD_AT)}
-          style={styles.card}
-        >
+        <Animated.View style={[styles.card, cardStyle]}>
           <Text style={styles.pointsText}>+{pointsEarned}</Text>
           <Text style={styles.pointsLabel}>XP</Text>
 
