@@ -63,6 +63,12 @@ export const validatePractice = (raw: any): Practice | null => {
       ? raw.research.filter((r: any) => r && isStr(r.finding) && isStr(r.source))
       : undefined;
   }
+  // Same leniency for techniques: drop malformed entries, keep the doc.
+  if (raw.techniques !== undefined) {
+    practice.techniques = Array.isArray(raw.techniques)
+      ? raw.techniques.filter((t: any) => t && isStr(t.label) && isStrArray(t.steps))
+      : undefined;
+  }
   return practice;
 };
 
@@ -90,11 +96,18 @@ export const fetchPracticeCatalog = async (): Promise<Practice[]> => {
   const seen = new Set<string>();
   for (const bundled of BUNDLED_PRACTICES) {
     const remoteDoc = remoteById.get(bundled.id);
-    // Remote docs seeded before the `research` field existed shadow the bundled
-    // entries; backfill from bundled until the doc is re-saved. An admin can
-    // still blank the section by saving an explicit empty list.
+    // Remote docs seeded before the `research`/`techniques`/`howToTitle` fields
+    // existed shadow the bundled entries; backfill from bundled until the doc is
+    // re-saved. An admin can still blank a section by saving an explicit empty list.
     merged.push(
-      remoteDoc ? { ...remoteDoc, research: remoteDoc.research ?? bundled.research } : bundled
+      remoteDoc
+        ? {
+            ...remoteDoc,
+            research: remoteDoc.research ?? bundled.research,
+            techniques: remoteDoc.techniques ?? bundled.techniques,
+            howToTitle: remoteDoc.howToTitle ?? bundled.howToTitle,
+          }
+        : bundled
     );
     seen.add(bundled.id);
   }

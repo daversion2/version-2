@@ -20,6 +20,34 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </View>
 );
 
+// One expandable technique row (collapsed by default) inside the how-to section.
+const TechniqueRow: React.FC<{ label: string; steps: string[]; color: string }> = ({
+  label,
+  steps,
+  color,
+}) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={styles.techniqueRow}>
+      <TouchableOpacity
+        style={styles.techniqueHeader}
+        onPress={() => setOpen((o) => !o)}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.techniqueLabel, { color }]}>{label}</Text>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={color} />
+      </TouchableOpacity>
+      {open &&
+        steps.map((step, i) => (
+          <View key={i} style={styles.techniqueStepRow}>
+            <Ionicons name="ellipse" size={6} color={Colors.gray} style={styles.techniqueStepDot} />
+            <Text style={styles.techniqueStepText}>{step}</Text>
+          </View>
+        ))}
+    </View>
+  );
+};
+
 export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
   // Curated practices arrive with a catalog `practiceId`; user-authored ones
   // with an instance `habitId` and no catalog entry.
@@ -149,7 +177,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
         {practice && (
           <>
         {/* How to */}
-        <Section title="How to do it">
+        <Section title={practice.howToTitle ?? 'How to do it'}>
           {practice.howTo.map((step, i) => (
             <View key={i} style={styles.stepRow}>
               <View style={[styles.stepNum, { backgroundColor: color }]}>
@@ -164,6 +192,9 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
               <Text style={styles.minText}>{practice.minimumVersion}</Text>
             </View>
           )}
+          {practice.techniques?.map((t) => (
+            <TechniqueRow key={t.label} label={t.label} steps={t.steps} color={color} />
+          ))}
         </Section>
 
         {/* Science */}
@@ -195,8 +226,9 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
           </Section>
         )}
 
-        {/* Variations */}
-        {practice.variations && practice.variations.length > 0 && (
+        {/* Variations — superseded by collapsible techniques when those exist
+            (remote catalog docs may still carry the old variations list). */}
+        {!practice.techniques?.length && practice.variations && practice.variations.length > 0 && (
           <Section title="Ways to do it">
             {practice.variations.map((v) => (
               <View key={v.label} style={styles.variationRow}>
@@ -296,6 +328,22 @@ const styles = StyleSheet.create({
   researchSource: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
   researchLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   researchLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
+  techniqueRow: { borderTopWidth: 1, borderTopColor: Colors.border, marginTop: Spacing.sm },
+  techniqueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+  },
+  techniqueLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
+  techniqueStepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  techniqueStepDot: { marginTop: 5, width: 16, textAlign: 'center' },
+  techniqueStepText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
   variationRow: { marginBottom: Spacing.sm },
   variationLabel: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
   variationDesc: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, marginTop: 1 },

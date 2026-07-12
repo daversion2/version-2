@@ -73,6 +73,17 @@ export interface PracticeVariation {
 }
 
 /**
+ * An expandable step-by-step technique guide rendered as a collapsible row
+ * inside the how-to section of the detail screen (e.g. the three meditation
+ * styles). When a practice has techniques, they replace the "Ways to do it"
+ * variations section.
+ */
+export interface PracticeTechnique {
+  label: string;
+  steps: string[];
+}
+
+/**
  * One study backing a practice, shown in the "The research" section of the
  * detail screen: a plain-English takeaway, a citation line (institution / year /
  * journal), and an optional link opened in the browser.
@@ -138,6 +149,8 @@ export interface Practice {
   color?: string;
 
   // ---- "Learn" content (shown on the practice detail screen) ----
+  /** Overrides the how-to section title (default "How to do it"), e.g. "How To Meditate". */
+  howToTitle?: string;
   /** Concrete steps to do a session. */
   howTo: string[];
   /** The smallest version for a hard day. */
@@ -146,8 +159,10 @@ export interface Practice {
   science: string;
   /** Practical pointers + safety cautions. */
   tips: string[];
-  /** Named ways to do it. */
+  /** Named ways to do it. Hidden when `techniques` is set. */
   variations?: PracticeVariation[];
+  /** Collapsible technique guides shown inside the how-to section; replaces `variations`. */
+  techniques?: PracticeTechnique[];
   /** Key studies behind the practice — the "The research" section. Hidden when empty. */
   research?: PracticeResearchEntry[];
 
@@ -266,6 +281,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
       "Sitting with no input trains the prefrontal cortex to regulate the brain's default-mode network. The foundational override rep — staying when everything says get up.",
     icon: 'flower-outline',
     order: 1,
+    howToTitle: 'How To Meditate',
     howTo: [
       'Sit upright somewhere quiet — chair or floor, eyes closed.',
       'Pick an anchor: the feeling of your breath, or a word you repeat.',
@@ -280,10 +296,40 @@ export const BUNDLED_PRACTICES: Practice[] = [
       'Same time, same spot each day makes it automatic.',
       "Don't chase a 'blank mind'; aim for 'I noticed, and I came back.'",
     ],
-    variations: [
-      { label: 'Breath focus', description: 'Anchor on the sensation of breathing.' },
-      { label: 'Body scan', description: 'Move attention slowly from head to toe.' },
-      { label: 'Open awareness', description: 'Notice whatever arises without following it.' },
+    techniques: [
+      {
+        label: 'Focused Attention',
+        steps: [
+          'Sit or lie somewhere still. Close your eyes or soften your gaze.',
+          'Pick one anchor — your breath, or a fixed point in front of you.',
+          'Rest your attention there. Nothing to control, just watch it.',
+          "When you notice your mind has wandered (it will, repeatedly), don't judge it — just notice, and bring attention back to the anchor.",
+          "That moment of noticing and returning is the actual rep. The wandering isn't failure — it's the setup for it.",
+          "Repeat for the full duration. Some sessions you'll return dozens of times; that's not a bad session, that's a full one.",
+        ],
+      },
+      {
+        label: 'Open Awareness / Noting Practice',
+        steps: [
+          'Sit still, eyes closed or gaze soft, no single anchor this time.',
+          'Let your attention rest open — ready to notice whatever shows up: a sound, an itch, a thought, boredom, an urge to shift position.',
+          'When something arises, notice it and, if it helps, label it in a word or two ("thinking," "itching," "restless") — then let it pass without following it further.',
+          "You're not trying to stop thoughts or feelings from coming. You're practicing seeing them clearly and letting them move through instead of getting pulled into them.",
+          "If you get lost in a thought for a while, that's fine — the moment you notice you got lost is itself the practice. Just come back to open noticing.",
+          'There\'s no "right" thing to notice. Whatever shows up is the material.',
+        ],
+      },
+      {
+        label: 'Body Scan',
+        steps: [
+          'Lie down or sit comfortably. Close your eyes.',
+          'Bring attention to one part of your body — often the feet or the top of the head is easiest to start.',
+          "Just notice what's actually there: temperature, pressure, tingling, tightness, or nothing at all. Don't try to relax it or change it.",
+          'After a few breaths, move attention slowly to the next part of the body, working through in order (feet → legs → torso → arms → head, or reverse).',
+          "If you hit a spot that's uncomfortable or tense, stay there a little longer instead of rushing past it. The goal is to sit with the sensation, not fix it.",
+          'If your mind wanders off the body entirely, just notice that and bring attention back to wherever you left off.',
+        ],
+      },
     ],
     research: [
       {
