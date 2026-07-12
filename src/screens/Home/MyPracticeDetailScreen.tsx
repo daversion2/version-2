@@ -17,8 +17,11 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
+import { PracticePerformanceSection } from '../../components/habits/PracticePerformanceSection';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
+import { buildPracticePerformance } from '../../services/practicePerformance';
+import { getPractice } from '../../data/practices';
 import { cancelHabitReminder } from '../../services/habitReminders';
 import { PracticeInstance, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 
@@ -160,6 +163,12 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     return marks;
   }, [stats]);
 
+  // Per-practice performance reporting, computed from the already-fetched logs
+  const performance = useMemo(
+    () => buildPracticePerformance(logs, getPractice(habit?.practice_id)),
+    [logs, habit?.practice_id]
+  );
+
   // Get notes with dates, sorted newest first
   const notesWithDates = useMemo(() => {
     return logs
@@ -294,6 +303,10 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
           </View>
         </Card>
       )}
+
+      {/* Performance — detailed per-practice reporting */}
+      <Text style={styles.sectionTitle}>Performance</Text>
+      <PracticePerformanceSection performance={performance} />
 
       {/* Calendar Heat Map */}
       <Text style={styles.sectionTitle}>Completion History</Text>

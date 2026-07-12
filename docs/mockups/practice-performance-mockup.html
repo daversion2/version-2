@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Neuro-Nudge — Practice Performance Mockup</title>
+<style>
+  :root {
+    --primary: #217180;
+    --secondary: #FF5B02;
+    --dark: #2B2B2B;
+    --gray: #656565;
+    --light-gray: #F2F2F2;
+    --border: #E0E0E0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Avenir, "Avenir Next", -apple-system, sans-serif;
+    background: #d8dcdd;
+    color: var(--dark);
+    padding: 32px 16px;
+  }
+  .page-title { text-align: center; margin-bottom: 4px; font-size: 22px; font-weight: 800; }
+  .page-sub { text-align: center; color: var(--gray); font-size: 14px; margin-bottom: 28px; }
+  .phones { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+
+  .phone {
+    width: 390px;
+    background: var(--light-gray);
+    border-radius: 40px;
+    border: 10px solid #1a1a1a;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  }
+  .screen { height: 800px; overflow-y: auto; }
+  .screen::-webkit-scrollbar { width: 0; }
+
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 16px 12px;
+    background: var(--light-gray);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .nav .back { color: var(--primary); font-size: 22px; font-weight: 600; width: 60px; }
+  .nav .title { font-size: 18px; font-weight: 800; }
+  .nav .edit { color: var(--primary); font-size: 15px; font-weight: 600; width: 60px; text-align: right; }
+
+  .content { padding: 0 16px 32px; }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  /* existing stats grid */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat { text-align: center; padding: 8px 0; }
+  .stat .value { font-size: 26px; font-weight: 800; color: var(--primary); }
+  .stat .value.orange { color: var(--secondary); }
+  .stat .label { font-size: 12px; color: var(--gray); margin-top: 2px; }
+
+  .section-label {
+    font-size: 12px; font-weight: 800; letter-spacing: 1.5px;
+    color: var(--gray); margin: 20px 4px 10px;
+  }
+  .section-label.first { margin-top: 4px; }
+
+  .card-title { font-size: 15px; font-weight: 800; margin-bottom: 2px; }
+  .card-sub { font-size: 12px; color: var(--gray); margin-bottom: 12px; }
+
+  /* insights */
+  .insight {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: rgba(33,113,128,0.07);
+    border-left: 3px solid var(--primary);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px; line-height: 1.45;
+  }
+  .insight:last-child { margin-bottom: 0; }
+  .insight .icon { font-size: 15px; line-height: 1.3; }
+  .insight.nudge { background: rgba(255,91,2,0.07); border-left-color: var(--secondary); }
+  .insight b { font-weight: 800; }
+
+  svg { display: block; width: 100%; height: auto; }
+
+  .legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .legend .item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gray); }
+  .legend .swatch { width: 10px; height: 10px; border-radius: 3px; }
+  .legend .swatch.line { height: 3px; border-radius: 2px; width: 14px; }
+
+  /* tag chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    background: var(--light-gray); border-radius: 999px;
+    padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--dark);
+  }
+  .chip .count { color: var(--primary); font-weight: 800; margin-left: 4px; }
+  .footnote { font-size: 12px; color: var(--gray); margin-top: 12px; line-height: 1.4; }
+
+  /* records */
+  .record { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--light-gray); }
+  .record:last-child { border-bottom: none; padding-bottom: 0; }
+  .record:first-of-type { padding-top: 2px; }
+  .record .medal { font-size: 18px; }
+  .record .r-label { font-size: 13px; font-weight: 600; flex: 1; }
+  .record .r-value { font-size: 14px; font-weight: 800; color: var(--primary); }
+  .record .r-date { font-size: 11px; color: var(--gray); margin-left: 8px; }
+
+  /* donut legend */
+  .donut-row { display: flex; align-items: center; gap: 18px; }
+  .donut-legend { flex: 1; }
+  .donut-legend .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .donut-legend .row:last-child { margin-bottom: 0; }
+  .donut-legend .pct { margin-left: auto; font-weight: 800; }
+
+  /* technique difficulty bars */
+  .hbar-row { margin-bottom: 12px; }
+  .hbar-row:last-child { margin-bottom: 0; }
+  .hbar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .hbar-label .pct { font-weight: 800; color: var(--secondary); }
+  .hbar-track { height: 8px; background: var(--light-gray); border-radius: 999px; overflow: hidden; }
+  .hbar-fill { height: 100%; background: var(--secondary); border-radius: 999px; }
+
+  .phone-caption { text-align: center; font-size: 13px; color: #444; font-weight: 700; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">Per-Practice Performance Reporting</div>
+<div class="page-sub">New "Performance" section on the practice detail screen — Cold Exposure (specific config) vs Meditation (same framework, different charts)</div>
+
+<div class="phones">
+
+  <!-- ============ PHONE 1: COLD EXPOSURE ============ -->
+  <div>
+    <div class="phone"><div class="screen">
+      <div class="nav">
+        <div class="back">‹ Back</div>
+        <div class="title">Cold Exposure</div>
+        <div class="edit">Edit</div>
+      </div>
+      <div class="content">
+
+        <!-- existing stats card -->
+        <div class="card">
+          <div class="stats-grid">
+            <div class="stat"><div class="value orange">6</div><div class="label">Current Streak</div></div>
+            <div class="stat"><div class="value">14</div><div class="label">Longest Streak</div></div>
+            <div class="stat"><div class="value">47</div><div class="label">Total Reps</div></div>
+            <div class="stat"><div class="value">78</div><div class="label">Total XP</div></div>
+          </div>
+        </div>
+
+        <!-- NEW: performance section -->
+        <div class="section-label">PERFORMANCE</div>
+
+        <div class="card">
+          <div class="insight"><span class="icon">📈</span><span>Your average plunge is <b>2.8 min</b> — up <b>40%</b> from your first month.</span></div>
+          <div class="insight"><span class="icon">🧠</span><span><b>"Resistance"</b> showed up in 70% of your early sessions. Last month: <b>30%</b>. Your override is getting quieter.</span></div>
+          <div class="insight nudge"><span class="icon">🎯</span><span>Only 1 of your last 10 plunges felt <b>challenging</b>. You've adapted — try 45°F or add 30 seconds.</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Plunge Time Per Session</div>
+          <div class="card-sub">Last 20 sessions · dotted line = 5-session average</div>
+          <div id="cold-duration"></div>
+          <div class="legend">
+            <div class="item"><div class="swatch" style="background:var(--primary)"></div>Session</div>
+            <div class="item"><div class="swatch line" style="background:var(--secondary)"></div>Trend</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Weekly Cold Dose</div>
+          <div class="card-sub">Intensity score: minutes × degrees below 60°F</div>
+          <div id="cold-dose"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Colder &amp; Longer</div>
+          <div class="card-sub">Monthly averages since you started</div>
+          <div id="cold-progression"></div>
+          <div class="legend">
+            <div class="item"><div class="swatch line" style="background:var(--primary)"></div>Duration (min)</div>
+            <div class="item"><div class="swatch line" style="background:var(--secondary)"></div>Water temp (°F)</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Challenge Rating</div>
+          <div class="card-sub">Share of reps rated "challenging" each week</div>
+          <div id="cold-difficulty"></div>
+          <div class="legend">
+            <div class="item"><div class="swatch" style="background:var(--secondary)"></div>Challenging</div>
+            <div class="item"><div class="swatch" style="background:#cfd8da"></div>Easy day</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Mind Patterns</div>
+          <div class="card-sub">What you noticed during plunges</div>
+          <div class="chips">
+            <div class="chip">Resistance<span class="count">12</span></div>
+            <div class="chip">Urge to quit<span class="count">8</span></div>
+            <div class="chip">Calm after<span class="count">9</span></div>
+            <div class="chip">Breakthrough<span class="count">6</span></div>
+            <div class="chip">Dread before<span class="count">5</span></div>
+          </div>
+          <div class="footnote">You logged a hard moment in <b>62%</b> of plunges · Most plunges happen <b>6–8 AM</b> on weekdays</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Records</div>
+          <div class="record"><span class="medal">🥶</span><span class="r-label">Coldest plunge</span><span class="r-value">44°F</span><span class="r-date">Jun 2</span></div>
+          <div class="record"><span class="medal">⏱️</span><span class="r-label">Longest plunge</span><span class="r-value">3.5 min</span><span class="r-date">Jul 3</span></div>
+          <div class="record"><span class="medal">💪</span><span class="r-label">Longest at ≤50°F</span><span class="r-value">3.0 min</span><span class="r-date">Jun 28</span></div>
+          <div class="record"><span class="medal">🔥</span><span class="r-label">Best week</span><span class="r-value">5 plunges</span><span class="r-date">Jun 8–14</span></div>
+        </div>
+
+      </div>
+    </div></div>
+    <div class="phone-caption">Cold Exposure — dose + progression focus</div>
+  </div>
+
+  <!-- ============ PHONE 2: MEDITATION ============ -->
+  <div>
+    <div class="phone"><div class="screen">
+      <div class="nav">
+        <div class="back">‹ Back</div>
+        <div class="title">Meditation</div>
+        <div class="edit">Edit</div>
+      </div>
+      <div class="content">
+
+        <div class="card">
+          <div class="stats-grid">
+            <div class="stat"><div class="value orange">12</div><div class="label">Current Streak</div></div>
+            <div class="stat"><div class="value">21</div><div class="label">Longest Streak</div></div>
+            <div class="stat"><div class="value">84</div><div class="label">Total Reps</div></div>
+            <div class="stat"><div class="value">96</div><div class="label">Total XP</div></div>
+          </div>
+        </div>
+
+        <div class="section-label">PERFORMANCE</div>
+
+        <div class="card">
+          <div class="insight"><span class="icon">📈</span><span>Your longest sit is <b>25 min</b> — six weeks ago it was 15.</span></div>
+          <div class="insight"><span class="icon">🧠</span><span><b>Open awareness</b> sessions feel challenging <b>2×</b> more often than breath focus. That's where the training is.</span></div>
+          <div class="insight nudge"><span class="icon">🎯</span><span>You've sat <b>10 min</b> for 3 straight weeks. Plateau — try 12 min tomorrow.</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Sit Length Per Session</div>
+          <div class="card-sub">Last 20 sessions · dotted line = 5-session average</div>
+          <div id="med-duration"></div>
+          <div class="legend">
+            <div class="item"><div class="swatch" style="background:var(--primary)"></div>Session</div>
+            <div class="item"><div class="swatch line" style="background:var(--secondary)"></div>Trend</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Technique Mix</div>
+          <div class="card-sub">All-time, by session count</div>
+          <div class="donut-row">
+            <div id="med-donut" style="width:120px"></div>
+            <div class="donut-legend">
+              <div class="row"><div class="swatch" style="width:10px;height:10px;border-radius:3px;background:#217180"></div>Breath focus<span class="pct">55%</span></div>
+              <div class="row"><div class="swatch" style="width:10px;height:10px;border-radius:3px;background:#FF5B02"></div>Body scan<span class="pct">25%</span></div>
+              <div class="row"><div class="swatch" style="width:10px;height:10px;border-radius:3px;background:#7fa8b0"></div>Open awareness<span class="pct">20%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Where It Gets Hard</div>
+          <div class="card-sub">Share of sessions rated "challenging", by technique</div>
+          <div class="hbar-row">
+            <div class="hbar-label"><span>Open awareness</span><span class="pct">58%</span></div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:58%"></div></div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label"><span>Body scan</span><span class="pct">33%</span></div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:33%"></div></div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label"><span>Breath focus</span><span class="pct">27%</span></div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:27%"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Mind Patterns</div>
+          <div class="card-sub">What you noticed while sitting</div>
+          <div class="chips">
+            <div class="chip">Planning mind<span class="count">18</span></div>
+            <div class="chip">Restlessness<span class="count">11</span></div>
+            <div class="chip">Urge to check phone<span class="count">9</span></div>
+            <div class="chip">Settled<span class="count">14</span></div>
+          </div>
+          <div class="footnote">You logged a hard moment in <b>48%</b> of sits · Most sits happen <b>7–9 AM</b></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Records</div>
+          <div class="record"><span class="medal">🧘</span><span class="r-label">Longest sit</span><span class="r-value">25 min</span><span class="r-date">Jul 6</span></div>
+          <div class="record"><span class="medal">🔥</span><span class="r-label">Best week</span><span class="r-value">6 sits</span><span class="r-date">Jun 22–28</span></div>
+          <div class="record"><span class="medal">📅</span><span class="r-label">Longest streak</span><span class="r-value">21 days</span><span class="r-date">May</span></div>
+            <div class="record"><span class="medal">⏳</span><span class="r-label">Total time trained</span><span class="r-value">14.2 hrs</span><span class="r-date">all-time</span></div>
+        </div>
+
+      </div>
+    </div></div>
+    <div class="phone-caption">Meditation — technique + duration focus</div>
+  </div>
+
+</div>
+
+<script>
+const TEAL = '#217180', ORANGE = '#FF5B02', GRID = '#EDEDED', AXIS = '#9aa5a8';
+const NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function frame(w, h) {
+  const svg = el('svg', { viewBox: `0 0 ${w} ${h}` });
+  return svg;
+}
+
+// generic scatter/line chart with optional rolling average
+function lineChart(id, data, { h = 150, yMin, yMax, yLabels, avg = true, unit = '' }) {
+  const w = 330, padL = 30, padR = 8, padT = 10, padB = 22;
+  const svg = frame(w, h);
+  const X = i => padL + i * (w - padL - padR) / (data.length - 1);
+  const Y = v => padT + (1 - (v - yMin) / (yMax - yMin)) * (h - padT - padB);
+
+  yLabels.forEach(v => {
+    svg.appendChild(el('line', { x1: padL, x2: w - padR, y1: Y(v), y2: Y(v), stroke: GRID, 'stroke-width': 1 }));
+    const t = el('text', { x: padL - 6, y: Y(v) + 3.5, 'text-anchor': 'end', 'font-size': 10, fill: AXIS });
+    t.textContent = v + unit;
+    svg.appendChild(t);
+  });
+
+  svg.appendChild(el('polyline', {
+    points: data.map((v, i) => `${X(i)},${Y(v)}`).join(' '),
+    fill: 'none', stroke: TEAL, 'stroke-width': 2, 'stroke-linejoin': 'round', opacity: 0.55
+  }));
+  data.forEach((v, i) => svg.appendChild(el('circle', { cx: X(i), cy: Y(v), r: 3, fill: TEAL })));
+
+  if (avg) {
+    const roll = data.map((_, i) => {
+      const s = data.slice(Math.max(0, i - 4), i + 1);
+      return s.reduce((a, b) => a + b, 0) / s.length;
+    });
+    svg.appendChild(el('polyline', {
+      points: roll.map((v, i) => `${X(i)},${Y(v)}`).join(' '),
+      fill: 'none', stroke: ORANGE, 'stroke-width': 2.5, 'stroke-dasharray': '5,4', 'stroke-linejoin': 'round'
+    }));
+  }
+
+  const first = el('text', { x: padL, y: h - 6, 'font-size': 10, fill: AXIS });
+  first.textContent = 'oldest';
+  const last = el('text', { x: w - padR, y: h - 6, 'font-size': 10, fill: AXIS, 'text-anchor': 'end' });
+  last.textContent = 'latest';
+  svg.appendChild(first); svg.appendChild(last);
+  document.getElementById(id).appendChild(svg);
+}
+
+function barChart(id, data, labels, { h = 140, color = TEAL }) {
+  const w = 330, padL = 26, padR = 4, padT = 8, padB = 20;
+  const svg = frame(w, h);
+  const max = Math.max(...data) * 1.15;
+  const bw = (w - padL - padR) / data.length;
+  [0.25, 0.5, 0.75, 1].forEach(f => {
+    const y = padT + (1 - f) * (h - padT - padB);
+    svg.appendChild(el('line', { x1: padL, x2: w - padR, y1: y, y2: y, stroke: GRID }));
+  });
+  data.forEach((v, i) => {
+    const bh = (v / max) * (h - padT - padB);
+    svg.appendChild(el('rect', {
+      x: padL + i * bw + bw * 0.18, y: padT + (h - padT - padB) - bh,
+      width: bw * 0.64, height: bh, rx: 4, fill: color, opacity: 0.4 + 0.6 * (i / (data.length - 1))
+    }));
+    const t = el('text', { x: padL + i * bw + bw / 2, y: h - 6, 'text-anchor': 'middle', 'font-size': 9, fill: AXIS });
+    t.textContent = labels[i];
+    svg.appendChild(t);
+  });
+  document.getElementById(id).appendChild(svg);
+}
+
+// stacked weekly difficulty bars: [challengingPct 0..1]
+function stackChart(id, pcts, labels) {
+  const w = 330, h = 130, padL = 30, padR = 4, padT = 8, padB = 20;
+  const svg = frame(w, h);
+  const bw = (w - padL - padR) / pcts.length;
+  [0, 0.5, 1].forEach(f => {
+    const y = padT + (1 - f) * (h - padT - padB);
+    svg.appendChild(el('line', { x1: padL, x2: w - padR, y1: y, y2: y, stroke: GRID }));
+    const t = el('text', { x: padL - 6, y: y + 3.5, 'text-anchor': 'end', 'font-size': 10, fill: AXIS });
+    t.textContent = (f * 100) + '%';
+    svg.appendChild(t);
+  });
+  pcts.forEach((p, i) => {
+    const x = padL + i * bw + bw * 0.18, bwid = bw * 0.64, full = h - padT - padB;
+    svg.appendChild(el('rect', { x, y: padT, width: bwid, height: full, rx: 4, fill: '#cfd8da' }));
+    const ch = full * p;
+    svg.appendChild(el('rect', { x, y: padT + full - ch, width: bwid, height: ch, rx: 4, fill: ORANGE }));
+    const t = el('text', { x: x + bwid / 2, y: h - 6, 'text-anchor': 'middle', 'font-size': 9, fill: AXIS });
+    t.textContent = labels[i];
+    svg.appendChild(t);
+  });
+  document.getElementById(id).appendChild(svg);
+}
+
+// dual-axis progression: two series normalized to their own ranges
+function dualChart(id, s1, s2, labels) {
+  const w = 330, h = 150, padL = 30, padR = 30, padT = 12, padB = 22;
+  const svg = frame(w, h);
+  const X = i => padL + i * (w - padL - padR) / (s1.length - 1);
+  const norm = (v, min, max) => padT + (1 - (v - min) / (max - min)) * (h - padT - padB);
+  [0.33, 0.66, 1].forEach(f => {
+    const y = padT + (1 - f) * (h - padT - padB);
+    svg.appendChild(el('line', { x1: padL, x2: w - padR, y1: y, y2: y, stroke: GRID }));
+  });
+  const min1 = 0.8, max1 = 3.4, min2 = 44, max2 = 58;
+  svg.appendChild(el('polyline', { points: s1.map((v, i) => `${X(i)},${norm(v, min1, max1)}`).join(' '), fill: 'none', stroke: TEAL, 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+  s1.forEach((v, i) => svg.appendChild(el('circle', { cx: X(i), cy: norm(v, min1, max1), r: 3.5, fill: TEAL })));
+  svg.appendChild(el('polyline', { points: s2.map((v, i) => `${X(i)},${norm(v, min2, max2)}`).join(' '), fill: 'none', stroke: ORANGE, 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+  s2.forEach((v, i) => svg.appendChild(el('circle', { cx: X(i), cy: norm(v, min2, max2), r: 3.5, fill: ORANGE })));
+  // end labels
+  const l1 = el('text', { x: X(s1.length - 1) + 6, y: norm(s1[s1.length - 1], min1, max1) + 3, 'font-size': 10, 'font-weight': 700, fill: TEAL });
+  l1.textContent = s1[s1.length - 1] + 'm';
+  const l2 = el('text', { x: X(s2.length - 1) + 6, y: norm(s2[s2.length - 1], min2, max2) + 3, 'font-size': 10, 'font-weight': 700, fill: ORANGE });
+  l2.textContent = s2[s2.length - 1] + '°';
+  svg.appendChild(l1); svg.appendChild(l2);
+  labels.forEach((lab, i) => {
+    const t = el('text', { x: X(i), y: h - 6, 'text-anchor': 'middle', 'font-size': 9, fill: AXIS });
+    t.textContent = lab;
+    svg.appendChild(t);
+  });
+  document.getElementById(id).appendChild(svg);
+}
+
+function donut(id, segments) {
+  const size = 120, r = 44, cx = 60, cy = 60, circ = 2 * Math.PI * r;
+  const svg = frame(size, size);
+  let offset = 0;
+  segments.forEach(s => {
+    const len = s.pct * circ;
+    const c = el('circle', {
+      cx, cy, r, fill: 'none', stroke: s.color, 'stroke-width': 18,
+      'stroke-dasharray': `${len} ${circ - len}`, 'stroke-dashoffset': -offset,
+      transform: `rotate(-90 ${cx} ${cy})`
+    });
+    svg.appendChild(c);
+    offset += len;
+  });
+  const t = el('text', { x: cx, y: cy + 5, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 800, fill: '#2B2B2B' });
+  t.textContent = '84';
+  const t2 = el('text', { x: cx, y: cy + 19, 'text-anchor': 'middle', 'font-size': 9, fill: AXIS });
+  t2.textContent = 'sits';
+  svg.appendChild(t); svg.appendChild(t2);
+  document.getElementById(id).appendChild(svg);
+}
+
+/* ---- Cold exposure data ---- */
+lineChart('cold-duration',
+  [1.0, 1.2, 1.0, 1.5, 1.4, 1.8, 1.5, 2.0, 1.8, 2.2, 2.0, 2.5, 2.2, 2.4, 2.8, 2.5, 3.0, 2.8, 3.2, 3.0],
+  { yMin: 0.5, yMax: 3.5, yLabels: [1, 2, 3], unit: 'm' });
+
+barChart('cold-dose',
+  [9, 14, 12, 20, 24, 22, 31, 36],
+  ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8'],
+  { color: TEAL });
+
+dualChart('cold-progression',
+  [1.1, 1.6, 2.1, 2.5, 2.9],
+  [56, 54, 51, 49, 47],
+  ['Mar', 'Apr', 'May', 'Jun', 'Jul']);
+
+stackChart('cold-difficulty',
+  [0.9, 0.8, 0.75, 0.6, 0.5, 0.4, 0.25, 0.1],
+  ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']);
+
+/* ---- Meditation data ---- */
+lineChart('med-duration',
+  [5, 8, 7, 10, 10, 12, 10, 14, 12, 15, 15, 17, 15, 18, 20, 18, 22, 20, 25, 22],
+  { yMin: 0, yMax: 28, yLabels: [5, 10, 15, 20, 25], unit: 'm' });
+
+donut('med-donut', [
+  { pct: 0.55, color: '#217180' },
+  { pct: 0.25, color: '#FF5B02' },
+  { pct: 0.20, color: '#7fa8b0' }
+]);
+</script>
+
+</body>
+</html>
