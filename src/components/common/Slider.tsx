@@ -45,6 +45,12 @@ export const Slider: React.FC<Props> = ({ value, min, max, step = 1, onChange, c
     const snapped = Math.round((min + ratio * (max - min)) / step) * step;
     return clamp(snapped, min, max);
   };
+  // Same staleness trap as onChange: the PanResponder is created once, but
+  // React can reuse this Slider instance for a different field (step flows
+  // swap steps in place), changing min/max/step under us. Always read the
+  // latest closure.
+  const valueFromXRef = useRef(valueFromX);
+  valueFromXRef.current = valueFromX;
 
   const pan = useRef(
     PanResponder.create({
@@ -56,13 +62,21 @@ export const Slider: React.FC<Props> = ({ value, min, max, step = 1, onChange, c
       // whether the touch lands on the thumb, the fill, or the bare track —
       // unlike evt.locationX, which is relative to the specific child touched.
       onPanResponderGrant: (_evt, gesture) => {
-        onChangeRef.current(valueFromX(gesture.x0 - trackLeftRef.current));
-        // Refresh the cached left edge for the rest of this drag in case the
-        // screen scrolled after the last layout pass.
-        measureTrack();
+        // Re-measure before emitting: the layout-time measurement can be off
+        // if the track was mid-animation (step transitions) or the screen
+        // scrolled since the last layout pass.
+        const x0 = gesture.x0;
+        if (trackRef.current) {
+          trackRef.current.measureInWindow((x) => {
+            trackLeftRef.current = x;
+            onChangeRef.current(valueFromXRef.current(x0 - x));
+          });
+        } else {
+          onChangeRef.current(valueFromXRef.current(x0 - trackLeftRef.current));
+        }
       },
       onPanResponderMove: (_evt, gesture) => {
-        onChangeRef.current(valueFromX(gesture.moveX - trackLeftRef.current));
+        onChangeRef.current(valueFromXRef.current(gesture.moveX - trackLeftRef.current));
       },
     }),
   ).current;
