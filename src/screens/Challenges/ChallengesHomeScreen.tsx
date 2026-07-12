@@ -31,6 +31,10 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
   const totalCompleted = userProfile?.totalHabitsCompleted ?? 0;
   const unlocked = totalCompleted >= UNLOCK_AT;
   const remaining = Math.max(UNLOCK_AT - totalCompleted, 0);
+  // Programs are admin-only for now — hidden from regular users until launch.
+  // An active enrollment stays reachable regardless, so nobody gets stranded
+  // mid-program.
+  const isAdmin = userProfile?.is_admin === true;
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -200,8 +204,8 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.emptyHint}>No active challenges. Create one or browse the library to start.</Text>
       )}
 
-      {/* Programs — guided multi-day sequences */}
-      <Text style={styles.sectionLabel}>Programs</Text>
+      {/* Programs — guided multi-day sequences (admin-only for now) */}
+      {(isAdmin || program) && <Text style={styles.sectionLabel}>Programs</Text>}
       {program && (
         <ProgramCard
           program={program}
@@ -210,15 +214,17 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.navigate('ProgramDashboard', { enrollmentId: program.id })}
         />
       )}
-      <View style={styles.links}>
-        <LinkRow
-          icon="map-outline"
-          name="Explore programs"
-          desc="Guided multi-day sequences that build a skill"
-          onPress={() => navigation.navigate('ProgramDiscovery')}
-          last
-        />
-      </View>
+      {isAdmin && (
+        <View style={styles.links}>
+          <LinkRow
+            icon="map-outline"
+            name="Explore programs"
+            desc="Guided multi-day sequences that build a skill"
+            onPress={() => navigation.navigate('ProgramDiscovery')}
+            last
+          />
+        </View>
+      )}
     </ScrollView>
   );
 };
