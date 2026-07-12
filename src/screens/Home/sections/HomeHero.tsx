@@ -24,15 +24,8 @@ const formatToday = (): string =>
  */
 export const HomeHero: React.FC<HomeSectionProps> = React.memo(({ data }) => {
   const insets = useSafeAreaInsets();
-  const { habits, completedTodayIds, weeklyCounts, willpowerStats, userName } = data;
+  const { habits, weeklyCounts, willpowerStats, userName } = data;
 
-  const doneToday = useMemo(() => {
-    const set = new Set(completedTodayIds);
-    return habits.reduce((n, h) => (set.has(h.id) ? n + 1 : n), 0);
-  }, [completedTodayIds, habits]);
-
-  const total = habits.length;
-  const left = Math.max(total - doneToday, 0);
   const weeklyReps = useMemo(
     () => habits.reduce((n, h) => n + (weeklyCounts[h.id] ?? 0), 0),
     [weeklyCounts, habits]
@@ -40,12 +33,7 @@ export const HomeHero: React.FC<HomeSectionProps> = React.memo(({ data }) => {
   const streak = willpowerStats?.currentStreak ?? 0;
   const points = willpowerStats?.totalPoints ?? 0;
 
-  const sub =
-    total === 0
-      ? 'Add your first practice to start building the override muscle.'
-      : left === 0
-      ? "Every practice done today. That's the exercise. 🎯"
-      : 'Do something challenging today.';
+  const sub = 'Do something challenging today.';
 
   return (
     <View style={[styles.hero, { paddingTop: insets.top + Spacing.md }]}>
