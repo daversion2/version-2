@@ -416,13 +416,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleHabitComplete = async (input: PracticeCompletionInput) => {
     if (!user || !completingHabit) return;
     const { difficulty } = input;
+    // Log + XP all happen in the shared completePractice path. A failure here
+    // propagates to the capture flow, which re-arms its Log button and shows
+    // the error — the follow-up celebration work below stays best-effort.
+    const { pointsEarned, streakBefore, firstTry, willpower: updateResult } = await completePractice(
+      user.uid,
+      { id: completingHabit.id, name: completingHabit.name },
+      input
+    );
     try {
-      // Log + XP all happen in the shared completePractice path.
-      const { pointsEarned, streakBefore, firstTry, willpower: updateResult } = await completePractice(
-        user.uid,
-        { id: completingHabit.id, name: completingHabit.name },
-        input
-      );
       const bonusLabel = firstTry ? 'First time trying this practice — XP doubled' : null;
 
       // Optimistically flip the card to "Done today" (loadData reconciles on next focus).

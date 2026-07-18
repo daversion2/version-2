@@ -26,18 +26,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = subscribeToAuth(async (u) => {
       setUser(u);
       if (u) {
-        const profile = await getUserProfile(u.uid);
-        setUserProfile(profile);
+        try {
+          // On a fresh signup this listener fires before the profile doc is
+          // written, so a null result gets a few short retries — otherwise the
+          // navigator briefly treats the new user as fully onboarded and
+          // flashes the main app before yanking them into onboarding.
+          let profile = await getUserProfile(u.uid);
+          for (let attempt = 0; profile === null && attempt < 3; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            profile = await getUserProfile(u.uid);
+          }
+          setUserProfile(profile);
 
-        // Hydrate the practice catalog from Firestore (best-effort — the bundled
-        // defaults are already live, so a failure just keeps those).
-        loadPracticeCatalog();
+          // Hydrate the practice catalog from Firestore (best-effort — the bundled
+          // defaults are already live, so a failure just keeps those).
+          loadPracticeCatalog();
 
-        // Sync timezone on every app launch — keeps it current if user travels
-        // or if it was never set (e.g. user never enabled notifications)
-        const deviceTimezone = Localization.getCalendars()[0]?.timeZone;
-        if (deviceTimezone && deviceTimezone !== profile?.timezone) {
-          saveTimezone(u.uid, deviceTimezone).catch(() => {});
+          // Sync timezone on every app launch — keeps it current if user travels
+          // or if it was never set (e.g. user never enabled notifications)
+          const deviceTimezone = Localization.getCalendars()[0]?.timeZone;
+          if (deviceTimezone && deviceTimezone !== profile?.timezone) {
+            saveTimezone(u.uid, deviceTimezone).catch(() => {});
+          }
+        } catch (err) {
+          // Offline or transient Firestore failure — without this catch the
+          // app would stay on the boot spinner forever
+          console.warn('Failed to load user profile:', err);
+          setUserProfile(null);
         }
       } else {
         setUserProfile(null);

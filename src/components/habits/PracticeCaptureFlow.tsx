@@ -16,6 +16,7 @@ import { MindReflectionStep } from '../../screens/Home/components/MindReflection
 import { buildMindReflectionNote } from '../../data/mindTags';
 import { PracticeCompletionInput } from '../../types';
 import { getPractice, TrackingField } from '../../data/practices';
+import { showAlert } from '../../utils/alert';
 
 interface Props {
   /** Catalog id, when this is a curated practice — drives the tracking steps. */
@@ -25,7 +26,7 @@ interface Props {
   accentColor?: string;
   /** Metrics to seed the flow with — e.g. `{ duration_min }` measured by a timer. */
   initialMetrics?: Record<string, number | string>;
-  onSubmit: (input: PracticeCompletionInput) => void;
+  onSubmit: (input: PracticeCompletionInput) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -87,7 +88,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     }
   })();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selected || submittedRef.current) return;
     submittedRef.current = true;
 
@@ -98,14 +99,25 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     // count.
     const hitHardMoment = text || mindTags.length ? true : undefined;
 
-    onSubmit({
-      difficulty: selected,
-      notes: note || undefined,
-      metrics: Object.keys(metrics).length ? metrics : undefined,
-      hitHardMoment,
-      reflection: text ? { noticing: text } : undefined,
-      mindTags: mindTags.length ? mindTags : undefined,
-    });
+    try {
+      await onSubmit({
+        difficulty: selected,
+        notes: note || undefined,
+        metrics: Object.keys(metrics).length ? metrics : undefined,
+        hitHardMoment,
+        reflection: text ? { noticing: text } : undefined,
+        mindTags: mindTags.length ? mindTags : undefined,
+      });
+    } catch (err) {
+      // Re-arm the Log button — without this a failed save (e.g. offline)
+      // leaves the user stranded with a dead button and no feedback
+      submittedRef.current = false;
+      console.warn('Practice log failed:', err);
+      showAlert(
+        "Couldn't save your rep",
+        'Check your connection and tap "Log it" to try again.'
+      );
+    }
   };
 
   const goNext = () => {

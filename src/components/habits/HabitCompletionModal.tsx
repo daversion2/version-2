@@ -22,7 +22,7 @@ interface Props {
   /** Catalog id, when this is a curated practice — drives tracking + the targeted reflection. */
   practiceId?: string;
   actionPlan?: HabitActionPlan;
-  onSubmit: (input: PracticeCompletionInput) => void;
+  onSubmit: (input: PracticeCompletionInput) => void | Promise<void>;
   onCancel: () => void;
 }
 

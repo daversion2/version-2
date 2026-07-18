@@ -17,6 +17,7 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
   const { user } = useAuth();
   const navigation = useNavigation<ProgressNavigation>();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [repeatStats, setRepeatStats] = useState<ChallengeRepeatStats | null>(null);
 
@@ -24,12 +25,19 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
     useCallback(() => {
       if (!user) return;
       (async () => {
-        const c = await getChallengeById(user.uid, challengeId);
-        setChallenge(c);
-        if (c) {
-          // Fetch repeat stats for this challenge name
-          const stats = await getChallengeRepeatStats(user.uid, c.name);
-          setRepeatStats(stats);
+        try {
+          const c = await getChallengeById(user.uid, challengeId);
+          setChallenge(c);
+          setLoadFailed(c === null);
+          if (c) {
+            // Fetch repeat stats for this challenge name (non-critical)
+            try {
+              const stats = await getChallengeRepeatStats(user.uid, c.name);
+              setRepeatStats(stats);
+            } catch {}
+          }
+        } catch {
+          setLoadFailed(true);
         }
       })();
     }, [user, challengeId])
@@ -74,7 +82,12 @@ export const ChallengeDetailScreen: React.FC<Props> = ({ route }) => {
   if (!challenge) {
     return (
       <View style={styles.center}>
-        <Text style={styles.emptyText}>Loading...</Text>
+        <Text style={styles.emptyText}>
+          {loadFailed ? "Couldn't load this challenge." : 'Loading...'}
+        </Text>
+        {loadFailed && (
+          <Button title="Go Back" onPress={() => navigation.goBack()} style={styles.backButton} />
+        )}
       </View>
     );
   }
@@ -246,6 +259,7 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray },
+  backButton: { marginTop: Spacing.lg, minWidth: 160 },
   name: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xl,

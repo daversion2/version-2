@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,8 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => 
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [repeatStatsMap, setRepeatStatsMap] = useState<Record<string, ChallengeRepeatStats>>({});
+  // Guards against a double-tap on "Start Again" creating duplicate challenges
+  const reusingRef = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -49,7 +51,8 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => 
   }, [user]);
 
   const reuse = async (c: Challenge) => {
-    if (!user) return;
+    if (!user || reusingRef.current) return;
+    reusingRef.current = true;
     try {
       await createChallenge(user.uid, {
         name: c.name,
@@ -64,6 +67,8 @@ export const PastChallengesScreen: React.FC<Props> = ({ navigation, route }) => 
       navigation.popToTop();
     } catch (e: any) {
       showAlert('Error', e.message);
+    } finally {
+      reusingRef.current = false;
     }
   };
 

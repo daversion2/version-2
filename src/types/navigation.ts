@@ -205,6 +205,7 @@ export type SettingsStackParamList = {
   HowItWorks: undefined;
   EditProfile: undefined;
   WhyScreen: undefined;
+  WhyDiscoveryFlow: undefined;
 };
 
 // ============================================================================

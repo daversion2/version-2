@@ -7,6 +7,7 @@ import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
 import { ManageRewardMessagesScreen } from '../screens/Settings/ManageRewardMessagesScreen';
 import { WhyScreen } from '../screens/Home/WhyScreen';
+import { WhyDiscoveryFlow } from '../screens/Home/WhyDiscoveryFlow';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -54,6 +55,13 @@ export const SettingsStack: React.FC = () => (
       name="WhyScreen"
       component={WhyScreen}
       options={{ title: 'My Why' }}
+    />
+    {/* WhyScreen's "Start Discovery" navigates here; without this registration
+        the button is dead when My Why is opened from Settings */}
+    <Stack.Screen
+      name="WhyDiscoveryFlow"
+      component={WhyDiscoveryFlow}
+      options={{ title: '', headerShown: false }}
     />
   </Stack.Navigator>
 );
