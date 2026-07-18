@@ -36,7 +36,7 @@ export const MINDFULNESS_TIMER_SECONDS = 60;
 // Single, approachable question that seeds the 5 Whys drilling
 // ============================================================================
 
-export const OPENING_QUESTION_INTRO = `Before we set any goals or build any habits, we're going to do something most apps skip entirely — we're going to find out what actually drives you.
+export const OPENING_QUESTION_INTRO = `Before we set any goals or build any practices, we're going to do something most apps skip entirely — we're going to find out what actually drives you.
 
 This isn't a personality quiz. It's one simple question, asked a few times, that will get you to the real reason you're here. Research shows that people who are connected to their core "why" are dramatically more likely to follow through — even when motivation fades.
 
@@ -144,7 +144,7 @@ export const WHY_REFLECTION_PROMPTS = [
 // STAGE 5: GOAL CREATION INTRO
 // ============================================================================
 
-export const GOAL_INTRO_TEXT = `Now let\u2019s put your Why into action.\n\nA goal is the big thing you\u2019re working toward \u2014 everything else (challenges and habits) exists to serve it. We\u2019ll walk you through a few questions to build a real system around it.`;
+export const GOAL_INTRO_TEXT = `Now let\u2019s put your Why into action.\n\nA goal is the big thing you\u2019re working toward \u2014 everything else (challenges and practices) exists to serve it. We\u2019ll walk you through a few questions to build a real system around it.`;
 
 export const GOAL_END_DATE_PRESETS = [30, 60, 90]; // days from today
 

@@ -209,7 +209,7 @@ export interface Practice {
     /** The concrete procedure — what they're physically about to do (setup + duration). */
     whatYouDo?: string;
     /**
-     * The urge to override: when it arrives, and that not obeying it is the rep.
+     * The urge to override: when it arrives, and that not obeying it is the exercise.
      * Replaces the former `expect` + `overrideUrge` pair (they always restated
      * the same fact). Omit for practices with no difficulty spike (e.g. breathwork).
      */
@@ -285,7 +285,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     howTo: [
       'Sit upright somewhere quiet — chair or floor, eyes closed.',
       'Pick an anchor: the feeling of your breath, or a word you repeat.',
-      'When your mind wanders (it will), notice it and return to the anchor — that return is the rep.',
+      'When your mind wanders (it will), notice it and return to the anchor — that return is the exercise.',
       'Let the timer run without checking it.',
     ],
     minimumVersion: 'Two minutes watching a single breath in and out.',
@@ -354,7 +354,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     timerDisplay: 'countdown',
     ready: {
       whatYouDo: 'Sit upright somewhere quiet, eyes closed, and stay with your breath until the timer ends.',
-      override: "Urges to move, fidget, or stop will come in waves. Not acting on them is the rep.",
+      override: "Urges to move, fidget, or stop will come in waves. Not acting on them is the exercise.",
       focus: 'When your mind wanders, notice — and return to the breath. Every return counts.',
       handoffCta: 'Begin',
     },
@@ -615,7 +615,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ready: {
       whatYouDo: 'Get into a cold shower or plunge — deliberately, not inch by inch — and stay for your set time.',
       override:
-        'The first 30 seconds are the worst — your body will scream to get out, then it quiets. Not obeying that scream is the rep.',
+        'The first 30 seconds are the worst — your body will scream to get out, then it quiets. Not obeying that scream is the exercise.',
       focus: 'Long, slow exhales. Control the gasp. That’s the whole job.',
       handoffCta: 'Begin',
     },
@@ -634,7 +634,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     suggested_target_per_week: 2,
     description: 'Sauna or sustained heat — sit with the discomfort and stay calm in it.',
     whyItWorks:
-      'Heat stress drives cardiovascular and resilience adaptations; staying composed while your body wants out is the rep.',
+      'Heat stress drives cardiovascular and resilience adaptations; staying composed while your body wants out is the exercise.',
     icon: 'flame-outline',
     optional_reason: 'Needs access to a sauna or hot bath.',
     order: 6,
@@ -674,7 +674,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ready: {
       whatYouDo: 'Sit in a sauna or hot bath and let the heat build for your set time. Hydrate after.',
       override:
-        'The first minutes are easy — the urge to leave builds slowly and peaks near the end. Staying through the peak is the rep.',
+        'The first minutes are easy — the urge to leave builds slowly and peaks near the end. Staying through the peak is the exercise.',
       focus: 'Stay loose. Slow, steady breathing. Don’t fight the heat — settle into it.',
       handoffCta: 'Begin',
     },
@@ -737,7 +737,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ready: {
       whatYouDo: 'Sit with nothing — no screen, no music, no task — for your set time.',
       override:
-        "A few minutes in, you'll feel restless and reach for your phone. That pull is the whole point — leaving it face-down is the rep.",
+        "A few minutes in, you'll feel restless and reach for your phone. That pull is the whole point — leaving it face-down is the exercise.",
       focus: 'Do nothing. Let your mind wander. No input, no scrolling, no escape.',
       handoffCta: 'Phone face-down',
     },
@@ -854,7 +854,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ready: {
       whatYouDo:
         'Choose a plain, genuinely healthy option for your next meal — decided now, before the craving hits — and eat it as-is.',
-      override: 'The pull to swap it for something you’d enjoy more. Eating it plainly anyway is the rep.',
+      override: 'The pull to swap it for something you’d enjoy more. Eating it plainly anyway is the exercise.',
       focus: 'Don’t doctor it up. No sauces, no extras — sit with “not enjoyable.”',
       handoffCta: 'Begin',
     },

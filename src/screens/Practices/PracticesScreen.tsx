@@ -226,7 +226,7 @@ export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
       {SHOW_HABIT_LIBRARY && !editingHabit && (
         <TouchableOpacity style={styles.libraryBtn} onPress={() => navigation.navigate('HabitLibrary')}>
           <Ionicons name="library-outline" size={16} color={Colors.secondary} />
-          <Text style={styles.libraryBtnText}>Browse Habit Library</Text>
+          <Text style={styles.libraryBtnText}>Browse Practice Library</Text>
           <Ionicons name="chevron-forward" size={14} color={Colors.secondary} />
         </TouchableOpacity>
       )}

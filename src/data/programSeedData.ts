@@ -978,7 +978,7 @@ const dietResetColdTurkey: ProgramDay[] = [
     category: 'Physical',
     educational_title: 'You Reset More Than Your Diet',
     educational_content: 'Over 30 days, you reset your gut microbiome, recalibrated your taste buds, stabilized your blood sugar, reduced chronic inflammation, rewired your food decision-making pathways, and built a practice of discipline that transfers to everything else. You didn\'t just change what you eat. You changed how you relate to discomfort, cravings, social pressure, and yourself. That\'s the real reset.',
-    tip: 'Convert your best practices into daily habits and keep the momentum going.',
+    tip: 'Convert what worked best into daily practices and keep the momentum going.',
   },
 ];
 
@@ -1312,7 +1312,7 @@ const dietResetGradualBuild: ProgramDay[] = [
     category: 'Physical',
     educational_title: 'You Reset More Than Your Diet',
     educational_content: 'Over 30 days, you reset your gut microbiome, recalibrated your taste buds, stabilized your blood sugar, reduced chronic inflammation, rewired your food decision-making pathways, and built a practice of discipline that transfers to everything else. You didn\'t just change what you eat. You changed how you relate to discomfort, cravings, social pressure, and yourself. That\'s the real reset.',
-    tip: 'Convert your best practices into daily habits and keep the momentum going.',
+    tip: 'Convert what worked best into daily practices and keep the momentum going.',
   },
 ];
 
@@ -1651,7 +1651,7 @@ const socialMediaDetoxColdTurkey: ProgramDay[] = [
     category: 'Mind',
     educational_title: 'You Broke the Scroll',
     educational_content: 'Over 30 days, you reclaimed roughly 75 hours of your life, reduced anxiety and depression symptoms, improved your sleep, deepened your real relationships, rebuilt your attention span, and dismantled a habit loop that a trillion-dollar industry spent billions engineering. You didn\'t just take a break. You proved that the most addictive technology in human history doesn\'t own you. Whatever you decide about social media going forward, you\'re making that decision from a position of power, not dependence. That\'s the real detox.',
-    tip: 'Convert your best practices into daily habits and keep the momentum going.',
+    tip: 'Convert what worked best into daily practices and keep the momentum going.',
   },
 ];
 
@@ -1985,7 +1985,7 @@ const socialMediaDetoxGradualBuild: ProgramDay[] = [
     category: 'Mind',
     educational_title: 'You Broke the Scroll',
     educational_content: 'Over 30 days, you reclaimed roughly 75 hours of your life, reduced anxiety and comparison, improved your sleep, deepened real relationships, rebuilt your attention span, and dismantled a habit loop that a trillion-dollar industry spent billions engineering. Whatever you decide about social media going forward, you\'re deciding from a position of power, not dependence. That\'s the real detox.',
-    tip: 'Convert your best practices into daily habits and keep the momentum going.',
+    tip: 'Convert what worked best into daily practices and keep the momentum going.',
   },
 ];
 

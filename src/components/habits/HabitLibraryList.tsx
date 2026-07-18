@@ -34,7 +34,7 @@ export const HabitLibraryList: React.FC<Props> = ({
   categories,
   onSelectHabit,
   listHeader,
-  searchPlaceholder = 'Search habits',
+  searchPlaceholder = 'Search practices',
 }) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(ALL);
@@ -154,7 +154,7 @@ export const HabitLibraryList: React.FC<Props> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          <Text style={styles.empty}>No habits match your search.</Text>
+          <Text style={styles.empty}>No practices match your search.</Text>
         }
       />
     </View>

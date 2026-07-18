@@ -62,6 +62,6 @@ export const getMindPattern = async (
 export const buildMindPatternText = ({ tag, count, window }: MindPattern): string => {
   const reps = `${count} of your last ${window} reps`;
   return tag.group === 'struggle'
-    ? `${tag.label} has shown up in ${reps}. ${tag.description} Expect it today — naming it is the rep.`
+    ? `${tag.label} has shown up in ${reps}. ${tag.description} Expect it today — naming it is the exercise.`
     : `${tag.label} is becoming your default — ${reps}. Keep training it.`;
 };

@@ -75,7 +75,7 @@ export const HowItWorksScreen: React.FC = () => {
           <Text style={styles.bullet}>{'\u2022'} Each day has a specific challenge, educational content, and tips</Text>
           <Text style={styles.bullet}>{'\u2022'} Two modes: Cold Turkey (full intensity) or Gradual Build (escalating)</Text>
           <Text style={styles.bullet}>{'\u2022'} Grace days let you miss a few days without failing</Text>
-          <Text style={styles.bullet}>{'\u2022'} Complete the program to earn a badge and convert activities into habits</Text>
+          <Text style={styles.bullet}>{'\u2022'} Complete the program to earn a badge and convert activities into practices</Text>
           <Text style={styles.bullet}>{'\u2022'} Best for: breaking specific bad habits with a proven plan</Text>
         </View>
       </Card>
@@ -84,7 +84,7 @@ export const HowItWorksScreen: React.FC = () => {
       <Card style={{ ...styles.card, borderLeftWidth: 3, borderLeftColor: Colors.primary }}>
         <Text style={styles.sectionTitle}>How They Work Together</Text>
         <Text style={styles.description}>
-          Start a program to build momentum with a structured plan. Track your existing habits alongside it. Use challenges to push yourself on days you want an extra edge. When a program ends, its activities become habits — and the cycle continues.
+          Start a program to build momentum with a structured plan. Track your existing practices alongside it. Use challenges to push yourself on days you want an extra edge. When a program ends, its activities become practices — and the cycle continues.
         </Text>
         <Text style={[styles.description, { marginBottom: 0, fontStyle: 'italic' }]}>
           Everything you do earns XP, builds your streak, and grows your XP Bank.
@@ -104,7 +104,7 @@ export const HowItWorksScreen: React.FC = () => {
             {'\u2022'} Complete a challenge: 5-25 XP (based on difficulty 1-5)
           </Text>
           <Text style={styles.bullet}>
-            {'\u2022'} Complete a habit: 3-6 XP (based on difficulty)
+            {'\u2022'} Complete a practice: 3-6 XP (based on difficulty)
           </Text>
           <Text style={styles.bullet}>
             {'\u2022'} Even logging a failed challenge earns 2 XP (showing up matters)
@@ -116,7 +116,7 @@ export const HowItWorksScreen: React.FC = () => {
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>Streak Multipliers</Text>
         <Text style={styles.description}>
-          Build a streak by completing at least one challenge or habit daily. Multipliers increase your XP earnings:
+          Build a streak by completing at least one challenge or practice daily. Multipliers increase your XP earnings:
         </Text>
         <View style={styles.tierList}>
           <View style={styles.tierRow}>

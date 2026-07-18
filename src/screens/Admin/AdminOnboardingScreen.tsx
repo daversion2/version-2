@@ -299,7 +299,7 @@ export const AdminOnboardingScreen: React.FC = () => {
           <>
             {fmt('intro', 'Intro', { multiline: true })}
             {fmt('section_body', "'+ one more habit' body")}
-            <Text style={styles.fieldLabel}>Foundation habit (locked, auto-created with Day 1 logged)</Text>
+            <Text style={styles.fieldLabel}>Foundation practice (locked, auto-created with Day 1 logged)</Text>
             <Dropdown
               options={HABIT_OPTIONS}
               selected={step.content.foundation_habit_id}
@@ -312,7 +312,7 @@ export const AdminOnboardingScreen: React.FC = () => {
               }}
             />
             <InputField
-              label="Foundation habit display name"
+              label="Foundation practice display name"
               value={step.content.foundation_habit_name}
               onChangeText={set('foundation_habit_name')}
             />

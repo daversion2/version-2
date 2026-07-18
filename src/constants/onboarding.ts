@@ -12,12 +12,12 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     body: 'Every day, pick one challenge that pushes you outside your comfort zone. Small or big, it will slowly rewire your brain to be more resilient.',
   },
   {
-    title: 'Build Habits That Stick',
-    body: 'Pair your challenges with daily habits. Consistency compounds. Track your progress and build lasting discipline.',
+    title: 'Build Practices That Stick',
+    body: 'Pair your challenges with daily practices. Consistency compounds. Track your progress and build lasting discipline.',
   },
   {
     title: 'Introducing the XP Bank',
-    body: 'Every challenge and habit earns you XP based on difficulty. We use XP to track progress and gamify uncomfortable tasks. Unlock multipliers with consistency.',
+    body: 'Every challenge and practice earns you XP based on difficulty. We use XP to track progress and gamify uncomfortable tasks. Unlock multipliers with consistency.',
   },
   {
     title: 'Embrace Discomfort',

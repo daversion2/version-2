@@ -144,7 +144,7 @@ export const ProgramCompletionScreen: React.FC<Props> = ({ navigation, route }) 
         <View style={styles.habitsSection}>
           <Text style={styles.habitsTitle}>Continue the Momentum</Text>
           <Text style={styles.habitsSubtitle}>
-            Turn your program activities into daily habits to keep your progress going.
+            Turn your program activities into daily practices to keep your progress going.
           </Text>
 
           <HabitConversionList
@@ -155,7 +155,7 @@ export const ProgramCompletionScreen: React.FC<Props> = ({ navigation, route }) 
           />
 
           <Button
-            title={`Create ${selectedHabits.length} Habit${selectedHabits.length !== 1 ? 's' : ''}`}
+            title={`Create ${selectedHabits.length} Practice${selectedHabits.length !== 1 ? 's' : ''}`}
             onPress={handleCreateHabits}
             disabled={selectedHabits.length === 0}
             loading={creating}

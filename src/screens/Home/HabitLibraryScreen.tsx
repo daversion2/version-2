@@ -19,7 +19,7 @@ export const HabitLibraryScreen: React.FC<Props> = ({ navigation }) => {
         <Ionicons name="albums-outline" size={20} color={Colors.secondary} />
       </View>
       <View style={styles.exploreTextWrap}>
-        <Text style={styles.exploreTitle}>Explore traditional habits</Text>
+        <Text style={styles.exploreTitle}>Explore traditional practices</Text>
         <Text style={styles.exploreSubtitle}>
           The classic everyday staples — water, exercise, reading, and more.
         </Text>

@@ -16,7 +16,7 @@ export const RULE_FACTS = {
   days_since_last_activity: 'Days since last activity',
   current_streak: 'Current streak (days)',
   total_willpower_points: 'Total XP',
-  total_habits_completed: 'Habits completed (lifetime)',
+  total_habits_completed: 'Practices completed (lifetime)',
   app_open_count: 'App opens (lifetime)',
   days_since_signup: 'Days since signup',
   active_goal_count: 'Active goals',
@@ -55,7 +55,7 @@ export const RULE_EVENTS: { value: RuleEvent; label: string }[] = [
   { value: 'challenge_failed', label: 'Challenge failed' },
   { value: 'micro_commitment_followup', label: 'Micro-commitment follow-up' },
   { value: 'app_open', label: 'App open' },
-  { value: 'habit_completed', label: 'Habit completed' },
+  { value: 'habit_completed', label: 'Practice completed' },
   { value: 'reflection_saved', label: 'Reflection saved' },
 ];
 
@@ -107,7 +107,7 @@ export interface RuleCtaTarget {
  */
 export const CTA_SCREEN_TARGETS: { value: string; label: string }[] = [
   { value: 'StartChallenge', label: 'Start a challenge' },
-  { value: 'ManageHabits', label: 'Manage habits' },
+  { value: 'ManageHabits', label: 'Manage practices' },
   { value: 'NightlyReflection', label: 'Nightly reflection' },
   { value: 'JourneyCheckin', label: 'Journey check-in (day 14/28)' },
   { value: 'ProgramDiscovery', label: 'Programs' },

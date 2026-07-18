@@ -19,7 +19,7 @@ describe('Onboarding Steps', () => {
 
   it('has correct step titles in order', () => {
     expect(ONBOARDING_STEPS[0].title).toBe('Challenge Yourself Daily');
-    expect(ONBOARDING_STEPS[1].title).toBe('Build Habits That Stick');
+    expect(ONBOARDING_STEPS[1].title).toBe('Build Practices That Stick');
     expect(ONBOARDING_STEPS[2].title).toBe('Introducing the XP Bank');
     expect(ONBOARDING_STEPS[3].title).toBe('Embrace the Suck');
   });
@@ -32,7 +32,7 @@ describe('Onboarding Steps', () => {
 
   it('second step introduces habits', () => {
     const step = ONBOARDING_STEPS[1];
-    expect(step.body).toContain('habits');
+    expect(step.body).toContain('practices');
     expect(step.body).toContain('discipline');
   });
 

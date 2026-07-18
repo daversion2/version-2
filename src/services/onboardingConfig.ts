@@ -63,7 +63,7 @@ export const STEP_TYPE_LABELS: Record<OnboardingStepType, string> = {
   bridge: 'Bridge',
   text_page: 'Info page',
   mantra_picker: 'Mantra picker',
-  habit_picker: 'Habit picker',
+  habit_picker: 'Practice picker',
   practice_picker: 'Practice picker',
   checkin: 'Baseline check-in',
   reveal: 'Send-off',

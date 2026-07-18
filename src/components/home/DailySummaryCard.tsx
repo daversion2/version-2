@@ -20,19 +20,19 @@ function buildComparisonMessages(summary: DailySummary): ComparisonMessage[] {
   const messages: ComparisonMessage[] = [];
 
   if (c.habits_more_vs_last_week) {
-    messages.push({ text: `You did ${c.habits_more_vs_last_week} more habit${c.habits_more_vs_last_week === 1 ? '' : 's'} this week than last week` });
+    messages.push({ text: `You did ${c.habits_more_vs_last_week} more practice${c.habits_more_vs_last_week === 1 ? '' : 's'} this week than last week` });
   }
   if (c.challenges_more_vs_last_week) {
     messages.push({ text: `You completed ${c.challenges_more_vs_last_week} more challenge${c.challenges_more_vs_last_week === 1 ? '' : 's'} this week than last week` });
   }
   if (c.habits_more_vs_last_month) {
-    messages.push({ text: `You've done ${c.habits_more_vs_last_month} more habit${c.habits_more_vs_last_month === 1 ? '' : 's'} this month than last month` });
+    messages.push({ text: `You've done ${c.habits_more_vs_last_month} more practice${c.habits_more_vs_last_month === 1 ? '' : 's'} this month than last month` });
   }
   if (c.challenges_more_vs_last_month) {
     messages.push({ text: `You've done ${c.challenges_more_vs_last_month} more challenge${c.challenges_more_vs_last_month === 1 ? '' : 's'} this month than last month` });
   }
   if (c.habits_more_vs_yesterday) {
-    messages.push({ text: `You did ${c.habits_more_vs_yesterday} more habit${c.habits_more_vs_yesterday === 1 ? '' : 's'} today than yesterday` });
+    messages.push({ text: `You did ${c.habits_more_vs_yesterday} more practice${c.habits_more_vs_yesterday === 1 ? '' : 's'} today than yesterday` });
   }
   if (c.challenges_more_vs_yesterday) {
     messages.push({ text: `You completed ${c.challenges_more_vs_yesterday} more challenge${c.challenges_more_vs_yesterday === 1 ? '' : 's'} today than yesterday` });

@@ -12,7 +12,7 @@ export const TraditionalHabitsScreen: React.FC<Props> = ({ navigation }) => (
   <HabitLibraryList
     habits={TRADITIONAL_HABIT_LIBRARY}
     categories={TRADITIONAL_HABIT_CATEGORIES}
-    searchPlaceholder="Search traditional habits"
+    searchPlaceholder="Search traditional practices"
     onSelectHabit={(habitId) =>
       navigation.navigate('HabitLibraryDetail', { habitId })
     }

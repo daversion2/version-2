@@ -351,7 +351,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       <Text style={styles.sectionTitle}>Override & briefing</Text>
       <Field label="Resistance moment (optional)" value={resistanceMoment} onChange={setResistanceMoment} multiline hint="The signature 'get-out' urge, e.g. 'the cold hit and everything said get out'" />
       <Field label="Ready · What you'll do (optional)" value={readyWhatYouDo} onChange={setReadyWhatYouDo} multiline hint="The concrete procedure — setup + duration, 1–2 sentences." />
-      <Field label="Ready · The override (optional)" value={readyOverride} onChange={setReadyOverride} multiline hint="The urge: when it arrives, and that not obeying it is the rep. Omit if no difficulty spike." />
+      <Field label="Ready · The override (optional)" value={readyOverride} onChange={setReadyOverride} multiline hint="The urge: when it arrives, and that not obeying it is the exercise. Omit if no difficulty spike." />
       <Field label="Ready · Focus" value={readyFocus} onChange={setReadyFocus} multiline hint="Required to show a briefing. The one anchor/technique to hold onto." />
       <Field label="Ready · Handoff button (optional)" value={readyCta} onChange={setReadyCta} hint='e.g. "Begin" / "Put your phone down"' />
 
