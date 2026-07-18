@@ -248,24 +248,48 @@ export const daysBetween = (todayLocal: string, pastDate: string): number => {
   return Math.round((today - past) / (1000 * 60 * 60 * 24));
 };
 
+/**
+ * Convert an ISO timestamp to a YYYY-MM-DD date in the given timezone.
+ * Falls back to the UTC date when no timezone is available.
+ */
+export const isoDateInZone = (iso: string, timezone?: string): string => {
+  if (!timezone || !String(iso).includes("T")) return String(iso).slice(0, 10);
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    return String(iso).slice(0, 10);
+  }
+};
+
 /** Compute rule facts from a raw user document. */
 export const buildUserFacts = (
   userData: Record<string, any>,
   todayLocal: string,
   localHour: number,
-  extras?: RuleFacts
+  extras?: RuleFacts,
+  timezone?: string
 ): RuleFacts => {
-  // Fall back to signup date so brand-new users aren't treated as long-dormant
-  const lastActivity: string | null =
-    userData.lastActivityDate ||
-    (userData.created_at ? String(userData.created_at).slice(0, 10) : null);
   const signupDate: string | null = userData.created_at
-    ? String(userData.created_at).slice(0, 10)
+    ? isoDateInZone(String(userData.created_at), timezone)
     : null;
+  // Fall back to signup date so brand-new users aren't treated as long-dormant
+  const lastActivity: string | null = userData.lastActivityDate || signupDate;
+
+  // The stored streak is only updated on completions, so it goes stale during
+  // an absence — treat it as 0 once the last activity is more than a day old.
+  const streakAlive =
+    userData.lastActivityDate && daysBetween(todayLocal, userData.lastActivityDate) <= 1;
 
   return {
     days_since_last_activity: lastActivity ? daysBetween(todayLocal, lastActivity) : 0,
-    current_streak: userData.currentStreak || 0,
+    current_streak: streakAlive ? userData.currentStreak || 0 : 0,
     total_willpower_points: userData.totalWillpowerPoints || 0,
     total_habits_completed: userData.totalHabitsCompleted || 0,
     app_open_count: userData.app_open_count || 0,

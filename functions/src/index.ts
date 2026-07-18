@@ -23,89 +23,38 @@ const expo = new Expo();
 // Global kill switch for push notifications — set to false to disable all sends
 const PUSH_NOTIFICATIONS_ENABLED = true;
 
-// Common timezones to check against for hourly scheduled functions.
-// Firestore 'in' queries support up to 30 values, so we can include all major zones.
-const COMMON_TIMEZONES = [
-  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
-  "America/Phoenix", "America/Anchorage", "Pacific/Honolulu", "America/Toronto",
-  "America/Vancouver", "America/Edmonton", "America/Winnipeg", "America/Halifax",
-  "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Rome",
-  "Europe/Madrid", "Europe/Amsterdam", "Europe/Stockholm", "Europe/Zurich",
-  "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Asia/Dubai",
-  "Australia/Sydney", "Australia/Melbourne", "Australia/Perth",
-  "Pacific/Auckland", "America/Sao_Paulo", "America/Mexico_City",
-];
-
 /**
- * Returns the list of timezones where the current hour matches `targetHour`.
- * Used to pre-filter users by timezone in scheduled functions instead of
- * fetching all users and checking the hour in a loop.
- */
-const getTimezonesAtHour = (targetHour: number): string[] => {
-  return COMMON_TIMEZONES.filter((tz) => getHourInTimezone(tz) === targetHour);
-};
-
-/**
- * Fetch only users whose timezone is currently at the given hour and who have
- * a push token. Falls back to fetching users with the default timezone
- * ("America/New_York") if no matching timezones are found.
- *
- * Uses Firestore 'in' query (max 30 values) to avoid reading every user doc.
+ * Fetch users whose local time is currently at the given hour. Fetches all
+ * user docs and computes the hour per-user from their IANA timezone string,
+ * so any timezone works (a whitelist-based 'in' query silently excluded
+ * users in unlisted zones). Users with a missing or invalid timezone are
+ * treated as America/New_York, matching the rest of the codebase.
  */
 const getUsersAtHour = async (
   targetHour: number
 ): Promise<admin.firestore.QueryDocumentSnapshot[]> => {
-  const matchingTimezones = getTimezonesAtHour(targetHour);
-  if (matchingTimezones.length === 0) return [];
-
-  // Firestore 'in' supports up to 30 values — we stay under that limit
-  const chunks: string[][] = [];
-  for (let i = 0; i < matchingTimezones.length; i += 30) {
-    chunks.push(matchingTimezones.slice(i, i + 30));
-  }
-
-  const allDocs: admin.firestore.QueryDocumentSnapshot[] = [];
-  for (const chunk of chunks) {
-    const snap = await db
-      .collection("users")
-      .where("timezone", "in", chunk)
-      .get();
-    allDocs.push(...snap.docs);
-  }
-
-  // Also include users with no timezone set, defaulting them to America/New_York
-  if (matchingTimezones.includes("America/New_York")) {
-    const noTzSnap = await db
-      .collection("users")
-      .where("timezone", "==", null)
-      .get();
-    allDocs.push(...noTzSnap.docs);
-
-    // Also catch users where timezone field doesn't exist (empty string)
-    const emptyTzSnap = await db
-      .collection("users")
-      .where("timezone", "==", "")
-      .get();
-    allDocs.push(...emptyTzSnap.docs);
-  }
-
-  return allDocs;
+  const snap = await db.collection("users").get();
+  return snap.docs.filter((d) => {
+    const tz = (d.data().timezone as string) || "America/New_York";
+    let hour = getHourInTimezone(tz);
+    if (hour < 0) hour = getHourInTimezone("America/New_York");
+    return hour === targetHour;
+  });
 };
 
-// Helper to get today's date in YYYY-MM-DD format for a specific timezone
-const getDateInTimezone = (timezone: string): string => {
+// Helper to get a date (default: now) in YYYY-MM-DD format for a specific timezone
+const getDateInTimezone = (timezone: string, date: Date = new Date()): string => {
   try {
-    const now = new Date();
     const formatter = new Intl.DateTimeFormat("en-CA", {
       timeZone: timezone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     });
-    return formatter.format(now); // Returns YYYY-MM-DD
+    return formatter.format(date); // Returns YYYY-MM-DD
   } catch {
     // Fallback to UTC if timezone is invalid
-    return new Date().toISOString().split("T")[0];
+    return date.toISOString().split("T")[0];
   }
 };
 
@@ -316,7 +265,7 @@ const fireEventRuleForUser = async (
   const localHour = getHourInTimezone(timezone);
   if (localHour < 0) return false; // invalid timezone
   const todayLocal = getDateInTimezone(timezone);
-  const facts = buildUserFacts(userData, todayLocal, localHour);
+  const facts = buildUserFacts(userData, todayLocal, localHour, undefined, timezone);
 
   if (!ruleMatches(rule, facts)) {
     console.log(`Rule "${rule.name}" conditions not met for user ${userId}`);
@@ -454,9 +403,13 @@ export const checkMicroCommitmentFollowUps = onSchedule(
         for (const exerciseDoc of exercisesSnapshot.docs) {
           const exercise = exerciseDoc.data();
 
-          // Only process entries completed yesterday
+          // Only process entries completed yesterday — completed_at is a UTC
+          // timestamp, so convert it to the user's local date before comparing
           if (!exercise.completed_at) continue;
-          const completedDate = (exercise.completed_at as string).split("T")[0];
+          const completedDate = getDateInTimezone(
+            timezone,
+            new Date(exercise.completed_at as string)
+          );
           if (completedDate !== yesterday) continue;
 
           const commitment = exercise.micro_commitment as string | undefined;
@@ -613,7 +566,7 @@ export const evaluatePushRules = onSchedule(
         const localHour = getHourInTimezone(timezone);
         if (localHour < 0) continue; // invalid timezone
         const todayLocal = getDateInTimezone(timezone);
-        const facts = buildUserFacts(userData, todayLocal, localHour);
+        const facts = buildUserFacts(userData, todayLocal, localHour, undefined, timezone);
 
         for (const rule of rules) {
           if (!ruleMatches(rule, facts)) continue;

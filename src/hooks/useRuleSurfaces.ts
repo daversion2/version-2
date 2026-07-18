@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import * as Localization from 'expo-localization';
 import { useAuth } from '../context/AuthContext';
 import { Rule, RuleEvent, RuleFacts } from '../types/rules';
 import { buildUserFacts } from '../services/rulesEngine';
@@ -42,7 +43,8 @@ export const useRuleSurfaces = (event: RuleEvent, holdModal: boolean) => {
           userProfile as unknown as Record<string, any>,
           getTodayString(),
           new Date().getHours(),
-          extras
+          extras,
+          Localization.getCalendars()[0]?.timeZone ?? undefined
         );
         const rules = await evaluateRulesForUser(user.uid, event, facts);
         const profile = userProfile as unknown as Record<string, any>;
