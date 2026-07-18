@@ -150,11 +150,17 @@ export const upsertPracticeCatalogItem = async (practice: Practice): Promise<voi
   const ready = practice.ready?.override
     ? { ...practice.ready, overrideUrge: practice.ready.override }
     : practice.ready;
-  await setDoc(doc(db, COLLECTION, practice.id), {
-    ...practice,
-    ...(ready ? { ready } : {}),
-    updated_at: new Date().toISOString(),
-  });
+  // Firestore rejects `undefined` field values outright; practices assembled
+  // from spreads (admin editor, validatePractice) can carry explicitly-
+  // undefined optional fields, so prune them (at any depth) before writing.
+  const data = JSON.parse(
+    JSON.stringify({
+      ...practice,
+      ...(ready ? { ready } : {}),
+      updated_at: new Date().toISOString(),
+    })
+  );
+  await setDoc(doc(db, COLLECTION, practice.id), data);
 };
 
 /** Retire / restore a practice without deleting it (keeps adopted instances working). */
