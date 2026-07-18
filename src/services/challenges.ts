@@ -15,7 +15,7 @@ import {
   getCountFromServer,
   increment,
 } from 'firebase/firestore';
-import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats } from './willpower';
+import { subtractWillpowerPoints, adjustWillpowerPoints, recalculateUserStats, updateWillpowerStats } from './willpower';
 import { db } from './firebase';
 import { Challenge, ChallengeStatus, CompletionLog, ChallengeMilestone, ChallengeRepeatStats, ActionType, ArenaId } from '../types';
 import { getTodayString } from '../utils/date';
@@ -218,11 +218,14 @@ export const completeChallenge = async (
   result: {
     status: 'completed' | 'failed';
     difficulty_actual: number;
+    /** The XP actually credited to the user (streak multiplier / failed-challenge
+     *  rate included). Stored so deletions subtract what was really awarded. */
+    points_awarded?: number;
     reflection_note?: string;
     failure_reflection?: string;
   }
 ) => {
-  const points = result.difficulty_actual;
+  const points = result.points_awarded ?? result.difficulty_actual;
   const ref = doc(db, 'users', userId, 'challenges', challengeId);
 
   // Get the challenge to access its name for repeat stats
@@ -378,8 +381,11 @@ export const updateChallengeCompletion = async (
   const challenge = challengeSnap.data() as Challenge;
   const oldPoints = challenge.points_awarded || 0;
 
-  // New points = new difficulty (base points are difficulty_actual)
-  const newPoints = newDifficultyActual;
+  // Preserve whatever streak multiplier was applied at completion time by
+  // scaling the new difficulty with the original points-per-difficulty ratio
+  const oldDifficulty = challenge.difficulty_actual || 0;
+  const ratio = oldDifficulty > 0 && oldPoints > 0 ? oldPoints / oldDifficulty : 1;
+  const newPoints = Math.round(newDifficultyActual * ratio);
   const pointsDelta = newPoints - oldPoints;
 
   // 2. Update challenge document
@@ -465,11 +471,18 @@ export const completeExtendedChallenge = async (
   const challenge = await getChallengeById(userId, challengeId);
   if (!challenge) throw new Error('Challenge not found');
 
-  // Calculate points: sum of daily points awarded + completion bonus
+  // Calculate points: sum of daily points awarded + completion bonus.
+  // Daily points were already credited live at each check-in, so only the
+  // completion bonus is credited here; points_awarded records the full sum
+  // so a later deletion subtracts exactly what the challenge granted.
   const completedMilestones = challenge.milestones?.filter(m => m.completed && m.succeeded) || [];
   const dailyPointsTotal = completedMilestones.reduce((sum, m) => sum + (m.points_awarded || 1), 0);
   const completionBonus = result.status === 'completed' ? result.difficulty_actual : 0;
   const points = dailyPointsTotal + completionBonus;
+
+  if (completionBonus > 0) {
+    await updateWillpowerStats(userId, completionBonus);
+  }
 
   const ref = doc(db, 'users', userId, 'challenges', challengeId);
 

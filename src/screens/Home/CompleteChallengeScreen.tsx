@@ -171,9 +171,18 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       const trimmedJournal = journalEntry.trim();
       const trimmedFailureReflection = failureReflection.trim();
 
+      // Compute the XP up front so the stored points_awarded matches what is
+      // actually credited below (streak multiplier / failed-challenge rate)
+      const stats = await getWillpowerStats(user.uid);
+      const pointsEarned =
+        result === 'completed'
+          ? calculateChallengePoints(difficulty, stats.currentStreak)
+          : calculateFailedChallengePoints(stats.currentStreak);
+
       await completeChallenge(user.uid, challenge.id, {
         status: result,
         difficulty_actual: difficulty,
+        points_awarded: pointsEarned,
         reflection_note: result === 'completed' ? trimmedJournal : undefined,
         failure_reflection: result === 'failed' ? trimmedFailureReflection : undefined,
       });
@@ -196,14 +205,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         }
       }
 
-      // Calculate and award XP (reflection is optional and never affects points)
-      const stats = await getWillpowerStats(user.uid);
-
-      const pointsEarned =
-        result === 'completed'
-          ? calculateChallengePoints(difficulty, stats.currentStreak)
-          : calculateFailedChallengePoints(stats.currentStreak);
-
+      // Award XP (reflection is optional and never affects points)
       const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
 
       // --- Prepare reward moment ---

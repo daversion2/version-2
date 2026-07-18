@@ -121,7 +121,8 @@ export const ExtendedChallengeProgressScreen: React.FC<Props> = ({ route, naviga
         setLoading(true);
         try {
           await completeExtendedChallenge(user.uid, challenge.id, {
-            status: 'completed',
+            // Only count it as completed if every day was actually a success
+            status: successfulMilestones === totalMilestones ? 'completed' : 'failed',
             difficulty_actual: challenge.difficulty_expected,
           });
           showAlert('Challenge Ended', 'Your progress has been saved.', () => {
