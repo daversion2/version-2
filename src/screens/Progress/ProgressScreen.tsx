@@ -32,13 +32,14 @@ import { OverrideScoreCard } from '../../components/progress/OverrideScoreCard';
 import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
 import { TrainingQualityCard } from '../../components/progress/TrainingQualityCard';
 import { ProgressNavigation } from '../../types/navigation';
+import { toLocalDateString } from '../../utils/date';
 
 function getStartDateForFilter(filter: TimeFilter): string | undefined {
   if (filter === 'all') return undefined;
   const days = filter === '7d' ? 7 : filter === '30d' ? 30 : 90;
   const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().split('T')[0];
+  d.setDate(d.getDate() - (days - 1));
+  return toLocalDateString(d);
 }
 
 export const ProgressScreen: React.FC = () => {

@@ -11,6 +11,7 @@ import {
 import { db } from './firebase';
 import { ProofPoint } from '../types';
 import { updateWillpowerStats } from './willpower';
+import { getTodayString } from '../utils/date';
 
 const PROOF_POINT_POINTS = 2;
 
@@ -44,7 +45,7 @@ export const saveProofPoint = async (
     reference_id: docRef.id,
     points: PROOF_POINT_POINTS,
     difficulty: 1,
-    date: now.split('T')[0],
+    date: getTodayString(),
   });
 
   return { id: docRef.id, pointsAwarded: PROOF_POINT_POINTS };

@@ -99,7 +99,7 @@ export const saveWorksheetEntry = async (
   const docRef = await addDoc(worksheetsRef(userId), entryDoc);
 
   if (!data.is_draft && pointsAwarded > 0) {
-    void awardWillpowerAndLog(userId, docRef.id, pointsAwarded, now.split('T')[0]);
+    void awardWillpowerAndLog(userId, docRef.id, pointsAwarded, getTodayString());
   }
 
   return { id: docRef.id, pointsAwarded };
@@ -270,7 +270,7 @@ export const saveMicroExerciseEntry = async (
 
   const docRef = await addDoc(worksheetsRef(userId), entryDoc);
 
-  void awardWillpowerAndLog(userId, docRef.id, pointsAwarded, now.split('T')[0]);
+  void awardWillpowerAndLog(userId, docRef.id, pointsAwarded, getTodayString());
 
   return { id: docRef.id, pointsAwarded };
 };

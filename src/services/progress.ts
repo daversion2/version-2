@@ -8,7 +8,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
-import { getTodayString } from '../utils/date';
+import { getTodayString, getYesterdayString, toLocalDateString } from '../utils/date';
 import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './practices';
 import { db } from './firebase';
 import { CompletionLog, Challenge, PracticeInstance } from '../types';
@@ -84,7 +84,7 @@ export const getCompletionLogs = async (
 export const calculateWPQ = async (userId: string): Promise<number> => {
   const tenDaysAgo = new Date();
   tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-  const startDate = tenDaysAgo.toISOString().split('T')[0];
+  const startDate = toLocalDateString(tenDaysAgo);
   const today = getTodayString();
 
   const snap = await getDocs(query(challengesRef(userId)));
@@ -112,13 +112,15 @@ export const calculateStreak = async (userId: string): Promise<number> => {
   ].sort().reverse();
 
   let streak = 0;
-  const today = new Date();
+  const start = new Date();
+  if (dates[0] === getYesterdayString()) {
+    start.setDate(start.getDate() - 1);
+  }
 
   for (let i = 0; i < dates.length; i++) {
-    const expected = new Date(today);
+    const expected = new Date(start);
     expected.setDate(expected.getDate() - i);
-    const expectedStr = expected.toISOString().split('T')[0];
-    if (dates[i] === expectedStr) {
+    if (dates[i] === toLocalDateString(expected)) {
       streak++;
     } else {
       break;
@@ -198,7 +200,7 @@ export const get7DayCompletionRate = async (
 ): Promise<{ rate: number; activeDays: number; totalDays: 7 }> => {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-  const startDate = sevenDaysAgo.toISOString().split('T')[0];
+  const startDate = toLocalDateString(sevenDaysAgo);
   const today = getTodayString();
   const logs = await getCompletionLogs(userId, startDate, today);
   const activeDays = new Set(logs.map((l) => l.date)).size;
@@ -216,15 +218,15 @@ export const getWeekComparison = async (
 
   const thisMonday = new Date(now);
   thisMonday.setDate(now.getDate() + mondayOffset);
-  const thisMondayStr = thisMonday.toISOString().split('T')[0];
-  const todayStr = now.toISOString().split('T')[0];
+  const thisMondayStr = toLocalDateString(thisMonday);
+  const todayStr = toLocalDateString(now);
 
   const lastMonday = new Date(thisMonday);
   lastMonday.setDate(thisMonday.getDate() - 7);
-  const lastMondayStr = lastMonday.toISOString().split('T')[0];
+  const lastMondayStr = toLocalDateString(lastMonday);
   const lastSunday = new Date(thisMonday);
   lastSunday.setDate(thisMonday.getDate() - 1);
-  const lastSundayStr = lastSunday.toISOString().split('T')[0];
+  const lastSundayStr = toLocalDateString(lastSunday);
 
   let thisWeek = 0;
   let lastWeek = 0;
@@ -240,9 +242,9 @@ export const getWeekComparison = async (
   const sortedDates = [...dateCountMap.keys()].sort();
   let bestWeek = thisWeek;
   for (const startStr of sortedDates) {
-    const windowEnd = new Date(startStr);
+    const windowEnd = new Date(startStr + 'T00:00:00');
     windowEnd.setDate(windowEnd.getDate() + 6);
-    const windowEndStr = windowEnd.toISOString().split('T')[0];
+    const windowEndStr = toLocalDateString(windowEnd);
     const count = allLogs.filter((l) => l.date >= startStr && l.date <= windowEndStr).length;
     if (count > bestWeek) bestWeek = count;
   }
@@ -337,7 +339,7 @@ export const getActivityTrendByWeek = async (
     const mondayOffset = day === 0 ? -6 : 1 - day;
     const monday = new Date(d);
     monday.setDate(d.getDate() + mondayOffset);
-    const weekStart = monday.toISOString().split('T')[0];
+    const weekStart = toLocalDateString(monday);
     weekMap.set(weekStart, (weekMap.get(weekStart) || 0) + 1);
   });
 

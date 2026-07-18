@@ -1,7 +1,7 @@
 import { doc, getDoc, setDoc, collection, getDocs, query, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import { STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
-import { getTodayString } from '../utils/date';
+import { getTodayString, getYesterdayString, toLocalDateString } from '../utils/date';
 
 // Get the streak multiplier based on current streak days
 export const getStreakMultiplier = (streakDays: number): number => {
@@ -102,11 +102,7 @@ export const updateWillpowerStats = async (
     } else if (lastActivityDate === today) {
       newStreak = currentStreak;
     } else {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-      if (lastActivityDate === yesterdayStr) {
+      if (lastActivityDate === getYesterdayString()) {
         newStreak = currentStreak + 1;
       } else {
         newStreak = 1;
@@ -155,9 +151,7 @@ export const getWillpowerStats = async (
   let validStreak = currentStreak;
   if (lastActivityDate) {
     const today = getTodayString();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = getYesterdayString();
 
     if (lastActivityDate !== today && lastActivityDate !== yesterdayStr) {
       // Streak has expired
@@ -248,15 +242,17 @@ export const recalculateUserStats = async (userId: string): Promise<{
     ...new Set(snap.docs.map((d) => d.data().date as string)),
   ].sort().reverse();
 
-  // Calculate streak
+  // Calculate streak — a streak whose most recent day is yesterday is still alive
   let streak = 0;
-  const today = new Date();
+  const start = new Date();
+  if (dates[0] === getYesterdayString()) {
+    start.setDate(start.getDate() - 1);
+  }
 
   for (let i = 0; i < dates.length; i++) {
-    const expected = new Date(today);
+    const expected = new Date(start);
     expected.setDate(expected.getDate() - i);
-    const expectedStr = expected.toISOString().split('T')[0];
-    if (dates[i] === expectedStr) {
+    if (dates[i] === toLocalDateString(expected)) {
       streak++;
     } else {
       break;

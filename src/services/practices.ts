@@ -13,6 +13,7 @@ import { db } from './firebase';
 import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
 import { PracticeGroup, getDefaultSeedPractices, getAllPractices } from '../data/practices';
 import { getWillpowerStats, calculateHabitPoints, updateWillpowerStats } from './willpower';
+import { toLocalDateString } from '../utils/date';
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -173,7 +174,7 @@ export const logHabitCompletion = async (
 ) => {
   const points = difficulty === 'easy' ? 1 : 2;
   const now = new Date();
-  const logDate = date || now.toISOString().split('T')[0];
+  const logDate = date || toLocalDateString(now);
 
   const logData: Record<string, any> = {
     user_id: userId,
