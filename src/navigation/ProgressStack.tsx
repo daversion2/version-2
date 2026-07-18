@@ -9,6 +9,7 @@ import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScre
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ExtendedChallengeProgressScreen } from '../screens/Home/ExtendedChallengeProgressScreen';
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
+import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { CreateChallengeScreen } from '../screens/Home/CreateChallengeScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
@@ -64,6 +65,11 @@ export const ProgressStack: React.FC = () => (
       name="HabitDetail"
       component={MyPracticeDetailScreen}
       options={{ title: 'Practice Detail' }}
+    />
+    <Stack.Screen
+      name="HabitActionPlan"
+      component={HabitActionPlanScreen}
+      options={{ title: 'Action Plan' }}
     />
     <Stack.Screen
       name="ProgramDashboard"

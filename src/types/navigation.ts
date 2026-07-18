@@ -170,6 +170,7 @@ export type ProgressStackParamList = {
   CompleteChallenge: { challenge: Challenge };
   ExtendedChallengeProgress: { challenge: Challenge };
   HabitDetail: { habitId: string };
+  HabitActionPlan: HomeStackParamList['HabitActionPlan'];
   ProgramDashboard: { enrollmentId: string };
   CreateChallenge: { forDate?: string } | undefined;
   ManageHabits: undefined;
