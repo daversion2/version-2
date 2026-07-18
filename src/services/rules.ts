@@ -166,6 +166,9 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     conditions: [
       { fact: 'current_streak', op: '==', value: 0 },
       { fact: 'active_habit_count', op: '>=', value: 1 },
+      // A zero streak alone also matches brand-new users who just finished
+      // onboarding; require a real absence so this only fires for lapses.
+      { fact: 'days_since_last_activity', op: '>=', value: 2 },
     ],
     frequency: { type: 'once_per_day' },
     // Above generic app_open modals: a broken streak beats announcements.
