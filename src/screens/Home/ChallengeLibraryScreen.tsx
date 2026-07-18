@@ -13,7 +13,6 @@ import { useAuth } from '../../context/AuthContext';
 import {
   getLibraryChallenges,
   getActionTypeCounts,
-  getBeginnerChallenges,
   ChallengeFilters,
 } from '../../services/challengeLibrary';
 import { createChallenge } from '../../services/challenges';
@@ -43,7 +42,6 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
 
   // Data states
   const [allChallenges, setAllChallenges] = useState<LibraryChallenge[]>([]);
-  const [beginnerChallenges, setBeginnerChallenges] = useState<LibraryChallenge[]>([]);
   const [actionCounts, setActionCounts] = useState<Record<string, number>>({});
 
   // Filter states
@@ -64,15 +62,13 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
   // Load data
   const loadData = useCallback(async () => {
     try {
-      const [challenges, counts, beginners] = await Promise.all([
+      const [challenges, counts] = await Promise.all([
         getLibraryChallenges(currentFilters),
         getActionTypeCounts(currentFilters),
-        getBeginnerChallenges(currentFilters),
       ]);
 
       setAllChallenges(challenges);
       setActionCounts(counts);
-      setBeginnerChallenges(beginners.slice(0, 5)); // Limit to 5 beginner challenges
     } catch (err) {
       console.error('Failed to load challenge library:', err);
       showAlert('Error', 'Failed to load challenge library');
@@ -202,24 +198,6 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
 
         {/* Browse All Link */}
         <Text style={styles.browseAllText}>{LIBRARY_UI_TEXT.browseAllLink}</Text>
-
-        {/* Beginner Friendly Section */}
-        {beginnerChallenges.length > 0 && (
-          <View style={styles.challengeSection}>
-            <Text style={styles.sectionTitle}>{LIBRARY_UI_TEXT.beginnerSectionTitle}</Text>
-            <View style={styles.challengeList}>
-              {beginnerChallenges.map((challenge) => (
-                <View key={challenge.id} style={styles.challengeCardWrapper}>
-                  <LibraryChallengeCard
-                    challenge={challenge}
-                    onPress={() => handleChallengePress(challenge)}
-                    showDescription
-                  />
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* All Challenges Section */}
         <View style={styles.challengeSection}>

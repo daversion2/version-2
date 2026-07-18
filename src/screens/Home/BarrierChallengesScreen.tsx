@@ -12,7 +12,6 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import {
   getChallengesByActionType,
-  groupChallengesByDifficulty,
   ChallengeFilters,
 } from '../../services/challengeLibrary';
 import { createChallenge } from '../../services/challenges';
@@ -147,34 +146,7 @@ export const ActionChallengesScreen: React.FC<Props> = ({ route, navigation }) =
     );
   }
 
-  // Group challenges by difficulty
-  const grouped = groupChallengesByDifficulty(challenges);
   const hasNoResults = challenges.length === 0;
-
-  const renderChallengeSection = (
-    title: string,
-    sectionChallenges: LibraryChallenge[]
-  ) => {
-    if (sectionChallenges.length === 0) return null;
-
-    return (
-      <View style={styles.challengeSection}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.challengeList}>
-          {sectionChallenges.map((challenge) => (
-            <View key={challenge.id} style={styles.challengeCardWrapper}>
-              <LibraryChallengeCard
-                challenge={challenge}
-                onPress={() => handleChallengePress(challenge)}
-                showActionType={false}
-                showDescription
-              />
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -216,25 +188,20 @@ export const ActionChallengesScreen: React.FC<Props> = ({ route, navigation }) =
             <Text style={styles.emptyText}>{LIBRARY_UI_TEXT.emptyStateMessage}</Text>
           </View>
         ) : (
-          <>
-            {/* Beginner Section */}
-            {renderChallengeSection(
-              LIBRARY_UI_TEXT.difficultyBeginnerHeader,
-              grouped.beginner
-            )}
-
-            {/* Moderate Section */}
-            {renderChallengeSection(
-              LIBRARY_UI_TEXT.difficultyModerateHeader,
-              grouped.moderate
-            )}
-
-            {/* Advanced Section */}
-            {renderChallengeSection(
-              LIBRARY_UI_TEXT.difficultyAdvancedHeader,
-              grouped.advanced
-            )}
-          </>
+          <View style={styles.challengeSection}>
+            <View style={styles.challengeList}>
+              {challenges.map((challenge) => (
+                <View key={challenge.id} style={styles.challengeCardWrapper}>
+                  <LibraryChallengeCard
+                    challenge={challenge}
+                    onPress={() => handleChallengePress(challenge)}
+                    showActionType={false}
+                    showDescription
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
         )}
       </ScrollView>
 
@@ -295,13 +262,6 @@ const styles = StyleSheet.create({
   },
   challengeSection: {
     marginTop: Spacing.md,
-  },
-  sectionTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
   },
   challengeList: {
     paddingHorizontal: Spacing.lg,

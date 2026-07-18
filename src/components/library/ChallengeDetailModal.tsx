@@ -113,7 +113,7 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
           {/* Metadata Bar */}
           <View style={styles.metadataBar}>
             <Text style={styles.metadataText}>
-              {challenge.category} · {getTimeDisplay()} · Difficulty: {challenge.difficulty}
+              {challenge.category} · {getTimeDisplay()}
             </Text>
             {barrierType && (
               <Text style={styles.metadataText}>

@@ -78,14 +78,11 @@ export const LibraryChallengeCard: React.FC<LibraryChallengeCardProps> = ({
       onPressOut={handlePressOut}
     >
       <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
-        {/* Header row with name and difficulty */}
+        {/* Header row */}
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={2}>
             {challenge.name}
           </Text>
-          <View style={styles.difficultyBadge}>
-            <Text style={styles.difficultyText}>{challenge.difficulty}</Text>
-          </View>
         </View>
 
         {/* Metadata row */}
@@ -147,19 +144,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.dark,
     flex: 1,
-  },
-  difficultyBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  difficultyText: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.white,
   },
   metadataRow: {
     flexDirection: 'row',

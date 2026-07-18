@@ -162,18 +162,6 @@ export const getChallengesByBarrier = async (
 };
 
 /**
- * Get beginner-friendly challenges
- */
-export const getBeginnerChallenges = async (
-  filters?: Omit<ChallengeFilters, 'beginnerFriendly'>
-): Promise<LibraryChallenge[]> => {
-  return getLibraryChallenges({
-    ...filters,
-    beginnerFriendly: true,
-  });
-};
-
-/**
  * Get challenges filtered by category
  */
 export const getLibraryChallengesByCategory = async (
@@ -337,23 +325,3 @@ export const getChallengeCount = async (
 // =============================================================================
 // GROUPING FUNCTIONS (for displaying challenges by difficulty)
 // =============================================================================
-
-export interface GroupedChallenges {
-  beginner: LibraryChallenge[];
-  moderate: LibraryChallenge[];
-  advanced: LibraryChallenge[];
-}
-
-/**
- * Group challenges by difficulty level
- * Beginner: 1-2, Moderate: 3, Advanced: 4-5
- */
-export const groupChallengesByDifficulty = (
-  challenges: LibraryChallenge[]
-): GroupedChallenges => {
-  return {
-    beginner: challenges.filter((c) => c.difficulty <= 2),
-    moderate: challenges.filter((c) => c.difficulty === 3),
-    advanced: challenges.filter((c) => c.difficulty >= 4),
-  };
-};

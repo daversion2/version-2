@@ -257,25 +257,6 @@ export const ACTION_TYPES: Record<string, ActionTypeConfig> = {
 };
 
 // =============================================================================
-// DIFFICULTY LEVELS
-// =============================================================================
-// Labels for difficulty ratings.
-
-export interface DifficultyLevelConfig {
-  level: number;
-  label: string;
-  description: string;
-}
-
-export const DIFFICULTY_LEVELS: DifficultyLevelConfig[] = [
-  { level: 1, label: 'Easy', description: 'Minimal discomfort' },
-  { level: 2, label: 'Moderate', description: 'Some discomfort' },
-  { level: 3, label: 'Challenging', description: 'Significant effort required' },
-  { level: 4, label: 'Hard', description: 'Major willpower needed' },
-  { level: 5, label: 'Extreme', description: 'Maximum difficulty' },
-];
-
-// =============================================================================
 // UI TEXT & LABELS
 // =============================================================================
 // All text displayed in the Challenge Library UI.
@@ -296,8 +277,6 @@ export const LIBRARY_UI_TEXT = {
   actionCardChallengesLabel: 'challenges',
 
   // Challenge list sections
-  beginnerSectionTitle: '🌱 Beginner Friendly',
-  beginnerSectionSubtitle: 'Great places to start',
   allChallengesTitle: '💪 All Challenges',
   browseAllLink: 'Or browse all challenges ↓',
 
@@ -324,11 +303,6 @@ export const LIBRARY_UI_TEXT = {
   libraryEmptyTitle: 'Coming Soon',
   libraryEmptyMessage:
     'The challenge library is being curated. Check back soon for example challenges to help inspire your willpower journey.',
-
-  // Difficulty section headers (for barrier-filtered view)
-  difficultyBeginnerHeader: '🌱 Start Here (For Beginners)',
-  difficultyModerateHeader: '💪 Moderate Difficulty',
-  difficultyAdvancedHeader: '🔥 Advanced',
 };
 
 // =============================================================================
