@@ -85,9 +85,13 @@ export const createHabit = async (
  * every load — creates missing instances and reactivates deactivated ones
  * (matching by practice_id, falling back to name for legacy instances), and
  * deactivates instances of practices retired from the catalog (active: false)
- * so they disappear from Home. Returns the number of instances changed.
+ * so they disappear from Home. Returns the number of instances changed and the
+ * deactivated instances, so the caller can cancel their local reminders —
+ * a retired practice is invisible in-app, leaving no other way to stop them.
  */
-export const ensureCuratedPractices = async (userId: string): Promise<number> => {
+export const ensureCuratedPractices = async (
+  userId: string
+): Promise<{ changed: number; deactivated: PracticeInstance[] }> => {
   // All instances, including inactive ones, so a previously removed curated
   // practice is reactivated rather than duplicated.
   const snap = await getDocs(habitsRef(userId));
@@ -120,6 +124,7 @@ export const ensureCuratedPractices = async (userId: string): Promise<number> =>
   // instances are touched — a user-authored practice that happens to share a
   // name keeps working. Logs/history are kept; the instance is just hidden.
   const retired = getAllPractices().filter((p) => p.active === false);
+  const deactivated: PracticeInstance[] = [];
   for (const p of retired) {
     const matches = instances.filter(
       (h) =>
@@ -129,10 +134,11 @@ export const ensureCuratedPractices = async (userId: string): Promise<number> =>
     );
     for (const m of matches) {
       await updateDoc(doc(db, 'users', userId, 'habits', m.id), { is_active: false });
+      deactivated.push(m);
       changed++;
     }
   }
-  return changed;
+  return { changed, deactivated };
 };
 
 export const updateHabit = async (

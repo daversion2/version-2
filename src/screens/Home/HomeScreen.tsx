@@ -16,7 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Challenge, PracticeInstance } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, ensureCuratedPractices } from '../../services/practices';
-import { reconcileHabitReminders, syncHabitReminder } from '../../services/habitReminders';
+import { reconcileHabitReminders, syncHabitReminder, cancelHabitReminder } from '../../services/habitReminders';
 import { registerForPushNotifications } from '../../services/notifications';
 import { FirstRepReminderModal } from '../../components/home/FirstRepReminderModal';
 import { HabitStreakInfo } from '../../types';
@@ -264,8 +264,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       if (!seedAttemptedRef.current) {
         seedAttemptedRef.current = true;
         try {
-          const changed = await ensureCuratedPractices(user.uid);
+          const { changed, deactivated } = await ensureCuratedPractices(user.uid);
           if (changed > 0) console.log(`[home] provisioned ${changed} curated practices`);
+          // A retired practice is hidden everywhere, so its daily reminder
+          // would otherwise keep firing with no way to turn it off in-app
+          for (const h of deactivated) cancelHabitReminder(h).catch(() => {});
         } catch (err) {
           console.warn('Failed to ensure curated practices:', err);
           seedAttemptedRef.current = false; // allow a retry on the next load

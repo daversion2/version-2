@@ -131,14 +131,29 @@ export const cancelHabitReminder = async (habit: RemindableHabit): Promise<void>
 };
 
 /**
- * Gap-fill: schedule any enabled reminder that has no notification id yet — e.g.
- * habits whose reminder was saved before scheduling shipped, or while permission
- * was denied. Only touches habits missing an id, so it's safe to run on app load.
- * Skips the permission prompt entirely when there's nothing to schedule.
+ * Gap-fill: schedule any enabled reminder that isn't actually scheduled on this
+ * device — e.g. habits whose reminder was saved before scheduling shipped, while
+ * permission was denied, or on a new device/reinstall. The stored notificationId
+ * is an OS handle valid only on the device that created it, so it's checked
+ * against the device's real scheduled notifications rather than trusted.
+ * Safe to run on app load; skips the permission prompt when there's nothing to do.
  */
 export const reconcileHabitReminders = async (userId: string, habits: PracticeInstance[]): Promise<void> => {
-  const pending = habits.filter(
-    (h) => h.is_active && h.reminder?.enabled && h.reminder.time && !h.reminder.notificationId
+  const enabled = habits.filter(
+    (h) => h.is_active && h.reminder?.enabled && h.reminder.time
+  );
+  if (enabled.length === 0) return;
+
+  let scheduledIds: Set<string>;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    scheduledIds = new Set(scheduled.map((n) => n.identifier));
+  } catch {
+    scheduledIds = new Set();
+  }
+
+  const pending = enabled.filter(
+    (h) => !h.reminder!.notificationId || !scheduledIds.has(h.reminder!.notificationId)
   );
   if (pending.length === 0) return;
 
