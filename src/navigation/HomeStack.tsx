@@ -30,8 +30,6 @@ import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen
 import { JourneyCheckinScreen } from '../screens/Home/JourneyCheckinScreen';
 import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
 import { MantraScreen } from '../screens/Home/MantraScreen';
-import { WhyScreen } from '../screens/Home/WhyScreen';
-import { WhyDiscoveryFlow } from '../screens/Home/WhyDiscoveryFlow';
 import { DeferredOnboardingScreen } from '../screens/Auth/DeferredOnboardingScreen';
 import { MicroExerciseFeelingScreen } from '../screens/MicroExercise/MicroExerciseFeelingScreen';
 import { MicroExerciseQuestionScreen } from '../screens/MicroExercise/MicroExerciseQuestionScreen';
@@ -200,16 +198,6 @@ export const HomeStack: React.FC = () => (
       name="MantraScreen"
       component={MantraScreen}
       options={{ title: 'My Mantras' }}
-    />
-    <Stack.Screen
-      name="WhyScreen"
-      component={WhyScreen}
-      options={{ title: 'My Why' }}
-    />
-    <Stack.Screen
-      name="WhyDiscoveryFlow"
-      component={WhyDiscoveryFlow}
-      options={{ title: '', headerShown: false }}
     />
     <Stack.Screen
       name="DeferredOnboarding"

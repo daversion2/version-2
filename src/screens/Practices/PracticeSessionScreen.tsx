@@ -7,12 +7,19 @@ import { getPractice, PRACTICE_GROUPS } from '../../data/practices';
 import { useAuth } from '../../context/AuthContext';
 import { completePractice } from '../../services/practices';
 import { getMindPattern, MindPattern } from '../../services/mindPatterns';
-import { PracticeCompletionInput } from '../../types';
+import { PracticeCompletionInput, NeuroscienceTidbit } from '../../types';
 import { PracticeReady } from '../../components/habits/PracticeReady';
 import { PracticeTimer } from '../../components/habits/PracticeTimer';
 import { PracticeBreathPacer } from '../../components/habits/PracticeBreathPacer';
 import { PracticeCaptureFlow } from '../../components/habits/PracticeCaptureFlow';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
+import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
+import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
+import {
+  selectHabitTidbit,
+  recordTidbitShown,
+  recordLearnMoreTap,
+} from '../../services/neuroscienceTidbits';
 
 // Structural props so the same screen can be registered in any stack. Needs
 // goBack (return to caller), navigate (open the practice's learn content),
@@ -53,6 +60,11 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   // Pattern the breath pacer guided, seeded into Capture's `technique` field.
   const [pacerTechnique, setPacerTechnique] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<{ points: number; streak: number } | null>(null);
+  // Neuroscience tidbit shown after the celebration. Best-effort: null if
+  // none matched or the fetch failed.
+  const [tidbit, setTidbit] = useState<NeuroscienceTidbit | null>(null);
+  const [tidbitVisible, setTidbitVisible] = useState(false);
+  const [learnMoreVisible, setLearnMoreVisible] = useState(false);
   // The dominant mind tag from recent reps of this practice, shown as the
   // Ready beat's "Your pattern" block. Best-effort: absent until loaded.
   const [mindPattern, setMindPattern] = useState<MindPattern | null>(null);
@@ -93,17 +105,30 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       { id: habitId, name: habitName },
       input
     );
+    // Fetch the neuroscience tidbit up front so it's ready to show right
+    // after the celebration is dismissed.
+    try {
+      const picked = await selectHabitTidbit(user.uid, {
+        streakDays: result.streakBefore,
+        difficulty: input.difficulty,
+      });
+      if (picked) {
+        await recordTidbitShown(user.uid, picked.id);
+      }
+      setTidbit(picked);
+    } catch (err) {
+      console.warn('Failed to fetch practice tidbit:', err);
+    }
     setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
   };
 
-  const dismissCelebration = () => {
+  const finishSession = () => {
     // First completed practice → the one-time Debrief (the intellectual half
     // of onboarding: recovery science, pleasure trap, research). The home
     // card is the fallback if this never fires or they bail partway.
     const showDebrief = !!userProfile && userProfile.has_seen_debrief !== true;
-    setCelebration(null);
-    // Navigate only after the native celebration Modal has fully torn down —
-    // actions dispatched during its dismissal are silently dropped on iOS.
+    // Navigate only after the native Modal has fully torn down — actions
+    // dispatched during its dismissal are silently dropped on iOS.
     setTimeout(() => {
       if (showDebrief) {
         // Single atomic action: swap this screen for the Debrief, so its own
@@ -113,6 +138,33 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
         navigation.goBack();
       }
     }, 300);
+  };
+
+  const dismissCelebration = () => {
+    setCelebration(null);
+    if (tidbit) {
+      setTidbitVisible(true);
+      return;
+    }
+    finishSession();
+  };
+
+  const handleTidbitDismiss = () => {
+    setTidbitVisible(false);
+    finishSession();
+  };
+
+  const handleTidbitLearnMore = () => {
+    if (user && tidbit) {
+      recordLearnMoreTap(user.uid, tidbit.id).catch(() => {});
+    }
+    setTidbitVisible(false);
+    setLearnMoreVisible(true);
+  };
+
+  const handleLearnMoreClose = () => {
+    setLearnMoreVisible(false);
+    finishSession();
   };
 
   return (
@@ -197,6 +249,19 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
         streakDays={celebration?.streak ?? 0}
         onDismiss={dismissCelebration}
       />
+      <HabitTidbitModal
+        visible={tidbitVisible}
+        tidbit={tidbit}
+        onLearnMore={handleTidbitLearnMore}
+        onDismiss={handleTidbitDismiss}
+      />
+      {tidbit && (
+        <TidbitLearnMore
+          visible={learnMoreVisible}
+          tidbit={tidbit}
+          onClose={handleLearnMoreClose}
+        />
+      )}
     </View>
   );
 };

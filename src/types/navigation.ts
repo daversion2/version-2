@@ -136,8 +136,6 @@ export type HomeStackParamList = {
   JourneyCheckin: undefined;
   CustomizeHome: undefined;
   MantraScreen: undefined;
-  WhyScreen: undefined;
-  WhyDiscoveryFlow: undefined;
   DeferredOnboarding: undefined;
   MicroExerciseFeeling: { trigger_context: MicroExerciseTrigger };
   MicroExerciseQuestion: {
@@ -201,11 +199,8 @@ export type WorksheetsStackParamList = {
 
 export type SettingsStackParamList = {
   SettingsScreen: undefined;
-  ManageRewardMessages: undefined;
   HowItWorks: undefined;
   EditProfile: undefined;
-  WhyScreen: undefined;
-  WhyDiscoveryFlow: undefined;
 };
 
 // ============================================================================

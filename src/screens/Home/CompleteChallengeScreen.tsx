@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,11 +24,11 @@ import {
   getWillpowerStats,
   getStreakMultiplier,
 } from '../../services/willpower';
-import { Challenge, WhyProfile } from '../../types';
-import { getWhyProfile } from '../../services/whyDiscovery';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { RewardMoment } from '../../components/reward/RewardMoment';
+import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
+import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { ChallengeFailureModal } from '../../components/challenge/ChallengeFailureModal';
 import { saveChallengeFailureLog } from '../../services/challengeFailureLogs';
@@ -60,37 +60,27 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [loading, setLoading] = useState(false);
   const [resistanceExpanded, setResistanceExpanded] = useState(false);
   const [learningExpanded, setLearningExpanded] = useState(false);
-  // Reward moment state
+  // Celebration state (success path — same modal as practice completion)
+  const [celebration, setCelebration] = useState<{
+    points: number;
+    streak: number;
+    bonusLabel: string | null;
+  } | null>(null);
+  // Neuroscience tidbit shown after the celebration (success path)
+  const [pendingTidbit, setPendingTidbit] = useState<NeuroscienceTidbit | null>(null);
+  const [tidbitVisible, setTidbitVisible] = useState(false);
+  const [learnMoreVisible, setLearnMoreVisible] = useState(false);
+  // Reward moment state (failed path)
   const [rewardVisible, setRewardVisible] = useState(false);
   const [rewardMessage, setRewardMessage] = useState('');
   const [narrativeLine, setNarrativeLine] = useState('');
   const [rewardPoints, setRewardPoints] = useState(0);
   const [rewardStreakMultiplier, setRewardStreakMultiplier] = useState(1);
-  const [rewardResult, setRewardResult] = useState<'completed' | 'failed'>('completed');
-  const [rewardRepeatMilestone, setRewardRepeatMilestone] = useState<number | null>(null);
-  const [rewardTotalCompleted, setRewardTotalCompleted] = useState(0);
-  const [rewardTidbit, setRewardTidbit] = useState<NeuroscienceTidbit | null>(null);
-  const [learnMoreVisible, setLearnMoreVisible] = useState(false);
-  const [learnMoreTidbit, setLearnMoreTidbit] = useState<NeuroscienceTidbit | null>(null);
 
   // Milestone alerts (fire after reward moment)
   const [pendingStreakTier, setPendingStreakTier] = useState<{ streak: number; tierName: string; multiplier: number } | null>(null);
 
   const [failureModalVisible, setFailureModalVisible] = useState(false);
-
-  // CBT data (identity statement, inner voice) from the user's Why profile
-  const [whyProfile, setWhyProfile] = useState<WhyProfile | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        setWhyProfile(await getWhyProfile(user.uid));
-      } catch (err) {
-        console.warn('Failed to load why profile:', err);
-      }
-    })();
-  }, [user]);
 
   // Navigate home after challenge completion
   const navigateHome = useCallback(() => {
@@ -113,17 +103,42 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
     navigateHome();
   }, [pendingStreakTier, navigateHome]);
 
-  const handleRewardDismiss = useCallback(() => {
-    setRewardVisible(false);
-
-    // Show failure modal for failed challenges
-    if (rewardResult === 'failed') {
-      setFailureModalVisible(true);
+  const dismissCelebration = useCallback(() => {
+    setCelebration(null);
+    // Tidbit follows the celebration; otherwise navigate — but only after the
+    // native celebration Modal has fully torn down, since actions dispatched
+    // during its dismissal are silently dropped on iOS.
+    if (pendingTidbit) {
+      setTidbitVisible(true);
       return;
     }
+    setTimeout(() => proceedAfterReward(), 300);
+  }, [pendingTidbit, proceedAfterReward]);
 
-    proceedAfterReward();
-  }, [rewardResult, proceedAfterReward]);
+  const handleTidbitDismiss = useCallback(() => {
+    setTidbitVisible(false);
+    setTimeout(() => proceedAfterReward(), 300);
+  }, [proceedAfterReward]);
+
+  const handleTidbitLearnMore = useCallback(() => {
+    if (user && pendingTidbit) {
+      recordLearnMoreTap(user.uid, pendingTidbit.id).catch(console.warn);
+    }
+    setTidbitVisible(false);
+    setLearnMoreVisible(true);
+  }, [user, pendingTidbit]);
+
+  const handleLearnMoreClose = useCallback(() => {
+    setLearnMoreVisible(false);
+    setTimeout(() => proceedAfterReward(), 300);
+  }, [proceedAfterReward]);
+
+  const handleRewardDismiss = useCallback(() => {
+    setRewardVisible(false);
+    // The reward moment is only shown for failed challenges now — follow up
+    // with the failure reflection modal.
+    setFailureModalVisible(true);
+  }, []);
 
   const handleFailureComplete = useCallback(async (barrierReason: string, nextAction: string) => {
     setFailureModalVisible(false);
@@ -208,53 +223,20 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       // Award XP (reflection is optional and never affects points)
       const updateResult = await updateWillpowerStats(user.uid, pointsEarned);
 
-      // --- Prepare reward moment ---
-      const multiplier = getStreakMultiplier(stats.currentStreak);
-
-      // Fetch personalized reward message (only needed for failed challenges)
-      let messageText = 'One more proof point.';
-      if (result === 'failed') {
-        try {
-          const msg = await getPersonalizedRewardMessage(user!.uid);
-          messageText = msg.text;
-        } catch (err) {
-          console.warn('Failed to fetch reward message:', err);
-        }
+      // Store pending milestones for after the celebration/reward moment
+      if (updateResult.newTierReached && updateResult.tierInfo) {
+        setPendingStreakTier({
+          streak: updateResult.newStreak,
+          tierName: updateResult.tierInfo.tierName,
+          multiplier: updateResult.tierInfo.multiplier,
+        });
       }
 
-      // Compute narrative line — CBT identity/inner voice framing
-      let narrativeText = '';
-      let totalCount = 0;
-      try {
-        totalCount = await getTotalCompletionCount(user.uid);
-        setRewardTotalCompleted(totalCount);
-        if (totalCount === 1) {
-          narrativeText = 'Challenge 1. The first of many.';
-        } else {
-          const streakDays = updateResult.newStreak;
-          narrativeText = streakDays >= 7
-            ? `Day ${streakDays} of doing hard things.`
-            : `Challenge ${totalCount}. Still here.`;
-        }
-
-        const identityStatement = whyProfile?.identity_statement;
-        const innerVoiceChallenge = whyProfile?.inner_voice_challenge;
-        // 2A: Identity statement on milestone completions
-        if (repeatMilestone && identityStatement) {
-          narrativeText = `You said you're becoming "${identityStatement}." Today is evidence.`;
-        }
-        // 2B: Inner voice victory on hard challenges (difficulty >= 4)
-        else if (result === 'completed' && difficulty >= 4 && innerVoiceChallenge) {
-          narrativeText = `Your inner voice said: "${innerVoiceChallenge}." You did it anyway.`;
-        }
-      } catch (err) {
-        console.warn('Failed to compute narrative line:', err);
-      }
-
-      // Fetch neuroscience tidbit (success only)
-      let tidbit: NeuroscienceTidbit | null = null;
       if (result === 'completed') {
+        // Fetch neuroscience tidbit — shown after the celebration
+        let tidbit: NeuroscienceTidbit | null = null;
         try {
+          const totalCount = await getTotalCompletionCount(user.uid);
           const tidbitContext = buildTidbitContext(challenge, {
             totalCount,
             streakDays: updateResult.newStreak,
@@ -269,26 +251,49 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         } catch (err) {
           console.warn('Failed to fetch neuroscience tidbit:', err);
         }
-      }
-      setRewardTidbit(tidbit);
+        setPendingTidbit(tidbit);
 
-      // Store pending milestones for after reward moment
-      if (updateResult.newTierReached && updateResult.tierInfo) {
-        setPendingStreakTier({
+        // Success — same celebration as completing a practice
+        setCelebration({
+          points: pointsEarned,
           streak: updateResult.newStreak,
-          tierName: updateResult.tierInfo.tierName,
-          multiplier: updateResult.tierInfo.multiplier,
+          bonusLabel: repeatMilestone
+            ? `${repeatMilestone}th time completing this challenge!`
+            : null,
         });
-      }
+      } else {
+        // Failed — supportive reward moment, then the failure reflection modal
+        const multiplier = getStreakMultiplier(stats.currentStreak);
 
-      // Show unified reward moment
-      setRewardMessage(messageText);
-      setNarrativeLine(narrativeText);
-      setRewardPoints(pointsEarned);
-      setRewardStreakMultiplier(multiplier);
-      setRewardResult(result);
-      setRewardRepeatMilestone(repeatMilestone);
-      setRewardVisible(true);
+        let messageText = 'One more proof point.';
+        try {
+          const msg = await getPersonalizedRewardMessage(user.uid);
+          messageText = msg.text;
+        } catch (err) {
+          console.warn('Failed to fetch reward message:', err);
+        }
+
+        let narrativeText = '';
+        try {
+          const totalCount = await getTotalCompletionCount(user.uid);
+          if (totalCount === 1) {
+            narrativeText = 'Challenge 1. The first of many.';
+          } else {
+            const streakDays = updateResult.newStreak;
+            narrativeText = streakDays >= 7
+              ? `Day ${streakDays} of doing hard things.`
+              : `Challenge ${totalCount}. Still here.`;
+          }
+        } catch (err) {
+          console.warn('Failed to compute narrative line:', err);
+        }
+
+        setRewardMessage(messageText);
+        setNarrativeLine(narrativeText);
+        setRewardPoints(pointsEarned);
+        setRewardStreakMultiplier(multiplier);
+        setRewardVisible(true);
+      }
     } catch (e: any) {
       showAlert('Error', e.message);
     } finally {
@@ -472,30 +477,35 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       />
 
       </ScrollView>
+      <HabitCelebrationModal
+        visible={!!celebration}
+        pointsEarned={celebration?.points ?? 0}
+        streakDays={celebration?.streak ?? 0}
+        bonusLabel={celebration?.bonusLabel}
+        onDismiss={dismissCelebration}
+      />
+      <HabitTidbitModal
+        visible={tidbitVisible}
+        tidbit={pendingTidbit}
+        onLearnMore={handleTidbitLearnMore}
+        onDismiss={handleTidbitDismiss}
+      />
+      {pendingTidbit && (
+        <TidbitLearnMore
+          visible={learnMoreVisible}
+          tidbit={pendingTidbit}
+          onClose={handleLearnMoreClose}
+        />
+      )}
       <RewardMoment
         visible={rewardVisible}
         message={rewardMessage}
         narrativeLine={narrativeLine}
         pointsEarned={rewardPoints}
         streakMultiplier={rewardStreakMultiplier}
-        challengeResult={rewardResult}
-        repeatMilestone={rewardRepeatMilestone}
-        totalChallengesCompleted={rewardTotalCompleted}
-        tidbit={rewardResult === 'completed' ? rewardTidbit : null}
-        onLearnMore={(t) => {
-          setLearnMoreTidbit(t);
-          setLearnMoreVisible(true);
-          recordLearnMoreTap(user!.uid, t.id).catch(console.warn);
-        }}
+        challengeResult="failed"
         onDismiss={handleRewardDismiss}
       />
-      {learnMoreTidbit && (
-        <TidbitLearnMore
-          visible={learnMoreVisible}
-          tidbit={learnMoreTidbit}
-          onClose={() => setLearnMoreVisible(false)}
-        />
-      )}
       <ChallengeFailureModal
         visible={failureModalVisible}
         challengeName={challenge.name}

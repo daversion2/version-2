@@ -86,7 +86,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [habitTidbit, setHabitTidbit] = useState<NeuroscienceTidbit | null>(null);
   const [habitTidbitVisible, setHabitTidbitVisible] = useState(false);
   const [habitLearnMoreVisible, setHabitLearnMoreVisible] = useState(false);
-  const pendingHabitPointsRef = useRef<{ points: number; streak: number; bonus: string | null; alertFn: () => void } | null>(null);
 
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
@@ -170,11 +169,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleCelebrationDismiss = useCallback(() => {
     setCelebrationVisible(false);
+    // Tidbit follows the celebration; alerts fire once the whole chain ends.
+    if (habitTidbit) {
+      setHabitTidbitVisible(true);
+      return;
+    }
     if (pendingAlert) {
       pendingAlert();
       setPendingAlert(null);
     }
-  }, [pendingAlert]);
+  }, [habitTidbit, pendingAlert]);
 
   // The habit the first-rep reminder attaches to: the onboarding starting
   // point when present, else the first practice on the home.
@@ -216,37 +220,27 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleHabitTidbitDismiss = useCallback(() => {
     setHabitTidbitVisible(false);
-    const pending = pendingHabitPointsRef.current;
-    if (pending) {
-      pendingHabitPointsRef.current = null;
-      setEarnedPoints(pending.points);
-      setCelebrationStreak(pending.streak);
-      setCelebrationBonus(pending.bonus);
-      setCelebrationVisible(true);
-      setPendingAlert(() => pending.alertFn);
+    if (pendingAlert) {
+      pendingAlert();
+      setPendingAlert(null);
     }
-  }, []);
+  }, [pendingAlert]);
 
   const handleHabitLearnMore = useCallback(() => {
-    if (habitTidbit) {
-      recordLearnMoreTap(habitTidbit.id).catch(() => {});
+    if (user && habitTidbit) {
+      recordLearnMoreTap(user.uid, habitTidbit.id).catch(() => {});
     }
     setHabitTidbitVisible(false);
     setHabitLearnMoreVisible(true);
-  }, [habitTidbit]);
+  }, [user, habitTidbit]);
 
   const handleHabitLearnMoreClose = useCallback(() => {
     setHabitLearnMoreVisible(false);
-    const pending = pendingHabitPointsRef.current;
-    if (pending) {
-      pendingHabitPointsRef.current = null;
-      setEarnedPoints(pending.points);
-      setCelebrationStreak(pending.streak);
-      setCelebrationBonus(pending.bonus);
-      setCelebrationVisible(true);
-      setPendingAlert(() => pending.alertFn);
+    if (pendingAlert) {
+      pendingAlert();
+      setPendingAlert(null);
     }
-  }, []);
+  }, [pendingAlert]);
 
 
 
@@ -468,24 +462,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       };
 
-      // Fetch habit tidbit — show it before celebration for a clean sequence
+      // Fetch habit tidbit — staged now, shown after the celebration
+      let tidbit: NeuroscienceTidbit | null = null;
       try {
-        const tidbit = await selectHabitTidbit(user.uid, {
+        tidbit = await selectHabitTidbit(user.uid, {
           streakDays: streakBefore,
           difficulty,
         });
         if (tidbit) {
           await recordTidbitShown(user.uid, tidbit.id);
-          setHabitTidbit(tidbit);
-          pendingHabitPointsRef.current = { points: pointsEarned, streak: updateResult.newStreak, bonus: bonusLabel, alertFn: showAlerts };
-          setHabitTidbitVisible(true);
-          return; // Celebration fires after tidbit is dismissed
         }
       } catch (err) {
         console.warn('Failed to fetch habit tidbit:', err);
       }
+      setHabitTidbit(tidbit);
 
-      // No tidbit — show celebration immediately
       setEarnedPoints(pointsEarned);
       setCelebrationStreak(updateResult.newStreak);
       setCelebrationBonus(bonusLabel);
