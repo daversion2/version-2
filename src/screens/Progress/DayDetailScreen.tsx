@@ -14,7 +14,7 @@ import {
 } from '../../services/progress';
 import { updateChallengeCompletion, getChallengeById } from '../../services/challenges';
 import { getUnloggedHabitsForDate, logHabitCompletion } from '../../services/practices';
-import { updateWillpowerStats } from '../../services/willpower';
+import { adjustWillpowerPoints, recalculateUserStats } from '../../services/willpower';
 import { isYesterday } from '../../utils/date';
 import { showConfirm, showAlert } from '../../utils/alert';
 import { PracticeInstance, HabitDifficulty } from '../../types';
@@ -86,9 +86,13 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       // Log the habit completion with the backdated date
       await logHabitCompletion(user.uid, habitId, difficulty, date, notes);
 
-      // Update willpower stats
+      // Credit the XP without touching the streak stamp — updateWillpowerStats
+      // would mark TODAY as active for a rep that happened yesterday. The
+      // recalculation derives streak and lastActivityDate from the logs, so a
+      // backdated rep that fills yesterday's gap extends the streak correctly.
       const points = difficulty === 'easy' ? 1 : 2;
-      await updateWillpowerStats(user.uid, points);
+      await adjustWillpowerPoints(user.uid, points);
+      await recalculateUserStats(user.uid);
 
       setBackdateModalVisible(false);
       showAlert('Success', `Added "${habitName}" (+${points} XP)`);
