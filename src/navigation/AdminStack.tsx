@@ -10,7 +10,6 @@ import { AdminTidbitsScreen } from '../screens/Admin/AdminTidbitsScreen';
 import { AdminTidbitEditScreen } from '../screens/Admin/AdminTidbitEditScreen';
 import { AdminRulesScreen } from '../screens/Admin/AdminRulesScreen';
 import { AdminRuleEditScreen } from '../screens/Admin/AdminRuleEditScreen';
-import { AdminOnboardingScreen } from '../screens/Admin/AdminOnboardingScreen';
 import { AdminToolsScreen } from '../screens/Admin/AdminToolsScreen';
 import { AdminToolEditScreen } from '../screens/Admin/AdminToolEditScreen';
 import { AdminCategoriesScreen } from '../screens/Admin/AdminCategoriesScreen';
@@ -76,11 +75,6 @@ export const AdminStack: React.FC = () => (
       name="AdminRuleEdit"
       component={AdminRuleEditScreen}
       options={{ title: 'Edit Rule' }}
-    />
-    <Stack.Screen
-      name="AdminOnboarding"
-      component={AdminOnboardingScreen}
-      options={{ title: 'Onboarding Content' }}
     />
     <Stack.Screen
       name="AdminTools"

@@ -217,7 +217,6 @@ export type AdminStackParamList = {
   AdminTidbitEdit: { mode: 'create' | 'edit'; tidbitId?: string };
   AdminRules: undefined;
   AdminRuleEdit: { mode: 'create' | 'edit'; ruleId?: string };
-  AdminOnboarding: undefined;
   AdminTools: undefined;
   AdminToolEdit: { mode: 'create' | 'edit'; toolId?: string };
   AdminCategories: undefined;
