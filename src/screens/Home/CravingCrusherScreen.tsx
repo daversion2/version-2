@@ -24,7 +24,6 @@ import {
   getCravingType,
   getMissionCategory,
   CARD_ROTATION_SECONDS,
-  LESSON_SETS,
   OUTCOME_COPY,
 } from '../../data/cravings';
 import {
@@ -103,10 +102,14 @@ const SavorPause: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
       <View style={savorStyles.stage}>
         <Text style={savorStyles.kicker}>BEFORE THE NUMBERS</Text>
         <Text style={savorStyles.title}>Stop for a moment.</Text>
+        <Text style={savorStyles.instruction}>Take two deep breaths.</Text>
         <Animated.View style={[savorStyles.circle, { transform: [{ scale: pulse }] }]} />
         <Text style={savorStyles.body}>
           Notice how it feels to be on the other side of the wave.{'\n'}
           That feeling is the reward — let it register.
+        </Text>
+        <Text style={savorStyles.science}>
+          Slow breaths activate your parasympathetic nervous system, helping your brain consolidate this win into long-term memory.
         </Text>
         {ready ? (
           <TouchableOpacity style={savorStyles.continueButton} onPress={onContinue}>
@@ -571,9 +574,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           {activity === 'breathe' && <BreatheActivity />}
-          {activity === 'learn' && (
-            <LearnActivity setIndex={logsCount % LESSON_SETS.length} />
-          )}
+          {activity === 'learn' && <LearnActivity />}
           {activity === 'ground' && <GroundActivity />}
           {activity === 'name' && (
             <NameItActivity
@@ -1442,6 +1443,13 @@ const savorStyles = StyleSheet.create({
     marginTop: Spacing.sm,
     marginBottom: Spacing.xl,
   },
+  instruction: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.lg,
+  },
   circle: {
     width: 130,
     height: 130,
@@ -1456,6 +1464,15 @@ const savorStyles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     marginTop: Spacing.xl,
+  },
+  science: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: 'rgba(255,255,255,0.4)',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
   continueButton: {
     marginTop: Spacing.xl,

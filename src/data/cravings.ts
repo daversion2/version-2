@@ -255,115 +255,113 @@ export const BREATHING_CADENCES: BreathingCadence[] = [
   },
 ];
 
-export interface CravingLesson {
+export interface CravingFact {
   kicker: string;
-  title: string;
-  text: string;
+  fact: string;
 }
 
-export interface LessonQuiz {
-  question: string;
-  options: string[];
-  correctIndex: number;
-  /** One-line reinforcement shown after answering. */
-  reveal: string;
-}
-
-export interface LessonSet {
-  lessons: CravingLesson[];
-  quiz: LessonQuiz;
-}
-
-/** Three-lesson sets; sessions rotate through them so repeat riders see new material. */
-export const LESSON_SETS: LessonSet[] = [
+export const CRAVING_FACTS: CravingFact[] = [
   {
-    lessons: [
-      {
-        kicker: 'Dopamine',
-        title: 'The craving is the peak, not the reward',
-        text: 'Dopamine spikes before you act — at the moment of anticipation, not consumption. The surge you are feeling right now is the main event. Acting on it mostly delivers less than this. You are already experiencing the best part, for free.',
-      },
-      {
-        kicker: 'Dopamine',
-        title: 'Prediction, not command',
-        text: 'A craving is your brain predicting a reward and pre-paying attention toward it. Predictions can be wrong, and they can be updated. Every time the predicted reward doesn’t arrive, the prediction weakens — which is exactly what you’re doing right now.',
-      },
-      {
-        kicker: 'Extinction',
-        title: 'Each ridden wave shrinks the next one',
-        text: 'When a cue fires and nothing follows, the brain runs "extinction learning" — actively unlearning the cue-reward link. It isn’t willpower getting stronger; it’s the craving itself getting quieter. The reps compound.',
-      },
-    ],
-    quiz: {
-      question: 'Quick check — when does dopamine peak?',
-      options: [
-        'When I give in and consume',
-        'Before acting — during the craving itself',
-        'About an hour afterward',
-      ],
-      correctIndex: 1,
-      reveal: 'Right — the anticipation IS the spike. You’re surfing the peak right now.',
-    },
+    kicker: 'Dopamine',
+    fact: 'Dopamine peaks before you act, not after. The craving itself is the main event — consuming usually delivers less than the anticipation promised.',
   },
   {
-    lessons: [
-      {
-        kicker: 'The wave',
-        title: 'Cravings have a shape',
-        text: 'Lab studies of urges show a consistent arc: sharp rise, a peak within minutes, then a long fade — usually complete inside 15–20 minutes. The feeling of "this will last forever" is part of the wave, not a fact about it.',
-      },
-      {
-        kicker: 'The wave',
-        title: 'Suppressing feeds it. Watching drains it.',
-        text: 'Trying to force a craving away ("don’t think about it") measurably rebounds it — thought suppression backfires. Observing it with curiosity ("interesting, there it is, strongest in my chest") does the opposite. You’re not fighting the wave; you’re watching it.',
-      },
-      {
-        kicker: 'Context',
-        title: 'Cravings are wired to places and moments',
-        text: 'Urges are cue-triggered: the couch, the scroll, 3pm, the walk past the kitchen. That’s why the same craving keeps arriving on schedule. It’s also why changing your context — even walking to another room — can interrupt one mid-fire.',
-      },
-    ],
-    quiz: {
-      question: 'What happens when you try to force a craving out of your mind?',
-      options: [
-        'It disappears faster',
-        'It rebounds stronger — suppression backfires',
-        'Nothing changes either way',
-      ],
-      correctIndex: 1,
-      reveal: 'Exactly — watching beats wrestling. That’s the whole idea of riding it.',
-    },
+    kicker: 'The Wave',
+    fact: 'Every craving has a shape: sharp rise, brief peak, long fade. Lab studies show most urges fully resolve within 15–20 minutes without any intervention at all.',
   },
   {
-    lessons: [
-      {
-        kicker: 'Your cortex',
-        title: 'The alarm is loud but short-winded',
-        text: 'Urges recruit fast, ancient circuitry that shouts. Your prefrontal cortex — the part reading this sentence — is slower but has far more stamina. In any contest that lasts longer than a few minutes, the reader wins.',
-      },
-      {
-        kicker: 'Practice',
-        title: 'You’re training a general skill',
-        text: 'Riding out a food pull strengthens the same override circuitry you’d use on a scroll urge or an impulse buy. Studies of "urge surfing" show gains transfer across craving types — every rep here counts everywhere.',
-      },
-      {
-        kicker: 'Honesty',
-        title: 'Logged beats perfect',
-        text: 'People who track every outcome — including the waves that won — show better long-term change than those who only record wins. The log builds pattern awareness, and pattern awareness is what lets you dodge the wave before it builds.',
-      },
-    ],
-    quiz: {
-      question: 'Riding out a food craving trains…',
-      options: [
-        'Only food-related restraint',
-        'The general override circuit — it transfers to other cravings',
-        'Nothing measurable',
-      ],
-      correctIndex: 1,
-      reveal: 'Right — one circuit, many cravings. Every rep counts everywhere.',
-    },
+    kicker: 'Extinction',
+    fact: 'Every time a craving fires and you don\'t act on it, your brain runs "extinction learning" — actively weakening the cue-reward link. The signal gets quieter with every rep.',
   },
-];
+  {
+    kicker: 'Suppression',
+    fact: 'Trying to force a craving away ("don\'t think about it") makes it rebound stronger. Watching it with curiosity — "interesting, it\'s in my chest right now" — does the opposite.',
+  },
+  {
+    kicker: 'Transfer',
+    fact: 'Riding out a food craving trains the same neural circuit you\'d use on a scroll urge or an impulse buy. One circuit, many cravings — every rep counts everywhere.',
+  },
+  {
+    kicker: 'Prediction',
+    fact: 'A craving is your brain making a prediction, not issuing a command. Predictions can be wrong, and with enough counter-evidence, they get updated — permanently.',
+  },
+  {
+    kicker: 'Stress',
+    fact: 'Cortisol lowers the threshold for cravings to fire. The urge you feel after a hard day isn\'t weakness — it\'s biology. The same biology you\'re overriding right now.',
+  },
+  {
+    kicker: 'Your Cortex',
+    fact: 'Craving circuitry is fast and loud. Your prefrontal cortex is slower — but has far more stamina. In any contest lasting more than a few minutes, the planner wins.',
+  },
+  {
+    kicker: 'Context',
+    fact: "Cravings are wired to places and moments: the couch, 3pm, the walk past the kitchen. That's also why moving to a different room can interrupt one mid-fire.",
+  },
+  {
+    kicker: 'Data',
+    fact: 'People who track every outcome — including the sessions they gave in to — show better long-term results than those who only log wins. The data beats the shame spiral.',
+  },
+  {
+    kicker: 'The Forever Feeling',
+    fact: 'At peak intensity, most people predict their urge will last for hours. The actual median is under 10 minutes. The "this will never end" sensation is a symptom of the wave, not a fact about it.',
+  },
+  {
+    kicker: 'Variable Ratio',
+    fact: 'Social media cravings are especially persistent because they use variable ratio reinforcement — the same schedule that makes slot machines addictive. Unpredictable rewards are the strongest hook.',
+  },
+  {
+    kicker: 'Hunger Hormones',
+    fact: "Food cravings are partly driven by ghrelin, which spikes on a schedule even when you've eaten. The 3pm urge often isn't your body needing food — it's a hormone running its clock.",
+  },
+  {
+    kicker: 'Neuroplasticity',
+    fact: "Each time you redirect a craving, you're physically pruning the cue-response pathway and reinforcing the override circuit. This structural change is measurable on fMRI.",
+  },
+  {
+    kicker: 'Wanting vs. Having',
+    fact: 'In studies, people consistently rate the anticipation of a reward as more pleasurable than receiving it. The wanting is usually more intense than the having.',
+  },
+  {
+    kicker: 'Habituation',
+    fact: 'Repeated exposure without reward causes the craving signal to weaken through habituation — the same mechanism behind exposure therapy. The signal fades with reps.',
+  },
+  {
+    kicker: 'Identity',
+    fact: 'Framing a craving as "I\'m someone who rides these out" rather than "I\'m resisting this" produces measurably better long-term outcomes in behavior change research.',
+  },
+  {
+    kicker: 'Sleep',
+    fact: 'Sleep deprivation amplifies craving intensity and reduces prefrontal override capacity simultaneously. One bad night can make a mild urge feel irresistible.',
+  },
+  {
+    kicker: 'Your Body',
+    fact: "The restlessness and elevated heart rate during a craving are your sympathetic nervous system activating. It's designed to be temporary — and it always is.",
+  },
+  {
+    kicker: 'Error Signals',
+    fact: 'When the brain predicts a reward and doesn\'t get it, it logs a "prediction error." These errors are what update the model. You\'re generating useful error signals right now.',
+  },
+  {
+    kicker: 'The Peak',
+    fact: "The first 3–4 minutes of a craving are the most intense. Past the peak, the trajectory is always down. You're already part of the way through.",
+  },
+  {
+    kicker: 'Urge Surfing',
+    fact: '"Urge surfing" was developed by psychologist Alan Marlatt in the 1980s for addiction treatment. Decades of research show it reduces relapse rates significantly compared to suppression alone.',
+  },
+  {
+    kicker: 'Patterns',
+    fact: "After logging enough sessions, most people identify 2–3 consistent triggers they weren't consciously aware of. The pattern is invisible until the data reveals it.",
+  },
+  {
+    kicker: 'Compounding',
+    fact: 'Craving resistance has a compounding curve: the first few reps are hard, the next few get easier. After enough sessions, many riders describe urges as "background noise."',
+  },
+  {
+    kicker: 'Observation',
+    fact: 'Simply paying attention to when and how cravings arise — without any other intervention — reduces their frequency. Observation changes the observed.',
+  },
+]
 
 export interface GroundStep {
   count: number;
