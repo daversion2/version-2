@@ -153,6 +153,7 @@ export type HomeStackParamList = {
     pointsAwarded: number;
   };
   MicroExerciseFollowUp: { entry_id: string; user_id: string };
+  CravingCrusher: undefined;
 };
 
 // ============================================================================

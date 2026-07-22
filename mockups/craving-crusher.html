@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Craving Crusher — Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a1a;
+    font-family: 'Avenir', 'Helvetica Neue', Helvetica, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    padding: 40px 20px 80px;
+    min-height: 100vh;
+  }
+
+  h2 {
+    color: #888;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: -20px;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #F2F2F2;
+    border-radius: 44px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 54px;
+    background: #F2F2F2;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 28px 8px;
+    flex-shrink: 0;
+  }
+  .status-bar span { font-size: 12px; font-weight: 600; color: #2B2B2B; }
+
+  /* Nav header */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px 12px;
+    background: #F2F2F2;
+    flex-shrink: 0;
+  }
+  .nav-back {
+    font-size: 14px;
+    color: #217180;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .nav-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2B2B2B;
+    font-family: 'Georgia', serif;
+  }
+  .nav-placeholder { width: 60px; }
+
+  /* Content area */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 24px;
+  }
+
+  /* ─── SCREEN 1: Craving Type Selector ─── */
+
+  .screen-1 .content {
+    padding-top: 4px;
+  }
+
+  .screen-label {
+    font-size: 13px;
+    color: #656565;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .hero-headline {
+    font-size: 26px;
+    font-weight: 800;
+    color: #2B2B2B;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    font-family: 'Georgia', serif;
+  }
+  .hero-sub {
+    font-size: 14px;
+    color: #656565;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #656565;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+
+  .craving-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .craving-tile {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px 14px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .craving-tile.selected {
+    border-color: #217180;
+    background: #f0f8f9;
+  }
+  .craving-tile .tile-icon { font-size: 26px; margin-bottom: 6px; }
+  .craving-tile .tile-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2B2B2B;
+    margin-bottom: 2px;
+  }
+  .craving-tile .tile-desc {
+    font-size: 11px;
+    color: #656565;
+    line-height: 1.4;
+  }
+
+  .intensity-block {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .intensity-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2B2B2B;
+    margin-bottom: 4px;
+  }
+  .intensity-sub {
+    font-size: 12px;
+    color: #656565;
+    margin-bottom: 14px;
+  }
+  .intensity-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dot {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: #E0E0E0;
+    cursor: pointer;
+  }
+  .dot.filled { background: #217180; }
+  .dot.filled.high { background: #FF5B02; }
+  .intensity-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+  .intensity-labels span { font-size: 10px; color: #656565; }
+
+  .start-btn {
+    width: 100%;
+    background: #217180;
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Georgia', serif;
+    margin-bottom: 10px;
+  }
+  .start-btn-sub {
+    text-align: center;
+    font-size: 12px;
+    color: #656565;
+  }
+
+  /* ─── SCREEN 2: Active Timer ─── */
+
+  .screen-2 {
+    background: #2B2B2B;
+  }
+  .screen-2 .status-bar {
+    background: #2B2B2B;
+  }
+  .screen-2 .status-bar span { color: #fff; }
+  .screen-2 .nav {
+    background: #2B2B2B;
+  }
+  .screen-2 .nav-back { color: #7ab8c0; }
+  .screen-2 .nav-title { color: #fff; }
+
+  .timer-top {
+    padding: 10px 20px 0;
+    flex-shrink: 0;
+  }
+
+  .craving-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 999px;
+    padding: 5px 12px;
+    margin-bottom: 16px;
+  }
+  .craving-badge span { font-size: 13px; }
+  .craving-badge .badge-label { font-size: 12px; color: #aaa; font-weight: 600; }
+
+  .curve-container {
+    position: relative;
+    height: 110px;
+    margin-bottom: 0;
+  }
+  .curve-container svg { width: 100%; height: 100%; }
+
+  .curve-annotation {
+    position: absolute;
+    top: 8px;
+    right: 0;
+    font-size: 10px;
+    color: #888;
+    text-align: right;
+  }
+
+  .timer-display {
+    text-align: center;
+    padding: 16px 20px 0;
+    flex-shrink: 0;
+  }
+
+  .timer-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+  }
+
+  .timer-digits {
+    font-size: 72px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    font-family: 'Courier New', monospace;
+    letter-spacing: -2px;
+  }
+
+  .timer-progress-bar {
+    margin: 12px 20px 0;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .timer-progress-fill {
+    height: 100%;
+    width: 28%;
+    background: #217180;
+    border-radius: 999px;
+    transition: width 1s linear;
+  }
+
+  .content-card {
+    margin: 14px 20px 0;
+    background: rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 18px;
+    border: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+  .content-card-type {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #217180;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .content-card-type::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 4px;
+    background: #217180;
+    border-radius: 50%;
+  }
+  .content-card-text {
+    font-size: 14px;
+    color: #e0e0e0;
+    line-height: 1.6;
+  }
+  .content-card-text strong { color: #fff; }
+
+  .breathe-block {
+    margin: 12px 20px 0;
+    background: rgba(33, 113, 128, 0.15);
+    border-radius: 20px;
+    padding: 16px;
+    border: 1px solid rgba(33, 113, 128, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .breathe-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid #217180;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    animation: breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.18); opacity: 1; }
+  }
+  .breathe-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #217180;
+  }
+  .breathe-text { flex: 1; }
+  .breathe-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+  .breathe-sub {
+    font-size: 12px;
+    color: #888;
+  }
+
+  .timer-bottom {
+    padding: 14px 20px 20px;
+    flex-shrink: 0;
+  }
+  .gave-in-btn {
+    width: 100%;
+    background: transparent;
+    color: #888;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .gave-in-btn:hover { color: #aaa; }
+
+  /* ─── SCREEN 3: Outcome ─── */
+
+  .screen-3 .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px 24px 24px;
+  }
+
+  .outcome-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+
+  .outcome-headline {
+    font-size: 24px;
+    font-weight: 800;
+    color: #2B2B2B;
+    margin-bottom: 8px;
+    font-family: 'Georgia', serif;
+    line-height: 1.2;
+  }
+
+  .outcome-sub {
+    font-size: 14px;
+    color: #656565;
+    line-height: 1.6;
+    margin-bottom: 28px;
+    max-width: 280px;
+  }
+
+  .stat-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    flex: 1;
+    background: #fff;
+    border-radius: 16px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: #217180;
+    font-family: 'Georgia', serif;
+    margin-bottom: 2px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: #656565;
+  }
+
+  .journal-prompt {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    width: 100%;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .journal-prompt-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #217180;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .journal-prompt-q {
+    font-size: 14px;
+    color: #2B2B2B;
+    font-weight: 600;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  .journal-input {
+    width: 100%;
+    background: #F2F2F2;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #656565;
+    font-family: inherit;
+    resize: none;
+    height: 56px;
+  }
+
+  .outcome-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .btn-primary {
+    background: #217180;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: #656565;
+    border: 1px solid #E0E0E0;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* ─── SCREEN 4: Gave In (compassionate) ─── */
+
+  .screen-4 .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px 24px;
+  }
+
+  .gave-in-icon {
+    font-size: 52px;
+    margin-bottom: 12px;
+  }
+
+  .gave-in-headline {
+    font-size: 22px;
+    font-weight: 800;
+    color: #2B2B2B;
+    margin-bottom: 8px;
+    font-family: 'Georgia', serif;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .gave-in-sub {
+    font-size: 14px;
+    color: #656565;
+    line-height: 1.6;
+    text-align: center;
+    margin-bottom: 20px;
+    max-width: 290px;
+  }
+
+  .insight-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  .insight-card-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #656565;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .insight-card-text {
+    font-size: 13px;
+    color: #2B2B2B;
+    line-height: 1.5;
+  }
+  .insight-card-text strong { color: #217180; }
+
+  .tag-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .tag {
+    flex: 1;
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 8px;
+    text-align: center;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #656565;
+  }
+  .tag.selected-struggle { border-color: #FF5B02; color: #FF5B02; background: #fff5f0; }
+
+  /* ─── SCREEN 5: Patterns View ─── */
+
+  .screen-5 .content {
+    padding-top: 8px;
+  }
+
+  .pattern-hero {
+    background: #217180;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+    color: #fff;
+  }
+  .pattern-hero-label {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 6px;
+  }
+  .pattern-hero-text {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .pattern-mini-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 44px;
+  }
+  .bar {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    background: rgba(255,255,255,0.25);
+  }
+  .bar.highlight { background: rgba(255,255,255,0.85); }
+  .bar-labels {
+    display: flex;
+    gap: 5px;
+    margin-top: 4px;
+  }
+  .bar-label {
+    flex: 1;
+    text-align: center;
+    font-size: 9px;
+    opacity: 0.6;
+  }
+
+  .breakdown-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .breakdown-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2B2B2B;
+    margin-bottom: 12px;
+  }
+  .breakdown-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .breakdown-row:last-child { margin-bottom: 0; }
+  .breakdown-icon { font-size: 18px; width: 28px; text-align: center; }
+  .breakdown-info { flex: 1; }
+  .breakdown-name { font-size: 13px; font-weight: 600; color: #2B2B2B; }
+  .breakdown-count { font-size: 11px; color: #656565; }
+  .breakdown-bar-wrap { width: 80px; height: 6px; background: #F2F2F2; border-radius: 999px; }
+  .breakdown-bar-fill { height: 100%; border-radius: 999px; background: #217180; }
+
+  .streak-nudge {
+    background: #fff8f5;
+    border: 1px solid #FFD4BE;
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .streak-nudge-icon { font-size: 28px; }
+  .streak-nudge-text { flex: 1; font-size: 13px; color: #2B2B2B; line-height: 1.4; }
+  .streak-nudge-text strong { color: #FF5B02; }
+
+  /* Layout wrapper for multiple phones */
+  .row {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .screen-title {
+    color: #ccc;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-align: center;
+  }
+  .screen-subtitle {
+    color: #666;
+    font-size: 11px;
+    text-align: center;
+    margin-top: -10px;
+  }
+
+  /* Page header */
+  .page-header {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    font-family: 'Georgia', serif;
+  }
+  .page-header p {
+    font-size: 13px;
+    color: #888;
+  }
+
+  /* Divider */
+  .flow-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #555;
+    font-size: 22px;
+    align-self: center;
+    margin-top: 70px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Craving Crusher</h1>
+  <p>Mockup — 5 key screens across the flow</p>
+</div>
+
+<!-- Row 1: Entry + Timer -->
+<div class="row">
+
+  <!-- SCREEN 1 -->
+  <div class="phone-wrap">
+    <div class="screen-title">1 — Craving Entry</div>
+    <div class="screen-subtitle">Name it to tame it</div>
+    <div class="phone">
+      <div class="screen screen-1">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span>●●●</span>
+        </div>
+        <div class="nav">
+          <span class="nav-back">← Today</span>
+          <span class="nav-title">Craving Crusher</span>
+          <span class="nav-placeholder"></span>
+        </div>
+        <div class="content">
+          <p class="screen-label">You noticed something. Good.</p>
+          <h1 class="hero-headline">What's pulling at you right now?</h1>
+          <p class="hero-sub">Naming it is already the first step. The urge will peak, then pass.</p>
+
+          <p class="section-label">Pick a type</p>
+          <div class="craving-grid">
+            <div class="craving-tile selected">
+              <div class="tile-icon">🍔</div>
+              <div class="tile-label">Junk food</div>
+              <div class="tile-desc">Snacks, sugar, fast food</div>
+            </div>
+            <div class="craving-tile">
+              <div class="tile-icon">📱</div>
+              <div class="tile-label">Phone / scroll</div>
+              <div class="tile-desc">Social media, news, TikTok</div>
+            </div>
+            <div class="craving-tile">
+              <div class="tile-icon">🍺</div>
+              <div class="tile-label">Alcohol</div>
+              <div class="tile-desc">Beer, wine, spirits</div>
+            </div>
+            <div class="craving-tile">
+              <div class="tile-icon">💸</div>
+              <div class="tile-label">Impulse buy</div>
+              <div class="tile-desc">Online shopping, cart items</div>
+            </div>
+          </div>
+
+          <div class="intensity-block">
+            <div class="intensity-label">How strong is it right now?</div>
+            <div class="intensity-sub">Tap to rate — determines your timer length</div>
+            <div class="intensity-dots">
+              <div class="dot filled"></div>
+              <div class="dot filled"></div>
+              <div class="dot filled"></div>
+              <div class="dot filled high"></div>
+              <div class="dot filled high"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+              <div class="dot"></div>
+            </div>
+            <div class="intensity-labels">
+              <span>Mild</span>
+              <span>Intense</span>
+              <span>Overwhelming</span>
+            </div>
+          </div>
+
+          <button class="start-btn">Start 15-min Ride →</button>
+          <p class="start-btn-sub">You don't have to fight it — just outlast it</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="flow-divider">→</div>
+
+  <!-- SCREEN 2 -->
+  <div class="phone-wrap">
+    <div class="screen-title">2 — Active Timer</div>
+    <div class="screen-subtitle">Dark mode; content rotates every ~3 min</div>
+    <div class="phone">
+      <div class="screen screen-2">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span>●●●</span>
+        </div>
+        <div class="nav">
+          <span class="nav-back" style="color:#7ab8c0;">✕ End early</span>
+          <span class="nav-title" style="color:#fff;">Riding it out</span>
+          <span class="nav-placeholder"></span>
+        </div>
+
+        <div class="timer-top">
+          <div class="craving-badge">
+            <span>🍔</span>
+            <span class="badge-label">Junk food · Intensity 5/10</span>
+          </div>
+
+          <!-- Craving curve SVG -->
+          <div class="curve-container">
+            <svg viewBox="0 0 350 100" preserveAspectRatio="none">
+              <!-- Grid lines -->
+              <line x1="0" y1="20" x2="350" y2="20" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+              <line x1="0" y1="50" x2="350" y2="50" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+              <line x1="0" y1="80" x2="350" y2="80" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+              <!-- Predicted curve (full dotted) -->
+              <path d="M 0 85 C 30 85, 60 10, 100 8 C 140 6, 160 15, 200 35 C 240 55, 280 70, 350 82"
+                    fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" stroke-dasharray="4,4"/>
+              <!-- Actual progress so far (solid teal) -->
+              <path d="M 0 85 C 30 85, 60 10, 100 8 C 115 7, 120 8, 130 11"
+                    fill="none" stroke="#217180" stroke-width="2.5"/>
+              <!-- You are here dot -->
+              <circle cx="130" cy="11" r="5" fill="#217180"/>
+              <circle cx="130" cy="11" r="9" fill="rgba(33,113,128,0.3)"/>
+              <!-- NOW label -->
+              <text x="138" y="9" fill="#7ab8c0" font-size="9" font-family="Avenir, sans-serif">YOU</text>
+              <!-- Time axis labels -->
+              <text x="0" y="98" fill="rgba(255,255,255,0.3)" font-size="8" font-family="Avenir, sans-serif">0</text>
+              <text x="95" y="98" fill="rgba(255,255,255,0.3)" font-size="8" font-family="Avenir, sans-serif">peak</text>
+              <text x="320" y="98" fill="rgba(255,255,255,0.3)" font-size="8" font-family="Avenir, sans-serif">15m</text>
+            </svg>
+            <div class="curve-annotation">Peak passed ↑<br>it only goes down from here</div>
+          </div>
+        </div>
+
+        <div class="timer-display">
+          <div class="timer-label">Time remaining</div>
+          <div class="timer-digits">10:44</div>
+        </div>
+
+        <div class="timer-progress-bar">
+          <div class="timer-progress-fill"></div>
+        </div>
+
+        <!-- Active content card -->
+        <div class="content-card">
+          <div class="content-card-type">Neuroscience</div>
+          <div class="content-card-text">
+            Your brain's <strong>dopamine system</strong> fired before you even touched anything.
+            The craving is real — but it's a prediction, not a command. You're already rewiring the pattern right now.
+          </div>
+        </div>
+
+        <!-- Breathe prompt -->
+        <div class="breathe-block">
+          <div class="breathe-circle"><div class="breathe-dot"></div></div>
+          <div class="breathe-text">
+            <div class="breathe-title">4-7-8 breathing</div>
+            <div class="breathe-sub">In 4 · hold 7 · out 8 · repeat</div>
+          </div>
+        </div>
+
+        <div class="timer-bottom">
+          <button class="gave-in-btn">I gave in — log it anyway</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="flow-divider">→</div>
+
+  <!-- SCREEN 3 -->
+  <div class="phone-wrap">
+    <div class="screen-title">3 — Craving Passed</div>
+    <div class="screen-subtitle">Timer expired naturally</div>
+    <div class="phone">
+      <div class="screen screen-3">
+        <div class="status-bar">
+          <span>9:56</span>
+          <span>●●●</span>
+        </div>
+        <div class="nav">
+          <span class="nav-back">← Today</span>
+          <span class="nav-title">Craving Crusher</span>
+          <span class="nav-placeholder"></span>
+        </div>
+        <div class="content">
+          <div class="outcome-icon">⚡</div>
+          <h2 class="outcome-headline">You rode it out.</h2>
+          <p class="outcome-sub">The craving peaked and passed — exactly as the science said it would. That's one more rep of choosing differently.</p>
+
+          <div class="stat-row">
+            <div class="stat-card">
+              <div class="stat-val">15:00</div>
+              <div class="stat-label">Time held</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val">4</div>
+              <div class="stat-label">Crushes this week</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val">+10</div>
+              <div class="stat-label">Points earned</div>
+            </div>
+          </div>
+
+          <div class="journal-prompt">
+            <div class="journal-prompt-label">Capture the moment</div>
+            <div class="journal-prompt-q">What were you actually feeling when the craving hit?</div>
+            <textarea class="journal-input" placeholder="Optional — stress, boredom, habit..."></textarea>
+          </div>
+
+          <div class="outcome-btns">
+            <button class="btn-primary">Done — back to today</button>
+            <button class="btn-ghost">View my craving patterns →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end row 1 -->
+
+<!-- Row 2: Gave in + Patterns -->
+<div class="row" style="margin-top: 40px;">
+
+  <!-- SCREEN 4 -->
+  <div class="phone-wrap">
+    <div class="screen-title">4 — Gave In Flow</div>
+    <div class="screen-subtitle">Compassionate, no shame language</div>
+    <div class="phone">
+      <div class="screen screen-4">
+        <div class="status-bar">
+          <span>9:50</span>
+          <span>●●●</span>
+        </div>
+        <div class="nav">
+          <span class="nav-back">← Today</span>
+          <span class="nav-title">Craving Crusher</span>
+          <span class="nav-placeholder"></span>
+        </div>
+        <div class="content">
+          <div class="gave-in-icon">🌊</div>
+          <h2 class="gave-in-headline">The wave won this one.</h2>
+          <p class="gave-in-sub">Logging it anyway is the move. People who track every outcome — not just wins — build stronger patterns over time.</p>
+
+          <div class="insight-card">
+            <div class="insight-card-label">What the data shows</div>
+            <div class="insight-card-text">
+              You held on for <strong>4 minutes</strong> before stopping.
+              Your <strong>last 3 junk food cravings</strong> all happened between 3–5pm.
+              That's a pattern worth knowing.
+            </div>
+          </div>
+
+          <p class="section-label" style="color:#656565; margin-bottom:8px;">How did it feel?</p>
+          <div class="tag-row">
+            <div class="tag selected-struggle">Struggle</div>
+            <div class="tag">Steady</div>
+            <div class="tag">Automatic</div>
+          </div>
+
+          <div class="insight-card" style="background:#fff8f5; border: 1px solid #FFD4BE;">
+            <div class="insight-card-label" style="color:#FF5B02;">Next time</div>
+            <div class="insight-card-text">
+              Try starting the timer <strong>before</strong> the craving peaks — the window between noticing and acting is where it gets easier.
+            </div>
+          </div>
+
+          <div class="outcome-btns">
+            <button class="btn-primary">Log it and move on</button>
+            <button class="btn-ghost">See what triggered it →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="flow-divider">→</div>
+
+  <!-- SCREEN 5 -->
+  <div class="phone-wrap">
+    <div class="screen-title">5 — Patterns View</div>
+    <div class="screen-subtitle">Surfaces after 5+ logs</div>
+    <div class="phone">
+      <div class="screen screen-5">
+        <div class="status-bar">
+          <span>9:56</span>
+          <span>●●●</span>
+        </div>
+        <div class="nav">
+          <span class="nav-back">← Back</span>
+          <span class="nav-title">Your Patterns</span>
+          <span class="nav-placeholder"></span>
+        </div>
+        <div class="content">
+
+          <div class="pattern-hero">
+            <div class="pattern-hero-label">Insight this week</div>
+            <div class="pattern-hero-text">Junk food cravings spike on weekdays between 3–5pm. You've crushed 3 of 5 during that window.</div>
+            <div class="pattern-mini-chart">
+              <div class="bar" style="height:30%"></div>
+              <div class="bar" style="height:45%"></div>
+              <div class="bar" style="height:55%"></div>
+              <div class="bar highlight" style="height:95%"></div>
+              <div class="bar highlight" style="height:88%"></div>
+              <div class="bar" style="height:40%"></div>
+              <div class="bar" style="height:25%"></div>
+            </div>
+            <div class="bar-labels">
+              <div class="bar-label">M</div>
+              <div class="bar-label">T</div>
+              <div class="bar-label">W</div>
+              <div class="bar-label">Th</div>
+              <div class="bar-label">F</div>
+              <div class="bar-label">Sa</div>
+              <div class="bar-label">Su</div>
+            </div>
+          </div>
+
+          <div class="breakdown-card">
+            <div class="breakdown-title">By craving type — last 30 days</div>
+            <div class="breakdown-row">
+              <div class="breakdown-icon">🍔</div>
+              <div class="breakdown-info">
+                <div class="breakdown-name">Junk food</div>
+                <div class="breakdown-count">12 logged · 8 crushed (67%)</div>
+              </div>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar-fill" style="width:67%"></div></div>
+            </div>
+            <div class="breakdown-row">
+              <div class="breakdown-icon">📱</div>
+              <div class="breakdown-info">
+                <div class="breakdown-name">Phone / scroll</div>
+                <div class="breakdown-count">9 logged · 5 crushed (56%)</div>
+              </div>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar-fill" style="width:56%"></div></div>
+            </div>
+            <div class="breakdown-row">
+              <div class="breakdown-icon">💸</div>
+              <div class="breakdown-info">
+                <div class="breakdown-name">Impulse buy</div>
+                <div class="breakdown-count">4 logged · 4 crushed (100%)</div>
+              </div>
+              <div class="breakdown-bar-wrap"><div class="breakdown-bar-fill" style="width:100%"></div></div>
+            </div>
+          </div>
+
+          <div class="streak-nudge">
+            <div class="streak-nudge-icon">🔥</div>
+            <div class="streak-nudge-text">
+              <strong>3-day crush streak.</strong> You've beaten at least one craving every day this week.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end row 2 -->
+
+</body>
+</html>

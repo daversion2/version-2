@@ -36,6 +36,7 @@ import { MicroExerciseQuestionScreen } from '../screens/MicroExercise/MicroExerc
 import { MicroExerciseCommitmentScreen } from '../screens/MicroExercise/MicroExerciseCommitmentScreen';
 import { MicroExerciseCompleteScreen } from '../screens/MicroExercise/MicroExerciseCompleteScreen';
 import { MicroExerciseFollowUpScreen } from '../screens/MicroExercise/MicroExerciseFollowUpScreen';
+import { CravingCrusherScreen } from '../screens/Home/CravingCrusherScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
@@ -228,6 +229,13 @@ export const HomeStack: React.FC = () => (
       name="MicroExerciseFollowUp"
       component={MicroExerciseFollowUpScreen}
       options={{ title: 'How did it go?' }}
+    />
+    <Stack.Screen
+      name="CravingCrusher"
+      component={CravingCrusherScreen}
+      // No header and no swipe-back: an accidental gesture mid-timer would
+      // silently abandon the ride. Exits go through the in-screen ✕.
+      options={{ headerShown: false, gestureEnabled: false }}
     />
   </Stack.Navigator>
 );

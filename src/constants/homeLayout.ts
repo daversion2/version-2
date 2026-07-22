@@ -8,6 +8,8 @@ export const SECTION_IDS = [
   'practices',
   // Zone 3: Reflect
   'reflection_banner',
+  // Zone 4: In the Moment
+  'craving_crusher',
 ] as const;
 
 export type HomeSectionId = (typeof SECTION_IDS)[number];
@@ -39,6 +41,12 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     icon: 'moon-outline',
     sectionIds: ['reflection_banner'],
   },
+  {
+    id: 'in_the_moment',
+    label: 'In the Moment',
+    icon: 'flash-outline',
+    sectionIds: ['craving_crusher'],
+  },
 ];
 
 export const SECTION_TO_ZONE: Record<HomeSectionId, string> = {} as Record<HomeSectionId, string>;
@@ -53,6 +61,7 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
   mantra: 'Redirect Mantra',
   practices: 'Your Practices',
   reflection_banner: 'Nightly Reflection',
+  craving_crusher: 'Craving Crusher',
 };
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
@@ -60,4 +69,5 @@ export const SECTION_ICONS: Record<HomeSectionId, string> = {
   mantra: 'megaphone-outline',
   practices: 'flame-outline',
   reflection_banner: 'moon-outline',
+  craving_crusher: 'flash-outline',
 };

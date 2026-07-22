@@ -244,7 +244,7 @@ export type Quadrant = 'stressed' | 'energized' | 'depleted' | 'calm';
 export interface CompletionLog {
   id: string;
   user_id: string;
-  type: 'challenge' | 'nudge' | 'program';
+  type: 'challenge' | 'nudge' | 'program' | 'craving';
   reference_id: string;
   points: number;
   difficulty: number;
@@ -275,6 +275,38 @@ export interface CompletionLog {
   moodAfter?: -1 | 1 | null;
   quadrantBefore?: Quadrant | null;
   quadrantAfter?: Quadrant | null;
+}
+
+// =============================================================================
+// CRAVING CRUSHER TYPES
+// =============================================================================
+
+export type CravingOutcome = 'passed' | 'gave_in';
+
+/** One urge-surfing session, stored in users/{uid}/cravingLogs. */
+export interface CravingLog {
+  id: string;
+  user_id: string;
+  /** CravingTypeId from data/cravings.ts ('food' | 'phone' | ...). */
+  craving_type: string;
+  /** User-supplied name when craving_type is 'other' (e.g. "chocolate", "checking email"). */
+  custom_label?: string;
+  /** Self-reported intensity at the start, 1–10. */
+  intensity: number;
+  outcome: CravingOutcome;
+  /** How long the user actually rode the wave before the outcome. */
+  seconds_held: number;
+  /** Timer length the intensity mapped to. */
+  planned_seconds: number;
+  date: string; // YYYY-MM-DD local
+  started_at: string; // ISO 8601
+  ended_at: string; // ISO 8601
+  /** Selected mind tag ids (data/mindTags.ts) — feeds Struggle/Steady patterns. */
+  mindTags?: string[];
+  /** Optional free-text capture: what was happening when it hit. */
+  note?: string;
+  /** Off-app mission category id (data/cravings.ts) if the ride went out into the world. */
+  mission?: string;
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Craving Crusher — On-Phone + Off-Phone Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a1a;
+    font-family: 'Avenir', 'Helvetica Neue', Helvetica, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 40px; padding: 40px 20px 80px; min-height: 100vh;
+  }
+
+  .page-header { text-align: center; color: #fff; margin-bottom: 10px; }
+  .page-header h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; font-family: 'Georgia', serif; }
+  .page-header p { font-size: 13px; color: #888; max-width: 600px; line-height: 1.5; }
+
+  .row { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .screen-title { color: #ccc; font-size: 13px; font-weight: 600; text-align: center; }
+  .screen-subtitle { color: #666; font-size: 11px; text-align: center; margin-top: -10px; max-width: 330px; line-height: 1.5; }
+
+  .phone {
+    width: 390px; height: 844px; background: #20272B;
+    border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6); flex-shrink: 0;
+  }
+  .screen { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+  .status-bar { height: 54px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 28px 8px; flex-shrink: 0; }
+  .status-bar span { font-size: 12px; font-weight: 600; color: #fff; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px; flex-shrink: 0; }
+  .nav-x { font-size: 18px; color: rgba(255,255,255,0.4); cursor: pointer; width: 40px; }
+  .nav-x.right { text-align: right; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; padding: 5px 12px; }
+  .badge span { font-size: 12px; color: #aaa; font-weight: 600; }
+
+  .content { flex: 1; overflow: hidden; padding: 0 20px; display: flex; flex-direction: column; }
+
+  .big-timer { text-align: center; margin-top: 6px; flex-shrink: 0; }
+  .big-timer .label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #667; }
+  .big-timer .digits { font-size: 50px; font-weight: 800; color: #fff; line-height: 1.05; font-family: 'Courier New', monospace; letter-spacing: -2px; }
+  .strip-progress { margin: 8px 0 0; height: 3px; background: rgba(255,255,255,0.1); border-radius: 999px; flex-shrink: 0; }
+  .strip-fill { height: 100%; background: #217180; border-radius: 999px; }
+
+  /* ─── SCREEN 1: Two-group menu ─── */
+
+  .group-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase;
+    color: #667; font-weight: 700; margin: 14px 0 8px;
+  }
+  .group-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
+  .group-label .gl-hint { text-transform: none; letter-spacing: 0; font-weight: 400; color: #556; font-size: 10px; }
+
+  .activity-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .activity-tile {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 12px 10px; cursor: pointer; text-align: center;
+  }
+  .activity-tile .a-icon { font-size: 20px; margin-bottom: 6px; }
+  .activity-tile .a-name { font-size: 12px; font-weight: 700; color: #fff; }
+  .activity-tile .a-desc { font-size: 9.5px; color: #889; line-height: 1.35; margin-top: 2px; }
+
+  .world-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .world-tile {
+    background: rgba(255,91,2,0.07); border: 1px solid rgba(255,91,2,0.25);
+    border-radius: 16px; padding: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .world-tile .w-icon { font-size: 20px; flex-shrink: 0; }
+  .world-tile .w-name { font-size: 12px; font-weight: 700; color: #fff; }
+  .world-tile .w-desc { font-size: 9.5px; color: #a98; line-height: 1.3; margin-top: 1px; }
+
+  .world-note {
+    margin-top: 8px; font-size: 10.5px; color: #778; line-height: 1.5;
+    text-align: center; padding: 0 8px;
+  }
+  .world-note b { color: #ff8a4d; font-weight: 700; }
+
+  .just-ride {
+    margin-top: 10px; text-align: center; padding: 10px;
+    border: 1px dashed rgba(255,255,255,0.15); border-radius: 14px;
+    font-size: 12px; color: #889; cursor: pointer;
+  }
+  .just-ride strong { color: #aab; }
+
+  .menu-footer { padding: 10px 0 18px; flex-shrink: 0; }
+  .gave-in-btn {
+    width: 100%; background: transparent; color: #778;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 12px;
+    padding: 11px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+
+  /* ─── SCREEN 2: Off-phone mission ─── */
+
+  .mission-stage { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 22px; text-align: center; }
+  .mission-emoji { font-size: 56px; margin-bottom: 14px; }
+  .mission-kicker { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #ff8a4d; font-weight: 700; margin-bottom: 8px; }
+  .mission-title { font-size: 24px; font-weight: 800; color: #fff; font-family: 'Georgia', serif; line-height: 1.25; padding: 0 10px; }
+  .mission-sub { font-size: 13px; color: #99a; line-height: 1.6; margin-top: 10px; padding: 0 16px; }
+  .mission-sub b { color: #cdd; }
+
+  .mission-shuffle { margin-top: 14px; font-size: 12px; font-weight: 700; color: #ff8a4d; cursor: pointer; }
+
+  .pocket-card {
+    margin-top: 22px; background: rgba(33,113,128,0.14);
+    border: 1px solid rgba(33,113,128,0.4); border-radius: 18px;
+    padding: 16px; width: 100%; text-align: left;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .pocket-card .p-icon { font-size: 22px; }
+  .pocket-card .p-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .pocket-card .p-text { font-size: 11.5px; color: #9bb; line-height: 1.5; }
+
+  .mission-footer { padding: 0 0 20px; flex-shrink: 0; display: flex; flex-direction: column; gap: 9px; }
+  .go-btn {
+    width: 100%; background: #FF5B02; color: #fff; border: none;
+    border-radius: 14px; padding: 15px; font-size: 15px; font-weight: 800;
+    cursor: pointer; font-family: 'Georgia', serif;
+  }
+  .back-btn {
+    width: 100%; background: transparent; color: #889; border: none;
+    padding: 8px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+
+  /* ─── SCREEN 3: Lock screen ─── */
+
+  .lockscreen {
+    background: linear-gradient(160deg, #2c3844 0%, #1d2731 60%, #151c24 100%);
+  }
+  .lock-time { text-align: center; margin-top: 68px; }
+  .lock-time .lt-date { font-size: 15px; color: rgba(255,255,255,0.8); font-weight: 600; }
+  .lock-time .lt-clock { font-size: 76px; font-weight: 700; color: #fff; letter-spacing: -2px; line-height: 1.1; }
+
+  .notif-stack { margin: 26px 14px 0; display: flex; flex-direction: column; gap: 10px; }
+  .notif {
+    background: rgba(245,245,247,0.92); border-radius: 20px; padding: 12px 14px;
+    color: #111; box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+  .notif-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+  .notif-appicon {
+    width: 20px; height: 20px; border-radius: 5px; background: #217180;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 11px; font-weight: 800;
+  }
+  .notif-app { font-size: 11px; color: #555; font-weight: 600; flex: 1; }
+  .notif-when { font-size: 11px; color: #888; }
+  .notif-title { font-size: 13.5px; font-weight: 700; margin-bottom: 2px; }
+  .notif-body { font-size: 12.5px; color: #333; line-height: 1.45; }
+  .notif.dimmed { opacity: 0.72; transform: scale(0.98); }
+
+  .lock-hint { text-align: center; margin-top: auto; margin-bottom: 26px; font-size: 11px; color: rgba(255,255,255,0.45); }
+
+  /* ─── SCREEN 4: Welcome back ─── */
+
+  .wb-stage { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 26px; text-align: center; }
+  .wb-emoji { font-size: 54px; margin-bottom: 12px; }
+  .wb-title { font-size: 24px; font-weight: 800; color: #fff; font-family: 'Georgia', serif; }
+  .wb-sub { font-size: 13px; color: #99a; line-height: 1.6; margin-top: 8px; padding: 0 20px; }
+  .wb-sub b { color: #fff; }
+
+  .wb-ride-card {
+    margin-top: 20px; width: 100%; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 16px;
+    display: flex; justify-content: space-around;
+  }
+  .wb-stat { text-align: center; }
+  .wb-stat .v { font-size: 20px; font-weight: 800; color: #7ab8c0; font-family: 'Georgia', serif; }
+  .wb-stat .l { font-size: 10px; color: #778; margin-top: 2px; }
+
+  .wb-question { margin-top: 26px; font-size: 16px; font-weight: 800; color: #fff; font-family: 'Georgia', serif; }
+  .wb-qsub { font-size: 12px; color: #889; margin-top: 4px; }
+
+  .wb-footer { padding: 16px 0 20px; flex-shrink: 0; display: flex; flex-direction: column; gap: 9px; width: 100%; }
+  .passed-btn {
+    width: 100%; background: #217180; color: #fff; border: none;
+    border-radius: 14px; padding: 15px; font-size: 15px; font-weight: 800;
+    cursor: pointer; font-family: 'Georgia', serif;
+  }
+  .still-btn {
+    width: 100%; background: rgba(255,255,255,0.07); color: #cdd;
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+    padding: 13px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .gave-btn {
+    width: 100%; background: transparent; color: #778; border: none;
+    padding: 8px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+  }
+
+  .flow-divider { display: flex; align-items: center; color: #555; font-size: 22px; align-self: center; margin-top: 70px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Craving Crusher — Ride It Anywhere</h1>
+  <p>The app doesn't hold the user hostage: in-app activities for those who want guidance,
+  off-phone missions for those who need distance from the screen. The timer runs either way,
+  and a notification brings them back to log the outcome.</p>
+</div>
+
+<div class="row">
+
+  <!-- SCREEN 1: Two-group menu -->
+  <div class="phone-wrap">
+    <div class="screen-title">1 — Activity Menu (two groups)</div>
+    <div class="screen-subtitle">"On your phone" keeps the previous six, compressed. "Out in the world" is new — and for phone cravings it's listed FIRST.</div>
+    <div class="phone"><div class="screen">
+      <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+      <div class="nav">
+        <span class="nav-x">✕</span>
+        <span class="badge"><span>🍔 Junk food · 5/10</span></span>
+        <span class="nav-x right"></span>
+      </div>
+      <div class="content">
+        <div class="big-timer">
+          <div class="label">Time remaining</div>
+          <div class="digits">13:44</div>
+        </div>
+        <div class="strip-progress"><div class="strip-fill" style="width:9%"></div></div>
+
+        <div class="group-label">Out in the world <span class="gl-hint">— leave the app, we'll hold the timer</span></div>
+        <div class="world-grid">
+          <div class="world-tile">
+            <div class="w-icon">🚶</div>
+            <div><div class="w-name">Take a walk</div><div class="w-desc">Around the block or just the hallway</div></div>
+          </div>
+          <div class="world-tile">
+            <div class="w-icon">🫖</div>
+            <div><div class="w-name">Hands busy</div><div class="w-desc">Make tea, tidy one surface, water plants</div></div>
+          </div>
+          <div class="world-tile">
+            <div class="w-icon">💬</div>
+            <div><div class="w-name">Reach out</div><div class="w-desc">Call or voice-note someone real</div></div>
+          </div>
+          <div class="world-tile">
+            <div class="w-icon">🌤</div>
+            <div><div class="w-name">Step outside</div><div class="w-desc">Doorway counts. Sky helps.</div></div>
+          </div>
+        </div>
+        <div class="world-note">Pick one and <b>put the phone down</b> — we'll ping you when the wave should have passed.</div>
+
+        <div class="group-label">On your phone</div>
+        <div class="activity-grid">
+          <div class="activity-tile">
+            <div class="a-icon">🫁</div><div class="a-name">Breathe</div>
+            <div class="a-desc">Pick your cadence</div>
+          </div>
+          <div class="activity-tile">
+            <div class="a-icon">🧠</div><div class="a-name">Learn</div>
+            <div class="a-desc">Your brain right now</div>
+          </div>
+          <div class="activity-tile">
+            <div class="a-icon">🖐</div><div class="a-name">Ground</div>
+            <div class="a-desc">5-4-3-2-1 senses</div>
+          </div>
+          <div class="activity-tile">
+            <div class="a-icon">🧭</div><div class="a-name">Your Why</div>
+            <div class="a-desc">Mantra + reason</div>
+          </div>
+          <div class="activity-tile">
+            <div class="a-icon">✍️</div><div class="a-name">Name it</div>
+            <div class="a-desc">Write the trigger</div>
+          </div>
+          <div class="activity-tile">
+            <div class="a-icon">🌊</div><div class="a-name">Just ride</div>
+            <div class="a-desc">Watch the wave</div>
+          </div>
+        </div>
+
+        <div class="menu-footer">
+          <button class="gave-in-btn">I gave in — log it anyway</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="flow-divider">→</div>
+
+  <!-- SCREEN 2: Off-phone mission -->
+  <div class="phone-wrap">
+    <div class="screen-title">2 — Mission Brief (before leaving)</div>
+    <div class="screen-subtitle">One concrete mission, a shuffle, and a clear contract: put the phone down, we'll ping you. Tapping "Go" locks in the notification and dims the screen.</div>
+    <div class="phone"><div class="screen">
+      <div class="status-bar"><span>9:42</span><span>●●●</span></div>
+      <div class="nav">
+        <span class="nav-x">‹</span>
+        <span class="badge"><span>🚶 Out in the world</span></span>
+        <span class="nav-x right"></span>
+      </div>
+      <div class="content">
+        <div class="mission-stage">
+          <div class="mission-emoji">🚶</div>
+          <div class="mission-kicker">Your mission</div>
+          <div class="mission-title">Walk to the end of the street and back</div>
+          <div class="mission-sub">
+            Don't take the craving with you — take your senses instead. Notice
+            <b>three things</b> you've never noticed on that street before. You'll be
+            asked what they were.
+          </div>
+          <div class="mission-shuffle">↻ Different mission</div>
+
+          <div class="pocket-card">
+            <div class="p-icon">🔔</div>
+            <div>
+              <div class="p-title">We've got the timer — 13:12 left</div>
+              <div class="p-text">Put the phone in your pocket. A notification will land when the
+              wave should have passed, and you'll log how it went. Coming back early is fine too.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mission-footer">
+          <button class="go-btn">Go — phone down 📵</button>
+          <button class="back-btn">← Back to activities</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div><!-- row 1 -->
+
+<div class="row" style="margin-top:40px;">
+
+  <!-- SCREEN 3: Lock screen -->
+  <div class="phone-wrap">
+    <div class="screen-title">3 — While They're Away (lock screen)</div>
+    <div class="screen-subtitle">Timer-end notification brings them back to log. An optional midpoint nudge reinforces without nagging — both are local notifications, cancelled instantly if they return early.</div>
+    <div class="phone"><div class="screen lockscreen">
+      <div class="lock-time">
+        <div class="lt-date">Tuesday, July 21</div>
+        <div class="lt-clock">9:56</div>
+      </div>
+
+      <div class="notif-stack">
+        <div class="notif">
+          <div class="notif-head">
+            <div class="notif-appicon">N</div>
+            <div class="notif-app">NEURO-NUDGE</div>
+            <div class="notif-when">now</div>
+          </div>
+          <div class="notif-title">The wave should have passed 🌊</div>
+          <div class="notif-body">15 minutes ridden — nice. Still standing? Come log how it landed (either answer counts).</div>
+        </div>
+
+        <div class="notif dimmed">
+          <div class="notif-head">
+            <div class="notif-appicon">N</div>
+            <div class="notif-app">NEURO-NUDGE</div>
+            <div class="notif-when">7m ago</div>
+          </div>
+          <div class="notif-title">Halfway — past the peak</div>
+          <div class="notif-body">It only fades from here. Whatever you're doing, keep doing it.</div>
+        </div>
+      </div>
+
+      <div class="lock-hint">swipe up to open</div>
+    </div></div>
+  </div>
+
+  <div class="flow-divider">→</div>
+
+  <!-- SCREEN 4: Welcome back -->
+  <div class="phone-wrap">
+    <div class="screen-title">4 — Welcome Back</div>
+    <div class="screen-subtitle">Shown on return (early or after the ping). "Still riding" resumes the timer instead of forcing a verdict — coming back to the app isn't the same as the craving being over.</div>
+    <div class="phone"><div class="screen">
+      <div class="status-bar"><span>9:57</span><span>●●●</span></div>
+      <div class="nav">
+        <span class="nav-x"></span>
+        <span class="badge"><span>🍔 Junk food · started 9:41</span></span>
+        <span class="nav-x right"></span>
+      </div>
+      <div class="content">
+        <div class="wb-stage">
+          <div class="wb-emoji">👋</div>
+          <div class="wb-title">Welcome back.</div>
+          <div class="wb-sub">You took the ride <b>out into the world</b> — that's the strongest
+          version of this. The mission asked for three things you'd never noticed…</div>
+
+          <div class="wb-ride-card">
+            <div class="wb-stat"><div class="v">16:04</div><div class="l">Time away</div></div>
+            <div class="wb-stat"><div class="v">🚶 Walk</div><div class="l">Mission</div></div>
+            <div class="wb-stat"><div class="v">5/10</div><div class="l">Started at</div></div>
+          </div>
+
+          <div class="wb-question">Where did the craving land?</div>
+          <div class="wb-qsub">Honest answer — both feed your patterns.</div>
+        </div>
+
+        <div class="wb-footer">
+          <button class="passed-btn">It passed — log the ride</button>
+          <button class="still-btn">Still riding — keep the timer going</button>
+          <button class="gave-btn">I gave in while I was away — log it anyway</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div><!-- row 2 -->
+
+</body>
+</html>

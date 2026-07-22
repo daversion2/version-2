@@ -45,6 +45,9 @@ export const getCompletionLogsWithNames = async (
     .map((d) => ({ id: d.id, ...d.data() } as CompletionLog))
     .filter((log) => log.date === date)
     .map((log) => {
+      if (log.type === 'craving') {
+        return { ...log, name: 'Craving Crusher' };
+      }
       const ref =
         log.type === 'challenge'
           ? challengeMap.get(log.reference_id)

@@ -183,7 +183,11 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         </View>
         <View style={styles.logMeta}>
           <Text style={styles.metaText}>
-            {item.type === 'challenge' ? 'Challenge' : 'Practice'}
+            {item.type === 'challenge'
+              ? 'Challenge'
+              : item.type === 'craving'
+                ? 'Craving'
+                : 'Practice'}
           </Text>
           {item.completed_at && (
             <Text style={styles.metaText}>
