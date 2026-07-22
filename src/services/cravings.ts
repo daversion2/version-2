@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { CravingLog, CravingOutcome } from '../types';
 import { getCravingType } from '../data/cravings';
@@ -18,6 +18,13 @@ const CRAVING_PASSED_BASE_POINTS = 2;
  * the streak — the streak stays a record of completed reps.
  */
 const CRAVING_LOGGED_POINTS = 1;
+/**
+ * Chance a ridden-out craving pays double. Variable-ratio rewards bind habit
+ * loops measurably harder than fixed ones — the one mechanism worth borrowing
+ * from slot machines for a good cause. The floor never drops: a normal win
+ * always pays full points; the bonus only ever adds.
+ */
+const CRAVING_BONUS_CHANCE = 0.2;
 
 const cravingLogsRef = (userId: string) =>
   collection(db, 'users', userId, 'cravingLogs');
@@ -30,6 +37,10 @@ export interface CravingSessionInput {
   /** User-supplied name for an 'other' craving. */
   customLabel?: string;
   intensity: number;
+  /** Intensity when logging, 0 (gone) – 10. */
+  exitIntensity?: number;
+  /** Times the timer was extended. */
+  extensions?: number;
   outcome: CravingOutcome;
   secondsHeld: number;
   plannedSeconds: number;
@@ -43,6 +54,8 @@ export interface CravingSessionInput {
 export interface CravingSessionResult {
   logId: string;
   pointsEarned: number;
+  /** True when the variable reward hit and points were doubled. */
+  bonus: boolean;
   /** Present only when the outcome fed the streak (a ridden-out craving). */
   willpower: Awaited<ReturnType<typeof updateWillpowerStats>> | null;
 }
@@ -63,6 +76,8 @@ export const logCravingSession = async (
     craving_type: input.cravingType,
     ...(input.customLabel?.trim() ? { custom_label: input.customLabel.trim() } : {}),
     intensity: input.intensity,
+    ...(typeof input.exitIntensity === 'number' ? { exit_intensity: input.exitIntensity } : {}),
+    ...(input.extensions ? { extensions: input.extensions } : {}),
     outcome: input.outcome,
     seconds_held: input.secondsHeld,
     planned_seconds: input.plannedSeconds,
@@ -77,11 +92,13 @@ export const logCravingSession = async (
 
   if (input.outcome === 'gave_in') {
     await adjustWillpowerPoints(userId, CRAVING_LOGGED_POINTS);
-    return { logId: docRef.id, pointsEarned: CRAVING_LOGGED_POINTS, willpower: null };
+    return { logId: docRef.id, pointsEarned: CRAVING_LOGGED_POINTS, bonus: false, willpower: null };
   }
 
   const { currentStreak } = await getWillpowerStats(userId);
-  const points = calculateHabitPoints(CRAVING_PASSED_BASE_POINTS, currentStreak);
+  let points = calculateHabitPoints(CRAVING_PASSED_BASE_POINTS, currentStreak);
+  const bonus = Math.random() < CRAVING_BONUS_CHANCE;
+  if (bonus) points *= 2;
   const willpower = await updateWillpowerStats(userId, points);
 
   const minutes = Math.max(1, Math.round(input.secondsHeld / 60));
@@ -106,7 +123,21 @@ export const logCravingSession = async (
     ...(input.mindTags && input.mindTags.length ? { mindTags: input.mindTags } : {}),
   });
 
-  return { logId: docRef.id, pointsEarned: points, willpower };
+  return { logId: docRef.id, pointsEarned: points, bonus, willpower };
+};
+
+/**
+ * Attach a one-tap implementation intention to a logged craving. If-then
+ * plans formed right after a lapse roughly double follow-through next time.
+ */
+export const saveCravingPlan = async (
+  userId: string,
+  logId: string,
+  plan: string
+): Promise<void> => {
+  await updateDoc(doc(db, 'users', userId, 'cravingLogs', logId), {
+    if_then_plan: plan,
+  });
 };
 
 export const getCravingLogs = async (

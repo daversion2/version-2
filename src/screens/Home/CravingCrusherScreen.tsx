@@ -9,12 +9,13 @@ import {
   ActivityIndicator,
   SafeAreaView,
   AppState,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { CravingOutcome } from '../../types';
+import { CravingLog, CravingOutcome } from '../../types';
 import {
   CRAVING_TYPES,
   CravingTypeId,
@@ -26,10 +27,10 @@ import {
   LESSON_SETS,
   OUTCOME_COPY,
 } from '../../data/cravings';
-import { MIND_TAG_GROUPS } from '../../data/mindTags';
 import {
   logCravingSession,
   getCravingLogs,
+  saveCravingPlan,
   summarizeCravingPatterns,
   CravingPatternSummary,
 } from '../../services/cravings';
@@ -43,12 +44,13 @@ import { LearnActivity } from '../../components/craving/LearnActivity';
 import { GroundActivity } from '../../components/craving/GroundActivity';
 import { NameItActivity } from '../../components/craving/NameItActivity';
 import { MissionBrief } from '../../components/craving/MissionBrief';
+import { WaveTrendChart } from '../../components/craving/WaveTrendChart';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { triggerRewardHaptic } from '../../utils/haptics';
 
 type Props = HomeScreenProps<'CravingCrusher'>;
 
-type Phase = 'setup' | 'riding' | 'reflect';
+type Phase = 'setup' | 'riding' | 'reflect' | 'complete';
 type RidingView = InAppActivityId | 'menu' | 'mission' | 'away' | 'welcome_back';
 
 const formatClock = (totalSeconds: number): string => {
@@ -63,6 +65,61 @@ const WAVE_SHAPE = Array.from({ length: 24 }, (_, i) => {
   return 0.15 + 0.85 * Math.exp(-Math.pow((x - 0.3) / 0.28, 2));
 });
 
+const hourWindowLabel = (d: Date): string => {
+  const h = d.getHours();
+  if (h >= 5 && h < 12) return 'in the morning';
+  if (h >= 12 && h < 17) return 'in the afternoon';
+  if (h >= 17 && h < 22) return 'in the evening';
+  return 'late at night';
+};
+
+/**
+ * The savor pause — shown before any numbers after a ridden-out craving.
+ * Emotionally-felt endings consolidate into memory far more strongly than
+ * ones rushed past; the reward loop closes on the felt win, not the XP.
+ * Continue appears after ~2 slow breaths.
+ */
+const SavorPause: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
+  const pulse = useRef(new Animated.Value(0.85)).current;
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.1, duration: 4000, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.85, duration: 4000, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    const timer = setTimeout(() => setReady(true), 8000);
+    return () => {
+      loop.stop();
+      clearTimeout(timer);
+    };
+  }, [pulse]);
+
+  return (
+    <SafeAreaView style={savorStyles.container}>
+      <View style={savorStyles.stage}>
+        <Text style={savorStyles.kicker}>BEFORE THE NUMBERS</Text>
+        <Text style={savorStyles.title}>Stop for a moment.</Text>
+        <Animated.View style={[savorStyles.circle, { transform: [{ scale: pulse }] }]} />
+        <Text style={savorStyles.body}>
+          Notice how it feels to be on the other side of the wave.{'\n'}
+          That feeling is the reward — let it register.
+        </Text>
+        {ready ? (
+          <TouchableOpacity style={savorStyles.continueButton} onPress={onContinue}>
+            <Text style={savorStyles.continueText}>Continue →</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={savorStyles.continuePlaceholder} />
+        )}
+      </View>
+    </SafeAreaView>
+  );
+};
+
 export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
 
@@ -72,6 +129,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
   const [intensity, setIntensity] = useState(5);
   const [patterns, setPatterns] = useState<CravingPatternSummary | null>(null);
   const [logsCount, setLogsCount] = useState(0);
+  const [allLogs, setAllLogs] = useState<CravingLog[]>([]);
 
   // Riding state — timestamps live in refs so re-renders never drift the clock.
   const startedAtRef = useRef<Date | null>(null);
@@ -91,10 +149,20 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
   // Reflect state
   const [outcome, setOutcome] = useState<CravingOutcome>('passed');
   const [secondsHeld, setSecondsHeld] = useState(0);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [exitIntensity, setExitIntensity] = useState<number | null>(null);
+  const extensionsRef = useRef(0);
   const [note, setNote] = useState('');
   const [nameItText, setNameItText] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Post-log completion state
+  const [saveResult, setSaveResult] = useState<{
+    points: number;
+    bonus: boolean;
+    logId: string;
+  } | null>(null);
+  const [savorDone, setSavorDone] = useState(false);
+  const [chosenPlan, setChosenPlan] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -102,6 +170,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
       .then((logs) => {
         setPatterns(summarizeCravingPatterns(logs));
         setLogsCount(logs.length);
+        setAllLogs(logs);
       })
       .catch((err) => console.warn('Failed to load craving patterns:', err));
   }, [user]);
@@ -198,17 +267,19 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
     setActivity('welcome_back');
   };
 
-  const toggleTag = (id: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    );
+  /** "Still going" at timer end: another 5 minutes on the clock, no reset. */
+  const EXTEND_SECONDS = 5 * 60;
+  const handleExtend = () => {
+    plannedSecondsRef.current += EXTEND_SECONDS;
+    extensionsRef.current += 1;
+    setSecondsLeft(Math.max(0, plannedSecondsRef.current - elapsedNow()));
   };
 
   const handleSave = async () => {
     if (!user || !startedAtRef.current || saving) return;
     setSaving(true);
     try {
-      const { pointsEarned } = await logCravingSession(user.uid, {
+      const { pointsEarned, bonus, logId } = await logCravingSession(user.uid, {
         cravingType,
         customLabel: cravingType === 'other' ? customLabel : undefined,
         intensity,
@@ -216,17 +287,14 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
         secondsHeld,
         plannedSeconds: plannedSecondsRef.current,
         startedAt: startedAtRef.current,
-        mindTags: selectedTags,
+        exitIntensity: exitIntensity ?? undefined,
+        extensions: extensionsRef.current || undefined,
         note,
         mission: usedMissionRef.current ?? undefined,
       });
       triggerRewardHaptic().catch(() => {});
-      const title = outcome === 'passed' ? `+${pointsEarned} XP` : `+${pointsEarned} XP for logging it`;
-      const body =
-        outcome === 'passed'
-          ? 'Craving ridden out and on the record.'
-          : 'On the record — that’s how the patterns get visible.';
-      showAlert(title, body, () => navigation.goBack());
+      setSaveResult({ points: pointsEarned, bonus, logId });
+      setPhase('complete');
     } catch (err) {
       console.warn('Failed to save craving session:', err);
       showAlert('Error', 'Could not save this session. Please try again.');
@@ -536,6 +604,11 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
                 {timerDone ? 'It passed — log it' : 'It already passed'}
               </Text>
             </TouchableOpacity>
+            {timerDone && (
+              <TouchableOpacity style={styles.extendButton} onPress={handleExtend}>
+                <Text style={styles.extendButtonText}>Still going — add 5 minutes</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.gaveInButton} onPress={() => handleOutcome('gave_in')}>
               <Text style={styles.gaveInButtonText}>I gave in — log it anyway</Text>
             </TouchableOpacity>
@@ -554,6 +627,149 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           )
         )}
+      </SafeAreaView>
+    );
+  }
+
+  // --- Complete phase (post-log) -------------------------------------------
+
+  if (phase === 'complete' && saveResult) {
+    const heldMins = Math.floor(secondsHeld / 60);
+    const held = heldMins >= 1 ? `${heldMins} min` : `${secondsHeld} sec`;
+
+    if (outcome === 'passed') {
+      // The felt win comes before the numbers.
+      if (!savorDone) {
+        return <SavorPause onContinue={() => setSavorDone(true)} />;
+      }
+
+      const typeIntensities = [
+        ...allLogs
+          .filter((l) => l.craving_type === cravingType)
+          .sort((a, b) => a.started_at.localeCompare(b.started_at))
+          .map((l) => l.intensity),
+        intensity,
+      ];
+
+      return (
+        <SafeAreaView style={styles.setupContainer}>
+          <ScrollView contentContainerStyle={styles.completeContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.outcomeEmoji}>⚡</Text>
+            <Text style={styles.completePoints}>+{saveResult.points} XP</Text>
+            {saveResult.bonus && (
+              <View style={styles.bonusChip}>
+                <Text style={styles.bonusChipText}>Wave bonus — XP doubled this time</Text>
+              </View>
+            )}
+            <Text style={styles.completeSub}>
+              {exitIntensity !== null
+                ? `Wave: ${intensity}/10 → ${exitIntensity}/10 · ${held} ridden`
+                : `${held} ridden, banked, and on the record.`}
+            </Text>
+
+            {typeIntensities.length >= 4 && (
+              <View style={styles.completeChartWrap}>
+                <WaveTrendChart
+                  intensities={typeIntensities}
+                  typeLabel={badgeLabel.toLowerCase()}
+                />
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.startButton, styles.completeDone]}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.startButtonText}>Done</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    // Gave in: compassion → held-time progress → one-tap if-then plan → the point, plainly.
+    const priorGaveIns = allLogs.filter((l) => l.outcome === 'gave_in');
+    const avgHeld =
+      priorGaveIns.length >= 2
+        ? Math.round(
+            priorGaveIns.reduce((sum, l) => sum + l.seconds_held, 0) / priorGaveIns.length
+          )
+        : null;
+    const avgLabel =
+      avgHeld !== null
+        ? avgHeld >= 60
+          ? `${Math.floor(avgHeld / 60)} min`
+          : `${avgHeld} sec`
+        : null;
+
+    const planLabel =
+      cravingType === 'other' && !customLabel.trim() ? 'urge' : badgeLabel.toLowerCase();
+    const window = startedAtRef.current ? hourWindowLabel(startedAtRef.current) : 'next time';
+    const planOptions = [
+      `When the ${planLabel} pull hits ${window}, I'll start a ride before acting on it`,
+      `At the first sign of the wave, I'll do one slow breath cycle before deciding anything`,
+      `I'll make the first step harder — put distance between me and the ${planLabel} before it hits`,
+    ];
+
+    return (
+      <SafeAreaView style={styles.setupContainer}>
+        <ScrollView contentContainerStyle={styles.completeContent} showsVerticalScrollIndicator={false}>
+          <Text style={styles.outcomeEmoji}>🌊</Text>
+          <Text style={styles.outcomeTitle}>The wave won this one.</Text>
+          <Text style={styles.outcomeBody}>
+            Waves win sometimes — that’s what makes them waves.
+          </Text>
+
+          <View style={styles.heldCard}>
+            <Text style={styles.heldValue}>{held}</Text>
+            <Text style={styles.heldLabel}>
+              held before it broke through
+              {avgLabel ? ` — your average before this was ${avgLabel}` : ''}.
+              Every second of holding is extinction training.
+            </Text>
+          </View>
+
+          <Text style={styles.planTitle}>Load a plan for the next one</Text>
+          <Text style={styles.planSub}>
+            One tap — a concrete if-then now roughly doubles follow-through next time.
+          </Text>
+          {planOptions.map((plan) => {
+            const selected = chosenPlan === plan;
+            return (
+              <TouchableOpacity
+                key={plan}
+                style={[styles.planChip, selected && styles.planChipSelected]}
+                onPress={() => {
+                  if (chosenPlan) return;
+                  setChosenPlan(plan);
+                  if (user) {
+                    saveCravingPlan(user.uid, saveResult.logId, plan).catch((err) =>
+                      console.warn('Failed to save craving plan:', err)
+                    );
+                  }
+                }}
+                disabled={!!chosenPlan && !selected}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.planChipText, selected && styles.planChipTextSelected]}>
+                  {plan}
+                </Text>
+                {selected && <Text style={styles.planSaved}>Saved for next time ✓</Text>}
+              </TouchableOpacity>
+            );
+          })}
+
+          <Text style={styles.honestyXp}>+{saveResult.points} XP added</Text>
+
+          <TouchableOpacity
+            style={[styles.startButton, styles.completeDone]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.startButtonText}>Done</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -583,29 +799,38 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        <Text style={styles.reflectPrompt}>What did you notice your mind doing?</Text>
-        <Text style={styles.reflectHelper}>Tap anything that showed up — optional.</Text>
-        {MIND_TAG_GROUPS.map((group) => (
-          <View key={group.id} style={styles.tagGroup}>
-            <Text style={styles.tagGroupTitle}>{group.title}</Text>
-            <View style={styles.tagWrap}>
-              {group.tags.map((tag) => {
-                const selected = selectedTags.includes(tag.id);
-                return (
-                  <TouchableOpacity
-                    key={tag.id}
-                    style={[styles.tagChip, selected && styles.tagChipSelected]}
-                    onPress={() => toggleTag(tag.id)}
-                  >
-                    <Text style={[styles.tagChipText, selected && styles.tagChipTextSelected]}>
-                      {tag.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+        {outcome === 'passed' && (
+          <View style={styles.intensityCard}>
+            <Text style={styles.intensityTitle}>Where’s the wave now?</Text>
+            <Text style={styles.intensitySub}>
+              You started at {intensity}/10 — tap where it landed
+            </Text>
+            <View style={styles.dotsRow}>
+              {Array.from({ length: 11 }, (_, i) => i).map((n) => (
+                <TouchableOpacity
+                  key={n}
+                  style={styles.dotTouch}
+                  onPress={() => setExitIntensity(n)}
+                  hitSlop={{ top: 8, bottom: 8 }}
+                >
+                  <View
+                    style={[
+                      styles.dot,
+                      exitIntensity !== null &&
+                        n <= exitIntensity &&
+                        (n >= 8 ? styles.dotHigh : styles.dotFilled),
+                      exitIntensity === 0 && n === 0 && styles.dotFilled,
+                    ]}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.dotLabels}>
+              <Text style={styles.dotLabelText}>Gone</Text>
+              <Text style={styles.dotLabelText}>Still strong</Text>
             </View>
           </View>
-        ))}
+        )}
 
         <TextInput
           style={styles.noteInput}
@@ -905,6 +1130,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.white,
   },
+  extendButton: {
+    borderWidth: 1,
+    borderColor: 'rgba(33,113,128,0.7)',
+    backgroundColor: 'rgba(33,113,128,0.15)',
+    borderRadius: BorderRadius.md,
+    paddingVertical: Spacing.md - 2,
+    alignItems: 'center',
+  },
+  extendButtonText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: '#7AB8C0',
+  },
   gaveInButton: {
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
@@ -1085,49 +1323,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  reflectPrompt: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-  },
-  reflectHelper: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    marginTop: 2,
-    marginBottom: Spacing.md,
-  },
-  tagGroup: { marginBottom: Spacing.md },
-  tagGroupTitle: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.sm,
-  },
-  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  tagChip: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  tagChipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: '#F0F8F9',
-  },
-  tagChipText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  tagChipTextSelected: {
-    fontFamily: Fonts.secondaryBold,
-    color: Colors.primary,
-  },
   noteInput: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
@@ -1138,5 +1333,145 @@ const styles = StyleSheet.create({
     minHeight: 72,
     textAlignVertical: 'top',
     marginBottom: Spacing.lg,
+  },
+
+  // Complete (post-log)
+  completeContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+    alignItems: 'center',
+  },
+  completePoints: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: 44,
+    color: Colors.primary,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+  },
+  completeSub: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
+  bonusChip: {
+    backgroundColor: '#FFF3EC',
+    borderWidth: 1,
+    borderColor: Colors.secondary,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.xs + 2,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  bonusChipText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.secondary,
+  },
+  completeChartWrap: { alignSelf: 'stretch', marginTop: Spacing.lg },
+  completeDone: { alignSelf: 'stretch', marginTop: Spacing.xl },
+  planTitle: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    alignSelf: 'flex-start',
+    marginTop: Spacing.sm,
+  },
+  planSub: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    marginBottom: Spacing.md,
+    lineHeight: 17,
+  },
+  planChip: {
+    alignSelf: 'stretch',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    marginBottom: Spacing.sm,
+  },
+  planChipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: '#F0F8F9',
+  },
+  planChipText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 20,
+  },
+  planChipTextSelected: { fontFamily: Fonts.secondaryBold, color: Colors.primary },
+  planSaved: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    marginTop: Spacing.xs,
+  },
+  honestyXp: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    marginTop: Spacing.md,
+  },
+});
+
+const savorStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: DARK_BG },
+  stage: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  kicker: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: 2,
+  },
+  title: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xxl,
+    color: Colors.white,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xl,
+  },
+  circle: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: Colors.primary,
+    opacity: 0.9,
+  },
+  body: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: Spacing.xl,
+  },
+  continueButton: {
+    marginTop: Spacing.xl,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: BorderRadius.md,
+  },
+  continueText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.white,
+  },
+  continuePlaceholder: {
+    marginTop: Spacing.xl,
+    height: 41,
   },
 });

@@ -293,6 +293,10 @@ export interface CravingLog {
   custom_label?: string;
   /** Self-reported intensity at the start, 1–10. */
   intensity: number;
+  /** Self-reported intensity when logging, 0 (gone) – 10. The before/after delta is the proof the wave faded. */
+  exit_intensity?: number;
+  /** How many times the timer was extended past its planned length. */
+  extensions?: number;
   outcome: CravingOutcome;
   /** How long the user actually rode the wave before the outcome. */
   seconds_held: number;
@@ -307,6 +311,8 @@ export interface CravingLog {
   note?: string;
   /** Off-app mission category id (data/cravings.ts) if the ride went out into the world. */
   mission?: string;
+  /** One-tap implementation intention chosen after a gave-in. */
+  if_then_plan?: string;
 }
 
 export type HabitDifficulty = 'easy' | 'challenging';
