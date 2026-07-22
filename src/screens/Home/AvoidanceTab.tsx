@@ -23,6 +23,7 @@ import {
   markTaskUncompleted,
 } from '../../services/avoidanceTasks';
 import { getTodayString } from '../../utils/date';
+import { FeatureInfoModal } from '../../components/common/FeatureInfoModal';
 
 // ─── Interview questions ──────────────────────────────────────────────────────
 
@@ -246,6 +247,7 @@ export const AvoidanceTab: React.FC = () => {
   const [tasks, setTasks] = useState<AvoidanceTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInterview, setShowInterview] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const today = getTodayString();
 
   const loadTasks = useCallback(async () => {
@@ -306,6 +308,15 @@ export const AvoidanceTab: React.FC = () => {
         contentContainerStyle={s.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={s.infoRow}>
+          <TouchableOpacity
+            onPress={() => setShowInfo(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="information-circle-outline" size={22} color={Colors.gray} />
+          </TouchableOpacity>
+        </View>
         {tasks.length === 0 ? (
           <View style={s.emptyCard}>
             <View style={s.emptyIconWrap}>
@@ -410,6 +421,30 @@ export const AvoidanceTab: React.FC = () => {
         onClose={() => setShowInterview(false)}
         onComplete={handleInterviewComplete}
       />
+
+      <FeatureInfoModal
+        visible={showInfo}
+        onDismiss={() => setShowInfo(false)}
+        icon="barbell"
+        accent={Colors.primary}
+        title="Avoidance Training"
+        intro="Avoidance is how discomfort wins. This is a queue of the things you keep putting off — and a way to chip at them one rep at a time."
+        points={[
+          {
+            label: 'Build your queue.',
+            text: 'Answer 4 quick questions to surface the tasks you’ve been dodging. Add more anytime.',
+          },
+          {
+            label: 'Do one rep.',
+            text: 'Tackle a single task, then check it off. One small rep beats waiting to feel ready.',
+          },
+          {
+            label: 'Keep the streak.',
+            text: 'Come back daily. Each rep trains your tolerance for discomfort, so avoidance loses its grip.',
+          },
+        ]}
+        footer="You don’t have to clear the list — just take the next rep."
+      />
     </>
   );
 };
@@ -420,6 +455,7 @@ const s = StyleSheet.create({
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  infoRow: { alignItems: 'flex-end', marginBottom: Spacing.sm },
 
   // Empty state
   emptyCard: {

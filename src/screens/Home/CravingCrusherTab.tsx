@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { FeatureInfoModal } from '../../components/common/FeatureInfoModal';
 
 interface Props {
   onPress: () => void;
 }
 
-export const CravingCrusherTab: React.FC<Props> = ({ onPress }) => (
+export const CravingCrusherTab: React.FC<Props> = ({ onPress }) => {
+  const [showInfo, setShowInfo] = useState(false);
+
+  return (
   <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+    <View style={s.infoRow}>
+      <TouchableOpacity
+        onPress={() => setShowInfo(true)}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="information-circle-outline" size={22} color={Colors.gray} />
+      </TouchableOpacity>
+    </View>
+
     <TouchableOpacity style={s.hero} onPress={onPress} activeOpacity={0.85}>
       <View style={s.iconWrap}>
         <Ionicons name="flash" size={28} color={Colors.white} />
@@ -30,12 +44,38 @@ export const CravingCrusherTab: React.FC<Props> = ({ onPress }) => (
         acting on it weakens the habit loop each time. The urge passes. You stay in control.
       </Text>
     </View>
+
+    <FeatureInfoModal
+      visible={showInfo}
+      onDismiss={() => setShowInfo(false)}
+      icon="flash"
+      accent={Colors.secondary}
+      title="Craving Crusher"
+      intro="A craving is a wave, not a command. It peaks in about 3 minutes, then fades on its own — as long as you don't act on it."
+      points={[
+        {
+          label: 'Name the urge.',
+          text: 'Start the timer, pick what’s pulling at you, and rate how strong it feels. The timer scales to match the wave.',
+        },
+        {
+          label: 'Ride it out.',
+          text: 'Stay busy while it passes — breathe, ground yourself, name what you feel, or learn what’s happening in your brain.',
+        },
+        {
+          label: 'Log the outcome.',
+          text: 'Rode it out or gave in, log it either way. The honest record is what reveals your triggers over time.',
+        },
+      ]}
+      footer="Every wave you ride trains the same override circuit — it gets easier."
+    />
   </ScrollView>
-);
+  );
+};
 
 const s = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  infoRow: { alignItems: 'flex-end', marginBottom: Spacing.sm },
 
   hero: {
     backgroundColor: Colors.white,

@@ -6,6 +6,7 @@ import { HomeSectionProps } from './types';
 import { PracticeInstance } from '../../../types';
 import { PracticeCard } from '../../../components/practices/PracticeCard';
 import { WeeklyGoalSheet } from '../../../components/practices/WeeklyGoalSheet';
+import { FeatureInfoModal } from '../../../components/common/FeatureInfoModal';
 import {
   getPractice,
   getPracticeColor,
@@ -24,6 +25,7 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
   const { habits, weeklyCounts, completedTodayIds, startingPracticeId } = data;
 
   const [editingHabit, setEditingHabit] = useState<PracticeInstance | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
 
   // The onboarding starting-point practice leads; the rest run gentle → extreme.
   const ordered = useMemo(
@@ -54,7 +56,38 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Your practices</Text>
+        <TouchableOpacity
+          onPress={() => setShowInfo(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="information-circle-outline" size={22} color={Colors.gray} />
+        </TouchableOpacity>
       </View>
+
+      <FeatureInfoModal
+        visible={showInfo}
+        onDismiss={() => setShowInfo(false)}
+        icon="leaf"
+        accent={Colors.primary}
+        title="Practices"
+        intro="Practices are the small, repeatable reps you commit to — the daily actions that rewire a habit through consistency, not intensity."
+        points={[
+          {
+            label: 'Show up daily.',
+            text: 'Each practice is a quick rep you complete once a day. Small and repeatable beats big and occasional.',
+          },
+          {
+            label: 'Log the rep.',
+            text: 'Mark a practice done to bank the XP. Honest reps — even hard ones — are what build the streak.',
+          },
+          {
+            label: 'Build the streak.',
+            text: 'Consecutive days compound: the more you stack, the stronger the habit and the bigger the bonus.',
+          },
+        ]}
+        footer="Consistency is the whole mechanism — just keep showing up."
+      />
 
       {ordered.map((habit) => {
         const practice = getPractice(habit.practice_id);

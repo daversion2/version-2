@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Challenge, ProgramEnrollment } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges } from '../../services/challenges';
 import { getActiveEnrollment, getTodaysProgramContent, checkAndProcessMissedDays } from '../../services/programs';
+import { FeatureInfoModal } from '../../components/common/FeatureInfoModal';
 
 const UNLOCK_AT = 3; // practice check-ins required to unlock challenges
 const EXTENDED_COLOR = '#7B61FF'; // multi-day/extended challenge accent (purple)
@@ -27,6 +28,7 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
   const [programDayNumber, setProgramDayNumber] = useState(0);
   const [programCheckedIn, setProgramCheckedIn] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   const totalCompleted = userProfile?.totalHabitsCompleted ?? 0;
   const unlocked = totalCompleted >= UNLOCK_AT;
@@ -142,12 +144,22 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.secondary} />}
     >
       <View style={styles.header}>
-        <Text style={styles.h1}>
-          Set yourself a <Text style={styles.h1em}>test.</Text>
-        </Text>
-        <Text style={styles.h2}>
-          Custom challenges you take on for yourself — a one-off push or a multi-day streak.
-        </Text>
+        <View style={styles.headerText}>
+          <Text style={styles.h1}>
+            Set yourself a <Text style={styles.h1em}>test.</Text>
+          </Text>
+          <Text style={styles.h2}>
+            Custom challenges you take on for yourself — a one-off push or a multi-day streak.
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => setShowInfo(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          activeOpacity={0.7}
+          style={styles.headerInfo}
+        >
+          <Ionicons name="information-circle-outline" size={22} color={Colors.gray} />
+        </TouchableOpacity>
       </View>
 
       {/* Active */}
@@ -225,6 +237,30 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
       )}
+
+      <FeatureInfoModal
+        visible={showInfo}
+        onDismiss={() => setShowInfo(false)}
+        icon="trophy"
+        accent={Colors.secondary}
+        title="Challenges"
+        intro="Challenges are tests you set for yourself — a deliberate push beyond your daily practices, on your own terms."
+        points={[
+          {
+            label: 'Set the test.',
+            text: 'Create a challenge: a one-off push to do today, or a multi-day streak you commit to holding.',
+          },
+          {
+            label: 'Take it on.',
+            text: 'Check in as you go. A challenge is meant to stretch you a little past comfortable — that’s the point.',
+          },
+          {
+            label: 'Earn the win.',
+            text: 'Completing a challenge banks XP and proves the practice is sticking. Then set the next, harder one.',
+          },
+        ]}
+        footer="Unlocked by showing up to your practices — challenges are where you spend that momentum."
+      />
     </ScrollView>
   );
 };
@@ -321,7 +357,15 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   content: { paddingBottom: Spacing.xxl },
 
-  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.sm },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  headerText: { flex: 1 },
+  headerInfo: { paddingLeft: Spacing.md, paddingTop: Spacing.xs },
   h1: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xxl, color: Colors.dark },
   h1em: { color: Colors.secondary },
   h2: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, marginTop: Spacing.sm, lineHeight: 20 },
