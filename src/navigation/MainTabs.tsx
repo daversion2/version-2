@@ -50,7 +50,7 @@ export const MainTabs: React.FC = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Challenges" component={ChallengesStack} />
+      <Tab.Screen name="Challenges" component={ChallengesStack} options={{ tabBarLabel: 'Training' }} />
       <Tab.Screen name="Progress" component={ProgressStack} />
       {/* TODO(tools-tab): Tools tab temporarily hidden from users — revisit later.
           Re-enable here and at the other TODO(tools-tab) sites (grep for the tag). */}
