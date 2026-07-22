@@ -8,6 +8,8 @@ import {
   RefreshControl,
   Linking,
 } from 'react-native';
+import { AvoidanceTab } from './AvoidanceTab';
+import { CravingCrusherTab } from './CravingCrusherTab';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
@@ -58,6 +60,8 @@ type Props = HomeScreenProps<'HomeScreen'>;
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const [homeTab, setHomeTab] = useState<'practices' | 'avoidance' | 'craving'>('practices');
 
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
@@ -579,53 +583,84 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.screen}>
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
-        }
-      >
-        <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
-
-        {/* Post-first-practice Debrief fallback — shows until the one-time
-            Debrief sequence has been viewed (see DebriefScreen) */}
-        {!userProfile?.has_seen_debrief && homeData.totalHabitsCompleted > 0 && (
+      {/* ── Home tab strip ── */}
+      <View style={tabStyles.strip}>
+        {(['practices', 'avoidance', 'craving'] as const).map((tab) => (
           <TouchableOpacity
-            style={debriefStyles.card}
-            onPress={() => navigation.navigate('Debrief')}
-            activeOpacity={0.85}
+            key={tab}
+            style={tabStyles.tab}
+            onPress={() => setHomeTab(tab)}
+            activeOpacity={0.7}
           >
-            <View style={debriefStyles.iconWrap}>
-              <Ionicons name="flash" size={18} color={Colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={debriefStyles.title}>See what just happened in your brain</Text>
-              <Text style={debriefStyles.sub}>Your first practice did more than you think — 1 min</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+            <Text style={[tabStyles.label, homeTab === tab && tabStyles.labelActive]}>
+              {TAB_LABELS[tab]}
+            </Text>
+            {homeTab === tab && <View style={tabStyles.indicator} />}
           </TouchableOpacity>
-        )}
-
-        {zonedLayout.map((group) => (
-          <React.Fragment key={group.zone.id}>
-            {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
-              <ZoneHeader label={group.zone.label} icon={group.zone.icon} />
-            )}
-            {group.items.map(item => {
-              const Section = SECTION_REGISTRY[item.id];
-              if (!Section) return null;
-              return (
-                <Section
-                  key={item.id}
-                  data={homeData}
-                  callbacks={homeCallbacks}
-                />
-              );
-            })}
-          </React.Fragment>
         ))}
+      </View>
+
+      {/* ── Practices tab (existing content — layout unchanged) ── */}
+      <View style={[styles.tabPanel, homeTab !== 'practices' && styles.tabHidden]}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          }
+        >
+          <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
+
+          {/* Post-first-practice Debrief fallback — shows until the one-time
+              Debrief sequence has been viewed (see DebriefScreen) */}
+          {!userProfile?.has_seen_debrief && homeData.totalHabitsCompleted > 0 && (
+            <TouchableOpacity
+              style={debriefStyles.card}
+              onPress={() => navigation.navigate('Debrief')}
+              activeOpacity={0.85}
+            >
+              <View style={debriefStyles.iconWrap}>
+                <Ionicons name="flash" size={18} color={Colors.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={debriefStyles.title}>See what just happened in your brain</Text>
+                <Text style={debriefStyles.sub}>Your first practice did more than you think — 1 min</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+            </TouchableOpacity>
+          )}
+
+          {zonedLayout.map((group) => (
+            <React.Fragment key={group.zone.id}>
+              {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
+                <ZoneHeader label={group.zone.label} icon={group.zone.icon} />
+              )}
+              {group.items.map(item => {
+                const Section = SECTION_REGISTRY[item.id];
+                if (!Section) return null;
+                return (
+                  <Section
+                    key={item.id}
+                    data={homeData}
+                    callbacks={homeCallbacks}
+                  />
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* ── Avoidance Training tab ── */}
+      <View style={[styles.tabPanel, homeTab !== 'avoidance' && styles.tabHidden]}>
+        <AvoidanceTab />
+      </View>
+
+      {/* ── Craving Crusher tab ── */}
+      <View style={[styles.tabPanel, homeTab !== 'craving' && styles.tabHidden]}>
+        <CravingCrusherTab onPress={() => navigation.navigate('CravingCrusher')} />
+      </View>
 
       <HabitCompletionModal
         visible={!!completingHabit}
@@ -635,7 +670,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
       />
-      </ScrollView>
       <HabitCelebrationModal
         visible={celebrationVisible}
         pointsEarned={earnedPoints}
@@ -741,11 +775,50 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
+const TAB_LABELS = {
+  practices: 'Practices',
+  avoidance: 'Avoidance Training',
+  craving: 'Craving Crusher',
+} as const;
+
+const tabStyles = StyleSheet.create({
+  strip: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  label: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 11,
+    color: Colors.gray,
+    textAlign: 'center',
+  },
+  labelActive: {
+    color: Colors.primary,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: Colors.primary,
+  },
+});
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
-
+  tabPanel: { flex: 1 },
+  tabHidden: { display: 'none' },
 });
 
 const debriefStyles = StyleSheet.create({

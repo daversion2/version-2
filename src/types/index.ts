@@ -617,6 +617,22 @@ export interface ProgramBadge {
 }
 
 // ============================================================================
+// AVOIDANCE TRAINING
+// ============================================================================
+
+/** One task in the user's avoidance queue. Stored in users/{uid}/avoidanceTasks. */
+export interface AvoidanceTask {
+  id: string;
+  userId: string;
+  text: string;
+  /** User-facing category label (e.g. 'Home', 'Finance', 'Personal'). */
+  category: string;
+  createdAt: string; // ISO 8601
+  /** YYYY-MM-DD dates on which this task was completed at least once. */
+  completedDates: string[];
+}
+
+// ============================================================================
 // NIGHTLY REFLECTION
 // ============================================================================
 
