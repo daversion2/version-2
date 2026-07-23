@@ -65,7 +65,9 @@ export type ChallengesStackParamList = Pick<
   | 'ProgramCompletion'
   | 'ProgramFailed'
 > & {
+  TrainingHome: undefined;
   ChallengesHome: undefined;
+  AvoidanceTraining: undefined;
 };
 
 // ============================================================================

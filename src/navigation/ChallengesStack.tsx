@@ -3,7 +3,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ChallengesStackParamList } from '../types/navigation';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
-// Landing hub for the Challenges tab.
+// Landing hub for the Training tab — cards into Challenges / Avoidance / Programs.
+import { TrainingHomeScreen } from '../screens/Challenges/TrainingHomeScreen';
+import { AvoidanceTrainingScreen } from '../screens/Challenges/AvoidanceTrainingScreen';
 import { ChallengesHomeScreen } from '../screens/Challenges/ChallengesHomeScreen';
 
 // Challenge-flow screens — the same components the Home stack registers. They're
@@ -44,9 +46,19 @@ export const ChallengesStack: React.FC = () => (
     }}
   >
     <Stack.Screen
+      name="TrainingHome"
+      component={TrainingHomeScreen}
+      options={{ title: 'Training' }}
+    />
+    <Stack.Screen
       name="ChallengesHome"
       component={ChallengesHomeScreen}
       options={{ title: 'Challenges' }}
+    />
+    <Stack.Screen
+      name="AvoidanceTraining"
+      component={AvoidanceTrainingScreen}
+      options={{ title: 'Avoidance Training' }}
     />
     <Stack.Screen
       name="CreateChallenge"

@@ -8,7 +8,6 @@ import {
   RefreshControl,
   Linking,
 } from 'react-native';
-import { AvoidanceTab } from './AvoidanceTab';
 import { CravingCrusherTab } from './CravingCrusherTab';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -61,7 +60,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const [homeTab, setHomeTab] = useState<'practices' | 'avoidance' | 'craving'>('practices');
+  const [homeTab, setHomeTab] = useState<'practices' | 'craving'>('practices');
 
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
@@ -585,7 +584,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.screen}>
       {/* ── Home tab strip ── */}
       <View style={tabStyles.strip}>
-        {(['practices', 'avoidance', 'craving'] as const).map((tab) => (
+        {(['practices', 'craving'] as const).map((tab) => (
           <TouchableOpacity
             key={tab}
             style={tabStyles.tab}
@@ -650,11 +649,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </React.Fragment>
           ))}
         </ScrollView>
-      </View>
-
-      {/* ── Avoidance Training tab ── */}
-      <View style={[styles.tabPanel, homeTab !== 'avoidance' && styles.tabHidden]}>
-        <AvoidanceTab />
       </View>
 
       {/* ── Craving Crusher tab ── */}
@@ -777,7 +771,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
 const TAB_LABELS = {
   practices: 'Practices',
-  avoidance: 'Avoidance Training',
   craving: 'Craving Crusher',
 } as const;
 
