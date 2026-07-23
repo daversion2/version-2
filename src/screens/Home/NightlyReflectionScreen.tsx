@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
+  TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import { HomeScreenProps } from '../../types/navigation';
@@ -12,9 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import { GradeSelector } from '../../components/home/GradeSelector';
+import { DailyFactorsSelector } from '../../components/home/DailyFactorsSelector';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { useAuth } from '../../context/AuthContext';
-import { DailySummary, ReflectionGrade, DailyReflection, PracticeInstance } from '../../types';
+import { DailySummary, ReflectionGrade, DailyReflection, DailyFactors, PracticeInstance } from '../../types';
 import { buildDailySummary, saveReflection, getReflection } from '../../services/reflections';
 import { getActiveHabits } from '../../services/practices';
 import { showAlert } from '../../utils/alert';
@@ -33,10 +35,12 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
 
   // Form state
   const [grade, setGrade] = useState<ReflectionGrade | null>(null);
+  const [factors, setFactors] = useState<DailyFactors>({});
   const [wentWell, setWentWell] = useState('');
   const [hardest, setHardest] = useState('');
   const [tomorrow, setTomorrow] = useState('');
   const [whyReflection, setWhyReflection] = useState('');
+  const [deeperOpen, setDeeperOpen] = useState(false);
   const [badDayModalVisible, setBadDayModalVisible] = useState(false);
   const [badDayShownForGrade, setBadDayShownForGrade] = useState(false);
 
@@ -67,10 +71,20 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       if (existing) {
         setExistingReflection(existing);
         setGrade(existing.grade);
+        setFactors(existing.factors || {});
         setWentWell(existing.prompt_went_well || '');
         setHardest(existing.prompt_hardest || '');
         setTomorrow(existing.prompt_tomorrow || '');
         setWhyReflection(existing.prompt_why_connection || '');
+        // Auto-expand the written reflection if this day has any.
+        if (
+          existing.prompt_went_well ||
+          existing.prompt_hardest ||
+          existing.prompt_tomorrow ||
+          existing.prompt_why_connection
+        ) {
+          setDeeperOpen(true);
+        }
       }
 
       // Load habits for the bad-day commit modal
@@ -91,6 +105,18 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
     loadData();
   }, [loadData]);
 
+  const handleFactorChange = (factorId: string, optionValue: string) => {
+    setFactors(prev => {
+      // Tapping the already-selected chip clears it.
+      if (prev[factorId] === optionValue) {
+        const next = { ...prev };
+        delete next[factorId];
+        return next;
+      }
+      return { ...prev, [factorId]: optionValue };
+    });
+  };
+
   const handleSave = async () => {
     if (!user || !grade || !summary) return;
     setSaving(true);
@@ -99,6 +125,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         user_id: user.uid,
         date: todayStr,
         grade,
+        factors: Object.keys(factors).length > 0 ? factors : undefined,
         prompt_went_well: wentWell.trim() || undefined,
         prompt_hardest: hardest.trim() || undefined,
         prompt_tomorrow: tomorrow.trim() || undefined,
@@ -156,6 +183,15 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       {/* Daily Summary */}
       {summary && <DailySummaryCard summary={summary} />}
 
+      {/* Today's Inputs — structured factors for pattern-finding over time */}
+      <View style={styles.factorsWrap}>
+        <DailyFactorsSelector
+          value={factors}
+          onChange={handleFactorChange}
+          readOnly={isReadOnly}
+        />
+      </View>
+
       {/* Grade Selector */}
       <GradeSelector
         value={grade}
@@ -176,8 +212,36 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         onDismiss={() => setBadDayModalVisible(false)}
       />
 
+      {/* Go Deeper — optional written reflection, collapsed by default */}
+      <View style={styles.deeperHeadRow}>
+        <Text style={styles.deeperSectionTitle}>Go Deeper</Text>
+        <Text style={styles.deeperSectionHint}>optional</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.collapseHeader}
+        onPress={() => setDeeperOpen(o => !o)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.collapseLeft}>
+          <Ionicons name="create-outline" size={20} color={Colors.dark} />
+          <View style={styles.collapseTextWrap}>
+            <Text style={styles.collapseTitle}>Write a reflection</Text>
+            <Text style={styles.collapseSub}>
+              Override wins, where the urge won, tomorrow's focus
+            </Text>
+          </View>
+        </View>
+        <Ionicons
+          name={deeperOpen ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={Colors.gray}
+        />
+      </TouchableOpacity>
+
+      {deeperOpen && (
+      <>
       {/* Prompts */}
-      <View style={styles.promptSection}>
+      <View style={[styles.promptSection, styles.promptSectionFirst]}>
         <Text style={styles.promptLabel}>Where did you override an urge today?</Text>
         <TextInput
           style={styles.textArea}
@@ -242,6 +306,8 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
       ) : null}
+      </>
+      )}
 
       {/* Actions */}
       {!isReadOnly && (
@@ -299,8 +365,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
+  factorsWrap: {
+    marginBottom: Spacing.lg,
+  },
+  deeperHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  deeperSectionTitle: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: Colors.primary,
+  },
+  deeperSectionHint: {
+    fontFamily: Fonts.secondary,
+    fontSize: 11,
+    color: Colors.gray,
+  },
+  collapseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md - 2,
+  },
+  collapseLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm + 2,
+    flex: 1,
+  },
+  collapseTextWrap: {
+    flex: 1,
+  },
+  collapseTitle: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  collapseSub: {
+    fontFamily: Fonts.secondary,
+    fontSize: 11,
+    color: Colors.gray,
+    marginTop: 1,
+  },
   promptSection: {
     marginBottom: Spacing.lg,
+  },
+  promptSectionFirst: {
+    marginTop: Spacing.lg,
   },
   promptLabel: {
     fontFamily: Fonts.secondaryBold,

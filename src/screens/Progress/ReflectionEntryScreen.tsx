@@ -5,6 +5,7 @@ import { Card } from '../../components/common/Card';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { DailyReflection } from '../../types';
 import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
+import { DAILY_FACTORS } from '../../data/dailyFactors';
 import { ProgressScreenProps } from '../../types/navigation';
 
 type Props = ProgressScreenProps<'ReflectionEntry'>;
@@ -27,6 +28,15 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
     year: 'numeric',
   });
 
+  // Saved factors, in canonical order, that still map to a known definition/value.
+  const savedFactors = DAILY_FACTORS.map(def => {
+    const value = reflection.factors?.[def.id];
+    if (!value) return null;
+    const optionLabel = def.options.find(o => o.value === value)?.label;
+    if (!optionLabel) return null;
+    return { def, optionLabel };
+  }).filter((x): x is { def: (typeof DAILY_FACTORS)[number]; optionLabel: string } => x !== null);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {/* Date & Grade */}
@@ -40,6 +50,22 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
       {/* Daily Summary */}
       {reflection.daily_summary && (
         <DailySummaryCard summary={reflection.daily_summary} />
+      )}
+
+      {/* Daily inputs / factors */}
+      {savedFactors.length > 0 && (
+        <Card style={styles.promptCard}>
+          <Text style={styles.promptLabel}>Today's inputs</Text>
+          <View style={styles.factorGrid}>
+            {savedFactors.map(({ def, optionLabel }) => (
+              <View key={def.id} style={styles.factorChip}>
+                <Text style={styles.factorEmoji}>{def.emoji}</Text>
+                <Text style={styles.factorName}>{def.label}</Text>
+                <Text style={styles.factorValue}>{optionLabel}</Text>
+              </View>
+            ))}
+          </View>
+        </Card>
       )}
 
       {/* Prompts */}
@@ -109,6 +135,34 @@ const styles = StyleSheet.create({
   },
   promptCard: {
     marginBottom: Spacing.md,
+  },
+  factorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  factorChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.lightGray,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  factorEmoji: {
+    fontSize: 15,
+  },
+  factorName: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+  },
+  factorValue: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
   },
   promptLabel: {
     fontFamily: Fonts.secondaryBold,

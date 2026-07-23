@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Check-in — Mockup</title>
+<style>
+  :root {
+    --primary: #217180;
+    --secondary: #FF5B02;
+    --dark: #2B2B2B;
+    --gray: #656565;
+    --white: #FFFFFF;
+    --lightGray: #F2F2F2;
+    --border: #E0E0E0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Avenir Next', 'Avenir', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #d8dde0;
+    color: var(--dark);
+    padding: 32px 16px;
+    min-height: 100vh;
+  }
+  .page-title { text-align: center; margin-bottom: 8px; font-size: 22px; font-weight: 800; color: #33474d; }
+  .page-sub { text-align: center; margin-bottom: 28px; font-size: 14px; color: #5c6b70; }
+
+  .frames { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+
+  /* Phone shell */
+  .phone {
+    width: 375px;
+    height: 812px;
+    background: var(--lightGray);
+    border-radius: 44px;
+    border: 12px solid #1c1c1e;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 150px; height: 26px; background: #1c1c1e; border-radius: 0 0 18px 18px; z-index: 20; }
+  .statusbar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-size: 13px; font-weight: 700; color: var(--dark); flex-shrink: 0; }
+
+  .scroll { flex: 1; overflow-y: auto; padding: 8px 20px 40px; }
+  .scroll::-webkit-scrollbar { width: 0; }
+
+  .caption { text-align: center; font-size: 13px; color: #5c6b70; margin: 14px auto 0; max-width: 340px; line-height: 1.5; }
+
+  /* Header */
+  .date { font-size: 13px; color: var(--gray); font-weight: 600; margin-bottom: 4px; }
+  .h-title { font-size: 26px; font-weight: 800; color: var(--dark); margin-bottom: 6px; letter-spacing: -0.5px; }
+  .streak { display: inline-flex; align-items: center; gap: 5px; background: #FF5B0215; color: var(--secondary); font-size: 12px; font-weight: 800; padding: 5px 11px; border-radius: 999px; }
+
+  .why-banner {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: #21718010; border-left: 3px solid var(--primary);
+    padding: 12px 14px; border-radius: 8px; margin: 18px 0 8px;
+  }
+  .why-banner .ic { color: var(--primary); font-size: 16px; line-height: 1.4; }
+  .why-banner p { font-size: 13px; font-style: italic; color: var(--dark); line-height: 1.4; }
+
+  /* Section */
+  .section { margin-top: 26px; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+  .section-title { font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--primary); }
+  .section-hint { font-size: 11px; color: var(--gray); }
+  .section-sub { font-size: 12px; color: var(--gray); margin-bottom: 14px; }
+
+  /* Factor rows */
+  .factor { margin-bottom: 16px; }
+  .factor-label { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+  .factor-label .emoji { font-size: 17px; }
+  .factor-label .tag { font-size: 10px; font-weight: 700; color: var(--gray); background: var(--lightGray); border: 1px solid var(--border); padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  .chips { display: flex; gap: 8px; }
+  .chip {
+    flex: 1; text-align: center; padding: 12px 6px; border-radius: 12px;
+    background: var(--white); border: 1.5px solid var(--border);
+    font-size: 14px; font-weight: 700; color: var(--gray);
+    cursor: pointer; transition: all 0.12s ease; user-select: none;
+  }
+  .chip:active { transform: scale(0.97); }
+  .chip.sel-yes { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .chip.sel-no  { background: #efe1da; border-color: var(--secondary); color: var(--secondary); }
+  .chip.sel-scale { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  /* Binary is narrower */
+  .chips.binary .chip { flex: 0 0 88px; }
+
+  /* Grade */
+  .grades { display: flex; gap: 8px; }
+  .grade {
+    flex: 1; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    border-radius: 14px; background: var(--white); border: 1.5px solid var(--border);
+    font-size: 22px; font-weight: 800; color: var(--gray); cursor: pointer; transition: all 0.12s;
+  }
+  .grade:active { transform: scale(0.96); }
+  .grade.sel { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .grade[data-g="D"].sel, .grade[data-g="F"].sel { background: var(--secondary); border-color: var(--secondary); }
+
+  /* Optional reflection (collapsed) */
+  .collapse {
+    margin-top: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--white);
+    padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+  }
+  .collapse .c-left { display: flex; align-items: center; gap: 10px; }
+  .collapse .c-title { font-size: 14px; font-weight: 700; color: var(--dark); }
+  .collapse .c-sub { font-size: 11px; color: var(--gray); }
+  .collapse .chev { color: var(--gray); font-size: 18px; }
+
+  /* Save */
+  .save {
+    margin-top: 26px; width: 100%; padding: 16px; border: none; border-radius: 14px;
+    background: var(--primary); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer;
+  }
+  .save:active { transform: scale(0.99); }
+  .skip { display: block; text-align: center; margin-top: 16px; font-size: 13px; color: var(--gray); text-decoration: underline; }
+
+  /* Insight preview card (right phone) */
+  .insight-teaser {
+    margin-top: 26px; border-radius: 16px; padding: 18px; color: #fff;
+    background: linear-gradient(135deg, #217180, #17515c);
+  }
+  .insight-teaser .lbl { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; opacity: 0.8; }
+  .insight-teaser .big { font-size: 20px; font-weight: 800; margin: 8px 0 4px; line-height: 1.3; }
+  .insight-teaser .sub { font-size: 12px; opacity: 0.85; line-height: 1.4; }
+  .progressbar { height: 6px; background: rgba(255,255,255,0.25); border-radius: 999px; margin-top: 14px; overflow: hidden; }
+  .progressbar > div { height: 100%; width: 62%; background: var(--secondary); border-radius: 999px; }
+
+  .insight-card {
+    margin-top: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--white); padding: 18px;
+  }
+  .insight-card .lbl { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--primary); }
+  .insight-card .stat { font-size: 18px; font-weight: 800; color: var(--dark); margin: 8px 0 6px; line-height: 1.35; }
+  .insight-card .stat b { color: var(--secondary); }
+  .insight-card .obs { font-size: 12px; color: var(--gray); line-height: 1.5; }
+  .insight-card .barpair { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .barrow { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; color: var(--gray); }
+  .barrow .track { flex: 1; height: 20px; background: var(--lightGray); border-radius: 6px; overflow: hidden; }
+  .barrow .track > div { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 10px; color: #fff; font-weight: 800; }
+
+  .col-label { text-align: center; font-size: 13px; font-weight: 800; color: #33474d; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+  <div class="page-title">Daily Check-in — Reflection Rework</div>
+  <div class="page-sub">Structured factors → grade → optional reflection. Tap around; chips are interactive.</div>
+
+  <div class="frames">
+    <!-- LEFT PHONE: the check-in flow -->
+    <div>
+      <div class="col-label">The Check-in</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128246; &#128267;</span></div>
+        <div class="scroll">
+          <div class="date">TUESDAY, JULY 22</div>
+          <div class="h-title">Evening Check-in</div>
+          <span class="streak">&#128293; 6-day streak</span>
+
+          <div class="why-banner">
+            <span class="ic">&#129517;</span>
+            <p>Build the discipline to become the person my kids look up to.</p>
+          </div>
+
+          <!-- SECTION 1: factors -->
+          <div class="section">
+            <div class="section-head">
+              <span class="section-title">Today's Inputs</span>
+              <span class="section-hint">~15 sec</span>
+            </div>
+            <div class="section-sub">Quick tap. Over time this reveals what fuels your best days.</div>
+
+            <div class="factor">
+              <div class="factor-label"><span class="emoji">&#128564;</span> Sleep <span class="tag">last night</span></div>
+              <div class="chips" data-type="scale">
+                <div class="chip">Poor</div><div class="chip">OK</div><div class="chip">Great</div>
+              </div>
+            </div>
+
+            <div class="factor">
+              <div class="factor-label"><span class="emoji">&#129482;</span> Ate healthy</div>
+              <div class="chips binary" data-type="binary">
+                <div class="chip">No</div><div class="chip">Yes</div>
+              </div>
+            </div>
+
+            <div class="factor">
+              <div class="factor-label"><span class="emoji">&#127947;</span> Exercised / trained</div>
+              <div class="chips binary" data-type="binary">
+                <div class="chip">No</div><div class="chip">Yes</div>
+              </div>
+            </div>
+
+            <div class="factor">
+              <div class="factor-label"><span class="emoji">&#128171;</span> Stress</div>
+              <div class="chips" data-type="scale">
+                <div class="chip">Low</div><div class="chip">Med</div><div class="chip">High</div>
+              </div>
+            </div>
+
+            <div class="factor">
+              <div class="factor-label"><span class="emoji">&#9889;</span> Energy</div>
+              <div class="chips" data-type="scale">
+                <div class="chip">Low</div><div class="chip">Med</div><div class="chip">High</div>
+              </div>
+            </div>
+
+            <div class="factor">
+              <div class="factor-label"><span class="emoji">&#127863;</span> Alcohol</div>
+              <div class="chips binary" data-type="binary">
+                <div class="chip">No</div><div class="chip">Yes</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: grade -->
+          <div class="section">
+            <div class="section-head"><span class="section-title">Grade Your Day</span></div>
+            <div class="grades">
+              <div class="grade" data-g="A">A</div>
+              <div class="grade" data-g="B">B</div>
+              <div class="grade" data-g="C">C</div>
+              <div class="grade" data-g="D">D</div>
+              <div class="grade" data-g="F">F</div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: optional reflection -->
+          <div class="section">
+            <div class="section-head"><span class="section-title">Go Deeper</span><span class="section-hint">optional</span></div>
+            <div class="collapse" onclick="this.querySelector('.chev').textContent = this.querySelector('.chev').textContent==='›'?'⌄':'›'">
+              <div class="c-left">
+                <span style="font-size:18px">&#9997;</span>
+                <div>
+                  <div class="c-title">Write a reflection</div>
+                  <div class="c-sub">Override wins, where the urge won, tomorrow's focus</div>
+                </div>
+              </div>
+              <span class="chev">&#8250;</span>
+            </div>
+          </div>
+
+          <button class="save">Save Check-in</button>
+          <a class="skip">Skip for tonight</a>
+        </div>
+      </div>
+      <div class="caption"><b>Fast path:</b> six taps + a grade and they're done. Free-text journaling moves behind an optional "Go Deeper" so it never blocks the daily habit.</div>
+    </div>
+
+    <!-- RIGHT PHONE: the payoff -->
+    <div>
+      <div class="col-label">The Payoff (Later)</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>&#9679;&#9679;&#9679; &#128246; &#128267;</span></div>
+        <div class="scroll">
+          <div class="date">YOUR PATTERNS</div>
+          <div class="h-title">What Fuels You</div>
+
+          <!-- Early: teaser to drive logging -->
+          <div class="insight-teaser">
+            <div class="lbl">Building your baseline</div>
+            <div class="big">13 of 21 days logged</div>
+            <div class="sub">8 more check-ins and your first personal pattern unlocks.</div>
+            <div class="progressbar"><div></div></div>
+          </div>
+
+          <!-- Once enough data: real insight cards -->
+          <div class="insight-card">
+            <div class="lbl">&#128064; Pattern spotted</div>
+            <div class="stat">After <b>good sleep</b>, you complete <b>~40% more</b> practices.</div>
+            <div class="obs">On well-slept days you averaged 2.8 practices vs. 2.0 otherwise. Based on 19 days.</div>
+            <div class="barpair">
+              <div class="barrow"><span style="width:64px">Slept well</span><div class="track"><div style="width:88%;background:var(--primary)">2.8</div></div></div>
+              <div class="barrow"><span style="width:64px">Slept poor</span><div class="track"><div style="width:63%;background:#9db6bb">2.0</div></div></div>
+            </div>
+          </div>
+
+          <div class="insight-card">
+            <div class="lbl">&#128064; Pattern spotted</div>
+            <div class="stat">Your <b>high-stress</b> days grade a full letter lower on average.</div>
+            <div class="obs">Avg grade C on high-stress days vs. B+ on low-stress days. Based on 21 days.</div>
+          </div>
+
+          <div class="caption" style="margin-top:20px;color:#5c6b70">Observations, never causal claims. Gated behind a minimum sample so early noise never shows.</div>
+        </div>
+      </div>
+      <div class="caption"><b>The motivation loop:</b> a teaser rewards early logging; real insight cards appear only once there's enough data to mean something.</div>
+    </div>
+  </div>
+
+<script>
+  // Chip selection (binary + scale)
+  document.querySelectorAll('.chips').forEach(group => {
+    const type = group.dataset.type;
+    group.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        group.querySelectorAll('.chip').forEach(c => c.className = 'chip');
+        if (type === 'binary') {
+          chip.classList.add(chip.textContent.trim() === 'Yes' ? 'sel-yes' : 'sel-no');
+        } else {
+          chip.classList.add('sel-scale');
+        }
+      });
+    });
+  });
+  // Grade selection
+  const grades = document.querySelectorAll('.grade');
+  grades.forEach(g => g.addEventListener('click', () => {
+    grades.forEach(x => x.classList.remove('sel'));
+    g.classList.add('sel');
+  }));
+</script>
+</body>
+</html>

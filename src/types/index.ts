@@ -685,11 +685,18 @@ export interface DailySummary {
   };
 }
 
+// Structured daily-inputs check-in: a map of factor id (see DAILY_FACTORS in
+// src/data/dailyFactors.ts) → the selected option value (e.g. 'yes'/'no' for
+// binary, 'low'/'med'/'high' for scales). Kept as a loose map so adding/removing
+// factors never breaks old saved reflections.
+export type DailyFactors = Record<string, string>;
+
 export interface DailyReflection {
   id: string;
   user_id: string;
   date: string; // YYYY-MM-DD
   grade: ReflectionGrade;
+  factors?: DailyFactors;
   prompt_went_well?: string;
   prompt_hardest?: string;
   prompt_tomorrow?: string;
