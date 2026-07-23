@@ -1,9 +1,8 @@
 import {
   addDoc,
-  arrayRemove,
-  arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDocs,
   orderBy,
@@ -27,50 +26,55 @@ export async function getAvoidanceTasks(userId: string): Promise<AvoidanceTask[]
 export async function addAvoidanceTask(
   userId: string,
   text: string,
-  category: string,
+  category?: string,
 ): Promise<string> {
   const ref = await addDoc(tasksRef(userId), {
     userId,
     text,
-    category,
+    category: category || '',
     createdAt: new Date().toISOString(),
-    completedDates: [],
+    status: 'active',
   });
   return ref.id;
 }
 
-export async function markTaskCompleted(
+/** Conquer a task for good: mark it done, stamp the completion date/time. */
+export async function completeTask(
   userId: string,
   taskId: string,
   dateStr: string,
+  isoNow: string,
 ): Promise<void> {
   await updateDoc(doc(tasksRef(userId), taskId), {
-    completedDates: arrayUnion(dateStr),
+    status: 'done',
+    completedDate: dateStr,
+    completedAt: isoNow,
   });
 }
 
-export async function markTaskUncompleted(
-  userId: string,
-  taskId: string,
-  dateStr: string,
-): Promise<void> {
+/** Undo a conquer — put the task back in the active queue. */
+export async function uncompleteTask(userId: string, taskId: string): Promise<void> {
   await updateDoc(doc(tasksRef(userId), taskId), {
-    completedDates: arrayRemove(dateStr),
+    status: 'active',
+    completedDate: deleteField(),
+    completedAt: deleteField(),
   });
 }
 
+/** Remove a task entirely — does NOT count as conquered. */
 export async function deleteAvoidanceTask(userId: string, taskId: string): Promise<void> {
   await deleteDoc(doc(tasksRef(userId), taskId));
 }
 
-/** Returns how many consecutive days (ending today) had at least one completed task. */
+/** Consecutive days (ending today) on which at least one task was conquered. */
 export function computeAvoidanceStreak(tasks: AvoidanceTask[], todayStr: string): number {
-  const datesWithCompletion = new Set<string>();
+  const conqueredDates = new Set<string>();
   for (const task of tasks) {
-    for (const date of task.completedDates) {
-      datesWithCompletion.add(date);
+    if (task.status === 'done' && task.completedDate) {
+      conqueredDates.add(task.completedDate);
     }
   }
+  if (conqueredDates.size === 0) return 0;
 
   const [y, m, d] = todayStr.split('-').map(Number);
   const base = new Date(y, m - 1, d);
@@ -84,7 +88,7 @@ export function computeAvoidanceStreak(tasks: AvoidanceTask[], todayStr: string)
       String(dt.getMonth() + 1).padStart(2, '0'),
       String(dt.getDate()).padStart(2, '0'),
     ].join('-');
-    if (datesWithCompletion.has(ds)) {
+    if (conqueredDates.has(ds)) {
       streak++;
     } else {
       break;

@@ -12,7 +12,7 @@ import { AddProofPointScreen } from '../screens/YourStory/AddProofPointScreen';
 import { ProofPointLibraryScreen } from '../screens/YourStory/ProofPointLibraryScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
-const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
+const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
 const Stack = createNativeStackNavigator<WorksheetsStackParamList>();
 

@@ -17,13 +17,18 @@ import { useAuth } from '../../context/AuthContext';
 import { AvoidanceTask } from '../../types';
 import {
   addAvoidanceTask,
+  completeTask,
   computeAvoidanceStreak,
+  deleteAvoidanceTask,
   getAvoidanceTasks,
-  markTaskCompleted,
-  markTaskUncompleted,
+  uncompleteTask,
 } from '../../services/avoidanceTasks';
 import { getTodayString } from '../../utils/date';
+import { showConfirm } from '../../utils/alert';
 import { FeatureInfoModal } from '../../components/common/FeatureInfoModal';
+
+// Optional category presets for quick-add. Tapping is entirely optional.
+const CATEGORY_PRESETS = ['Home', 'Finance', 'Personal', 'Health', 'Work', 'Other'];
 
 // ─── Interview questions ──────────────────────────────────────────────────────
 
@@ -242,12 +247,102 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ visible, onClose, onCom
 
 // ─── AvoidanceTab ─────────────────────────────────────────────────────────────
 
+function formatConqueredDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// ─── Quick Add ────────────────────────────────────────────────────────────────
+
+interface QuickAddProps {
+  onAdd: (text: string, category?: string) => void;
+}
+
+const QuickAdd: React.FC<QuickAddProps> = ({ onAdd }) => {
+  const [text, setText] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
+  const [catOpen, setCatOpen] = useState(false);
+
+  const submit = () => {
+    const t = text.trim();
+    if (!t) return;
+    onAdd(t, category ?? undefined);
+    setText('');
+    setCategory(null);
+    setCatOpen(false);
+  };
+
+  return (
+    <View style={s.quickAdd}>
+      <View style={s.quickAddRow}>
+        <TextInput
+          style={s.quickAddInput}
+          value={text}
+          onChangeText={setText}
+          placeholder="Add something you've been putting off…"
+          placeholderTextColor={Colors.gray}
+          returnKeyType="done"
+          onSubmitEditing={submit}
+          blurOnSubmit={false}
+        />
+        <TouchableOpacity
+          style={[s.quickAddBtn, !text.trim() && s.quickAddBtnDisabled]}
+          onPress={submit}
+          disabled={!text.trim()}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={24} color={Colors.white} />
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        style={s.catToggle}
+        onPress={() => setCatOpen(o => !o)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="pricetag-outline" size={13} color={Colors.gray} />
+        <Text style={s.catToggleText}>{category ?? 'Add category (optional)'}</Text>
+        <Ionicons
+          name={catOpen ? 'chevron-up' : 'chevron-down'}
+          size={13}
+          color={Colors.gray}
+        />
+      </TouchableOpacity>
+
+      {catOpen && (
+        <View style={s.catChips}>
+          {CATEGORY_PRESETS.map(c => {
+            const sel = category === c;
+            return (
+              <TouchableOpacity
+                key={c}
+                style={[s.catChip, sel && s.catChipSel]}
+                onPress={() => setCategory(sel ? null : c)}
+                activeOpacity={0.7}
+              >
+                <Text style={[s.catChipText, sel && s.catChipTextSel]}>{c}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+};
+
+// ─── AvoidanceTab ─────────────────────────────────────────────────────────────
+
 export const AvoidanceTab: React.FC = () => {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<AvoidanceTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInterview, setShowInterview] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
   const today = getTodayString();
 
   const loadTasks = useCallback(async () => {
@@ -259,27 +354,50 @@ export const AvoidanceTab: React.FC = () => {
 
   useEffect(() => { loadTasks(); }, [loadTasks]);
 
-  const handleToggle = async (task: AvoidanceTask) => {
+  const handleAdd = async (text: string, category?: string) => {
     if (!user) return;
-    const completed = task.completedDates.includes(today);
-    // Optimistic update
+    await addAvoidanceTask(user.uid, text, category);
+    await loadTasks();
+  };
+
+  const handleComplete = async (task: AvoidanceTask) => {
+    if (!user) return;
+    const iso = new Date().toISOString();
+    // Optimistic — conquer for good.
     setTasks(prev =>
       prev.map(t =>
         t.id === task.id
-          ? {
-              ...t,
-              completedDates: completed
-                ? t.completedDates.filter(d => d !== today)
-                : [...t.completedDates, today],
-            }
+          ? { ...t, status: 'done', completedDate: today, completedAt: iso }
           : t
       )
     );
-    if (completed) {
-      await markTaskUncompleted(user.uid, task.id, today);
-    } else {
-      await markTaskCompleted(user.uid, task.id, today);
-    }
+    await completeTask(user.uid, task.id, today, iso);
+  };
+
+  const handleUncomplete = async (task: AvoidanceTask) => {
+    if (!user) return;
+    // Optimistic — send it back to the active queue.
+    setTasks(prev =>
+      prev.map(t =>
+        t.id === task.id
+          ? { ...t, status: 'active', completedDate: undefined, completedAt: undefined }
+          : t
+      )
+    );
+    await uncompleteTask(user.uid, task.id);
+  };
+
+  const handleRemove = (task: AvoidanceTask) => {
+    if (!user) return;
+    showConfirm(
+      'Remove task?',
+      `"${task.text}" will be deleted. This won't count as conquered.`,
+      async () => {
+        setTasks(prev => prev.filter(t => t.id !== task.id));
+        await deleteAvoidanceTask(user.uid, task.id);
+      },
+      'Remove',
+    );
   };
 
   const handleInterviewComplete = async (items: Array<{ text: string; category: string }>) => {
@@ -297,9 +415,12 @@ export const AvoidanceTab: React.FC = () => {
     );
   }
 
-  const incomplete = tasks.filter(t => !t.completedDates.includes(today));
-  const completedToday = tasks.filter(t => t.completedDates.includes(today));
+  const active = tasks.filter(t => t.status === 'active');
+  const conquered = tasks
+    .filter(t => t.status === 'done')
+    .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
   const streak = computeAvoidanceStreak(tasks, today);
+  const isEmpty = tasks.length === 0;
 
   return (
     <>
@@ -317,102 +438,112 @@ export const AvoidanceTab: React.FC = () => {
             <Ionicons name="information-circle-outline" size={22} color={Colors.gray} />
           </TouchableOpacity>
         </View>
-        {tasks.length === 0 ? (
-          <View style={s.emptyCard}>
+
+        {isEmpty ? (
+          <View style={s.introCard}>
             <View style={s.emptyIconWrap}>
               <Ionicons name="flash" size={26} color={Colors.primary} />
             </View>
-            <Text style={s.emptyTitle}>Build Your Override Queue</Text>
+            <Text style={s.emptyTitle}>Clear What You've Been Avoiding</Text>
             <Text style={s.emptyBody}>
-              Avoidance is how discomfort wins. Answer 4 questions to surface the tasks you
-              keep putting off — then chip away at them one rep at a time.
+              Avoidance is how discomfort wins. Drop in the things you keep putting off, then
+              knock them out one at a time. Every task you finish is a permanent win.
             </Text>
-            <TouchableOpacity
-              style={s.buildBtn}
-              onPress={() => setShowInterview(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={s.buildBtnText}>Build My Queue</Text>
-            </TouchableOpacity>
           </View>
         ) : (
-          <>
-            {/* Stats */}
-            <View style={s.statsRow}>
-              <View style={s.statPill}>
-                <Text style={[s.statNum, { color: Colors.secondary }]}>
-                  {incomplete.length}
-                </Text>
-                <Text style={s.statLabel}>Remaining</Text>
-              </View>
-              <View style={s.statPill}>
-                <Text style={[s.statNum, { color: Colors.primary }]}>
-                  {completedToday.length}
-                </Text>
-                <Text style={s.statLabel}>Reps today</Text>
-              </View>
-              <View style={s.statPill}>
-                <Text style={s.statNum}>{streak > 0 ? `🔥 ${streak}` : '—'}</Text>
-                <Text style={s.statLabel}>Day streak</Text>
-              </View>
+          <View style={s.statsRow}>
+            <View style={s.statPill}>
+              <Text style={s.statNum}>{streak > 0 ? `🔥 ${streak}` : '—'}</Text>
+              <Text style={s.statLabel} numberOfLines={1}>Day streak</Text>
             </View>
+            <View style={s.statPill}>
+              <Text style={[s.statNum, { color: Colors.primary }]}>{conquered.length}</Text>
+              <Text style={s.statLabel} numberOfLines={1}>Conquered</Text>
+            </View>
+            <View style={s.statPill}>
+              <Text style={[s.statNum, { color: Colors.secondary }]}>{active.length}</Text>
+              <Text style={s.statLabel} numberOfLines={1}>Remaining</Text>
+            </View>
+          </View>
+        )}
 
-            {/* Incomplete tasks */}
-            {incomplete.length > 0 && (
-              <Text style={s.sectionLabel}>Up next</Text>
-            )}
-            {incomplete.map(task => (
-              <TouchableOpacity
-                key={task.id}
-                style={s.taskCard}
-                onPress={() => handleToggle(task)}
-                activeOpacity={0.7}
-              >
-                <View style={s.checkbox} />
-                <View style={s.taskBody}>
-                  <Text style={s.taskText}>{task.text}</Text>
-                  <Text style={s.taskCategory}>{task.category}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+        <QuickAdd onAdd={handleAdd} />
 
-            {/* Completed today */}
-            {completedToday.length > 0 && (
-              <>
-                <Text style={[s.sectionLabel, { marginTop: Spacing.md }]}>
-                  Completed today
-                </Text>
-                {completedToday.map(task => (
-                  <TouchableOpacity
-                    key={task.id}
-                    style={[s.taskCard, s.taskCardDone]}
-                    onPress={() => handleToggle(task)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[s.checkbox, s.checkboxDone]}>
-                      <Ionicons name="checkmark" size={13} color={Colors.white} />
-                    </View>
-                    <View style={s.taskBody}>
-                      <Text style={[s.taskText, s.taskTextDone]}>{task.text}</Text>
-                      <Text style={s.taskCategory}>{task.category}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
-
-            {/* Add more */}
+        {active.length > 0 && <Text style={s.sectionLabel}>Up next</Text>}
+        {active.map(task => (
+          <View key={task.id} style={s.taskCard}>
             <TouchableOpacity
-              style={s.addRow}
-              onPress={() => setShowInterview(true)}
+              onPress={() => handleComplete(task)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 6 }}
+              activeOpacity={0.6}
+            >
+              <View style={s.checkbox} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.taskBody}
+              onPress={() => handleComplete(task)}
               activeOpacity={0.7}
             >
-              <View style={s.addIcon}>
-                <Ionicons name="add" size={16} color={Colors.primary} />
-              </View>
-              <Text style={s.addLabel}>Add to queue</Text>
+              <Text style={s.taskText}>{task.text}</Text>
+              {!!task.category && <Text style={s.taskCategory}>{task.category}</Text>}
             </TouchableOpacity>
-          </>
+            <TouchableOpacity
+              onPress={() => handleRemove(task)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              activeOpacity={0.6}
+              style={s.removeBtn}
+            >
+              <Ionicons name="close" size={18} color={Colors.gray} />
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {/* Guide me — the interview, now a secondary path */}
+        <TouchableOpacity
+          style={s.guideRow}
+          onPress={() => setShowInterview(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="sparkles-outline" size={15} color={Colors.primary} />
+          <Text style={s.guideText}>Not sure what to add? Answer a few questions</Text>
+        </TouchableOpacity>
+
+        {/* Conquered log */}
+        {conquered.length > 0 && (
+          <View style={s.logSection}>
+            <TouchableOpacity
+              style={s.logHeader}
+              onPress={() => setLogOpen(o => !o)}
+              activeOpacity={0.7}
+            >
+              <Text style={s.logHeaderText}>Conquered ({conquered.length})</Text>
+              <Ionicons
+                name={logOpen ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={Colors.gray}
+              />
+            </TouchableOpacity>
+            {logOpen &&
+              conquered.map(task => (
+                <TouchableOpacity
+                  key={task.id}
+                  style={[s.taskCard, s.taskCardDone]}
+                  onPress={() => handleUncomplete(task)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[s.checkbox, s.checkboxDone]}>
+                    <Ionicons name="checkmark" size={13} color={Colors.white} />
+                  </View>
+                  <View style={s.taskBody}>
+                    <Text style={[s.taskText, s.taskTextDone]}>{task.text}</Text>
+                    <Text style={s.taskCategory}>
+                      {formatConqueredDate(task.completedDate)}
+                      {task.category ? ` · ${task.category}` : ''}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+          </View>
         )}
       </ScrollView>
 
@@ -428,22 +559,22 @@ export const AvoidanceTab: React.FC = () => {
         icon="barbell"
         accent={Colors.primary}
         title="Avoidance Training"
-        intro="Avoidance is how discomfort wins. This is a queue of the things you keep putting off — and a way to chip at them one rep at a time."
+        intro="Avoidance is how discomfort wins. This is a queue of the things you keep putting off — and a way to knock them out, one at a time."
         points={[
           {
             label: 'Build your queue.',
-            text: 'Answer 4 quick questions to surface the tasks you’ve been dodging. Add more anytime.',
+            text: 'Drop in anything you’ve been dodging. Not sure? Answer a few quick questions to surface them.',
           },
           {
             label: 'Do one rep.',
-            text: 'Tackle a single task, then check it off. One small rep beats waiting to feel ready.',
+            text: 'Finish a single task, then check it off. It’s conquered for good — one rep beats waiting to feel ready.',
           },
           {
             label: 'Keep the streak.',
-            text: 'Come back daily. Each rep trains your tolerance for discomfort, so avoidance loses its grip.',
+            text: 'Clear at least one task a day. Each win trains your tolerance for discomfort, so avoidance loses its grip.',
           },
         ]}
-        footer="You don’t have to clear the list — just take the next rep."
+        footer="You don’t have to clear the whole list — just take the next rep."
       />
     </>
   );
@@ -457,12 +588,13 @@ const s = StyleSheet.create({
   scrollContent: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
   infoRow: { alignItems: 'flex-end', marginBottom: Spacing.sm },
 
-  // Empty state
-  emptyCard: {
+  // Intro / empty state
+  introCard: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   emptyIconWrap: {
     width: 60,
@@ -486,19 +618,77 @@ const s = StyleSheet.create({
     color: Colors.gray,
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: Spacing.lg,
   },
-  buildBtn: {
-    backgroundColor: Colors.primary,
+
+  // Quick add
+  quickAdd: {
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
-    paddingVertical: Spacing.md,
-    alignSelf: 'stretch',
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
   },
-  buildBtnText: {
-    fontFamily: Fonts.secondaryBold,
+  quickAddRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  quickAddInput: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
+    color: Colors.dark,
+    paddingVertical: Spacing.xs,
+  },
+  quickAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  quickAddBtnDisabled: {
+    opacity: 0.35,
+  },
+  catToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.sm,
+  },
+  catToggleText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  catChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  catChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.lightGray,
+  },
+  catChipSel: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  catChipText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  catChipTextSel: {
+    fontFamily: Fonts.secondaryBold,
     color: Colors.white,
-    textAlign: 'center',
   },
 
   // Stats
@@ -507,7 +697,8 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xs,
     alignItems: 'center',
   },
   statNum: {
@@ -520,7 +711,7 @@ const s = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.gray,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
     marginTop: 3,
   },
 
@@ -576,26 +767,44 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Add more row
-  addRow: {
+  // Remove button on active task cards
+  removeBtn: {
+    flexShrink: 0,
+    padding: 2,
+  },
+
+  // Guide-me (interview) secondary link
+  guideRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
     marginTop: Spacing.xs,
   },
-  addIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(33,113,128,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addLabel: {
+  guideText: {
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.sm,
     color: Colors.primary,
+  },
+
+  // Conquered log
+  logSection: {
+    marginTop: Spacing.md,
+  },
+  logHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  logHeaderText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
   },
 });
 

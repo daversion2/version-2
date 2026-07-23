@@ -625,11 +625,15 @@ export interface AvoidanceTask {
   id: string;
   userId: string;
   text: string;
-  /** User-facing category label (e.g. 'Home', 'Finance', 'Personal'). */
-  category: string;
+  /** Optional user-facing category label (e.g. 'Home', 'Finance'). Empty = uncategorized. */
+  category?: string;
   createdAt: string; // ISO 8601
-  /** YYYY-MM-DD dates on which this task was completed at least once. */
-  completedDates: string[];
+  /** 'active' = still in the queue; 'done' = conquered (permanent). */
+  status: 'active' | 'done';
+  /** Local YYYY-MM-DD the task was conquered — drives the daily streak. */
+  completedDate?: string;
+  /** ISO 8601 completion timestamp — orders the Conquered log. */
+  completedAt?: string;
 }
 
 // ============================================================================

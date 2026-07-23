@@ -7,7 +7,7 @@ import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
-const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
+const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
 

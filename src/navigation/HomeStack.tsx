@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeStackParamList } from '../types/navigation';
 import { HomeScreen } from '../screens/Home/HomeScreen';
@@ -39,7 +39,7 @@ import { MicroExerciseFollowUpScreen } from '../screens/MicroExercise/MicroExerc
 import { CravingCrusherScreen } from '../screens/Home/CravingCrusherScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
-const logo = require('../../assets/Neuro-Nudge_Logo_Blue.png');
+const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
@@ -60,8 +60,13 @@ export const HomeStack: React.FC = () => (
       component={HomeScreen}
       options={{
         title: 'Home',
-        headerLeft: () => (
-          <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
+        // Render the logo in the header's background layer, pinned to the
+        // bottom-left corner. This keeps it out of the headerLeft bar-button
+        // slot, which iOS 26 "Liquid Glass" wraps in a circular background.
+        headerBackground: () => (
+          <View style={styles.headerBg}>
+            <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
+          </View>
         ),
       }}
     />
@@ -241,8 +246,15 @@ export const HomeStack: React.FC = () => (
 );
 
 const styles = StyleSheet.create({
+  headerBg: {
+    flex: 1,
+    backgroundColor: '#FBFBFB',
+  },
   headerLogo: {
-    width: 32,
-    height: 32,
+    position: 'absolute',
+    left: 16,
+    bottom: 7,
+    width: 30,
+    height: 30,
   },
 });
