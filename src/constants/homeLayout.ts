@@ -4,11 +4,14 @@ export const SECTION_IDS = [
   // Zone 1: Welcome
   'hero',
   'mantra',
+  // "Also today" — active challenge check-in + evening reflection, pinned
+  // above the practices so time-sensitive items aren't buried below the fold.
+  'also_today',
   // Zone 2: Your Practices
   'practices',
-  // Zone 3: Reflect
-  'reflection_banner',
   // craving_crusher removed from here — it lives in its own Home tab now
+  // reflection_banner retired — the evening reflect prompt now lives inside
+  // the "also_today" section (gated to 5pm+).
 ] as const;
 
 export type HomeSectionId = (typeof SECTION_IDS)[number];
@@ -32,13 +35,7 @@ export const ZONE_CONFIG: ZoneDefinition[] = [
     // PracticesSection's own "Your practices" header stand in for it.
     label: 'Welcome',
     icon: 'sunny-outline',
-    sectionIds: ['hero', 'mantra', 'practices'],
-  },
-  {
-    id: 'reflect',
-    label: 'Reflect',
-    icon: 'moon-outline',
-    sectionIds: ['reflection_banner'],
+    sectionIds: ['hero', 'mantra', 'also_today', 'practices'],
   },
 ];
 
@@ -52,13 +49,13 @@ for (const zone of ZONE_CONFIG) {
 export const SECTION_LABELS: Record<HomeSectionId, string> = {
   hero: 'Welcome',
   mantra: 'Redirect Mantra',
+  also_today: 'Also Today',
   practices: 'Your Practices',
-  reflection_banner: 'Nightly Reflection',
 };
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {
   hero: 'sunny-outline',
   mantra: 'megaphone-outline',
+  also_today: 'today-outline',
   practices: 'flame-outline',
-  reflection_banner: 'moon-outline',
 };

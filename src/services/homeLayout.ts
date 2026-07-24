@@ -40,11 +40,19 @@ export const resolveLayout = (saved: HomeLayoutItem[] | undefined): HomeLayoutIt
       }
     }
 
-    // Append any new sections for this zone not in saved
-    for (const sectionId of zone.sectionIds) {
-      if (!seenIds.has(sectionId)) {
-        savedZoneItems.push({ id: sectionId, visible: true });
+    // Insert any new sections for this zone (absent from the saved layout) at
+    // their configured position rather than appending at the end — so a newly
+    // added section like "also_today" lands where ZONE_CONFIG puts it (above
+    // practices), even for users who already have a saved custom layout.
+    for (let ci = 0; ci < zone.sectionIds.length; ci++) {
+      const sectionId = zone.sectionIds[ci];
+      if (seenIds.has(sectionId)) continue;
+      let insertAt = 0;
+      for (let cj = 0; cj < ci; cj++) {
+        if (savedZoneItems.some((it) => it.id === zone.sectionIds[cj])) insertAt++;
       }
+      savedZoneItems.splice(insertAt, 0, { id: sectionId, visible: true });
+      seenIds.add(sectionId);
     }
 
     resolved.push(...savedZoneItems);
