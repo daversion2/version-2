@@ -179,6 +179,11 @@ export interface Challenge {
 
   // Arena tagging (Phase 1) — the override-training domain. See docs/arenas-vs-goals-decision.md
   arena_id?: ArenaId;
+
+  // Resolved quantity for library challenges that carry an "X" placeholder in
+  // their name (e.g. "Fast for X Hours" → target_amount: 24, target_unit: 'hours').
+  target_amount?: number;
+  target_unit?: string;
 }
 
 export interface HabitActionPlan {

@@ -16,6 +16,7 @@ import {
   ChallengeFilters,
 } from '../../services/challengeLibrary';
 import { createChallenge } from '../../services/challenges';
+import { getChallengeAmountSpec, fillChallengeAmount } from '../../utils/challengeAmount';
 import { LibraryChallenge, TimeCategory, ActionType } from '../../types';
 import { getTodayString } from '../../utils/date';
 import { showAlert } from '../../utils/alert';
@@ -88,23 +89,37 @@ export const ChallengeLibraryScreen: React.FC<Props> = ({ navigation, route }) =
     setRefreshing(false);
   }, [loadData]);
 
-  // Handle using a challenge with selected duration
-  const handleUseChallenge = async (challenge: LibraryChallenge, duration: number) => {
+  // Handle using a challenge with selected duration (and quantity, if the
+  // challenge name carries an "X" placeholder like "Fast for X Hours").
+  const handleUseChallenge = async (
+    challenge: LibraryChallenge,
+    duration: number,
+    amount?: number
+  ) => {
     if (!user || isCreatingChallenge) return;
     setIsCreatingChallenge(true);
     try {
       const isExtended = duration > 1;
 
+      const spec = getChallengeAmountSpec(challenge.name);
+      const resolvedName = spec && amount ? fillChallengeAmount(challenge.name, amount) : challenge.name;
+      const resolvedCriteria =
+        spec && amount && challenge.success_criteria
+          ? fillChallengeAmount(challenge.success_criteria, amount)
+          : challenge.success_criteria;
+
       await createChallenge(user.uid, {
-        name: challenge.name,
+        name: resolvedName,
         date: forDate || getTodayString(),
         difficulty_expected: challenge.difficulty,
         description: challenge.description,
-        success_criteria: challenge.success_criteria,
+        success_criteria: resolvedCriteria,
         why: challenge.why,
         // Challenge type based on duration
         challenge_type: isExtended ? 'extended' : 'daily',
         ...(isExtended ? { duration_days: duration } : {}),
+        // Resolved "X" quantity (if any)
+        ...(spec && amount ? { target_amount: amount, target_unit: spec.unit } : {}),
         // Library metadata
         library_challenge_id: challenge.id,
         barrier_type: challenge.barrier_type,

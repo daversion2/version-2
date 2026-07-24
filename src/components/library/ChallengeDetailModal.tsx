@@ -6,11 +6,13 @@ import {
   Modal,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { LibraryChallenge } from '../../types';
+import { getChallengeAmountSpec, fillChallengeAmount } from '../../utils/challengeAmount';
 import {
   BARRIER_TYPES,
   TIME_CATEGORIES,
@@ -33,7 +35,11 @@ interface ChallengeDetailModalProps {
   visible: boolean;
   challenge: LibraryChallenge | null;
   onClose: () => void;
-  onUseChallenge: (challenge: LibraryChallenge, duration: number) => Promise<void>;
+  onUseChallenge: (
+    challenge: LibraryChallenge,
+    duration: number,
+    amount?: number
+  ) => Promise<void>;
   isCreating?: boolean;
 }
 
@@ -47,15 +53,26 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
   const [showExamplesModal, setShowExamplesModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(1); // Default to "Today"
+  // Quantity for challenges with an "X" placeholder (e.g. "Fast for X Hours").
+  const [selectedAmount, setSelectedAmount] = useState(1);
+  const [customAmount, setCustomAmount] = useState('');
 
-  // Reset duration when modal opens with a new challenge
+  // Reset duration + amount when modal opens with a new challenge
   useEffect(() => {
     if (visible) {
       setSelectedDuration(1);
+      const spec = challenge ? getChallengeAmountSpec(challenge.name) : null;
+      setSelectedAmount(spec ? spec.default : 1);
+      setCustomAmount('');
     }
   }, [visible, challenge?.id]);
 
   if (!challenge) return null;
+
+  const amountSpec = getChallengeAmountSpec(challenge.name);
+  const displayName = amountSpec
+    ? fillChallengeAmount(challenge.name, selectedAmount)
+    : challenge.name;
 
   const barrierType = challenge.barrier_type
     ? BARRIER_TYPES[challenge.barrier_type]
@@ -82,9 +99,11 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
   };
 
   const handleUseChallenge = async () => {
-    await onUseChallenge(challenge, selectedDuration);
+    await onUseChallenge(challenge, selectedDuration, amountSpec ? selectedAmount : undefined);
     // Note: onClose is called by parent after successful creation
   };
+
+  const amountInvalid = !!amountSpec && (!selectedAmount || selectedAmount <= 0);
 
   return (
     <Modal
@@ -107,8 +126,8 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Challenge Title */}
-          <Text style={styles.title}>{challenge.name}</Text>
+          {/* Challenge Title (placeholder resolved to the chosen amount) */}
+          <Text style={styles.title}>{displayName}</Text>
 
           {/* Metadata Bar */}
           <View style={styles.metadataBar}>
@@ -241,8 +260,48 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
           </View>
         </ScrollView>
 
-        {/* Duration Selector & Use Button */}
+        {/* Amount, Duration Selector & Use Button */}
         <View style={styles.footer}>
+          {/* Amount picker — only for challenges with an "X" placeholder */}
+          {amountSpec && (
+            <>
+              <Text style={styles.durationLabel}>How many {amountSpec.unitLabel}?</Text>
+              <View style={styles.durationRow}>
+                {amountSpec.presets.map((val) => {
+                  const active = customAmount === '' && selectedAmount === val;
+                  return (
+                    <TouchableOpacity
+                      key={val}
+                      style={[styles.durationChip, active && styles.durationChipSelected]}
+                      onPress={() => {
+                        setSelectedAmount(val);
+                        setCustomAmount('');
+                      }}
+                    >
+                      <Text style={[styles.durationChipText, active && styles.durationChipTextSelected]}>
+                        {val}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TextInput
+                  style={[styles.amountInput, customAmount !== '' && styles.amountInputActive]}
+                  placeholder="Custom"
+                  placeholderTextColor={Colors.gray}
+                  keyboardType="number-pad"
+                  value={customAmount}
+                  maxLength={4}
+                  onChangeText={(t) => {
+                    const clean = t.replace(/[^0-9]/g, '');
+                    setCustomAmount(clean);
+                    const n = parseInt(clean, 10);
+                    if (!Number.isNaN(n) && n > 0) setSelectedAmount(n);
+                  }}
+                />
+              </View>
+            </>
+          )}
+
           {/* Duration Selector */}
           <Text style={styles.durationLabel}>How long do you want to commit?</Text>
           <View style={styles.durationRow}>
@@ -275,10 +334,10 @@ export const ChallengeDetailModal: React.FC<ChallengeDetailModalProps> = ({
           )}
 
           <TouchableOpacity
-            style={[styles.useButton, isCreating && styles.useButtonDisabled]}
+            style={[styles.useButton, (isCreating || amountInvalid) && styles.useButtonDisabled]}
             onPress={handleUseChallenge}
             activeOpacity={0.8}
-            disabled={isCreating}
+            disabled={isCreating || amountInvalid}
           >
             <Text style={styles.useButtonText}>
               {isCreating
@@ -468,6 +527,23 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     minWidth: 44,
     alignItems: 'center',
+  },
+  amountInput: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    minWidth: 72,
+    textAlign: 'center',
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  amountInputActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+    color: Colors.white,
   },
   durationChipSelected: {
     backgroundColor: Colors.primary,
