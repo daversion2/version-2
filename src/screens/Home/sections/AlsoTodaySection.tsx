@@ -61,12 +61,28 @@ export const AlsoTodaySection: React.FC<HomeSectionProps> = React.memo(({ data, 
       });
     }
 
-    // Active multi-day challenges — only when today's check-in isn't done yet.
+    // Active multi-day challenges.
     for (const c of data.extendedChallenges) {
       if (c.status !== 'active' || !c.start_date || !c.milestones?.length) continue;
       const total = c.milestones.length;
       const currentDay = getCurrentDayNumber(c.start_date);
-      if (currentDay < 1 || currentDay > total) continue;
+      if (currentDay < 1) continue;
+
+      if (currentDay > total) {
+        // Calendar window has elapsed but the challenge isn't finalized yet —
+        // nudge to wrap it up so a finished challenge doesn't quietly vanish
+        // from Home. Routes into the progress screen to finish the last
+        // check-in, which flows on to the completion/reflection.
+        out.push({
+          key: `ext-${c.id}`,
+          icon: 'trophy-outline',
+          title: c.name,
+          subtitle: 'Wrap up · finish challenge',
+          onPress: () => callbacks.onNavigate('ExtendedChallengeProgress', { challenge: c }),
+        });
+        continue;
+      }
+
       const today = c.milestones.find((m) => m.day_number === currentDay);
       if (today?.completed) continue; // already checked in today
       out.push({
