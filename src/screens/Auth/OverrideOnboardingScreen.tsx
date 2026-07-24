@@ -10,6 +10,7 @@ import {
   Alert,
   Dimensions,
   LayoutChangeEvent,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,14 +26,14 @@ import { getAllPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
 const { width } = Dimensions.get('window');
 
 // ============================================================================
-// FLOW — the emotional half of the story only: get hooked → feel the mechanism
-// in your thumb → feel it in your body → here's the answer → commit → go.
-// The intellectual payoff (recovery science, pleasure trap, research) moved to
-// the post-first-practice Debrief (see DebriefScreen).
-// Copy source: docs/onboarding-split-flow.md
+// FLOW — the emotional half of the story only: get hooked → see what you're
+// training against → feel it in your body → here's the answer → commit → go.
+// The post-first-practice Debrief that used to carry the intellectual payoff
+// is currently disabled (see HomeScreen), so nothing here promises it.
+// Copy source: docs/onboarding-split-flow.md, docs/onboarding-mockup.html
 // ============================================================================
 
-type StepKey = 'hook' | 'dopamine' | 'sit' | 'override' | 'picker' | 'reveal';
+type StepKey = 'hook' | 'origin' | 'sit' | 'override' | 'picker' | 'reveal';
 
 interface StepDef {
   key: StepKey;
@@ -43,7 +44,7 @@ interface StepDef {
 
 const STEPS: StepDef[] = [
   { key: 'hook', cta: 'Learn more →' },
-  { key: 'dopamine', cta: 'Feel it for yourself →', gated: true, hint: 'Keep tapping…' },
+  { key: 'origin', cta: 'Does this actually work? →', gated: true, hint: 'Drag the slider to Now' },
   { key: 'sit', cta: "There's a way out →", gated: true },
   { key: 'override', cta: 'Pick your starting point →' },
   { key: 'picker', cta: 'This is my starting point →', gated: true, hint: 'Choose a practice' },
@@ -138,12 +139,14 @@ const HookScreen: React.FC = () => {
         </Text>
       </FadeRise>
       <FadeRise delay={600}>
-        <Text style={styles.hookSub}>Not to help you. Not to make you better. To keep you coming back for more.</Text>
+        <Text style={styles.hookSub}>
+          Not to help you. Not to make you better. To keep you coming back.
+          {'\n\n'}Most people never notice. Even fewer practice discomfort on purpose.
+        </Text>
       </FadeRise>
       <FadeRise delay={1200}>
         <Text style={[styles.hookSub, { marginTop: Spacing.md }]}>
-          This app is the opposite. It's designed to help you{' '}
-          <Text style={styles.hookSubBold}>take back control of your mind.</Text>
+          That's where <Text style={styles.hookSubBold}>Neuro-Nudge</Text> comes in.
         </Text>
       </FadeRise>
       <FadeRise delay={1800}>
@@ -157,224 +160,128 @@ const HookScreen: React.FC = () => {
 };
 
 // ============================================================================
-// SCREEN 2 — DOPAMINE: tap to "scroll" — likes burst on screen while the
-// graph's spikes shrink and the baseline sinks. 4 taps unlocks.
+// SCREEN 2 — WHAT YOU'RE TRAINING AGAINST: drag the THEN→NOW slider to travel
+// from the world your reward system was built for to the one it lives in now.
+// Reaching NOW reveals the "pleasure trap" and unlocks the CTA.
 // ============================================================================
 
-const GRAPH_LOGICAL_W = 330;
-const GRAPH_LOGICAL_H = 150;
-const GRAPH_BASELINE_Y = 55;
-const TAPS_NEEDED = 4;
-const TAPS_MAX = TAPS_NEEDED + 2;
+const THEN_ROWS: { emoji: string; text: string }[] = [
+  { emoji: '🏹', text: 'Food took hunting. Hours of effort for one reward.' },
+  { emoji: '🔥', text: 'Connection took real presence, around a fire.' },
+  { emoji: '⛰️', text: 'Pleasure was scarce — and earned.' },
+];
 
-const BURST_EMOJI = ['❤️', '👍', '✨', '🔥', '😍', '💬'];
-const REWARDS = ['+18 likes ❤️', 'New follower! 🎉', '+7 comments 💬', 'Streak +1 🔥', '+42 views ✨'];
+const NOW_ROWS: { emoji: string; text: string }[] = [
+  { emoji: '🛵', text: 'Food arrives in 20 minutes, engineered to crave.' },
+  { emoji: '📱', text: '"Connection" is a like from someone you\'ve never met.' },
+  { emoji: '♾️', text: 'Pleasure is abundant, effortless — and everywhere.' },
+];
 
-interface Particle {
-  id: number;
-  emoji: string;
-  dx: number;
-  dy: number;
-}
+const KNOB_SIZE = 30;
+const WORLDS_HEIGHT = 240;
+const UNLOCK_AT = 0.92;
 
-const BurstParticle: React.FC<{ particle: Particle; onDone: (id: number) => void }> = ({ particle, onDone }) => {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 950,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start(() => onDone(particle.id));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return (
-    <Animated.Text
-      style={[
-        styles.burstParticle,
-        {
-          opacity: anim.interpolate({ inputRange: [0, 0.8, 1], outputRange: [1, 0.6, 0] }),
-          transform: [
-            { translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [0, particle.dx] }) },
-            { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, particle.dy] }) },
-            { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.35] }) },
-          ],
-        },
-      ]}
-    >
-      {particle.emoji}
-    </Animated.Text>
-  );
-};
+const OriginScreen: React.FC<{ unlocked: boolean; onUnlock: () => void }> = ({ unlocked, onUnlock }) => {
+  const [trackW, setTrackW] = useState(0);
+  const pan = useRef(new Animated.Value(0)).current;
+  const posRef = useRef(0);
+  const startRef = useRef(0);
+  const maxRef = useRef(0);
+  const reachedRef = useRef(false);
 
-const RewardPill: React.FC<{ text: string; onDone: () => void }> = ({ text, onDone }) => {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 1150,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start(onDone);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return (
-    <Animated.View
-      style={[
-        styles.rewardPill,
-        {
-          opacity: anim.interpolate({ inputRange: [0, 0.15, 0.8, 1], outputRange: [0, 1, 1, 0] }),
-          transform: [
-            { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [10, -38] }) },
-          ],
-        },
-      ]}
-    >
-      <Text style={styles.rewardPillText}>{text}</Text>
-    </Animated.View>
-  );
-};
+  maxRef.current = Math.max(0, trackW - KNOB_SIZE);
 
-/** Polyline drawn as rotated segments — no SVG dependency needed. */
-const GraphLine: React.FC<{ pts: [number, number][]; w: number; h: number }> = ({ pts, w, h }) => {
-  const sx = w / GRAPH_LOGICAL_W;
-  const sy = h / GRAPH_LOGICAL_H;
-  const scaled = pts.map(([x, y]) => [x * sx, y * sy]);
-  const segments = scaled.slice(1).map((p2, i) => {
-    const p1 = scaled[i];
-    const dx = p2[0] - p1[0];
-    const dy = p2[1] - p1[1];
-    const len = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-    return {
-      key: i,
-      left: (p1[0] + p2[0]) / 2 - len / 2,
-      top: (p1[1] + p2[1]) / 2 - 1.25,
-      len,
-      angle,
-    };
-  });
-  const last = scaled[scaled.length - 1];
-  return (
-    <>
-      {segments.map((s) => (
-        <View
-          key={s.key}
-          style={[
-            styles.graphSegment,
-            { left: s.left, top: s.top, width: s.len, transform: [{ rotate: `${s.angle}rad` }] },
-          ]}
-        />
-      ))}
-      <View style={[styles.graphDot, { left: last[0] - 4, top: last[1] - 4 }]} />
-    </>
-  );
-};
+  const onTrackLayout = (e: LayoutChangeEvent) => setTrackW(e.nativeEvent.layout.width);
 
-const DopamineScreen: React.FC<{ onUnlock: () => void }> = ({ onUnlock }) => {
-  const [taps, setTaps] = useState(0);
-  const [pts, setPts] = useState<[number, number][]>([[0, GRAPH_BASELINE_Y]]);
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [pills, setPills] = useState<{ id: number; text: string }[]>([]);
-  const [graphSize, setGraphSize] = useState({ w: 0, h: 0 });
-  const particleId = useRef(0);
-  const stateRef = useRef({ x: 0, base: GRAPH_BASELINE_Y });
-
-  const onGraphLayout = (e: LayoutChangeEvent) =>
-    setGraphSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
-
-  const handleTap = () => {
-    if (taps >= TAPS_MAX) return;
-    const tapNum = taps + 1;
-    setTaps(tapNum);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-
-    // Celebration on screen…
-    const burst: Particle[] = Array.from({ length: 7 }, () => ({
-      id: particleId.current++,
-      emoji: BURST_EMOJI[Math.floor(Math.random() * BURST_EMOJI.length)],
-      dx: Math.random() * 130 - 65,
-      dy: -45 - Math.random() * 75,
-    }));
-    setParticles((prev) => [...prev, ...burst]);
-    setPills((prev) => [...prev, { id: particleId.current++, text: REWARDS[(tapNum - 1) % REWARDS.length] }]);
-
-    // …while the chart sinks
-    const s = stateRef.current;
-    const spike = Math.max(10, 62 - tapNum * 13);
-    s.base = Math.min(126, s.base + 15);
-    const x1 = s.x + 26;
-    const x2 = s.x + 52;
-    setPts((prev) => [...prev, [x1, Math.max(8, s.base - spike)], [x2, s.base]]);
-    s.x = x2;
-
-    if (tapNum === TAPS_NEEDED) onUnlock();
+  // Nudge the knob to `next` and fire the unlock once we're deep enough in.
+  const applyPosition = (next: number) => {
+    posRef.current = next;
+    pan.setValue(next);
+    if (!reachedRef.current && maxRef.current > 0 && next / maxRef.current >= UNLOCK_AT) {
+      reachedRef.current = true;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      onUnlock();
+    }
   };
 
-  const removeParticle = (id: number) => setParticles((prev) => prev.filter((p) => p.id !== id));
-  const removePill = (id: number) => setPills((prev) => prev.filter((p) => p.id !== id));
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      // Tapping the track jumps the knob there, like a native range input
+      onPanResponderGrant: (e) => {
+        const max = maxRef.current;
+        if (max <= 0) return;
+        const target = Math.max(0, Math.min(e.nativeEvent.locationX - KNOB_SIZE / 2, max));
+        startRef.current = target;
+        applyPosition(target);
+      },
+      onPanResponderMove: (_, g) => {
+        const max = maxRef.current;
+        if (max <= 0) return;
+        applyPosition(Math.max(0, Math.min(startRef.current + g.dx, max)));
+      },
+      // No snap-back — the slider stays where it's left, so partial drags hold
+      // their partial crossfade.
+    })
+  ).current;
 
-  const stateLabel =
-    taps === 0 ? 'baseline' : taps === 1 ? 'nice hit ✨' : taps === 2 ? 'smaller hit…' : taps === 3 ? 'barely anything' : 'flat.';
-  const buttonLabel = taps === 0 ? 'TAP TO SCROLL' : taps < 3 ? 'AGAIN' : taps < TAPS_NEEDED ? 'ONE MORE' : "THAT'S THE POINT";
+  // Everything below tracks slider position continuously: the two worlds
+  // cross-fade into each other and the fill travels teal → orange.
+  const max = maxRef.current || 1;
+  const progress = pan.interpolate({ inputRange: [0, max], outputRange: [0, 1], extrapolate: 'clamp' });
+  const thenOpacity = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+  const fillColor = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [Colors.primary, Colors.secondary],
+  });
 
   return (
     <View style={styles.stageContent}>
-      <Text style={styles.eyebrow}>THE MECHANISM</Text>
-      <Text style={styles.screenHeadline}>Here's how it works.</Text>
-      <Text style={styles.screenBody}>
-        Your brain's drive system runs on dopamine. Every scroll delivers a hit — fast, easy, engineered. Try it:
-      </Text>
+      <Text style={styles.eyebrow}>WHAT YOU'RE TRAINING AGAINST</Text>
+      <Text style={styles.screenHeadline}>Your reward system was built for a different world.</Text>
 
-      <View style={styles.graphCard}>
-        <View style={styles.graphLabelsRow}>
-          <Text style={styles.graphLabel}>YOUR DOPAMINE</Text>
-          <Text style={styles.graphLabel}>{stateLabel}</Text>
+      <View style={styles.worlds}>
+        {/* NOW sits underneath; THEN fades away above it to reveal it */}
+        <View style={[styles.world, styles.worldNow]}>
+          <Text style={[styles.worldEra, styles.worldEraNow]}>TODAY</Text>
+          {NOW_ROWS.map((row) => (
+            <View key={row.text} style={styles.worldRow}>
+              <Text style={styles.worldRowEmoji}>{row.emoji}</Text>
+              <Text style={[styles.worldRowText, styles.worldRowTextNow]}>{row.text}</Text>
+            </View>
+          ))}
         </View>
-        <View style={styles.graphArea} onLayout={onGraphLayout}>
-          {graphSize.w > 0 && (
-            <>
-              {/* dashed "how good things used to feel" reference line */}
-              <View style={[styles.graphDashRow, { top: (GRAPH_BASELINE_Y / GRAPH_LOGICAL_H) * graphSize.h }]}>
-                {Array.from({ length: 32 }, (_, i) => (
-                  <View key={i} style={styles.graphDash} />
-                ))}
-              </View>
-              <Text
-                style={[
-                  styles.graphRefLabel,
-                  { top: (GRAPH_BASELINE_Y / GRAPH_LOGICAL_H) * graphSize.h - 16 },
-                ]}
-              >
-                how good things used to feel
-              </Text>
-              <GraphLine pts={pts} w={graphSize.w} h={graphSize.h} />
-            </>
-          )}
-        </View>
+        <Animated.View style={[styles.world, styles.worldThen, { opacity: thenOpacity }]}>
+          <Text style={styles.worldEra}>≈ 50,000 YEARS AGO</Text>
+          {THEN_ROWS.map((row) => (
+            <View key={row.text} style={styles.worldRow}>
+              <Text style={styles.worldRowEmoji}>{row.emoji}</Text>
+              <Text style={styles.worldRowText}>{row.text}</Text>
+            </View>
+          ))}
+        </Animated.View>
       </View>
 
-      <View style={styles.scrollBtnWrap}>
-        {particles.map((p) => (
-          <BurstParticle key={p.id} particle={p} onDone={removeParticle} />
-        ))}
-        {pills.map((p) => (
-          <RewardPill key={p.id} text={p.text} onDone={() => removePill(p.id)} />
-        ))}
-        <TouchableOpacity style={styles.scrollThumb} onPress={handleTap} activeOpacity={0.8}>
-          <Text style={styles.scrollThumbEmoji}>👆</Text>
-        </TouchableOpacity>
-        <Text style={styles.scrollBtnLabel}>{buttonLabel}</Text>
+      <View style={styles.sliderTrack} onLayout={onTrackLayout} {...responder.panHandlers}>
+        <View style={styles.sliderTrackLine} />
+        <Animated.View
+          style={[styles.sliderFill, { width: Animated.add(pan, KNOB_SIZE / 2), backgroundColor: fillColor }]}
+        />
+        <Animated.View style={[styles.sliderKnob, { transform: [{ translateX: pan }] }]} />
+      </View>
+      <View style={styles.sliderLabelsRow}>
+        <Text style={styles.sliderLabel}>THEN</Text>
+        <Text style={styles.sliderLabel}>NOW</Text>
       </View>
 
-      {taps >= TAPS_NEEDED && (
+      {unlocked && (
         <FadeRise>
-          <Text style={styles.flatMsg}>
-            Feel that? Each hit lands a little flatter. Your brain{' '}
-            <Text style={styles.flatMsgBold}>downregulates</Text> — fewer receptors, weaker response.
-            Scrolling is just the example here — the same hijacking happens with hyperpalatable food and
-            anything else engineered to keep you coming back. Over time it rewires your brain and makes small
-            tasks seem daunting.
+          <Text style={styles.pleasureTrapHeadline}>Researchers call this the pleasure trap.</Text>
+          <Text style={styles.pleasureTrapBody}>
+            A world of abundant, effortless, engineered pleasure that your reward system was never built to
+            handle. This isn't laziness. It's not a character flaw. Your brain adapted perfectly to the
+            environment it evolved in — it's just not the one you're living in now.
           </Text>
         </FadeRise>
       )}
@@ -412,7 +319,7 @@ const SitScreen: React.FC<{
   if (running) {
     return (
       <View style={styles.sitOverlay}>
-        <Text style={styles.sitOverlayWord}>BREATHE</Text>
+        <Text style={styles.sitOverlayWord}>JUST DO NOTHING</Text>
         <Text style={styles.sitOverlayNum}>{secondsLeft}</Text>
         <TouchableOpacity onPress={() => { setRunning(false); onComplete(); }} style={styles.sitOverlaySkip}>
           <Text style={styles.sitSkipText}>Skip</Text>
@@ -428,8 +335,8 @@ const SitScreen: React.FC<{
         <FadeRise>
           <Text style={styles.sitPostBody}>
             That urge to grab your phone? That restlessness? That's a nervous system that's used to constant
-            input. It's a sign that your brain has been primed for short term pleasure over long term
-            rewards.
+            input and minimal discomfort. It's a sign that your brain has been primed for short term pleasure
+            over long term rewards.
           </Text>
         </FadeRise>
         <FadeRise delay={500}>
@@ -531,7 +438,7 @@ const OverrideScreen: React.FC = () => {
       <FadeRise delay={1100}>
         <Text style={styles.overrideBody}>
           The same brain that adapted to constant stimulation can adapt back. You train it through daily
-          practices that get you outside of your comfort zone.
+          practices that have you intentionally practice discomfort.
           {'\n\n'}We've selected 6 key practices designed to train you to{' '}
           <Text style={styles.overrideBodyBold}>override</Text> the moment your brain says stop. This is how
           you rebuild what overstimulation has eroded.
@@ -611,7 +518,7 @@ const PickerScreen: React.FC<{
 const RevealScreen: React.FC<{ selectedPracticeName: string | null }> = ({ selectedPracticeName }) => {
   const items = [
     { icon: 'checkmark' as const, title: 'You sat still for 60 seconds', sub: 'and felt what constant input has done' },
-    { icon: 'checkmark' as const, title: "You learned what's happening in your brain", sub: "dopamine, downregulation, and what it's costing you" },
+    { icon: 'checkmark' as const, title: "You learned what's happening in your brain", sub: "your reward system, the pleasure trap, and what it's costing you" },
     {
       icon: 'checkmark' as const,
       title: selectedPracticeName ? `You picked ${selectedPracticeName}` : 'You picked a direction',
@@ -641,9 +548,8 @@ const RevealScreen: React.FC<{ selectedPracticeName: string | null }> = ({ selec
         </Text>
       </FadeRise>
       <FadeRise delay={2300}>
-        {/* Plants the Debrief — it should feel like a promise kept, not an interruption */}
         <Text style={styles.revealTeaser}>
-          After your first practice, we'll show you exactly what it did to your brain.
+          After your first practice, feel free to explore the other training options in the app.
         </Text>
       </FadeRise>
     </View>
@@ -752,8 +658,8 @@ export const OverrideOnboardingScreen: React.FC = () => {
     switch (step.key) {
       case 'hook':
         return <HookScreen />;
-      case 'dopamine':
-        return <DopamineScreen onUnlock={() => unlock('dopamine')} />;
+      case 'origin':
+        return <OriginScreen unlocked={!!unlocked['origin']} onUnlock={() => unlock('origin')} />;
       case 'sit':
         return (
           <SitScreen
@@ -998,84 +904,98 @@ const styles = StyleSheet.create({
   },
   hookCounterNum: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: Colors.secondary },
 
-  // Screen 2: Dopamine graph
-  graphCard: {
-    backgroundColor: Colors.dark,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
+  // Screen 2: Origins / THEN→NOW crossfading worlds + slider
+  worlds: {
+    position: 'relative',
+    height: WORLDS_HEIGHT,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
     marginTop: Spacing.xs,
   },
-  graphLabelsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.xs },
-  graphLabel: { fontFamily: Fonts.secondaryBold, fontSize: 11, color: '#9A9A9A', letterSpacing: 0.5 },
-  graphArea: { height: 150, position: 'relative', overflow: 'hidden' },
-  graphDashRow: {
+  world: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 22,
+  },
+  worldThen: { backgroundColor: '#DEEBEE' },
+  worldNow: { backgroundColor: '#343434' },
+  worldEra: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    letterSpacing: 2,
+    marginBottom: Spacing.md,
+  },
+  worldEraNow: { color: '#FF8B4D' },
+  worldRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+  worldRowEmoji: { fontSize: 20, lineHeight: 26, width: 26 },
+  worldRowText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: '#17525D',
+    lineHeight: 20,
+  },
+  worldRowTextNow: { color: '#EEEEEE' },
+  sliderTrack: {
+    height: KNOB_SIZE,
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
+    position: 'relative',
+  },
+  sliderTrackLine: {
     position: 'absolute',
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    gap: 4,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.border,
   },
-  graphDash: { width: 5, height: 1, backgroundColor: '#555555' },
-  graphRefLabel: { position: 'absolute', left: 2, fontFamily: Fonts.secondary, fontSize: 9, color: '#888888' },
-  graphSegment: {
+  sliderFill: {
     position: 'absolute',
-    height: 2.5,
-    borderRadius: 1.25,
-    backgroundColor: Colors.secondary,
-  },
-  graphDot: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.secondary,
-  },
-  scrollBtnWrap: { alignItems: 'center', marginTop: Spacing.lg, position: 'relative' },
-  scrollThumb: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    left: 0,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.4,
+  },
+  sliderKnob: {
+    width: KNOB_SIZE,
+    height: KNOB_SIZE,
+    borderRadius: KNOB_SIZE / 2,
+    backgroundColor: Colors.white,
+    borderWidth: 3,
+    borderColor: Colors.dark,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  scrollThumbEmoji: { fontSize: 30 },
-  scrollBtnLabel: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    letterSpacing: 1,
-    marginTop: Spacing.sm,
-  },
-  burstParticle: { position: 'absolute', top: 20, fontSize: 19, zIndex: 5 },
-  rewardPill: {
-    position: 'absolute',
-    top: -12,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-    zIndex: 6,
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
-  rewardPillText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.white },
-  flatMsg: {
+  sliderLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+  },
+  sliderLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    letterSpacing: 1,
+  },
+  pleasureTrapHeadline: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.lg,
+    color: Colors.secondary,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
+  pleasureTrapBody: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.dark,
     lineHeight: 23,
-    marginTop: Spacing.lg,
   },
-  flatMsgBold: { fontFamily: Fonts.secondaryBold, color: Colors.secondary },
 
   // Screen 3: Sit
   sitStartButton: { marginTop: Spacing.lg },

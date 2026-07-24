@@ -67,11 +67,6 @@ export const setStartingPractice = async (userId: string, practiceId: string): P
   await setDoc(doc(db, 'users', userId), { starting_practice_id: practiceId }, { merge: true });
 };
 
-/** One-time flag: the post-first-rep reminder prompt has been shown. */
-export const markReminderPromptSeen = async (userId: string): Promise<void> => {
-  await setDoc(doc(db, 'users', userId), { has_seen_reminder_prompt: true }, { merge: true });
-};
-
 export const incrementAppOpenCount = async (userId: string): Promise<void> => {
   const { increment } = await import('firebase/firestore');
   await setDoc(doc(db, 'users', userId), { app_open_count: increment(1) }, { merge: true });

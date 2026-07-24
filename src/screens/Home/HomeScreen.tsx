@@ -10,16 +10,14 @@ import {
 } from 'react-native';
 import { CravingCrusherTab } from './CravingCrusherTab';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { Colors, Fonts, Spacing } from '../../constants/theme';
+import { useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, PracticeInstance } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, ensureCuratedPractices } from '../../services/practices';
-import { reconcileHabitReminders, syncHabitReminder, cancelHabitReminder } from '../../services/habitReminders';
-import { registerForPushNotifications } from '../../services/notifications';
-import { FirstRepReminderModal } from '../../components/home/FirstRepReminderModal';
+import { reconcileHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { getWillpowerStats } from '../../services/willpower';
 import { HabitDifficulty, PracticeCompletionInput } from '../../types';
@@ -41,7 +39,7 @@ import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../
 import { NeuroscienceTidbit } from '../../types';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
-import { markPointsIntroSeen, markChallengesUnlockSeen, incrementAppOpenCount, markReminderPromptSeen } from '../../services/users';
+import { markPointsIntroSeen, markChallengesUnlockSeen, incrementAppOpenCount } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -95,20 +93,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Challenges unlock modal (after 3 habit completions)
   const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
-  const [reminderPromptVisible, setReminderPromptVisible] = useState(false);
 
   // Track app opens
   const appOpenTrackedRef = useRef(false);
   const remindersReconciledRef = useRef(false);
   const seedAttemptedRef = useRef(false);
-  const debriefPromptedRef = useRef(false);
 
   // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
   // The modal is held while any bespoke modal is up so they never stack.
   const anyModalActive =
     pointsIntroVisible ||
     challengesUnlockVisible ||
-    reminderPromptVisible ||
     celebrationVisible ||
     habitTidbitVisible ||
     habitLearnMoreVisible ||
@@ -183,44 +178,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setPendingAlert(null);
     }
   }, [habitTidbit, pendingAlert]);
-
-  // The habit the first-rep reminder attaches to: the onboarding starting
-  // point when present, else the first practice on the home.
-  const reminderTargetHabit = useMemo(
-    () => habits.find((h) => h.practice_id === userProfile?.starting_practice_id) ?? habits[0],
-    [habits, userProfile?.starting_practice_id]
-  );
-
-  const handleReminderPickTime = useCallback(
-    async (time: string) => {
-      setReminderPromptVisible(false);
-      if (!user) return;
-      try {
-        await markReminderPromptSeen(user.uid);
-        // Permission ask rides the goodwill of the first rep — this also
-        // registers the push token the journey rules send to.
-        await registerForPushNotifications(user.uid);
-        if (reminderTargetHabit) {
-          await updateHabit(user.uid, reminderTargetHabit.id, {
-            reminder: { time, enabled: true },
-          });
-          await syncHabitReminder(user.uid, reminderTargetHabit.id, reminderTargetHabit.reminder);
-        }
-        await refreshProfile();
-      } catch (err) {
-        console.warn('Failed to set first-rep reminder:', err);
-      }
-    },
-    [user, reminderTargetHabit, refreshProfile]
-  );
-
-  const handleReminderDismiss = useCallback(() => {
-    setReminderPromptVisible(false);
-    if (!user) return;
-    markReminderPromptSeen(user.uid)
-      .then(() => refreshProfile())
-      .catch(() => {});
-  }, [user, refreshProfile]);
 
   const handleHabitTidbitDismiss = useCallback(() => {
     setHabitTidbitVisible(false);
@@ -371,37 +328,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }, [user]);
 
 
-  // Post-first-practice Debrief: Home is the single owner of this moment.
-  // Fires once, deterministically, as soon as the first completion has
-  // registered on the profile and no other modal is up — no matter which
-  // completion path (full session vs quick-log) got the user here. The
-  // "See what just happened" banner below is the passive fallback if they
-  // back out of it (debriefPromptedRef stops it from re-opening on its own).
-  const isFocused = useIsFocused();
-  useEffect(() => {
-    if (!isFocused || anyModalActive) return;
-    if (!userProfile || userProfile.has_seen_debrief) return;
-    if ((userProfile.totalHabitsCompleted ?? 0) < 1) return;
-    if (debriefPromptedRef.current) return;
-    debriefPromptedRef.current = true;
-    const timer = setTimeout(() => navigation.navigate('Debrief'), 350);
-    return () => clearTimeout(timer);
-  }, [isFocused, anyModalActive, userProfile, navigation]);
-
-  // Post-first-rep reminder prompt: once, right after the first-ever
-  // completion, when no other modal is up — the moment they're most willing
-  // to commit to tomorrow's rep (and to grant notification permission).
-  useEffect(() => {
-    if (!userProfile || reminderPromptVisible) return;
-    if (userProfile.has_seen_reminder_prompt) return;
-    if ((userProfile.totalHabitsCompleted ?? 0) < 1) return;
-    // The Debrief owns the post-first-practice moment — this RN Modal would
-    // render on top of it. It shows once the Debrief is done (flag flips).
-    if (!userProfile.has_seen_debrief) return;
-    if (habits.length === 0 || anyModalActive) return;
-    const timer = setTimeout(() => setReminderPromptVisible(true), 1000);
-    return () => clearTimeout(timer);
-  }, [userProfile, habits, anyModalActive, reminderPromptVisible]);
+  // The post-first-practice Debrief is currently disabled — it is neither
+  // auto-navigated to nor surfaced by a banner. DebriefScreen and its route
+  // are left intact so this can be switched back on.
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -629,25 +558,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         >
           <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
 
-          {/* Post-first-practice Debrief fallback — shows until the one-time
-              Debrief sequence has been viewed (see DebriefScreen) */}
-          {!userProfile?.has_seen_debrief && homeData.totalHabitsCompleted > 0 && (
-            <TouchableOpacity
-              style={debriefStyles.card}
-              onPress={() => navigation.navigate('Debrief')}
-              activeOpacity={0.85}
-            >
-              <View style={debriefStyles.iconWrap}>
-                <Ionicons name="flash" size={18} color={Colors.white} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={debriefStyles.title}>See what just happened in your brain</Text>
-                <Text style={debriefStyles.sub}>Your first practice did more than you think — 1 min</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
-            </TouchableOpacity>
-          )}
-
           {zonedLayout.map((group) => (
             <React.Fragment key={group.zone.id}>
               {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
@@ -705,12 +615,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           navigation.navigate('StartChallenge');
         }}
         onDismiss={() => setChallengesUnlockVisible(false)}
-      />
-      <FirstRepReminderModal
-        visible={reminderPromptVisible}
-        practiceName={reminderTargetHabit?.name ?? 'your practice'}
-        onPickTime={handleReminderPickTime}
-        onDismiss={handleReminderDismiss}
       />
       {/* The "Comeback check-in" rule fires the bespoke comeback/story flow in
           the rule-modal slot; every other modal rule gets the generic RuleModal.
@@ -824,28 +728,3 @@ const styles = StyleSheet.create({
   tabHidden: { display: 'none' },
 });
 
-const debriefStyles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    // The hero below pulls itself up by Spacing.lg to escape the scroll
-    // padding — this margin is what it consumes, keeping the card clear.
-    marginBottom: Spacing.lg + Spacing.sm,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
-  sub: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 1 },
-});
