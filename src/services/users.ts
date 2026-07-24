@@ -78,7 +78,15 @@ export const incrementAppOpenCount = async (userId: string): Promise<void> => {
 };
 
 export const resetOnboarding = async (userId: string): Promise<void> => {
-  await setDoc(doc(db, 'users', userId), { has_completed_onboarding: false }, { merge: true });
+  // The Debrief is the intellectual half of onboarding (fires after the first
+  // practice), so replaying the intro must also re-arm it — otherwise the
+  // replayed flow skips it and never feels like a true fresh-user experience.
+  const { deleteField } = await import('firebase/firestore');
+  await setDoc(
+    doc(db, 'users', userId),
+    { has_completed_onboarding: false, has_seen_debrief: deleteField() },
+    { merge: true }
+  );
 };
 
 

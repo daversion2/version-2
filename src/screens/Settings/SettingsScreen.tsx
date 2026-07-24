@@ -199,6 +199,7 @@ export const SettingsScreen: React.FC = () => {
               has_seen_points_intro: deleteField(),
               has_dismissed_goal_prompt: deleteField(),
               has_seen_challenges_unlock: deleteField(),
+              has_seen_debrief: deleteField(),
               app_open_count: deleteField(),
             }, { merge: true });
             await refreshProfile();

@@ -30,8 +30,6 @@
 
 > ensure pop-ups are firing correctly. Comeback modal keeps firing
 
-> rework home screen data that is shown (2 of 3 practices this week...don't like that)
-
 ## Ideas
 
 > allow users to create circuits with rounds of cold plunges, suanas, meditation, etc... so could be like:

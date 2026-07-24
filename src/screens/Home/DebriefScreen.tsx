@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -247,37 +247,20 @@ const TrapScreen: React.FC<{ onUnlock: () => void; unlocked: boolean }> = ({ onU
 // DEBRIEF 3 — THE RECEIPTS: research stats with a live count-up
 // ============================================================================
 
-const CountUpStat: React.FC<{ to: number }> = ({ to }) => {
-  const [v, setV] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setV((prev) => {
-        const next = prev + 10;
-        if (next >= to) {
-          clearInterval(id);
-          return to;
-        }
-        return next;
-      });
-    }, 30);
-    return () => clearInterval(id);
-  }, [to]);
-  return <Text style={[styles.statBig, { color: Colors.secondary }]}>+{v}%</Text>;
-};
-
 const ResearchScreen: React.FC = () => (
   <View style={styles.stageContent}>
     <Text style={styles.eyebrow}>THE RESEARCH</Text>
-    <Text style={styles.screenHeadline}>What you just did, according to the science.</Text>
+    <Text style={styles.screenHeadline}>Does practicing discomfort actually work?</Text>
 
     <FadeRise delay={300}>
       <View style={styles.statCard}>
         <View style={styles.statBigWrap}>
-          <CountUpStat to={250} />
+          <Text style={[styles.statBig, styles.statBigStacked]}>ACC</Text>
         </View>
         <Text style={styles.statDesc}>
-          <Text style={styles.statDescBold}>Plasma dopamine after cold water immersion</Text> in controlled
-          studies — a real, sustained increase, not a spike-and-crash.
+          <Text style={styles.statDescBold}>Overriding the impulse to give in to comfort fires your anterior
+          cingulate cortex</Text> — the brain's hub for willpower and pushing through resistance. Like a
+          muscle, it strengthens every time you use it.
         </Text>
       </View>
     </FadeRise>

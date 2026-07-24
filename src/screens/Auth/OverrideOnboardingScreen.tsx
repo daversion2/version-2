@@ -17,7 +17,6 @@ import * as Haptics from 'expo-haptics';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 import { FadeRise } from '../../components/common/FadeRise';
-import { HoldToCommitButton } from '../../components/common/HoldToCommitButton';
 import { useAuth } from '../../context/AuthContext';
 import { markOnboardingComplete, setStartingPractice } from '../../services/users';
 import { createHabit, getActiveHabits, ensureCuratedPractices } from '../../services/practices';
@@ -372,9 +371,10 @@ const DopamineScreen: React.FC<{ onUnlock: () => void }> = ({ onUnlock }) => {
         <FadeRise>
           <Text style={styles.flatMsg}>
             Feel that? Each hit lands a little flatter. Your brain{' '}
-            <Text style={styles.flatMsgBold}>downregulates</Text> — fewer receptors, weaker response. This
-            doesn't just make social media less fun, it rewires your brain and makes small tasks seem
-            daunting.
+            <Text style={styles.flatMsgBold}>downregulates</Text> — fewer receptors, weaker response.
+            Scrolling is just the example here — the same hijacking happens with hyperpalatable food and
+            anything else engineered to keep you coming back. Over time it rewires your brain and makes small
+            tasks seem daunting.
           </Text>
         </FadeRise>
       )}
@@ -530,9 +530,9 @@ const OverrideScreen: React.FC = () => {
       </FadeRise>
       <FadeRise delay={1100}>
         <Text style={styles.overrideBody}>
-          The same brain that adapted to constant stimulation can adapt back. You train it by doing hard
-          things — on purpose.
-          {'\n\n'}We've selected 7 key practices designed to train you to{' '}
+          The same brain that adapted to constant stimulation can adapt back. You train it through daily
+          practices that get you outside of your comfort zone.
+          {'\n\n'}We've selected 6 key practices designed to train you to{' '}
           <Text style={styles.overrideBodyBold}>override</Text> the moment your brain says stop. This is how
           you rebuild what overstimulation has eroded.
           {'\n\n'}You don't have to do all of them. We recommend a minimum of{' '}
@@ -558,8 +558,12 @@ const PickerScreen: React.FC<{
 
   return (
     <View style={styles.stageContent}>
-      <Text style={styles.eyebrow}>YOUR STARTING POINT</Text>
+      <Text style={styles.eyebrow}>TODAY'S PRACTICE</Text>
       <Text style={styles.screenHeadline}>Pick one. Just one.</Text>
+      <Text style={styles.screenBody}>
+        This is the one you're committing to <Text style={styles.pickerBodyBold}>today</Text>. You can choose
+        any of the 6 practices on any future day — for now, just pick where you'll start.
+      </Text>
 
       {available.map((practice, index) => {
         const isSelected = selectedId === practice.id;
@@ -782,23 +786,15 @@ export const OverrideOnboardingScreen: React.FC = () => {
     // The sit screen carries its own start/skip controls until it's done
     if (step.key === 'sit' && !sitDone) return null;
 
-    const cta =
-      step.key === 'picker' ? (
-        <HoldToCommitButton
-          title={step.cta}
-          onCommit={goNext}
-          disabled={ctaLocked}
-          style={styles.ctaButton}
-        />
-      ) : (
-        <Button
-          title={step.cta}
-          onPress={isLast ? handleComplete : goNext}
-          disabled={ctaLocked || saving}
-          loading={isLast && saving}
-          style={styles.ctaButton}
-        />
-      );
+    const cta = (
+      <Button
+        title={step.cta}
+        onPress={isLast ? handleComplete : goNext}
+        disabled={ctaLocked || saving}
+        loading={isLast && saving}
+        style={styles.ctaButton}
+      />
+    );
 
     return (
       <View
@@ -809,7 +805,6 @@ export const OverrideOnboardingScreen: React.FC = () => {
         ]}
       >
         {ctaLocked && !!step.hint && <Text style={styles.ctaHint}>{step.hint}</Text>}
-        {!ctaLocked && step.key === 'picker' && <Text style={styles.ctaHint}>Press and hold</Text>}
         <View style={styles.navBar}>
           {stepIndex > 0 ? (
             <TouchableOpacity onPress={goBack} style={styles.backButton}>
@@ -1175,6 +1170,7 @@ const styles = StyleSheet.create({
   overrideBodyBold: { fontFamily: Fonts.secondaryBold, color: Colors.white },
 
   // Screen 5: Picker
+  pickerBodyBold: { fontFamily: Fonts.secondaryBold, color: Colors.primary },
   practiceRow: {
     flexDirection: 'row',
     alignItems: 'center',
