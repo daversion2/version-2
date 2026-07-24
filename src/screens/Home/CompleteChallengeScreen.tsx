@@ -32,7 +32,6 @@ import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { ChallengeFailureModal } from '../../components/challenge/ChallengeFailureModal';
 import { saveChallengeFailureLog } from '../../services/challengeFailureLogs';
-import { getPersonalizedRewardMessage } from '../../services/userRewardMessages';
 import {
   selectTidbitForCompletion,
   recordTidbitShown,
@@ -265,13 +264,8 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         // Failed — supportive reward moment, then the failure reflection modal
         const multiplier = getStreakMultiplier(stats.currentStreak);
 
-        let messageText = 'One more proof point.';
-        try {
-          const msg = await getPersonalizedRewardMessage(user.uid);
-          messageText = msg.text;
-        } catch (err) {
-          console.warn('Failed to fetch reward message:', err);
-        }
+        // Static, consistent message for the failed / "Not yet" moment.
+        const messageText = 'Progress, not perfection.';
 
         let narrativeText = '';
         try {
