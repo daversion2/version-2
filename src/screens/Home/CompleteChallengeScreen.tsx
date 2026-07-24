@@ -271,12 +271,12 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         try {
           const totalCount = await getTotalCompletionCount(user.uid);
           if (totalCount === 1) {
-            narrativeText = 'Challenge 1. The first of many.';
+            narrativeText = 'Challenge 1.';
           } else {
             const streakDays = updateResult.newStreak;
             narrativeText = streakDays >= 7
-              ? `Day ${streakDays} of doing hard things.`
-              : `Challenge ${totalCount}. Still here.`;
+              ? `Day ${streakDays}`
+              : `Challenge ${totalCount}.`;
           }
         } catch (err) {
           console.warn('Failed to compute narrative line:', err);
