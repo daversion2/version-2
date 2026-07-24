@@ -11,7 +11,7 @@ import {
 import { CravingCrusherTab } from './CravingCrusherTab';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, PracticeInstance } from '../../types';
@@ -101,6 +101,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const appOpenTrackedRef = useRef(false);
   const remindersReconciledRef = useRef(false);
   const seedAttemptedRef = useRef(false);
+  const debriefPromptedRef = useRef(false);
 
   // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
   // The modal is held while any bespoke modal is up so they never stack.
@@ -369,6 +370,23 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     );
   }, [user]);
 
+
+  // Post-first-practice Debrief: Home is the single owner of this moment.
+  // Fires once, deterministically, as soon as the first completion has
+  // registered on the profile and no other modal is up — no matter which
+  // completion path (full session vs quick-log) got the user here. The
+  // "See what just happened" banner below is the passive fallback if they
+  // back out of it (debriefPromptedRef stops it from re-opening on its own).
+  const isFocused = useIsFocused();
+  useEffect(() => {
+    if (!isFocused || anyModalActive) return;
+    if (!userProfile || userProfile.has_seen_debrief) return;
+    if ((userProfile.totalHabitsCompleted ?? 0) < 1) return;
+    if (debriefPromptedRef.current) return;
+    debriefPromptedRef.current = true;
+    const timer = setTimeout(() => navigation.navigate('Debrief'), 350);
+    return () => clearTimeout(timer);
+  }, [isFocused, anyModalActive, userProfile, navigation]);
 
   // Post-first-rep reminder prompt: once, right after the first-ever
   // completion, when no other modal is up — the moment they're most willing
@@ -678,15 +696,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       />
       <PointsIntroModal
         visible={pointsIntroVisible}
-        onDismiss={() => {
-          setPointsIntroVisible(false);
-          // Quick-log path for the first-ever completion: chain into the
-          // one-time Debrief once this native modal has fully torn down
-          // (navigating during its dismissal drops the action on iOS).
-          if (!userProfile?.has_seen_debrief && (userProfile?.totalHabitsCompleted ?? 0) > 0) {
-            setTimeout(() => navigation.navigate('Debrief'), 300);
-          }
-        }}
+        onDismiss={() => setPointsIntroVisible(false)}
       />
       <ChallengesUnlockModal
         visible={challengesUnlockVisible}

@@ -50,7 +50,7 @@ type Step = 'ready' | 'go' | 'capture';
 export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) => {
   const { practiceId, habitId, habitName } = route.params;
   const practice = getPractice(practiceId);
-  const { user, userProfile } = useAuth();
+  const { user, refreshProfile } = useAuth();
 
   const accent = PRACTICE_GROUPS.find((g) => g.id === practice?.group)?.color ?? Colors.primary;
 
@@ -120,24 +120,18 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       console.warn('Failed to fetch practice tidbit:', err);
     }
     setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
+    // Refresh the shared profile so Home sees the incremented completion count
+    // the moment we return — that's what arms the one-time post-first-practice
+    // Debrief (Home owns that trigger now).
+    refreshProfile().catch(() => {});
   };
 
   const finishSession = () => {
-    // First completed practice → the one-time Debrief (the intellectual half
-    // of onboarding: recovery science, pleasure trap, research). The home
-    // card is the fallback if this never fires or they bail partway.
-    const showDebrief = !!userProfile && userProfile.has_seen_debrief !== true;
-    // Navigate only after the native Modal has fully torn down — actions
-    // dispatched during its dismissal are silently dropped on iOS.
-    setTimeout(() => {
-      if (showDebrief) {
-        // Single atomic action: swap this screen for the Debrief, so its own
-        // goBack lands on the caller (Home), not back in this session.
-        navigation.replace('Debrief');
-      } else {
-        navigation.goBack();
-      }
-    }, 300);
+    // Return to Home, which owns the one-time post-first-practice Debrief
+    // trigger (it fires deterministically once the profile reflects this
+    // completion). Navigate only after the native Modal has fully torn down —
+    // actions dispatched during its dismissal are silently dropped on iOS.
+    setTimeout(() => navigation.goBack(), 300);
   };
 
   const dismissCelebration = () => {
