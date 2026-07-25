@@ -71,22 +71,36 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
         icon="leaf"
         accent={Colors.primary}
         title="Practices"
-        intro="Practices are the small, repeatable reps you commit to — the daily actions that rewire a habit through consistency, not intensity."
+        intro="One deliberately uncomfortable thing, chosen and done on purpose each day — then reflected on. This isn't a habit you're trying to automate. It's a decision you make while it's hard."
         points={[
           {
-            label: 'Show up daily.',
-            text: 'Each practice is a quick rep you complete once a day. Small and repeatable beats big and occasional.',
+            label: 'Choose the discomfort.',
+            text: 'Commit to a practice before the resistance arrives. It should cost you something real — effort, comfort, minutes you’d rather spend elsewhere — without swallowing your day.',
           },
           {
-            label: 'Log the rep.',
-            text: 'Mark a practice done to bank the XP. Honest reps — even hard ones — are what build the streak.',
+            label: 'Stay past the pull to stop.',
+            text: 'The moment you want to quit is the moment that counts. Everything before it is warm-up; staying is the training.',
           },
           {
-            label: 'Build the streak.',
-            text: 'Consecutive days compound: the more you stack, the stronger the habit and the bigger the bonus.',
+            label: 'Reflect on what it took.',
+            text: 'Rate how hard it actually was and name the difficult part. That’s what turns a finished task into something your brain can use again.',
           },
         ]}
-        footer="Consistency is the whole mechanism — just keep showing up."
+        science={[
+          {
+            label: 'Resistance is the stimulus.',
+            text: 'Deliberately staying in something your brain wants to escape recruits the prefrontal cortex — the same circuitry behind focus, decisions, and self-control. Comfortable repetition doesn’t load it. Difficulty does.',
+          },
+          {
+            label: 'Reflection is what consolidates it.',
+            text: 'Rating the difficulty and naming the hard moment converts raw sensation into something the brain encodes explicitly. Effort you examine transfers to new situations; effort you don’t mostly stays stuck to the task.',
+          },
+          {
+            label: 'Deliberate on purpose.',
+            text: 'A habit runs without you — that’s its value and its ceiling. Practices stay conscious by design, because the act of choosing the hard thing is the capacity being trained.',
+          },
+        ]}
+        footer="The goal isn’t to make it easy. It’s to become someone who does it while it’s hard."
       />
 
       {ordered.map((habit) => {

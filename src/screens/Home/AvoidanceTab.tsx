@@ -559,22 +559,36 @@ export const AvoidanceTab: React.FC = () => {
         icon="barbell"
         accent={Colors.primary}
         title="Avoidance Training"
-        intro="Avoidance is how discomfort wins. This is a queue of the things you keep putting off — and a way to knock them out, one at a time."
+        intro="The things you keep putting off aren’t a to-do problem. Every time you dodge one, the relief teaches your brain that dodging works — and the task gets heavier the longer it sits."
         points={[
           {
-            label: 'Build your queue.',
-            text: 'Drop in anything you’ve been dodging. Not sure? Answer a few quick questions to surface them.',
+            label: 'Name what you’re avoiding.',
+            text: 'Put everything you keep sliding past into one list. If nothing comes to mind, answer a few questions and it’ll surface fast — avoidance is good at hiding.',
           },
           {
-            label: 'Do one rep.',
-            text: 'Finish a single task, then check it off. It’s conquered for good — one rep beats waiting to feel ready.',
+            label: 'Start the one you want to skip.',
+            text: 'Take a single task and finish it — ideally the one carrying the most dread. Waiting until you feel ready is what avoidance sounds like from the inside.',
           },
           {
-            label: 'Keep the streak.',
-            text: 'Clear at least one task a day. Each win trains your tolerance for discomfort, so avoidance loses its grip.',
+            label: 'Clear one a day.',
+            text: 'Check it off and it’s done for good. Daily contact with the thing you’d rather dodge is what keeps the pile from rebuilding.',
           },
         ]}
-        footer="You don’t have to clear the whole list — just take the next rep."
+        science={[
+          {
+            label: 'Avoidance pays you instantly.',
+            text: 'Dodging a task produces immediate relief, and that relief is a reward. This is negative reinforcement — one of the most durable learning mechanisms there is — which is why avoidance strengthens itself without you ever deciding to.',
+          },
+          {
+            label: 'Doing it collects the counter-evidence.',
+            text: 'The dread predicts a cost that almost never arrives, and the prediction only updates when you finish the task and nothing bad happens. That’s the extinction mechanism behind exposure therapy, the best-supported treatment for anxiety.',
+          },
+          {
+            label: 'The tolerance generalizes.',
+            text: 'Repeatedly acting before you feel ready trains distress tolerance broadly rather than task by task. Over time discomfort stops functioning as a veto.',
+          },
+        ]}
+        footer="You don’t need the list empty. You need the next one started."
       />
     </>
   );

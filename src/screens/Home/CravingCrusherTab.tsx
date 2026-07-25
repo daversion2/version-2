@@ -51,22 +51,36 @@ export const CravingCrusherTab: React.FC<Props> = ({ onPress }) => {
       icon="flash"
       accent={Colors.secondary}
       title="Craving Crusher"
-      intro="A craving is a wave, not a command. It peaks in about 3 minutes, then fades on its own — as long as you don't act on it."
+      intro="A craving showing up is not an instruction to act. It’s a wave your brain generated — it builds, peaks within a few minutes, and falls on its own if you don’t feed it."
       points={[
         {
-          label: 'Name the urge.',
-          text: 'Start the timer, pick what’s pulling at you, and rate how strong it feels. The timer scales to match the wave.',
+          label: 'Name what’s pulling.',
+          text: 'Start the timer, say what the craving is, and rate its strength. This isn’t bookkeeping — putting it into words is the part that takes the edge off.',
         },
         {
-          label: 'Ride it out.',
-          text: 'Stay busy while it passes — breathe, ground yourself, name what you feel, or learn what’s happening in your brain.',
+          label: 'Outlast the peak.',
+          text: 'The wave crests early and drops from there. Breathe, move, ground yourself, or read what’s happening in your brain while it passes.',
         },
         {
-          label: 'Log the outcome.',
-          text: 'Rode it out or gave in, log it either way. The honest record is what reveals your triggers over time.',
+          label: 'Record what really happened.',
+          text: 'Rode it out or gave in — log it either way. The pattern across entries is what exposes the triggers you can’t see in the moment.',
         },
       ]}
-      footer="Every wave you ride trains the same override circuit — it gets easier."
+      science={[
+        {
+          label: 'Naming it turns the volume down.',
+          text: 'Putting an urge into words engages the prefrontal cortex and measurably dampens amygdala activity. Research on affect labeling finds the feeling weakens as soon as it’s named — you don’t have to fight the craving, you have to describe it.',
+        },
+        {
+          label: 'The urge has a shelf life.',
+          text: 'Cravings follow a fixed shape: sharp rise, brief peak, long fade. Most resolve fully within 15–20 minutes with no intervention at all — even though at peak intensity people predict they’ll last for hours.',
+        },
+        {
+          label: 'Not acting rewrites the loop.',
+          text: 'Every urge you feel without obeying weakens the link between the cue and the behavior. Acting at the peak does the reverse: it teaches the circuit that intensity works, and the next wave arrives taller.',
+        },
+      ]}
+      footer="The craving arriving was never the failure. Obeying it is the only part you control — and the only part that trains."
     />
   </ScrollView>
   );

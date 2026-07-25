@@ -244,22 +244,36 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
         icon="trophy"
         accent={Colors.secondary}
         title="Challenges"
-        intro="Challenges are tests you set for yourself — a deliberate push beyond your daily practices, on your own terms."
+        intro="A test you set for yourself — a deliberate push past your daily practices, decided in advance so the version of you who’d rather not doesn’t get a vote."
         points={[
           {
-            label: 'Set the test.',
-            text: 'Create a challenge: a one-off push to do today, or a multi-day streak you commit to holding.',
+            label: 'Set the terms.',
+            text: 'Define the test and exactly what counts as done: a single push for today, or a multi-day commitment you hold. Specific beats ambitious.',
           },
           {
-            label: 'Take it on.',
-            text: 'Check in as you go. A challenge is meant to stretch you a little past comfortable — that’s the point.',
+            label: 'Hold the line.',
+            text: 'Check in as you go. It should stretch you past comfortable — if it doesn’t pull at you somewhere, it’s a chore, not a challenge.',
           },
           {
-            label: 'Earn the win.',
-            text: 'Completing a challenge banks XP and proves the practice is sticking. Then set the next, harder one.',
+            label: 'Log it honestly.',
+            text: 'Finished or not, record the outcome. A challenge you missed and reflected on is worth more than one you quietly delete.',
           },
         ]}
-        footer="Unlocked by showing up to your practices — challenges are where you spend that momentum."
+        science={[
+          {
+            label: 'Deciding early beats deciding in the moment.',
+            text: 'Committing ahead of time is precommitment: you make the call while your prefrontal cortex is running things, so temptation has far less to overturn later. Deciding the specific what and when consistently outperforms intention alone.',
+          },
+          {
+            label: 'Escalation is the stimulus.',
+            text: 'Like any training load, difficulty you’ve already adapted to stops producing change. Challenges exist to reintroduce the stretch your practices have quietly made routine.',
+          },
+          {
+            label: 'Finishing builds evidence, not just points.',
+            text: 'Each completed challenge is a concrete instance of you doing what you said you’d do — the raw material for a self-image built on record instead of intention. That self-concept is what carries the behavior once motivation is gone.',
+          },
+        ]}
+        footer="Practices build the capacity. Challenges are where you find out how much you built."
       />
     </ScrollView>
   );
