@@ -24,6 +24,8 @@ interface MindReflectionStepProps {
   selectedTags: string[];
   onToggleTag: (id: string) => void;
   color: string;
+  /** Optional block rendered above the question — e.g. the "Your pattern" recall. */
+  header?: React.ReactNode;
 }
 
 /**
@@ -38,6 +40,7 @@ export const MindReflectionStep: React.FC<MindReflectionStepProps> = ({
   selectedTags,
   onToggleTag,
   color,
+  header,
 }) => (
   <KeyboardAvoidingView
     style={styles.flex}
@@ -49,6 +52,8 @@ export const MindReflectionStep: React.FC<MindReflectionStepProps> = ({
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      {header}
+
       <AppMessage
         message={MIND_REFLECTION_PROMPT}
         subtitle={MIND_REFLECTION_HELPER}

@@ -5,15 +5,18 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { PracticeSessionParams } from '../../types/navigation';
 import { getPractice, PRACTICE_GROUPS } from '../../data/practices';
 import { useAuth } from '../../context/AuthContext';
-import { completePractice } from '../../services/practices';
+import { completePractice, saveLogReflection } from '../../services/practices';
 import { getMindPattern, MindPattern } from '../../services/mindPatterns';
 import { PracticeCompletionInput, NeuroscienceTidbit } from '../../types';
 import { PracticeReady } from '../../components/habits/PracticeReady';
 import { PracticeTimer } from '../../components/habits/PracticeTimer';
 import { PracticeBreathPacer } from '../../components/habits/PracticeBreathPacer';
 import { PracticeCaptureFlow } from '../../components/habits/PracticeCaptureFlow';
+import {
+  PracticeReflectionSheet,
+  ReflectionInput,
+} from '../../components/habits/PracticeReflectionSheet';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
-import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import {
   selectHabitTidbit,
@@ -59,12 +62,19 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   const [timerMinutes, setTimerMinutes] = useState<number | null>(null);
   // Pattern the breath pacer guided, seeded into Capture's `technique` field.
   const [pacerTechnique, setPacerTechnique] = useState<string | null>(null);
+  // Payload and visibility are separate: the card is hidden and reshown around
+  // "Learn more", and the points/streak must survive that round trip.
   const [celebration, setCelebration] = useState<{ points: number; streak: number } | null>(null);
-  // Neuroscience tidbit shown after the celebration. Best-effort: null if
-  // none matched or the fetch failed.
+  const [celebrationVisible, setCelebrationVisible] = useState(false);
+  // Neuroscience tidbit, rendered inside the celebration card. Best-effort:
+  // null if none matched or the fetch failed.
   const [tidbit, setTidbit] = useState<NeuroscienceTidbit | null>(null);
-  const [tidbitVisible, setTidbitVisible] = useState(false);
   const [learnMoreVisible, setLearnMoreVisible] = useState(false);
+  // Reopening the celebration after "Learn more" — already settled, no replay.
+  const [celebrationSkipIntro, setCelebrationSkipIntro] = useState(false);
+  // The log written by this session — the post-reward reflection patches it.
+  const [logId, setLogId] = useState<string | null>(null);
+  const [reflectVisible, setReflectVisible] = useState(false);
   // The dominant mind tag from recent reps of this practice, shown as the
   // Ready beat's "Your pattern" block. Best-effort: absent until loaded.
   const [mindPattern, setMindPattern] = useState<MindPattern | null>(null);
@@ -105,6 +115,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       { id: habitId, name: habitName },
       input
     );
+    setLogId(result.logId);
     // Fetch the neuroscience tidbit up front so it's ready to show right
     // after the celebration is dismissed.
     try {
@@ -120,6 +131,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       console.warn('Failed to fetch practice tidbit:', err);
     }
     setCelebration({ points: result.pointsEarned, streak: result.willpower.newStreak });
+    setCelebrationVisible(true);
     // Refresh the shared profile so Home sees the incremented completion count
     // the moment we return — that's what arms the one-time post-first-practice
     // Debrief (Home owns that trigger now).
@@ -135,16 +147,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   };
 
   const dismissCelebration = () => {
-    setCelebration(null);
-    if (tidbit) {
-      setTidbitVisible(true);
-      return;
-    }
-    finishSession();
-  };
-
-  const handleTidbitDismiss = () => {
-    setTidbitVisible(false);
+    setCelebrationVisible(false);
     finishSession();
   };
 
@@ -152,12 +155,39 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
     if (user && tidbit) {
       recordLearnMoreTap(user.uid, tidbit.id).catch(() => {});
     }
-    setTidbitVisible(false);
+    setCelebrationVisible(false);
     setLearnMoreVisible(true);
   };
 
   const handleLearnMoreClose = () => {
     setLearnMoreVisible(false);
+    // Back to the celebration card while a reflection is still on offer, so
+    // reading the science doesn't cost the chance to reflect.
+    if (logId) {
+      setCelebrationSkipIntro(true);
+      setCelebrationVisible(true);
+      return;
+    }
+    finishSession();
+  };
+
+  // Celebration → reflection. The log already exists, so this patches it
+  // rather than gating the log behind the question.
+  const handleOpenReflection = () => {
+    setCelebrationVisible(false);
+    setReflectVisible(true);
+  };
+
+  const handleReflectionSave = async (input: ReflectionInput) => {
+    if (user && logId) {
+      await saveLogReflection(user.uid, logId, input);
+    }
+    setReflectVisible(false);
+    finishSession();
+  };
+
+  const handleReflectionSkip = () => {
+    setReflectVisible(false);
     finishSession();
   };
 
@@ -238,16 +268,22 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       )}
 
       <HabitCelebrationModal
-        visible={!!celebration}
+        visible={celebrationVisible}
         pointsEarned={celebration?.points ?? 0}
         streakDays={celebration?.streak ?? 0}
-        onDismiss={dismissCelebration}
-      />
-      <HabitTidbitModal
-        visible={tidbitVisible}
         tidbit={tidbit}
         onLearnMore={handleTidbitLearnMore}
-        onDismiss={handleTidbitDismiss}
+        onReflect={logId ? handleOpenReflection : undefined}
+        skipIntro={celebrationSkipIntro}
+        onDismiss={dismissCelebration}
+      />
+      <PracticeReflectionSheet
+        visible={reflectVisible}
+        practiceName={habitName}
+        accentColor={accent}
+        mindPattern={mindPattern}
+        onSave={handleReflectionSave}
+        onSkip={handleReflectionSkip}
       />
       {tidbit && (
         <TidbitLearnMore

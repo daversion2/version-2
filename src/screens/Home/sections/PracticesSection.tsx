@@ -125,6 +125,8 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
               weeklyDone={weeklyCounts[habit.id] || 0}
               doneToday={doneTodaySet.has(habit.id)}
               onPress={() => callbacks.onHabitTap(habit)}
+              onLogIt={() => callbacks.onHabitLogIt(habit)}
+              onOpenBriefing={practice?.ready ? () => callbacks.onHabitBriefing(habit) : undefined}
               onEditGoal={() => setEditingHabit(habit)}
               onOpenPlan={() =>
                 callbacks.onNavigate('HabitActionPlan', {

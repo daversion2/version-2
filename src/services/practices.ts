@@ -219,6 +219,35 @@ export const logHabitCompletion = async (
   return docRef.id;
 };
 
+/**
+ * Attach a mind-noticing reflection to an ALREADY-LOGGED completion.
+ *
+ * The reflection used to be the last step before the "Log it" button, which put
+ * it between the user and their reward — so it got skipped. It now runs after
+ * the celebration, which means the log document already exists and we patch it
+ * rather than writing it. Any noticing (tags or text) counts as hitting the
+ * hard moment, matching what the Capture flow used to set inline.
+ */
+export const saveLogReflection = async (
+  userId: string,
+  logId: string,
+  input: { reflection?: Record<string, string>; mindTags?: string[]; notes?: string }
+): Promise<void> => {
+  const patch: Record<string, any> = {};
+  if (input.notes && input.notes.trim()) {
+    patch.notes = input.notes.trim();
+  }
+  if (input.reflection && Object.keys(input.reflection).length) {
+    patch.reflection = input.reflection;
+  }
+  if (input.mindTags && input.mindTags.length) {
+    patch.mindTags = input.mindTags;
+  }
+  if (!Object.keys(patch).length) return;
+  patch.hitHardMoment = true;
+  await updateDoc(doc(db, 'users', userId, 'completionLogs', logId), patch);
+};
+
 export interface CompletePracticeResult {
   logId: string;
   pointsEarned: number;

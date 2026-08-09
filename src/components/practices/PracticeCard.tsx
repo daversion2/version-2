@@ -45,21 +45,46 @@ interface PracticeCardProps {
   weeklyDone: number;
   /** Whether this practice was already logged today. */
   doneToday: boolean;
-  /** Primary action — start / log the practice. */
+  /** Primary action — start the practice (briefing → session → capture). */
   onPress: () => void;
+  /**
+   * "I already did it" — jump straight to logging, skipping the briefing and
+   * the session beat. Most practices happen away from the phone, so this is
+   * the common case, not the exception.
+   */
+  onLogIt: () => void;
   /** Open the weekly-goal sheet. */
   onEditGoal: () => void;
   /** Open the game plan (HabitActionPlanScreen) to create/edit the action plan. */
   onOpenPlan: () => void;
+  /**
+   * Read the pre-practice briefing on its own. Omitted for practices with no
+   * briefing content. Makes the briefing reachable without committing to the
+   * forward flow — it's content, not a gate.
+   */
+  onOpenBriefing?: () => void;
 }
 
 /**
  * The home "Your Practices" card: a colored banner (per-practice), a 1–3 flame
  * intensity meter, the why-it-works hook, weekly progress dots, an editable
- * weekly-goal chip, and a Start / Done-today action. See the home redesign.
+ * weekly-goal chip, and Log it / Start actions. See the home redesign.
  */
 export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
-  ({ habit, color, tier, icon, why, weeklyDone, doneToday, onPress, onEditGoal, onOpenPlan }) => {
+  ({
+    habit,
+    color,
+    tier,
+    icon,
+    why,
+    weeklyDone,
+    doneToday,
+    onPress,
+    onLogIt,
+    onEditGoal,
+    onOpenPlan,
+    onOpenBriefing,
+  }) => {
     const [expanded, setExpanded] = useState(false);
     // A weekly target of 0 (or missing) means the user hasn't set a goal yet —
     // the card invites them to instead of assuming a default.
@@ -106,6 +131,19 @@ export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
             </Text>
           )}
 
+          {!!onOpenBriefing && (
+            <TouchableOpacity
+              style={styles.briefingLink}
+              onPress={onOpenBriefing}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="document-text-outline" size={13} color={color} />
+              <Text style={[styles.briefingText, { color }]}>Read the briefing</Text>
+              <Ionicons name="chevron-forward" size={12} color={color} />
+            </TouchableOpacity>
+          )}
+
           <View style={styles.foot}>
             {hasGoal ? (
               <View style={styles.progress}>
@@ -145,9 +183,23 @@ export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
                 <Text style={styles.doneText}>Done today</Text>
               </View>
             ) : (
-              <View style={[styles.startBtn, { backgroundColor: Colors.primary }]}>
-                <Ionicons name="play" size={14} color={Colors.white} />
-                <Text style={styles.startText}>Start</Text>
+              <View style={styles.actions}>
+                {/* Nested touchable — wins the press over the card's Start
+                    Pressable, same as the goal chip above. */}
+                <TouchableOpacity
+                  style={styles.logBtn}
+                  onPress={onLogIt}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="checkmark" size={15} color={Colors.dark} />
+                  <Text style={styles.logText}>Log it</Text>
+                </TouchableOpacity>
+
+                <View style={[styles.startBtn, { backgroundColor: Colors.primary }]}>
+                  <Ionicons name="play" size={14} color={Colors.white} />
+                  <Text style={styles.startText}>Start</Text>
+                </View>
               </View>
             )}
           </View>
@@ -291,6 +343,29 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   setGoalText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm },
+
+  briefingLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  briefingText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs },
+
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 9,
+    paddingHorizontal: 13,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  logText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.dark },
 
   startBtn: {
     flexDirection: 'row',

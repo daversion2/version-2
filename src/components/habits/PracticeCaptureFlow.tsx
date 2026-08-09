@@ -12,8 +12,6 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Slider } from '../common/Slider';
 import { StepFlowShell } from '../common/StepFlowShell';
 import { AppMessage } from '../../screens/Tools/components/AppMessage';
-import { MindReflectionStep } from '../../screens/Home/components/MindReflectionStep';
-import { buildMindReflectionNote } from '../../data/mindTags';
 import { PracticeCompletionInput } from '../../types';
 import { getPractice, TrackingField } from '../../data/practices';
 import { showAlert } from '../../utils/alert';
@@ -26,6 +24,13 @@ interface Props {
   accentColor?: string;
   /** Metrics to seed the flow with — e.g. `{ duration_min }` measured by a timer. */
   initialMetrics?: Record<string, number | string>;
+  /**
+   * Collapse every question onto ONE screen. Used by the retroactive "Log it"
+   * path, where the rep is already done and the stepped pacing is pure friction.
+   * The forward PracticeSession keeps the one-question-per-screen version — you
+   * just finished something hard and the ceremony is earned there.
+   */
+  compact?: boolean;
   onSubmit: (input: PracticeCompletionInput) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -33,23 +38,25 @@ interface Props {
 type Step =
   | { kind: 'difficulty'; key: 'difficulty' }
   | { kind: 'tracking'; key: string; field: TrackingField }
-  | { kind: 'reflection'; key: 'reflection' };
+  | { kind: 'all'; key: 'all' };
 
 /**
- * The "Capture" beat of a practice rep — difficulty (the only required step,
- * so a quick log is still two taps), per-practice tracking, then the SAME
- * single mind-noticing reflection the post-challenge flow asks, rendered
- * through the same <StepFlowShell> + <MindReflectionStep>. The answer is
- * joined into the log's notes and stored structured (`reflection` text +
- * `mindTags`); any noticing — tags or text — counts as hitting the hard
- * moment for the daily summary. Hosted full-screen by both the forward
- * PracticeSession flow and the retroactive HabitCompletionModal.
+ * The "Capture" beat of a practice rep — difficulty (the only required answer)
+ * plus any per-practice tracking, rendered through <StepFlowShell>. Hosted
+ * full-screen by both the forward PracticeSession flow and the retroactive
+ * HabitCompletionModal.
+ *
+ * The mind-noticing reflection deliberately does NOT live here: it used to be
+ * the final step before the "Log it" button, which made it a toll on the way to
+ * the reward and trained users to skip it. It now runs after the celebration
+ * (<PracticeReflectionSheet>), patching the log via saveLogReflection().
  */
 export const PracticeCaptureFlow: React.FC<Props> = ({
   practiceId,
   title,
   accentColor = Colors.primary,
   initialMetrics,
+  compact = false,
   onSubmit,
   onCancel,
 }) => {
@@ -60,19 +67,17 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
   const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
   const [metrics, setMetrics] = useState<Record<string, number | string>>(initialMetrics ?? {});
-  const [reflectionText, setReflectionText] = useState('');
-  const [mindTags, setMindTags] = useState<string[]>([]);
   const submittedRef = useRef(false);
 
   const steps: Step[] = useMemo(() => {
+    if (compact) return [{ kind: 'all', key: 'all' }];
     const list: Step[] = [{ kind: 'difficulty', key: 'difficulty' }];
     tracking.forEach((field) =>
       list.push({ kind: 'tracking', key: `track_${field.key}`, field })
     );
-    list.push({ kind: 'reflection', key: 'reflection' });
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [practiceId]);
+  }, [practiceId, compact]);
 
   const current = steps[Math.min(index, steps.length - 1)];
   const isLast = index >= steps.length - 1;
@@ -80,11 +85,10 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
   const canContinue = (() => {
     switch (current.kind) {
       case 'difficulty':
+      case 'all':
         return !!selected;
       case 'tracking':
         return metrics[current.field.key] !== undefined;
-      case 'reflection':
-        return reflectionText.trim().length > 0 || mindTags.length > 0;
     }
   })();
 
@@ -92,21 +96,10 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     if (!selected || submittedRef.current) return;
     submittedRef.current = true;
 
-    const text = reflectionText.trim();
-    const note = buildMindReflectionNote(reflectionText, mindTags);
-    // Any noticing — a tag or written text — counts as hitting the hard
-    // moment; this feeds the daily summary's "pushed through the hard moment"
-    // count.
-    const hitHardMoment = text || mindTags.length ? true : undefined;
-
     try {
       await onSubmit({
         difficulty: selected,
-        notes: note || undefined,
         metrics: Object.keys(metrics).length ? metrics : undefined,
-        hitHardMoment,
-        reflection: text ? { noticing: text } : undefined,
-        mindTags: mindTags.length ? mindTags : undefined,
       });
     } catch (err) {
       // Re-arm the Log button — without this a failed save (e.g. offline)
@@ -114,7 +107,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
       submittedRef.current = false;
       console.warn('Practice log failed:', err);
       showAlert(
-        "Couldn't save your rep",
+        "Couldn't save your practice",
         'Check your connection and tap "Log it" to try again.'
       );
     }
@@ -198,22 +191,60 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     );
   };
 
+  const renderDifficulty = () => (
+    <View style={styles.buttonRow}>
+      <TouchableOpacity
+        style={[styles.option, selected === 'easy' && styles.optionActiveEasy]}
+        onPress={() => setSelected('easy')}
+        activeOpacity={0.8}
+      >
+        <Text style={[styles.optionNum, selected === 'easy' && styles.optionTextActive]}>1</Text>
+        <Text style={[styles.optionLabel, selected === 'easy' && styles.optionTextActive]}>
+          Easy day
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.option, selected === 'challenging' && styles.optionActiveChallenging]}
+        onPress={() => setSelected('challenging')}
+        activeOpacity={0.8}
+      >
+        <Text style={[styles.optionNum, selected === 'challenging' && styles.optionTextActive]}>
+          2
+        </Text>
+        <Text style={[styles.optionLabel, selected === 'challenging' && styles.optionTextActive]}>
+          Challenging today
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderStep = () => {
-    // The reflection renders the exact same step component as the
-    // post-challenge flow — question bubble, mind tags, free text.
-    if (current.kind === 'reflection') {
+    // Compact ("Log it") — every question on one screen, difficulty first.
+    if (current.kind === 'all') {
       return (
-        <MindReflectionStep
-          text={reflectionText}
-          onChangeText={setReflectionText}
-          selectedTags={mindTags}
-          onToggleTag={(id) =>
-            setMindTags((prev) =>
-              prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-            )
-          }
-          color={accentColor}
-        />
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={120}
+        >
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <AppMessage message="How hard was it to push through?" color={accentColor} delay={0} />
+
+            {renderDifficulty()}
+
+            {tracking.map((field) => (
+              <View key={field.key} style={styles.compactField}>
+                <Text style={styles.compactLabel}>{field.label}</Text>
+                <Text style={styles.optionalBadge}>Optional</Text>
+                {renderTrackingField(field)}
+              </View>
+            ))}
+          </ScrollView>
+        </KeyboardAvoidingView>
       );
     }
 
@@ -237,40 +268,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
             <Text style={styles.optionalBadge}>Optional — skip if it doesn't apply</Text>
           )}
 
-          {current.kind === 'difficulty' ? (
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.option, selected === 'easy' && styles.optionActiveEasy]}
-                onPress={() => setSelected('easy')}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.optionNum, selected === 'easy' && styles.optionTextActive]}>
-                  1
-                </Text>
-                <Text style={[styles.optionLabel, selected === 'easy' && styles.optionTextActive]}>
-                  Easy day
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.option, selected === 'challenging' && styles.optionActiveChallenging]}
-                onPress={() => setSelected('challenging')}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[styles.optionNum, selected === 'challenging' && styles.optionTextActive]}
-                >
-                  2
-                </Text>
-                <Text
-                  style={[styles.optionLabel, selected === 'challenging' && styles.optionTextActive]}
-                >
-                  Challenging today
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            renderTrackingField(current.field)
-          )}
+          {current.kind === 'difficulty' ? renderDifficulty() : renderTrackingField(current.field)}
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -287,7 +285,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
       onBack={goBack}
       onCancel={onCancel}
       canContinue={canContinue}
-      allowSkip={current.kind !== 'difficulty'}
+      allowSkip={current.kind === 'tracking'}
       nextLabel={isLast ? 'Log it' : 'Next'}
       skipLabel={isLast ? 'Skip & log it' : 'Skip'}
       isLast={isLast}
@@ -313,6 +311,16 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginBottom: Spacing.md,
     fontStyle: 'italic',
+  },
+
+  compactField: {
+    marginTop: Spacing.xl,
+  },
+  compactLabel: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    marginBottom: 2,
   },
 
   buttonRow: {

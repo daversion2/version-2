@@ -22,30 +22,39 @@ interface Props {
   /** Catalog id, when this is a curated practice — drives tracking + the targeted reflection. */
   practiceId?: string;
   actionPlan?: HabitActionPlan;
+  /**
+   * "I already did it" — never offer the timer, and collapse the capture
+   * questions onto one screen. Set by the card's Log it action.
+   */
+  logOnly?: boolean;
   onSubmit: (input: PracticeCompletionInput) => void | Promise<void>;
   onCancel: () => void;
 }
 
 /**
- * Retroactive "Log it" flow for a practice rep — a full-screen modal, matching
- * the forward PracticeSession and post-challenge reflection experiences.
- * Time-in-stillness practices (meditation, breathwork) open to a countdown
- * timer first, then the user reflects + logs; everything else opens straight
- * to the Capture flow. The Capture beat itself lives in <PracticeCaptureFlow>,
- * shared with the forward PracticeSession flow.
+ * Retroactive "Log it" flow for a practice — a full-screen modal, matching the
+ * forward PracticeSession and post-challenge reflection experiences.
+ *
+ * Two ways in. `logOnly` (the card's Log it action) goes straight to a single
+ * compact capture screen: the practice is already done, so a timer and a
+ * step-per-question wizard are pure friction. Otherwise this is the Start path
+ * for practices with no briefing content, where time-in-stillness practices
+ * (meditation, breathwork) still open to a countdown first. The Capture beat
+ * itself lives in <PracticeCaptureFlow>, shared with PracticeSession.
  */
 export const HabitCompletionModal: React.FC<Props> = ({
   visible,
   habitName,
   practiceId,
   actionPlan,
+  logOnly = false,
   onSubmit,
   onCancel,
 }) => {
   const planLine = formatHabitPlanLine(actionPlan);
   const practice = getPractice(practiceId);
 
-  const usesTimer = !!practice?.timer;
+  const usesTimer = !!practice?.timer && !logOnly;
   const accent =
     PRACTICE_GROUPS.find((g) => g.id === practice?.group)?.color ?? Colors.primary;
   const defaultMinutes =
@@ -118,6 +127,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
           practiceId={practiceId}
           title={habitName}
           accentColor={accent}
+          compact={logOnly}
           initialMetrics={timerMinutes != null ? { duration_min: timerMinutes } : undefined}
           onSubmit={onSubmit}
           onCancel={onCancel}

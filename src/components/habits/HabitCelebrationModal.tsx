@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import Animated, {
   FadeIn,
   ZoomIn,
@@ -13,6 +13,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { triggerRewardHaptic } from '../../utils/haptics';
+import { NeuroscienceTidbit } from '../../types';
 
 interface HabitCelebrationModalProps {
   visible: boolean;
@@ -20,6 +21,23 @@ interface HabitCelebrationModalProps {
   streakDays: number;
   /** Optional line under the points, e.g. the first-try double-points note. */
   bonusLabel?: string | null;
+  /**
+   * Neuroscience tidbit shown inside this card. Previously a second modal that
+   * opened after this one was dismissed — two sequential native modals (plus a
+   * 300ms handoff) on every completion. Passing it here collapses the reward
+   * into one surface. Omit to keep the points-only card.
+   */
+  tidbit?: NeuroscienceTidbit | null;
+  /** Open the tidbit's extended content. Required for the "Learn more" link to show. */
+  onLearnMore?: () => void;
+  /** Offer the post-reward reflection. Omitted → no reflect action. */
+  onReflect?: () => void;
+  /**
+   * Render the card already settled — no ring sweep, flash, or haptic. Used when
+   * reopening after "Learn more" so the user lands back on the same card they
+   * left, rather than sitting through the celebration a second time.
+   */
+  skipIntro?: boolean;
   onDismiss: () => void;
 }
 
@@ -61,16 +79,20 @@ const sweepColor = (t: number): string =>
   t < 0.5 ? hexLerp(TEAL, TEAL3, t * 2) : hexLerp(TEAL3, AMBER, (t - 0.5) * 2);
 
 /** One spark flying off the ring edge when it snaps shut. */
-const BurstDot: React.FC<{ angle: number; color: string; size: number }> = ({
+const BurstDot: React.FC<{ angle: number; color: string; size: number; skipIntro?: boolean }> = ({
   angle,
   color,
   size,
+  skipIntro,
 }) => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
+    // Left at 0 when the intro is skipped — the spark never fires, and the dot
+    // stays fully transparent.
+    if (skipIntro) return;
     progress.value = withDelay(CLOSE_AT, withTiming(1, { duration: 600 }));
-  }, []);
+  }, [skipIntro]);
 
   const style = useAnimatedStyle(() => {
     const distance = RADIUS + 10 + 55 * progress.value;
@@ -99,6 +121,10 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
   pointsEarned,
   streakDays,
   bonusLabel,
+  tidbit,
+  onLearnMore,
+  onReflect,
+  skipIntro = false,
   onDismiss,
 }) => {
   const [dismissed, setDismissed] = useState(false);
@@ -121,6 +147,13 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
     rootOpacity.value = 1;
     buttonScale.value = 1;
     flash.value = 0;
+
+    // Reopening after "Learn more" — jump straight to the settled state.
+    if (skipIntro) {
+      cardProgress.value = 1;
+      return;
+    }
+
     flash.value = withDelay(CLOSE_AT, withTiming(1, { duration: 350 }));
     cardProgress.value = 0;
     cardProgress.value = withDelay(
@@ -129,7 +162,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
     );
     const haptic = setTimeout(() => triggerRewardHaptic(), CLOSE_AT);
     return () => clearTimeout(haptic);
-  }, [visible]);
+  }, [visible, skipIntro]);
 
   const rootStyle = useAnimatedStyle(() => ({ opacity: rootOpacity.value }));
 
@@ -150,7 +183,10 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
     transform: [{ translateY: 25 * (1 - cardProgress.value) }],
   }));
 
-  const handleDone = () => {
+  // Shared exit: pulse the button, fade the overlay, then hand off. The 450ms
+  // wait lets the fade finish before the host swaps in whatever comes next —
+  // actions dispatched mid-dismissal are silently dropped on iOS.
+  const handleExit = (next: () => void) => {
     if (dismissed) return;
     setDismissed(true);
     triggerRewardHaptic();
@@ -159,8 +195,10 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
       withTiming(1, { duration: 120 })
     );
     rootOpacity.value = withDelay(150, withTiming(0, { duration: 280 }));
-    setTimeout(onDismiss, 450);
+    setTimeout(next, 450);
   };
+
+  const handleDone = () => handleExit(onDismiss);
 
   if (!visible) return null;
 
@@ -186,10 +224,14 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
                 ]}
               >
                 <Animated.View
-                  entering={ZoomIn.springify()
-                    .damping(14)
-                    .stiffness(220)
-                    .delay((SWEEP_MS / TICKS) * i)}
+                  entering={
+                    skipIntro
+                      ? undefined
+                      : ZoomIn.springify()
+                          .damping(14)
+                          .stiffness(220)
+                          .delay((SWEEP_MS / TICKS) * i)
+                  }
                   style={[styles.tick, { backgroundColor: color, shadowColor: color }]}
                 />
               </View>
@@ -202,61 +244,112 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
               angle={(i / BURST_DOTS) * Math.PI * 2}
               color={i % 2 === 0 ? AMBER : TEAL3}
               size={i % 3 === 0 ? 8 : 5}
+              skipIntro={skipIntro}
             />
           ))}
           <Animated.View
-            entering={ZoomIn.springify().damping(9).stiffness(180).delay(CLOSE_AT)}
+            entering={
+              skipIntro
+                ? undefined
+                : ZoomIn.springify().damping(9).stiffness(180).delay(CLOSE_AT)
+            }
             style={styles.checkWrap}
           >
             <Ionicons name="checkmark-sharp" size={72} color={Colors.white} />
           </Animated.View>
         </View>
 
-        {/* Points card */}
+        {/* Points card — also carries the tidbit and the reflect offer, so the
+            whole reward is one surface instead of a chain of modals. */}
         <Animated.View style={[styles.card, cardStyle]}>
-          <Text style={styles.pointsText}>+{pointsEarned}</Text>
-          <Text style={styles.pointsLabel}>XP</Text>
+          <ScrollView
+            contentContainerStyle={styles.cardScroll}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <Text style={styles.pointsText}>+{pointsEarned}</Text>
+            <Text style={styles.pointsLabel}>XP</Text>
 
-          {!!bonusLabel && (
-            <View style={styles.bonusRow}>
-              <Ionicons name="sparkles" size={14} color={AMBER} />
-              <Text style={styles.bonusText}>{bonusLabel}</Text>
-            </View>
-          )}
-
-          {streakDays > 0 && (
-            <>
-              <View style={styles.dotsRow}>
-                {Array.from({ length: MAX_DOTS }).map((_, i) => (
-                  <View key={i} style={styles.dotSlot}>
-                    {i < filledDots && (
-                      <Animated.View
-                        entering={ZoomIn.springify()
-                          .damping(12)
-                          .stiffness(260)
-                          .delay(DOTS_AT + i * 110)}
-                        style={styles.dotFill}
-                      />
-                    )}
-                  </View>
-                ))}
+            {!!bonusLabel && (
+              <View style={styles.bonusRow}>
+                <Ionicons name="sparkles" size={14} color={AMBER} />
+                <Text style={styles.bonusText}>{bonusLabel}</Text>
               </View>
-              <View style={styles.streakRow}>
-                <Text style={styles.streakText}>{streakDays} day streak</Text>
-              </View>
-            </>
-          )}
+            )}
 
-          <Animated.View style={buttonStyle}>
-            <TouchableOpacity
-              style={styles.doneButton}
-              onPress={handleDone}
-              activeOpacity={0.8}
-              disabled={dismissed}
-            >
-              <Text style={styles.doneText}>Done</Text>
-            </TouchableOpacity>
-          </Animated.View>
+            {streakDays > 0 && (
+              <>
+                <View style={styles.dotsRow}>
+                  {Array.from({ length: MAX_DOTS }).map((_, i) => (
+                    <View key={i} style={styles.dotSlot}>
+                      {i < filledDots && (
+                        <Animated.View
+                          entering={
+                            skipIntro
+                              ? undefined
+                              : ZoomIn.springify()
+                                  .damping(12)
+                                  .stiffness(260)
+                                  .delay(DOTS_AT + i * 110)
+                          }
+                          style={styles.dotFill}
+                        />
+                      )}
+                    </View>
+                  ))}
+                </View>
+                <View style={styles.streakRow}>
+                  <Text style={styles.streakText}>{streakDays} day streak</Text>
+                </View>
+              </>
+            )}
+
+            {!!tidbit && (
+              <View style={styles.tidbitBlock}>
+                <View style={styles.tidbitHeader}>
+                  <Ionicons name="flash" size={15} color={Colors.primary} />
+                  <Text style={styles.tidbitLabel}>Your brain right now</Text>
+                </View>
+                <Text style={styles.tidbitText}>{tidbit.text}</Text>
+                {!!tidbit.extended_text && !!onLearnMore && (
+                  <TouchableOpacity
+                    style={styles.learnMoreRow}
+                    onPress={() => handleExit(onLearnMore)}
+                    activeOpacity={0.7}
+                    disabled={dismissed}
+                  >
+                    <Text style={styles.learnMoreText}>Learn more</Text>
+                    <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </ScrollView>
+
+          <View style={styles.actions}>
+            <Animated.View style={buttonStyle}>
+              <TouchableOpacity
+                style={styles.doneButton}
+                onPress={handleDone}
+                activeOpacity={0.8}
+                disabled={dismissed}
+              >
+                <Text style={styles.doneText}>Done</Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {!!onReflect && (
+              <TouchableOpacity
+                style={styles.reflectButton}
+                onPress={() => handleExit(onReflect)}
+                activeOpacity={0.7}
+                disabled={dismissed}
+              >
+                <Ionicons name="chatbubbles-outline" size={16} color={Colors.primary} />
+                <Text style={styles.reflectText}>Reflect on what it took</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -276,6 +369,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    // The card shrinks to fit; the ring must keep its size instead of squashing.
+    flexShrink: 0,
   },
   innerDisc: {
     position: 'absolute',
@@ -320,12 +415,17 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xl,
+    paddingVertical: Spacing.xl,
     paddingHorizontal: Spacing.xl,
-    alignItems: 'center',
     width: SCREEN_WIDTH * 0.75,
     maxWidth: 320,
+    // With a tidbit inside, the card can outgrow a short screen — shrink and
+    // scroll its body rather than pushing the actions out of reach.
+    flexShrink: 1,
+  },
+  cardScroll: {
+    alignItems: 'center',
+    flexGrow: 1,
   },
   pointsText: {
     fontFamily: Fonts.primaryBold,
@@ -373,12 +473,68 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    marginBottom: Spacing.xl,
   },
   streakText: {
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.sm,
     color: Colors.dark,
+  },
+
+  tidbitBlock: {
+    alignSelf: 'stretch',
+    marginTop: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGray,
+  },
+  tidbitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  tidbitLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tidbitText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 21,
+  },
+  learnMoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  learnMoreText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
+
+  actions: {
+    alignItems: 'center',
+    marginTop: Spacing.xl,
+  },
+  reflectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  reflectText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
   },
   doneButton: {
     backgroundColor: Colors.primary,

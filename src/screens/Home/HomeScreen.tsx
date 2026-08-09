@@ -16,14 +16,17 @@ import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, PracticeInstance } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, ensureCuratedPractices } from '../../services/practices';
+import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
+import { getMindPattern, MindPattern } from '../../services/mindPatterns';
 import { reconcileHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { getWillpowerStats } from '../../services/willpower';
 import { HabitDifficulty, PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
-import { getPractice } from '../../data/practices';
+import { PracticeBriefingModal } from '../../components/habits/PracticeBriefingModal';
+import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
+import { getPractice, getPracticeColor } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
@@ -33,7 +36,6 @@ import { StoryReminderModal } from '../../components/home/StoryReminderModal';
 import { saveComebackLog } from '../../services/comebackLogs';
 import { getRandomProofPoint } from '../../services/proofPoints';
 import { ProofPoint } from '../../types';
-import { HabitTidbitModal } from '../../components/habits/HabitTidbitModal';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../services/neuroscienceTidbits';
 import { NeuroscienceTidbit } from '../../types';
@@ -65,6 +67,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
+  // True when the capture modal was opened by the card's "Log it" action — no
+  // timer, and every question collapsed onto one screen.
+  const [completingLogOnly, setCompletingLogOnly] = useState(false);
+  // Practice whose briefing is open on its own (no forward flow committed to).
+  const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
   const [completedTodayIds, setCompletedTodayIds] = useState<string[]>([]);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
@@ -74,6 +81,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationStreak, setCelebrationStreak] = useState(0);
   const [celebrationBonus, setCelebrationBonus] = useState<string | null>(null);
+  // Reopening the celebration after "Learn more" — render it already settled
+  // instead of replaying the ring sweep.
+  const [celebrationSkipIntro, setCelebrationSkipIntro] = useState(false);
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
@@ -83,10 +93,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [storyReminderProofPoint, setStoryReminderProofPoint] = useState<ProofPoint | null>(null);
   const [comebackProofChecked, setComebackProofChecked] = useState(false);
 
-  // Habit tidbit state
+  // Habit tidbit state. The tidbit now renders inside the celebration card;
+  // only the "Learn more" expansion is still its own surface.
   const [habitTidbit, setHabitTidbit] = useState<NeuroscienceTidbit | null>(null);
-  const [habitTidbitVisible, setHabitTidbitVisible] = useState(false);
   const [habitLearnMoreVisible, setHabitLearnMoreVisible] = useState(false);
+
+  // Post-reward reflection. Holds the just-written log so the reflection can be
+  // patched onto it, plus the practice's recent-reps pattern as context.
+  const [reflectTarget, setReflectTarget] = useState<{
+    logId: string;
+    habitId: string;
+    name: string;
+    accent: string;
+  } | null>(null);
+  const [reflectVisible, setReflectVisible] = useState(false);
+  const [reflectPattern, setReflectPattern] = useState<MindPattern | null>(null);
 
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
@@ -105,9 +126,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     pointsIntroVisible ||
     challengesUnlockVisible ||
     celebrationVisible ||
-    habitTidbitVisible ||
     habitLearnMoreVisible ||
+    reflectVisible ||
     showPointsPopup ||
+    !!briefingHabit ||
     !!completingHabit;
   const {
     modalRule: ruleModalRule,
@@ -166,42 +188,62 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [pendingAlert]);
 
-  const handleCelebrationDismiss = useCallback(() => {
-    setCelebrationVisible(false);
-    // Tidbit follows the celebration; alerts fire once the whole chain ends.
-    if (habitTidbit) {
-      setHabitTidbitVisible(true);
-      return;
-    }
-    if (pendingAlert) {
-      pendingAlert();
-      setPendingAlert(null);
-    }
-  }, [habitTidbit, pendingAlert]);
-
-  const handleHabitTidbitDismiss = useCallback(() => {
-    setHabitTidbitVisible(false);
+  // Fires the streak-milestone alert once nothing else is on screen.
+  const flushPendingAlert = useCallback(() => {
     if (pendingAlert) {
       pendingAlert();
       setPendingAlert(null);
     }
   }, [pendingAlert]);
+
+  const handleCelebrationDismiss = useCallback(() => {
+    setCelebrationVisible(false);
+    flushPendingAlert();
+  }, [flushPendingAlert]);
 
   const handleHabitLearnMore = useCallback(() => {
     if (user && habitTidbit) {
       recordLearnMoreTap(user.uid, habitTidbit.id).catch(() => {});
     }
-    setHabitTidbitVisible(false);
+    setCelebrationVisible(false);
     setHabitLearnMoreVisible(true);
   }, [user, habitTidbit]);
 
   const handleHabitLearnMoreClose = useCallback(() => {
     setHabitLearnMoreVisible(false);
-    if (pendingAlert) {
-      pendingAlert();
-      setPendingAlert(null);
+    // Return to the celebration card when there's still a reflection on offer,
+    // so reading the science doesn't cost you the chance to reflect. Nothing
+    // pending → close out as before rather than adding a tap.
+    if (reflectTarget) {
+      setCelebrationSkipIntro(true);
+      setCelebrationVisible(true);
+      return;
     }
-  }, [pendingAlert]);
+    flushPendingAlert();
+  }, [reflectTarget, flushPendingAlert]);
+
+  // Celebration → reflection. The log already exists, so the sheet patches it.
+  const handleOpenReflection = useCallback(() => {
+    setCelebrationVisible(false);
+    setReflectVisible(true);
+  }, []);
+
+  const handleReflectionDone = useCallback(() => {
+    setReflectVisible(false);
+    setReflectTarget(null);
+    setReflectPattern(null);
+    flushPendingAlert();
+  }, [flushPendingAlert]);
+
+  const handleReflectionSave = useCallback(
+    async (input: ReflectionInput) => {
+      if (user && reflectTarget) {
+        await saveLogReflection(user.uid, reflectTarget.logId, input);
+      }
+      handleReflectionDone();
+    },
+    [user, reflectTarget, handleReflectionDone]
+  );
 
 
 
@@ -340,9 +382,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleHabitTap = useCallback(
     (habit: PracticeInstance) => {
-      // Curated practices with a briefing run the forward Ready → Go → Capture
-      // flow (hosted in this stack, so it returns to Home when done). Everything
-      // else keeps the quick retroactive "log it" modal.
+      // Start: curated practices with a briefing run the forward Ready → Go →
+      // Capture flow (hosted in this stack, so it returns to Home when done).
+      // Everything else opens the capture modal, timer included where relevant.
       const practice = getPractice(habit.practice_id);
       if (practice?.ready) {
         navigation.navigate('PracticeSession', {
@@ -352,41 +394,67 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         });
         return;
       }
+      setCompletingLogOnly(false);
       setCompletingHabit(habit);
     },
     [navigation]
   );
 
+  // "I already did it" — the same capture modal for every practice, briefing
+  // and session beat skipped. Which flow you get is now the user's choice
+  // rather than a function of whether the catalog carries briefing content.
+  const handleHabitLogIt = useCallback((habit: PracticeInstance) => {
+    setCompletingLogOnly(true);
+    setCompletingHabit(habit);
+  }, []);
+
+  const handleHabitBriefing = useCallback((habit: PracticeInstance) => {
+    setBriefingHabit(habit);
+  }, []);
+
   const handleHabitComplete = async (input: PracticeCompletionInput) => {
     if (!user || !completingHabit) return;
     const { difficulty } = input;
+    // Snapshot the practice — `completingHabit` is cleared below, but the
+    // reflection sheet still needs its identity after the celebration.
+    const habit = completingHabit;
     // Log + XP all happen in the shared completePractice path. A failure here
     // propagates to the capture flow, which re-arms its Log button and shows
     // the error — the follow-up celebration work below stays best-effort.
-    const { pointsEarned, streakBefore, firstTry, willpower: updateResult } = await completePractice(
-      user.uid,
-      { id: completingHabit.id, name: completingHabit.name },
-      input
-    );
+    const { logId, pointsEarned, streakBefore, firstTry, willpower: updateResult } =
+      await completePractice(user.uid, { id: habit.id, name: habit.name }, input);
     try {
       const bonusLabel = firstTry ? 'First time trying this practice — XP doubled' : null;
 
       // Optimistically flip the card to "Done today" (loadData reconciles on next focus).
-      const completedId = completingHabit.id;
+      const completedId = habit.id;
       setCompletedTodayIds((prev) => (prev.includes(completedId) ? prev : [...prev, completedId]));
 
       setCompletingHabit(null);
 
-      // Show one-time points intro on first habit completion after onboarding
-      if (!userProfile?.has_seen_points_intro) {
-        setPointsIntroVisible(true);
+      // Arm the post-reward reflection against the log we just wrote, and warm
+      // its "Your pattern" context in the background.
+      setReflectTarget({
+        logId,
+        habitId: habit.id,
+        name: habit.name,
+        accent: getPracticeColor(habit),
+      });
+      setReflectPattern(null);
+      getMindPattern(user.uid, habit.id).then(setReflectPattern).catch(() => {});
+
+      // One-time points intro on the first completion after onboarding. It no
+      // longer short-circuits the reward: the celebration (and with it the
+      // reflection offer) is staged below and opens when the intro is dismissed
+      // — the first practice is exactly when reflecting is worth offering.
+      const needsPointsIntro = !userProfile?.has_seen_points_intro;
+      if (needsPointsIntro) {
         try {
           await markPointsIntroSeen(user.uid);
           await refreshProfile();
         } catch (err) {
           console.warn('Failed to mark points intro seen:', err);
         }
-        return;
       }
 
       // Show challenges unlock celebration when crossing 3 total completions
@@ -430,8 +498,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setEarnedPoints(pointsEarned);
       setCelebrationStreak(updateResult.newStreak);
       setCelebrationBonus(bonusLabel);
-      setCelebrationVisible(true);
+      setCelebrationSkipIntro(false);
       setPendingAlert(() => showAlerts);
+      // The points intro goes first on the very first completion; dismissing it
+      // opens the celebration staged above.
+      if (needsPointsIntro) {
+        setPointsIntroVisible(true);
+      } else {
+        setCelebrationVisible(true);
+      }
 
       try {
         const counts = await getWeeklyCompletionCounts(user.uid);
@@ -523,8 +598,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const homeCallbacks: HomeCallbacks = useMemo(() => ({
     onNavigate,
     onHabitTap: handleHabitTap,
+    onHabitLogIt: handleHabitLogIt,
+    onHabitBriefing: handleHabitBriefing,
     onSetWeeklyGoal: handleSetWeeklyGoal,
-  }), [onNavigate, handleHabitTap, handleSetWeeklyGoal]);
+  }), [onNavigate, handleHabitTap, handleHabitLogIt, handleHabitBriefing, handleSetWeeklyGoal]);
 
 
   return (
@@ -589,15 +666,50 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         habitName={completingHabit?.name || ''}
         practiceId={completingHabit?.practice_id}
         actionPlan={completingHabit?.action_plan}
+        logOnly={completingLogOnly}
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
+      />
+      <PracticeBriefingModal
+        visible={!!briefingHabit}
+        practiceId={briefingHabit?.practice_id}
+        habitId={briefingHabit?.id}
+        userId={user?.uid}
+        onStart={() => {
+          const habit = briefingHabit;
+          setBriefingHabit(null);
+          if (!habit?.practice_id) return;
+          navigation.navigate('PracticeSession', {
+            practiceId: habit.practice_id,
+            habitId: habit.id,
+            habitName: habit.name,
+          });
+        }}
+        onLearn={() => {
+          const practiceId = briefingHabit?.practice_id;
+          setBriefingHabit(null);
+          if (practiceId) navigation.navigate('PracticeDetail', { practiceId, readOnly: true });
+        }}
+        onClose={() => setBriefingHabit(null)}
       />
       <HabitCelebrationModal
         visible={celebrationVisible}
         pointsEarned={earnedPoints}
         streakDays={celebrationStreak}
         bonusLabel={celebrationBonus}
+        tidbit={habitTidbit}
+        onLearnMore={handleHabitLearnMore}
+        onReflect={reflectTarget ? handleOpenReflection : undefined}
+        skipIntro={celebrationSkipIntro}
         onDismiss={handleCelebrationDismiss}
+      />
+      <PracticeReflectionSheet
+        visible={reflectVisible}
+        practiceName={reflectTarget?.name || ''}
+        accentColor={reflectTarget?.accent}
+        mindPattern={reflectPattern}
+        onSave={handleReflectionSave}
+        onSkip={handleReflectionDone}
       />
       <PointsPopup
         points={earnedPoints}
@@ -606,7 +718,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       />
       <PointsIntroModal
         visible={pointsIntroVisible}
-        onDismiss={() => setPointsIntroVisible(false)}
+        onDismiss={() => {
+          setPointsIntroVisible(false);
+          // Hand off to the celebration staged by handleHabitComplete — this is
+          // the first completion, so it's the one that most needs the reflect offer.
+          setCelebrationVisible(true);
+        }}
       />
       <ChallengesUnlockModal
         visible={challengesUnlockVisible}
@@ -666,12 +783,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onCtaPress={handleRuleModalCta}
       />
       )}
-      <HabitTidbitModal
-        visible={habitTidbitVisible}
-        tidbit={habitTidbit}
-        onLearnMore={handleHabitLearnMore}
-        onDismiss={handleHabitTidbitDismiss}
-      />
       {habitTidbit && (
         <TidbitLearnMore
           visible={habitLearnMoreVisible}
