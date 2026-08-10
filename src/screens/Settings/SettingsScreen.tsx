@@ -156,13 +156,13 @@ export const SettingsScreen: React.FC = () => {
           Dev Testing
         </Text>
         <Button
-          title="Simulate Day 3 (Challenge Unlock)"
+          title="Simulate Day 3 (Training Unlock)"
           onPress={async () => {
             if (!user) return;
             await setDoc(doc(db, 'users', user.uid), {
               has_seen_points_intro: true,
               has_dismissed_goal_prompt: true,
-              has_seen_challenges_unlock: false,
+              has_seen_training_unlock: false,
               totalHabitsCompleted: 2,
             }, { merge: true });
             await refreshProfile();
@@ -199,6 +199,8 @@ export const SettingsScreen: React.FC = () => {
               has_seen_points_intro: deleteField(),
               has_dismissed_goal_prompt: deleteField(),
               has_seen_challenges_unlock: deleteField(),
+              has_seen_training_unlock: deleteField(),
+              has_seen_craving_pointer: deleteField(),
               has_seen_debrief: deleteField(),
               app_open_count: deleteField(),
             }, { merge: true });

@@ -62,6 +62,21 @@ export const markChallengesUnlockSeen = async (userId: string): Promise<void> =>
   await setDoc(doc(db, 'users', userId), { has_seen_challenges_unlock: true }, { merge: true });
 };
 
+/**
+ * The Training unlock covers both Challenges and Avoidance Training, so it uses
+ * its own flag rather than the legacy challenges-only one — existing users who
+ * already saw the old modal never heard about Avoidance, and this lets the new
+ * moment reach them once on their next completion.
+ */
+export const markTrainingUnlockSeen = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_seen_training_unlock: true }, { merge: true });
+};
+
+/** One-time: the Craving Crusher pointer on Home has been dismissed or followed. */
+export const markCravingPointerSeen = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { has_seen_craving_pointer: true }, { merge: true });
+};
+
 /** The practice picked as the starting point during onboarding (catalog id). */
 export const setStartingPractice = async (userId: string, practiceId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { starting_practice_id: practiceId }, { merge: true });
@@ -277,6 +292,8 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
       has_seen_points_intro: deleteField(),
       has_dismissed_goal_prompt: deleteField(),
       has_seen_challenges_unlock: deleteField(),
+      has_seen_training_unlock: deleteField(),
+      has_seen_craving_pointer: deleteField(),
       app_open_count: deleteField(),
     },
     { merge: true }

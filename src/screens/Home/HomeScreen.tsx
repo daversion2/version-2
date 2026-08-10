@@ -30,7 +30,8 @@ import { getPractice, getPracticeColor } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
-import { ChallengesUnlockModal } from '../../components/common/ChallengesUnlockModal';
+import { TrainingUnlockModal } from '../../components/common/TrainingUnlockModal';
+import { CravingPointer } from '../../components/home/CravingPointer';
 import { ComebackModal } from '../../components/home/ComebackModal';
 import { StoryReminderModal } from '../../components/home/StoryReminderModal';
 import { saveComebackLog } from '../../services/comebackLogs';
@@ -41,7 +42,7 @@ import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../
 import { NeuroscienceTidbit } from '../../types';
 import { getTodayString, toLocalDateString } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
-import { markPointsIntroSeen, markChallengesUnlockSeen, incrementAppOpenCount } from '../../services/users';
+import { markPointsIntroSeen, markTrainingUnlockSeen, markCravingPointerSeen, incrementAppOpenCount } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { resolveLayout } from '../../services/homeLayout';
 import { SECTION_REGISTRY } from './sections';
@@ -112,8 +113,26 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
 
-  // Challenges unlock modal (after 3 habit completions)
+  // Training unlock modal (after 3 practice completions) — covers Challenges
+  // and Avoidance Training together.
   const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
+
+  // One-time Craving Crusher pointer. Held locally so dismissing it is instant
+  // rather than waiting on the profile write to round-trip.
+  const [cravingPointerDismissed, setCravingPointerDismissed] = useState(false);
+  const showCravingPointer =
+    !cravingPointerDismissed && userProfile?.has_seen_craving_pointer !== true;
+
+  const dismissCravingPointer = useCallback(() => {
+    setCravingPointerDismissed(true);
+    if (user) markCravingPointerSeen(user.uid).catch(() => {});
+  }, [user]);
+
+  // Following the pointer counts as having seen it — switch to the tab and retire it.
+  const followCravingPointer = useCallback(() => {
+    dismissCravingPointer();
+    setHomeTab('craving');
+  }, [dismissCravingPointer]);
 
   // Track app opens
   const appOpenTrackedRef = useRef(false);
@@ -457,12 +476,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      // Show challenges unlock celebration when crossing 3 total completions
+      // Show the Training unlock when crossing 3 total completions. Gated on its
+      // own flag rather than the legacy challenges-only one, so users who saw the
+      // old modal still get introduced to Avoidance Training once.
       const newTotal = (userProfile?.totalHabitsCompleted ?? 0) + 1;
-      if (newTotal >= 3 && !userProfile?.has_seen_challenges_unlock) {
+      if (newTotal >= 3 && !userProfile?.has_seen_training_unlock) {
         setChallengesUnlockVisible(true);
         try {
-          await markChallengesUnlockSeen(user.uid);
+          await markTrainingUnlockSeen(user.uid);
           await refreshProfile();
         } catch (err) {
           console.warn('Failed to mark challenges unlock seen:', err);
@@ -615,9 +636,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => setHomeTab(tab)}
             activeOpacity={0.7}
           >
-            <Text style={[tabStyles.label, homeTab === tab && tabStyles.labelActive]}>
-              {TAB_LABELS[tab]}
-            </Text>
+            <View style={tabStyles.labelRow}>
+              <Ionicons
+                name={TAB_ICONS[tab]}
+                size={15}
+                color={homeTab === tab ? Colors.primary : Colors.gray}
+              />
+              <Text style={[tabStyles.label, homeTab === tab && tabStyles.labelActive]}>
+                {TAB_LABELS[tab]}
+              </Text>
+            </View>
             {homeTab === tab && <View style={tabStyles.indicator} />}
           </TouchableOpacity>
         ))}
@@ -644,11 +672,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 const Section = SECTION_REGISTRY[item.id];
                 if (!Section) return null;
                 return (
-                  <Section
-                    key={item.id}
-                    data={homeData}
-                    callbacks={homeCallbacks}
-                  />
+                  <React.Fragment key={item.id}>
+                    <Section data={homeData} callbacks={homeCallbacks} />
+                    {/* Sits directly under the hero — high enough to be seen on
+                        first open, without displacing the practices. */}
+                    {item.id === 'hero' && showCravingPointer && (
+                      <CravingPointer
+                        onPress={followCravingPointer}
+                        onDismiss={dismissCravingPointer}
+                      />
+                    )}
+                  </React.Fragment>
                 );
               })}
             </React.Fragment>
@@ -725,11 +759,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           setCelebrationVisible(true);
         }}
       />
-      <ChallengesUnlockModal
+      <TrainingUnlockModal
         visible={challengesUnlockVisible}
-        onBrowse={() => {
+        onOpenTraining={() => {
           setChallengesUnlockVisible(false);
-          navigation.navigate('StartChallenge');
+          // The modal introduces both Challenges and Avoidance, so it lands on
+          // the Training hub rather than dropping straight into one of them.
+          navigation.getParent()?.navigate('Challenges');
         }}
         onDismiss={() => setChallengesUnlockVisible(false)}
       />
@@ -799,6 +835,14 @@ const TAB_LABELS = {
   craving: 'Craving Crusher',
 } as const;
 
+// Craving Crusher is the one feature a user may need before they've explored
+// anything — the icons keep the strip readable as two destinations rather than
+// as a line of chrome.
+const TAB_ICONS: Record<keyof typeof TAB_LABELS, keyof typeof Ionicons.glyphMap> = {
+  practices: 'flame',
+  craving: 'flash',
+};
+
 const tabStyles = StyleSheet.create({
   strip: {
     flexDirection: 'row',
@@ -808,13 +852,18 @@ const tabStyles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
     position: 'relative',
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   label: {
     fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
+    fontSize: 13,
     color: Colors.gray,
     textAlign: 'center',
   },

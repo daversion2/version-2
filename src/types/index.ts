@@ -72,7 +72,13 @@ export interface User {
   // One-time intro flags
   has_seen_points_intro?: boolean;
   has_dismissed_goal_prompt?: boolean;
+  // LEGACY — the challenges-only unlock. Superseded by has_seen_training_unlock,
+  // which covers Challenges *and* Avoidance Training. Kept so the old flag isn't
+  // silently reused; users who only have this one still get the new moment.
   has_seen_challenges_unlock?: boolean;
+  has_seen_training_unlock?: boolean;
+  // One-time inline pointer on Home telling a new user what Craving Crusher is for
+  has_seen_craving_pointer?: boolean;
   // Default practices auto-seeded onto the home (one-time, on first load)
   has_seeded_practices?: boolean;
   // Practice catalog id picked as the starting point during onboarding —
