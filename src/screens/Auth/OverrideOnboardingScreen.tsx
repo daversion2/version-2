@@ -141,7 +141,7 @@ const HookScreen: React.FC = () => {
       <FadeRise delay={600}>
         <Text style={styles.hookSub}>
           Not to help you. Not to make you better. To keep you coming back.
-          {'\n\n'}Most people never notice. Even fewer practice discomfort on purpose.
+          {'\n\n'}Most people never notice. Even fewer do something about it.
         </Text>
       </FadeRise>
       <FadeRise delay={1200}>
