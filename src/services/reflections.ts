@@ -370,11 +370,29 @@ export const getReflectionStats = async (
 // JOURNAL SEARCH
 // ============================================================================
 
+/**
+ * Display labels for the written reflection prompts, used wherever a saved
+ * answer is shown back to the user (the entry screen, journal search).
+ *
+ * The field KEYS are storage and never change — `prompt_went_well` has held
+ * three different questions now ("What went well?", "Where did you override an
+ * urge today?", and currently "What did you do that was uncomfortable?"). These
+ * labels live here, in one place, because the entry screen and journal search
+ * each used to hardcode their own copy and had already drifted a rewrite behind
+ * the questions they were labelling.
+ */
+export const REFLECTION_PROMPT_LABELS = {
+  prompt_went_well: 'Where you pushed',
+  prompt_hardest: 'Where comfort won',
+  prompt_tomorrow: "Tomorrow's edge",
+  prompt_why_connection: 'Why connection',
+} as const;
+
 const REFLECTION_FIELDS = [
-  { key: 'prompt_went_well' as const, label: 'What went well' },
-  { key: 'prompt_hardest' as const, label: 'What was hardest' },
-  { key: 'prompt_tomorrow' as const, label: 'Plan for tomorrow' },
-  { key: 'prompt_why_connection' as const, label: 'Why connection' },
+  { key: 'prompt_went_well' as const, label: REFLECTION_PROMPT_LABELS.prompt_went_well },
+  { key: 'prompt_hardest' as const, label: REFLECTION_PROMPT_LABELS.prompt_hardest },
+  { key: 'prompt_tomorrow' as const, label: REFLECTION_PROMPT_LABELS.prompt_tomorrow },
+  { key: 'prompt_why_connection' as const, label: REFLECTION_PROMPT_LABELS.prompt_why_connection },
 ];
 
 const CHALLENGE_FIELDS = [

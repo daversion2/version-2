@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
 import { ReflectionGrade } from '../../types';
-import { GRADE_COLORS, GRADE_LABELS } from '../home/GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../../data/comfortZone';
 
 interface GradeDistributionChartProps {
   distribution: Record<ReflectionGrade, number>;

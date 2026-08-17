@@ -18,7 +18,7 @@ import { DailyReflection, ReflectionStats, JournalSearchResult } from '../../typ
 import { getReflections, getReflectionStats, searchJournalEntries } from '../../services/reflections';
 import { GradeLineChart } from '../../components/progress/GradeLineChart';
 import { GradeDistributionChart } from '../../components/progress/GradeDistributionChart';
-import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../../data/comfortZone';
 import { ProgressNavigation } from '../../types/navigation';
 
 const TIME_FILTERS = ['7 Days', '30 Days', '90 Days', 'All Time'] as const;

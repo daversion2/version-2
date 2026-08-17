@@ -4,8 +4,9 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../../components/common/Card';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { DailyReflection } from '../../types';
-import { GRADE_COLORS, GRADE_LABELS } from '../../components/home/GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../../data/comfortZone';
 import { DAILY_FACTORS } from '../../data/dailyFactors';
+import { REFLECTION_PROMPT_LABELS } from '../../services/reflections';
 import { ProgressScreenProps } from '../../types/navigation';
 
 type Props = ProgressScreenProps<'ReflectionEntry'>;
@@ -71,28 +72,28 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
       {/* Prompts */}
       {reflection.prompt_went_well && (
         <Card style={styles.promptCard}>
-          <Text style={styles.promptLabel}>What went well</Text>
+          <Text style={styles.promptLabel}>{REFLECTION_PROMPT_LABELS.prompt_went_well}</Text>
           <Text style={styles.promptText}>{reflection.prompt_went_well}</Text>
         </Card>
       )}
 
       {reflection.prompt_hardest && (
         <Card style={styles.promptCard}>
-          <Text style={styles.promptLabel}>What was hardest</Text>
+          <Text style={styles.promptLabel}>{REFLECTION_PROMPT_LABELS.prompt_hardest}</Text>
           <Text style={styles.promptText}>{reflection.prompt_hardest}</Text>
         </Card>
       )}
 
       {reflection.prompt_tomorrow && (
         <Card style={styles.promptCard}>
-          <Text style={styles.promptLabel}>Plan for tomorrow</Text>
+          <Text style={styles.promptLabel}>{REFLECTION_PROMPT_LABELS.prompt_tomorrow}</Text>
           <Text style={styles.promptText}>{reflection.prompt_tomorrow}</Text>
         </Card>
       )}
 
       {reflection.prompt_why_connection && (
         <Card style={styles.promptCard}>
-          <Text style={styles.promptLabel}>Why connection</Text>
+          <Text style={styles.promptLabel}>{REFLECTION_PROMPT_LABELS.prompt_why_connection}</Text>
           <Text style={styles.promptText}>{reflection.prompt_why_connection}</Text>
         </Card>
       )}

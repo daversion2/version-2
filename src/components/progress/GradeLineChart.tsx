@@ -4,7 +4,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { Card } from '../common/Card';
 import { DailyReflection, ReflectionGrade } from '../../types';
 import { gradeToNumber } from '../../services/reflections';
-import { GRADE_COLORS } from '../home/GradeSelector';
+import { GRADE_COLORS } from '../../data/comfortZone';
 
 interface GradeLineChartProps {
   reflections: DailyReflection[];

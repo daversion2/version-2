@@ -195,6 +195,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       {/* Grade Selector */}
       <GradeSelector
         value={grade}
+        readOnly={isReadOnly}
         onChange={isReadOnly ? () => {} : (g) => {
           setGrade(g);
           if ((g === 'D' || g === 'F') && !badDayShownForGrade) {
@@ -227,7 +228,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.collapseTextWrap}>
             <Text style={styles.collapseTitle}>Write a reflection</Text>
             <Text style={styles.collapseSub}>
-              Override wins, where the urge won, tomorrow's focus
+              What you pushed on, where comfort won, tomorrow's edge
             </Text>
           </View>
         </View>
@@ -242,10 +243,10 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       <>
       {/* Prompts */}
       <View style={[styles.promptSection, styles.promptSectionFirst]}>
-        <Text style={styles.promptLabel}>Where did you override an urge today?</Text>
+        <Text style={styles.promptLabel}>What did you do that was uncomfortable?</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="A moment you chose the hard thing over the easy one..."
+          placeholder="The thing you didn't want to do, and did anyway..."
           placeholderTextColor={Colors.gray}
           multiline
           numberOfLines={3}
@@ -257,10 +258,10 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.promptSection}>
-        <Text style={styles.promptLabel}>Where did the urge win?</Text>
+        <Text style={styles.promptLabel}>Where did you pick the comfortable option?</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="Where you gave in — no judgment, just name it..."
+          placeholder="Where you took the easy way — no judgment, just name it..."
           placeholderTextColor={Colors.gray}
           multiline
           numberOfLines={3}
@@ -272,10 +273,10 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.promptSection}>
-        <Text style={styles.promptLabel}>What will you do differently tomorrow?</Text>
+        <Text style={styles.promptLabel}>What will you push on tomorrow?</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="One thing you'll focus on..."
+          placeholder="One edge you'll go at..."
           placeholderTextColor={Colors.gray}
           multiline
           numberOfLines={3}

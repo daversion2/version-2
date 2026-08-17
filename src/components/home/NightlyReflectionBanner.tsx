@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../common/Card';
 import { ReflectionGrade } from '../../types';
-import { GRADE_COLORS, GRADE_LABELS } from './GradeSelector';
+import { GRADE_COLORS, GRADE_LABELS } from '../../data/comfortZone';
 
 interface NightlyReflectionBannerProps {
   hasReflected: boolean;
