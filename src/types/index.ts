@@ -331,6 +331,13 @@ export type HabitDifficulty = 'easy' | 'challenging';
 /** Everything the completion sheet can capture for one practice rep. */
 export interface PracticeCompletionInput {
   difficulty: HabitDifficulty;
+  /**
+   * The day the practice actually happened (YYYY-MM-DD, local). Omitted means
+   * today. Set by the capture flow's date selector when logging a rep the user
+   * did earlier — see completePractice(), which takes a streak-safe write path
+   * for past dates.
+   */
+  date?: string;
   notes?: string;
   metrics?: Record<string, number | string>;
   hitHardMoment?: boolean;

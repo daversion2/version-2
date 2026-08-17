@@ -152,18 +152,43 @@ export const setDoc = jest.fn(async (docRef: any, data: Record<string, any>, opt
   }
 
   if (options?.merge && mockDB[collectionPath][docId]) {
+    const current = mockDB[collectionPath][docId].data;
     mockDB[collectionPath][docId].data = {
-      ...mockDB[collectionPath][docId].data,
-      ...data,
+      ...current,
+      ...applyFieldValues(current, data),
     };
   } else {
     mockDB[collectionPath][docId] = {
       id: docId,
-      data,
+      data: applyFieldValues({}, data),
       ref: { id: docId, path: `${collectionPath}/${docId}` },
     };
   }
 });
+
+// Sentinel produced by increment(); resolved against the existing value when
+// the write is applied, the same way the real FieldValue does.
+interface MockIncrement {
+  __op: 'increment';
+  by: number;
+}
+
+const isIncrement = (v: any): v is MockIncrement =>
+  !!v && typeof v === 'object' && v.__op === 'increment';
+
+export const increment = jest.fn((by: number): MockIncrement => ({ __op: 'increment', by }));
+
+/** Resolve any increment() sentinels in a write against the current document. */
+const applyFieldValues = (
+  current: Record<string, any>,
+  data: Record<string, any>
+): Record<string, any> => {
+  const resolved: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    resolved[key] = isIncrement(value) ? (current[key] || 0) + value.by : value;
+  }
+  return resolved;
+};
 
 export const updateDoc = jest.fn(async (docRef: any, data: Record<string, any>) => {
   const pathParts = docRef._path.split('/');
@@ -174,9 +199,10 @@ export const updateDoc = jest.fn(async (docRef: any, data: Record<string, any>) 
     throw new Error(`Document not found: ${docRef._path}`);
   }
 
+  const current = mockDB[collectionPath][docId].data;
   mockDB[collectionPath][docId].data = {
-    ...mockDB[collectionPath][docId].data,
-    ...data,
+    ...current,
+    ...applyFieldValues(current, data),
   };
 });
 
@@ -188,6 +214,31 @@ export const deleteDoc = jest.fn(async (docRef: any) => {
   if (mockDB[collectionPath]?.[docId]) {
     delete mockDB[collectionPath][docId];
   }
+});
+
+/**
+ * Runs the callback against a transaction object backed by the same in-memory
+ * DB. No isolation or retry — tests are single-threaded, so the value here is
+ * that transactional code paths (willpower XP writes) execute at all rather
+ * than throwing "runTransaction is not a function".
+ */
+export const runTransaction = jest.fn(async (_db: any, updateFn: (tx: any) => Promise<any>) => {
+  const transaction = {
+    get: async (docRef: any) => getDoc(docRef),
+    set: (docRef: any, data: Record<string, any>, options?: { merge?: boolean }) => {
+      setDoc(docRef, data, options);
+      return transaction;
+    },
+    update: (docRef: any, data: Record<string, any>) => {
+      updateDoc(docRef, data);
+      return transaction;
+    },
+    delete: (docRef: any) => {
+      deleteDoc(docRef);
+      return transaction;
+    },
+  };
+  return updateFn(transaction);
 });
 
 export const query = jest.fn((collectionRef: any, ...constraints: any[]) => {

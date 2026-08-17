@@ -1,6 +1,6 @@
 import {
   logHabitCompletion,
-  getUnloggedHabitsForDate,
+  getHabitsForDate,
   getActiveHabits,
   getCurrentWeekBounds,
 } from '../practices';
@@ -9,6 +9,7 @@ import {
   getMockDB,
   resetMockDB,
 } from '../__mocks__/firestore';
+import { toLocalDateString } from '../../utils/date';
 
 describe('Habits Service - Backdating and Unlogged Habits', () => {
   const userId = 'test-user-123';
@@ -16,12 +17,18 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
   beforeEach(() => {
     resetMockDB();
     jest.clearAllMocks();
+    // logHabitCompletion bumps totalHabitsCompleted on the user doc, so the doc
+    // has to exist — updateDoc rejects writes to a missing document, same as
+    // Firestore does.
+    addMockDocument('users', userId, { totalHabitsCompleted: 0 });
   });
 
   describe('logHabitCompletion', () => {
     it('logs habit with default date (today) when no date provided', async () => {
       const habitId = 'habit-123';
-      const today = new Date().toISOString().split('T')[0];
+      // Local time — logHabitCompletion files reps by local calendar day, so a
+      // UTC expectation fails every evening west of Greenwich.
+      const today = toLocalDateString(new Date());
 
       await logHabitCompletion(userId, habitId, 'easy');
 
@@ -96,163 +103,91 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
     });
   });
 
-  describe('getUnloggedHabitsForDate', () => {
-    it('returns all active habits when none are logged for date', async () => {
-      // Setup: Add active habits
-      addMockDocument(`users/${userId}/habits`, 'habit-1', {
+  describe('getHabitsForDate', () => {
+    const addHabit = (id: string, name: string, isActive = true) =>
+      addMockDocument(`users/${userId}/habits`, id, {
         user_id: userId,
-        name: 'Exercise',
-
-        is_active: true,
+        name,
+        is_active: isActive,
         created_by_user: true,
       });
 
-      addMockDocument(`users/${userId}/habits`, 'habit-2', {
+    const addLog = (id: string, referenceId: string, date: string, type = 'nudge') =>
+      addMockDocument(`users/${userId}/completionLogs`, id, {
         user_id: userId,
-        name: 'Meditation',
-
-        is_active: true,
-        created_by_user: true,
+        type,
+        reference_id: referenceId,
+        points: 1,
+        date,
       });
 
-      const result = await getUnloggedHabitsForDate(userId, '2024-01-15');
+    it('returns every active habit with a zero count when nothing is logged', async () => {
+      addHabit('habit-1', 'Exercise');
+      addHabit('habit-2', 'Meditation');
+
+      const result = await getHabitsForDate(userId, '2024-01-15');
 
       expect(result.length).toBe(2);
-      expect(result.map((h) => h.name)).toContain('Exercise');
-      expect(result.map((h) => h.name)).toContain('Meditation');
+      expect(result.map((r) => r.habit.name).sort()).toEqual(['Exercise', 'Meditation']);
+      expect(result.every((r) => r.loggedCount === 0)).toBe(true);
     });
 
-    it('excludes habits that are already logged for the date', async () => {
-      // Setup: Add active habits
-      addMockDocument(`users/${userId}/habits`, 'habit-1', {
-        user_id: userId,
-        name: 'Exercise',
+    it('keeps already-logged habits in the list and reports their count', async () => {
+      addHabit('habit-1', 'Exercise');
+      addHabit('habit-2', 'Meditation');
+      addLog('log-1', 'habit-1', '2024-01-15');
 
-        is_active: true,
-        created_by_user: true,
-      });
+      const result = await getHabitsForDate(userId, '2024-01-15');
 
-      addMockDocument(`users/${userId}/habits`, 'habit-2', {
-        user_id: userId,
-        name: 'Meditation',
-
-        is_active: true,
-        created_by_user: true,
-      });
-
-      // Setup: Log habit-1 for the date
-      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
-        user_id: userId,
-        type: 'nudge',
-        reference_id: 'habit-1',
-        points: 1,
-        date: '2024-01-15',
-      });
-
-      const result = await getUnloggedHabitsForDate(userId, '2024-01-15');
-
-      expect(result.length).toBe(1);
-      expect(result[0].id).toBe('habit-2');
-      expect(result[0].name).toBe('Meditation');
+      // Both are returned — logging a second rep of the same practice on a past
+      // day has to stay possible.
+      expect(result.length).toBe(2);
+      expect(result.find((r) => r.habit.id === 'habit-1')!.loggedCount).toBe(1);
+      expect(result.find((r) => r.habit.id === 'habit-2')!.loggedCount).toBe(0);
     });
 
-    it('returns empty array when all habits are logged', async () => {
-      addMockDocument(`users/${userId}/habits`, 'habit-1', {
-        user_id: userId,
-        name: 'Exercise',
+    it('counts multiple reps of the same habit on that day', async () => {
+      addHabit('habit-1', 'Exercise');
+      addLog('log-1', 'habit-1', '2024-01-15');
+      addLog('log-2', 'habit-1', '2024-01-15');
 
-        is_active: true,
-        created_by_user: true,
-      });
+      const result = await getHabitsForDate(userId, '2024-01-15');
 
-      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
-        user_id: userId,
-        type: 'nudge',
-        reference_id: 'habit-1',
-        points: 1,
-        date: '2024-01-15',
-      });
-
-      const result = await getUnloggedHabitsForDate(userId, '2024-01-15');
-
-      expect(result.length).toBe(0);
+      expect(result[0].loggedCount).toBe(2);
     });
 
     it('excludes inactive habits', async () => {
-      addMockDocument(`users/${userId}/habits`, 'habit-1', {
-        user_id: userId,
-        name: 'Active Habit',
+      addHabit('habit-1', 'Active Habit');
+      addHabit('habit-2', 'Inactive Habit', false);
 
-        is_active: true,
-        created_by_user: true,
-      });
-
-      addMockDocument(`users/${userId}/habits`, 'habit-2', {
-        user_id: userId,
-        name: 'Inactive Habit',
-
-        is_active: false,
-        created_by_user: true,
-      });
-
-      const result = await getUnloggedHabitsForDate(userId, '2024-01-15');
+      const result = await getHabitsForDate(userId, '2024-01-15');
 
       expect(result.length).toBe(1);
-      expect(result[0].name).toBe('Active Habit');
+      expect(result[0].habit.name).toBe('Active Habit');
     });
 
-    it('only considers logs for the specific date', async () => {
-      addMockDocument(`users/${userId}/habits`, 'habit-1', {
-        user_id: userId,
-        name: 'Exercise',
+    it('only counts logs from the requested date', async () => {
+      addHabit('habit-1', 'Exercise');
+      addLog('log-1', 'habit-1', '2024-01-14');
 
-        is_active: true,
-        created_by_user: true,
-      });
+      const result = await getHabitsForDate(userId, '2024-01-15');
 
-      // Log for different date
-      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
-        user_id: userId,
-        type: 'nudge',
-        reference_id: 'habit-1',
-        points: 1,
-        date: '2024-01-14', // Different date
-      });
-
-      const result = await getUnloggedHabitsForDate(userId, '2024-01-15');
-
-      // Habit should be available since it wasn't logged on 2024-01-15
       expect(result.length).toBe(1);
-      expect(result[0].id).toBe('habit-1');
+      expect(result[0].loggedCount).toBe(0);
     });
 
-    it('ignores challenge logs (only checks nudge type)', async () => {
-      addMockDocument(`users/${userId}/habits`, 'habit-1', {
-        user_id: userId,
-        name: 'Exercise',
+    it('ignores challenge logs (only counts nudge type)', async () => {
+      addHabit('habit-1', 'Exercise');
+      addLog('log-1', 'challenge-1', '2024-01-15', 'challenge');
 
-        is_active: true,
-        created_by_user: true,
-      });
+      const result = await getHabitsForDate(userId, '2024-01-15');
 
-      // Challenge log (not a habit)
-      addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
-        user_id: userId,
-        type: 'challenge',
-        reference_id: 'challenge-1',
-        points: 5,
-        date: '2024-01-15',
-      });
-
-      const result = await getUnloggedHabitsForDate(userId, '2024-01-15');
-
-      // Habit should still be available
       expect(result.length).toBe(1);
-      expect(result[0].name).toBe('Exercise');
+      expect(result[0].loggedCount).toBe(0);
     });
 
     it('returns empty when no active habits exist', async () => {
-      const result = await getUnloggedHabitsForDate(userId, '2024-01-15');
+      const result = await getHabitsForDate(userId, '2024-01-15');
       expect(result).toEqual([]);
     });
   });

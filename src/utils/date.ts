@@ -50,10 +50,52 @@ export const getTomorrowString = (): string => {
 };
 
 /**
- * Check if a date string is editable (yesterday only for past dates)
+ * How far back a user may log or delete a rep. A practice done on Saturday and
+ * remembered on Monday has to be loggable, so "yesterday only" was too tight;
+ * an unbounded window would make the whole history feel rewritable, which is
+ * the opposite of what a training log is for. One week is the compromise.
+ */
+export const EDITABLE_WINDOW_DAYS = 7;
+
+/**
+ * Get the date N days ago as YYYY-MM-DD.
+ */
+export const getDateNDaysAgo = (days: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return toLocalDateString(d);
+};
+
+/**
+ * Whether a date is inside the editable window — today, or any of the previous
+ * EDITABLE_WINDOW_DAYS days. Future dates are never editable. Governs both
+ * backfilling a rep and deleting one, so the two rules never disagree.
  */
 export const isEditableDate = (dateStr: string): boolean => {
-  return isYesterday(dateStr);
+  const today = getTodayString();
+  if (dateStr > today) return false;
+  return dateStr >= getDateNDaysAgo(EDITABLE_WINDOW_DAYS);
+};
+
+/**
+ * The editable days, newest first: today, yesterday, then back through the
+ * window. Drives the capture flow's date selector.
+ */
+export const getEditableDates = (): string[] =>
+  Array.from({ length: EDITABLE_WINDOW_DAYS + 1 }, (_, i) => getDateNDaysAgo(i));
+
+/**
+ * Human label for a recent date: "Today", "Yesterday", then the weekday
+ * ("Sat"). Anything older than a week falls back to the full date — a bare
+ * weekday is ambiguous once it could mean any of several months.
+ */
+export const formatRelativeDay = (dateStr: string): string => {
+  if (isToday(dateStr)) return 'Today';
+  if (isYesterday(dateStr)) return 'Yesterday';
+  if (dateStr < getDateNDaysAgo(EDITABLE_WINDOW_DAYS) || dateStr > getTodayString()) {
+    return formatDayHeader(dateStr);
+  }
+  return formatShortDay(dateStr);
 };
 
 /**

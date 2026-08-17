@@ -20,9 +20,17 @@ import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { PracticePerformanceSection } from '../../components/habits/PracticePerformanceSection';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
+import { deleteCompletionLog } from '../../services/progress';
 import { buildPracticePerformance } from '../../services/practicePerformance';
 import { getPractice } from '../../data/practices';
 import { cancelHabitReminder } from '../../services/habitReminders';
+import { showConfirm, showAlert } from '../../utils/alert';
+import {
+  isEditableDate,
+  formatRelativeDay,
+  formatDayHeader,
+  EDITABLE_WINDOW_DAYS,
+} from '../../utils/date';
 import { PracticeInstance, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 
 type Props = HomeScreenProps<'HabitDetail'>;
@@ -168,6 +176,34 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     () => buildPracticePerformance(logs, getPractice(habit?.practice_id)),
     [logs, habit?.practice_id]
   );
+
+  // Recent reps, newest first. This is the only place a single mis-logged rep
+  // can be removed — the button below it deletes the whole practice, which is a
+  // different thing entirely.
+  const recentReps = useMemo(
+    () =>
+      [...logs]
+        .sort((a, b) => (b.completed_at || b.date).localeCompare(a.completed_at || a.date))
+        .slice(0, 12),
+    [logs]
+  );
+
+  const handleDeleteRep = (log: CompletionLog) => {
+    if (!user) return;
+    showConfirm(
+      'Delete this rep?',
+      `${formatDayHeader(log.date)} · ${log.points} XP will be removed.`,
+      async () => {
+        try {
+          await deleteCompletionLog(user.uid, log.id);
+          await loadData();
+        } catch (e: any) {
+          showAlert("Couldn't delete", e?.message ?? 'Please try again.');
+        }
+      },
+      'Delete'
+    );
+  };
 
   // Get notes with dates, sorted newest first
   const notesWithDates = useMemo(() => {
@@ -356,6 +392,43 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
           maxTarget={habit.target_count_per_week}
         />
       </Card>
+
+      {/* Recent reps — with per-rep delete inside the editable window */}
+      {recentReps.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Recent reps</Text>
+          <Card style={styles.repsCard}>
+            {recentReps.map((log, i) => {
+              const editable = isEditableDate(log.date);
+              return (
+                <View key={log.id} style={[styles.repRow, i > 0 && styles.repDivider]}>
+                  <View style={styles.repInfo}>
+                    <Text style={styles.repDay}>{formatRelativeDay(log.date)}</Text>
+                    <Text style={styles.repMeta}>
+                      {log.difficulty >= 2 ? 'Challenging' : 'Easy day'} · {log.points} XP
+                    </Text>
+                  </View>
+                  {editable ? (
+                    <TouchableOpacity
+                      onPress={() => handleDeleteRep(log)}
+                      hitSlop={10}
+                      style={styles.repDeleteBtn}
+                      accessibilityLabel={`Delete the rep from ${formatDayHeader(log.date)}`}
+                    >
+                      <Ionicons name="trash-outline" size={17} color={Colors.fail} />
+                    </TouchableOpacity>
+                  ) : (
+                    <Ionicons name="lock-closed-outline" size={15} color={Colors.border} />
+                  )}
+                </View>
+              );
+            })}
+            <Text style={styles.repsFootnote}>
+              Reps stay editable for {EDITABLE_WINDOW_DAYS} days. Older ones are part of the record.
+            </Text>
+          </Card>
+        </>
+      )}
 
       {/* Notes */}
       {notesWithDates.length > 0 && (
@@ -607,6 +680,41 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+  },
+  repsCard: {
+    marginBottom: Spacing.sm,
+  },
+  repRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+  },
+  repDivider: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGray,
+  },
+  repInfo: { flex: 1 },
+  repDay: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+  },
+  repMeta: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: 1,
+  },
+  repDeleteBtn: { padding: Spacing.xs },
+  repsFootnote: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.lightGray,
   },
   noteCard: {
     marginBottom: Spacing.sm,

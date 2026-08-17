@@ -4,7 +4,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
-import { BackdateHabitModal } from '../../components/habits/BackdateHabitModal';
+import { PracticePickerModal } from '../../components/habits/PracticePickerModal';
+import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { EditDifficultyModal } from '../../components/challenge/EditDifficultyModal';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -13,11 +14,10 @@ import {
   deleteCompletionLog,
 } from '../../services/progress';
 import { updateChallengeCompletion, getChallengeById } from '../../services/challenges';
-import { getUnloggedHabitsForDate, logHabitCompletion } from '../../services/practices';
-import { adjustWillpowerPoints, recalculateUserStats } from '../../services/willpower';
-import { isYesterday } from '../../utils/date';
+import { getHabitsForDate, completePractice, HabitDayState } from '../../services/practices';
+import { isEditableDate, formatDayHeader, formatRelativeDay } from '../../utils/date';
 import { showConfirm, showAlert } from '../../utils/alert';
-import { PracticeInstance, HabitDifficulty } from '../../types';
+import { PracticeCompletionInput } from '../../types';
 import { ProgressScreenProps, ProgressNavigation } from '../../types/navigation';
 
 type Props = ProgressScreenProps<'DayDetail'>;
@@ -30,9 +30,11 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
   const [totalPoints, setTotalPoints] = useState(0);
 
   // Modal states
-  const [backdateModalVisible, setBackdateModalVisible] = useState(false);
-  const [unloggedHabits, setUnloggedHabits] = useState<PracticeInstance[]>([]);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [dayPractices, setDayPractices] = useState<HabitDayState[]>([]);
   const [loadingHabits, setLoadingHabits] = useState(false);
+  // Practice chosen from the picker — capture opens next, locked to this day.
+  const [capturing, setCapturing] = useState<HabitDayState | null>(null);
 
   const [editDifficultyModalVisible, setEditDifficultyModalVisible] = useState(false);
   const [editingChallenge, setEditingChallenge] = useState<{
@@ -42,8 +44,13 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     logId: string;
   } | null>(null);
 
-  // Check if this date is editable (yesterday only)
-  const isEditable = isYesterday(date);
+  // Adding and deleting share one window (see isEditableDate) so the screen
+  // never offers to add a rep it wouldn't let you take back.
+  const isEditable = isEditableDate(date);
+  // "Today"/"Yesterday" only — for anything older the heading's full date is
+  // already the clearest thing we can say.
+  const relative = formatRelativeDay(date);
+  const relativeLabel = relative === 'Today' || relative === 'Yesterday' ? relative : null;
 
   const refreshData = useCallback(async () => {
     if (!user) return;
@@ -59,14 +66,13 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     }, [refreshData])
   );
 
-  // Handle opening backdate habit modal
-  const handleOpenBackdateModal = async () => {
+  // Open the "which practice?" picker for this day.
+  const handleOpenPicker = async () => {
     if (!user) return;
     setLoadingHabits(true);
-    setBackdateModalVisible(true);
+    setPickerVisible(true);
     try {
-      const habits = await getUnloggedHabitsForDate(user.uid, date);
-      setUnloggedHabits(habits);
+      setDayPractices(await getHabitsForDate(user.uid, date));
     } catch (error) {
       showAlert('Error', 'Failed to load practices. Please try again.');
     } finally {
@@ -74,32 +80,21 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     }
   };
 
-  // Handle adding a backdated habit
-  const handleAddBackdatedHabit = async (
-    habitId: string,
-    habitName: string,
-    difficulty: HabitDifficulty,
-    notes?: string
-  ) => {
-    if (!user) return;
-    try {
-      // Log the habit completion with the backdated date
-      await logHabitCompletion(user.uid, habitId, difficulty, date, notes);
-
-      // Credit the XP without touching the streak stamp — updateWillpowerStats
-      // would mark TODAY as active for a rep that happened yesterday. The
-      // recalculation derives streak and lastActivityDate from the logs, so a
-      // backdated rep that fills yesterday's gap extends the streak correctly.
-      const points = difficulty === 'easy' ? 1 : 2;
-      await adjustWillpowerPoints(user.uid, points);
-      await recalculateUserStats(user.uid);
-
-      setBackdateModalVisible(false);
-      showAlert('Success', `Added "${habitName}" (+${points} XP)`);
-      refreshData();
-    } catch (error) {
-      showAlert('Error', 'Failed to add practice. Please try again.');
-    }
+  // Picked a practice → hand off to the same capture flow today's reps use,
+  // locked to this day. Going through completePractice (rather than writing the
+  // log here) is what keeps a backfilled rep worth the same as a live one:
+  // streak multiplier, first-try bonus, and the practice's tracking fields.
+  const handleAddPractice = async (input: PracticeCompletionInput) => {
+    if (!user || !capturing) return;
+    const { habit } = capturing;
+    const { pointsEarned } = await completePractice(
+      user.uid,
+      { id: habit.id, name: habit.name },
+      { ...input, date }
+    );
+    setCapturing(null);
+    showAlert('Logged', `${habit.name} · +${pointsEarned} XP`);
+    refreshData();
   };
 
   // Handle deleting a habit log
@@ -231,9 +226,10 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
   const ListHeader = (
     <>
       <Card style={styles.summaryCard}>
-        <Text style={styles.dateText}>{date}</Text>
+        <Text style={styles.dateText}>{formatDayHeader(date)}</Text>
+        {relativeLabel && <Text style={styles.dateSubText}>{relativeLabel}</Text>}
         {isEditable && (
-          <Text style={styles.editableLabel}>Yesterday - Editable</Text>
+          <Text style={styles.editableLabel}>You can still edit this day</Text>
         )}
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
@@ -247,11 +243,11 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         </View>
       </Card>
 
-      {/* Add Habit button for yesterday */}
+      {/* Backfill a practice onto this day */}
       {isEditable && (
         <Button
-          title="Add Forgotten Practice"
-          onPress={handleOpenBackdateModal}
+          title="Log a practice for this day"
+          onPress={handleOpenPicker}
           variant="outline"
           style={styles.addHabitButton}
         />
@@ -273,14 +269,29 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         }
       />
 
-      {/* Backdate Habit Modal */}
-      <BackdateHabitModal
-        visible={backdateModalVisible}
+      {/* Pick a practice, then capture it — same flow as a live rep. */}
+      <PracticePickerModal
+        visible={pickerVisible}
         date={date}
-        habits={unloggedHabits}
+        practices={dayPractices}
         loading={loadingHabits}
-        onSubmit={handleAddBackdatedHabit}
-        onCancel={() => setBackdateModalVisible(false)}
+        onSelect={(state) => {
+          setPickerVisible(false);
+          setCapturing(state);
+        }}
+        onCancel={() => setPickerVisible(false)}
+      />
+
+      <HabitCompletionModal
+        visible={!!capturing}
+        habitName={capturing?.habit.name || ''}
+        practiceId={capturing?.habit.practice_id}
+        actionPlan={capturing?.habit.action_plan}
+        logOnly
+        initialDate={date}
+        lockDate
+        onSubmit={handleAddPractice}
+        onCancel={() => setCapturing(null)}
       />
 
       {/* Edit Difficulty Modal */}
@@ -308,6 +319,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xl,
     color: Colors.dark,
+  },
+  dateSubText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
     marginBottom: Spacing.xs,
   },
   editableLabel: {

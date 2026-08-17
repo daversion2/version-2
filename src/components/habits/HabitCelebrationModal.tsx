@@ -22,6 +22,13 @@ interface HabitCelebrationModalProps {
   /** Optional line under the points, e.g. the first-try double-points note. */
   bonusLabel?: string | null;
   /**
+   * Neutral note under the points — currently "which day this was filed under"
+   * for a backfilled rep. Deliberately separate from `bonusLabel`: that one is
+   * styled as a reward (amber, sparkles), and dressing up "you logged this for
+   * Saturday" that way would read as a prize for backdating.
+   */
+  contextLabel?: string | null;
+  /**
    * Neuroscience tidbit shown inside this card. Previously a second modal that
    * opened after this one was dismissed — two sequential native modals (plus a
    * 300ms handoff) on every completion. Passing it here collapses the reward
@@ -121,6 +128,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
   pointsEarned,
   streakDays,
   bonusLabel,
+  contextLabel,
   tidbit,
   onLearnMore,
   onReflect,
@@ -274,6 +282,13 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
               <View style={styles.bonusRow}>
                 <Ionicons name="sparkles" size={14} color={AMBER} />
                 <Text style={styles.bonusText}>{bonusLabel}</Text>
+              </View>
+            )}
+
+            {!!contextLabel && (
+              <View style={styles.contextRow}>
+                <Ionicons name="calendar-outline" size={13} color={Colors.gray} />
+                <Text style={styles.contextText}>{contextLabel}</Text>
               </View>
             )}
 
@@ -451,6 +466,18 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.sm,
     color: Colors.dark,
+  },
+  contextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  contextText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
   },
   dotsRow: {
     flexDirection: 'row',

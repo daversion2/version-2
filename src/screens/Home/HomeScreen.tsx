@@ -33,14 +33,11 @@ import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { TrainingUnlockModal } from '../../components/common/TrainingUnlockModal';
 import { CravingPointer } from '../../components/home/CravingPointer';
 import { ComebackModal } from '../../components/home/ComebackModal';
-import { StoryReminderModal } from '../../components/home/StoryReminderModal';
 import { saveComebackLog } from '../../services/comebackLogs';
-import { getRandomProofPoint } from '../../services/proofPoints';
-import { ProofPoint } from '../../types';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
 import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../services/neuroscienceTidbits';
 import { NeuroscienceTidbit } from '../../types';
-import { getTodayString, toLocalDateString } from '../../utils/date';
+import { getTodayString, toLocalDateString, formatRelativeDay } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { markPointsIntroSeen, markTrainingUnlockSeen, markCravingPointerSeen, incrementAppOpenCount } from '../../services/users';
 import { ReflectionGrade } from '../../types';
@@ -71,6 +68,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // True when the capture modal was opened by the card's "Log it" action — no
   // timer, and every question collapsed onto one screen.
   const [completingLogOnly, setCompletingLogOnly] = useState(false);
+  // Day the capture modal opens on (YYYY-MM-DD). undefined = today.
+  const [completingDate, setCompletingDate] = useState<string | undefined>(undefined);
   // Practice whose briefing is open on its own (no forward flow committed to).
   const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
   const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
@@ -82,6 +81,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationStreak, setCelebrationStreak] = useState(0);
   const [celebrationBonus, setCelebrationBonus] = useState<string | null>(null);
+  // Muted "Logged for Yesterday" note on the celebration, for backfilled reps.
+  const [celebrationContext, setCelebrationContext] = useState<string | null>(null);
   // Reopening the celebration after "Learn more" — render it already settled
   // instead of replaying the ring sweep.
   const [celebrationSkipIntro, setCelebrationSkipIntro] = useState(false);
@@ -89,10 +90,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
   const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
-  // Comeback flow (fired by the "Comeback check-in" rule — see DEFAULT_RULES).
-  // Which variant shows depends on whether the user has proof points.
-  const [storyReminderProofPoint, setStoryReminderProofPoint] = useState<ProofPoint | null>(null);
-  const [comebackProofChecked, setComebackProofChecked] = useState(false);
 
   // Habit tidbit state. The tidbit now renders inside the celebration card;
   // only the "Learn more" expansion is still its own surface.
@@ -159,20 +156,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   } = useRuleSurfaces('app_open', anyModalActive);
 
   // A modal rule marked component:'comeback' opens the bespoke comeback flow
-  // in the rule-modal slot instead of the generic RuleModal.
+  // (barrier → recommit) in the rule-modal slot instead of the generic RuleModal.
   const comebackRule = ruleModalRule?.content.component === 'comeback' ? ruleModalRule : null;
-
-  // Prefetch a proof point while the rule modal waits to show: with one, the
-  // StoryReminder variant renders; without (or on error), the comeback flow.
-  useEffect(() => {
-    if (!comebackRule || !user || comebackProofChecked) return;
-    (async () => {
-      try {
-        setStoryReminderProofPoint(await getRandomProofPoint(user.uid));
-      } catch {}
-      setComebackProofChecked(true);
-    })();
-  }, [comebackRule, user, comebackProofChecked]);
 
   // Rule modal CTA: dismiss, then follow the rule's target (screen or URL)
   const handleRuleModalCta = useCallback(() => {
@@ -414,6 +399,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
       setCompletingLogOnly(false);
+      setCompletingDate(undefined);
       setCompletingHabit(habit);
     },
     [navigation]
@@ -422,8 +408,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // "I already did it" — the same capture modal for every practice, briefing
   // and session beat skipped. Which flow you get is now the user's choice
   // rather than a function of whether the catalog carries briefing content.
-  const handleHabitLogIt = useCallback((habit: PracticeInstance) => {
+  // `date` preselects a past day; the capture flow still lets them change it.
+  const handleHabitLogIt = useCallback((habit: PracticeInstance, date?: string) => {
     setCompletingLogOnly(true);
+    setCompletingDate(date);
     setCompletingHabit(habit);
   }, []);
 
@@ -440,14 +428,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     // Log + XP all happen in the shared completePractice path. A failure here
     // propagates to the capture flow, which re-arms its Log button and shows
     // the error — the follow-up celebration work below stays best-effort.
-    const { logId, pointsEarned, streakBefore, firstTry, willpower: updateResult } =
+    const { logId, pointsEarned, streakBefore, firstTry, backdated, date, willpower: updateResult } =
       await completePractice(user.uid, { id: habit.id, name: habit.name }, input);
     try {
       const bonusLabel = firstTry ? 'First time trying this practice — XP doubled' : null;
+      // Neutral confirmation of which day the rep landed on. Not a bonus —
+      // it goes in its own muted slot so backdating never looks rewarded.
+      setCelebrationContext(backdated ? `Logged for ${formatRelativeDay(date)}` : null);
 
-      // Optimistically flip the card to "Done today" (loadData reconciles on next focus).
-      const completedId = habit.id;
-      setCompletedTodayIds((prev) => (prev.includes(completedId) ? prev : [...prev, completedId]));
+      // Optimistically flip the card to "Done today" (loadData reconciles on
+      // next focus). Only for today's reps — a backfilled Saturday rep must not
+      // make the card claim today is handled.
+      if (!backdated) {
+        const completedId = habit.id;
+        setCompletedTodayIds((prev) => (prev.includes(completedId) ? prev : [...prev, completedId]));
+      }
 
       setCompletingHabit(null);
 
@@ -701,6 +696,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         practiceId={completingHabit?.practice_id}
         actionPlan={completingHabit?.action_plan}
         logOnly={completingLogOnly}
+        initialDate={completingDate}
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
       />
@@ -731,6 +727,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         pointsEarned={earnedPoints}
         streakDays={celebrationStreak}
         bonusLabel={celebrationBonus}
+        contextLabel={celebrationContext}
         tidbit={habitTidbit}
         onLearnMore={handleHabitLearnMore}
         onReflect={reflectTarget ? handleOpenReflection : undefined}
@@ -770,11 +767,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onDismiss={() => setChallengesUnlockVisible(false)}
       />
       {/* The "Comeback check-in" rule fires the bespoke comeback/story flow in
-          the rule-modal slot; every other modal rule gets the generic RuleModal.
-          Visibility waits on the proof-point check so the right variant shows. */}
-      {comebackRule && !storyReminderProofPoint && (
+          the rule-modal slot; every other modal rule gets the generic RuleModal. */}
+      {comebackRule && (
       <ComebackModal
-        visible={ruleModalVisible && comebackProofChecked}
+        visible={ruleModalVisible}
         habits={habits}
         title={comebackRule.content.title}
         body={comebackRule.content.body}
@@ -785,27 +781,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             await saveComebackLog(user.uid, { barrierReason, committedHabitId: habitId, committedHabitName: habitName });
           } catch (err) {
             console.warn('Failed to save comeback commitment:', err);
-          }
-        }}
-        onDismiss={dismissRuleModal}
-      />
-      )}
-      {comebackRule && storyReminderProofPoint && (
-      <StoryReminderModal
-        visible={ruleModalVisible && comebackProofChecked}
-        proofPoint={storyReminderProofPoint}
-        onSubmit={async (reflection) => {
-          dismissRuleModal();
-          if (user) {
-            try {
-              await saveComebackLog(user.uid, {
-                barrierReason: 'story_reminder',
-                committedHabitId: '',
-                committedHabitName: reflection || '(no reflection)',
-              });
-            } catch (err) {
-              console.warn('Failed to save story reminder log:', err);
-            }
           }
         }}
         onDismiss={dismissRuleModal}

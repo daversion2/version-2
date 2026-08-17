@@ -53,6 +53,12 @@ interface PracticeCardProps {
    * the common case, not the exception.
    */
   onLogIt: () => void;
+  /**
+   * "I did this on an earlier day" — same capture, opened on yesterday. Kept
+   * reachable even once the card reads "Done today", because finishing today's
+   * rep is unrelated to whether Saturday's is still missing.
+   */
+  onLogPastDay: () => void;
   /** Open the weekly-goal sheet. */
   onEditGoal: () => void;
   /** Open the game plan (HabitActionPlanScreen) to create/edit the action plan. */
@@ -81,6 +87,7 @@ export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
     doneToday,
     onPress,
     onLogIt,
+    onLogPastDay,
     onEditGoal,
     onOpenPlan,
     onOpenBriefing,
@@ -185,10 +192,12 @@ export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
             ) : (
               <View style={styles.actions}>
                 {/* Nested touchable — wins the press over the card's Start
-                    Pressable, same as the goal chip above. */}
+                    Pressable, same as the goal chip above. Long-press jumps
+                    straight to yesterday, the overwhelmingly common backfill. */}
                 <TouchableOpacity
                   style={styles.logBtn}
                   onPress={onLogIt}
+                  onLongPress={onLogPastDay}
                   hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                   activeOpacity={0.7}
                 >
@@ -203,6 +212,20 @@ export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
               </View>
             )}
           </View>
+
+          {/* Backfill. Always present: "done today" says nothing about whether
+              an earlier day is still missing a rep, and this is the moment the
+              user is thinking about this practice — making them find the
+              Progress tab's calendar instead is how backfilling got skipped. */}
+          <TouchableOpacity
+            style={styles.pastDayLink}
+            onPress={onLogPastDay}
+            hitSlop={8}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="calendar-outline" size={13} color={Colors.gray} />
+            <Text style={styles.pastDayText}>Log an earlier day</Text>
+          </TouchableOpacity>
         </View>
         </Pressable>
 
@@ -386,6 +409,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success + '1F',
   },
   doneText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.success },
+
+  pastDayLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingTop: Spacing.sm,
+    paddingBottom: 2,
+  },
+  pastDayText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
 
   // Game plan (action plan) section
   planSection: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },

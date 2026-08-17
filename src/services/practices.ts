@@ -12,8 +12,15 @@ import {
 import { db } from './firebase';
 import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
 import { PracticeGroup, getDefaultSeedPractices, getAllPractices } from '../data/practices';
-import { getWillpowerStats, calculateHabitPoints, updateWillpowerStats } from './willpower';
-import { toLocalDateString } from '../utils/date';
+import {
+  getWillpowerStats,
+  calculateHabitPoints,
+  updateWillpowerStats,
+  adjustWillpowerPoints,
+  recalculateUserStats,
+  getStreakMultiplier,
+} from './willpower';
+import { toLocalDateString, getTodayString } from '../utils/date';
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -255,15 +262,30 @@ export interface CompletePracticeResult {
   streakBefore: number;
   /** First-ever completion of this practice — points were doubled. */
   firstTry: boolean;
+  /** The day this rep was filed under (YYYY-MM-DD, local). */
+  date: string;
+  /** True when `date` is not today — the caller should soften the reward copy. */
+  backdated: boolean;
   willpower: Awaited<ReturnType<typeof updateWillpowerStats>>;
 }
 
 /**
- * Single source of truth for completing a practice. Beyond logging the
- * completion it awards willpower XP (with streak multiplier). Every entry
- * point (Home, Practices tab, practice detail) should call this so the side
- * effects stay consistent; each screen renders its own celebration UI from
- * the returned result.
+ * Single source of truth for completing a practice, whether it happened just
+ * now or on an earlier day. Beyond logging the completion it awards willpower
+ * XP (with streak multiplier), pays the first-try bonus, and bumps the sampler
+ * counter. Every entry point (Home, Practices tab, day detail) should call this
+ * so the side effects stay consistent; each screen renders its own celebration
+ * UI from the returned result.
+ *
+ * `input.date` backdates the rep. A past date takes a different XP path on
+ * purpose: updateWillpowerStats() stamps `lastActivityDate` as TODAY, which
+ * would credit today's streak for a rep the user did on Saturday. Backdated
+ * reps instead adjust the XP total directly and then recalculate streak and
+ * lastActivityDate from the logs — so a backfilled rep that closes a gap
+ * extends the streak correctly, and one that doesn't leaves it alone.
+ * Everything else (multiplier, first-try double, tracking metrics) is
+ * identical, because a rep you did yesterday is not worth less than one you
+ * did an hour ago.
  */
 export const completePractice = async (
   userId: string,
@@ -271,6 +293,9 @@ export const completePractice = async (
   input: PracticeCompletionInput,
 ): Promise<CompletePracticeResult> => {
   const { difficulty, notes, metrics, hitHardMoment, tactics, reflection, mindTags } = input;
+  const today = getTodayString();
+  const date = input.date || today;
+  const backdated = date !== today;
 
   // First-ever completion of this practice → bump the user's sampler counter
   // (powers the {practices_tried} rule placeholder) and flag the first-try
@@ -286,7 +311,7 @@ export const completePractice = async (
     console.warn('Failed to update practices_tried counter:', err);
   }
 
-  const logId = await logHabitCompletion(userId, practice.id, difficulty, undefined, notes, {
+  const logId = await logHabitCompletion(userId, practice.id, difficulty, date, notes, {
     metrics,
     hitHardMoment,
     tactics,
@@ -300,9 +325,34 @@ export const completePractice = async (
   const stats = await getWillpowerStats(userId);
   const basePoints = calculateHabitPoints(difficultyNum, stats.currentStreak);
   const pointsEarned = firstTry ? basePoints * 2 : basePoints;
-  const willpower = await updateWillpowerStats(userId, pointsEarned);
 
-  return { logId, pointsEarned, streakBefore: stats.currentStreak, firstTry, willpower };
+  let willpower: Awaited<ReturnType<typeof updateWillpowerStats>>;
+  if (backdated) {
+    const newTotal = await adjustWillpowerPoints(userId, pointsEarned);
+    const { newStreak } = await recalculateUserStats(userId);
+    // newTierReached stays false so the caller never fires a "Streak Milestone!"
+    // alert for a backfill. Crossing a tier is a moment you earn in the present;
+    // discovering it while tidying up last week's log is not that moment.
+    willpower = {
+      newTotal,
+      newStreak,
+      multiplier: getStreakMultiplier(newStreak),
+      newTierReached: false,
+      tierInfo: null,
+    };
+  } else {
+    willpower = await updateWillpowerStats(userId, pointsEarned);
+  }
+
+  return {
+    logId,
+    pointsEarned,
+    streakBefore: stats.currentStreak,
+    firstTry,
+    date,
+    backdated,
+    willpower,
+  };
 };
 
 /**
@@ -353,31 +403,41 @@ export const getWeeklyCompletionCounts = async (
   return getWeeklyCompletionCountsFromLogs(logs);
 };
 
+/** An active practice paired with how many reps it already has on a given day. */
+export interface HabitDayState {
+  habit: PracticeInstance;
+  /** Reps already logged for that date — 0 means nothing logged yet. */
+  loggedCount: number;
+}
+
 /**
- * Returns active habits that have NOT been logged for a specific date.
- * Useful for showing available habits to backdate.
+ * Returns every active practice for a date, annotated with how many reps it
+ * already carries that day.
+ *
+ * This used to filter already-logged practices out of the list entirely, which
+ * made a second rep of the same practice on a past day impossible — and said so
+ * only via an "all practices have been logged" empty state. Callers now show
+ * the full list and mark what's already there, so the user decides.
+ *
+ * Bounded to the one date via the (type, date) composite index; the log
+ * collection grows forever, so this must never read it whole.
  */
-export const getUnloggedHabitsForDate = async (
+export const getHabitsForDate = async (
   userId: string,
   date: string
-): Promise<PracticeInstance[]> => {
-  // Get all active habits
-  const activeHabits = await getActiveHabits(userId);
+): Promise<HabitDayState[]> => {
+  const [activeHabits, snap] = await Promise.all([
+    getActiveHabits(userId),
+    getDocs(query(logsRef(userId), where('type', '==', 'nudge'), where('date', '==', date))),
+  ]);
 
-  // Get all habit logs for the specified date
-  const q = query(logsRef(userId), where('type', '==', 'nudge'));
-  const snap = await getDocs(q);
-
-  const loggedHabitIds = new Set<string>();
+  const counts: Record<string, number> = {};
   snap.docs.forEach((d) => {
-    const data = d.data();
-    if (data.date === date) {
-      loggedHabitIds.add(data.reference_id as string);
-    }
+    const refId = d.data().reference_id as string;
+    counts[refId] = (counts[refId] || 0) + 1;
   });
 
-  // Return habits not logged for that date
-  return activeHabits.filter((habit) => !loggedHabitIds.has(habit.id));
+  return activeHabits.map((habit) => ({ habit, loggedCount: counts[habit.id] || 0 }));
 };
 
 /**

@@ -4,21 +4,26 @@ import {
   getYesterdayString,
   getTodayString,
   isEditableDate,
+  EDITABLE_WINDOW_DAYS,
 } from '../date';
 
 describe('Date Utilities', () => {
-  // Helper to get date strings
+  // Build the expected date in LOCAL time. These utilities are all local-time
+  // (a rep logged at 5pm belongs to that calendar day wherever you are), so
+  // building expectations from toISOString() — which is UTC — made every test
+  // in this file fail during the evening in any timezone behind UTC.
   const getDateString = (daysOffset: number): string => {
-    const date = new Date();
-    date.setDate(date.getDate() + daysOffset);
-    return date.toISOString().split('T')[0];
+    const d = new Date();
+    d.setDate(d.getDate() + daysOffset);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   };
 
   describe('getTodayString', () => {
     it('returns today\'s date in YYYY-MM-DD format', () => {
-      const today = new Date();
-      const expected = today.toISOString().split('T')[0];
-      expect(getTodayString()).toBe(expected);
+      expect(getTodayString()).toBe(getDateString(0));
     });
 
     it('returns a string matching YYYY-MM-DD pattern', () => {
@@ -29,10 +34,7 @@ describe('Date Utilities', () => {
 
   describe('getYesterdayString', () => {
     it('returns yesterday\'s date in YYYY-MM-DD format', () => {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const expected = yesterday.toISOString().split('T')[0];
-      expect(getYesterdayString()).toBe(expected);
+      expect(getYesterdayString()).toBe(getDateString(-1));
     });
 
     it('returns a string matching YYYY-MM-DD pattern', () => {
@@ -105,33 +107,30 @@ describe('Date Utilities', () => {
   });
 
   describe('isEditableDate', () => {
-    it('returns true for yesterday (editable)', () => {
-      const yesterday = getDateString(-1);
-      expect(isEditableDate(yesterday)).toBe(true);
+    it('returns true for today', () => {
+      // Today is editable so an accidental double-log can be undone the moment
+      // it happens, rather than only after midnight.
+      expect(isEditableDate(getDateString(0))).toBe(true);
     });
 
-    it('returns false for today (not editable for backdating)', () => {
-      const today = getDateString(0);
-      expect(isEditableDate(today)).toBe(false);
+    it('returns true for yesterday', () => {
+      expect(isEditableDate(getDateString(-1))).toBe(true);
     });
 
-    it('returns false for two days ago (too old)', () => {
-      const twoDaysAgo = getDateString(-2);
-      expect(isEditableDate(twoDaysAgo)).toBe(false);
+    it('returns true across the whole window', () => {
+      expect(isEditableDate(getDateString(-2))).toBe(true);
+      expect(isEditableDate(getDateString(-6))).toBe(true);
+      expect(isEditableDate(getDateString(-EDITABLE_WINDOW_DAYS))).toBe(true);
     });
 
-    it('returns false for older dates', () => {
-      const weekAgo = getDateString(-7);
-      const monthAgo = getDateString(-30);
-      expect(isEditableDate(weekAgo)).toBe(false);
-      expect(isEditableDate(monthAgo)).toBe(false);
+    it('returns false just past the window', () => {
+      expect(isEditableDate(getDateString(-(EDITABLE_WINDOW_DAYS + 1)))).toBe(false);
+      expect(isEditableDate(getDateString(-30))).toBe(false);
     });
 
     it('returns false for future dates', () => {
-      const tomorrow = getDateString(1);
-      const nextWeek = getDateString(7);
-      expect(isEditableDate(tomorrow)).toBe(false);
-      expect(isEditableDate(nextWeek)).toBe(false);
+      expect(isEditableDate(getDateString(1))).toBe(false);
+      expect(isEditableDate(getDateString(7))).toBe(false);
     });
   });
 

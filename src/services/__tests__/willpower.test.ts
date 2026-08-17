@@ -14,6 +14,11 @@ import {
   getMockDB,
   resetMockDB,
 } from '../__mocks__/firestore';
+// These streak tests build expected dates by hand. They must use the SAME
+// local-time formatter the service does — deriving them from toISOString()
+// (UTC) made every one of them fail during the evening in any timezone behind
+// Greenwich, which read as a broken streak calculation rather than a broken test.
+import { toLocalDateString } from '../../utils/date';
 
 describe('Willpower Service', () => {
   describe('getStreakMultiplier', () => {
@@ -295,9 +300,9 @@ describe('Willpower Service', () => {
       const twoDaysAgo = new Date();
       twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
-      const todayStr = today.toISOString().split('T')[0];
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+      const todayStr = toLocalDateString(today);
+      const yesterdayStr = toLocalDateString(yesterday);
+      const twoDaysAgoStr = toLocalDateString(twoDaysAgo);
 
       addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
         date: todayStr,
@@ -325,8 +330,8 @@ describe('Willpower Service', () => {
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-      const todayStr = today.toISOString().split('T')[0];
-      const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
+      const todayStr = toLocalDateString(today);
+      const threeDaysAgoStr = toLocalDateString(threeDaysAgo);
 
       addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
         date: todayStr,
@@ -345,7 +350,7 @@ describe('Willpower Service', () => {
     });
 
     it('updates user document with new streak', async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = toLocalDateString(new Date());
 
       addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
         date: today,
@@ -360,7 +365,7 @@ describe('Willpower Service', () => {
     });
 
     it('handles multiple logs on same day as single day', async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = toLocalDateString(new Date());
 
       addMockDocument(`users/${userId}/completionLogs`, 'log-1', {
         date: today,

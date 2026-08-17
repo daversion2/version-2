@@ -14,6 +14,7 @@ import {
   getIntensityTier,
   compareByIntensity,
 } from '../../../data/practices';
+import { getYesterdayString } from '../../../utils/date';
 
 /**
  * "Your Practices" — the home redesign's centerpiece. Every adopted practice is
@@ -126,6 +127,7 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
               doneToday={doneTodaySet.has(habit.id)}
               onPress={() => callbacks.onHabitTap(habit)}
               onLogIt={() => callbacks.onHabitLogIt(habit)}
+              onLogPastDay={() => callbacks.onHabitLogIt(habit, getYesterdayString())}
               onOpenBriefing={practice?.ready ? () => callbacks.onHabitBriefing(habit) : undefined}
               onEditGoal={() => setEditingHabit(habit)}
               onOpenPlan={() =>

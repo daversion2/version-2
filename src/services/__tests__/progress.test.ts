@@ -24,6 +24,10 @@ describe('Progress Service - Delete and Update Logs', () => {
   beforeEach(() => {
     resetMockDB();
     jest.clearAllMocks();
+    // deleteCompletionLog rolls back lifetime counters on the user doc. The
+    // rollback is best-effort, so a missing doc only logs a warning — seed one
+    // so these tests exercise the real path instead of the fallback.
+    addMockDocument('users', userId, { totalHabitsCompleted: 10, practices_tried: 5 });
   });
 
   describe('deleteCompletionLog', () => {
@@ -114,6 +118,77 @@ describe('Progress Service - Delete and Update Logs', () => {
       expect(result.pointsRemoved).toBe(5);
       const db = getMockDB();
       expect(db[`users/${userId}/completionLogs`]?.[logId]).toBeUndefined();
+    });
+
+    // Logging a practice increments lifetime counters that gate real behavior
+    // (the Training unlock at 3, the {habits_completed}/{practices_tried}
+    // notification placeholders). Deleting has to reverse them or they ratchet
+    // upward forever.
+    describe('lifetime counter rollback', () => {
+      const seedUser = (data: Record<string, any>) =>
+        addMockDocument('users', userId, data);
+
+      const seedRep = (logId: string, habitId: string, date = '2024-01-15') =>
+        addMockDocument(`users/${userId}/completionLogs`, logId, {
+          user_id: userId,
+          type: 'nudge',
+          reference_id: habitId,
+          points: 1,
+          difficulty: 1,
+          date,
+        });
+
+      it('decrements totalHabitsCompleted when a rep is deleted', async () => {
+        seedUser({ totalHabitsCompleted: 4, practices_tried: 2 });
+        seedRep('log-1', 'habit-1');
+        seedRep('log-2', 'habit-1'); // another rep of the same practice remains
+
+        await deleteCompletionLog(userId, 'log-1');
+
+        const db = getMockDB();
+        expect(db.users?.[userId]?.data.totalHabitsCompleted).toBe(3);
+      });
+
+      it('leaves practices_tried alone while other reps of that practice remain', async () => {
+        seedUser({ totalHabitsCompleted: 4, practices_tried: 2 });
+        seedRep('log-1', 'habit-1');
+        seedRep('log-2', 'habit-1');
+
+        await deleteCompletionLog(userId, 'log-1');
+
+        const db = getMockDB();
+        // The practice is still "tried" — one rep of it survives.
+        expect(db.users?.[userId]?.data.practices_tried).toBe(2);
+      });
+
+      it('decrements practices_tried when deleting the practice\'s last rep', async () => {
+        seedUser({ totalHabitsCompleted: 4, practices_tried: 2 });
+        seedRep('log-1', 'habit-1');
+        seedRep('log-2', 'habit-2'); // a different practice
+
+        await deleteCompletionLog(userId, 'log-1');
+
+        const db = getMockDB();
+        expect(db.users?.[userId]?.data.practices_tried).toBe(1);
+        expect(db.users?.[userId]?.data.totalHabitsCompleted).toBe(3);
+      });
+
+      it('does not touch practice counters when deleting a challenge log', async () => {
+        seedUser({ totalHabitsCompleted: 4, practices_tried: 2 });
+        addMockDocument(`users/${userId}/completionLogs`, 'log-c', {
+          user_id: userId,
+          type: 'challenge',
+          reference_id: 'challenge-1',
+          points: 5,
+          date: '2024-01-15',
+        });
+
+        await deleteCompletionLog(userId, 'log-c');
+
+        const db = getMockDB();
+        expect(db.users?.[userId]?.data.totalHabitsCompleted).toBe(4);
+        expect(db.users?.[userId]?.data.practices_tried).toBe(2);
+      });
     });
   });
 

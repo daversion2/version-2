@@ -6,6 +6,8 @@ import {
   getDoc,
   deleteDoc,
   updateDoc,
+  where,
+  increment,
 } from 'firebase/firestore';
 import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
 import { getTodayString, getYesterdayString, toLocalDateString } from '../utils/date';
@@ -146,7 +148,17 @@ export const getTotalPoints = async (
   return docs.reduce((sum, d) => sum + (d.points as number), 0);
 };
 
-// Delete a completion log by ID (for habit deletions)
+/**
+ * Delete a single completion log (one rep), reversing everything the write did.
+ *
+ * Logging a practice increments the user's lifetime counters, so deleting one
+ * has to decrement them or they ratchet upward forever — and those counters are
+ * not cosmetic: `totalHabitsCompleted` gates the Training unlock at 3 and fills
+ * {habits_completed} in notification copy, and `practices_tried` fills
+ * {practices_tried}. `practices_tried` only comes down when this was the
+ * practice's LAST remaining rep, since it counts distinct practices tried
+ * rather than reps.
+ */
 export const deleteCompletionLog = async (
   userId: string,
   logId: string
@@ -160,13 +172,45 @@ export const deleteCompletionLog = async (
 
   const logData = logSnap.data() as CompletionLog;
   const points = logData.points || 0;
+  const isPracticeRep = logData.type === 'nudge';
 
-  // Delete the log
+  // Was this the practice's last rep? Read BEFORE the delete — afterwards the
+  // remaining-count query can't tell "never logged" from "just deleted".
+  let wasLastRepOfPractice = false;
+  if (isPracticeRep) {
+    try {
+      const remaining = await getDocs(
+        query(
+          logsRef(userId),
+          where('type', '==', 'nudge'),
+          where('reference_id', '==', logData.reference_id)
+        )
+      );
+      wasLastRepOfPractice = remaining.docs.filter((d) => d.id !== logId).length === 0;
+    } catch (err) {
+      console.warn('Failed to check remaining reps before delete:', err);
+    }
+  }
+
   await deleteDoc(logRef);
 
   // Subtract points from user's total
   if (points > 0) {
     await subtractWillpowerPoints(userId, points);
+  }
+
+  // Roll back the lifetime counters logHabitCompletion/completePractice bumped.
+  // Best-effort: the log is already gone, so a counter failure must not surface
+  // as "delete failed" and invite a retry that deletes something else.
+  if (isPracticeRep) {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        totalHabitsCompleted: increment(-1),
+        ...(wasLastRepOfPractice ? { practices_tried: increment(-1) } : {}),
+      });
+    } catch (err) {
+      console.warn('Failed to decrement completion counters:', err);
+    }
   }
 
   // Recalculate streak

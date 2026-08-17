@@ -27,6 +27,13 @@ interface Props {
    * questions onto one screen. Set by the card's Log it action.
    */
   logOnly?: boolean;
+  /**
+   * Day to open the capture on (YYYY-MM-DD). Defaults to today. On the
+   * `logOnly` path the user can still change it unless `lockDate` is set.
+   */
+  initialDate?: string;
+  /** File the rep under `initialDate` with no day selector. */
+  lockDate?: boolean;
   onSubmit: (input: PracticeCompletionInput) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -48,6 +55,8 @@ export const HabitCompletionModal: React.FC<Props> = ({
   practiceId,
   actionPlan,
   logOnly = false,
+  initialDate,
+  lockDate = false,
   onSubmit,
   onCancel,
 }) => {
@@ -128,6 +137,8 @@ export const HabitCompletionModal: React.FC<Props> = ({
           title={habitName}
           accentColor={accent}
           compact={logOnly}
+          initialDate={initialDate}
+          lockDate={lockDate}
           initialMetrics={timerMinutes != null ? { duration_min: timerMinutes } : undefined}
           onSubmit={onSubmit}
           onCancel={onCancel}
