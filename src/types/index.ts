@@ -250,6 +250,13 @@ export interface PracticeInstance {
    * `practice_id` instead.
    */
   template_id?: string;
+  /**
+   * The amounts this user committed to, keyed by tracking-field key —
+   * e.g. `{ water_oz: 80 }`. Set when the habit is adopted, editable afterwards.
+   * The definition names WHICH metric is the commitment (HabitDefinition
+   * .commitmentKey); this holds the number the user actually chose.
+   */
+  metric_goals?: Record<string, number>;
 }
 
 export type Quadrant = 'stressed' | 'energized' | 'depleted' | 'calm';

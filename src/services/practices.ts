@@ -76,6 +76,11 @@ export const createHabit = async (
      * practice_id instead.
      */
     template_id?: string;
+    /**
+     * The per-occasion amounts the user committed to, keyed by tracking-field
+     * key — e.g. `{ water_oz: 80 }`. See HabitDefinition.commitmentKey.
+     */
+    metric_goals?: Record<string, number>;
     group?: PracticeGroup;
     action_plan?: HabitActionPlan;
     created_by_user?: boolean;

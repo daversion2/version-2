@@ -26,6 +26,7 @@ import type { ArenaId, HabitActionPlan } from '../types';
 import { HABIT_LIBRARY } from './habitLibrary';
 import { TRADITIONAL_HABIT_LIBRARY } from './traditionalHabits';
 import { withScience } from './habitScience';
+import { withCommitment } from './habitCommitments';
 
 /** @deprecated Retired by D1 in favor of HabitCategory. Kept for legacy call sites. */
 export type PracticeGroup = 'activate' | 'calm' | 'restrain' | 'custom';
@@ -246,6 +247,23 @@ export interface HabitDefinition {
   resistanceMoment?: string;
   /** This habit's TEMPLATE — the metrics logged on completion. Absent = resistance only. */
   tracking?: TrackingField[];
+  /**
+   * Which `tracking` key is the thing you COMMIT to an amount of — 80 oz of
+   * water, 10 minutes of meditation, 8,000 steps.
+   *
+   * This is what turns a vague habit into a specific one. "Drink more water"
+   * has no threshold, so there is no such thing as doing it; "drink 80 oz" is a
+   * promise you can keep or miss. The user sets the number when they adopt the
+   * habit and it is stored on their instance (PracticeInstance.metric_goals) —
+   * the definition only says WHICH metric is the commitment and supplies a
+   * starting value via that field's `default`.
+   *
+   * Falling short still counts as done. The amount is recorded, never enforced:
+   * showing up is the behaviour being trained, and the difficulty rating already
+   * captures what it cost. Absent means this habit has no natural amount
+   * (make your bed, floss) and adopting it stays one tap.
+   */
+  commitmentKey?: string;
   /** Two-factor dose scoring, when duration × magnitude is the real measure (Phase 3). */
   dose?: HabitDoseConfig;
   /**
@@ -1037,12 +1055,14 @@ export const SUPERSEDED_HABIT_IDS: Record<string, string> = {
  * a separate "practices" list and "habits" list.
  */
 export const BUNDLED_HABIT_DEFINITIONS: HabitDefinition[] = [
-  ...BUNDLED_PRACTICES,
-  // Library habits get their science/research overlaid from data/habitScience.ts,
-  // which is where the "what this does to your brain" content lives.
+  ...BUNDLED_PRACTICES.map(withCommitment),
+  // Library habits get their science/research overlaid from data/habitScience.ts
+  // and their commitment metric from data/habitCommitments.ts — the amount the
+  // user promises per occasion, which is what turns a vague habit into a specific one.
   ...[...HABIT_LIBRARY, ...TRADITIONAL_HABIT_LIBRARY]
     .filter((h) => !SUPERSEDED_HABIT_IDS[h.id])
-    .map(withScience),
+    .map(withScience)
+    .map(withCommitment),
 ];
 
 const indexById = (list: HabitDefinition[]): Record<string, HabitDefinition> =>
@@ -1211,4 +1231,35 @@ export const compareByIntensity = (
   const bo = getPractice(b.practice_id)?.order ?? 999;
   if (ao !== bo) return ao - bo;
   return a.name.localeCompare(b.name);
+};
+
+/**
+ * The commitment field for a habit definition, if it has one — the metric the
+ * user promises an amount of. See HabitDefinition.commitmentKey.
+ */
+export const getCommitmentField = (
+  def?: HabitDefinition | null
+): TrackingField | undefined =>
+  def?.commitmentKey
+    ? def.tracking?.find((f) => f.key === def.commitmentKey)
+    : undefined;
+
+/**
+ * Render a committed amount for display: "80 oz", "8,000 steps", "10 min".
+ * Returns undefined when the habit has no commitment or none was set, so
+ * callers can omit the suffix rather than print an empty unit.
+ */
+export const formatCommitment = (
+  def: HabitDefinition | undefined,
+  goals?: Record<string, number>
+): string | undefined => {
+  const field = getCommitmentField(def);
+  if (!field) return undefined;
+  const value = goals?.[field.key] ?? field.default;
+  if (typeof value !== 'number') return undefined;
+  // A 'scale' commitment ("how well did you hold to it?") has no unit worth
+  // showing on a habit row — "5 adherence" reads as nonsense.
+  if (field.type === 'scale') return undefined;
+  const shown = value >= 1000 ? value.toLocaleString() : String(value);
+  return field.unit === '$' ? `$${shown}` : `${shown} ${field.unit ?? ''}`.trim();
 };

@@ -26,7 +26,7 @@ import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { PracticeBriefingModal } from '../../components/habits/PracticeBriefingModal';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
-import { getPractice, getPracticeColor } from '../../data/practices';
+import { getPractice, getPracticeColor, formatCommitment } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
@@ -710,7 +710,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           return (
             <TodayHabitRow
               key={pace.habitId}
-              name={habit.name}
+              // "Drink water · 80 oz". The commitment belongs on the row because
+              // this is the screen where you decide whether to act, and a habit
+              // without a threshold is one you can't really succeed or fail at.
+              name={[
+                habit.name,
+                formatCommitment(getPractice(habit.practice_id), habit.metric_goals),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               pace={pace}
               accentColor={getPracticeColor(habit)}
               onPress={() => handleHabitTap(habit)}
@@ -848,6 +856,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // preset chosen at creation. Without this a custom habit would log
         // resistance and silently never ask for its metric.
         templateId={completingHabit?.template_id}
+        metricGoals={completingHabit?.metric_goals}
         actionPlan={completingHabit?.action_plan}
         logOnly={completingLogOnly}
         initialDate={completingDate}

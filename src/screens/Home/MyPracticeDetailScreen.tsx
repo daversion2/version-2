@@ -26,7 +26,8 @@ import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
 import { deleteCompletionLog } from '../../services/progress';
 import { buildPracticePerformance } from '../../services/practicePerformance';
-import { getPractice } from '../../data/practices';
+import { getPractice, getCommitmentField, formatCommitment } from '../../data/practices';
+import { buildRaiseSuggestion } from '../../services/raiseSuggestion';
 import { cancelHabitReminder } from '../../services/habitReminders';
 import { showConfirm, showAlert } from '../../utils/alert';
 import {
@@ -197,6 +198,26 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     [logs, habit?.practice_id, habit?.template_id]
   );
 
+  // "This has gotten easy — raise it?" Only ever offered; accepting is an
+  // explicit tap. The app never moves a number the user promised.
+  const raise = useMemo(() => {
+    const def = getPractice(habit?.practice_id);
+    const field = getCommitmentField(def);
+    return buildRaiseSuggestion(logs, field, field ? habit?.metric_goals?.[field.key] : undefined);
+  }, [logs, habit?.practice_id, habit?.metric_goals]);
+
+  const acceptRaise = async () => {
+    if (!user || !habit || !raise) return;
+    try {
+      await updateHabit(user.uid, habit.id, {
+        metric_goals: { ...(habit.metric_goals ?? {}), [raise.metricKey]: raise.suggestedGoal },
+      } as Partial<PracticeInstance>);
+      await loadData();
+    } catch (e: any) {
+      showAlert('Could not update your goal', e.message);
+    }
+  };
+
   // Recent reps, newest first. This is the only place a single mis-logged rep
   // can be removed — the button below it deletes the whole practice, which is a
   // different thing entirely.
@@ -362,6 +383,24 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
 
       {/* Performance — detailed per-practice reporting */}
       <Text style={styles.sectionTitle}>Performance</Text>
+      {!!raise && (
+        <Card style={styles.raiseCard}>
+          <Text style={styles.raiseTitle}>This has gotten easier</Text>
+          <Text style={styles.raiseBody}>
+            You've hit {raise.currentGoal}
+            {raise.unit ? ` ${raise.unit}` : ''} on {raise.hitRate}% of your recent
+            check-ins, and it's been averaging {raise.recentResistance} out of 3 for
+            difficulty. Want to raise it?
+          </Text>
+          <TouchableOpacity style={styles.raiseBtn} onPress={acceptRaise} activeOpacity={0.85}>
+            <Text style={styles.raiseBtnText}>
+              Raise to {raise.suggestedGoal}
+              {raise.unit ? ` ${raise.unit}` : ''}
+            </Text>
+          </TouchableOpacity>
+        </Card>
+      )}
+
       <PracticePerformanceSection performance={performance} />
 
       {/* What actually stops you doing this one. Only rendered once something
@@ -539,6 +578,22 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
 };
 
 const styles = StyleSheet.create({
+  raiseCard: { marginBottom: Spacing.md, gap: Spacing.sm },
+  raiseTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
+  raiseBody: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.gray,
+    lineHeight: 20,
+  },
+  raiseBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.primary,
+  },
+  raiseBtnText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.white },
   container: {
     flex: 1,
     backgroundColor: Colors.lightGray,

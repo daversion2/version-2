@@ -34,6 +34,12 @@ interface Props {
    * directly rather than looked up.
    */
   tracking?: TrackingField[];
+  /**
+   * Committed amounts keyed by tracking-field key. A field with a goal opens on
+   * it instead of the catalog default — the number you promised, not a generic
+   * suggestion.
+   */
+  metricGoals?: Record<string, number>;
   /** Shown centered in the flow header (the habit/practice name). */
   title?: string;
   accentColor?: string;
@@ -81,6 +87,7 @@ type Step =
 export const PracticeCaptureFlow: React.FC<Props> = ({
   practiceId,
   tracking: trackingOverride,
+  metricGoals,
   title,
   accentColor = Colors.primary,
   initialMetrics,
@@ -200,7 +207,10 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
       const max = field.max ?? (isScale ? 5 : 100);
       const step = field.step ?? 1;
       const touched = typeof currentValue === 'number';
-      const shown = touched ? (currentValue as number) : field.default ?? Math.round((min + max) / 2);
+      // Your committed amount wins over the catalog default: the point of
+      // setting 80 oz is that the sheet opens on 80 oz.
+      const fallback = metricGoals?.[field.key] ?? field.default ?? Math.round((min + max) / 2);
+      const shown = touched ? (currentValue as number) : fallback;
       return (
         <View style={styles.fieldBlock}>
           <Text style={[styles.fieldValueBig, !touched && styles.fieldValueMuted]}>

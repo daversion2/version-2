@@ -18,7 +18,9 @@ import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { getHabitCategory } from '../../data/habitLibrary';
-import { getHabitDefinition } from '../../data/practices';
+import { getHabitDefinition, getCommitmentField } from '../../data/practices';
+import { getCommitmentPrompt } from '../../data/habitCommitments';
+import { Slider } from '../../components/common/Slider';
 import { defaultTimeForAnchor } from '../../data/anchors';
 import { useAuth } from '../../context/AuthContext';
 import { createHabit, updateHabit } from '../../services/practices';
@@ -79,6 +81,13 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(habit?.name ?? '');
   const [target, setTarget] = useState(habit?.suggested_target_per_week ?? 5);
+  // The per-occasion amount this habit asks you to commit to, if it has one.
+  // Seeded from the definition's default so the picker opens somewhere sensible;
+  // the user must confirm or change it before adding. See data/habitCommitments.ts.
+  const commitmentField = getCommitmentField(habit);
+  const [commitment, setCommitment] = useState<number>(
+    (commitmentField?.default as number) ?? 0
+  );
   const [plan, setPlan] = useState<HabitActionPlan>(habit?.action_plan ?? {});
 
   const seededTime = defaultTimeForAnchor(habit?.action_plan?.anchor);
@@ -139,6 +148,9 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
         action_plan: cleanedPlan,
         created_by_user: false,
         supports_pairing: supportsPairing,
+        // Only written when this habit actually asks for an amount — an empty
+        // map on every other habit would be noise in every document.
+        metric_goals: commitmentField ? { [commitmentField.key]: commitment } : undefined,
       });
 
       // Carry the reminder when enabled (or there's an anchor to fire it against).
@@ -268,6 +280,34 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
                 </View>
               );
             })}
+          </View>
+        )}
+
+        {/*
+          The commitment. Sits ABOVE frequency because it is the more specific
+          promise: "80 oz" is what makes this habit real, "5 times a week" is
+          how often you make it. Falling short of it still counts as done —
+          the amount is recorded, never enforced.
+        */}
+        {!!commitmentField && (
+          <View style={styles.commitBlock}>
+            <Text style={styles.fieldLabel}>
+              {getCommitmentPrompt(habit.id) ?? commitmentField.label}
+            </Text>
+            <Text style={[styles.commitValue, { color }]}>
+              {commitment.toLocaleString()}
+              {commitmentField.unit ? ` ${commitmentField.unit}` : ''}
+            </Text>
+            <Slider
+              value={commitment}
+              min={commitmentField.min ?? 1}
+              max={commitmentField.max ?? 100}
+              step={commitmentField.step ?? 1}
+              onChange={setCommitment}
+            />
+            <Text style={styles.commitHint}>
+              You can change this later. Falling short still counts as done.
+            </Text>
           </View>
         )}
 
@@ -479,6 +519,18 @@ const styles = StyleSheet.create({
     paddingLeft: Spacing.md,
     paddingVertical: Spacing.xs,
     marginBottom: Spacing.md,
+  },
+  commitBlock: { marginBottom: Spacing.lg },
+  commitValue: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: 34,
+    marginVertical: Spacing.xs,
+  },
+  commitHint: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: Spacing.xs,
   },
   identityText: {
     fontFamily: Fonts.secondary,

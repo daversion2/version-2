@@ -27,6 +27,12 @@ interface Props {
    * have no catalog entry, so their template is resolved from this instead.
    */
   templateId?: string;
+  /**
+   * The amounts this user committed to, keyed by tracking-field key. The capture
+   * sheet opens its commitment field on this rather than the catalog default, so
+   * hitting your own promise is one tap and falling short is a deliberate drag.
+   */
+  metricGoals?: Record<string, number>;
   actionPlan?: HabitActionPlan;
   /**
    * "I already did it" — never offer the timer, and collapse the capture
@@ -60,6 +66,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
   habitName,
   practiceId,
   templateId,
+  metricGoals,
   actionPlan,
   logOnly = false,
   initialDate,
@@ -146,6 +153,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
           key={openKey}
           practiceId={practiceId}
           tracking={customTracking?.length ? customTracking : undefined}
+          metricGoals={metricGoals}
           title={habitName}
           accentColor={accent}
           compact={logOnly}
