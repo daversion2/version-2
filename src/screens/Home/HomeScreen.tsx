@@ -712,6 +712,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               pace={pace}
               accentColor={getPracticeColor(habit)}
               onPress={() => handleHabitTap(habit)}
+              onQuickLog={() => handleHabitLogIt(habit)}
               onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
             />
           );

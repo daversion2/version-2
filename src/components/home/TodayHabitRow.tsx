@@ -9,8 +9,19 @@ interface Props {
   name: string;
   pace: HabitPace;
   accentColor?: string;
-  /** Primary action — log this habit. */
+  /**
+   * The row body. For a habit with a session flow this starts the guided
+   * Ready → Go → Capture run; for everything else it opens the same capture
+   * sheet the tick does.
+   */
   onPress: () => void;
+  /**
+   * "Yep, done." Straight to the compact capture sheet — one screen, resistance
+   * required, any template metrics optional. This is the fast path, and for a
+   * habit tracker it is the one people use most, so it gets its own target
+   * rather than living behind the guided flow.
+   */
+  onQuickLog: () => void;
   /**
    * Secondary action. Currently opens the habit's detail page, which is where
    * edit and history live. Intended to become a proper overflow menu once a
@@ -44,6 +55,7 @@ export const TodayHabitRow: React.FC<Props> = ({
   pace,
   accentColor = Colors.primary,
   onPress,
+  onQuickLog,
   onDetails,
 }) => {
   const { target, completed, status, lastResistance, doneToday } = pace;
@@ -119,6 +131,19 @@ export const TodayHabitRow: React.FC<Props> = ({
         </View>
       </View>
 
+      {/* The fast path. Deliberately the largest, right-most target — it is the
+          action people take most, and on a habit tracker it should never be
+          more than one tap away. */}
+      <TouchableOpacity
+        onPress={onQuickLog}
+        hitSlop={8}
+        style={[styles.doneBtn, { borderColor: accentColor }]}
+        accessibilityRole="button"
+        accessibilityLabel={`Mark ${name} done`}
+      >
+        <Ionicons name="checkmark" size={20} color={accentColor} />
+      </TouchableOpacity>
+
       <TouchableOpacity
         onPress={onDetails}
         hitSlop={12}
@@ -168,5 +193,14 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', flexWrap: 'wrap' },
   status: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.primary },
   resistance: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
-  menuBtn: { padding: Spacing.sm },
+  doneBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: Spacing.sm,
+  },
+  menuBtn: { paddingHorizontal: Spacing.xs, paddingVertical: Spacing.sm },
 });
