@@ -17,7 +17,7 @@ interface Props {
  * Deliberately not streaks or points: attendance was the old headline.
  */
 export const TodayHero: React.FC<Props> = ({ glance, name }) => {
-  const { onPace, total, atRisk } = glance;
+  const { onPace, total, behind } = glance;
 
   if (total === 0) {
     return (
@@ -39,9 +39,9 @@ export const TodayHero: React.FC<Props> = ({ glance, name }) => {
       <Text style={styles.sub}>
         {allGood
           ? 'Everything is where it should be.'
-          : atRisk > 0
-            ? `${atRisk} can’t reach its target this week.`
-            : 'The ones needing attention are at the top.'}
+          : behind === 1
+            ? 'One is behind — it’s at the top.'
+            : `${behind} are behind — they’re at the top.`}
       </Text>
     </View>
   );

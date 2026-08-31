@@ -12,7 +12,7 @@ import { logResistance } from '../constants/resistance';
 // screen, so it needs to be provable rather than eyeballed.
 // =============================================================================
 
-export type PaceStatus = 'done' | 'on_pace' | 'behind' | 'at_risk';
+export type PaceStatus = 'done' | 'on_pace' | 'behind';
 
 export interface HabitPace {
   habitId: string;
@@ -27,6 +27,12 @@ export interface HabitPace {
   /** Days left in the week INCLUDING today. */
   daysLeft: number;
   status: PaceStatus;
+  /**
+   * How pressing this is, for ordering within 'behind': reps still needed per
+   * day remaining. Higher sorts first. Purely a sort key — it never claims the
+   * target is unreachable, because a habit can be done more than once a day.
+   */
+  urgency: number;
   /** Most recent resistance rating for this habit, if any has been recorded. */
   lastResistance?: number;
   /** Logged today already? Drives the row's done state. */
@@ -64,34 +70,34 @@ export const dayIndexInWeek = (dateStr: string): number => {
  * evening for the crime of not having done 0.57 of a rep, and the whole screen
  * would read as failure every Monday morning.
  *
- * 'at_risk' is the sharper state: there are no longer enough days left in the
- * week to reach the target even doing it every remaining day. That is a fact,
- * not a projection, which is why it outranks 'behind'.
+ * There is deliberately NO "can't reach the target" state. It would have to
+ * assume a habit can be done at most once a day, which is not true — someone
+ * three short on Saturday can do three on Sunday. Being further behind changes
+ * how urgently the row sorts, never whether the week is still winnable.
  */
 export const classifyPace = (
   target: number,
   completed: number,
   todayStr: string
-): { status: PaceStatus; remaining: number; daysLeft: number } => {
+): { status: PaceStatus; remaining: number; daysLeft: number; urgency: number } => {
   const remaining = Math.max(0, target - completed);
   const dayIndex = dayIndexInWeek(todayStr);
   const daysLeft = 7 - dayIndex + 1; // includes today
+  const urgency = remaining / Math.max(1, daysLeft);
 
-  if (remaining === 0) return { status: 'done', remaining, daysLeft };
-  if (remaining > daysLeft) return { status: 'at_risk', remaining, daysLeft };
+  if (remaining === 0) return { status: 'done', remaining, daysLeft, urgency: 0 };
 
   const expected = (target * dayIndex) / 7;
   // A full rep behind, not a fraction of one.
   const status: PaceStatus = completed + 1 <= expected ? 'behind' : 'on_pace';
-  return { status, remaining, daysLeft };
+  return { status, remaining, daysLeft, urgency };
 };
 
 /** Sort weight — the order Today uses. Lower sorts first. */
 const STATUS_ORDER: Record<PaceStatus, number> = {
-  at_risk: 0,
-  behind: 1,
-  on_pace: 2,
-  done: 3,
+  behind: 0,
+  on_pace: 1,
+  done: 2,
 };
 
 /**
@@ -117,7 +123,7 @@ export const buildTodayList = (
       const doneDates = [...new Set(inWeek.map((l) => l.date))].sort();
       const target = habit.target_count_per_week ?? 0;
       const completed = doneDates.length;
-      const { status, remaining, daysLeft } = classifyPace(target, completed, todayStr);
+      const { status, remaining, daysLeft, urgency } = classifyPace(target, completed, todayStr);
 
       // Most recent rating across ALL history, not just this week — a habit you
       // last did a fortnight ago should still show what it felt like.
@@ -135,6 +141,7 @@ export const buildTodayList = (
         remaining,
         daysLeft,
         status,
+        urgency,
         lastResistance: rated.length ? rated[rated.length - 1] : undefined,
         doneToday: doneDates.includes(todayStr),
       };
@@ -142,8 +149,9 @@ export const buildTodayList = (
     .sort((a, b) => {
       const byStatus = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
       if (byStatus !== 0) return byStatus;
-      // Within a status, the one needing most work first.
-      return b.remaining - a.remaining;
+      // Within a status, the most pressing first — reps needed per day left,
+      // then raw reps outstanding as a tiebreak.
+      return b.urgency - a.urgency || b.remaining - a.remaining;
     });
 };
 
@@ -151,13 +159,13 @@ export interface WeekGlance {
   /** Habits meeting or ahead of pace, including finished ones. */
   onPace: number;
   total: number;
-  /** Habits that can no longer reach target this week. */
-  atRisk: number;
+  /** Habits currently behind pace. */
+  behind: number;
 }
 
 /** The hero line: how many habits are on pace this week. */
 export const buildWeekGlance = (paces: HabitPace[]): WeekGlance => ({
   onPace: paces.filter((p) => p.status === 'on_pace' || p.status === 'done').length,
   total: paces.length,
-  atRisk: paces.filter((p) => p.status === 'at_risk').length,
+  behind: paces.filter((p) => p.status === 'behind').length,
 });

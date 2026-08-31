@@ -19,8 +19,9 @@ interface Props {
   onDetails: () => void;
 }
 
+// No "can't reach it" state: a habit can be done more than once in a day, so
+// being several short late in the week is behind, not impossible.
 const STATUS_COPY: Record<HabitPace['status'], string | null> = {
-  at_risk: 'Can’t reach the target this week',
   behind: 'Behind pace',
   on_pace: null,
   done: 'Target hit',
@@ -88,7 +89,7 @@ export const TodayHabitRow: React.FC<Props> = ({
             <Text
               style={[
                 styles.status,
-                status === 'at_risk' && { color: Colors.secondary },
+                status === 'behind' && { color: Colors.secondary },
                 status === 'done' && { color: Colors.gray },
               ]}
             >

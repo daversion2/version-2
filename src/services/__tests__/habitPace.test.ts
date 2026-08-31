@@ -73,16 +73,21 @@ describe('classifyPace', () => {
     expect(classifyPace(4, 2, WED).status).toBe('on_pace');
   });
 
-  it('reports at risk when the maths no longer works', () => {
-    // Sunday, 1 day left, still 3 to go — not a projection, a fact.
+  it('never claims a target is unreachable, however late in the week', () => {
+    // Sunday, 1 day left, 3 still to go. A habit can be done more than once a
+    // day, so this is behind — not impossible.
     const result = classifyPace(4, 1, SUN);
-    expect(result.status).toBe('at_risk');
+    expect(result.status).toBe('behind');
     expect(result.daysLeft).toBe(1);
     expect(result.remaining).toBe(3);
   });
 
-  it('prefers at_risk over behind when both would apply', () => {
-    expect(classifyPace(7, 0, SAT).status).toBe('at_risk');
+  it('rates a habit needing more per remaining day as more urgent', () => {
+    // Urgency orders the list; it never gates whether the week is winnable.
+    const tight = classifyPace(7, 0, SAT);
+    const loose = classifyPace(7, 0, MON);
+    expect(tight.status).toBe('behind');
+    expect(tight.urgency).toBeGreaterThan(loose.urgency);
   });
 
   it('counts days left inclusive of today', () => {
@@ -114,18 +119,20 @@ describe('buildTodayList', () => {
     expect(list[0].completed).toBe(1);
   });
 
-  it('sorts at risk, then behind, then on pace, then done', () => {
+  it('sorts behind first, then on pace, then done', () => {
     const list = buildTodayList(
       [
         habit({ id: 'done', target_count_per_week: 1 }),
-        habit({ id: 'atRisk', target_count_per_week: 7 }),
+        habit({ id: 'veryBehind', target_count_per_week: 7 }),
         habit({ id: 'behind', target_count_per_week: 4 }),
         habit({ id: 'onPace', target_count_per_week: 2 }),
       ],
       [log('done', MON), log('onPace', MON)],
       SAT
     );
-    expect(list.map((p) => p.habitId)).toEqual(['atRisk', 'behind', 'onPace', 'done']);
+    // The most pressing behind habit leads, but nothing is written off.
+    expect(list.map((p) => p.habitId)).toEqual(['veryBehind', 'behind', 'onPace', 'done']);
+    expect(list.map((p) => p.status)).toEqual(['behind', 'behind', 'on_pace', 'done']);
   });
 
   it('surfaces the most recent resistance rating, across all history', () => {
@@ -176,9 +183,10 @@ describe('buildWeekGlance', () => {
     const glance = buildWeekGlance(list);
     expect(glance.total).toBe(3);
     expect(glance.onPace).toBe(2);
+    expect(glance.behind).toBe(1);
   });
 
   it('reports zero of zero without dividing by anything', () => {
-    expect(buildWeekGlance([])).toEqual({ onPace: 0, total: 0, atRisk: 0 });
+    expect(buildWeekGlance([])).toEqual({ onPace: 0, total: 0, behind: 0 });
   });
 });
