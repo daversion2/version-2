@@ -59,7 +59,8 @@
 - [ ] **Firestore security rules** — with real users, rules are the only thing stopping one user reading/writing another's data. Audit before promoting.
 - [ ] **Composite indexes** deployed (`firestore.indexes.json`) so prod queries don't fail.
 - [ ] Sign-up, Google Sign-In, Sign Out, and **Clear Account** all work.
-- [ ] Account deletion actually removes data (App Store requirement).
+- [ ] Account deletion actually removes data (App Store + Google Play requirement). Settings → Delete Account calls the `deleteAccount` Cloud Function, which recursively deletes `users/{uid}` and then the Auth record. Verify end-to-end on a throwaway account before shipping.
+- [ ] Web deletion-request page reachable without login (Google Play *User Data - Account Deletion*): `hosting/delete-account.html`, deployed via `firebase deploy --only hosting`. The URL in Play Console → Data safety must point at it — the old Bubble URL `neuronudge.us/?page=Settings` is dead and triggered a policy warning.
 
 ## 8. Store / distribution readiness
 

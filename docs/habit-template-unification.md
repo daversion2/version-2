@@ -227,3 +227,78 @@ D5 makes this substantially cheaper than originally scoped — no live data to p
 - **Content quality is the product.** D4 makes 29 science sections a blocking
   deliverable. If they end up thin or generic, the merge succeeds and the positioning
   still fails — this is the thing to protect.
+
+---
+
+# DECISIONS LOG — made during the build
+
+Recorded per the "decide and document" instruction. Each of these was a fork not
+covered by D1–D5.
+
+**1. Kept the `practiceCatalog` collection name and `practices.ts` filename.**
+D2 selected "Everything" (catalog reach), not the rename option. Renaming would
+have churned ~20 import sites for no functional gain. The TYPES are renamed
+(`HabitDefinition`), which is where the confusion actually lived.
+
+**2. Deduped 6 overlapping habits instead of authoring science three times.**
+`move-20min` / `trad-exercise` → `movement`; `morning-meditation` /
+`trad-meditate` → `meditation`; `breathing-break` → `breathwork`;
+`trad-budget` → `log-the-spend`. `SUPERSEDED_HABIT_IDS` keeps the retired ids
+resolving so no adopted habit is orphaned. This also corrected the content count:
+it was 42 habits needing science, not the 29 quoted when D4 was decided.
+
+**3. Corrected practice count: 9, not 13.** The earlier figure counted the 4
+PracticeGroup definitions as practices.
+
+**4. Resistance is a NEW field, not a widened `difficulty`.** Legacy logs store
+1 or 2 in `difficulty`; a legacy 2 ("hard") and a new 2 ("trivial") would be
+indistinguishable and every historical trend would invert. `difficulty` is still
+derived and written on every log so streaks and XP are untouched.
+
+**5. Scale is 1–10, and starts unanswered.** A defaulted rating would poison the
+trend it exists to draw, so the Log button stays disabled until the user answers.
+
+**6. Science content lives in an overlay** (`data/habitScience.ts`) keyed by id
+rather than inlined, so writing can be revised without touching habit structure.
+
+**7. Citation policy: verified or absent.** Four citations were looked up and
+used. Where a mechanism is established but no specific study was verified, the
+entry ships prose and no `research` array. The "brain drain" smartphone study
+was deliberately excluded — widely quoted, but it failed to replicate.
+
+**8. `getDefaultSeedPractices` scoped to session-bearing habits.** Merging the
+library into the catalog would otherwise have seeded ~45 habits onto every new
+user's home screen. Covered by test.
+
+**9. `fetchPracticeCatalog` merges against the full catalog.** It iterated
+`BUNDLED_PRACTICES`, which would have emptied the library one second after
+startup once the remote load completed. Covered by test.
+
+**10. Adopting a habit writes `practice_id`.** Without it the adopted habit
+resolved to nothing and lost its template, session flow and science page.
+
+---
+
+# NOT DONE — remaining work
+
+- **Admin template builder UI.** The validator, the data model (`TrackingField`
+  with `scale`/`record`, `HabitDefinition.dose`) and the widened seeder are all
+  in. The admin editor still exposes the original field set, so templates and
+  dose config are not yet editable from the panel — they are editable in code.
+- **Custom-habit template picker UI (D3).** Fully built at the data layer
+  (`data/habitTemplates.ts`, `PracticeInstance.template_id`, capture-flow
+  `tracking` prop, tests). It has no host screen: custom habit creation was
+  removed from the app before this work started, so there is nothing to attach
+  the picker to. Restoring that creation flow is its own task.
+- **Firestore reseed not executed.** `seedPracticeCatalogFromBundled()` now
+  covers all 45 definitions, but it runs through the in-app admin action (the
+  project's established pattern for content seeding) rather than a CLI script,
+  and no service-account credentials were introduced to do it headlessly.
+  Run it from Admin when ready. The app works from the bundled catalog until then.
+- **Old screens still routed.** `PracticesScreen` and `TraditionalHabitsScreen`
+  remain in the navigator. They are superseded by the merged library but were
+  left in place rather than removed blind.
+- **Tab restructure** (Today / Library / Progress / Settings) and retiring
+  Challenges / Programs / Craving Crusher — explicitly out of scope for this run.
+- **Visual QA.** Not possible unattended. The merged library and detail screens
+  compile and are covered by data-level tests, but no one has looked at them.

@@ -3,6 +3,14 @@
 
 
 
+## Training Unlock
+When someone unlocks training they don't see the celebration, it happens as soon as they log it (no celebration)
+
+
+## Points doubling
+Why do points double sometimes and other times not?
+
+
 
 ## Challenges
 
