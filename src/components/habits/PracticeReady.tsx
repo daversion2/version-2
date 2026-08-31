@@ -43,7 +43,17 @@ export const PracticeReady: React.FC<Props> = ({ practice, mindPattern, onBegin,
   const ready = practice.ready;
   if (!ready) return null;
 
-  const ctaLabel = ready.handoffCta ?? 'Begin';
+  /**
+   * Always "Log it" — never the catalog's `handoffCta` ("Begin", "Put your
+   * phone down").
+   *
+   * This screen is now briefing CONTENT rather than the front of a guided
+   * session: it explains the habit and offers Learn more, and its button drops
+   * straight into the same single-screen capture the row's tick opens. A
+   * "Begin" here would promise a stepped run that no longer follows, and would
+   * make reading about a habit feel like committing to doing it right now.
+   */
+  const ctaLabel = 'Log it';
 
   return (
     <View style={styles.screen}>

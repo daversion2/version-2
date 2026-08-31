@@ -412,27 +412,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleHabitTap = useCallback(
-    (habit: PracticeInstance) => {
-      // Start: curated practices with a briefing run the forward Ready → Go →
-      // Capture flow (hosted in this stack, so it returns to Home when done).
-      // Everything else opens the capture modal, timer included where relevant.
-      const practice = getPractice(habit.practice_id);
-      if (practice?.ready) {
-        navigation.navigate('PracticeSession', {
-          practiceId: practice.id,
-          habitId: habit.id,
-          habitName: habit.name,
-        });
-        return;
-      }
-      setCompletingLogOnly(false);
-      setCompletingDate(undefined);
-      setCompletingHabit(habit);
-    },
-    [navigation]
-  );
-
   // "I already did it" — the same capture modal for every practice, briefing
   // and session beat skipped. Which flow you get is now the user's choice
   // rather than a function of whether the catalog carries briefing content.
@@ -442,6 +421,27 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setCompletingDate(date);
     setCompletingHabit(habit);
   }, []);
+
+  const handleHabitTap = useCallback(
+    (habit: PracticeInstance) => {
+      // Tapping a habit is a request for INFORMATION, not a commitment to do it
+      // right now. Habits with briefing content open that briefing — what it is,
+      // what will try to stop you, Learn more — and its button logs. Habits with
+      // no briefing have nothing to show, so they go straight to the same
+      // single-screen capture the tick opens.
+      //
+      // The stepped Ready → Go → Capture session is no longer reached from here.
+      // One capture experience, two ways in.
+      const practice = getPractice(habit.practice_id);
+      if (practice?.ready) {
+        setBriefingHabit(habit);
+        return;
+      }
+      handleHabitLogIt(habit);
+    },
+    [handleHabitLogIt]
+  );
+
 
   const handleHabitBriefing = useCallback((habit: PracticeInstance) => {
     setBriefingHabit(habit);
@@ -821,15 +821,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         practiceId={briefingHabit?.practice_id}
         habitId={briefingHabit?.id}
         userId={user?.uid}
+        // "Log it" — the briefing's button drops into the SAME single-screen
+        // capture the row's tick opens, rather than starting a stepped session.
+        // One capture experience however you got there.
         onStart={() => {
           const habit = briefingHabit;
           setBriefingHabit(null);
-          if (!habit?.practice_id) return;
-          navigation.navigate('PracticeSession', {
-            practiceId: habit.practice_id,
-            habitId: habit.id,
-            habitName: habit.name,
-          });
+          if (habit) handleHabitLogIt(habit);
         }}
         onLearn={() => {
           const practiceId = briefingHabit?.practice_id;
