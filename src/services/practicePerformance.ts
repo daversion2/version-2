@@ -1,6 +1,7 @@
 import { CompletionLog } from '../types';
 import { Practice, TrackingField } from '../data/practices';
 import { getMindTagLabel } from '../data/mindTags';
+import { logResistance } from '../constants/resistance';
 
 // =============================================================================
 // PRACTICE PERFORMANCE — per-practice detailed reporting for the practice
@@ -79,10 +80,29 @@ export interface PerformanceInsight {
   text: string;
 }
 
+/**
+ * The headline metric: how this habit's resistance has moved over time.
+ * "Cold showers were an 8 in March. They're a 3 now." — this is the number the
+ * product exists to show falling.
+ */
+export interface ResistanceTrend {
+  /** Weekly mean resistance, oldest → newest. null = nothing rated that week. */
+  weekly: (number | null)[];
+  /** Mean of the earliest rated logs, once there are enough to compare. */
+  firstAvg: number | null;
+  /** Mean of the most recent rated logs. */
+  recentAvg: number;
+  /** recentAvg − firstAvg. NEGATIVE means resistance is falling, which is the win. */
+  change: number | null;
+  /** How many logs carried a rating at all. */
+  rated: number;
+}
+
 export interface PracticePerformance {
   loggedSessions: number;
   insights: PerformanceInsight[];
   primaryTrend: MetricTrend | null;
+  resistanceTrend: ResistanceTrend | null;
   weeklyDose: WeeklyDose | null;
   weeklyChallenging: WeeklyRate[] | null;
   choiceBreakdowns: ChoiceBreakdown[];
@@ -107,55 +127,12 @@ const MIN_TAG_COUNT_INSIGHT = 5;
 const MIN_DOSE_SESSIONS = 3;
 const WEEKS = 8;
 
-// ---- Per-practice config overlay (everything else is derived generically) ----
-
-interface DoseConfig {
-  durationKey: string;
-  tempKey: string;
-  /** Dose = minutes × degrees past this baseline (below it for cold, above for heat). */
-  baseline: number;
-  direction: 'below' | 'above';
-  title: string;
-  description: string;
-}
-
-const DOSE_CONFIGS: Record<string, DoseConfig> = {
-  cold_exposure: {
-    durationKey: 'duration_min',
-    tempKey: 'water_temp_f',
-    baseline: 60,
-    direction: 'below',
-    title: 'Weekly Cold Dose',
-    description: 'Intensity score: minutes × degrees below 60°F',
-  },
-  heat_exposure: {
-    durationKey: 'duration_min',
-    tempKey: 'temp_f',
-    baseline: 120,
-    direction: 'above',
-    title: 'Weekly Heat Dose',
-    description: 'Intensity score: minutes × degrees above 120°F',
-  },
-};
-
-interface RecordOverride {
-  label?: string;
-  icon?: string;
-  /** For number fields: which extreme is the record. Defaults to 'max'. */
-  pick?: 'max' | 'min';
-}
-
-const RECORD_OVERRIDES: Record<string, Record<string, RecordOverride>> = {
-  meditation: { duration_min: { label: 'Longest sit', icon: 'flower-outline' } },
-  cold_exposure: {
-    duration_min: { label: 'Longest plunge', icon: 'timer-outline' },
-    water_temp_f: { label: 'Coldest plunge', icon: 'snow-outline', pick: 'min' },
-  },
-  heat_exposure: {
-    duration_min: { label: 'Longest session', icon: 'timer-outline' },
-    temp_f: { label: 'Hottest session', icon: 'flame-outline' },
-  },
-};
+// ---- Phase 3: the per-practice config overlay is gone -----------------------
+//
+// Dose scoring and record labels used to live here as two maps keyed by practice
+// id, which meant every new habit with interesting metrics needed a code change.
+// They are now data: `HabitDefinition.dose` and `TrackingField.record`. See
+// docs/habit-template-unification.md.
 
 // ---- Date helpers (local-time, matching getHabitStats' week bucketing) ----
 
@@ -227,8 +204,11 @@ export const buildPracticePerformance = (
   const fields = practice?.tracking || [];
 
   // ---- Primary metric trend (first duration field, else first number field) ----
+  // 'scale' last, so a habit whose only metric is a grade still gets a trend line.
   const primaryField =
-    fields.find((f) => f.type === 'duration') || fields.find((f) => f.type === 'number');
+    fields.find((f) => f.type === 'duration') ||
+    fields.find((f) => f.type === 'number') ||
+    fields.find((f) => f.type === 'scale');
   let primaryTrend: MetricTrend | null = null;
   let primarySeries: MetricPoint[] = [];
   if (primaryField) {
@@ -246,13 +226,13 @@ export const buildPracticePerformance = (
     }
   }
 
-  // ---- Weekly dose (cold / heat exposure) ----
+  // ---- Weekly dose — driven by the habit's own `dose` config (Phase 3) ----
   let weeklyDose: WeeklyDose | null = null;
-  const doseConfig = practice ? DOSE_CONFIGS[practice.id] : undefined;
+  const doseConfig = practice?.dose;
   if (doseConfig) {
     const doseOf = (l: CompletionLog): number | null => {
       const mins = l.metrics?.[doseConfig.durationKey];
-      const temp = l.metrics?.[doseConfig.tempKey];
+      const temp = l.metrics?.[doseConfig.magnitudeKey];
       if (typeof mins !== 'number' || typeof temp !== 'number') return null;
       const degrees =
         doseConfig.direction === 'below' ? doseConfig.baseline - temp : temp - doseConfig.baseline;
@@ -273,6 +253,33 @@ export const buildPracticePerformance = (
         weeklyDose = { values, title: doseConfig.title, description: doseConfig.description };
       }
     }
+  }
+
+  // ---- Resistance trend (the headline metric) ----
+  // Reads through logResistance(), so pre-scale logs still plot via their legacy
+  // binary rather than leaving a hole in the middle of the curve.
+  const resistanceSeries = sorted
+    .map((l) => ({ date: l.date, value: logResistance(l) }))
+    .filter((p): p is { date: string; value: number } => typeof p.value === 'number');
+
+  let resistanceTrend: ResistanceTrend | null = null;
+  if (resistanceSeries.length >= MIN_TREND_SESSIONS) {
+    const weekly = weeks.map((w) => {
+      const inWeek = resistanceSeries.filter((p) => p.date >= w.start && p.date <= w.end);
+      return inWeek.length ? round1(avg(inWeek.map((p) => p.value))) : null;
+    });
+    const recentAvg = round1(avg(resistanceSeries.slice(-5).map((p) => p.value)));
+    const firstAvg =
+      resistanceSeries.length >= MIN_PROGRESS_SESSIONS
+        ? round1(avg(resistanceSeries.slice(0, 5).map((p) => p.value)))
+        : null;
+    resistanceTrend = {
+      weekly,
+      firstAvg,
+      recentAvg,
+      change: firstAvg === null ? null : round1(recentAvg - firstAvg),
+      rated: resistanceSeries.length,
+    };
   }
 
   // ---- Weekly challenging % (every practice rates difficulty on each rep) ----
@@ -344,13 +351,13 @@ export const buildPracticePerformance = (
 
   // ---- Records ----
   const records: PerformanceRecord[] = [];
-  const overrides = practice ? RECORD_OVERRIDES[practice.id] || {} : {};
 
   for (const field of fields) {
     if (field.type === 'choice') continue;
     const series = numericValues(sorted, field.key);
     if (series.length === 0) continue;
-    const override = overrides[field.key] || {};
+    // Record presentation now travels with the field itself (Phase 3).
+    const override = field.record ?? {};
     const pick = field.type === 'duration' ? 'max' : override.pick || 'max';
     const best = series.reduce((a, b) =>
       pick === 'max' ? (b.value >= a.value ? b : a) : b.value <= a.value ? b : a
@@ -394,6 +401,20 @@ export const buildPracticePerformance = (
 
   // ---- Insights (each gated; max 3, in priority order) ----
   const insights: PerformanceInsight[] = [];
+
+  // 0. Resistance — the headline. Leads the list when there's enough history,
+  // because a falling resistance number is the single most persuasive thing the
+  // app can tell someone. Threshold of 1 full point avoids celebrating noise.
+  if (resistanceTrend && resistanceTrend.change !== null && Math.abs(resistanceTrend.change) >= 1) {
+    const falling = resistanceTrend.change < 0;
+    insights.push({
+      tone: falling ? 'progress' : 'nudge',
+      icon: falling ? 'trending-down-outline' : 'trending-up-outline',
+      text: falling
+        ? `This started at ${resistanceTrend.firstAvg}/10 and now sits at ${resistanceTrend.recentAvg}/10. It is genuinely getting easier to start.`
+        : `Starting this has gotten harder — ${resistanceTrend.firstAvg}/10 then, ${resistanceTrend.recentAvg}/10 now. Worth asking what changed.`,
+    });
+  }
 
   // 1. Progress: first 5 vs last 5 metric-bearing sessions.
   if (primaryTrend && primaryTrend.firstAvg !== null && primaryTrend.firstAvg > 0) {
@@ -455,6 +476,7 @@ export const buildPracticePerformance = (
     loggedSessions: sorted.length,
     insights: insights.slice(0, 3),
     primaryTrend,
+    resistanceTrend,
     weeklyDose,
     weeklyChallenging,
     choiceBreakdowns,

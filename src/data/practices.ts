@@ -444,7 +444,11 @@ export const BUNDLED_PRACTICES: Practice[] = [
       handoffCta: 'Begin',
     },
     tracking: [
-      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 60, step: 1, default: 10 },
+      {
+        key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min',
+        min: 1, max: 60, step: 1, default: 10,
+        record: { label: 'Longest sit', icon: 'flower-outline' },
+      },
       {
         key: 'technique',
         label: 'Technique',
@@ -709,9 +713,26 @@ export const BUNDLED_PRACTICES: Practice[] = [
       handoffCta: 'Begin',
     },
     tracking: [
-      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 1, max: 12, step: 1, default: 2 },
-      { key: 'water_temp_f', label: 'Water temp', type: 'number', unit: '°F', min: 33, max: 70, step: 1, default: 50 },
+      {
+        key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min',
+        min: 1, max: 12, step: 1, default: 2,
+        record: { label: 'Longest plunge', icon: 'timer-outline' },
+      },
+      {
+        key: 'water_temp_f', label: 'Water temp', type: 'number', unit: '°F',
+        min: 33, max: 70, step: 1, default: 50,
+        // Colder is the achievement, so the record is the minimum.
+        record: { label: 'Coldest plunge', icon: 'snow-outline', pick: 'min' },
+      },
     ],
+    dose: {
+      durationKey: 'duration_min',
+      magnitudeKey: 'water_temp_f',
+      baseline: 60,
+      direction: 'below',
+      title: 'Weekly Cold Dose',
+      description: 'Intensity score: minutes × degrees below 60°F',
+    },
   },
   {
     id: 'heat_exposure',
@@ -769,9 +790,25 @@ export const BUNDLED_PRACTICES: Practice[] = [
       handoffCta: 'Begin',
     },
     tracking: [
-      { key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min', min: 5, max: 45, step: 5, default: 15 },
-      { key: 'temp_f', label: 'Temp', type: 'number', unit: '°F', min: 120, max: 220, step: 5, default: 170 },
+      {
+        key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min',
+        min: 5, max: 45, step: 5, default: 15,
+        record: { label: 'Longest session', icon: 'timer-outline' },
+      },
+      {
+        key: 'temp_f', label: 'Temp', type: 'number', unit: '°F',
+        min: 120, max: 220, step: 5, default: 170,
+        record: { label: 'Hottest session', icon: 'flame-outline' },
+      },
     ],
+    dose: {
+      durationKey: 'duration_min',
+      magnitudeKey: 'temp_f',
+      baseline: 120,
+      direction: 'above',
+      title: 'Weekly Heat Dose',
+      description: 'Intensity score: minutes × degrees above 120°F',
+    },
   },
   // ---- Restrain ----
   {

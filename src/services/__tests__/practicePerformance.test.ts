@@ -327,3 +327,102 @@ describe('buildPracticePerformance', () => {
     expect(perf.records.some((r) => r.label === 'Best week')).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Phase 3: resistance trend + config-driven dose/records.
+// See docs/habit-template-unification.md.
+// ---------------------------------------------------------------------------
+
+/** n logs on consecutive days ending today, carrying a resistance rating. */
+const resistanceSeries = (values: (number | undefined)[]): CompletionLog[] =>
+  values.map((v, i) => {
+    const d = new Date(`${TODAY}T00:00:00`);
+    d.setDate(d.getDate() - (values.length - 1 - i));
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`;
+    return makeLog({ date, ...(v === undefined ? {} : { resistance: v }) });
+  });
+
+describe('resistance trend', () => {
+  it('is null below the minimum number of rated logs', () => {
+    const perf = buildPracticePerformance(resistanceSeries([8, 7]), meditation, TODAY);
+    expect(perf.resistanceTrend).toBeNull();
+  });
+
+  it('reports a falling trend as a negative change', () => {
+    // 10 logs: starts hard (8s), ends easy (2s).
+    const perf = buildPracticePerformance(
+      resistanceSeries([8, 8, 8, 8, 8, 3, 3, 2, 2, 2]),
+      meditation,
+      TODAY
+    );
+    const trend = perf.resistanceTrend!;
+    expect(trend.rated).toBe(10);
+    expect(trend.firstAvg).toBe(8);
+    expect(trend.recentAvg).toBeCloseTo(2.4, 1);
+    expect(trend.change).toBeLessThan(0);
+  });
+
+  it('leaves change null until there is enough history to compare', () => {
+    const perf = buildPracticePerformance(resistanceSeries([7, 6, 5]), meditation, TODAY);
+    expect(perf.resistanceTrend!.change).toBeNull();
+  });
+
+  it('excludes unrated logs rather than counting them as zero', () => {
+    const perf = buildPracticePerformance(
+      resistanceSeries([9, undefined, 9, undefined, 9]),
+      meditation,
+      TODAY
+    );
+    // difficulty defaults to 1 on the unrated logs, which maps to a legacy 3.
+    expect(perf.resistanceTrend!.rated).toBe(5);
+  });
+
+  it('leads the insight list when resistance has moved a full point', () => {
+    const perf = buildPracticePerformance(
+      resistanceSeries([9, 9, 9, 9, 9, 2, 2, 2, 2, 2]),
+      meditation,
+      TODAY
+    );
+    expect(perf.insights[0].tone).toBe('progress');
+    expect(perf.insights[0].text).toContain('getting easier to start');
+  });
+
+  it('flags a habit that is getting harder rather than staying silent', () => {
+    const perf = buildPracticePerformance(
+      resistanceSeries([2, 2, 2, 2, 2, 9, 9, 9, 9, 9]),
+      meditation,
+      TODAY
+    );
+    expect(perf.insights[0].tone).toBe('nudge');
+    expect(perf.insights[0].text).toContain('harder');
+  });
+
+  it('plots legacy logs through their binary difficulty so history has no hole', () => {
+    const legacy = resistanceSeries([undefined, undefined, undefined]).map((l) => ({
+      ...l,
+      difficulty: 2,
+    }));
+    const perf = buildPracticePerformance(legacy, meditation, TODAY);
+    // 'challenging' maps to 7 — see legacyDifficultyToResistance.
+    expect(perf.resistanceTrend!.recentAvg).toBe(7);
+  });
+});
+
+describe('config-driven dose (Phase 3)', () => {
+  it('reads the dose config off the habit definition, not a hardcoded map', () => {
+    expect(cold!.dose).toBeDefined();
+    expect(cold!.dose!.magnitudeKey).toBe('water_temp_f');
+    expect(cold!.dose!.direction).toBe('below');
+  });
+
+  it('carries record presentation on the tracking field itself', () => {
+    const tempField = cold!.tracking!.find((f) => f.key === 'water_temp_f');
+    expect(tempField!.record).toEqual({
+      label: 'Coldest plunge',
+      icon: 'snow-outline',
+      pick: 'min',
+    });
+  });
+});
