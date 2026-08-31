@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeStackParamList } from '../types/navigation';
 import { HomeScreen } from '../screens/Home/HomeScreen';
@@ -58,7 +59,7 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="HomeScreen"
       component={HomeScreen}
-      options={{
+      options={({ navigation }) => ({
         title: 'Home',
         // Render the logo in the header's background layer, pinned to the
         // bottom-left corner. This keeps it out of the headerLeft bar-button
@@ -68,7 +69,21 @@ export const HomeStack: React.FC = () => (
             <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
           </View>
         ),
-      }}
+        // The library's only entry point. Until this existed the merged library
+        // was unreachable from anywhere in the running app: the sole "Browse
+        // Library" button lived on ManageHabits, and nothing navigated there
+        // except the library's own detail screen (circular) and a rules CTA.
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('HabitLibrary')}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Browse the habit library"
+          >
+            <Ionicons name="library-outline" size={22} color={Colors.primary} />
+          </TouchableOpacity>
+        ),
+      })}
     />
     <Stack.Screen
       name="StartChallenge"
