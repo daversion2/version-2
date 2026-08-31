@@ -726,6 +726,42 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         )}
 
+        {/*
+          Close out the day. Answers a different question from the habit rows:
+          resistance is per-habit and mechanical, this is per-day and
+          interpretive, so they don't compete.
+
+          ALWAYS visible, unlike the old version which only appeared after 5pm
+          and only if you hadn't reflected. That gate made it a surprise element
+          — fine when it lived inside a collapsible "Also today" section, wrong
+          for the only route to a feature. Progress renders a weekly card from
+          this data, so it needs a visible source.
+        */}
+        <TouchableOpacity
+          style={styles.utilityCard}
+          onPress={() => navigation.navigate('NightlyReflection')}
+          activeOpacity={0.85}
+        >
+          <Ionicons
+            name={reflectedToday ? 'checkmark-circle' : 'moon-outline'}
+            size={20}
+            color={reflectedToday ? Colors.primary : Colors.gray}
+          />
+          <View style={styles.utilityText}>
+            <Text style={styles.utilityTitle}>
+              {reflectedToday ? 'Today’s reflection' : 'Close out the day'}
+            </Text>
+            <Text style={styles.utilitySubtitle}>
+              {reflectedToday
+                ? todaysGrade
+                  ? `You graded today a ${todaysGrade}. Tap to review.`
+                  : 'Saved. Tap to review.'
+                : 'How did today actually go?'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+        </TouchableOpacity>
+
         {/* Craving Crusher — an in-the-moment tool, kept below the habits. */}
         <TouchableOpacity
           style={styles.utilityCard}
