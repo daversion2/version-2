@@ -1,5 +1,4 @@
 import { CompletionLog, PracticeInstance } from '../types';
-import { logResistance } from '../constants/resistance';
 
 // =============================================================================
 // HABIT PACE — "am I on track for this week's target?"
@@ -39,8 +38,6 @@ export interface HabitPace {
    * target is unreachable, because a habit can be done more than once a day.
    */
   urgency: number;
-  /** Most recent resistance rating for this habit, if any has been recorded. */
-  lastResistance?: number;
   /** Logged today already? Drives the row's done state. */
   doneToday: boolean;
 }
@@ -127,20 +124,14 @@ export const buildTodayList = (
   return habits
     .filter((h) => h.is_active)
     .map((habit) => {
-      const mine = logs.filter((l) => l.reference_id === habit.id);
-      const inWeek = mine.filter((l) => l.date >= weekStart && l.date <= weekEnd);
+      const inWeek = logs.filter(
+        (l) => l.reference_id === habit.id && l.date >= weekStart && l.date <= weekEnd
+      );
       // Distinct DAYS — two reps in one day is one day of the weekly target.
       const doneDates = [...new Set(inWeek.map((l) => l.date))].sort();
       const target = habit.target_count_per_week ?? 0;
       const completed = doneDates.length;
       const { status, remaining, daysLeft, urgency } = classifyPace(target, completed, todayStr);
-
-      // Most recent rating across ALL history, not just this week — a habit you
-      // last did a fortnight ago should still show what it felt like.
-      const rated = [...mine]
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .map(logResistance)
-        .filter((v): v is number => typeof v === 'number');
 
       return {
         habitId: habit.id,
@@ -152,7 +143,6 @@ export const buildTodayList = (
         daysLeft,
         status,
         urgency,
-        lastResistance: rated.length ? rated[rated.length - 1] : undefined,
         doneToday: doneDates.includes(todayStr),
       };
     })

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { HabitPace } from '../../services/habitPace';
-import { getResistanceLevel } from '../../constants/resistance';
 
 interface Props {
   name: string;
@@ -42,13 +41,10 @@ const STATUS_COPY: Record<HabitPace['status'], string | null> = {
 /**
  * One habit on Today.
  *
- * Carries the resistance last recorded for this habit, because that is the
- * number the product is trying to move and this is the moment it matters — the
- * point where someone decides whether to start. Everywhere else it's history;
- * here it's context for a decision.
- *
- * The whole row is the log action. The overflow menu holds everything else so
- * the primary action can't be missed or mis-tapped.
+ * Name, weekly progress, and how it stands against its target — nothing else.
+ * The last resistance rating used to sit here as decision context; it was noise
+ * on a list people scan, and the trend it belongs to lives on Progress and on
+ * the habit's own page.
  */
 export const TodayHabitRow: React.FC<Props> = ({
   name,
@@ -58,7 +54,7 @@ export const TodayHabitRow: React.FC<Props> = ({
   onQuickLog,
   onDetails,
 }) => {
-  const { target, completed, status, lastResistance, doneToday } = pace;
+  const { target, completed, status, doneToday } = pace;
   const statusLine = STATUS_COPY[status];
   // Only a finished habit dims. A habit with no goal set is not finished — it
   // was never measured, and dimming it buries the curated practices, which are
@@ -121,11 +117,6 @@ export const TodayHabitRow: React.FC<Props> = ({
               ]}
             >
               {statusLine}
-            </Text>
-          )}
-          {typeof lastResistance === 'number' && (
-            <Text style={styles.resistance}>
-              {statusLine ? ' · ' : ''}Last time: {getResistanceLevel(lastResistance)?.label.toLowerCase()}
             </Text>
           )}
         </View>
@@ -192,7 +183,6 @@ const styles = StyleSheet.create({
   },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap' },
   status: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.primary },
-  resistance: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
   doneBtn: {
     width: 40,
     height: 40,

@@ -135,35 +135,6 @@ describe('buildTodayList', () => {
     expect(list.map((p) => p.status)).toEqual(['behind', 'behind', 'on_pace', 'done']);
   });
 
-  it('surfaces the most recent resistance rating, across all history', () => {
-    const list = buildTodayList(
-      [habit({ id: 'h1' })],
-      [
-        log('h1', '2026-08-10', { resistance: 3, resistance_scale: 3 }),
-        log('h1', '2026-08-17', { resistance: 2, resistance_scale: 3 }),
-      ],
-      WED
-    );
-    // Older than this week, but still the answer to "what did this feel like?".
-    expect(list[0].lastResistance).toBe(2);
-  });
-
-  it('normalizes an old 1-10 rating onto the three levels', () => {
-    // No recorded scale means it predates the rewrite, so 9 is the hardest third.
-    const list = buildTodayList([habit({ id: 'h1' })], [log('h1', MON, { resistance: 9 })], WED);
-    expect(list[0].lastResistance).toBe(3);
-  });
-
-  it('falls back to the legacy binary when no rating exists', () => {
-    const list = buildTodayList([habit({ id: 'h1' })], [log('h1', MON, { difficulty: 2 })], WED);
-    expect(list[0].lastResistance).toBe(2);
-  });
-
-  it('leaves resistance undefined when there is nothing to show', () => {
-    const list = buildTodayList([habit({ id: 'h1' })], [], WED);
-    expect(list[0].lastResistance).toBeUndefined();
-  });
-
   it('flags whether the habit was logged today', () => {
     const list = buildTodayList([habit({ id: 'h1' })], [log('h1', WED)], WED);
     expect(list[0].doneToday).toBe(true);
