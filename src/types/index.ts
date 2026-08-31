@@ -305,6 +305,52 @@ export interface CompletionLog {
 // CRAVING CRUSHER TYPES
 // =============================================================================
 
+// =============================================================================
+// SKIPS
+// =============================================================================
+
+/**
+ * One answered "what got in the way?" for a habit that fell short of its weekly
+ * target. Stored in users/{uid}/skipLogs.
+ *
+ * Deliberately NOT a CompletionLog. Streak, XP and every existing analytic
+ * assume a log in completionLogs means the habit was DONE; putting misses in
+ * that collection would quietly start counting failures as completions.
+ */
+export interface SkipLog {
+  id: string;
+  user_id: string;
+  /** PracticeInstance id the shortfall belongs to. */
+  habit_id: string;
+  /** Monday of the week that fell short (YYYY-MM-DD, local). */
+  week_start: string;
+  /** How many reps short of the weekly target that week. */
+  missed_count: number;
+  /** SKIP_REASONS id (data/skipReasons.ts). */
+  reason_id: string;
+  /**
+   * Denormalised from the reason at write time so historical logs keep their
+   * internal/external classification even if the taxonomy is later edited.
+   */
+  reason_kind: 'internal' | 'external';
+  created_at: string;
+}
+
+/**
+ * Per-week record of the skip review itself, in users/{uid}/skipReviews with
+ * the week's Monday as the doc id. Exists so a dismissed week is never
+ * re-asked, and a partially answered one can resume where it left off.
+ */
+export interface SkipReview {
+  id: string;
+  week_start: string;
+  /** Habit ids already answered or explicitly passed over. */
+  answered_habit_ids: string[];
+  /** Set when the user dismissed the whole review. */
+  dismissed_at?: string;
+  completed_at?: string;
+}
+
 export type CravingOutcome = 'passed' | 'gave_in';
 
 /** One urge-surfing session, stored in users/{uid}/cravingLogs. */

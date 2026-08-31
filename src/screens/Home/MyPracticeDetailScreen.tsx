@@ -18,6 +18,9 @@ import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { PracticePerformanceSection } from '../../components/habits/PracticePerformanceSection';
+import { SkipPatternsCard } from '../../components/progress/SkipPatternsCard';
+import { getSkipPatternsForHabit } from '../../services/skips';
+import { SkipPatterns } from '../../services/skipLogic';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
 import { deleteCompletionLog } from '../../services/progress';
@@ -63,6 +66,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
   const [habit, setHabit] = useState<PracticeInstance | null>(null);
   const [stats, setStats] = useState<HabitStats | null>(null);
   const [logs, setLogs] = useState<CompletionLog[]>([]);
+  const [skipPatterns, setSkipPatterns] = useState<SkipPatterns | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Edit mode (name / times-per-week / goals)
@@ -74,14 +78,22 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
   const loadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [h, s, l] = await Promise.all([
+      const [h, s, l, skips] = await Promise.all([
         getHabitById(user.uid, habitId),
         getHabitStats(user.uid, habitId),
         getHabitCompletionLogs(user.uid, habitId),
+        // What stops you doing THIS habit specifically — the most actionable
+        // framing of the skip data, because the pattern sits next to the thing
+        // you would change.
+        getSkipPatternsForHabit(user.uid, habitId).catch((err) => {
+          console.warn('Habit skip patterns fetch failed:', err);
+          return null;
+        }),
       ]);
       setHabit(h);
       setStats(s);
       setLogs(l);
+      setSkipPatterns(skips);
     } catch (e) {
       console.error(e);
     } finally {
@@ -343,6 +355,12 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
       {/* Performance — detailed per-practice reporting */}
       <Text style={styles.sectionTitle}>Performance</Text>
       <PracticePerformanceSection performance={performance} />
+
+      {/* What actually stops you doing this one. Only rendered once something
+          has been answered — an empty card here is just a reminder of nothing. */}
+      {!!skipPatterns?.totalMissed && (
+        <SkipPatternsCard patterns={skipPatterns} habitName={habit.name} />
+      )}
 
       {/* Calendar Heat Map */}
       <Text style={styles.sectionTitle}>Completion History</Text>

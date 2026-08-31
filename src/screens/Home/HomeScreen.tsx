@@ -48,6 +48,14 @@ import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/hom
 import { ZoneHeader } from '../../components/home/ZoneHeader';
 import { getActiveMantraText } from '../../services/mantras';
 import { RuleModal } from '../../components/common/RuleModal';
+import { SkipReviewSheet } from '../../components/habits/SkipReviewSheet';
+import {
+  getPendingSkipReview,
+  saveSkipReason,
+  dismissSkipReview,
+  completeSkipReview,
+} from '../../services/skips';
+import { PendingSkipReview } from '../../services/skipLogic';
 import { RuleBanner } from '../../components/common/RuleBanner';
 import { useRuleSurfaces } from '../../hooks/useRuleSurfaces';
 import { CTA_TAB_TARGETS } from '../../types/rules';
@@ -63,6 +71,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
   const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
+  // Last week's shortfalls, if any are still unanswered. See services/skipLogic.ts.
+  const [skipReview, setSkipReview] = useState<PendingSkipReview | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
   // True when the capture modal was opened by the card's "Log it" action — no
@@ -316,6 +326,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         );
         if (habitList.length > 0) {
           setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList.map(h => h.id)));
+        }
+        // Weekly skip review: did any habit fall short of its target LAST week?
+        // buildPendingReview runs locally first and bails before any read when
+        // nothing is short, so the common case costs nothing.
+        try {
+          setSkipReview(
+            await getPendingSkipReview(user.uid, habitList, cachedNudgeLogs, todayStr)
+          );
+        } catch (err) {
+          console.warn('Skip review check failed:', err);
         }
       } catch (err) {
         console.warn('Nudge logs fetch failed:', err);
@@ -689,6 +709,44 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.tabPanel, homeTab !== 'craving' && styles.tabHidden]}>
         <CravingCrusherTab onPress={() => navigation.navigate('CravingCrusher')} />
       </View>
+
+      {/* Weekly "what got in the way?" — one tap per habit that fell short. */}
+      <SkipReviewSheet
+        visible={!!skipReview}
+        review={skipReview}
+        onAnswer={async (item, reasonId) => {
+          if (!user || !skipReview) return;
+          await saveSkipReason(user.uid, {
+            habitId: item.habitId,
+            weekStart: skipReview.weekStart,
+            missedCount: item.missed,
+            reasonId,
+          });
+        }}
+        onDismiss={async () => {
+          const week = skipReview?.weekStart;
+          // Close the sheet first: a dismiss that waits on a write feels broken.
+          setSkipReview(null);
+          if (user && week) {
+            try {
+              await dismissSkipReview(user.uid, week);
+            } catch (err) {
+              console.warn('Skip review dismiss failed:', err);
+            }
+          }
+        }}
+        onComplete={async () => {
+          const week = skipReview?.weekStart;
+          setSkipReview(null);
+          if (user && week) {
+            try {
+              await completeSkipReview(user.uid, week);
+            } catch (err) {
+              console.warn('Skip review complete failed:', err);
+            }
+          }
+        }}
+      />
 
       <HabitCompletionModal
         visible={!!completingHabit}
