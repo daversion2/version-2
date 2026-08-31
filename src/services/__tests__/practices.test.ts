@@ -350,3 +350,54 @@ describe('createHabit — undefined stripping', () => {
     expect(data.supports_pairing).toBe(false);
   });
 });
+
+describe('custom habits — template wiring', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+  });
+
+  const written = () => {
+    const db = getMockDB();
+    const habits = db[`users/${userId}/habits`] || {};
+    return Object.values(habits)[0].data as Record<string, unknown>;
+  };
+
+  // The end-to-end path for a custom habit's template. Each link failed
+  // silently before this: you would create a habit with a "time" template, log
+  // it, and simply never be asked how long.
+  it('persists the chosen template so the completion flow can resolve it', async () => {
+    await createHabit(userId, {
+      name: 'Practice guitar',
+      target_count_per_week: 3,
+      category_id: 'Focus',
+      template_id: 'time',
+      created_by_user: true,
+    });
+    expect(written().template_id).toBe('time');
+  });
+
+  it('omits the template entirely when none was chosen', async () => {
+    // 'none' must not be stored — it would be a value the completion flow then
+    // has to interpret rather than simply an absent template.
+    await createHabit(userId, {
+      name: 'Call mum',
+      target_count_per_week: 1,
+      template_id: undefined,
+    });
+    expect('template_id' in written()).toBe(false);
+  });
+
+  it('marks a custom habit as user-authored', async () => {
+    await createHabit(userId, {
+      name: 'Practice guitar',
+      target_count_per_week: 3,
+      created_by_user: true,
+    });
+    const data = written();
+    expect(data.created_by_user).toBe(true);
+    expect('practice_id' in data).toBe(false);
+  });
+});

@@ -20,6 +20,7 @@ import { WeeklyTrendChart } from '../../components/habits/WeeklyTrendChart';
 import { PracticePerformanceSection } from '../../components/habits/PracticePerformanceSection';
 import { SkipPatternsCard } from '../../components/progress/SkipPatternsCard';
 import { getSkipPatternsForHabit } from '../../services/skips';
+import { resolveTemplateFields } from '../../data/habitTemplates';
 import { SkipPatterns } from '../../services/skipLogic';
 import { useAuth } from '../../context/AuthContext';
 import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
@@ -185,8 +186,15 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
 
   // Per-practice performance reporting, computed from the already-fetched logs
   const performance = useMemo(
-    () => buildPracticePerformance(logs, getPractice(habit?.practice_id)),
-    [logs, habit?.practice_id]
+    // Curated habits resolve their template from the catalog; custom habits
+    // have no catalog entry, so their preset is resolved instead. Without the
+    // fallback a custom habit's metrics would be captured and never charted.
+    () =>
+      buildPracticePerformance(
+        logs,
+        getPractice(habit?.practice_id) ?? { tracking: resolveTemplateFields(habit ?? {}) }
+      ),
+    [logs, habit?.practice_id, habit?.template_id]
   );
 
   // Recent reps, newest first. This is the only place a single mis-logged rep

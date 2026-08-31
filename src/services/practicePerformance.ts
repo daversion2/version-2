@@ -189,9 +189,16 @@ const round1 = (n: number): number => Math.round(n * 10) / 10;
 
 // =============================================================================
 
+/**
+ * Only the two fields this actually reads. Narrowed from `Practice` so a CUSTOM
+ * habit — which has no catalog definition — can pass its resolved preset
+ * template through and still get trends, records and dose scoring.
+ */
+export type PerformanceSource = Pick<Practice, 'tracking' | 'dose'>;
+
 export const buildPracticePerformance = (
   logs: CompletionLog[],
-  practice: Practice | undefined,
+  practice: PerformanceSource | undefined,
   todayStr: string = toDateStr(new Date())
 ): PracticePerformance => {
   // Chronological by log date (backdating supported), then by logged-at time.

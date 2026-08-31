@@ -69,6 +69,12 @@ export const createHabit = async (
     goal_ids?: string[];
     arena_id?: ArenaId;
     practice_id?: string;
+    /**
+     * Preset template id for a CUSTOM habit (data/habitTemplates.ts). Curated
+     * habits leave this unset and resolve their template from the catalog via
+     * practice_id instead.
+     */
+    template_id?: string;
     group?: PracticeGroup;
     action_plan?: HabitActionPlan;
     created_by_user?: boolean;

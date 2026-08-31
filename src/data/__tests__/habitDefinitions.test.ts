@@ -11,6 +11,8 @@ import {
 } from '../practices';
 import { HABIT_CATEGORIES } from '../habitLibrary';
 import { HABITS_AWAITING_SCIENCE } from '../habitScience';
+import { resolveTemplateFields } from '../habitTemplates';
+import { buildPracticePerformance } from '../../services/practicePerformance';
 
 // The habit/practice unification (docs/habit-template-unification.md). These tests
 // guard the properties that are easy to break silently: the catalog staying whole,
@@ -165,5 +167,26 @@ describe('science content', () => {
 
   it('tracks any known content gap explicitly rather than silently', () => {
     expect(HABITS_AWAITING_SCIENCE).toEqual([]);
+  });
+});
+
+describe('custom habit templates resolve without a catalog entry', () => {
+  it('turns a stored template id into real tracking fields', () => {
+    const fields = resolveTemplateFields({ template_id: 'time' });
+    expect(fields).toHaveLength(1);
+    expect(fields[0].key).toBe('duration_min');
+  });
+
+  it('feeds those fields through the performance builder', () => {
+    // The link that makes a custom habit's metrics chart: buildPracticePerformance
+    // takes resolved fields rather than requiring a catalog definition.
+    const perf = buildPracticePerformance([], { tracking: resolveTemplateFields({ template_id: 'grade' }) });
+    expect(perf.records).toEqual([]);
+    expect(perf.primaryTrend).toBeNull();
+  });
+
+  it('handles a habit with no template at all', () => {
+    const perf = buildPracticePerformance([], { tracking: resolveTemplateFields({}) });
+    expect(perf.loggedSessions).toBe(0);
   });
 });

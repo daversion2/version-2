@@ -56,6 +56,7 @@ export type MainTabParamList = {
 // ============================================================================
 
 export type LibraryStackParamList = {
+  CreateHabit: undefined;
   HabitLibrary: undefined;
   HabitLibraryDetail: { habitId: string };
   PracticeDetail: { practiceId: string; readOnly?: boolean } | { habitId: string; readOnly?: boolean };
@@ -137,6 +138,7 @@ export type HomeStackParamList = {
     supportsPairing?: boolean;
     reminder?: HabitReminder;
   };
+  CreateHabit: undefined;
   HabitLibrary: undefined;
   TraditionalHabits: undefined;
   HabitLibraryDetail: { habitId: string };

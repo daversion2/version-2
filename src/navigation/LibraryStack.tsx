@@ -4,6 +4,7 @@ import { LibraryStackParamList } from '../types/navigation';
 import { HabitLibraryScreen } from '../screens/Home/HabitLibraryScreen';
 import { HabitLibraryDetailScreen } from '../screens/Home/HabitLibraryDetailScreen';
 import { PracticeDetailScreen } from '../screens/Practices/PracticeDetailScreen';
+import { CreateHabitScreen } from '../screens/Home/CreateHabitScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<LibraryStackParamList>();
@@ -31,6 +32,11 @@ export const LibraryStack: React.FC = () => (
       name="HabitLibrary"
       component={HabitLibraryScreen}
       options={{ title: 'Library' }}
+    />
+    <Stack.Screen
+      name="CreateHabit"
+      component={CreateHabitScreen}
+      options={{ title: 'New habit' }}
     />
     <Stack.Screen
       name="HabitLibraryDetail"

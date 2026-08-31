@@ -738,18 +738,29 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
 
         {/*
-          Points at the Library rather than a creation form: custom habit
-          creation does not exist yet, so offering "add your own" would lead
-          nowhere. Rewire this when that flow is built.
+          Two ways in, one tap apart. Browse leads, because the curated library
+          with its science pages is the thing worth finding first — but someone
+          who already knows what they want shouldn't have to scroll a list of 45
+          to discover they can just type it.
         */}
-        <TouchableOpacity
-          style={styles.addRow}
-          onPress={() => navigation.getParent()?.navigate('Library')}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-          <Text style={styles.addText}>Add a habit</Text>
-        </TouchableOpacity>
+        <View style={styles.addRow}>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => navigation.getParent()?.navigate('Library')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="library-outline" size={18} color={Colors.primary} />
+            <Text style={styles.addText}>Browse library</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => navigation.navigate('CreateHabit')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+            <Text style={styles.addText}>Create your own</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Weekly "what got in the way?" — one tap per habit that fell short. */}
@@ -794,6 +805,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={!!completingHabit}
         habitName={completingHabit?.name || ''}
         practiceId={completingHabit?.practice_id}
+        // Custom habits have no catalog entry — their template comes from the
+        // preset chosen at creation. Without this a custom habit would log
+        // resistance and silently never ask for its metric.
+        templateId={completingHabit?.template_id}
         actionPlan={completingHabit?.action_plan}
         logOnly={completingLogOnly}
         initialDate={completingDate}
@@ -984,13 +999,24 @@ const styles = StyleSheet.create({
   utilitySubtitle: { fontFamily: Fonts.secondary, fontSize: 13, color: Colors.gray },
   addRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
     marginTop: Spacing.sm,
   },
-  addText: { fontFamily: Fonts.primaryBold, fontSize: 16, color: Colors.primary },
+  addBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.md,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  addText: { fontFamily: Fonts.primaryBold, fontSize: 14, color: Colors.primary },
   tabHidden: { display: 'none' },
 });
 
