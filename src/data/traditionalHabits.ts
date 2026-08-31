@@ -102,6 +102,9 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   },
   {
     id: 'trad-take-vitamins',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: 'Take vitamins',
     category_id: 'Body',
     off_thesis: true,
@@ -268,6 +271,9 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   },
   {
     id: 'trad-skincare',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: 'Skincare routine',
     category_id: 'Body',
     off_thesis: true,

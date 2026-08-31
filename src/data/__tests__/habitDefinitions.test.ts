@@ -6,6 +6,7 @@ import {
   getHabitFlow,
   getHabitDefinitionsByCategory,
   getCuratedPractices,
+  getBrowsableHabits,
   getDefaultSeedPractices,
   hasTemplate,
 } from '../practices';
@@ -42,13 +43,34 @@ describe('unified habit catalog', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('points every category_id at one of the five real categories (D1)', () => {
+  it('points every BROWSABLE habit at a real category (D1)', () => {
     // The former `traditional-*` taxonomy is gone: HabitCategory is the only axis.
+    // Scoped to browsable habits on purpose — a retired habit may point at a
+    // retired category (Connection was removed along with all three of its
+    // habits), and that is correct rather than broken.
     const known = new Set(HABIT_CATEGORIES.map((c) => c.id));
-    const unknown = BUNDLED_HABIT_DEFINITIONS.filter((d) => !known.has(d.category_id)).map(
-      (d) => `${d.id} -> ${d.category_id}`
-    );
+    const unknown = getBrowsableHabits()
+      .filter((d) => !known.has(d.category_id))
+      .map((d) => `${d.id} -> ${d.category_id}`);
     expect(unknown).toEqual([]);
+  });
+
+  it('hides every habit retired in the audit from browsing', () => {
+    const browsable = new Set(getBrowsableHabits().map((d) => d.id));
+    for (const id of [
+      'inbox-after-focus',
+      'make-the-call',
+      'note-one-good-thing',
+      'plan-tomorrow',
+      'phone-free-dinner',
+      'reach-out',
+      'trad-skincare',
+      'trad-take-vitamins',
+    ]) {
+      expect(browsable.has(id)).toBe(false);
+      // Still resolvable, so an already-adopted instance keeps working.
+      expect(getHabitDefinition(id)).toBeDefined();
+    }
   });
 
   it('leaves no category empty, so every browse tab has something in it', () => {

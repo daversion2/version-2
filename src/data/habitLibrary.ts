@@ -10,7 +10,6 @@ export const HABIT_CATEGORIES: HabitCategory[] = [
   { id: 'Focus', name: 'Focus & Craft', icon: 'flash-outline', color: '#FF5B02' },
   { id: 'Mind', name: 'Mind', icon: 'leaf-outline', color: '#7B1FA2' },
   { id: 'Money', name: 'Money', icon: 'wallet-outline', color: '#2E7D32' },
-  { id: 'Connection', name: 'Connection', icon: 'people-outline', color: '#1976D2' },
 ];
 
 // Resolves a category from either the curated or traditional taxonomy.
@@ -161,6 +160,9 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   },
   {
     id: 'inbox-after-focus',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: 'First focus block before email',
     category_id: 'Focus',
     arena_id: 'cognitive_resistance',
@@ -193,6 +195,9 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   },
   {
     id: 'plan-tomorrow',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: "Set tomorrow's top priority",
     category_id: 'Focus',
     off_thesis: true,
@@ -259,6 +264,9 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   },
   {
     id: 'note-one-good-thing',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: 'Name one good thing',
     category_id: 'Mind',
     off_thesis: true,
@@ -327,6 +335,9 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   // ─── Connection ──────────────────────────────────────────────────────────────
   {
     id: 'reach-out',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: 'Send one genuine message',
     category_id: 'Connection',
     arena_id: 'social_discomfort',
@@ -343,6 +354,9 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   },
   {
     id: 'make-the-call',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: 'Call instead of text',
     category_id: 'Connection',
     arena_id: 'social_discomfort',
@@ -359,6 +373,9 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   },
   {
     id: 'phone-free-dinner',
+    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
+    // deleted so any already-adopted instance keeps its history.
+    active: false,
     name: 'Phone-free meal with someone',
     category_id: 'Connection',
     arena_id: 'social_discomfort',
