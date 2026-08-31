@@ -21,7 +21,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-drink-water',
     name: 'Drink more water',
-    category_id: 'traditional-health',
+    category_id: 'Body',
     off_thesis: true,
     description: 'Stay hydrated through the day — aim for around eight glasses of water.',
     suggested_target_per_week: 7,
@@ -37,7 +37,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-exercise',
     name: 'Exercise',
-    category_id: 'traditional-health',
+    category_id: 'Body',
     arena_id: 'physical_discomfort',
     description: 'Get a proper workout in — gym, run, class, or home session.',
     suggested_target_per_week: 4,
@@ -54,7 +54,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-10k-steps',
     name: 'Hit 10,000 steps',
-    category_id: 'traditional-health',
+    category_id: 'Body',
     arena_id: 'physical_discomfort',
     description: 'Stay active across the day and reach a 10,000-step target.',
     suggested_target_per_week: 5,
@@ -71,7 +71,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-stretch',
     name: 'Stretch',
-    category_id: 'traditional-health',
+    category_id: 'Body',
     arena_id: 'physical_discomfort',
     description: 'A few minutes of stretching to stay loose and mobile.',
     suggested_target_per_week: 5,
@@ -87,7 +87,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-eat-vegetables',
     name: 'Eat your vegetables',
-    category_id: 'traditional-health',
+    category_id: 'Body',
     off_thesis: true,
     description: 'Include vegetables or fruit with your meals today.',
     suggested_target_per_week: 7,
@@ -103,7 +103,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-take-vitamins',
     name: 'Take vitamins',
-    category_id: 'traditional-health',
+    category_id: 'Body',
     off_thesis: true,
     description: 'Take your daily vitamins or supplements.',
     suggested_target_per_week: 7,
@@ -121,7 +121,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-meditate',
     name: 'Meditate',
-    category_id: 'traditional-mind',
+    category_id: 'Mind',
     arena_id: 'mental_stillness',
     description: 'A few minutes of meditation to settle and focus the mind.',
     suggested_target_per_week: 7,
@@ -137,7 +137,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-gratitude',
     name: 'Practice gratitude',
-    category_id: 'traditional-mind',
+    category_id: 'Mind',
     off_thesis: true,
     description: 'Write down a few things you’re grateful for today.',
     suggested_target_per_week: 7,
@@ -153,7 +153,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-journal',
     name: 'Journal',
-    category_id: 'traditional-mind',
+    category_id: 'Mind',
     arena_id: 'mental_stillness',
     description: 'Spend a few minutes writing about your day or how you feel.',
     suggested_target_per_week: 5,
@@ -169,7 +169,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-limit-screens',
     name: 'Limit screen time',
-    category_id: 'traditional-mind',
+    category_id: 'Mind',
     arena_id: 'deliberate_boredom',
     description: 'Keep recreational screen time within a limit you set.',
     suggested_target_per_week: 7,
@@ -187,7 +187,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-make-bed',
     name: 'Make your bed',
-    category_id: 'traditional-productivity',
+    category_id: 'Focus',
     off_thesis: true,
     description: 'Make your bed first thing — a small win to start the day.',
     suggested_target_per_week: 7,
@@ -203,7 +203,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-todo-list',
     name: 'Plan your day',
-    category_id: 'traditional-productivity',
+    category_id: 'Focus',
     off_thesis: true,
     description: 'Write a short to-do list of what matters most today.',
     suggested_target_per_week: 5,
@@ -219,7 +219,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-wake-early',
     name: 'Wake up early',
-    category_id: 'traditional-productivity',
+    category_id: 'Focus',
     arena_id: 'impulse_control',
     description: 'Get up at a consistent early time to start the day with margin.',
     suggested_target_per_week: 5,
@@ -235,7 +235,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-tidy',
     name: 'Tidy up',
-    category_id: 'traditional-productivity',
+    category_id: 'Focus',
     off_thesis: true,
     description: 'Spend a few minutes tidying or resetting your space.',
     suggested_target_per_week: 5,
@@ -253,7 +253,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-floss',
     name: 'Floss',
-    category_id: 'traditional-lifestyle',
+    category_id: 'Body',
     off_thesis: true,
     description: 'Floss your teeth as part of your nightly routine.',
     suggested_target_per_week: 7,
@@ -269,7 +269,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-skincare',
     name: 'Skincare routine',
-    category_id: 'traditional-lifestyle',
+    category_id: 'Body',
     off_thesis: true,
     description: 'Follow your skincare routine, morning or night.',
     suggested_target_per_week: 7,
@@ -285,7 +285,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-no-sugar',
     name: 'Cut the sugar',
-    category_id: 'traditional-lifestyle',
+    category_id: 'Body',
     arena_id: 'impulse_control',
     description: 'Skip added sugar and sugary snacks today.',
     suggested_target_per_week: 5,
@@ -301,7 +301,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-budget',
     name: 'Track your spending',
-    category_id: 'traditional-lifestyle',
+    category_id: 'Body',
     off_thesis: true,
     description: 'Note what you spent today to stay on top of your budget.',
     suggested_target_per_week: 7,
@@ -319,7 +319,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-read',
     name: 'Read',
-    category_id: 'traditional-learning',
+    category_id: 'Focus',
     arena_id: 'cognitive_resistance',
     description: 'Read a book for a few minutes instead of scrolling.',
     suggested_target_per_week: 7,
@@ -335,7 +335,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-learn-language',
     name: 'Practice a language',
-    category_id: 'traditional-learning',
+    category_id: 'Focus',
     arena_id: 'cognitive_resistance',
     description: 'Do a short language lesson or practice session.',
     suggested_target_per_week: 5,
@@ -351,7 +351,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-learn-skill',
     name: 'Practice a skill',
-    category_id: 'traditional-learning',
+    category_id: 'Focus',
     arena_id: 'cognitive_resistance',
     description: 'Spend focused time practising an instrument, craft, or skill.',
     suggested_target_per_week: 4,

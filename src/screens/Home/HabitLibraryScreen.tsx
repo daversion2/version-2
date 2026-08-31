@@ -1,78 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { HomeScreenProps } from '../../types/navigation';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { HabitLibraryList } from '../../components/habits/HabitLibraryList';
-import { HABIT_LIBRARY, HABIT_CATEGORIES } from '../../data/habitLibrary';
+import { HABIT_CATEGORIES } from '../../data/habitLibrary';
+import { getBrowsableHabits } from '../../data/practices';
 
 type Props = HomeScreenProps<'HabitLibrary'>;
 
-export const HabitLibraryScreen: React.FC<Props> = ({ navigation }) => {
-  const banner = (
-    <TouchableOpacity
-      style={styles.exploreCard}
-      activeOpacity={0.85}
-      onPress={() => navigation.navigate('TraditionalHabits')}
-    >
-      <View style={styles.exploreIcon}>
-        <Ionicons name="albums-outline" size={20} color={Colors.secondary} />
-      </View>
-      <View style={styles.exploreTextWrap}>
-        <Text style={styles.exploreTitle}>Explore traditional practices</Text>
-        <Text style={styles.exploreSubtitle}>
-          The classic everyday staples — water, exercise, reading, and more.
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={Colors.secondary} />
-    </TouchableOpacity>
-  );
-
-  return (
-    <HabitLibraryList
-      habits={HABIT_LIBRARY}
-      categories={HABIT_CATEGORIES}
-      listHeader={banner}
-      onSelectHabit={(habitId) =>
-        navigation.navigate('HabitLibraryDetail', { habitId })
-      }
-    />
-  );
-};
-
-const styles = StyleSheet.create({
-  exploreCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  exploreIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.secondary + '1A',
-  },
-  exploreTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  exploreTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-  },
-  exploreSubtitle: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    lineHeight: 18,
-  },
-});
+/**
+ * THE library — one browse surface for every habit the app offers.
+ *
+ * Before the unification this screen showed only the curated library and linked
+ * out to a separate "traditional habits" screen, while the curated practices
+ * lived in a third screen of their own. All three were browsing the same kind of
+ * thing. They are now one list: 45 habits across the five HabitCategory columns,
+ * from "drink more water" to a cold plunge, sorted so the richer definitions
+ * (science, a template, a session flow) surface first within each category.
+ *
+ * See docs/habit-template-unification.md.
+ */
+export const HabitLibraryScreen: React.FC<Props> = ({ navigation }) => (
+  <HabitLibraryList
+    habits={getBrowsableHabits()}
+    categories={HABIT_CATEGORIES}
+    onSelectHabit={(habitId) => navigation.navigate('HabitLibraryDetail', { habitId })}
+  />
+);

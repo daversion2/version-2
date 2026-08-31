@@ -1105,9 +1105,24 @@ export const getHabitDefinitionsByCategory = (categoryId: string): HabitDefiniti
     .filter((h) => h.category_id === categoryId && h.active !== false)
     .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name));
 
-/** Everything browsable in the library, richest-first within each category. */
-export const getBrowsableHabits = (): HabitDefinition[] =>
-  catalog.filter((h) => h.active !== false);
+/**
+ * Everything browsable in the library. Sorted so the richer definitions — the
+ * ones carrying a session flow and a template — surface above plain check-in
+ * habits, then by the catalog's own order, then alphabetically. Without this the
+ * 36 plain habits would bury the 9 that best demonstrate what the app does.
+ */
+export const getBrowsableHabits = (): HabitDefinition[] => {
+  const richness = (h: HabitDefinition): number =>
+    (getHabitFlow(h) !== 'tap' ? 2 : 0) + (hasTemplate(h) ? 1 : 0);
+  return catalog
+    .filter((h) => h.active !== false)
+    .sort(
+      (a, b) =>
+        richness(b) - richness(a) ||
+        (a.order ?? 999) - (b.order ?? 999) ||
+        a.name.localeCompare(b.name)
+    );
+};
 
 /** Active practices in a group, for browsing/adoption (retired ones are hidden). */
 /** @deprecated Retired by D1 — use getHabitDefinitionsByCategory. */

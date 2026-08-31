@@ -40,17 +40,19 @@ describe('unified habit catalog', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('points every category_id at a real category', () => {
+  it('points every category_id at one of the five real categories (D1)', () => {
+    // The former `traditional-*` taxonomy is gone: HabitCategory is the only axis.
     const known = new Set(HABIT_CATEGORIES.map((c) => c.id));
-    const traditional = BUNDLED_HABIT_DEFINITIONS.filter((d) =>
-      d.category_id.startsWith('traditional-')
+    const unknown = BUNDLED_HABIT_DEFINITIONS.filter((d) => !known.has(d.category_id)).map(
+      (d) => `${d.id} -> ${d.category_id}`
     );
-    const curated = BUNDLED_HABIT_DEFINITIONS.filter(
-      (d) => !d.category_id.startsWith('traditional-')
-    );
-    for (const def of curated) expect(known.has(def.category_id)).toBe(true);
-    // Traditional habits keep their own prefixed taxonomy until Phase 5 remaps them.
-    expect(traditional.length).toBeGreaterThan(0);
+    expect(unknown).toEqual([]);
+  });
+
+  it('leaves no category empty, so every browse tab has something in it', () => {
+    for (const category of HABIT_CATEGORIES) {
+      expect(getHabitDefinitionsByCategory(category.id).length).toBeGreaterThan(0);
+    }
   });
 });
 

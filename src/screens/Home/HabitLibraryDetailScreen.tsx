@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
   ActivityIndicator,
+  Linking,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -16,7 +17,8 @@ import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-communi
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { findLibraryHabit, getHabitCategory } from '../../data/habitLibrary';
+import { getHabitCategory } from '../../data/habitLibrary';
+import { getHabitDefinition } from '../../data/practices';
 import { defaultTimeForAnchor } from '../../data/anchors';
 import { useAuth } from '../../context/AuthContext';
 import { createHabit, updateHabit } from '../../services/practices';
@@ -67,7 +69,10 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
   const { habitId } = route.params;
   const { user } = useAuth();
 
-  const habit = findLibraryHabit(habitId);
+  // Resolves against the UNIFIED catalog, so this one screen now serves both a
+  // plain library habit and a curated practice — and follows SUPERSEDED_HABIT_IDS,
+  // so a link to a deduped id still lands somewhere real.
+  const habit = getHabitDefinition(habitId);
 
   // Editable copies of everything the user can make their own, seeded from the
   // library template. `editing` flips the preview cards into inputs.
@@ -126,6 +131,11 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
         name: finalName,
         target_count_per_week: target,
         arena_id: habit.arena_id,
+        // Link back to the catalog definition. Without this the adopted habit
+        // resolves to nothing, so it would lose its tracking template, its
+        // session flow and its science page the moment it lands on Home.
+        practice_id: habit.id,
+        category_id: habit.category_id,
         action_plan: cleanedPlan,
         created_by_user: false,
         supports_pairing: supportsPairing,
@@ -193,6 +203,68 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
         {!!habit.identity && (
           <View style={[styles.identityCard, { borderLeftColor: color }]}>
             <Text style={styles.identityText}>{habit.identity}</Text>
+          </View>
+        )}
+
+        {/*
+          The science. This is the half of the merge that makes "every habit has
+          a page explaining what it does to your brain" literally true — it used
+          to exist only on the separate practice detail screen. Every section
+          hides when the habit has not had it authored.
+        */}
+        {!!habit.whyItWorks && (
+          <View style={[styles.whyCard, { borderLeftColor: color }]}>
+            <Text style={styles.whyText}>{habit.whyItWorks}</Text>
+          </View>
+        )}
+
+        {!!habit.science && (
+          <View style={styles.scienceBlock}>
+            <Text style={styles.scienceHeading}>What this does to your brain</Text>
+            <Text style={styles.scienceBody}>{habit.science}</Text>
+          </View>
+        )}
+
+        {!!habit.research?.length && (
+          <View style={styles.scienceBlock}>
+            <Text style={styles.scienceHeading}>The research</Text>
+            {habit.research.map((entry, i) => (
+              <View key={i} style={styles.researchRow}>
+                <Text style={styles.researchFinding}>{entry.finding}</Text>
+                <TouchableOpacity
+                  disabled={!entry.url}
+                  onPress={() => entry.url && Linking.openURL(entry.url)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.researchSource, !!entry.url && { color }]}>
+                    {entry.source}
+                    {entry.url ? '  ↗' : ''}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {!!habit.tips?.length && (
+          <View style={styles.scienceBlock}>
+            <Text style={styles.scienceHeading}>Tips</Text>
+            {habit.tips.map((tip, i) => {
+              const caution = tip.startsWith('CAUTION');
+              return (
+                <View key={i} style={styles.tipRow}>
+                  <Ionicons
+                    name={caution ? 'warning-outline' : 'ellipse'}
+                    size={caution ? 16 : 6}
+                    color={caution ? Colors.secondary : Colors.gray}
+                    style={styles.tipDot}
+                  />
+                  <Text style={[styles.tipText, caution && { color: Colors.secondary }]}>
+                    {caution ? tip.replace(/^CAUTION:\s*/, '') : tip}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -411,6 +483,58 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: Colors.dark,
     lineHeight: 22,
+  },
+  // ---- Science sections (merged in from the old practice detail screen) ----
+  whyCard: {
+    borderLeftWidth: 3,
+    paddingLeft: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  whyText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    lineHeight: 22,
+  },
+  scienceBlock: { marginBottom: Spacing.lg },
+  scienceHeading: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    marginBottom: Spacing.sm,
+  },
+  scienceBody: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    lineHeight: 23,
+  },
+  researchRow: { marginBottom: Spacing.md, gap: 4 },
+  researchFinding: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 20,
+  },
+  researchSource: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  tipDot: { marginTop: 6 },
+  tipText: {
+    flex: 1,
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    lineHeight: 20,
   },
   description: {
     fontFamily: Fonts.secondary,
