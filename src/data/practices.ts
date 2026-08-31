@@ -25,6 +25,7 @@ import type { ArenaId, HabitActionPlan } from '../types';
 // edge does not create a runtime cycle.
 import { HABIT_LIBRARY } from './habitLibrary';
 import { TRADITIONAL_HABIT_LIBRARY } from './traditionalHabits';
+import { withScience } from './habitScience';
 
 /** @deprecated Retired by D1 in favor of HabitCategory. Kept for legacy call sites. */
 export type PracticeGroup = 'activate' | 'calm' | 'restrain' | 'custom';
@@ -1037,9 +1038,11 @@ export const SUPERSEDED_HABIT_IDS: Record<string, string> = {
  */
 export const BUNDLED_HABIT_DEFINITIONS: HabitDefinition[] = [
   ...BUNDLED_PRACTICES,
-  ...[...HABIT_LIBRARY, ...TRADITIONAL_HABIT_LIBRARY].filter(
-    (h) => !SUPERSEDED_HABIT_IDS[h.id]
-  ),
+  // Library habits get their science/research overlaid from data/habitScience.ts,
+  // which is where the "what this does to your brain" content lives.
+  ...[...HABIT_LIBRARY, ...TRADITIONAL_HABIT_LIBRARY]
+    .filter((h) => !SUPERSEDED_HABIT_IDS[h.id])
+    .map(withScience),
 ];
 
 const indexById = (list: HabitDefinition[]): Record<string, HabitDefinition> =>

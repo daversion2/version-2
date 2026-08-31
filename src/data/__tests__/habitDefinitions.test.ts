@@ -10,6 +10,7 @@ import {
   hasTemplate,
 } from '../practices';
 import { HABIT_CATEGORIES } from '../habitLibrary';
+import { HABITS_AWAITING_SCIENCE } from '../habitScience';
 
 // The habit/practice unification (docs/habit-template-unification.md). These tests
 // guard the properties that are easy to break silently: the catalog staying whole,
@@ -130,5 +131,37 @@ describe('category browsing', () => {
     for (const def of getHabitDefinitionsByCategory('Mind')) {
       expect(def.category_id).toBe('Mind');
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Track B: science content coverage (D4).
+// ---------------------------------------------------------------------------
+
+describe('science content', () => {
+  it('gives every browsable habit a science section', () => {
+    const missing = BUNDLED_HABIT_DEFINITIONS.filter((d) => !d.science).map((d) => d.id);
+    expect(missing).toEqual([]);
+  });
+
+  it('gives every browsable habit a whyItWorks hook', () => {
+    const missing = BUNDLED_HABIT_DEFINITIONS.filter((d) => !d.whyItWorks).map((d) => d.id);
+    expect(missing).toEqual([]);
+  });
+
+  it('never ships a research entry without a finding, a source and a link', () => {
+    // The citation policy in data/habitScience.ts: a research entry means a real,
+    // checkable study. A half-formed citation is worse than none.
+    for (const def of BUNDLED_HABIT_DEFINITIONS) {
+      for (const entry of def.research ?? []) {
+        expect(entry.finding.length).toBeGreaterThan(0);
+        expect(entry.source.length).toBeGreaterThan(0);
+        expect(entry.url).toMatch(/^https:\/\//);
+      }
+    }
+  });
+
+  it('tracks any known content gap explicitly rather than silently', () => {
+    expect(HABITS_AWAITING_SCIENCE).toEqual([]);
   });
 });
