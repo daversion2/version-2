@@ -12,7 +12,13 @@ import { logResistance } from '../constants/resistance';
 // screen, so it needs to be provable rather than eyeballed.
 // =============================================================================
 
-export type PaceStatus = 'done' | 'on_pace' | 'behind';
+/**
+ * 'no_target' is its own state, NOT a kind of done. Curated practices are seeded
+ * with target_count_per_week: 0 meaning "no weekly goal set yet", and treating
+ * zero remaining as finished rendered every one of them dimmed and labelled
+ * "Target hit" before the user had done anything.
+ */
+export type PaceStatus = 'done' | 'on_pace' | 'behind' | 'no_target';
 
 export interface HabitPace {
   habitId: string;
@@ -85,6 +91,8 @@ export const classifyPace = (
   const daysLeft = 7 - dayIndex + 1; // includes today
   const urgency = remaining / Math.max(1, daysLeft);
 
+  // No goal set — nothing to be on pace against, and emphatically not "done".
+  if (target <= 0) return { status: 'no_target', remaining: 0, daysLeft, urgency: 0 };
   if (remaining === 0) return { status: 'done', remaining, daysLeft, urgency: 0 };
 
   const expected = (target * dayIndex) / 7;
@@ -97,7 +105,9 @@ export const classifyPace = (
 const STATUS_ORDER: Record<PaceStatus, number> = {
   behind: 0,
   on_pace: 1,
-  done: 2,
+  // Above 'done': a habit with no goal is still outstanding work, just untracked.
+  no_target: 2,
+  done: 3,
 };
 
 /**
@@ -158,14 +168,23 @@ export const buildTodayList = (
 export interface WeekGlance {
   /** Habits meeting or ahead of pace, including finished ones. */
   onPace: number;
+  /** Habits WITH a weekly goal. Habits without one can't be on or off pace. */
   total: number;
   /** Habits currently behind pace. */
   behind: number;
+  /** Habits with no weekly goal set — tracked, but not measured against anything. */
+  untracked: number;
 }
 
 /** The hero line: how many habits are on pace this week. */
-export const buildWeekGlance = (paces: HabitPace[]): WeekGlance => ({
-  onPace: paces.filter((p) => p.status === 'on_pace' || p.status === 'done').length,
-  total: paces.length,
-  behind: paces.filter((p) => p.status === 'behind').length,
-});
+export const buildWeekGlance = (paces: HabitPace[]): WeekGlance => {
+  // Habits with no goal are excluded from the denominator rather than counted as
+  // failures — "2 of 8 on pace" would be a lie when 6 of them have no target.
+  const tracked = paces.filter((p) => p.status !== 'no_target');
+  return {
+    onPace: tracked.filter((p) => p.status === 'on_pace' || p.status === 'done').length,
+    total: tracked.length,
+    behind: tracked.filter((p) => p.status === 'behind').length,
+    untracked: paces.length - tracked.length,
+  };
+};

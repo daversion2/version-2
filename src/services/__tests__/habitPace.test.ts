@@ -187,6 +187,74 @@ describe('buildWeekGlance', () => {
   });
 
   it('reports zero of zero without dividing by anything', () => {
-    expect(buildWeekGlance([])).toEqual({ onPace: 0, total: 0, behind: 0 });
+    expect(buildWeekGlance([])).toEqual({ onPace: 0, total: 0, behind: 0, untracked: 0 });
+  });
+});
+
+describe('habits with no weekly goal', () => {
+  // The bug this guards: curated practices are seeded with
+  // target_count_per_week: 0 ("no goal set yet"). Treating zero remaining as
+  // finished rendered every one of them dimmed and labelled "Target hit" before
+  // the user had done anything.
+  it('is its own state, never "done"', () => {
+    expect(classifyPace(0, 0, WED).status).toBe('no_target');
+    expect(classifyPace(0, 3, WED).status).toBe('no_target');
+  });
+
+  it('reports nothing outstanding, since there is nothing to reach', () => {
+    const result = classifyPace(0, 0, WED);
+    expect(result.remaining).toBe(0);
+    expect(result.urgency).toBe(0);
+  });
+
+  it('still counts completions so the row can show them', () => {
+    const list = buildTodayList(
+      [habit({ id: 'h1', target_count_per_week: 0 })],
+      [log('h1', MON), log('h1', WED)],
+      WED
+    );
+    expect(list[0].status).toBe('no_target');
+    expect(list[0].completed).toBe(2);
+  });
+
+  it('sorts above done, below anything with a live goal', () => {
+    const list = buildTodayList(
+      [
+        habit({ id: 'done', target_count_per_week: 1 }),
+        habit({ id: 'noGoal', target_count_per_week: 0 }),
+        habit({ id: 'behind', target_count_per_week: 4 }),
+      ],
+      [log('done', MON)],
+      SAT
+    );
+    expect(list.map((p) => p.habitId)).toEqual(['behind', 'noGoal', 'done']);
+  });
+
+  it('is excluded from the on-pace denominator rather than counted as failing', () => {
+    // "2 of 8 on pace" would be a lie when 6 of them have no target at all.
+    const list = buildTodayList(
+      [
+        habit({ id: 'onPace', target_count_per_week: 2 }),
+        habit({ id: 'noGoal1', target_count_per_week: 0 }),
+        habit({ id: 'noGoal2', target_count_per_week: 0 }),
+      ],
+      [log('onPace', MON)],
+      WED
+    );
+    const glance = buildWeekGlance(list);
+    expect(glance.total).toBe(1);
+    expect(glance.onPace).toBe(1);
+    expect(glance.untracked).toBe(2);
+  });
+
+  it('reports every habit as untracked when none has a goal', () => {
+    const list = buildTodayList(
+      [habit({ id: 'a', target_count_per_week: 0 }), habit({ id: 'b', target_count_per_week: 0 })],
+      [],
+      WED
+    );
+    const glance = buildWeekGlance(list);
+    expect(glance.total).toBe(0);
+    expect(glance.untracked).toBe(2);
   });
 });

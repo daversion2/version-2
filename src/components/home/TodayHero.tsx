@@ -17,13 +17,31 @@ interface Props {
  * Deliberately not streaks or points: attendance was the old headline.
  */
 export const TodayHero: React.FC<Props> = ({ glance, name }) => {
-  const { onPace, total, behind } = glance;
+  const { onPace, total, behind, untracked } = glance;
 
-  if (total === 0) {
+  // No habits at all.
+  if (total === 0 && untracked === 0) {
     return (
       <View style={styles.wrap}>
         <Text style={styles.big}>Nothing tracked yet</Text>
         <Text style={styles.sub}>Add a habit from the library to get started.</Text>
+      </View>
+    );
+  }
+
+  // Habits exist but none carries a weekly goal — the state a new account is in,
+  // since curated practices are seeded without one. Saying "0 of 0 on pace"
+  // would be meaningless, so it asks for the missing piece instead.
+  if (total === 0) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.eyebrow}>This week</Text>
+        <Text style={styles.big}>
+          {untracked} {untracked === 1 ? 'habit' : 'habits'}, no goals yet
+        </Text>
+        <Text style={styles.sub}>
+          Set how many times a week on any habit to start tracking your pace.
+        </Text>
       </View>
     );
   }

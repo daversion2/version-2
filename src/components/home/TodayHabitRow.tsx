@@ -24,6 +24,7 @@ interface Props {
 const STATUS_COPY: Record<HabitPace['status'], string | null> = {
   behind: 'Behind pace',
   on_pace: null,
+  no_target: 'No weekly goal set',
   done: 'Target hit',
 };
 
@@ -47,7 +48,11 @@ export const TodayHabitRow: React.FC<Props> = ({
 }) => {
   const { target, completed, status, lastResistance, doneToday } = pace;
   const statusLine = STATUS_COPY[status];
+  // Only a finished habit dims. A habit with no goal set is not finished — it
+  // was never measured, and dimming it buries the curated practices, which are
+  // seeded with no weekly target.
   const dim = status === 'done';
+  const noTarget = status === 'no_target';
 
   return (
     <TouchableOpacity
@@ -68,21 +73,31 @@ export const TodayHabitRow: React.FC<Props> = ({
         </View>
 
         {/* Weekly progress: one pip per required rep. Concrete at a glance in a
-            way a percentage bar isn't — "2 of 4" is the actual unit of the week. */}
-        <View style={styles.pipRow}>
-          {Array.from({ length: Math.max(target, 1) }).map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.pip,
-                i < completed && { backgroundColor: accentColor, borderColor: accentColor },
-              ]}
-            />
-          ))}
+            way a percentage bar isn't — "2 of 4" is the actual unit of the week.
+            With no goal there is nothing to draw pips against, so it reports the
+            plain count instead of an incoherent "0 of 0". */}
+        {noTarget ? (
           <Text style={styles.progressText}>
-            {completed} of {target} this week
+            {completed === 0
+              ? 'Not done yet this week'
+              : `Done ${completed} ${completed === 1 ? 'time' : 'times'} this week`}
           </Text>
-        </View>
+        ) : (
+          <View style={styles.pipRow}>
+            {Array.from({ length: target }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.pip,
+                  i < completed && { backgroundColor: accentColor, borderColor: accentColor },
+                ]}
+              />
+            ))}
+            <Text style={styles.progressText}>
+              {completed} of {target} this week
+            </Text>
+          </View>
+        )}
 
         <View style={styles.metaRow}>
           {!!statusLine && (
