@@ -4,6 +4,7 @@ import {
   getActiveHabits,
   getCurrentWeekBounds,
   createHabit,
+  ensureCuratedPractices,
 } from '../practices';
 import {
   addMockDocument,
@@ -11,6 +12,7 @@ import {
   resetMockDB,
 } from '../__mocks__/firestore';
 import { toLocalDateString } from '../../utils/date';
+import { getHabitDefinition } from '../../data/practices';
 
 describe('Habits Service - Backdating and Unlogged Habits', () => {
   const userId = 'test-user-123';
@@ -399,5 +401,70 @@ describe('custom habits — template wiring', () => {
     const data = written();
     expect(data.created_by_user).toBe(true);
     expect('practice_id' in data).toBe(false);
+  });
+});
+
+describe('ensureCuratedPractices — weekly goals', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+  });
+
+  const habitsWritten = () => {
+    const db = getMockDB();
+    return Object.entries(db[`users/${userId}/habits`] || {}).map(([id, v]: [string, any]) => ({
+      id,
+      ...v.data,
+    }));
+  };
+
+  it('seeds each curated practice with the catalog’s suggested target, not 0', async () => {
+    // A tracker that shows nothing until configured is one people abandon: with
+    // no goal there is no pace, so Today could say nothing about a new account.
+    await ensureCuratedPractices(userId);
+    const seeded = habitsWritten();
+    expect(seeded.length).toBeGreaterThan(0);
+    for (const habit of seeded) {
+      const definition = getHabitDefinition(habit.practice_id);
+      expect(habit.target_count_per_week).toBe(definition!.suggested_target_per_week);
+      expect(habit.target_count_per_week).toBeGreaterThan(0);
+    }
+  });
+
+  it('backfills a goal onto an instance seeded before this change', async () => {
+    addMockDocument('users/' + userId + '/habits', 'old', {
+      user_id: userId,
+      name: 'Meditation',
+      practice_id: 'meditation',
+      is_active: true,
+      created_by_user: false,
+      target_count_per_week: 0,
+    });
+
+    await ensureCuratedPractices(userId);
+
+    const updated = habitsWritten().find((h) => h.id === 'old');
+    expect(updated!.target_count_per_week).toBe(
+      getHabitDefinition('meditation')!.suggested_target_per_week
+    );
+  });
+
+  it('never overwrites a target the user actually chose', async () => {
+    // Including a deliberately low one — 1 is a real answer, not an unset field.
+    addMockDocument('users/' + userId + '/habits', 'mine', {
+      user_id: userId,
+      name: 'Meditation',
+      practice_id: 'meditation',
+      is_active: true,
+      created_by_user: false,
+      target_count_per_week: 1,
+    });
+
+    await ensureCuratedPractices(userId);
+
+    const untouched = habitsWritten().find((h) => h.id === 'mine');
+    expect(untouched!.target_count_per_week).toBe(1);
   });
 });

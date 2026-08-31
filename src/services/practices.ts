@@ -129,17 +129,32 @@ export const ensureCuratedPractices = async (
     if (!match) {
       await createHabit(userId, {
         name: p.name,
-        // No preset weekly target — the user sets their own goal from the home
-        // card ("Set a goal"). 0 = unset. See hasWeeklyGoal() / PracticeCard.
-        target_count_per_week: 0,
+        // Seeded with the catalog's suggested target rather than 0 ("unset").
+        // A tracker that shows nothing until it is configured is one people
+        // abandon: with no goal there is no pace, so Today could say nothing
+        // useful about a brand-new account. The suggestion is a starting point,
+        // adjustable per habit — a much smaller imposition than an empty screen.
+        target_count_per_week: p.suggested_target_per_week ?? 3,
         practice_id: p.id,
+        category_id: p.category_id,
         group: p.group,
         created_by_user: false,
       });
       changed++;
-    } else if (match.is_active === false) {
-      await updateDoc(doc(db, 'users', userId, 'habits', match.id), { is_active: true });
-      changed++;
+    } else {
+      if (match.is_active === false) {
+        await updateDoc(doc(db, 'users', userId, 'habits', match.id), { is_active: true });
+        changed++;
+      }
+      // Backfill a goal onto instances seeded before the above changed. Only
+      // when the target is 0/absent — a real target the user chose, including a
+      // deliberately low one, is never overwritten.
+      if (!match.target_count_per_week) {
+        await updateDoc(doc(db, 'users', userId, 'habits', match.id), {
+          target_count_per_week: p.suggested_target_per_week ?? 3,
+        });
+        changed++;
+      }
     }
   }
 
