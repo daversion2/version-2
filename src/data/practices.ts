@@ -1,16 +1,32 @@
 // =============================================================================
-// PRACTICE PROTOCOL — the concrete, recurring practices users do.
+// HABIT DEFINITIONS — the single curated catalog behind every habit.
 //
-// A Practice is a curated, habit-shaped definition (adopt one → it becomes a
-// normal habit with a weekly target + completion + streak), plus a display GROUP
-// (activate/calm/restrain), a default CORE flag (admin-overridable later), and
-// rich "learn" content (how-to, science, tips, variations) shown on the detail
-// screen — the practice's own version of the per-day content Programs carry.
-// Per-practice baselines / Discomfort Shift are a later iteration.
+// A HabitDefinition is a curated, habit-shaped definition (adopt one → it becomes
+// a normal habit with a weekly target + completion + streak). Everything past
+// id/name/description/category_id is OPTIONAL, which is what lets one type cover
+// both ends of the range:
 //
-// See docs/practice-protocol-direction.md
+//   "Drink more water"  → no template, flow: 'tap', one-tap check-in.
+//   "Cold Exposure"     → tracking template, flow: 'away', Ready→Go→Capture,
+//                         science + cited research on its detail page.
+//
+// Practices are no longer a separate concept — they are simply habits that
+// populate more of these fields. See docs/habit-template-unification.md.
+//
+// Taxonomy (D1): HabitCategory (Body/Focus/Mind/Money/Connection) is the only
+// axis. The former PracticeGroup (activate/calm/restrain) is retired; the type
+// is kept below purely so legacy call sites compile until Phase 5 removes them.
 // =============================================================================
 
+// Type-only import — types/index.ts imports PracticeGroup back from here the same
+// way, so both sides are erased at compile time and there is no runtime cycle.
+import type { ArenaId, HabitActionPlan } from '../types';
+// Value import. habitLibrary → traditionalHabits → types is type-only, so this
+// edge does not create a runtime cycle.
+import { HABIT_LIBRARY } from './habitLibrary';
+import { TRADITIONAL_HABIT_LIBRARY } from './traditionalHabits';
+
+/** @deprecated Retired by D1 in favor of HabitCategory. Kept for legacy call sites. */
 export type PracticeGroup = 'activate' | 'calm' | 'restrain' | 'custom';
 
 export interface PracticeGroupDef {
@@ -98,45 +114,99 @@ export interface PracticeResearchEntry {
 }
 
 /**
- * An optional, per-practice metric the user can log on completion. Rendered by a
- * single generic input in the completion sheet and stored in CompletionLog.metrics
- * under `key`. Numeric fields feed dashboard trends; 'choice' fields feed distributions.
+ * One field of a habit's TEMPLATE — an optional metric the user logs on completion.
+ * Rendered by a generic input in the completion sheet and stored in
+ * CompletionLog.metrics under `key`.
+ *
+ * Numeric field types ('duration' | 'number' | 'scale') feed trend lines;
+ * 'choice' feeds distributions. That distinction is why a grade must be 'scale'
+ * and not 'choice' — a grade wants a line over time, not a pie chart.
  */
 export interface TrackingField {
   /** Stable storage key, written to CompletionLog.metrics. */
   key: string;
   /** Short prompt, e.g. "How long?". */
   label: string;
-  type: 'duration' | 'number' | 'choice';
+  type: 'duration' | 'number' | 'choice' | 'scale';
   /** Display unit for number/duration, e.g. 'min', '°F', 'rounds', 'hrs'. */
   unit?: string;
   /** Options for type: 'choice'. */
   options?: { value: string; label: string }[];
-  /** Slider bounds + increment for number/duration fields. */
+  /** Slider bounds + increment for number/duration/scale fields. */
   min?: number;
   max?: number;
   step?: number;
   /** Sensible starting value shown before the user touches the slider. */
   default?: number;
+  /**
+   * Endpoint labels for type: 'scale' — e.g. { low: 'Fell off it', high: 'Nailed it' }.
+   * Stored as a NUMBER so it trends like any other metric.
+   */
+  labels?: { low: string; high: string };
+  /**
+   * Personal-record display for this metric (Phase 3 — replaces the hardcoded
+   * RECORD_OVERRIDES map that used to key off practice id).
+   */
+  record?: {
+    label?: string;
+    icon?: string;
+    /** Which extreme counts as the record. Defaults to 'max'. */
+    pick?: 'max' | 'min';
+  };
 }
 
-export interface Practice {
+/**
+ * Two-factor "dose" scoring for habits where intensity is duration × magnitude
+ * (cold: minutes × degrees below baseline; heat: minutes × degrees above).
+ * Phase 3 — replaces the hardcoded DOSE_CONFIGS map keyed by practice id, so a
+ * new two-factor habit needs no code change.
+ */
+/** The middle beat a habit runs. See HabitDefinition.flow. */
+export type HabitFlow = 'tap' | 'timer' | 'away' | 'moment';
+
+export interface HabitDoseConfig {
+  durationKey: string;
+  magnitudeKey: string;
+  baseline: number;
+  direction: 'below' | 'above';
+  title: string;
+  description: string;
+}
+
+export interface HabitDefinition {
   id: string;
   name: string;
-  group: PracticeGroup;
-  /** Default core/optional designation. Admin-overridable. */
-  core: boolean;
-  /** Default weekly target (a "process goal"); user-adjustable when adopted. */
-  suggested_target_per_week: number;
   /** One-line overview of what it is. */
   description: string;
+  /**
+   * The only taxonomy (D1) — references HabitCategory.id in data/habitLibrary.ts
+   * (Body / Focus / Mind / Money / Connection).
+   */
+  category_id: string;
+  /** Default weekly target (a "process goal"); user-adjustable when adopted. */
+  suggested_target_per_week: number;
+
+  /** @deprecated Retired by D1. Read-only fallback while Phase 5 migrates screens. */
+  group?: PracticeGroup;
+  /** Default core/optional designation. Admin-overridable. */
+  core?: boolean;
   /** Short "insider knowledge" hook. */
-  whyItWorks: string;
+  whyItWorks?: string;
   /** Ionicons name. */
-  icon: string;
-  /** For optional practices: why it isn't part of the core. */
+  icon?: string;
+  /** For optional habits: why it isn't part of the core set. */
   optional_reason?: string;
-  order: number;
+  order?: number;
+
+  // ---- Habit-library fields (absorbed from LibraryHabit) ----
+  /** The implementation-intention plan: anchor, environment, obstacle, minimum. */
+  action_plan?: HabitActionPlan;
+  /** "Each time I do this, I'm someone who ___" — identity-based framing. */
+  identity?: string;
+  /** true = off the core thesis (prune / soft-hide candidate). */
+  off_thesis?: boolean;
+  /** @deprecated Legacy override-training domain tag from the arena phase. */
+  arena_id?: ArenaId;
 
   /**
    * How extreme this practice is. Drives the home list ordering (gentle →
@@ -152,13 +222,13 @@ export interface Practice {
   /** Overrides the how-to section title (default "How to do it"), e.g. "How To Meditate". */
   howToTitle?: string;
   /** Concrete steps to do a session. */
-  howTo: string[];
+  howTo?: string[];
   /** The smallest version for a hard day. */
   minimumVersion?: string;
   /** Deeper neuroscience explainer (1–2 short paragraphs). */
-  science: string;
+  science?: string;
   /** Practical pointers + safety cautions. */
-  tips: string[];
+  tips?: string[];
   /** Named ways to do it. Hidden when `techniques` is set. */
   variations?: PracticeVariation[];
   /** Collapsible technique guides shown inside the how-to section; replaces `variations`. */
@@ -173,8 +243,10 @@ export interface Practice {
    * ___?"). Omit for practices with no sharp resistance point.
    */
   resistanceMoment?: string;
-  /** Optional detailed metrics the user can log for this practice. */
+  /** This habit's TEMPLATE — the metrics logged on completion. Absent = resistance only. */
   tracking?: TrackingField[];
+  /** Two-factor dose scoring, when duration × magnitude is the real measure (Phase 3). */
+  dose?: HabitDoseConfig;
   /**
    * Offer an in-app countdown timer (1–30 min) for timing a session in the app.
    * On finish, the measured minutes prefill the `duration_min` field when logging.
@@ -193,12 +265,17 @@ export interface Practice {
   // ---- Practice-session flow (Ready → Go → Capture) ----
   // See docs/practice-experience-build-plan.md
   /**
-   * Which "middle beat" the forward PracticeSession runs:
-   * - 'timer'  — phone-present, an in-app timer guides the rep (see `timerDisplay`).
+   * Which "middle beat" the forward session runs:
+   * - 'tap'    — DEFAULT. No session at all; a plain check-in straight to Capture.
+   *              This is what lets an ordinary habit ("drink water") and a cold
+   *              plunge share one code path.
+   * - 'timer'  — phone-present, an in-app timer guides it (see `timerDisplay`).
    * - 'away'   — phone-down handoff; they do it offline and log after.
    * - 'moment' — a single decision (pre-commit → confirm), no session.
+   *
+   * Absent means 'tap'. Use getHabitFlow() rather than reading this directly.
    */
-  flow: 'timer' | 'away' | 'moment';
+  flow?: HabitFlow;
   /** How the timer renders, when flow === 'timer'. */
   timerDisplay?: 'countdown' | 'pacer' | 'hidden';
   /**
@@ -227,6 +304,13 @@ export interface Practice {
   };
 }
 
+/**
+ * @deprecated Practices are now just habits. Kept as an alias so the ~12 existing
+ * call sites compile unchanged while Phase 5 migrates them to HabitDefinition.
+ */
+export type Practice = HabitDefinition;
+
+/** @deprecated Retired by D1 along with PracticeGroup. */
 export const PRACTICE_GROUPS: PracticeGroupDef[] = [
   {
     id: 'activate',
@@ -270,6 +354,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   // ---- Calm ----
   {
     id: 'meditation',
+    category_id: 'Mind',
     name: 'Meditation',
     group: 'calm',
     intensity: 'foundational',
@@ -374,6 +459,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'breathwork',
+    category_id: 'Mind',
     name: 'Breathwork',
     group: 'calm',
     intensity: 'foundational',
@@ -446,6 +532,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   // ---- Activate ----
   {
     id: 'movement',
+    category_id: 'Body',
     name: 'Movement',
     group: 'activate',
     intensity: 'challenging',
@@ -498,6 +585,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'unplugged_cardio',
+    category_id: 'Body',
     name: 'Unplugged Cardio',
     group: 'activate',
     intensity: 'challenging',
@@ -567,6 +655,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'cold_exposure',
+    category_id: 'Body',
     name: 'Cold Exposure',
     group: 'activate',
     intensity: 'extreme',
@@ -626,6 +715,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'heat_exposure',
+    category_id: 'Body',
     name: 'Heat Exposure',
     group: 'activate',
     intensity: 'extreme',
@@ -686,6 +776,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   // ---- Restrain ----
   {
     id: 'deliberate_boredom',
+    category_id: 'Focus',
     name: 'Deliberate Boredom',
     group: 'restrain',
     intensity: 'challenging',
@@ -747,6 +838,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'fasting',
+    category_id: 'Body',
     name: 'Fasting',
     group: 'restrain',
     intensity: 'extreme',
@@ -803,6 +895,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'eat_healthy_unenjoyable',
+    category_id: 'Body',
     name: 'Eat Healthy Food I Don’t Enjoy',
     group: 'restrain',
     intensity: 'challenging',
@@ -883,39 +976,116 @@ export const BUNDLED_PRACTICES: Practice[] = [
 // via setPracticeCatalog() — no call site changes. See services/practiceCatalog.ts.
 // ============================================================================
 
-const indexById = (list: Practice[]): Record<string, Practice> =>
+/**
+ * Duplicate library habits retired in favor of the richer definition that covers
+ * the same behavior (the survivor already carries science, a template and a flow).
+ *
+ * These ids are NOT deleted — getHabitDefinition() follows this map, so a habit
+ * someone already adopted under the old id keeps resolving and keeps its history.
+ * They are simply hidden from browsing.
+ */
+export const SUPERSEDED_HABIT_IDS: Record<string, string> = {
+  'move-20min': 'movement',
+  'trad-exercise': 'movement',
+  'morning-meditation': 'meditation',
+  'trad-meditate': 'meditation',
+  'breathing-break': 'breathwork',
+  'trad-budget': 'log-the-spend',
+};
+
+/**
+ * Every bundled habit definition: the 9 rich ones above plus the 42-habit library,
+ * minus the superseded duplicates. This is the single catalog — there is no longer
+ * a separate "practices" list and "habits" list.
+ */
+export const BUNDLED_HABIT_DEFINITIONS: HabitDefinition[] = [
+  ...BUNDLED_PRACTICES,
+  ...[...HABIT_LIBRARY, ...TRADITIONAL_HABIT_LIBRARY].filter(
+    (h) => !SUPERSEDED_HABIT_IDS[h.id]
+  ),
+];
+
+const indexById = (list: HabitDefinition[]): Record<string, HabitDefinition> =>
   list.reduce((acc, p) => {
     acc[p.id] = p;
     return acc;
-  }, {} as Record<string, Practice>);
+  }, {} as Record<string, HabitDefinition>);
 
-let catalog: Practice[] = BUNDLED_PRACTICES;
-let catalogById: Record<string, Practice> = indexById(BUNDLED_PRACTICES);
+let catalog: HabitDefinition[] = BUNDLED_HABIT_DEFINITIONS;
+let catalogById: Record<string, HabitDefinition> = indexById(BUNDLED_HABIT_DEFINITIONS);
 
 /**
  * Replace the live catalog (e.g. with the validated Firestore catalog). Falls
  * back to the bundled defaults if given an empty list, so the app never ends up
  * with zero practices.
  */
-export const setPracticeCatalog = (list: Practice[]): void => {
-  catalog = list.length ? list : BUNDLED_PRACTICES;
+export const setPracticeCatalog = (list: HabitDefinition[]): void => {
+  catalog = list.length ? list : BUNDLED_HABIT_DEFINITIONS;
   catalogById = indexById(catalog);
 };
 
-/** Every practice in the live catalog, including retired (`active === false`) ones. */
-export const getAllPractices = (): Practice[] => catalog;
+/** @deprecated Use setHabitCatalog. */
+export const setHabitCatalog = setPracticeCatalog;
 
-/** Resolve any practice by id — including retired ones, so adopted instances still work. */
-export const getPractice = (id?: string | null): Practice | undefined =>
-  id ? catalogById[id] : undefined;
+/** Every habit definition in the live catalog, including retired (`active === false`) ones. */
+export const getAllPractices = (): HabitDefinition[] => catalog;
+export const getAllHabitDefinitions = (): HabitDefinition[] => catalog;
+
+/**
+ * Resolve any habit definition by id — including retired ones, so adopted habits
+ * still work. Follows SUPERSEDED_HABIT_IDS so a habit adopted under a deduped id
+ * resolves to its survivor rather than disappearing.
+ */
+export const getHabitDefinition = (id?: string | null): HabitDefinition | undefined => {
+  if (!id) return undefined;
+  const direct = catalogById[id];
+  if (direct) return direct;
+  const survivor = SUPERSEDED_HABIT_IDS[id];
+  return survivor ? catalogById[survivor] : undefined;
+};
+
+/** @deprecated Practices are habits now — use getHabitDefinition. */
+export const getPractice = getHabitDefinition;
+
+/**
+ * The middle beat a habit runs. Absent `flow` means 'tap' — a plain check-in —
+ * which is what the great majority of library habits use.
+ */
+export const getHabitFlow = (
+  def?: HabitDefinition | null
+): 'tap' | 'timer' | 'away' | 'moment' => def?.flow ?? 'tap';
+
+/** True when this habit carries a tracking template (metrics beyond resistance). */
+export const hasTemplate = (def?: HabitDefinition | null): boolean =>
+  !!def?.tracking && def.tracking.length > 0;
+
+/** Active habits in a category, for browsing/adoption (retired + superseded hidden). */
+export const getHabitDefinitionsByCategory = (categoryId: string): HabitDefinition[] =>
+  catalog
+    .filter((h) => h.category_id === categoryId && h.active !== false)
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name));
+
+/** Everything browsable in the library, richest-first within each category. */
+export const getBrowsableHabits = (): HabitDefinition[] =>
+  catalog.filter((h) => h.active !== false);
 
 /** Active practices in a group, for browsing/adoption (retired ones are hidden). */
-export const getPracticesByGroup = (group: PracticeGroup): Practice[] =>
+/** @deprecated Retired by D1 — use getHabitDefinitionsByCategory. */
+export const getPracticesByGroup = (group: PracticeGroup): HabitDefinition[] =>
   catalog
     .filter((p) => p.group === group && p.active !== false)
-    .sort((a, b) => a.order - b.order);
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
-export const getCorePractices = (): Practice[] =>
+/**
+ * The curated, session-bearing habits — what used to be "the practices". These
+ * are the definitions that carry a real session flow (timer/away/moment) rather
+ * than being a plain check-in. Used to scope seeding and the old Practices UI so
+ * that merging the 42-habit library into the catalog did not change either.
+ */
+export const getCuratedPractices = (): HabitDefinition[] =>
+  catalog.filter((p) => p.flow && p.flow !== 'tap' && p.active !== false);
+
+export const getCorePractices = (): HabitDefinition[] =>
   catalog.filter((p) => p.core && p.active !== false);
 
 /**
@@ -923,21 +1093,22 @@ export const getCorePractices = (): Practice[] =>
  * protocol (core + optional), ordered gentle → extreme to match the home list.
  * Practices are the app's focus, so all of them live on Home with no add step.
  */
-export const getDefaultSeedPractices = (): Practice[] => {
-  // Prefer the live catalog; fall back to the bundled practices if the live
-  // catalog somehow yields none, so a new user always gets their practices.
-  const active = catalog.filter((p) => p.active !== false);
+export const getDefaultSeedPractices = (): HabitDefinition[] => {
+  // Scoped to the curated session-bearing habits ONLY. The catalog now also holds
+  // the 42-habit browsable library; auto-provisioning all of it would drop ~45
+  // habits onto a new user's home screen. Library habits are opted into, not seeded.
+  const active = getCuratedPractices();
   const list = active.length > 0 ? active : BUNDLED_PRACTICES;
   return [...list].sort((a, b) => {
     const ai = INTENSITY_ORDER[a.intensity ?? 'foundational'];
     const bi = INTENSITY_ORDER[b.intensity ?? 'foundational'];
     if (ai !== bi) return ai - bi;
-    return a.order - b.order;
+    return (a.order ?? 999) - (b.order ?? 999);
   });
 };
 
-export const getOptionalPractices = (): Practice[] =>
-  catalog.filter((p) => !p.core && p.active !== false);
+export const getOptionalPractices = (): HabitDefinition[] =>
+  getCuratedPractices().filter((p) => !p.core);
 
 /**
  * Resolve the display group for an adopted practice instance.
@@ -950,9 +1121,9 @@ export const resolvePracticeGroup = (instance: {
   practice_id?: string;
   group?: PracticeGroup;
 }): PracticeGroup => {
-  const catalog = getPractice(instance.practice_id);
-  if (catalog) return catalog.group;
-  return instance.group ?? 'custom';
+  const catalog = getHabitDefinition(instance.practice_id);
+  // `group` is optional now that D1 retired it — library habits never had one.
+  return catalog?.group ?? instance.group ?? 'custom';
 };
 
 /**

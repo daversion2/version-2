@@ -21,7 +21,7 @@ import { FadeRise } from '../../components/common/FadeRise';
 import { useAuth } from '../../context/AuthContext';
 import { markOnboardingComplete, setStartingPractice } from '../../services/users';
 import { createHabit, getActiveHabits, ensureCuratedPractices } from '../../services/practices';
-import { getAllPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
+import { getAllPractices, getCuratedPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
 
 const { width } = Dimensions.get('window');
 
@@ -459,9 +459,11 @@ const PickerScreen: React.FC<{
   selectedId: string | null;
   onSelect: (id: string) => void;
 }> = ({ selectedId, onSelect }) => {
-  const available = getAllPractices()
-    .filter((p) => p.active !== false && p.group !== 'custom')
-    .sort((a, b) => a.order - b.order);
+  // Scoped to the curated session-bearing habits — the catalog now also carries the
+  // browsable 42-habit library, which must not appear in onboarding selection.
+  const available = getCuratedPractices()
+    .filter((p) => p.group !== 'custom')
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
   return (
     <View style={styles.stageContent}>

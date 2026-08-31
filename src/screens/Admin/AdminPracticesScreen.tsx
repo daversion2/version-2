@@ -127,8 +127,10 @@ export const AdminPracticesScreen: React.FC = () => {
               onPress={() => navigation.navigate('AdminPracticeEdit', { mode: 'edit', practiceId: p.id })}
             >
               <View style={styles.badgeRow}>
-                <View style={[styles.badge, { backgroundColor: groupColor(p.group) + '20' }]}>
-                  <Text style={[styles.badgeText, { color: groupColor(p.group) }]}>{groupName(p.group)}</Text>
+                <View style={[styles.badge, { backgroundColor: groupColor(p.group ?? 'custom') + '20' }]}>
+                  <Text style={[styles.badgeText, { color: groupColor(p.group ?? 'custom') }]}>
+                    {groupName(p.group ?? 'custom')}
+                  </Text>
                 </View>
                 <View style={styles.badge}>
                   <Text style={styles.badgeTextMuted}>{p.flow}</Text>

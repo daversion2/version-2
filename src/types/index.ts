@@ -3,7 +3,7 @@ export * from './worksheets';
 
 // PracticeGroup is defined alongside the Practice catalog (data layer is
 // self-contained, so this import introduces no cycle).
-import type { PracticeGroup } from '../data/practices';
+import type { HabitDefinition, PracticeGroup } from '../data/practices';
 
 // ============================================================================
 // YOUR STORY (PROOF POINTS)
@@ -217,21 +217,17 @@ export interface HabitReminder {
   notificationId?: string;         // Expo local-notification id, for cancel/reschedule
 }
 
-export interface LibraryHabit {
-  id: string;
-  name: string;
-  category_id?: string;
-
-  // Arena — the override-training domain this habit trains (Phase 0).
-  // Optional during the goals→arenas transition. See docs/phase-0-arena-taxonomy.md
-  arena_id?: ArenaId;
-  off_thesis?: boolean;            // true = off the override thesis (prune / soft-hide candidate)
-
-  description: string;
-  suggested_target_per_week: number;
-  action_plan: HabitActionPlan;
-  identity?: string;               // "Each time I do this, I'm someone who ___" — identity-based framing
-}
+/**
+ * A habit in the curated library.
+ *
+ * As of the habit/practice unification this is simply HabitDefinition — the same
+ * type that backs what used to be called Practices. A library habit and a
+ * practice differ only in how many optional fields they populate (a template, a
+ * session flow, science + cited research). One type, one catalog, one code path.
+ *
+ * See docs/habit-template-unification.md.
+ */
+export type LibraryHabit = HabitDefinition;
 
 export interface PracticeInstance {
   id: string;

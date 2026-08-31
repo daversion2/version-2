@@ -176,7 +176,8 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
         {/* Catalog "Learn" content — curated practices only. */}
         {practice && (
           <>
-        {/* How to */}
+        {/* How to — absent on plain library habits, so the section hides entirely. */}
+        {!!practice.howTo?.length && (
         <Section title={practice.howToTitle ?? 'How to do it'}>
           {practice.howTo.map((step, i) => (
             <View key={i} style={styles.stepRow}>
@@ -196,11 +197,14 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
             <TechniqueRow key={t.label} label={t.label} steps={t.steps} color={color} />
           ))}
         </Section>
+        )}
 
-        {/* Science */}
-        <Section title="Why it works">
-          <Text style={styles.bodyText}>{practice.science}</Text>
-        </Section>
+        {/* Science — hidden until this habit has its section authored. */}
+        {!!practice.science && (
+          <Section title="Why it works">
+            <Text style={styles.bodyText}>{practice.science}</Text>
+          </Section>
+        )}
 
         {/* Research */}
         {practice.research && practice.research.length > 0 && (
@@ -239,7 +243,8 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
           </Section>
         )}
 
-        {/* Tips & cautions */}
+        {/* Tips & cautions — hidden when this habit has none authored. */}
+        {!!practice.tips?.length && (
         <Section title="Tips & cautions">
           {practice.tips.map((tip, i) => {
             const caution = tip.startsWith('CAUTION');
@@ -258,6 +263,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
             );
           })}
         </Section>
+        )}
           </>
         )}
     </ScrollView>

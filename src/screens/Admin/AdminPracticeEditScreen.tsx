@@ -20,6 +20,7 @@ import {
   PRACTICE_GROUPS,
   INTENSITY_TIERS,
   IntensityLevel,
+  HabitFlow,
 } from '../../data/practices';
 import {
   getAllPracticeCatalogItems,
@@ -29,7 +30,7 @@ import {
 
 type Props = AdminScreenProps<'AdminPracticeEdit'>;
 
-const FLOWS: Practice['flow'][] = ['timer', 'away', 'moment'];
+const FLOWS: HabitFlow[] = ['tap', 'timer', 'away', 'moment'];
 const TIMER_DISPLAYS: NonNullable<Practice['timerDisplay']>[] = ['countdown', 'pacer', 'hidden'];
 
 const linesToArray = (s: string): string[] =>
@@ -137,7 +138,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
   const [research, setResearch] = useState('');
   const [resistanceMoment, setResistanceMoment] = useState('');
   const [optionalReason, setOptionalReason] = useState('');
-  const [flow, setFlow] = useState<Practice['flow']>('away');
+  const [flow, setFlow] = useState<HabitFlow>('away');
   const [timerDisplay, setTimerDisplay] = useState<string>('');
   const [readyWhatYouDo, setReadyWhatYouDo] = useState('');
   const [readyOverride, setReadyOverride] = useState('');
@@ -155,22 +156,24 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
           setId(p.id);
           setName(p.name);
           setDescription(p.description);
-          setIcon(p.icon);
-          setGroup(p.group);
+          // Every content field below is optional on HabitDefinition now that plain
+          // library habits share the type — a habit with no science/howTo is valid.
+          setIcon(p.icon ?? '');
+          setGroup(p.group ?? 'custom');
           setIntensity(p.intensity ?? '');
-          setCore(p.core);
+          setCore(!!p.core);
           setActive(p.active !== false);
           setTarget(String(p.suggested_target_per_week));
-          setOrder(String(p.order));
-          setWhyItWorks(p.whyItWorks);
-          setScience(p.science);
-          setHowTo(p.howTo.join('\n'));
-          setTips(p.tips.join('\n'));
+          setOrder(String(p.order ?? ''));
+          setWhyItWorks(p.whyItWorks ?? '');
+          setScience(p.science ?? '');
+          setHowTo((p.howTo ?? []).join('\n'));
+          setTips((p.tips ?? []).join('\n'));
           setMinimumVersion(p.minimumVersion ?? '');
           setResearch(researchToLines(p.research));
           setResistanceMoment(p.resistanceMoment ?? '');
           setOptionalReason(p.optional_reason ?? '');
-          setFlow(p.flow);
+          setFlow(p.flow ?? 'tap');
           setTimerDisplay(p.timerDisplay ?? '');
           // Legacy docs (expect/overrideUrge) arrive already normalized into
           // `override` by validatePractice; saving writes the new shape.
@@ -319,7 +322,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       <ChipPicker
         label="Flow"
         value={flow}
-        onChange={(v) => setFlow(v as Practice['flow'])}
+        onChange={(v) => setFlow(v as HabitFlow)}
         options={FLOWS.map((f) => ({ value: f, label: f }))}
       />
       {flow === 'timer' && (

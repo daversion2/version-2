@@ -10,6 +10,7 @@ export const Colors = {
   overlay: 'rgba(0,0,0,0.5)',
   success: '#217180',
   fail: '#FF5B02',
+  danger: '#C62828',        // Destructive actions only (account deletion)
   cardBg: '#FFFFFF',
   border: '#E0E0E0',
 };

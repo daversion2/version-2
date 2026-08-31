@@ -76,7 +76,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
   const [target, setTarget] = useState(habit?.suggested_target_per_week ?? 5);
   const [plan, setPlan] = useState<HabitActionPlan>(habit?.action_plan ?? {});
 
-  const seededTime = defaultTimeForAnchor(habit?.action_plan.anchor);
+  const seededTime = defaultTimeForAnchor(habit?.action_plan?.anchor);
   const [reminderEnabled, setReminderEnabled] = useState(!!seededTime);
   const [reminderTime, setReminderTime] = useState(seededTime ?? DEFAULT_REMINDER_TIME);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -93,7 +93,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
 
   const category = getHabitCategory(habit.category_id);
   const color = category?.color ?? Colors.primary;
-  const supportsPairing = !!habit.action_plan.pairing;
+  const supportsPairing = !!habit.action_plan?.pairing;
 
   const fields = ACTION_PLAN_FIELDS.filter((f) => !f.pairingOnly || supportsPairing);
 

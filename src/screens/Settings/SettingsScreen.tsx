@@ -8,7 +8,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
-import { resetOnboarding, getUser, clearUserAccount } from '../../services/users';
+import { resetOnboarding, getUser, clearUserAccount, deleteAccountPermanently } from '../../services/users';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { registerForPushNotifications } from '../../services/notifications';
@@ -19,6 +19,7 @@ export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<SettingsNavigation>();
   const [username, setUsername] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -79,6 +80,35 @@ export const SettingsScreen: React.FC = () => {
         }
       },
       'Clear Everything'
+    );
+  };
+
+  // Two confirmations, because unlike Clear Account this is irreversible and
+  // takes the login with it.
+  const handleDeleteAccount = () => {
+    showConfirm(
+      'Delete Account',
+      'This permanently deletes your account and everything in it — challenges, habits, streaks, XP, reflections, and worksheets. You will not be able to sign back in, and none of it can be recovered.',
+      () => {
+        showConfirm(
+          'Are you sure?',
+          'This cannot be undone.',
+          async () => {
+            setDeleting(true);
+            try {
+              await deleteAccountPermanently();
+              // Sign-out inside the service drops us back to the auth screen,
+              // so there is no post-delete UI to return to.
+            } catch (error) {
+              console.error('Error deleting account:', error);
+              showAlert('Error', 'Could not delete your account. Please try again.');
+              setDeleting(false);
+            }
+          },
+          'Delete Forever'
+        );
+      },
+      'Continue'
     );
   };
 
@@ -229,6 +259,23 @@ export const SettingsScreen: React.FC = () => {
         style={styles.logout}
       />
 
+      {/* Delete Account — required by the Google Play and App Store account
+          deletion policies, and mirrored by the web form at
+          https://version-2-4afa1.web.app/delete-account */}
+      <Card style={styles.deleteCard} onPress={deleting ? undefined : handleDeleteAccount}>
+        <View style={styles.navRow}>
+          <View style={styles.profileInfo}>
+            <Text style={[styles.label, styles.dangerLabel]}>
+              {deleting ? 'Deleting Account...' : 'Delete Account'}
+            </Text>
+            <Text style={styles.desc}>
+              Permanently erase your account and all of your data. This cannot be undone.
+            </Text>
+          </View>
+          <Ionicons name="trash-outline" size={20} color={Colors.danger} />
+        </View>
+      </Card>
+
     </ScrollView>
   );
 };
@@ -290,4 +337,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logout: { marginTop: Spacing.lg },
+  deleteCard: {
+    marginTop: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.danger,
+  },
+  dangerLabel: { color: Colors.danger },
 });

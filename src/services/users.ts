@@ -1,5 +1,7 @@
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, deleteField } from 'firebase/firestore';
-import { db } from './firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import app, { db } from './firebase';
+import { logOut } from './auth';
 import { User } from '../types';
 
 // Username validation constants
@@ -300,4 +302,23 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
   );
 
   return { deletedDocs: totalDeleted };
+};
+
+/**
+ * Permanently delete the signed-in user's account — all Firestore data plus the
+ * Firebase Auth record. Unlike clearUserAccount, nothing survives and the user
+ * cannot sign back in.
+ *
+ * The purge runs in the deleteAccount Cloud Function because Firestore rules
+ * deny the client the broad deletes it needs. Once the auth record is gone the
+ * local session holds a token for a user that no longer exists, so sign out to
+ * send the app back to the auth screen.
+ */
+export const deleteAccountPermanently = async (): Promise<void> => {
+  const deleteAccount = httpsCallable<void, { success: boolean }>(
+    getFunctions(app),
+    'deleteAccount'
+  );
+  await deleteAccount();
+  await logOut();
 };
