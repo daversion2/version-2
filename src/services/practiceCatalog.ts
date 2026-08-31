@@ -3,7 +3,7 @@ import { db } from './firebase';
 import {
   Practice,
   PracticeGroup,
-  BUNDLED_PRACTICES,
+  BUNDLED_HABIT_DEFINITIONS,
   setPracticeCatalog,
 } from '../data/practices';
 
@@ -24,7 +24,9 @@ const COLLECTION = 'practiceCatalog';
 const catalogRef = () => collection(db, COLLECTION);
 
 const GROUPS: PracticeGroup[] = ['activate', 'calm', 'restrain', 'custom'];
-const FLOWS: Practice['flow'][] = ['timer', 'away', 'moment'];
+// 'tap' included: it is the default flow for an ordinary habit, and a doc that
+// states it explicitly must validate rather than be dropped.
+const FLOWS: Practice['flow'][] = ['tap', 'timer', 'away', 'moment'];
 
 const isStr = (v: unknown): v is string => typeof v === 'string';
 const isStrArray = (v: unknown): v is string[] => Array.isArray(v) && v.every(isStr);
@@ -36,15 +38,35 @@ const isStrArray = (v: unknown): v is string[] => Array.isArray(v) && v.every(is
  */
 export const validatePractice = (raw: any): Practice | null => {
   if (!raw || typeof raw !== 'object') return null;
-  const okEnum =
-    GROUPS.includes(raw.group) &&
-    FLOWS.includes(raw.flow) &&
-    typeof raw.core === 'boolean' &&
-    typeof raw.suggested_target_per_week === 'number' &&
-    typeof raw.order === 'number';
-  const okStrings = isStr(raw.id) && isStr(raw.name) && isStr(raw.description) && isStr(raw.icon);
-  const okContent = isStr(raw.whyItWorks) && isStr(raw.science) && isStrArray(raw.howTo) && isStrArray(raw.tips);
-  if (!okEnum || !okStrings || !okContent) return null;
+
+  // REQUIRED SET (deliberately small). Under the unified HabitDefinition most of
+  // what this used to demand is optional — a plain library habit legitimately has
+  // no group, flow, core, order, howTo or tips. Keeping the old requirements
+  // would silently drop every one of them back to its bundled default, which
+  // reads as "my admin edit didn't save".
+  //
+  // The floor is what the app cannot render without: identity + display + the
+  // weekly target. Anything richer is optional and validated leniently below.
+  const okRequired =
+    isStr(raw.id) &&
+    isStr(raw.name) &&
+    isStr(raw.description) &&
+    isStr(raw.category_id) &&
+    typeof raw.suggested_target_per_week === 'number';
+  if (!okRequired) return null;
+
+  // Optional enums still have to be VALID when present — a bad value is a bug to
+  // catch, not a field to pass through. Absent is fine; wrong is not.
+  if (raw.group !== undefined && !GROUPS.includes(raw.group)) return null;
+  if (raw.flow !== undefined && !FLOWS.includes(raw.flow)) return null;
+  if (raw.core !== undefined && typeof raw.core !== 'boolean') return null;
+  if (raw.order !== undefined && typeof raw.order !== 'number') return null;
+  if (raw.icon !== undefined && !isStr(raw.icon)) return null;
+  if (raw.whyItWorks !== undefined && !isStr(raw.whyItWorks)) return null;
+  if (raw.science !== undefined && !isStr(raw.science)) return null;
+  if (raw.howTo !== undefined && !isStrArray(raw.howTo)) return null;
+  if (raw.tips !== undefined && !isStrArray(raw.tips)) return null;
+
   const practice = raw as Practice;
   // Legacy remote docs may still carry the old ready shape (`expect` +
   // `overrideUrge`, since merged into `override`). Normalize here so the Ready
@@ -94,7 +116,11 @@ export const fetchPracticeCatalog = async (): Promise<Practice[]> => {
   const remoteById = new Map(remote.map((p) => [p.id, p]));
   const merged: Practice[] = [];
   const seen = new Set<string>();
-  for (const bundled of BUNDLED_PRACTICES) {
+  // Iterates the FULL bundled catalog, not just the 9 curated practices. Using
+  // BUNDLED_PRACTICES here would drop all 36 library habits from the live catalog
+  // the moment the remote load completed at startup — the library would populate
+  // from the bundle and then empty itself a second later.
+  for (const bundled of BUNDLED_HABIT_DEFINITIONS) {
     const remoteDoc = remoteById.get(bundled.id);
     // Remote docs seeded before the `research`/`techniques`/`howToTitle` fields
     // existed shadow the bundled entries; backfill from bundled until the doc is
@@ -178,8 +204,11 @@ export const deletePracticeCatalogItem = async (id: string): Promise<void> => {
  * editable docs. Safe to re-run — it overwrites each doc with the bundled version.
  */
 export const seedPracticeCatalogFromBundled = async (): Promise<number> => {
-  for (const p of BUNDLED_PRACTICES) {
+  // D2: seeds the WHOLE catalog — all 45 definitions, not just the 9 curated
+  // practices — so every habit in the app is editable from the admin panel and
+  // content fixes ship without an OTA. Idempotent: upsert by stable id.
+  for (const p of BUNDLED_HABIT_DEFINITIONS) {
     await upsertPracticeCatalogItem(p);
   }
-  return BUNDLED_PRACTICES.length;
+  return BUNDLED_HABIT_DEFINITIONS.length;
 };
