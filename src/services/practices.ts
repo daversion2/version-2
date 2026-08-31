@@ -76,8 +76,18 @@ export const createHabit = async (
   }
 ): Promise<string> => {
   const { created_by_user, ...rest } = data;
+  // Drop undefined values before writing. Firestore REJECTS them outright
+  // ("Unsupported field value: undefined") and this app does not enable
+  // ignoreUndefinedProperties, so a caller passing an optional field through as
+  // `arena_id: habit.arena_id` creates the key with an undefined value and the
+  // whole write throws. 17 of the 42 library habits have no arena_id, which made
+  // adopting any of them fail. Stripping here protects every caller rather than
+  // requiring each one to remember.
+  const defined = Object.fromEntries(
+    Object.entries(rest).filter(([, v]) => v !== undefined)
+  );
   const docRef = await addDoc(habitsRef(userId), {
-    ...rest,
+    ...defined,
     user_id: userId,
     is_active: true,
     created_by_user: created_by_user ?? true,
@@ -154,7 +164,13 @@ export const updateHabit = async (
   data: Partial<PracticeInstance>
 ) => {
   const ref = doc(db, 'users', userId, 'habits', habitId);
-  await updateDoc(ref, data);
+  // Same undefined-stripping as createHabit: Firestore rejects undefined values
+  // outright, so a caller spreading an optional field through would throw. Use
+  // deleteField() explicitly if you actually mean to remove a field.
+  const defined = Object.fromEntries(
+    Object.entries(data).filter(([, v]) => v !== undefined)
+  );
+  await updateDoc(ref, defined);
 };
 
 /** Optional detailed tracking + override reflection captured at completion. */

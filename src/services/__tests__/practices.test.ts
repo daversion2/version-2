@@ -3,6 +3,7 @@ import {
   getHabitsForDate,
   getActiveHabits,
   getCurrentWeekBounds,
+  createHabit,
 } from '../practices';
 import {
   addMockDocument,
@@ -269,5 +270,83 @@ describe('Habits Service - Backdating and Unlogged Habits', () => {
 
       expect(diffDays).toBe(6);
     });
+  });
+});
+
+describe('createHabit — undefined stripping', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+  });
+
+  const written = () => {
+    const db = getMockDB();
+    const habits = db[`users/${userId}/habits`] || {};
+    return Object.values(habits)[0].data as Record<string, unknown>;
+  };
+
+  // The bug this guards: Firestore REJECTS undefined field values, and this app
+  // does not enable ignoreUndefinedProperties. Adopting a library habit passed
+  // `arena_id: habit.arena_id` straight through, and 17 of the 42 library habits
+  // have no arena_id — so adopting any of them threw "Unsupported field value:
+  // undefined" and the habit was never created.
+  it('omits an optional field passed through as undefined', async () => {
+    await createHabit(userId, {
+      name: 'Floss',
+      target_count_per_week: 7,
+      arena_id: undefined,
+      practice_id: 'trad-floss',
+    });
+
+    const data = written();
+    expect('arena_id' in data).toBe(false);
+    expect(data.practice_id).toBe('trad-floss');
+  });
+
+  it('never writes an undefined value under any key', async () => {
+    await createHabit(userId, {
+      name: 'Floss',
+      target_count_per_week: 7,
+      arena_id: undefined,
+      category_id: undefined,
+      group: undefined,
+      action_plan: undefined,
+    });
+
+    for (const [key, value] of Object.entries(written())) {
+      expect([key, value]).not.toEqual([key, undefined]);
+    }
+  });
+
+  it('still writes the fields that are actually set', async () => {
+    await createHabit(userId, {
+      name: 'Cold Exposure',
+      target_count_per_week: 3,
+      practice_id: 'cold_exposure',
+      category_id: 'Body',
+      created_by_user: false,
+    });
+
+    const data = written();
+    expect(data.name).toBe('Cold Exposure');
+    expect(data.category_id).toBe('Body');
+    expect(data.practice_id).toBe('cold_exposure');
+    expect(data.created_by_user).toBe(false);
+    expect(data.is_active).toBe(true);
+  });
+
+  it('preserves a legitimately falsy value rather than stripping it', async () => {
+    // Only `undefined` is dropped — false, 0 and '' are real values.
+    await createHabit(userId, {
+      name: 'Test',
+      target_count_per_week: 0,
+      supports_pairing: false,
+    });
+
+    const data = written();
+    expect(data.target_count_per_week).toBe(0);
+    expect(data.supports_pairing).toBe(false);
   });
 });
