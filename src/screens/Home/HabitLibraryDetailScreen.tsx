@@ -153,7 +153,10 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
         }
       }
 
-      navigation.navigate('ManageHabits');
+      // Land on Today so the newly added habit is visible immediately. This
+      // screen now lives in the Library TAB, where 'ManageHabits' is not a
+      // route — navigating to it here would silently do nothing.
+      navigation.getParent()?.navigate('Home');
     } catch (e: any) {
       showAlert('Error', e.message);
     } finally {

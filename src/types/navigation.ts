@@ -39,11 +39,26 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Challenges: NavigatorScreenParams<ChallengesStackParamList>;
+  Library: NavigatorScreenParams<LibraryStackParamList>;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
-  Tools: NavigatorScreenParams<WorksheetsStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
   Admin: NavigatorScreenParams<AdminStackParamList>;
+  // ---- Archived tabs -------------------------------------------------------
+  // Kept in the param list so the screens and their navigation types still
+  // compile and nothing has to be deleted, but no longer registered in
+  // MainTabs. Re-add a <Tab.Screen> to bring one back.
+  Challenges: NavigatorScreenParams<ChallengesStackParamList>;
+  Tools: NavigatorScreenParams<WorksheetsStackParamList>;
+};
+
+// ============================================================================
+// LIBRARY STACK
+// ============================================================================
+
+export type LibraryStackParamList = {
+  HabitLibrary: undefined;
+  HabitLibraryDetail: { habitId: string };
+  PracticeDetail: { practiceId: string; readOnly?: boolean } | { habitId: string; readOnly?: boolean };
 };
 
 // The Challenges tab reuses the challenge-flow screens (they also stay in the

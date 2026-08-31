@@ -24,6 +24,11 @@ import {
   PracticeProgress,
 } from '../../services/practiceProgress';
 import { getAllPractices } from '../../data/practices';
+import {
+  buildResistanceOverview,
+  ResistanceOverview,
+} from '../../services/practicePerformance';
+import { ResistanceCurveCard } from '../../components/progress/ResistanceCurveCard';
 import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
 import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
 import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
@@ -50,6 +55,7 @@ export const ProgressScreen: React.FC = () => {
   const navigation = useNavigation<ProgressNavigation>();
 
   const [loading, setLoading] = useState(true);
+  const [resistance, setResistance] = useState<ResistanceOverview | null>(null);
   const [filter, setFilter] = useState<TimeFilter>('30d');
 
   // Practice-protocol aggregation (volume grid, quality, override score, records)
@@ -99,6 +105,9 @@ export const ProgressScreen: React.FC = () => {
         getReflections(user.uid, toLocalDateString(getWeekStart(new Date()))),
       ]);
 
+      // Built from allLogs, which is already fetched above — no extra read.
+      setResistance(buildResistanceOverview(allLogs));
+
       setCompletions(actions);
       setPoints(periodPoints);
       setDaysActive(activeDaysResult);
@@ -139,6 +148,10 @@ export const ProgressScreen: React.FC = () => {
         />
       ) : (
         <>
+          {/* Resistance leads. Streaks measure attendance; this measures change,
+              which is the claim the product is built to make. */}
+          {resistance && <ResistanceCurveCard overview={resistance} />}
+
           {/* Override Score (weekly, independent of the time filter) */}
           <OverrideScoreCard
             score={progress?.weekScore ?? 0}

@@ -1,4 +1,4 @@
-import { buildPracticePerformance } from '../practicePerformance';
+import { buildPracticePerformance, buildResistanceOverview } from '../practicePerformance';
 import { CompletionLog } from '../../types';
 import { getPractice } from '../../data/practices';
 
@@ -424,5 +424,43 @@ describe('config-driven dose (Phase 3)', () => {
       icon: 'snow-outline',
       pick: 'min',
     });
+  });
+});
+
+describe('resistance overview (Progress headline)', () => {
+  it('reports nothing to claim below the minimum rated logs', () => {
+    const overview = buildResistanceOverview(resistanceSeries([8, 7]), TODAY);
+    expect(overview.recentAvg).toBeNull();
+    expect(overview.change).toBeNull();
+    expect(overview.rated).toBe(2);
+  });
+
+  it('summarises a falling curve across all habits', () => {
+    const overview = buildResistanceOverview(
+      resistanceSeries([9, 9, 9, 9, 9, 3, 3, 2, 2, 2]),
+      TODAY
+    );
+    expect(overview.firstAvg).toBe(9);
+    expect(overview.recentAvg).toBeCloseTo(2.4, 1);
+    expect(overview.change).toBeLessThan(0);
+  });
+
+  it('shows a current number without a change until there is history to compare', () => {
+    const overview = buildResistanceOverview(resistanceSeries([7, 6, 5]), TODAY);
+    expect(overview.recentAvg).toBe(6);
+    expect(overview.change).toBeNull();
+  });
+
+  it('leaves an empty week null rather than zero, so a gap never reads as progress', () => {
+    // Three logs this week only; the seven earlier buckets have nothing in them.
+    const overview = buildResistanceOverview(resistanceSeries([5, 5, 5]), TODAY);
+    expect(overview.weekly).toHaveLength(8);
+    expect(overview.weekly.slice(0, 7).every((v) => v === null)).toBe(true);
+    expect(overview.weekly[7]).toBe(5);
+  });
+
+  it('returns one week bucket per week, aligned with its start dates', () => {
+    const overview = buildResistanceOverview(resistanceSeries([5, 5, 5]), TODAY);
+    expect(overview.weekStarts).toEqual(WEEK_STARTS);
   });
 });

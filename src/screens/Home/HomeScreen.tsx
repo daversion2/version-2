@@ -756,14 +756,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           setCelebrationVisible(true);
         }}
       />
+      {/*
+        Suppressed: the Training tab is archived, so this modal would announce a
+        feature the user cannot reach and its CTA would navigate to a tab that no
+        longer exists (a silent no-op). Left in place rather than deleted so
+        restoring the Challenges tab restores this with a one-line change.
+      */}
       <TrainingUnlockModal
-        visible={challengesUnlockVisible}
-        onOpenTraining={() => {
-          setChallengesUnlockVisible(false);
-          // The modal introduces both Challenges and Avoidance, so it lands on
-          // the Training hub rather than dropping straight into one of them.
-          navigation.getParent()?.navigate('Challenges');
-        }}
+        visible={false}
+        onOpenTraining={() => setChallengesUnlockVisible(false)}
         onDismiss={() => setChallengesUnlockVisible(false)}
       />
       {/* The "Comeback check-in" rule fires the bespoke comeback/story flow in

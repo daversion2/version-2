@@ -3,9 +3,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
-import { ChallengesStack } from './ChallengesStack';
+import { LibraryStack } from './LibraryStack';
 import { ProgressStack } from './ProgressStack';
-// TODO(tools-tab): re-enable when the Tools tab returns.
+// ---- Archived tabs ---------------------------------------------------------
+// Challenges/Training and Tools are no longer registered as tabs. The app is a
+// habit tracker built on resistance; these belong to the previous direction.
+// Nothing is deleted — the stacks, screens and param types all still exist, so
+// re-adding a <Tab.Screen> below brings either one straight back.
+// import { ChallengesStack } from './ChallengesStack';
 // import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
 import { AdminStack } from './AdminStack';
@@ -23,13 +28,11 @@ export const MainTabs: React.FC = () => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
-          if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
-          else if (route.name === 'Challenges')
-            iconName = focused ? 'flash' : 'flash-outline';
+          if (route.name === 'Home') iconName = focused ? 'today' : 'today-outline';
+          else if (route.name === 'Library')
+            iconName = focused ? 'library' : 'library-outline';
           else if (route.name === 'Progress')
             iconName = focused ? 'trending-up' : 'trending-up-outline';
-          else if (route.name === 'Tools')
-            iconName = focused ? 'construct' : 'construct-outline';
           else if (route.name === 'Settings')
             iconName = focused ? 'settings' : 'settings-outline';
           else if (route.name === 'Admin')
@@ -49,12 +52,12 @@ export const MainTabs: React.FC = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Challenges" component={ChallengesStack} options={{ tabBarLabel: 'Training' }} />
+      <Tab.Screen name="Home" component={HomeStack} options={{ tabBarLabel: 'Today' }} />
+      <Tab.Screen name="Library" component={LibraryStack} />
       <Tab.Screen name="Progress" component={ProgressStack} />
-      {/* TODO(tools-tab): Tools tab temporarily hidden from users — revisit later.
-          Re-enable here and at the other TODO(tools-tab) sites (grep for the tag). */}
-      {/* <Tab.Screen name="Tools" component={WorksheetsStack} /> */}
+      {/* Archived — see the import block above for how to restore either tab.
+      <Tab.Screen name="Challenges" component={ChallengesStack} options={{ tabBarLabel: 'Training' }} />
+      <Tab.Screen name="Tools" component={WorksheetsStack} /> */}
       <Tab.Screen
         name="Settings"
         component={SettingsStack}

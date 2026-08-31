@@ -69,13 +69,12 @@ export const HomeStack: React.FC = () => (
             <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
           </View>
         ),
-        // The library's only entry point. Until this existed the merged library
-        // was unreachable from anywhere in the running app: the sole "Browse
-        // Library" button lived on ManageHabits, and nothing navigated there
-        // except the library's own detail screen (circular) and a rules CTA.
+        // Shortcut to the Library TAB, not the copy of the library that also
+        // lives in this stack — otherwise there would be two independent
+        // instances of the same screen with separate scroll and search state.
         headerRight: () => (
           <TouchableOpacity
-            onPress={() => navigation.navigate('HabitLibrary')}
+            onPress={() => navigation.getParent()?.navigate('Library')}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel="Browse the habit library"
