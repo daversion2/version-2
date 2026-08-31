@@ -42,7 +42,6 @@ export type MainTabParamList = {
   Library: NavigatorScreenParams<LibraryStackParamList>;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
-  Admin: NavigatorScreenParams<AdminStackParamList>;
   // ---- Archived tabs -------------------------------------------------------
   // Kept in the param list so the screens and their navigation types still
   // compile and nothing has to be deleted, but no longer registered in
@@ -221,6 +220,12 @@ export type SettingsStackParamList = {
   SettingsScreen: undefined;
   HowItWorks: undefined;
   EditProfile: undefined;
+  /**
+   * The admin area, nested here rather than occupying a fifth tab. Admin is a
+   * maintenance destination, not a daily one, and a tab that exists for one
+   * account crowds the bar for everyone who sees it.
+   */
+  Admin: NavigatorScreenParams<AdminStackParamList> | undefined;
 };
 
 // ============================================================================

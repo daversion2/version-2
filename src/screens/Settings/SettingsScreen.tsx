@@ -141,6 +141,21 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* Admin — only for flagged accounts. Lives here rather than as a fifth
+          tab: it is a maintenance destination, not a daily one, and a tab that
+          exists for one account crowds the bar for everyone who sees it. */}
+      {userProfile?.is_admin === true && (
+        <Card style={styles.card} onPress={() => navigation.navigate('Admin')}>
+          <View style={styles.navRow}>
+            <View>
+              <Text style={styles.label}>Admin</Text>
+              <Text style={styles.desc}>Catalog, tidbits, rules and seeding</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+          </View>
+        </Card>
+      )}
+
       {/* Send Feedback */}
       <Card style={styles.card} onPress={() => Linking.openURL('https://forms.gle/TNQCzas3JyHs3fNU9')}>
         <View style={styles.navRow}>

@@ -13,16 +13,11 @@ import { ProgressStack } from './ProgressStack';
 // import { ChallengesStack } from './ChallengesStack';
 // import { WorksheetsStack } from './WorksheetsStack';
 import { SettingsStack } from './SettingsStack';
-import { AdminStack } from './AdminStack';
-import { useAuth } from '../context/AuthContext';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const MainTabs: React.FC = () => {
-  const { userProfile } = useAuth();
-  const isAdmin = userProfile?.is_admin === true;
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -35,8 +30,6 @@ export const MainTabs: React.FC = () => {
             iconName = focused ? 'trending-up' : 'trending-up-outline';
           else if (route.name === 'Settings')
             iconName = focused ? 'settings' : 'settings-outline';
-          else if (route.name === 'Admin')
-            iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: Colors.primary,
@@ -63,13 +56,6 @@ export const MainTabs: React.FC = () => {
         component={SettingsStack}
         options={{ headerShown: false }}
       />
-      {isAdmin && (
-        <Tab.Screen
-          name="Admin"
-          component={AdminStack}
-          options={{ headerShown: false }}
-        />
-      )}
     </Tab.Navigator>
   );
 };

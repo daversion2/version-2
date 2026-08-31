@@ -1,4 +1,6 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AdminStackParamList } from '../types/navigation';
 import { AdminDashboardScreen } from '../screens/Admin/AdminDashboardScreen';
@@ -34,7 +36,23 @@ export const AdminStack: React.FC = () => (
     <Stack.Screen
       name="AdminDashboard"
       component={AdminDashboardScreen}
-      options={{ title: 'Admin' }}
+      options={({ navigation }) => ({
+        title: 'Admin',
+        // Root of a NESTED stack, so it gets no back button of its own. As a
+        // tab that was right — there was nowhere to go back to. Reached from
+        // Settings it would be a dead end, so this pops the parent. Safe no-op
+        // if this stack is ever hosted somewhere with nothing behind it.
+        headerLeft: () => (
+          <TouchableOpacity
+            onPress={() => navigation.getParent()?.goBack()}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Back to settings"
+          >
+            <Ionicons name="chevron-back" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+        ),
+      })}
     />
     <Stack.Screen
       name="AdminChallenges"

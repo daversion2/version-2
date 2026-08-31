@@ -5,6 +5,7 @@ import { SettingsStackParamList } from '../types/navigation';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
+import { AdminStack } from './AdminStack';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 
 const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
@@ -37,6 +38,11 @@ export const SettingsStack: React.FC = () => (
       name="HowItWorks"
       component={HowItWorksScreen}
       options={{ title: 'How It Works' }}
+    />
+    <Stack.Screen
+      name="Admin"
+      component={AdminStack}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="EditProfile"
