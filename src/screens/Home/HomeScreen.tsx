@@ -48,6 +48,10 @@ import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/hom
 import { ZoneHeader } from '../../components/home/ZoneHeader';
 import { getActiveMantraText } from '../../services/mantras';
 import { RuleModal } from '../../components/common/RuleModal';
+import { TodayHero } from '../../components/home/TodayHero';
+import { TodayHabitRow } from '../../components/home/TodayHabitRow';
+import { buildTodayList, buildWeekGlance } from '../../services/habitPace';
+import { CompletionLog } from '../../types';
 import { SkipReviewSheet } from '../../components/habits/SkipReviewSheet';
 import {
   getPendingSkipReview,
@@ -73,6 +77,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   // Last week's shortfalls, if any are still unanswered. See services/skipLogic.ts.
   const [skipReview, setSkipReview] = useState<PendingSkipReview | null>(null);
+  // This week's nudge logs, kept in state so the Today list can be derived from
+  // them and recompute when a habit is logged without waiting on a full reload.
+  const [nudgeLogs, setNudgeLogs] = useState<CompletionLog[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
   // True when the capture modal was opened by the card's "Log it" action — no
@@ -318,6 +325,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       let cachedNudgeLogs: Awaited<ReturnType<typeof fetchAllNudgeLogs>> = [];
       try {
         cachedNudgeLogs = await fetchAllNudgeLogs(user.uid, toLocalDateString(logWindowStart));
+        setNudgeLogs(cachedNudgeLogs);
         setWeeklyCounts(getWeeklyCompletionCountsFromLogs(cachedNudgeLogs));
         // Habit ids logged today — powers the hero counter + card "Done today" state.
         const todayStr = getTodayString();
@@ -463,6 +471,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         const completedId = habit.id;
         setCompletedTodayIds((prev) => (prev.includes(completedId) ? prev : [...prev, completedId]));
       }
+
+      // Optimistically add the rep to the log set the Today list is derived
+      // from, so the weekly pips fill and the row re-sorts immediately. Without
+      // this the list would stay stale until the next focus reload, and logging
+      // a habit would appear to do nothing. Backdated reps included — they still
+      // count toward the week they were filed under.
+      setNudgeLogs((prev) => [
+        ...prev,
+        {
+          id: logId,
+          user_id: user.uid,
+          type: 'nudge',
+          reference_id: habit.id,
+          points: pointsEarned,
+          difficulty: difficulty === 'easy' ? 1 : 2,
+          resistance: input.resistance,
+          date,
+        } as CompletionLog,
+      ]);
 
       setCompletingHabit(null);
 
@@ -640,75 +667,90 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }), [onNavigate, handleHabitTap, handleHabitLogIt, handleHabitBriefing, handleSetWeeklyGoal]);
 
 
+  // The Today list: every active habit, ordered by what needs attention. Derived
+  // rather than stored, so an optimistic habit update reorders immediately.
+  const todayList = useMemo(
+    () => buildTodayList(habits, nudgeLogs, getTodayString()),
+    [habits, nudgeLogs]
+  );
+  const weekGlance = useMemo(() => buildWeekGlance(todayList), [todayList]);
+  const habitsById = useMemo(
+    () => Object.fromEntries(habits.map((h) => [h.id, h])) as Record<string, PracticeInstance>,
+    [habits]
+  );
+
   return (
     <View style={styles.screen}>
-      {/* ── Home tab strip ── */}
-      <View style={tabStyles.strip}>
-        {(['practices', 'craving'] as const).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={tabStyles.tab}
-            onPress={() => setHomeTab(tab)}
-            activeOpacity={0.7}
-          >
-            <View style={tabStyles.labelRow}>
-              <Ionicons
-                name={TAB_ICONS[tab]}
-                size={15}
-                color={homeTab === tab ? Colors.primary : Colors.gray}
-              />
-              <Text style={[tabStyles.label, homeTab === tab && tabStyles.labelActive]}>
-                {TAB_LABELS[tab]}
-              </Text>
-            </View>
-            {homeTab === tab && <View style={tabStyles.indicator} />}
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/*
+        TODAY. One list of every active habit, ordered by what needs attention.
 
-      {/* ── Practices tab (existing content — layout unchanged) ── */}
-      <View style={[styles.tabPanel, homeTab !== 'practices' && styles.tabHidden]}>
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          contentContainerStyle={styles.content}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
-          }
+        The old zoned/customisable layout, the mantra section and the points
+        hero are archived (see services/homeLayout.ts and SECTION_REGISTRY —
+        both still exist and still compile). Craving Crusher survives as a card
+        near the bottom rather than a peer tab: it's a tool you reach for in a
+        moment, not a second thing this screen is about.
+      */}
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+        }
+      >
+        <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
+
+        <TodayHero glance={weekGlance} name={userProfile?.username} />
+
+        {todayList.map((pace) => {
+          const habit = habitsById[pace.habitId];
+          if (!habit) return null;
+          return (
+            <TodayHabitRow
+              key={pace.habitId}
+              name={habit.name}
+              pace={pace}
+              accentColor={getPracticeColor(habit)}
+              onPress={() => handleHabitTap(habit)}
+              onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
+            />
+          );
+        })}
+
+        {todayList.length === 0 && (
+          <Text style={styles.emptyText}>
+            No habits yet. Browse the library to add your first one.
+          </Text>
+        )}
+
+        {/* Craving Crusher — an in-the-moment tool, kept below the habits. */}
+        <TouchableOpacity
+          style={styles.utilityCard}
+          onPress={() => navigation.navigate('CravingCrusher')}
+          activeOpacity={0.85}
         >
-          <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
+          <Ionicons name="flash-outline" size={20} color={Colors.secondary} />
+          <View style={styles.utilityText}>
+            <Text style={styles.utilityTitle}>Craving Crusher</Text>
+            <Text style={styles.utilitySubtitle}>Ride out an urge without giving in.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+        </TouchableOpacity>
 
-          {zonedLayout.map((group) => (
-            <React.Fragment key={group.zone.id}>
-              {group.zone.id !== 'welcome' && group.zone.id !== 'legacy' && (
-                <ZoneHeader label={group.zone.label} icon={group.zone.icon} />
-              )}
-              {group.items.map(item => {
-                const Section = SECTION_REGISTRY[item.id];
-                if (!Section) return null;
-                return (
-                  <React.Fragment key={item.id}>
-                    <Section data={homeData} callbacks={homeCallbacks} />
-                    {/* Sits directly under the hero — high enough to be seen on
-                        first open, without displacing the practices. */}
-                    {item.id === 'hero' && showCravingPointer && (
-                      <CravingPointer
-                        onPress={followCravingPointer}
-                        onDismiss={dismissCravingPointer}
-                      />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </React.Fragment>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* ── Craving Crusher tab ── */}
-      <View style={[styles.tabPanel, homeTab !== 'craving' && styles.tabHidden]}>
-        <CravingCrusherTab onPress={() => navigation.navigate('CravingCrusher')} />
-      </View>
+        {/*
+          Points at the Library rather than a creation form: custom habit
+          creation does not exist yet, so offering "add your own" would lead
+          nowhere. Rewire this when that flow is built.
+        */}
+        <TouchableOpacity
+          style={styles.addRow}
+          onPress={() => navigation.getParent()?.navigate('Library')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+          <Text style={styles.addText}>Add a habit</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       {/* Weekly "what got in the way?" — one tap per habit that fell short. */}
       <SkipReviewSheet
@@ -919,6 +961,36 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
   tabPanel: { flex: 1 },
+  emptyText: {
+    fontFamily: Fonts.secondary,
+    fontSize: 14,
+    color: Colors.gray,
+    textAlign: 'center',
+    marginVertical: Spacing.xl,
+  },
+  utilityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  utilityText: { flex: 1, gap: 2 },
+  utilityTitle: { fontFamily: Fonts.primaryBold, fontSize: 16, color: Colors.dark },
+  utilitySubtitle: { fontFamily: Fonts.secondary, fontSize: 13, color: Colors.gray },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+    marginTop: Spacing.sm,
+  },
+  addText: { fontFamily: Fonts.primaryBold, fontSize: 16, color: Colors.primary },
   tabHidden: { display: 'none' },
 });
 

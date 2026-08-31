@@ -1,0 +1,184 @@
+import {
+  classifyPace,
+  buildTodayList,
+  buildWeekGlance,
+  dayIndexInWeek,
+  mondayOf,
+} from '../habitPace';
+import { CompletionLog, PracticeInstance } from '../../types';
+
+// Week of Mon 2026-08-24 .. Sun 2026-08-30.
+const MON = '2026-08-24';
+const WED = '2026-08-26';
+const THU = '2026-08-27';
+const SAT = '2026-08-29';
+const SUN = '2026-08-30';
+
+const habit = (over: Partial<PracticeInstance> & { id: string }): PracticeInstance =>
+  ({
+    user_id: 'u1',
+    name: over.id,
+    is_active: true,
+    created_by_user: false,
+    target_count_per_week: 4,
+    ...over,
+  }) as PracticeInstance;
+
+let n = 0;
+const log = (habitId: string, date: string, extra: Partial<CompletionLog> = {}): CompletionLog =>
+  ({
+    id: `l${++n}`,
+    user_id: 'u1',
+    type: 'nudge',
+    reference_id: habitId,
+    points: 1,
+    difficulty: 1,
+    date,
+    ...extra,
+  }) as CompletionLog;
+
+describe('week helpers', () => {
+  it('anchors the week to Monday', () => {
+    expect(mondayOf(SUN)).toBe(MON);
+    expect(mondayOf(MON)).toBe(MON);
+  });
+
+  it('indexes Monday as 1 and Sunday as 7', () => {
+    expect(dayIndexInWeek(MON)).toBe(1);
+    expect(dayIndexInWeek(SUN)).toBe(7);
+  });
+});
+
+describe('classifyPace', () => {
+  it('reports done once the target is met', () => {
+    expect(classifyPace(4, 4, WED).status).toBe('done');
+    expect(classifyPace(4, 5, WED).status).toBe('done');
+    expect(classifyPace(4, 4, WED).remaining).toBe(0);
+  });
+
+  it('does not declare a habit behind on Monday for a fraction of a rep', () => {
+    // The tolerance that stops the whole screen reading as failure every Monday:
+    // expected on Mon for a 4x habit is 0.57 reps, which nobody can be short of.
+    expect(classifyPace(4, 0, MON).status).toBe('on_pace');
+  });
+
+  it('reports behind once a full rep short of expected pace', () => {
+    // Thursday (day 4), 4x habit: expected 2.3, done 1 — behind, but still
+    // reachable in the 4 days left, so it is not yet at risk.
+    expect(classifyPace(4, 1, THU).status).toBe('behind');
+  });
+
+  it('reports on pace when keeping up', () => {
+    // Wednesday (day 3), 4x habit: expected 1.7, done 2.
+    expect(classifyPace(4, 2, WED).status).toBe('on_pace');
+  });
+
+  it('reports at risk when the maths no longer works', () => {
+    // Sunday, 1 day left, still 3 to go — not a projection, a fact.
+    const result = classifyPace(4, 1, SUN);
+    expect(result.status).toBe('at_risk');
+    expect(result.daysLeft).toBe(1);
+    expect(result.remaining).toBe(3);
+  });
+
+  it('prefers at_risk over behind when both would apply', () => {
+    expect(classifyPace(7, 0, SAT).status).toBe('at_risk');
+  });
+
+  it('counts days left inclusive of today', () => {
+    expect(classifyPace(4, 0, MON).daysLeft).toBe(7);
+    expect(classifyPace(4, 0, SUN).daysLeft).toBe(1);
+  });
+});
+
+describe('buildTodayList', () => {
+  it('counts only this week, and only this habit', () => {
+    const list = buildTodayList(
+      [habit({ id: 'h1', target_count_per_week: 4 })],
+      [
+        log('h1', MON),
+        log('h1', '2026-08-23'), // previous week
+        log('h2', WED), // another habit
+      ],
+      WED
+    );
+    expect(list[0].completed).toBe(1);
+  });
+
+  it('counts distinct days, not logs', () => {
+    const list = buildTodayList(
+      [habit({ id: 'h1' })],
+      [log('h1', MON), log('h1', MON)],
+      WED
+    );
+    expect(list[0].completed).toBe(1);
+  });
+
+  it('sorts at risk, then behind, then on pace, then done', () => {
+    const list = buildTodayList(
+      [
+        habit({ id: 'done', target_count_per_week: 1 }),
+        habit({ id: 'atRisk', target_count_per_week: 7 }),
+        habit({ id: 'behind', target_count_per_week: 4 }),
+        habit({ id: 'onPace', target_count_per_week: 2 }),
+      ],
+      [log('done', MON), log('onPace', MON)],
+      SAT
+    );
+    expect(list.map((p) => p.habitId)).toEqual(['atRisk', 'behind', 'onPace', 'done']);
+  });
+
+  it('surfaces the most recent resistance rating, across all history', () => {
+    const list = buildTodayList(
+      [habit({ id: 'h1' })],
+      [
+        log('h1', '2026-08-10', { resistance: 9 }),
+        log('h1', '2026-08-17', { resistance: 4 }),
+      ],
+      WED
+    );
+    // Older than this week, but still the answer to "what did this feel like?".
+    expect(list[0].lastResistance).toBe(4);
+  });
+
+  it('falls back to the legacy binary when no rating exists', () => {
+    const list = buildTodayList([habit({ id: 'h1' })], [log('h1', MON, { difficulty: 2 })], WED);
+    expect(list[0].lastResistance).toBe(7);
+  });
+
+  it('leaves resistance undefined when there is nothing to show', () => {
+    const list = buildTodayList([habit({ id: 'h1' })], [], WED);
+    expect(list[0].lastResistance).toBeUndefined();
+  });
+
+  it('flags whether the habit was logged today', () => {
+    const list = buildTodayList([habit({ id: 'h1' })], [log('h1', WED)], WED);
+    expect(list[0].doneToday).toBe(true);
+  });
+
+  it('excludes inactive habits', () => {
+    const list = buildTodayList([habit({ id: 'h1', is_active: false })], [], WED);
+    expect(list).toEqual([]);
+  });
+});
+
+describe('buildWeekGlance', () => {
+  it('counts on-pace and done together as on pace', () => {
+    const list = buildTodayList(
+      [
+        habit({ id: 'done', target_count_per_week: 1 }),
+        habit({ id: 'onPace', target_count_per_week: 2 }),
+        habit({ id: 'behind', target_count_per_week: 4 }),
+      ],
+      [log('done', MON), log('onPace', MON)],
+      SAT
+    );
+    const glance = buildWeekGlance(list);
+    expect(glance.total).toBe(3);
+    expect(glance.onPace).toBe(2);
+  });
+
+  it('reports zero of zero without dividing by anything', () => {
+    expect(buildWeekGlance([])).toEqual({ onPace: 0, total: 0, atRisk: 0 });
+  });
+});
