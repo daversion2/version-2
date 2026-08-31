@@ -159,6 +159,12 @@ export const updateHabit = async (
 
 /** Optional detailed tracking + override reflection captured at completion. */
 export interface CompletionExtras {
+  /**
+   * How hard it was to START, 1–10 — the app's headline metric. Additive to the
+   * legacy binary `difficulty`, which is still derived and written alongside it.
+   * See constants/resistance.ts for why this isn't just a wider `difficulty`.
+   */
+  resistance?: number;
   metrics?: Record<string, number | string>;
   hitHardMoment?: boolean;
   tactics?: string[];
@@ -205,6 +211,9 @@ export const logHabitCompletion = async (
   }
   // Only persist tracking/reflection fields that are actually set — keeps logs
   // lean and avoids writing `undefined` (which Firestore rejects).
+  if (typeof extras?.resistance === 'number') {
+    logData.resistance = extras.resistance;
+  }
   if (extras?.metrics && Object.keys(extras.metrics).length) {
     logData.metrics = extras.metrics;
   }
@@ -292,7 +301,8 @@ export const completePractice = async (
   practice: { id: string; name: string },
   input: PracticeCompletionInput,
 ): Promise<CompletePracticeResult> => {
-  const { difficulty, notes, metrics, hitHardMoment, tactics, reflection, mindTags } = input;
+  const { difficulty, resistance, notes, metrics, hitHardMoment, tactics, reflection, mindTags } =
+    input;
   const today = getTodayString();
   const date = input.date || today;
   const backdated = date !== today;
@@ -312,6 +322,7 @@ export const completePractice = async (
   }
 
   const logId = await logHabitCompletion(userId, practice.id, difficulty, date, notes, {
+    resistance,
     metrics,
     hitHardMoment,
     tactics,

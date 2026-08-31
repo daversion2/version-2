@@ -14,6 +14,13 @@ import { StepFlowShell } from '../common/StepFlowShell';
 import { AppMessage } from '../../screens/Tools/components/AppMessage';
 import { PracticeCompletionInput } from '../../types';
 import { getPractice, TrackingField } from '../../data/practices';
+import {
+  RESISTANCE_MIN,
+  RESISTANCE_MAX,
+  RESISTANCE_DEFAULT,
+  resistanceToDifficulty,
+  resistanceLabel,
+} from '../../constants/resistance';
 import { showAlert } from '../../utils/alert';
 import {
   getTodayString,
@@ -24,8 +31,15 @@ import {
 } from '../../utils/date';
 
 interface Props {
-  /** Catalog id, when this is a curated practice — drives the tracking steps. */
+  /** Catalog id, when this habit has a definition — drives the tracking steps. */
   practiceId?: string;
+  /**
+   * Explicit template, overriding whatever `practiceId` would resolve. This is
+   * what lets a CUSTOM habit carry a template: custom habits have no catalog
+   * entry, so their preset template (see data/habitTemplates.ts) is passed in
+   * directly rather than looked up.
+   */
+  tracking?: TrackingField[];
   /** Shown centered in the flow header (the habit/practice name). */
   title?: string;
   accentColor?: string;
@@ -72,6 +86,7 @@ type Step =
  */
 export const PracticeCaptureFlow: React.FC<Props> = ({
   practiceId,
+  tracking: trackingOverride,
   title,
   accentColor = Colors.primary,
   initialMetrics,
@@ -82,11 +97,13 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
   onCancel,
 }) => {
   const practice = getPractice(practiceId);
-  const tracking = practice?.tracking ?? [];
+  // An explicit template wins over the catalog lookup — that is how custom
+  // habits (which have no catalog entry) get one.
+  const tracking = trackingOverride ?? practice?.tracking ?? [];
 
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
-  const [selected, setSelected] = useState<'easy' | 'challenging' | null>(null);
+  const [resistance, setResistance] = useState<number | null>(null);
   const [metrics, setMetrics] = useState<Record<string, number | string>>(initialMetrics ?? {});
   const [date, setDate] = useState(initialDate ?? getTodayString());
   const submittedRef = useRef(false);
@@ -104,7 +121,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     );
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [practiceId, compact]);
+  }, [practiceId, compact, tracking]);
 
   const current = steps[Math.min(index, steps.length - 1)];
   const isLast = index >= steps.length - 1;
@@ -113,19 +130,22 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     switch (current.kind) {
       case 'difficulty':
       case 'all':
-        return !!selected;
+        return resistance !== null;
       case 'tracking':
         return metrics[current.field.key] !== undefined;
     }
   })();
 
   const handleSubmit = async () => {
-    if (!selected || submittedRef.current) return;
+    if (resistance === null || submittedRef.current) return;
     submittedRef.current = true;
 
     try {
       await onSubmit({
-        difficulty: selected,
+        resistance,
+        // Written alongside so streaks and the existing analytics keep working
+        // without knowing about the scale. See constants/resistance.ts.
+        difficulty: resistanceToDifficulty(resistance),
         // Only sent when it isn't today — completePractice treats a present
         // `date` as an explicit backdate and takes its streak-safe path.
         date: isToday(date) ? undefined : date,
@@ -177,10 +197,13 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
   const renderTrackingField = (field: TrackingField) => {
     const currentValue = metrics[field.key];
 
-    // Numeric fields (duration / number) → slider.
+    // Numeric fields (duration / number / scale) → slider. A 'scale' is just a
+    // small-range number with named endpoints, which is what makes a grade
+    // ("how well did I stick to it?") trend like any other metric.
     if (field.type !== 'choice') {
-      const min = field.min ?? 0;
-      const max = field.max ?? 100;
+      const isScale = field.type === 'scale';
+      const min = field.min ?? (isScale ? 1 : 0);
+      const max = field.max ?? (isScale ? 5 : 100);
       const step = field.step ?? 1;
       const touched = typeof currentValue === 'number';
       const shown = touched ? (currentValue as number) : field.default ?? Math.round((min + max) / 2);
@@ -197,6 +220,12 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
             step={step}
             onChange={(v) => setMetricValue(field.key, v)}
           />
+          {isScale && !!field.labels && (
+            <View style={styles.scaleEnds}>
+              <Text style={styles.scaleEndText}>{field.labels.low}</Text>
+              <Text style={styles.scaleEndText}>{field.labels.high}</Text>
+            </View>
+          )}
         </View>
       );
     }
@@ -221,32 +250,38 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     );
   };
 
-  const renderDifficulty = () => (
-    <View style={styles.buttonRow}>
-      <TouchableOpacity
-        style={[styles.option, selected === 'easy' && styles.optionActiveEasy]}
-        onPress={() => setSelected('easy')}
-        activeOpacity={0.8}
-      >
-        <Text style={[styles.optionNum, selected === 'easy' && styles.optionTextActive]}>1</Text>
-        <Text style={[styles.optionLabel, selected === 'easy' && styles.optionTextActive]}>
-          Easy day
+  /**
+   * The one question every check-in asks. A 1–10 slider rather than the old
+   * easy/challenging pair: two values can't draw a curve, and the falling curve
+   * is the whole point of the product.
+   *
+   * Untouched state shows a muted midpoint and leaves `resistance` null, so the
+   * Log button stays disabled until they actually answer — a defaulted rating
+   * would quietly poison the trend.
+   */
+  const renderResistance = () => {
+    const touched = resistance !== null;
+    const shown = resistance ?? RESISTANCE_DEFAULT;
+    return (
+      <View style={styles.fieldBlock}>
+        <Text style={[styles.fieldValueBig, !touched && styles.fieldValueMuted]}>{shown}</Text>
+        <Text style={[styles.resistanceCaption, !touched && styles.fieldValueMuted]}>
+          {touched ? resistanceLabel(shown) : 'Drag to rate'}
         </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.option, selected === 'challenging' && styles.optionActiveChallenging]}
-        onPress={() => setSelected('challenging')}
-        activeOpacity={0.8}
-      >
-        <Text style={[styles.optionNum, selected === 'challenging' && styles.optionTextActive]}>
-          2
-        </Text>
-        <Text style={[styles.optionLabel, selected === 'challenging' && styles.optionTextActive]}>
-          Challenging today
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
+        <Slider
+          value={shown}
+          min={RESISTANCE_MIN}
+          max={RESISTANCE_MAX}
+          step={1}
+          onChange={(v) => setResistance(v)}
+        />
+        <View style={styles.scaleEnds}>
+          <Text style={styles.scaleEndText}>Easy to start</Text>
+          <Text style={styles.scaleEndText}>Nearly didn’t</Text>
+        </View>
+      </View>
+    );
+  };
 
   // Day selector — "when did you do it?", answered before anything else so the
   // rest of the screen is understood to be about that day.
@@ -303,9 +338,9 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
           >
             {showDatePicker ? renderDatePicker() : !isToday(date) ? renderLockedDate() : null}
 
-            <AppMessage message="How hard was it to push through?" color={accentColor} delay={0} />
+            <AppMessage message="How hard was it to start?" color={accentColor} delay={0} />
 
-            {renderDifficulty()}
+            {renderResistance()}
 
             {tracking.map((field) => (
               <View key={field.key} style={styles.compactField}>
@@ -320,7 +355,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     }
 
     const message =
-      current.kind === 'difficulty' ? 'How hard was it to push through?' : current.field.label;
+      current.kind === 'difficulty' ? 'How hard was it to start?' : current.field.label;
 
     return (
       <KeyboardAvoidingView
@@ -339,7 +374,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
             <Text style={styles.optionalBadge}>Optional — skip if it doesn't apply</Text>
           )}
 
-          {current.kind === 'difficulty' ? renderDifficulty() : renderTrackingField(current.field)}
+          {current.kind === 'difficulty' ? renderResistance() : renderTrackingField(current.field)}
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -449,6 +484,23 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   fieldValueMuted: { color: Colors.gray },
+  resistanceCaption: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  scaleEnds: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.xs,
+  },
+  scaleEndText: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
 
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: Spacing.sm },
   chip: {

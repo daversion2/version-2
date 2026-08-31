@@ -15,12 +15,18 @@ import { formatHabitPlanLine } from '../../utils/habitPlan';
 import { getPractice, PRACTICE_GROUPS } from '../../data/practices';
 import { PracticeTimer } from './PracticeTimer';
 import { PracticeCaptureFlow } from './PracticeCaptureFlow';
+import { resolveTemplateFields } from '../../data/habitTemplates';
 
 interface Props {
   visible: boolean;
   habitName: string;
-  /** Catalog id, when this is a curated practice — drives tracking + the targeted reflection. */
+  /** Catalog id, when this habit has a definition — drives tracking + the targeted reflection. */
   practiceId?: string;
+  /**
+   * Preset template id for a CUSTOM habit (data/habitTemplates.ts). Custom habits
+   * have no catalog entry, so their template is resolved from this instead.
+   */
+  templateId?: string;
   actionPlan?: HabitActionPlan;
   /**
    * "I already did it" — never offer the timer, and collapse the capture
@@ -53,6 +59,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
   visible,
   habitName,
   practiceId,
+  templateId,
   actionPlan,
   logOnly = false,
   initialDate,
@@ -62,6 +69,10 @@ export const HabitCompletionModal: React.FC<Props> = ({
 }) => {
   const planLine = formatHabitPlanLine(actionPlan);
   const practice = getPractice(practiceId);
+  // Curated habits take their template from the catalog; custom habits from the
+  // preset they were created with. Undefined here means "no override" and lets
+  // the capture flow fall back to the catalog lookup.
+  const customTracking = practice ? undefined : resolveTemplateFields({ template_id: templateId });
 
   const usesTimer = !!practice?.timer && !logOnly;
   const accent =
@@ -134,6 +145,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
         <PracticeCaptureFlow
           key={openKey}
           practiceId={practiceId}
+          tracking={customTracking?.length ? customTracking : undefined}
           title={habitName}
           accentColor={accent}
           compact={logOnly}

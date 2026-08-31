@@ -244,6 +244,12 @@ export interface PracticeInstance {
   action_plan?: HabitActionPlan;
   reminder?: HabitReminder;
   supports_pairing?: boolean; // habit is suited to temptation bundling (body busy, mind free)
+  /**
+   * Preset template id for CUSTOM habits (data/habitTemplates.ts). Curated habits
+   * leave this unset and take their template from the catalog definition via
+   * `practice_id` instead.
+   */
+  template_id?: string;
 }
 
 export type Quadrant = 'stressed' | 'energized' | 'depleted' | 'calm';
@@ -254,7 +260,18 @@ export interface CompletionLog {
   type: 'challenge' | 'nudge' | 'program' | 'craving';
   reference_id: string;
   points: number;
+  /**
+   * Legacy binary difficulty: 1 = easy, 2 = challenging. Still written on every
+   * new log (derived from `resistance`) so streaks, the adaptation insight and
+   * existing analytics keep working. Prefer `resistance` for anything new.
+   */
   difficulty: number;
+  /**
+   * How hard it was to START, 1–10. The app's headline metric — the number the
+   * progress screen charts falling over time. Absent on logs written before the
+   * scale existed; use logResistance() in constants/resistance.ts to read it.
+   */
+  resistance?: number;
   date: string;
   completed_at?: string; // ISO 8601 timestamp
   notes?: string; // Optional notes for this completion — the free-text "I did XYZ"
@@ -326,7 +343,10 @@ export type HabitDifficulty = 'easy' | 'challenging';
 
 /** Everything the completion sheet can capture for one practice rep. */
 export interface PracticeCompletionInput {
+  /** Derived from `resistance` — see constants/resistance.ts. */
   difficulty: HabitDifficulty;
+  /** How hard it was to start, 1–10. Captured on every check-in. */
+  resistance?: number;
   /**
    * The day the practice actually happened (YYYY-MM-DD, local). Omitted means
    * today. Set by the capture flow's date selector when logging a rep the user
