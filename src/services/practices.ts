@@ -21,6 +21,7 @@ import {
   getStreakMultiplier,
 } from './willpower';
 import { toLocalDateString, getTodayString } from '../utils/date';
+import { RESISTANCE_SCALE } from '../constants/resistance';
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -250,6 +251,10 @@ export const logHabitCompletion = async (
   // lean and avoids writing `undefined` (which Firestore rejects).
   if (typeof extras?.resistance === 'number') {
     logData.resistance = extras.resistance;
+    // Stamp the scale so this value stays interpretable if the scale changes
+    // again. Without it, a 2 recorded today is indistinguishable from a 2
+    // recorded on the old 1–10 scale, which meant something completely different.
+    logData.resistance_scale = RESISTANCE_SCALE;
   }
   if (extras?.metrics && Object.keys(extras.metrics).length) {
     logData.metrics = extras.metrics;

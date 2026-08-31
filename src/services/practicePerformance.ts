@@ -1,7 +1,11 @@
 import { CompletionLog } from '../types';
 import { Practice, TrackingField } from '../data/practices';
 import { getMindTagLabel } from '../data/mindTags';
-import { logResistance } from '../constants/resistance';
+import {
+  logResistance,
+  RESISTANCE_MAX,
+  MEANINGFUL_RESISTANCE_CHANGE,
+} from '../constants/resistance';
 
 // =============================================================================
 // PRACTICE PERFORMANCE — per-practice detailed reporting for the practice
@@ -412,14 +416,18 @@ export const buildPracticePerformance = (
   // 0. Resistance — the headline. Leads the list when there's enough history,
   // because a falling resistance number is the single most persuasive thing the
   // app can tell someone. Threshold of 1 full point avoids celebrating noise.
-  if (resistanceTrend && resistanceTrend.change !== null && Math.abs(resistanceTrend.change) >= 1) {
+  if (
+    resistanceTrend &&
+    resistanceTrend.change !== null &&
+    Math.abs(resistanceTrend.change) >= MEANINGFUL_RESISTANCE_CHANGE
+  ) {
     const falling = resistanceTrend.change < 0;
     insights.push({
       tone: falling ? 'progress' : 'nudge',
       icon: falling ? 'trending-down-outline' : 'trending-up-outline',
       text: falling
-        ? `This started at ${resistanceTrend.firstAvg}/10 and now sits at ${resistanceTrend.recentAvg}/10. It is genuinely getting easier to start.`
-        : `Starting this has gotten harder — ${resistanceTrend.firstAvg}/10 then, ${resistanceTrend.recentAvg}/10 now. Worth asking what changed.`,
+        ? `This started at ${resistanceTrend.firstAvg} out of ${RESISTANCE_MAX} and now sits at ${resistanceTrend.recentAvg}. It is genuinely getting easier.`
+        : `This has gotten harder — ${resistanceTrend.firstAvg} then, ${resistanceTrend.recentAvg} now, out of ${RESISTANCE_MAX}. Worth asking what changed.`,
     });
   }
 

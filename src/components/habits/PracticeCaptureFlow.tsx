@@ -14,13 +14,7 @@ import { StepFlowShell } from '../common/StepFlowShell';
 import { AppMessage } from '../../screens/Tools/components/AppMessage';
 import { PracticeCompletionInput } from '../../types';
 import { getPractice, TrackingField } from '../../data/practices';
-import {
-  RESISTANCE_MIN,
-  RESISTANCE_MAX,
-  RESISTANCE_DEFAULT,
-  resistanceToDifficulty,
-  resistanceLabel,
-} from '../../constants/resistance';
+import { RESISTANCE_LEVELS, resistanceToDifficulty } from '../../constants/resistance';
 import { showAlert } from '../../utils/alert';
 import {
   getTodayString,
@@ -259,29 +253,54 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
    * Log button stays disabled until they actually answer — a defaulted rating
    * would quietly poison the trend.
    */
-  const renderResistance = () => {
-    const touched = resistance !== null;
-    const shown = resistance ?? RESISTANCE_DEFAULT;
-    return (
-      <View style={styles.fieldBlock}>
-        <Text style={[styles.fieldValueBig, !touched && styles.fieldValueMuted]}>{shown}</Text>
-        <Text style={[styles.resistanceCaption, !touched && styles.fieldValueMuted]}>
-          {touched ? resistanceLabel(shown) : 'Drag to rate'}
-        </Text>
-        <Slider
-          value={shown}
-          min={RESISTANCE_MIN}
-          max={RESISTANCE_MAX}
-          step={1}
-          onChange={(v) => setResistance(v)}
-        />
-        <View style={styles.scaleEnds}>
-          <Text style={styles.scaleEndText}>Easy to start</Text>
-          <Text style={styles.scaleEndText}>Nearly didn’t</Text>
-        </View>
-      </View>
-    );
-  };
+  /**
+   * The one question every check-in asks. Three levels rather than a 1–10
+   * slider: nobody reliably distinguishes a 6 from a 7, so the extra resolution
+   * was noise dressed as data. The weekly averages on Progress keep fractional
+   * resolution regardless.
+   *
+   * Nothing is preselected — an unanswered rating leaves the Log button
+   * disabled, because a defaulted answer would quietly poison the trend this
+   * exists to draw.
+   */
+  const renderResistance = () => (
+    <View style={styles.levelList}>
+      {RESISTANCE_LEVELS.map((level) => {
+        const active = resistance === level.value;
+        return (
+          <TouchableOpacity
+            key={level.value}
+            style={[
+              styles.levelRow,
+              active && { borderColor: accentColor, backgroundColor: accentColor + '12' },
+            ]}
+            onPress={() => setResistance(level.value)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`${level.label}. ${level.sublabel}`}
+          >
+            <View
+              style={[
+                styles.levelNum,
+                active && { backgroundColor: accentColor, borderColor: accentColor },
+              ]}
+            >
+              <Text style={[styles.levelNumText, active && styles.levelNumTextActive]}>
+                {level.value}
+              </Text>
+            </View>
+            <View style={styles.levelText}>
+              <Text style={[styles.levelLabel, active && { color: accentColor }]}>
+                {level.label}
+              </Text>
+              <Text style={styles.levelSub}>{level.sublabel}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 
   // Day selector — "when did you do it?", answered before anything else so the
   // rest of the screen is understood to be about that day.
@@ -338,7 +357,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
           >
             {showDatePicker ? renderDatePicker() : !isToday(date) ? renderLockedDate() : null}
 
-            <AppMessage message="How hard was it to start?" color={accentColor} delay={0} />
+            <AppMessage message="How hard was it?" color={accentColor} delay={0} />
 
             {renderResistance()}
 
@@ -355,7 +374,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     }
 
     const message =
-      current.kind === 'difficulty' ? 'How hard was it to start?' : current.field.label;
+      current.kind === 'difficulty' ? 'How hard was it?' : current.field.label;
 
     return (
       <KeyboardAvoidingView
@@ -484,13 +503,31 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   fieldValueMuted: { color: Colors.gray },
-  resistanceCaption: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
+  levelList: { gap: Spacing.sm, marginTop: Spacing.sm },
+  levelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
   },
+  levelNum: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  levelNumText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.gray },
+  levelNumTextActive: { color: Colors.white },
+  levelText: { flex: 1, gap: 2 },
+  levelLabel: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
+  levelSub: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
   scaleEnds: {
     flexDirection: 'row',
     justifyContent: 'space-between',

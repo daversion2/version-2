@@ -341,37 +341,37 @@ const resistanceSeries = (values: (number | undefined)[]): CompletionLog[] =>
     const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
       d.getDate()
     ).padStart(2, '0')}`;
-    return makeLog({ date, ...(v === undefined ? {} : { resistance: v }) });
+    return makeLog({ date, ...(v === undefined ? {} : { resistance: v, resistance_scale: 3 }) });
   });
 
 describe('resistance trend', () => {
   it('is null below the minimum number of rated logs', () => {
-    const perf = buildPracticePerformance(resistanceSeries([8, 7]), meditation, TODAY);
+    const perf = buildPracticePerformance(resistanceSeries([3, 2]), meditation, TODAY);
     expect(perf.resistanceTrend).toBeNull();
   });
 
   it('reports a falling trend as a negative change', () => {
     // 10 logs: starts hard (8s), ends easy (2s).
     const perf = buildPracticePerformance(
-      resistanceSeries([8, 8, 8, 8, 8, 3, 3, 2, 2, 2]),
+      resistanceSeries([3, 3, 3, 3, 3, 1, 1, 1, 1, 1]),
       meditation,
       TODAY
     );
     const trend = perf.resistanceTrend!;
     expect(trend.rated).toBe(10);
-    expect(trend.firstAvg).toBe(8);
-    expect(trend.recentAvg).toBeCloseTo(2.4, 1);
+    expect(trend.firstAvg).toBe(3);
+    expect(trend.recentAvg).toBe(1);
     expect(trend.change).toBeLessThan(0);
   });
 
   it('leaves change null until there is enough history to compare', () => {
-    const perf = buildPracticePerformance(resistanceSeries([7, 6, 5]), meditation, TODAY);
+    const perf = buildPracticePerformance(resistanceSeries([3, 2, 2]), meditation, TODAY);
     expect(perf.resistanceTrend!.change).toBeNull();
   });
 
   it('excludes unrated logs rather than counting them as zero', () => {
     const perf = buildPracticePerformance(
-      resistanceSeries([9, undefined, 9, undefined, 9]),
+      resistanceSeries([3, undefined, 3, undefined, 3]),
       meditation,
       TODAY
     );
@@ -381,17 +381,17 @@ describe('resistance trend', () => {
 
   it('leads the insight list when resistance has moved a full point', () => {
     const perf = buildPracticePerformance(
-      resistanceSeries([9, 9, 9, 9, 9, 2, 2, 2, 2, 2]),
+      resistanceSeries([3, 3, 3, 3, 3, 1, 1, 1, 1, 1]),
       meditation,
       TODAY
     );
     expect(perf.insights[0].tone).toBe('progress');
-    expect(perf.insights[0].text).toContain('getting easier to start');
+    expect(perf.insights[0].text).toContain('getting easier');
   });
 
   it('flags a habit that is getting harder rather than staying silent', () => {
     const perf = buildPracticePerformance(
-      resistanceSeries([2, 2, 2, 2, 2, 9, 9, 9, 9, 9]),
+      resistanceSeries([1, 1, 1, 1, 1, 3, 3, 3, 3, 3]),
       meditation,
       TODAY
     );
@@ -405,8 +405,8 @@ describe('resistance trend', () => {
       difficulty: 2,
     }));
     const perf = buildPracticePerformance(legacy, meditation, TODAY);
-    // 'challenging' maps to 7 — see legacyDifficultyToResistance.
-    expect(perf.resistanceTrend!.recentAvg).toBe(7);
+    // 'challenging' maps to level 2 — see legacyDifficultyToResistance.
+    expect(perf.resistanceTrend!.recentAvg).toBe(2);
   });
 });
 
@@ -429,7 +429,7 @@ describe('config-driven dose (Phase 3)', () => {
 
 describe('resistance overview (Progress headline)', () => {
   it('reports nothing to claim below the minimum rated logs', () => {
-    const overview = buildResistanceOverview(resistanceSeries([8, 7]), TODAY);
+    const overview = buildResistanceOverview(resistanceSeries([3, 2]), TODAY);
     expect(overview.recentAvg).toBeNull();
     expect(overview.change).toBeNull();
     expect(overview.rated).toBe(2);
@@ -437,30 +437,30 @@ describe('resistance overview (Progress headline)', () => {
 
   it('summarises a falling curve across all habits', () => {
     const overview = buildResistanceOverview(
-      resistanceSeries([9, 9, 9, 9, 9, 3, 3, 2, 2, 2]),
+      resistanceSeries([3, 3, 3, 3, 3, 1, 1, 1, 1, 1]),
       TODAY
     );
-    expect(overview.firstAvg).toBe(9);
-    expect(overview.recentAvg).toBeCloseTo(2.4, 1);
+    expect(overview.firstAvg).toBe(3);
+    expect(overview.recentAvg).toBe(1);
     expect(overview.change).toBeLessThan(0);
   });
 
   it('shows a current number without a change until there is history to compare', () => {
-    const overview = buildResistanceOverview(resistanceSeries([7, 6, 5]), TODAY);
-    expect(overview.recentAvg).toBe(6);
+    const overview = buildResistanceOverview(resistanceSeries([3, 2, 2]), TODAY);
+    expect(overview.recentAvg).toBeCloseTo(2.3, 1);
     expect(overview.change).toBeNull();
   });
 
   it('leaves an empty week null rather than zero, so a gap never reads as progress', () => {
     // Three logs this week only; the seven earlier buckets have nothing in them.
-    const overview = buildResistanceOverview(resistanceSeries([5, 5, 5]), TODAY);
+    const overview = buildResistanceOverview(resistanceSeries([2, 2, 2]), TODAY);
     expect(overview.weekly).toHaveLength(8);
     expect(overview.weekly.slice(0, 7).every((v) => v === null)).toBe(true);
-    expect(overview.weekly[7]).toBe(5);
+    expect(overview.weekly[7]).toBe(2);
   });
 
   it('returns one week bucket per week, aligned with its start dates', () => {
-    const overview = buildResistanceOverview(resistanceSeries([5, 5, 5]), TODAY);
+    const overview = buildResistanceOverview(resistanceSeries([2, 2, 2]), TODAY);
     expect(overview.weekStarts).toEqual(WEEK_STARTS);
   });
 });

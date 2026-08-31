@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ResistanceOverview } from '../../services/practicePerformance';
-import { RESISTANCE_MAX } from '../../constants/resistance';
+import { RESISTANCE_MAX, MEANINGFUL_RESISTANCE_CHANGE } from '../../constants/resistance';
 
 interface Props {
   overview: ResistanceOverview;
@@ -12,8 +12,7 @@ interface Props {
 const BAR_MAX_HEIGHT = 72;
 
 /**
- * The Progress screen's headline: how hard your habits have been to START,
- * week over week.
+ * The Progress screen's headline: how hard your habits have been, week over week.
  *
  * Deliberately the top card. Streaks measure attendance; this measures change —
  * "cold showers were an 8, they're a 3 now" is the claim the whole product is
@@ -30,14 +29,14 @@ export const ResistanceCurveCard: React.FC<Props> = ({ overview }) => {
         <Text style={styles.label}>Your resistance</Text>
         <Text style={styles.empty}>
           Log a few more check-ins and this will show whether your habits are
-          getting easier to start.
+          getting easier.
         </Text>
       </View>
     );
   }
 
   const falling = change !== null && change < 0;
-  const meaningful = change !== null && Math.abs(change) >= 1;
+  const meaningful = change !== null && Math.abs(change) >= MEANINGFUL_RESISTANCE_CHANGE;
   const accent = falling ? Colors.primary : Colors.secondary;
 
   return (
@@ -64,9 +63,9 @@ export const ResistanceCurveCard: React.FC<Props> = ({ overview }) => {
       <Text style={styles.caption}>
         {meaningful
           ? falling
-            ? 'Your habits are getting easier to start.'
-            : 'Starting has been getting harder lately.'
-          : 'How hard your habits have been to start.'}
+            ? 'Your habits are getting easier.'
+            : 'They have been getting harder lately.'
+          : 'How hard your habits have felt.'}
       </Text>
 
       {/* Bars, oldest → newest. A week with no rated check-in renders as a

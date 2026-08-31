@@ -51,6 +51,7 @@ import { RuleModal } from '../../components/common/RuleModal';
 import { TodayHero } from '../../components/home/TodayHero';
 import { TodayHabitRow } from '../../components/home/TodayHabitRow';
 import { buildTodayList, buildWeekGlance } from '../../services/habitPace';
+import { RESISTANCE_SCALE } from '../../constants/resistance';
 import { CompletionLog } from '../../types';
 import { SkipReviewSheet } from '../../components/habits/SkipReviewSheet';
 import {
@@ -487,6 +488,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           points: pointsEarned,
           difficulty: difficulty === 'easy' ? 1 : 2,
           resistance: input.resistance,
+          resistance_scale: RESISTANCE_SCALE,
           date,
         } as CompletionLog,
       ]);

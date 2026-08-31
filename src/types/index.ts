@@ -267,11 +267,18 @@ export interface CompletionLog {
    */
   difficulty: number;
   /**
-   * How hard it was to START, 1–10. The app's headline metric — the number the
-   * progress screen charts falling over time. Absent on logs written before the
-   * scale existed; use logResistance() in constants/resistance.ts to read it.
+   * How hard it was, on the scale recorded in `resistance_scale`. The app's
+   * headline metric — the number the progress screen charts falling over time.
+   * NEVER read this directly: use logResistance() in constants/resistance.ts,
+   * which normalizes it onto the current scale.
    */
   resistance?: number;
+  /**
+   * The maximum of the scale `resistance` was recorded on (3 today, 10 before
+   * the three-level rewrite). Absent means 10 — the two ranges overlap, so a
+   * stored 2 is uninterpretable without knowing which scale produced it.
+   */
+  resistance_scale?: number;
   date: string;
   completed_at?: string; // ISO 8601 timestamp
   notes?: string; // Optional notes for this completion — the free-text "I did XYZ"

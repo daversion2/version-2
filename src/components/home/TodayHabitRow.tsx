@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { HabitPace } from '../../services/habitPace';
-import { resistanceLabel } from '../../constants/resistance';
+import { getResistanceLevel } from '../../constants/resistance';
 
 interface Props {
   name: string;
@@ -125,7 +125,7 @@ export const TodayHabitRow: React.FC<Props> = ({
           )}
           {typeof lastResistance === 'number' && (
             <Text style={styles.resistance}>
-              {statusLine ? ' · ' : ''}Last felt like a {lastResistance} — {resistanceLabel(lastResistance).toLowerCase()}
+              {statusLine ? ' · ' : ''}Last time: {getResistanceLevel(lastResistance)?.label.toLowerCase()}
             </Text>
           )}
         </View>
