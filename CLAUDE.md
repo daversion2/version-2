@@ -7,24 +7,12 @@ all are** — it describes work left mid-flight, not standing policy. If it has
 been here a long time, ask the user whether it is still true rather than acting
 on it.*
 
-**1. In-app account deletion is written but NOT deployed.** Sitting uncommitted
-in the working tree: `firebase.json` (gains a `hosting` block),
-`functions/src/index.ts` (an `onCall` account-deletion function), and an
-untracked `hosting/` directory (`delete-account.html`, `index.html`,
-`favicon.ico`).
-
-None of it is in the JS bundle, so **the OTA published on 2026-09-05 does not
-include it** and the delete-account page does not work until:
-
-```bash
-git add firebase.json functions hosting
-git commit -m "Add in-app account deletion with hosted delete-account page"
-firebase deploy --only functions,hosting && git push
-```
-
-An OTA will never carry this — it needs the Firebase deploy. Account deletion is
-usually App Store compliance work, so check whether it is on a deadline rather
-than assuming it can wait.
+**1. Cloud Functions run on Node 20, which is decommissioned 2026-10-30.**
+After that date `firebase deploy --only functions` FAILS — including an urgent
+one. The deploy already warns on every run. Needs `functions/package.json`
+moved to a supported runtime (and `firebase-functions` upgraded, which the CLI
+also flags as having breaking changes). Do it while it is a chore rather than
+an outage.
 
 **2. The 2026-09-05 OTA shipped without ever running on a device.** Named-day
 scheduling, schedule-aware streaks, adherence and the archive screen are live to
