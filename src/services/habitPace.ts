@@ -1,11 +1,25 @@
 import { CompletionLog, PracticeInstance } from '../types';
+import {
+  Schedulable,
+  describeSchedule,
+  dueDatesBetween,
+  isDayScheduled,
+  isDueOn,
+} from './habitSchedule';
 
 // =============================================================================
-// HABIT PACE — "am I on track for this week's target?"
+// HABIT PACE — "where does this habit stand this week?"
 //
-// Habits carry a WEEKLY target, not assigned days, so Today can't ask "is this
-// due?". It asks "is this on pace?" instead: how much of the week has gone, and
-// how much of the target is done.
+// Two schedules, two questions, one answer shape:
+//
+//   COUNT ("4× a week")     is this ON PACE? How much of the week has gone,
+//                           and how much of the target is done.
+//   DAYS ("Mon, Wed, Fri")  is this DUE, and did I miss one? A day-scheduled
+//                           habit knows exactly which days it owed, so pace
+//                           stops being an estimate and becomes a fact.
+//
+// Both produce a HabitPace with the same status vocabulary, so every consumer —
+// the Today row, the hero glance, the sort — works on either without branching.
 //
 // Pure functions, no Firestore — the pace rule is the sort order of the main
 // screen, so it needs to be provable rather than eyeballed.
@@ -40,6 +54,17 @@ export interface HabitPace {
   urgency: number;
   /** Logged today already? Drives the row's done state. */
   doneToday: boolean;
+  /** Pinned to specific weekdays rather than a weekly count. */
+  dayScheduled: boolean;
+  /**
+   * Owed today and not yet done. Always false for a count habit — any day is a
+   * legitimate day for one, so nothing is ever specifically owed today.
+   */
+  dueToday: boolean;
+  /** Due days already gone this week without a rep. Day-scheduled habits only. */
+  missed: number;
+  /** One line describing the schedule, e.g. "Mon, Wed & Fri" or "4× a week". */
+  scheduleLabel: string;
 }
 
 const toDateStr = (d: Date): string =>
@@ -98,6 +123,56 @@ export const classifyPace = (
   return { status, remaining, daysLeft, urgency };
 };
 
+/**
+ * Classify one day-scheduled habit's week.
+ *
+ * No pace estimate and no tolerance, because none is needed: the habit named its
+ * days, so a day that has ended without a rep is a MISS, not a projection. Today
+ * is never a miss — the day isn't over — it's just due.
+ */
+export const classifyScheduledPace = (
+  habit: Schedulable,
+  doneDates: string[],
+  todayStr: string
+): {
+  status: PaceStatus;
+  target: number;
+  remaining: number;
+  daysLeft: number;
+  urgency: number;
+  missed: number;
+  dueToday: boolean;
+} => {
+  const weekStart = mondayOf(todayStr);
+  const weekEnd = addDays(weekStart, 6);
+  const done = new Set(doneDates);
+
+  const dueThisWeek = dueDatesBetween(habit, weekStart, weekEnd);
+  // Settled days: due days already behind us. Today is still live.
+  const settled = dueThisWeek.filter((d) => d < todayStr);
+  const missed = settled.filter((d) => !done.has(d)).length;
+  // Everything still winnable — today included, and today counts as outstanding
+  // only while it is unlogged.
+  const outstanding = dueThisWeek.filter((d) => d >= todayStr && !done.has(d));
+
+  const daysLeft = 7 - dayIndexInWeek(todayStr) + 1;
+  const dueToday = isDueOn(habit, todayStr) && !done.has(todayStr);
+
+  const status: PaceStatus =
+    missed > 0 ? 'behind' : outstanding.length === 0 ? 'done' : 'on_pace';
+
+  return {
+    status,
+    target: dueThisWeek.length,
+    remaining: outstanding.length,
+    daysLeft,
+    // Missed days are the pressure; a day owed today outranks one owed Friday.
+    urgency: missed + (dueToday ? 1 : 0) + outstanding.length / Math.max(1, daysLeft),
+    missed,
+    dueToday,
+  };
+};
+
 /** Sort weight — the order Today uses. Lower sorts first. */
 const STATUS_ORDER: Record<PaceStatus, number> = {
   behind: 0,
@@ -123,14 +198,40 @@ export const buildTodayList = (
 
   return habits
     .filter((h) => h.is_active)
-    .map((habit) => {
+    .map((habit): HabitPace => {
       const inWeek = logs.filter(
         (l) => l.reference_id === habit.id && l.date >= weekStart && l.date <= weekEnd
       );
       // Distinct DAYS — two reps in one day is one day of the weekly target.
       const doneDates = [...new Set(inWeek.map((l) => l.date))].sort();
-      const target = habit.target_count_per_week ?? 0;
       const completed = doneDates.length;
+      const dayScheduled = isDayScheduled(habit);
+      const scheduleLabel = describeSchedule(habit);
+
+      if (dayScheduled) {
+        const scheduled = classifyScheduledPace(habit, doneDates, todayStr);
+        return {
+          habitId: habit.id,
+          target: scheduled.target,
+          // A rep on an off day is a bonus, and it belongs in the week's count —
+          // but it can't fill a pip for a day that was never kept, so the count
+          // shown never exceeds what was asked for.
+          completed: Math.min(completed, scheduled.target),
+          doneDates,
+          isDone: scheduled.status === 'done',
+          remaining: scheduled.remaining,
+          daysLeft: scheduled.daysLeft,
+          status: scheduled.status,
+          urgency: scheduled.urgency,
+          doneToday: doneDates.includes(todayStr),
+          dayScheduled,
+          dueToday: scheduled.dueToday,
+          missed: scheduled.missed,
+          scheduleLabel,
+        };
+      }
+
+      const target = habit.target_count_per_week ?? 0;
       const { status, remaining, daysLeft, urgency } = classifyPace(target, completed, todayStr);
 
       return {
@@ -144,13 +245,22 @@ export const buildTodayList = (
         status,
         urgency,
         doneToday: doneDates.includes(todayStr),
+        dayScheduled,
+        // Nothing is owed TODAY specifically when the days are yours to pick.
+        dueToday: false,
+        missed: 0,
+        scheduleLabel,
       };
     })
     .sort((a, b) => {
       const byStatus = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
       if (byStatus !== 0) return byStatus;
-      // Within a status, the most pressing first — reps needed per day left,
-      // then raw reps outstanding as a tiebreak.
+      // A habit that named today and hasn't been done outranks one that merely
+      // could be done today — it is the only kind with a deadline.
+      const byDue = Number(b.dueToday) - Number(a.dueToday);
+      if (byDue !== 0) return byDue;
+      // Then the most pressing first — reps needed per day left, then raw reps
+      // outstanding as a tiebreak.
       return b.urgency - a.urgency || b.remaining - a.remaining;
     });
 };

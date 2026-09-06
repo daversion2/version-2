@@ -9,6 +9,7 @@ import { CompletionLog, PracticeInstance } from '../../types';
 
 // Week of Mon 2026-08-24 .. Sun 2026-08-30.
 const MON = '2026-08-24';
+const TUE = '2026-08-25';
 const WED = '2026-08-26';
 const THU = '2026-08-27';
 const SAT = '2026-08-29';
@@ -165,6 +166,77 @@ describe('buildWeekGlance', () => {
 
   it('reports zero of zero without dividing by anything', () => {
     expect(buildWeekGlance([])).toEqual({ onPace: 0, total: 0, behind: 0, untracked: 0 });
+  });
+});
+
+describe('day-scheduled habits', () => {
+  // Mon/Wed/Fri. Weekdays are JS-style: 0 = Sunday.
+  const mwf = (id: string) =>
+    habit({ id, scheduled_days: [1, 3, 5], target_count_per_week: 3 });
+
+  it('takes its target from the days it named', () => {
+    const list = buildTodayList([mwf('h1')], [], WED);
+    expect(list[0].target).toBe(3);
+    expect(list[0].dayScheduled).toBe(true);
+    expect(list[0].scheduleLabel).toBe('Mon, Wed & Fri');
+  });
+
+  it('is due only on the days it named', () => {
+    expect(buildTodayList([mwf('h1')], [], WED)[0].dueToday).toBe(true);
+    expect(buildTodayList([mwf('h1')], [], THU)[0].dueToday).toBe(false);
+  });
+
+  it('stops being due once it is done', () => {
+    const list = buildTodayList([mwf('h1')], [log('h1', WED)], WED);
+    expect(list[0].dueToday).toBe(false);
+    expect(list[0].doneToday).toBe(true);
+  });
+
+  it('counts a day gone without a rep as a miss, not a projection', () => {
+    // Monday came and went. On Wednesday that is a fact.
+    const list = buildTodayList([mwf('h1')], [], WED);
+    expect(list[0].missed).toBe(1);
+    expect(list[0].status).toBe('behind');
+  });
+
+  it('never counts today as missed while the day is still going', () => {
+    // Monday kept, Wednesday due right now: nothing has been missed.
+    const list = buildTodayList([mwf('h1')], [log('h1', MON)], WED);
+    expect(list[0].missed).toBe(0);
+    expect(list[0].status).toBe('on_pace');
+  });
+
+  it('is done once every day it asked for is kept', () => {
+    const list = buildTodayList(
+      [mwf('h1')],
+      [log('h1', MON), log('h1', WED), log('h1', '2026-08-28')],
+      SAT
+    );
+    expect(list[0].status).toBe('done');
+    expect(list[0].remaining).toBe(0);
+  });
+
+  it('is not done just because nothing is left today', () => {
+    // Thursday: Monday and Wednesday kept, but Friday is still owed.
+    const list = buildTodayList([mwf('h1')], [log('h1', MON), log('h1', WED)], THU);
+    expect(list[0].status).toBe('on_pace');
+    expect(list[0].remaining).toBe(1);
+  });
+
+  it('credits a bonus rep on an off day without over-filling the week', () => {
+    // Tuesday is not a day it asked for, so it can't push the count past three.
+    const logs = [log('h1', MON), log('h1', TUE), log('h1', WED), log('h1', '2026-08-28')];
+    const list = buildTodayList([mwf('h1')], logs, SAT);
+    expect(list[0].completed).toBe(3);
+  });
+
+  it('sorts a habit owed today above one that merely could be done today', () => {
+    const list = buildTodayList(
+      [habit({ id: 'anyDay', target_count_per_week: 3 }), mwf('dueToday')],
+      [],
+      WED
+    );
+    expect(list[0].habitId).toBe('dueToday');
   });
 });
 

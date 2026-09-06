@@ -153,14 +153,14 @@ export const setDoc = jest.fn(async (docRef: any, data: Record<string, any>, opt
 
   if (options?.merge && mockDB[collectionPath][docId]) {
     const current = mockDB[collectionPath][docId].data;
-    mockDB[collectionPath][docId].data = {
-      ...current,
-      ...applyFieldValues(current, data),
-    };
+    const { resolved, deleted } = applyFieldValues(current, data);
+    const next = { ...current, ...resolved };
+    for (const key of deleted) delete next[key];
+    mockDB[collectionPath][docId].data = next;
   } else {
     mockDB[collectionPath][docId] = {
       id: docId,
-      data: applyFieldValues({}, data),
+      data: applyFieldValues({}, data).resolved,
       ref: { id: docId, path: `${collectionPath}/${docId}` },
     };
   }
@@ -178,16 +178,34 @@ const isIncrement = (v: any): v is MockIncrement =>
 
 export const increment = jest.fn((by: number): MockIncrement => ({ __op: 'increment', by }));
 
-/** Resolve any increment() sentinels in a write against the current document. */
+interface MockDeleteField {
+  __op: 'delete';
+}
+
+const isDeleteField = (v: any): v is MockDeleteField =>
+  !!v && typeof v === 'object' && v.__op === 'delete';
+
+export const deleteField = jest.fn((): MockDeleteField => ({ __op: 'delete' }));
+
+/**
+ * Resolve increment() sentinels against the current document, and report which
+ * keys deleteField() asks to remove — a merge can't express a removal, so the
+ * caller applies those separately.
+ */
 const applyFieldValues = (
   current: Record<string, any>,
   data: Record<string, any>
-): Record<string, any> => {
+): { resolved: Record<string, any>; deleted: string[] } => {
   const resolved: Record<string, any> = {};
+  const deleted: string[] = [];
   for (const [key, value] of Object.entries(data)) {
+    if (isDeleteField(value)) {
+      deleted.push(key);
+      continue;
+    }
     resolved[key] = isIncrement(value) ? (current[key] || 0) + value.by : value;
   }
-  return resolved;
+  return { resolved, deleted };
 };
 
 export const updateDoc = jest.fn(async (docRef: any, data: Record<string, any>) => {
@@ -200,10 +218,10 @@ export const updateDoc = jest.fn(async (docRef: any, data: Record<string, any>) 
   }
 
   const current = mockDB[collectionPath][docId].data;
-  mockDB[collectionPath][docId].data = {
-    ...current,
-    ...applyFieldValues(current, data),
-  };
+  const { resolved, deleted } = applyFieldValues(current, data);
+  const next = { ...current, ...resolved };
+  for (const key of deleted) delete next[key];
+  mockDB[collectionPath][docId].data = next;
 });
 
 export const deleteDoc = jest.fn(async (docRef: any) => {

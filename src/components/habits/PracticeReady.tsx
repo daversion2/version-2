@@ -3,12 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Practice, PRACTICE_GROUPS } from '../../data/practices';
-import { MindPattern, buildMindPatternText } from '../../services/mindPatterns';
+import { TacticPattern, buildTacticPatternText } from '../../services/tacticPatterns';
 
 interface Props {
   practice: Practice;
-  /** Dominant mind tag from recent reps of this practice — renders the "Your pattern" block. */
-  mindPattern?: MindPattern | null;
+  /** Dominant tactic from recent HARD reps — renders the "What works for you" block. */
+  tacticPattern?: TacticPattern | null;
   /** Proceed to the "Go" beat (start the timer, or hand off the phone). */
   onBegin: () => void;
   /** Open the full learn content (how-to / science / tips). Hidden if omitted. */
@@ -34,11 +34,20 @@ const ReadyBlock: React.FC<{ icon: string; label: string; text: string; accent: 
 /**
  * The "Ready" beat — a ~15-second briefing before a practice rep, in narrative
  * order: the task (what you'll do) → the urge that will rise against you (the
- * override) → the user's own recent mind pattern, when one has emerged → the
- * one anchor to hold when it does (focus). Then hands off to the Go beat.
+ * override) → what has actually got them started on hard reps, once enough of
+ * those exist → the one anchor to hold (focus). Then hands off to the Go beat.
  * Driven by the practice's `ready` content; renders nothing if absent.
+ *
+ * The playbook block sits right after the override block on purpose: the
+ * override names the resistance coming for them, and the playbook answers it
+ * with what they have already done about it. Problem then response.
  */
-export const PracticeReady: React.FC<Props> = ({ practice, mindPattern, onBegin, onLearn }) => {
+export const PracticeReady: React.FC<Props> = ({
+  practice,
+  tacticPattern,
+  onBegin,
+  onLearn,
+}) => {
   const accent = PRACTICE_GROUPS.find((g) => g.id === practice.group)?.color ?? Colors.primary;
   const ready = practice.ready;
   if (!ready) return null;
@@ -73,11 +82,11 @@ export const PracticeReady: React.FC<Props> = ({ practice, mindPattern, onBegin,
         {ready.override && (
           <ReadyBlock icon="flame-outline" label="The override" text={ready.override} accent={accent} />
         )}
-        {mindPattern && (
+        {tacticPattern && (
           <ReadyBlock
-            icon="eye-outline"
-            label="Your pattern"
-            text={buildMindPatternText(mindPattern)}
+            icon="flash-outline"
+            label="What works for you"
+            text={buildTacticPatternText(tacticPattern)}
             accent={accent}
           />
         )}

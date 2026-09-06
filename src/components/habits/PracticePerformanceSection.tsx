@@ -246,23 +246,24 @@ export const PracticePerformanceSection: React.FC<Props> = ({ performance }) => 
         <ChoiceBreakdownCard key={b.field.key} breakdown={b} />
       ))}
 
-      {/* Mind patterns */}
-      {performance.mindPatterns && (
+      {/* Override playbook — what got you started on the hard ones */}
+      {performance.tacticStats && (
         <Card style={styles.card}>
-          <Text style={styles.cardTitle}>Mind Patterns</Text>
-          <Text style={styles.cardSub}>What you noticed during this practice</Text>
-          {performance.mindPatterns.tags.length > 0 && (
-            <View style={styles.chipsRow}>
-              {performance.mindPatterns.tags.map((tag) => (
-                <View key={tag.id} style={styles.chip}>
-                  <Text style={styles.chipLabel}>{tag.label}</Text>
-                  <Text style={styles.chipCount}>{tag.count}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+          <Text style={styles.cardTitle}>What Works For You</Text>
+          <Text style={styles.cardSub}>
+            What got you through the reps that were hard
+          </Text>
+          <View style={styles.chipsRow}>
+            {performance.tacticStats.tactics.map((tactic) => (
+              <View key={tactic.id} style={styles.chip}>
+                <Text style={styles.chipLabel}>{tactic.label}</Text>
+                <Text style={styles.chipCount}>{tactic.count}</Text>
+              </View>
+            ))}
+          </View>
           <Text style={styles.mindFootnote}>
-            You logged a hard moment in {performance.mindPatterns.hardMomentPct}% of reps
+            From {performance.tacticStats.answered} of your{' '}
+            {performance.tacticStats.hardReps} hard reps
           </Text>
         </Card>
       )}

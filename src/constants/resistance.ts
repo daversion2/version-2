@@ -53,6 +53,21 @@ export const CHALLENGING_THRESHOLD = 2;
  */
 export const MEANINGFUL_RESISTANCE_CHANGE = 0.5;
 
+/**
+ * At or above this, a rep counts as HARD and the reflection asks what got the
+ * user through it (see data/overrideTactics.ts).
+ *
+ * Levels 2 and 3 — "Had to push" and "Nearly didn't". Level 1 is excluded
+ * because a tactic tagged on a rep that took nothing is not a fact about the
+ * user's override, and asking every check-in is what made the pre-2026-07
+ * version of this question feel like paperwork.
+ *
+ * It also makes the playbook's denominator honest: "3 of your last 4 HARD
+ * reps" is a claim about what works under resistance. The same line over all
+ * reps would mostly be a claim about which days were easy.
+ */
+export const TACTIC_GATE_RESISTANCE = 2;
+
 export const getResistanceLevel = (value?: number): ResistanceLevel | undefined =>
   RESISTANCE_LEVELS.find((l) => l.value === value);
 
@@ -114,3 +129,21 @@ export const logResistance = (log: {
 /** Short label for a rating, used on history rows and the Today list. */
 export const resistanceLabel = (resistance: number): string =>
   getResistanceLevel(normalizeResistance(resistance, RESISTANCE_MAX))?.label ?? '';
+
+/**
+ * Did this rep cost the user something? Reads through logResistance, so a log
+ * recorded on the old 1–10 scale is folded onto the current levels before the
+ * comparison rather than being read as a raw 2.
+ *
+ * A log with no rating at all returns false: unrated is not the same as easy,
+ * but including it would silently inflate the "hard reps" denominator behind
+ * the playbook with reps we know nothing about.
+ */
+export const isHardRep = (log: {
+  resistance?: number;
+  resistance_scale?: number;
+  difficulty?: number;
+}): boolean => {
+  const r = logResistance(log);
+  return typeof r === 'number' && r >= TACTIC_GATE_RESISTANCE;
+};

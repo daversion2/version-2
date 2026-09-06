@@ -1,8 +1,9 @@
 import { CompletionLog } from '../types';
 import { Practice, TrackingField } from '../data/practices';
-import { getMindTagLabel } from '../data/mindTags';
+import { getTacticLabel } from '../data/overrideTactics';
 import {
   logResistance,
+  isHardRep,
   RESISTANCE_MAX,
   MEANINGFUL_RESISTANCE_CHANGE,
 } from '../constants/resistance';
@@ -64,10 +65,19 @@ export interface WeeklyDose {
   description: string;
 }
 
-export interface MindPatternStats {
-  tags: { id: string; label: string; count: number }[];
-  /** % of reps where any hard moment was logged. */
-  hardMomentPct: number;
+/**
+ * What has actually got this user through the hard reps of one habit.
+ *
+ * Counted over HARD REPS ONLY (isHardRep), because that is the only population
+ * that was ever asked the question. Sharing a denominator with easy reps would
+ * make every tactic look rarer than it is.
+ */
+export interface TacticStats {
+  tactics: { id: string; label: string; count: number }[];
+  /** Hard reps in the whole history — the denominator behind every count. */
+  hardReps: number;
+  /** Hard reps that carried at least one tactic. */
+  answered: number;
 }
 
 export interface PerformanceRecord {
@@ -110,7 +120,7 @@ export interface PracticePerformance {
   weeklyDose: WeeklyDose | null;
   weeklyChallenging: WeeklyRate[] | null;
   choiceBreakdowns: ChoiceBreakdown[];
-  mindPatterns: MindPatternStats | null;
+  tacticStats: TacticStats | null;
   records: PerformanceRecord[];
 }
 
@@ -127,7 +137,11 @@ const ADAPTATION_WINDOW = 10;
 const ADAPTATION_MAX_CHALLENGING = 2;
 const MIN_OPTION_RATED = 3;
 const MIN_OPTION_LOGS = 3;
-const MIN_TAG_COUNT_INSIGHT = 5;
+// Hard reps that actually carried a tactic before the playbook card appears.
+// Below this the list is one person's single answer dressed as a finding.
+const MIN_TACTIC_ANSWERS = 3;
+// Appearances before one tactic is called out as *the* reliable move.
+const MIN_TACTIC_COUNT_INSIGHT = 3;
 const MIN_DOSE_SESSIONS = 3;
 const WEEKS = 8;
 
@@ -343,22 +357,27 @@ export const buildPracticePerformance = (
     choiceBreakdowns.push({ field, options });
   }
 
-  // ---- Mind patterns ----
-  const tagCounts = new Map<string, number>();
-  sorted.forEach((l) =>
-    (l.mindTags || []).forEach((id) => tagCounts.set(id, (tagCounts.get(id) || 0) + 1))
+  // ---- Override tactics (hard reps only) ----
+  const hardLogs = sorted.filter(isHardRep);
+  const tacticCounts = new Map<string, number>();
+  hardLogs.forEach((l) =>
+    // Once per rep, so a count reads as "N hard reps", not "N taps".
+    new Set(l.tactics ?? []).forEach((id) =>
+      tacticCounts.set(id, (tacticCounts.get(id) || 0) + 1)
+    )
   );
-  const hardMomentCount = sorted.filter((l) => l.hitHardMoment === true).length;
-  let mindPatterns: MindPatternStats | null = null;
-  if (sorted.length > 0 && (tagCounts.size > 0 || hardMomentCount > 0)) {
-    mindPatterns = {
-      tags: [...tagCounts.entries()]
-        .map(([id, count]) => ({ id, label: getMindTagLabel(id), count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 6),
-      hardMomentPct: Math.round((hardMomentCount / sorted.length) * 100),
-    };
-  }
+  const answered = hardLogs.filter((l) => (l.tactics ?? []).length > 0).length;
+  const tacticStats: TacticStats | null =
+    answered >= MIN_TACTIC_ANSWERS
+      ? {
+          tactics: [...tacticCounts.entries()]
+            .map(([id, count]) => ({ id, label: getTacticLabel(id), count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 6),
+          hardReps: hardLogs.length,
+          answered,
+        }
+      : null;
 
   // ---- Records ----
   const records: PerformanceRecord[] = [];
@@ -477,13 +496,13 @@ export const buildPracticePerformance = (
     }
   }
 
-  // 4. Most-logged mind pattern (phrased as logged, not felt).
-  const topTag = mindPatterns?.tags[0];
-  if (topTag && topTag.count >= MIN_TAG_COUNT_INSIGHT && insights.length < 3) {
+  // 4. The move that most often gets them started (phrased as logged, not felt).
+  const topTactic = tacticStats?.tactics[0];
+  if (topTactic && topTactic.count >= MIN_TACTIC_COUNT_INSIGHT && insights.length < 3) {
     insights.push({
       tone: 'progress',
-      icon: 'sparkles-outline',
-      text: `"${topTag.label}" is your most-logged mind pattern (${topTag.count} reps). Watch for it mid-session — naming it weakens it.`,
+      icon: 'flash-outline',
+      text: `"${topTactic.label}" got you started on ${topTactic.count} of your hard reps — your most reliable move. Reach for it first.`,
     });
   }
 
@@ -495,7 +514,7 @@ export const buildPracticePerformance = (
     weeklyDose,
     weeklyChallenging,
     choiceBreakdowns,
-    mindPatterns,
+    tacticStats,
     records,
   };
 };

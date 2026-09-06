@@ -6,8 +6,9 @@ import { PracticeSessionParams } from '../../types/navigation';
 import { getPractice, PRACTICE_GROUPS } from '../../data/practices';
 import { useAuth } from '../../context/AuthContext';
 import { completePractice, saveLogReflection } from '../../services/practices';
-import { getMindPattern, MindPattern } from '../../services/mindPatterns';
+import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
 import { PracticeCompletionInput, NeuroscienceTidbit } from '../../types';
+import { TACTIC_GATE_RESISTANCE } from '../../constants/resistance';
 import { PracticeReady } from '../../components/habits/PracticeReady';
 import { PracticeTimer } from '../../components/habits/PracticeTimer';
 import { PracticeBreathPacer } from '../../components/habits/PracticeBreathPacer';
@@ -75,14 +76,17 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   // The log written by this session — the post-reward reflection patches it.
   const [logId, setLogId] = useState<string | null>(null);
   const [reflectVisible, setReflectVisible] = useState(false);
-  // The dominant mind tag from recent reps of this practice, shown as the
-  // Ready beat's "Your pattern" block. Best-effort: absent until loaded.
-  const [mindPattern, setMindPattern] = useState<MindPattern | null>(null);
+  // What the user rated this rep. An easy rep has nothing to reflect on, so the
+  // celebration simply doesn't offer the action — see PracticeReflectionSheet.
+  const [loggedResistance, setLoggedResistance] = useState<number | undefined>(undefined);
+  // What has been working on this habit's recent hard reps — the Ready beat's
+  // "What works for you" block. Best-effort: absent until loaded.
+  const [tacticPattern, setTacticPattern] = useState<TacticPattern | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    getMindPattern(user.uid, habitId)
-      .then(setMindPattern)
+    getTacticPattern(user.uid, habitId)
+      .then(setTacticPattern)
       .catch(() => {});
   }, [user, habitId]);
 
@@ -116,6 +120,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       input
     );
     setLogId(result.logId);
+    setLoggedResistance(input.resistance);
     // Fetch the neuroscience tidbit up front so it's ready to show right
     // after the celebration is dismissed.
     try {
@@ -137,6 +142,9 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
     // Debrief (Home owns that trigger now).
     refreshProfile().catch(() => {});
   };
+
+  const canReflect =
+    typeof loggedResistance === 'number' && loggedResistance >= TACTIC_GATE_RESISTANCE;
 
   const finishSession = () => {
     // Return to Home, which owns the one-time post-first-practice Debrief
@@ -163,7 +171,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
     setLearnMoreVisible(false);
     // Back to the celebration card while a reflection is still on offer, so
     // reading the science doesn't cost the chance to reflect.
-    if (logId) {
+    if (logId && canReflect) {
       setCelebrationSkipIntro(true);
       setCelebrationVisible(true);
       return;
@@ -196,7 +204,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
       {step === 'ready' && (
         <PracticeReady
           practice={practice}
-          mindPattern={mindPattern}
+          tacticPattern={tacticPattern}
           onBegin={handleBegin}
           onLearn={() => navigation.navigate('PracticeDetail', { practiceId, readOnly: true })}
         />
@@ -273,7 +281,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
         streakDays={celebration?.streak ?? 0}
         tidbit={tidbit}
         onLearnMore={handleTidbitLearnMore}
-        onReflect={logId ? handleOpenReflection : undefined}
+        onReflect={logId && canReflect ? handleOpenReflection : undefined}
         skipIntro={celebrationSkipIntro}
         onDismiss={dismissCelebration}
       />
@@ -281,7 +289,8 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
         visible={reflectVisible}
         practiceName={habitName}
         accentColor={accent}
-        mindPattern={mindPattern}
+        tacticPattern={tacticPattern}
+        resistance={loggedResistance}
         onSave={handleReflectionSave}
         onSkip={handleReflectionSkip}
       />

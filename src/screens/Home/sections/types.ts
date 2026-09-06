@@ -4,6 +4,7 @@ import {
   HabitStreakInfo,
   ReflectionGrade,
 } from '../../../types';
+import { HabitSchedule } from '../../../services/habitSchedule';
 
 export interface WillpowerStatsData {
   totalPoints: number;
@@ -47,8 +48,8 @@ export interface HomeCallbacks {
   onHabitLogIt: (habit: PracticeInstance, date?: string) => void;
   /** Open the pre-practice briefing on its own, without starting the flow. */
   onHabitBriefing: (habit: PracticeInstance) => void;
-  /** Persist a practice's weekly commitment (target_count_per_week). */
-  onSetWeeklyGoal?: (habitId: string, target: number) => void;
+  /** Persist a practice's schedule — N times a week, or specific weekdays. */
+  onSetSchedule?: (habitId: string, schedule: HabitSchedule) => void;
 }
 
 export interface HomeSectionProps {

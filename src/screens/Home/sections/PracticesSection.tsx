@@ -6,6 +6,7 @@ import { HomeSectionProps } from './types';
 import { PracticeInstance } from '../../../types';
 import { PracticeCard } from '../../../components/practices/PracticeCard';
 import { WeeklyGoalSheet } from '../../../components/practices/WeeklyGoalSheet';
+import { habitSchedule } from '../../../services/practices';
 import { FeatureInfoModal } from '../../../components/common/FeatureInfoModal';
 import {
   getPractice,
@@ -84,7 +85,7 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
           },
           {
             label: 'Reflect on what it took.',
-            text: 'Rate how hard it actually was and name the difficult part. That’s what turns a finished task into something your brain can use again.',
+            text: 'Rate how hard it actually was and name the difficult part. When it was genuinely hard, you’ll also be asked what helped you get started — so the move that worked is there the next time you don’t want to begin.',
           },
         ]}
         science={[
@@ -94,7 +95,7 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
           },
           {
             label: 'Reflection is what consolidates it.',
-            text: 'Rating the difficulty and naming the hard moment converts raw sensation into something the brain encodes explicitly. Effort you examine transfers to new situations; effort you don’t mostly stays stuck to the task.',
+            text: 'Rating the difficulty and naming the hard moment converts raw sensation into something the brain encodes explicitly. Naming the move that got you started goes further: a strategy you can recall is one you can deploy on purpose, rather than hoping it shows up again. Effort you examine transfers to new situations; effort you don’t mostly stays stuck to the task.',
           },
           {
             label: 'Deliberate on purpose.',
@@ -146,9 +147,11 @@ export const PracticesSection: React.FC<HomeSectionProps> = React.memo(({ data, 
       <WeeklyGoalSheet
         visible={!!editingHabit}
         practiceName={editingHabit?.name || ''}
-        initialTarget={editingHabit?.target_count_per_week || 3}
-        onSave={(target) => {
-          if (editingHabit) callbacks.onSetWeeklyGoal?.(editingHabit.id, target);
+        initialSchedule={
+          editingHabit ? habitSchedule(editingHabit) : { kind: 'count', target: 3 }
+        }
+        onSave={(schedule) => {
+          if (editingHabit) callbacks.onSetSchedule?.(editingHabit.id, schedule);
         }}
         onClose={() => setEditingHabit(null)}
       />

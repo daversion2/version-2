@@ -261,24 +261,53 @@ describe('buildPracticePerformance', () => {
     });
   });
 
-  describe('mind patterns', () => {
-    it('counts tags and reports the logged-hard-moment share', () => {
+  describe('override tactics', () => {
+    /** A hard rep (resistance 3) carrying tactics. */
+    const hardRep = (date: string, tactics: string[]) =>
+      makeLog({ date, resistance: 3, resistance_scale: 3, difficulty: 2, tactics });
+
+    it('counts tactics over hard reps and reports the answered share', () => {
       const logs = [
-        makeLog({ date: '2026-07-01', mindTags: ['bargaining', 'resisting'], hitHardMoment: true }),
-        makeLog({ date: '2026-07-02', mindTags: ['bargaining'], hitHardMoment: true }),
-        makeLog({ date: '2026-07-03' }),
-        makeLog({ date: '2026-07-04' }),
+        hardRep('2026-07-01', ['countdown', 'breathing']),
+        hardRep('2026-07-02', ['countdown']),
+        hardRep('2026-07-03', ['countdown']),
       ];
       const perf = buildPracticePerformance(logs, cold, TODAY);
-      expect(perf.mindPatterns).not.toBeNull();
-      expect(perf.mindPatterns!.tags[0]).toEqual({ id: 'bargaining', label: 'Bargaining', count: 2 });
-      expect(perf.mindPatterns!.hardMomentPct).toBe(50);
+      expect(perf.tacticStats).not.toBeNull();
+      expect(perf.tacticStats!.tactics[0]).toEqual({
+        id: 'countdown',
+        label: 'Counted it down',
+        count: 3,
+      });
+      expect(perf.tacticStats!.hardReps).toBe(3);
+      expect(perf.tacticStats!.answered).toBe(3);
     });
 
-    it('is null when nothing was ever logged', () => {
-      const logs = coldSeries([{ duration: 2 }, { duration: 2 }, { duration: 2 }]);
+    it('excludes easy reps from the hard-rep denominator', () => {
+      const logs = [
+        makeLog({ date: '2026-07-01', resistance: 1, resistance_scale: 3 }),
+        makeLog({ date: '2026-07-02', resistance: 1, resistance_scale: 3 }),
+        hardRep('2026-07-03', ['breathing']),
+        hardRep('2026-07-04', ['breathing']),
+        hardRep('2026-07-05', ['breathing']),
+      ];
       const perf = buildPracticePerformance(logs, cold, TODAY);
-      expect(perf.mindPatterns).toBeNull();
+      expect(perf.tacticStats!.hardReps).toBe(3);
+      expect(perf.tacticStats!.tactics[0].count).toBe(3);
+    });
+
+    it('stays null under the minimum number of answered hard reps', () => {
+      const logs = [
+        hardRep('2026-07-01', ['countdown']),
+        hardRep('2026-07-02', ['countdown']),
+        hardRep('2026-07-03', []),
+      ];
+      expect(buildPracticePerformance(logs, cold, TODAY).tacticStats).toBeNull();
+    });
+
+    it('is null for a history that predates the question', () => {
+      const logs = coldSeries([{ duration: 2 }, { duration: 2 }, { duration: 2 }]);
+      expect(buildPracticePerformance(logs, cold, TODAY).tacticStats).toBeNull();
     });
   });
 

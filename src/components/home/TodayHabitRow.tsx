@@ -39,6 +39,22 @@ const STATUS_COPY: Record<HabitPace['status'], string | null> = {
 };
 
 /**
+ * A habit that named its days gets a different sentence from one that named a
+ * number. "Behind pace" is an estimate; "Missed Tuesday" is a fact, and on a day
+ * it actually owes you, the only thing worth saying is that it's due.
+ */
+const statusFor = (pace: HabitPace): string | null => {
+  if (!pace.dayScheduled) return STATUS_COPY[pace.status];
+  if (pace.missed > 0) {
+    const missed = `Missed ${pace.missed} ${pace.missed === 1 ? 'day' : 'days'} this week`;
+    return pace.dueToday ? `Due today · ${missed}` : missed;
+  }
+  if (pace.dueToday) return 'Due today';
+  if (pace.status === 'done') return 'Done for the week';
+  return pace.scheduleLabel;
+};
+
+/**
  * One habit on Today.
  *
  * Name, weekly progress, and how it stands against its target — nothing else.
@@ -54,8 +70,8 @@ export const TodayHabitRow: React.FC<Props> = ({
   onQuickLog,
   onDetails,
 }) => {
-  const { target, completed, status, doneToday } = pace;
-  const statusLine = STATUS_COPY[status];
+  const { target, completed, status, doneToday, dueToday } = pace;
+  const statusLine = statusFor(pace);
   // Only a finished habit dims. A habit with no goal set is not finished — it
   // was never measured, and dimming it buries the curated practices, which are
   // seeded with no weekly target.
@@ -114,6 +130,9 @@ export const TodayHabitRow: React.FC<Props> = ({
                 styles.status,
                 status === 'behind' && { color: Colors.secondary },
                 status === 'done' && { color: Colors.gray },
+                // A day it actually owes you outranks the muted "done" grey it
+                // would otherwise inherit from an already-satisfied week.
+                dueToday && { color: Colors.primary },
               ]}
             >
               {statusLine}

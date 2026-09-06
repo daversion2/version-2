@@ -3,14 +3,14 @@ import { View, StyleSheet, Modal, SafeAreaView, TouchableOpacity } from 'react-n
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing } from '../../constants/theme';
 import { getPractice } from '../../data/practices';
-import { getMindPattern, MindPattern } from '../../services/mindPatterns';
+import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
 import { PracticeReady } from './PracticeReady';
 
 interface Props {
   visible: boolean;
   /** Catalog id. Nothing renders if the practice has no briefing content. */
   practiceId?: string;
-  /** Practice instance id — used to look up the recent-reps mind pattern. */
+  /** Practice instance id — used to look up the recent hard-rep playbook. */
   habitId?: string;
   userId?: string;
   /** Commit and run the forward flow from here. */
@@ -38,14 +38,14 @@ export const PracticeBriefingModal: React.FC<Props> = ({
   onClose,
 }) => {
   const practice = getPractice(practiceId);
-  const [mindPattern, setMindPattern] = useState<MindPattern | null>(null);
+  const [tacticPattern, setTacticPattern] = useState<TacticPattern | null>(null);
 
   useEffect(() => {
     if (!visible || !userId || !habitId) return;
     let cancelled = false;
-    getMindPattern(userId, habitId)
+    getTacticPattern(userId, habitId)
       .then((p) => {
-        if (!cancelled) setMindPattern(p);
+        if (!cancelled) setTacticPattern(p);
       })
       .catch(() => {});
     return () => {
@@ -65,7 +65,7 @@ export const PracticeBriefingModal: React.FC<Props> = ({
         </View>
         <PracticeReady
           practice={practice}
-          mindPattern={mindPattern}
+          tacticPattern={tacticPattern}
           onBegin={onStart}
           onLearn={onLearn}
         />

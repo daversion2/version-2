@@ -2,9 +2,14 @@ import {
   logHabitCompletion,
   getHabitsForDate,
   getActiveHabits,
+  getArchivedHabits,
   getCurrentWeekBounds,
   createHabit,
   ensureCuratedPractices,
+  archiveHabit,
+  unarchiveHabit,
+  habitSchedule,
+  setHabitSchedule,
 } from '../practices';
 import {
   addMockDocument,
@@ -466,5 +471,156 @@ describe('ensureCuratedPractices — weekly goals', () => {
 
     const untouched = habitsWritten().find((h) => h.id === 'mine');
     expect(untouched!.target_count_per_week).toBe(1);
+  });
+});
+
+describe('archive', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+  });
+
+  const addHabit = (id: string, over: Record<string, any> = {}) =>
+    addMockDocument(`users/${userId}/habits`, id, {
+      user_id: userId,
+      name: id,
+      is_active: true,
+      created_by_user: true,
+      target_count_per_week: 3,
+      ...over,
+    });
+
+  const read = (id: string) =>
+    (getMockDB()[`users/${userId}/habits`] || {})[id]?.data as Record<string, any>;
+
+  it('takes the habit off Home without touching its history', () => {
+    // The logs live in a different collection entirely — archiving must not so
+    // much as read them, let alone remove them.
+    addHabit('h1');
+    addMockDocument(`users/${userId}/completionLogs`, 'l1', {
+      user_id: userId,
+      type: 'nudge',
+      reference_id: 'h1',
+      date: '2026-08-24',
+      points: 1,
+    });
+
+    return archiveHabit(userId, 'h1').then(() => {
+      expect(read('h1').is_active).toBe(false);
+      expect(read('h1').archived_at).toEqual(expect.any(String));
+      expect(Object.keys(getMockDB()[`users/${userId}/completionLogs`])).toEqual(['l1']);
+    });
+  });
+
+  it('hides an archived habit from every active-habit read', async () => {
+    addHabit('h1');
+    addHabit('h2');
+    await archiveHabit(userId, 'h1');
+
+    const active = await getActiveHabits(userId);
+    expect(active.map((h) => h.id)).toEqual(['h2']);
+  });
+
+  it('lists archived habits, newest first', async () => {
+    addHabit('older', { is_active: false, archived_at: '2026-08-01T10:00:00.000Z' });
+    addHabit('newer', { is_active: false, archived_at: '2026-08-20T10:00:00.000Z' });
+
+    const archived = await getArchivedHabits(userId);
+    expect(archived.map((h) => h.id)).toEqual(['newer', 'older']);
+  });
+
+  it('brings a habit back with its schedule and plan intact', async () => {
+    addHabit('h1', { scheduled_days: [1, 3, 5], action_plan: { anchor: 'have my coffee' } });
+    await archiveHabit(userId, 'h1');
+    await unarchiveHabit(userId, 'h1');
+
+    const restored = read('h1');
+    expect(restored.is_active).toBe(true);
+    // The marker has to GO, or the habit reads as archived while sitting on Home.
+    expect('archived_at' in restored).toBe(false);
+    expect(restored.scheduled_days).toEqual([1, 3, 5]);
+    expect(restored.action_plan).toEqual({ anchor: 'have my coffee' });
+  });
+
+  // The bug that made archiving a curated practice impossible: every app load
+  // reactivates any inactive curated instance, so a practice you put away came
+  // straight back the next time you opened Home.
+  it('does not resurrect a curated practice the user archived', async () => {
+    await ensureCuratedPractices(userId);
+    const seeded = Object.entries(getMockDB()[`users/${userId}/habits`])[0] as [string, any];
+    const [seededId] = seeded;
+
+    await archiveHabit(userId, seededId);
+    await ensureCuratedPractices(userId);
+
+    expect(read(seededId).is_active).toBe(false);
+  });
+
+  it('still reactivates a practice deactivated by the catalog, not the user', async () => {
+    // No archived_at — this one was switched off by a catalog change, and the
+    // reconciler is exactly what is supposed to bring it back.
+    await ensureCuratedPractices(userId);
+    const [seededId] = Object.entries(getMockDB()[`users/${userId}/habits`])[0] as [string, any];
+    addMockDocument(`users/${userId}/habits`, seededId, {
+      ...read(seededId),
+      is_active: false,
+    });
+
+    await ensureCuratedPractices(userId);
+
+    expect(read(seededId).is_active).toBe(true);
+  });
+});
+
+describe('setHabitSchedule', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+    addMockDocument(`users/${userId}/habits`, 'h1', {
+      user_id: userId,
+      name: 'Run',
+      is_active: true,
+      created_by_user: true,
+      target_count_per_week: 3,
+    });
+  });
+
+  const read = () => getMockDB()[`users/${userId}/habits`]['h1'].data as Record<string, any>;
+
+  it('keeps the weekly target equal to the number of days chosen', async () => {
+    // Everything that only knows about counts — pace, the pips, the trend
+    // chart's ceiling — reads target_count_per_week. If the two disagree, the
+    // row shows a different week from the one the habit is being judged on.
+    await setHabitSchedule(userId, 'h1', { kind: 'days', days: [1, 3, 5] });
+
+    expect(read().scheduled_days).toEqual([1, 3, 5]);
+    expect(read().target_count_per_week).toBe(3);
+  });
+
+  it('sorts and dedupes the days it stores', async () => {
+    await setHabitSchedule(userId, 'h1', { kind: 'days', days: [5, 1, 1, 3] as any });
+    expect(read().scheduled_days).toEqual([1, 3, 5]);
+  });
+
+  it('DELETES the days when switching back to a count', async () => {
+    // Leaving them behind would keep the habit pinned to weekdays it no longer
+    // claims to have: isDayScheduled would still win over the new target.
+    await setHabitSchedule(userId, 'h1', { kind: 'days', days: [1, 3, 5] });
+    await setHabitSchedule(userId, 'h1', { kind: 'count', target: 5 });
+
+    expect('scheduled_days' in read()).toBe(false);
+    expect(read().target_count_per_week).toBe(5);
+  });
+
+  it('round-trips through the shape the picker edits', async () => {
+    await setHabitSchedule(userId, 'h1', { kind: 'days', days: [2, 4] });
+    expect(habitSchedule(read() as any)).toEqual({ kind: 'days', days: [2, 4] });
+
+    await setHabitSchedule(userId, 'h1', { kind: 'count', target: 4 });
+    expect(habitSchedule(read() as any)).toEqual({ kind: 'count', target: 4 });
   });
 });

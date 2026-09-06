@@ -443,7 +443,9 @@ export const getHabitHealthScores = async (userId: string): Promise<HabitHealthS
   ]);
   if (habits.length === 0) return [];
 
-  const streaks = await getHabitsStreaks(userId, habits.map((h) => h.id));
+  // The habits themselves, not their ids: a streak is only meaningful against
+  // the schedule that produced it.
+  const streaks = await getHabitsStreaks(userId, habits);
 
   return habits
     .map((h) => {

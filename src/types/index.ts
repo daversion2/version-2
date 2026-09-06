@@ -214,7 +214,19 @@ export interface HabitCategory {
 export interface HabitReminder {
   time: string;                    // 'HH:mm' in the user's local time
   enabled: boolean;
-  notificationId?: string;         // Expo local-notification id, for cancel/reschedule
+  /**
+   * @deprecated Single-notification handle from when every reminder was daily.
+   * Still read so reminders scheduled before weekday scheduling can be
+   * cancelled; new writes go to `notificationIds`.
+   */
+  notificationId?: string;
+  /**
+   * Expo local-notification ids, for cancel/reschedule. A day-scheduled habit
+   * needs one weekly notification PER chosen weekday — the OS has no "these
+   * four days" trigger — so this is a list, and it holds a single id for a
+   * habit that fires daily.
+   */
+  notificationIds?: string[];
 }
 
 /**
@@ -236,7 +248,27 @@ export interface PracticeInstance {
   category_id?: string;
   is_active: boolean;
   created_by_user: boolean;
+  /**
+   * How many days a week this habit asks for. For a day-scheduled habit this is
+   * kept equal to `scheduled_days.length` so every reader that only knows about
+   * counts — pace, the weekly pips, the trend chart — stays correct.
+   */
   target_count_per_week: number; // 1–7
+  /**
+   * Specific weekdays this habit is due on, 0 = Sunday … 6 = Saturday (JS
+   * Date.getDay()). Present = the habit is day-scheduled; absent = it is a
+   * "X times a week, days are yours" habit. See services/habitSchedule.ts.
+   */
+  scheduled_days?: number[];
+  /** ISO 8601. Set on creation — adherence needs to know when the clock started. */
+  created_at?: string;
+  /**
+   * ISO 8601, set when the USER archives the habit. Distinct from `is_active`,
+   * which is also cleared when a curated practice is retired from the catalog:
+   * ensureCuratedPractices reactivates the latter on every load and must not
+   * resurrect something the user deliberately put away.
+   */
+  archived_at?: string;
   goal_ids?: string[];
   arena_id?: ArenaId; // Arena tagging (Phase 1)
   practice_id?: string; // links a habit adopted from a Practice (Practice Protocol)
@@ -296,9 +328,11 @@ export interface CompletionLog {
   // schema change. See Practice.tracking in data/practices.ts.
   metrics?: Record<string, number | string>;
   // Override reflection. `hitHardMoment` is derived from the shared reflection flow
-  // (any noticing — a mind tag or written text — counts) and still powers the daily
-  // summary. `tactics` (OVERRIDE_TACTICS ids) were captured by the pre-2026-07
-  // gate/chips UI; historical logs keep them but the reflection no longer collects them.
+  // (any noticing — a mind tag, written text, or a tactic — counts) and still powers
+  // the daily summary. `tactics` (OVERRIDE_TACTICS ids) is "what helped you get started?",
+  // asked only on reps rated at or above TACTIC_GATE_RESISTANCE — so a log without
+  // them may simply never have been asked. Logs written between 2026-07 and the
+  // playbook's return carry none at all.
   hitHardMoment?: boolean;
   tactics?: string[];
   // The mind-noticing reflection: free text under the 'noticing' key (historical
@@ -522,6 +556,10 @@ export interface HabitStats {
   firstCompletionDate: string | null; // YYYY-MM-DD or null if never completed
   weeklyTrend: number[]; // Last 8 weeks completion counts (oldest to newest)
   completionsByDate: Record<string, number>; // YYYY-MM-DD -> count for calendar heat map
+  /** Kept vs. asked-for over the last 4 weeks. See services/habitAdherence.ts. */
+  recentAdherence: import('../services/habitAdherence').Adherence;
+  /** Kept vs. asked-for since the habit started. */
+  lifetimeAdherence: import('../services/habitAdherence').Adherence;
 }
 
 // --- Fun Facts ---

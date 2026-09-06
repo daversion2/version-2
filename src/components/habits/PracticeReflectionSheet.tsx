@@ -3,15 +3,14 @@ import { View, Text, StyleSheet, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { StepFlowShell } from '../common/StepFlowShell';
-import { MindReflectionStep } from '../../screens/Home/components/MindReflectionStep';
-import { buildMindReflectionNote } from '../../data/mindTags';
-import { MindPattern, buildMindPatternText } from '../../services/mindPatterns';
+import { TacticStep } from '../../screens/Home/components/TacticStep';
+import { TACTIC_PROMPT, buildTacticNote } from '../../data/overrideTactics';
+import { TacticPattern, buildTacticPatternText } from '../../services/tacticPatterns';
 import { showAlert } from '../../utils/alert';
 
 export interface ReflectionInput {
   notes?: string;
-  reflection?: Record<string, string>;
-  mindTags?: string[];
+  tactics?: string[];
 }
 
 interface Props {
@@ -19,8 +18,17 @@ interface Props {
   /** Practice name, shown in the flow header. */
   practiceName: string;
   accentColor?: string;
-  /** Recent-reps pattern for this practice — rendered as context above the question. */
-  mindPattern?: MindPattern | null;
+  /**
+   * Resistance the user just rated this rep, on the 3-point scale. Only the
+   * hardest-rep copy varies on it — the CALLER decides whether to open this
+   * sheet at all (see the note below on easy reps).
+   */
+  resistance?: number | null;
+  /**
+   * What has been working on this habit's recent hard reps. Rendered above the
+   * question as their own evidence — absent until enough hard reps exist.
+   */
+  tacticPattern?: TacticPattern | null;
   /** Persist the reflection onto the already-written log. */
   onSave: (input: ReflectionInput) => Promise<void> | void;
   /** Leave without reflecting — the rep is already logged either way. */
@@ -28,39 +36,48 @@ interface Props {
 }
 
 /**
- * The mind-noticing reflection, asked AFTER the rep is logged and celebrated.
+ * "What helped you get started?" — asked AFTER the rep is logged and celebrated.
  *
  * It used to be the last step of the Capture flow, sitting between the user and
  * their reward — so it read as a toll and got skipped. Running it here makes it
  * genuinely optional: nothing is withheld if you close it, and the log already
  * exists, so saving is a patch (see saveLogReflection).
+ *
+ * ONE QUESTION, ONE SCREEN. This was briefly two steps, the first being the
+ * mind-noticing reflection ("what did you notice your mind doing?"). That was
+ * retired from the practice flow: two full screens landed on the user at the
+ * exact moment they were most drained, re-creating the toll this sheet was
+ * moved after the celebration to avoid. The mind-noticing question still runs
+ * on the challenge reflection, which is a separate and still-reachable flow.
+ *
+ * ONLY ON HARD REPS. The caller opens this only when resistance cleared
+ * TACTIC_GATE_RESISTANCE — an easy rep has nothing to ask about, so no reflect
+ * action is offered at all rather than opening a sheet with a dead question.
  */
 export const PracticeReflectionSheet: React.FC<Props> = ({
   visible,
   practiceName,
   accentColor = Colors.primary,
-  mindPattern,
+  resistance,
+  tacticPattern,
   onSave,
   onSkip,
 }) => {
-  const [text, setText] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
+  const [tactics, setTactics] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Reset on OPEN so the exit animation still shows the user's last input.
   useEffect(() => {
     if (visible) {
-      setText('');
-      setTags([]);
+      setTactics([]);
       setSaving(false);
     }
   }, [visible]);
 
-  const trimmed = text.trim();
-  const hasAnswer = trimmed.length > 0 || tags.length > 0;
+  const hasAnswer = tactics.length > 0;
 
   const handleNext = async () => {
-    // Nothing entered → the primary button is disabled, so this is the skip link.
+    // Nothing selected → the primary button is disabled, so this is the skip link.
     if (!hasAnswer) {
       onSkip();
       return;
@@ -68,11 +85,7 @@ export const PracticeReflectionSheet: React.FC<Props> = ({
     if (saving) return;
     setSaving(true);
     try {
-      await onSave({
-        notes: buildMindReflectionNote(text, tags) || undefined,
-        reflection: trimmed ? { noticing: trimmed } : undefined,
-        mindTags: tags.length ? tags : undefined,
-      });
+      await onSave({ notes: buildTacticNote(tactics) || undefined, tactics });
     } catch (err) {
       setSaving(false);
       console.warn('Failed to save practice reflection:', err);
@@ -89,7 +102,7 @@ export const PracticeReflectionSheet: React.FC<Props> = ({
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onSkip}>
       <StepFlowShell
         progress={1}
-        stepKey="reflection"
+        stepKey="tactics"
         direction="forward"
         accentColor={accentColor}
         title={practiceName}
@@ -105,22 +118,27 @@ export const PracticeReflectionSheet: React.FC<Props> = ({
         isLast
         onNext={handleNext}
       >
-        <MindReflectionStep
-          text={text}
-          onChangeText={setText}
-          selectedTags={tags}
-          onToggleTag={(id) =>
-            setTags((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]))
+        <TacticStep
+          selected={tactics}
+          onToggle={(id) =>
+            setTactics((prev) =>
+              prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+            )
           }
           color={accentColor}
+          // Echo how hard they just said it was, so the question lands as a
+          // response rather than a generic prompt.
+          prompt={resistance === 3 ? `You nearly didn’t. ${TACTIC_PROMPT}` : TACTIC_PROMPT}
           header={
-            mindPattern ? (
+            tacticPattern ? (
               <View style={[styles.patternBlock, { borderLeftColor: accentColor }]}>
                 <View style={styles.patternHeader}>
-                  <Ionicons name="eye-outline" size={15} color={accentColor} />
-                  <Text style={[styles.patternLabel, { color: accentColor }]}>Your pattern</Text>
+                  <Ionicons name="flash-outline" size={15} color={accentColor} />
+                  <Text style={[styles.patternLabel, { color: accentColor }]}>
+                    What works for you
+                  </Text>
                 </View>
-                <Text style={styles.patternText}>{buildMindPatternText(mindPattern)}</Text>
+                <Text style={styles.patternText}>{buildTacticPatternText(tacticPattern)}</Text>
               </View>
             ) : null
           }

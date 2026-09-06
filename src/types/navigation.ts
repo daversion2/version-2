@@ -130,6 +130,8 @@ export type HomeStackParamList = {
   // `readOnly` hides adopt/status CTAs — used when opened mid-session as "Learn more".
   PracticeDetail: { practiceId: string; readOnly?: boolean } | { habitId: string; readOnly?: boolean };
   HabitDetail: { habitId: string };
+  /** Practices the user has put away — restorable, history intact. */
+  ArchivedHabits: undefined;
   HabitActionPlan: {
     habitId: string;
     prefilled?: HabitActionPlan;

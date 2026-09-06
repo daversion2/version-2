@@ -8,6 +8,7 @@ import {
   getDocs,
   getDoc,
   increment,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
@@ -22,6 +23,14 @@ import {
 } from './willpower';
 import { toLocalDateString, getTodayString } from '../utils/date';
 import { RESISTANCE_SCALE } from '../constants/resistance';
+import { HabitSchedule, Schedulable, scheduledDays } from './habitSchedule';
+
+export type { HabitSchedule } from './habitSchedule';
+import { computeStreak, streakInfo } from './habitStreaks';
+import { buildAdherence } from './habitAdherence';
+
+/** The window "recent adherence" reports on — four weeks, so every weekday lands in it four times. */
+export const ADHERENCE_WINDOW_DAYS = 28;
 
 const habitsRef = (userId: string) =>
   collection(db, 'users', userId, 'habits');
@@ -77,6 +86,12 @@ export const createHabit = async (
      */
     template_id?: string;
     /**
+     * Specific weekdays (0 = Sunday … 6 = Saturday) instead of "any N days".
+     * Callers should pass a `target_count_per_week` equal to its length — see
+     * setHabitSchedule, which is the safe way to write both.
+     */
+    scheduled_days?: number[];
+    /**
      * The per-occasion amounts the user committed to, keyed by tracking-field
      * key — e.g. `{ water_oz: 80 }`. See HabitDefinition.commitmentKey.
      */
@@ -103,6 +118,9 @@ export const createHabit = async (
     user_id: userId,
     is_active: true,
     created_by_user: created_by_user ?? true,
+    // Adherence needs to know when the clock started, or a habit adopted
+    // yesterday is judged against a month of days it was never asked about.
+    created_at: new Date().toISOString(),
   });
   return docRef.id;
 };
@@ -148,7 +166,10 @@ export const ensureCuratedPractices = async (
       });
       changed++;
     } else {
-      if (match.is_active === false) {
+      // `archived_at` means the user put this away deliberately. Reactivating it
+      // here would undo that choice on the next app load — which is what made
+      // archiving a curated practice impossible before the archive existed.
+      if (match.is_active === false && !match.archived_at) {
         await updateDoc(doc(db, 'users', userId, 'habits', match.id), { is_active: true });
         changed++;
       }
@@ -198,6 +219,78 @@ export const updateHabit = async (
     Object.entries(data).filter(([, v]) => v !== undefined)
   );
   await updateDoc(ref, defined);
+};
+
+/**
+ * Write a habit's schedule.
+ *
+ * The ONE writer for both fields, because they have to agree: a day-scheduled
+ * habit's `target_count_per_week` is its day count, so pace, the weekly pips and
+ * the trend chart stay correct without knowing days exist. Switching back to a
+ * count DELETES the days — leaving them behind would silently keep the habit
+ * pinned to weekdays it no longer claims to have.
+ */
+export const setHabitSchedule = async (
+  userId: string,
+  habitId: string,
+  schedule: HabitSchedule
+): Promise<void> => {
+  const ref = doc(db, 'users', userId, 'habits', habitId);
+  if (schedule.kind === 'days') {
+    const days = [...new Set(schedule.days)].sort((a, b) => a - b);
+    await updateDoc(ref, { scheduled_days: days, target_count_per_week: days.length });
+    return;
+  }
+  await updateDoc(ref, {
+    scheduled_days: deleteField(),
+    target_count_per_week: schedule.target,
+  });
+};
+
+/** Read a habit's schedule back in the shape the picker edits. */
+export const habitSchedule = (habit: Schedulable): HabitSchedule => {
+  const days = scheduledDays(habit);
+  return days ? { kind: 'days', days } : { kind: 'count', target: habit.target_count_per_week ?? 0 };
+};
+
+/**
+ * Habits the user has put away. Ordered newest-archived first, with instances
+ * archived before `archived_at` existed (or retired from the catalog) last.
+ */
+export const getArchivedHabits = async (userId: string): Promise<PracticeInstance[]> => {
+  const q = query(habitsRef(userId), where('is_active', '==', false));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({
+      id: d.id,
+      ...d.data(),
+      target_count_per_week: d.data().target_count_per_week ?? 3,
+    } as PracticeInstance))
+    .sort((a, b) => (b.archived_at ?? '').localeCompare(a.archived_at ?? ''));
+};
+
+/**
+ * Put a habit away without losing it: off Home, out of pace and streaks, history
+ * intact and restorable.
+ *
+ * `archived_at` records that the USER did this. ensureCuratedPractices
+ * reactivates any inactive curated instance on every load, so without an
+ * explicit marker of intent a curated practice would reappear on Home the next
+ * time the app opened — which is exactly what used to happen.
+ */
+export const archiveHabit = async (userId: string, habitId: string): Promise<void> => {
+  await updateDoc(doc(db, 'users', userId, 'habits', habitId), {
+    is_active: false,
+    archived_at: new Date().toISOString(),
+  });
+};
+
+/** Bring an archived habit back to Home, with its history and schedule as they were. */
+export const unarchiveHabit = async (userId: string, habitId: string): Promise<void> => {
+  await updateDoc(doc(db, 'users', userId, 'habits', habitId), {
+    is_active: true,
+    archived_at: deleteField(),
+  });
 };
 
 /** Optional detailed tracking + override reflection captured at completion. */
@@ -283,28 +376,31 @@ export const logHabitCompletion = async (
 };
 
 /**
- * Attach a mind-noticing reflection to an ALREADY-LOGGED completion.
+ * Attach a post-rep reflection to an ALREADY-LOGGED completion.
  *
  * The reflection used to be the last step before the "Log it" button, which put
  * it between the user and their reward — so it got skipped. It now runs after
  * the celebration, which means the log document already exists and we patch it
- * rather than writing it. Any noticing (tags or text) counts as hitting the
- * hard moment, matching what the Capture flow used to set inline.
+ * rather than writing it. Answering at all counts as hitting the hard moment,
+ * matching what the Capture flow used to set inline.
+ *
+ * `tactics` (OVERRIDE_TACTICS ids) is the "what helped you get started?" answer,
+ * only ever collected on reps rated at or above TACTIC_GATE_RESISTANCE — so it
+ * is the only thing this patches now. The mind-noticing reflection it used to
+ * also carry was retired from the practice flow; `mindTags`/`reflection` remain
+ * on CompletionLog for historical logs and are simply no longer written here.
  */
 export const saveLogReflection = async (
   userId: string,
   logId: string,
-  input: { reflection?: Record<string, string>; mindTags?: string[]; notes?: string }
+  input: { tactics?: string[]; notes?: string }
 ): Promise<void> => {
   const patch: Record<string, any> = {};
   if (input.notes && input.notes.trim()) {
     patch.notes = input.notes.trim();
   }
-  if (input.reflection && Object.keys(input.reflection).length) {
-    patch.reflection = input.reflection;
-  }
-  if (input.mindTags && input.mindTags.length) {
-    patch.mindTags = input.mindTags;
+  if (input.tactics && input.tactics.length) {
+    patch.tactics = input.tactics;
   }
   if (!Object.keys(patch).length) return;
   patch.hitHardMoment = true;
@@ -535,164 +631,45 @@ export const getHabitCompletionLogs = async (
 };
 
 /**
- * Calculate current and longest streak for a habit
- * A streak is consecutive days with at least one completion
+ * Current and longest streak for one habit.
+ *
+ * Schedule-aware: see services/habitStreaks.ts for what breaks a streak and
+ * why calendar days were the wrong unit. Needs the habit itself, not just its
+ * id — the schedule is what decides which days were ever owed.
  */
 export const getHabitStreak = async (
   userId: string,
-  habitId: string
+  habitId: string,
+  habit?: Schedulable
 ): Promise<HabitStreakInfo> => {
-  const logs = await getHabitCompletionLogs(userId, habitId);
-
-  if (logs.length === 0) {
-    return { habitId, currentStreak: 0, longestStreak: 0 };
-  }
-
-  // Get unique dates sorted in descending order (newest first)
-  const uniqueDates = [...new Set(logs.map((l) => l.date))].sort().reverse();
-
-  // Helper to get date string for a Date object
-  const toDateStr = (d: Date): string =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-  // Get today and yesterday as strings
-  const today = new Date();
-  const todayStr = toDateStr(today);
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yesterdayStr = toDateStr(yesterday);
-
-  // Calculate current streak (must include today or yesterday)
-  let currentStreak = 0;
-  const dateSet = new Set(uniqueDates);
-
-  // Start from today or yesterday
-  let checkDate = new Date(today);
-  if (!dateSet.has(todayStr)) {
-    if (!dateSet.has(yesterdayStr)) {
-      // No recent activity, streak is 0
-      currentStreak = 0;
-    } else {
-      // Start from yesterday
-      checkDate = new Date(yesterday);
-    }
-  }
-
-  if (dateSet.has(toDateStr(checkDate))) {
-    while (dateSet.has(toDateStr(checkDate))) {
-      currentStreak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    }
-  }
-
-  // Calculate longest streak
-  let longestStreak = 0;
-  let tempStreak = 0;
-  const sortedAsc = [...uniqueDates].sort();
-
-  for (let i = 0; i < sortedAsc.length; i++) {
-    if (i === 0) {
-      tempStreak = 1;
-    } else {
-      const prev = new Date(sortedAsc[i - 1]);
-      const curr = new Date(sortedAsc[i]);
-      const diffDays = Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        tempStreak++;
-      } else {
-        longestStreak = Math.max(longestStreak, tempStreak);
-        tempStreak = 1;
-      }
-    }
-  }
-  longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
-
-  return { habitId, currentStreak, longestStreak };
+  const [logs, resolved] = await Promise.all([
+    getHabitCompletionLogs(userId, habitId),
+    habit ? Promise.resolve(habit) : getHabitById(userId, habitId),
+  ]);
+  return streakInfo(habitId, resolved ?? {}, logs.map((l) => l.date), getTodayString());
 };
 
 /**
- * Compute streaks for multiple habits from pre-fetched logs (no Firestore call).
+ * Compute streaks for several habits from pre-fetched logs (no Firestore call).
+ *
+ * Takes the habits rather than their ids: a schedule-aware streak cannot be
+ * computed from a bare id, and passing ids used to mean every habit was judged
+ * against the same every-single-day rule regardless of what it asked for.
  */
 export const getHabitsStreaksFromLogs = (
   logs: CompletionLog[],
-  habitIds: string[]
+  habits: (Schedulable & { id: string })[]
 ): Record<string, HabitStreakInfo> => {
-  // Group logs by habit ID
-  const logsByHabit: Record<string, string[]> = {};
+  const datesByHabit: Record<string, string[]> = {};
   for (const log of logs) {
-    if (habitIds.includes(log.reference_id)) {
-      if (!logsByHabit[log.reference_id]) logsByHabit[log.reference_id] = [];
-      logsByHabit[log.reference_id].push(log.date);
-    }
+    (datesByHabit[log.reference_id] ??= []).push(log.date);
   }
 
-  const toDateStr = (d: Date): string =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-  const today = new Date();
-  const todayStr = toDateStr(today);
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yesterdayStr = toDateStr(yesterday);
-
+  const today = getTodayString();
   const result: Record<string, HabitStreakInfo> = {};
-
-  for (const habitId of habitIds) {
-    const dates = logsByHabit[habitId] || [];
-
-    if (dates.length === 0) {
-      result[habitId] = { habitId, currentStreak: 0, longestStreak: 0 };
-      continue;
-    }
-
-    const uniqueDates = [...new Set(dates)].sort().reverse();
-    const dateSet = new Set(uniqueDates);
-
-    // Calculate current streak
-    let currentStreak = 0;
-    let checkDate = new Date(today);
-    if (!dateSet.has(todayStr)) {
-      if (!dateSet.has(yesterdayStr)) {
-        currentStreak = 0;
-      } else {
-        checkDate = new Date(yesterday);
-      }
-    }
-
-    if (dateSet.has(toDateStr(checkDate))) {
-      while (dateSet.has(toDateStr(checkDate))) {
-        currentStreak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      }
-    }
-
-    // Calculate longest streak
-    let longestStreak = 0;
-    let tempStreak = 0;
-    const sortedAsc = [...uniqueDates].sort();
-
-    for (let i = 0; i < sortedAsc.length; i++) {
-      if (i === 0) {
-        tempStreak = 1;
-      } else {
-        const prev = new Date(sortedAsc[i - 1]);
-        const curr = new Date(sortedAsc[i]);
-        const diffDays = Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 1) {
-          tempStreak++;
-        } else {
-          longestStreak = Math.max(longestStreak, tempStreak);
-          tempStreak = 1;
-        }
-      }
-    }
-    longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
-
-    result[habitId] = { habitId, currentStreak, longestStreak };
+  for (const habit of habits) {
+    result[habit.id] = streakInfo(habit.id, habit, datesByHabit[habit.id] ?? [], today);
   }
-
   return result;
 };
 
@@ -701,10 +678,10 @@ export const getHabitsStreaksFromLogs = (
  */
 export const getHabitsStreaks = async (
   userId: string,
-  habitIds: string[]
+  habits: (Schedulable & { id: string })[]
 ): Promise<Record<string, HabitStreakInfo>> => {
   const logs = await fetchAllNudgeLogs(userId);
-  return getHabitsStreaksFromLogs(logs, habitIds);
+  return getHabitsStreaksFromLogs(logs, habits);
 };
 
 /**
@@ -712,10 +689,32 @@ export const getHabitsStreaks = async (
  */
 export const getHabitStats = async (
   userId: string,
-  habitId: string
+  habitId: string,
+  /** The habit itself, when the caller already has it — saves a read. */
+  known?: PracticeInstance
 ): Promise<HabitStats> => {
-  const logs = await getHabitCompletionLogs(userId, habitId);
-  const streakInfo = await getHabitStreak(userId, habitId);
+  const [logs, resolved] = await Promise.all([
+    getHabitCompletionLogs(userId, habitId),
+    known ? Promise.resolve(known) : getHabitById(userId, habitId),
+  ]);
+  const habit: PracticeInstance | Schedulable = resolved ?? {};
+  const today = getTodayString();
+  const dates = logs.map((l) => l.date).sort();
+  const streak = computeStreak(habit, dates, today);
+
+  // When the clock started. A habit created before creation dates were recorded
+  // falls back to its first rep — judging it from the window start would count
+  // days before it existed as misses.
+  const startedOn = (resolved as PracticeInstance | null)?.created_at?.slice(0, 10) ?? dates[0];
+
+  // "Of the days this habit asked for, how many did I keep?" — computed for a
+  // recent window AND for all time, because the two answer different questions:
+  // whether it's working now, and whether it ever did.
+  const recentAdherence = buildAdherence(habit, dates, today, {
+    startedOn,
+    windowDays: ADHERENCE_WINDOW_DAYS,
+  });
+  const lifetimeAdherence = buildAdherence(habit, dates, today, { startedOn });
 
   if (logs.length === 0) {
     return {
@@ -727,6 +726,8 @@ export const getHabitStats = async (
       firstCompletionDate: null,
       weeklyTrend: [0, 0, 0, 0, 0, 0, 0, 0],
       completionsByDate: {},
+      recentAdherence,
+      lifetimeAdherence,
     };
   }
 
@@ -748,13 +749,13 @@ export const getHabitStats = async (
   const toDateStr = (d: Date): string =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=Sun
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun
   const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
   // Get start of current week (Monday)
-  const currentWeekStart = new Date(today);
-  currentWeekStart.setDate(today.getDate() + diffToMonday);
+  const currentWeekStart = new Date(now);
+  currentWeekStart.setDate(now.getDate() + diffToMonday);
   currentWeekStart.setHours(0, 0, 0, 0);
 
   const weeklyTrend: number[] = [];
@@ -775,12 +776,14 @@ export const getHabitStats = async (
 
   return {
     habitId,
-    currentStreak: streakInfo.currentStreak,
-    longestStreak: streakInfo.longestStreak,
+    currentStreak: streak.currentStreak,
+    longestStreak: streak.longestStreak,
     totalCompletions,
     totalPoints,
     firstCompletionDate,
     weeklyTrend,
     completionsByDate,
+    recentAdherence,
+    lifetimeAdherence,
   };
 };

@@ -1,18 +1,24 @@
 /**
  * Per-habit local reminders.
  *
- * Turns a habit's `reminder` ({ time, enabled }) into a daily on-device
- * notification fired at the anchor's time of day, using the pairing as the hook.
- * Local (not push) because a per-habit daily reminder at a user-local time needs
- * no server, no timezone math, and works offline.
+ * Turns a habit's `reminder` ({ time, enabled }) into on-device notifications
+ * fired at the anchor's time of day, using the pairing as the hook. Local (not
+ * push) because a per-habit reminder at a user-local time needs no server, no
+ * timezone math, and works offline.
  *
- * The scheduled notification id is stored back on the habit's `reminder` so it can
- * be cancelled or rescheduled when the plan changes.
+ * A habit pinned to specific weekdays gets ONE WEEKLY notification PER DAY it
+ * asks for — the OS has no "these four days" trigger — so a Mon/Wed/Fri habit
+ * schedules three and stops nagging on the four days it never claimed. A count
+ * habit ("4× a week") has no particular day to fire on, so it stays daily.
+ *
+ * The scheduled ids are stored back on the habit's `reminder` so they can be
+ * cancelled or rescheduled when the plan changes.
  */
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { HabitActionPlan, HabitReminder, PracticeInstance } from '../types';
 import { getHabitById, updateHabit } from './practices';
+import { scheduledDays } from './habitSchedule';
 
 const ANDROID_CHANNEL = 'habit-reminders';
 
@@ -22,7 +28,15 @@ interface RemindableHabit {
   name: string;
   action_plan?: HabitActionPlan;
   reminder?: HabitReminder;
+  /** 0 = Sunday … 6 = Saturday. Absent for a count-scheduled habit. */
+  scheduled_days?: number[];
 }
+
+/** Every OS handle a reminder holds, including the pre-weekday single id. */
+const notificationIdsOf = (reminder?: HabitReminder): string[] => [
+  ...(reminder?.notificationIds ?? []),
+  ...(reminder?.notificationId ? [reminder.notificationId] : []),
+];
 
 /** Re-phrase a first-person anchor ("have my coffee") so notification copy addresses the user. */
 const toSecondPerson = (phrase: string): string => phrase.replace(/\bmy\b/gi, 'your');
@@ -61,32 +75,59 @@ export const ensureReminderPermissions = async (): Promise<boolean> => {
   return true;
 };
 
-const cancel = async (notificationId?: string): Promise<void> => {
-  if (!notificationId) return;
-  try {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
-  } catch {
-    // Already cancelled or never existed — nothing to do.
+const cancel = async (notificationIds: string[]): Promise<void> => {
+  for (const id of notificationIds) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(id);
+    } catch {
+      // Already cancelled or never existed — nothing to do.
+    }
   }
 };
 
-/** Schedule a daily notification for the habit; returns its id, or undefined on failure. */
-const schedule = async (habit: RemindableHabit, time: string): Promise<string | undefined> => {
+/**
+ * Schedule the habit's reminders; returns their ids, empty on failure.
+ *
+ * One daily notification, or one weekly notification per scheduled weekday.
+ * Expo's weekday is 1-based with Sunday = 1, while the app stores JS weekdays
+ * (Sunday = 0) — hence the +1, which is the whole of the conversion.
+ */
+const schedule = async (habit: RemindableHabit, time: string): Promise<string[]> => {
   const { hour, minute } = parseHHMM(time);
-  try {
-    return await Notifications.scheduleNotificationAsync({
-      content: { title: habit.name, body: buildBody(habit) },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+  const androidChannel = Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL } : {};
+  const days = scheduledDays(habit);
+
+  const triggers: Notifications.NotificationTriggerInput[] = days
+    ? days.map((day) => ({
+        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+        weekday: day + 1,
         hour,
         minute,
-        ...(Platform.OS === 'android' ? { channelId: ANDROID_CHANNEL } : {}),
-      },
-    });
-  } catch (e) {
-    console.warn('Failed to schedule habit reminder', e);
-    return undefined;
+        ...androidChannel,
+      }))
+    : [
+        {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour,
+          minute,
+          ...androidChannel,
+        },
+      ];
+
+  const ids: string[] = [];
+  for (const trigger of triggers) {
+    try {
+      ids.push(
+        await Notifications.scheduleNotificationAsync({
+          content: { title: habit.name, body: buildBody(habit) },
+          trigger,
+        })
+      );
+    } catch (e) {
+      console.warn('Failed to schedule habit reminder', e);
+    }
   }
+  return ids;
 };
 
 /**
@@ -103,14 +144,16 @@ export const syncHabitReminder = async (
   habitId: string,
   prevReminder?: HabitReminder
 ): Promise<void> => {
-  await cancel(prevReminder?.notificationId);
+  await cancel(notificationIdsOf(prevReminder));
 
   const habit = await getHabitById(userId, habitId);
   const desired = habit?.reminder;
 
   if (!habit || !desired?.enabled || !desired.time) {
-    // Disabled (or cleared): drop any stored id so it isn't reused.
-    if (habit && desired?.notificationId) {
+    // Disabled (or cleared): drop any stored ids so they aren't reused. Writing
+    // the reminder map whole replaces it, which also sheds the legacy
+    // single-id field.
+    if (habit && desired && notificationIdsOf(desired).length) {
       await updateHabit(userId, habitId, { reminder: { time: desired.time, enabled: desired.enabled } });
     }
     return;
@@ -119,15 +162,17 @@ export const syncHabitReminder = async (
   const granted = await ensureReminderPermissions();
   if (!granted) return; // keep the user's intent; reconcile can retry once permission is granted
 
-  const notificationId = await schedule(habit, desired.time);
-  if (notificationId) {
-    await updateHabit(userId, habitId, { reminder: { ...desired, notificationId } });
+  const notificationIds = await schedule(habit, desired.time);
+  if (notificationIds.length) {
+    await updateHabit(userId, habitId, {
+      reminder: { time: desired.time, enabled: desired.enabled, notificationIds },
+    });
   }
 };
 
-/** Cancel a habit's reminder entirely — call on delete/deactivate. */
+/** Cancel a habit's reminders entirely — call on archive/delete/deactivate. */
 export const cancelHabitReminder = async (habit: RemindableHabit): Promise<void> => {
-  await cancel(habit.reminder?.notificationId);
+  await cancel(notificationIdsOf(habit.reminder));
 };
 
 /**
@@ -152,19 +197,31 @@ export const reconcileHabitReminders = async (userId: string, habits: PracticeIn
     scheduledIds = new Set();
   }
 
-  const pending = enabled.filter(
-    (h) => !h.reminder!.notificationId || !scheduledIds.has(h.reminder!.notificationId)
-  );
+  // A day-scheduled habit needs one live notification per day it asks for, so
+  // "has some ids" isn't enough — a habit that gained a day, or was migrated
+  // from the single daily reminder, is short one and has to be rebuilt.
+  const pending = enabled.filter((h) => {
+    const ids = notificationIdsOf(h.reminder);
+    const live = ids.filter((id) => scheduledIds.has(id));
+    return live.length !== (scheduledDays(h)?.length ?? 1);
+  });
   if (pending.length === 0) return;
 
   const granted = await ensureReminderPermissions();
   if (!granted) return;
 
   for (const habit of pending) {
-    const notificationId = await schedule(habit, habit.reminder!.time);
-    if (notificationId) {
+    // Clear the stale set first, or a rebuilt habit accumulates orphaned
+    // notifications the app can no longer reach to cancel.
+    await cancel(notificationIdsOf(habit.reminder));
+    const notificationIds = await schedule(habit, habit.reminder!.time);
+    if (notificationIds.length) {
       await updateHabit(userId, habit.id, {
-        reminder: { ...habit.reminder!, notificationId },
+        reminder: {
+          time: habit.reminder!.time,
+          enabled: habit.reminder!.enabled,
+          notificationIds,
+        },
       });
     }
   }

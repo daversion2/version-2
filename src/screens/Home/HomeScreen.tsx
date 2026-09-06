@@ -16,9 +16,10 @@ import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { Challenge, PracticeInstance } from '../../types';
 import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
-import { getMindPattern, MindPattern } from '../../services/mindPatterns';
-import { reconcileHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
+import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, setHabitSchedule, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
+import { HabitSchedule } from '../../services/habitSchedule';
+import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
+import { reconcileHabitReminders, cancelHabitReminder, syncHabitReminder } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { getWillpowerStats } from '../../services/willpower';
 import { HabitDifficulty, PracticeCompletionInput } from '../../types';
@@ -51,7 +52,7 @@ import { RuleModal } from '../../components/common/RuleModal';
 import { TodayHero } from '../../components/home/TodayHero';
 import { TodayHabitRow } from '../../components/home/TodayHabitRow';
 import { buildTodayList, buildWeekGlance } from '../../services/habitPace';
-import { RESISTANCE_SCALE } from '../../constants/resistance';
+import { RESISTANCE_SCALE, TACTIC_GATE_RESISTANCE } from '../../constants/resistance';
 import { CompletionLog } from '../../types';
 import { SkipReviewSheet } from '../../components/habits/SkipReviewSheet';
 import {
@@ -115,15 +116,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [habitLearnMoreVisible, setHabitLearnMoreVisible] = useState(false);
 
   // Post-reward reflection. Holds the just-written log so the reflection can be
-  // patched onto it, plus the practice's recent-reps pattern as context.
+  // patched onto it, plus the habit's recent hard-rep playbook as context. Only
+  // armed for reps that cleared TACTIC_GATE_RESISTANCE — an easy rep has nothing
+  // to ask, so no reflect action is offered.
   const [reflectTarget, setReflectTarget] = useState<{
     logId: string;
     habitId: string;
     name: string;
     accent: string;
+    /** What they just rated this rep — gates the "what helped you get started?" step. */
+    resistance?: number;
   } | null>(null);
   const [reflectVisible, setReflectVisible] = useState(false);
-  const [reflectPattern, setReflectPattern] = useState<MindPattern | null>(null);
+  const [reflectPattern, setReflectPattern] = useState<TacticPattern | null>(null);
 
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
@@ -334,7 +339,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           cachedNudgeLogs.filter((l) => l.date === todayStr).map((l) => l.reference_id)
         );
         if (habitList.length > 0) {
-          setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList.map(h => h.id)));
+          setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList));
         }
         // Weekly skip review: did any habit fall short of its target LAST week?
         // buildPendingReview runs locally first and bails before any read when
@@ -497,14 +502,23 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       // Arm the post-reward reflection against the log we just wrote, and warm
       // its "Your pattern" context in the background.
-      setReflectTarget({
-        logId,
-        habitId: habit.id,
-        name: habit.name,
-        accent: getPracticeColor(habit),
-      });
+      const wasHard =
+        typeof input.resistance === 'number' && input.resistance >= TACTIC_GATE_RESISTANCE;
+      setReflectTarget(
+        wasHard
+          ? {
+              logId,
+              habitId: habit.id,
+              name: habit.name,
+              accent: getPracticeColor(habit),
+              resistance: input.resistance,
+            }
+          : null
+      );
       setReflectPattern(null);
-      getMindPattern(user.uid, habit.id).then(setReflectPattern).catch(() => {});
+      if (wasHard) {
+        getTacticPattern(user.uid, habit.id).then(setReflectPattern).catch(() => {});
+      }
 
       // One-time points intro on the first completion after onboarding. It no
       // longer short-circuits the reward: the celebration (and with it the
@@ -584,24 +598,42 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  // --- Weekly goal (per-practice commitment) ---
+  // --- Schedule (per-practice commitment: N times a week, or named days) ---
 
-  const handleSetWeeklyGoal = useCallback(
-    async (habitId: string, target: number) => {
+  const handleSetSchedule = useCallback(
+    async (habitId: string, schedule: HabitSchedule) => {
       if (!user) return;
-      // Optimistic: reflect the new target immediately on the card.
+      // Optimistic: reflect the new schedule immediately on the card. Both
+      // fields move together, exactly as setHabitSchedule writes them — a stale
+      // scheduled_days next to a fresh target would re-sort the list wrongly
+      // until the reload landed.
       setHabits((prev) =>
-        prev.map((h) => (h.id === habitId ? { ...h, target_count_per_week: target } : h))
+        prev.map((h) =>
+          h.id === habitId
+            ? {
+                ...h,
+                target_count_per_week:
+                  schedule.kind === 'days' ? schedule.days.length : schedule.target,
+                scheduled_days: schedule.kind === 'days' ? schedule.days : undefined,
+              }
+            : h
+        )
       );
       try {
-        await updateHabit(user.uid, habitId, { target_count_per_week: target });
+        await setHabitSchedule(user.uid, habitId, schedule);
+        // Reminders are pinned to the scheduled days, so changing them changes
+        // which notifications should exist.
+        const habit = habits.find((h) => h.id === habitId);
+        if (habit?.reminder?.enabled) {
+          await syncHabitReminder(user.uid, habitId, habit.reminder);
+        }
       } catch (err) {
-        console.warn('Failed to update weekly goal:', err);
+        console.warn('Failed to update schedule:', err);
         // Reload to resync if the write failed.
         loadData();
       }
     },
-    [user, loadData]
+    [user, habits, loadData]
   );
 
   // --- Layout & Section Props ---
@@ -665,8 +697,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     onHabitTap: handleHabitTap,
     onHabitLogIt: handleHabitLogIt,
     onHabitBriefing: handleHabitBriefing,
-    onSetWeeklyGoal: handleSetWeeklyGoal,
-  }), [onNavigate, handleHabitTap, handleHabitLogIt, handleHabitBriefing, handleSetWeeklyGoal]);
+    onSetSchedule: handleSetSchedule,
+  }), [onNavigate, handleHabitTap, handleHabitLogIt, handleHabitBriefing, handleSetSchedule]);
 
 
   // The Today list: every active habit, ordered by what needs attention. Derived
@@ -899,7 +931,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={reflectVisible}
         practiceName={reflectTarget?.name || ''}
         accentColor={reflectTarget?.accent}
-        mindPattern={reflectPattern}
+        tacticPattern={reflectPattern}
+        resistance={reflectTarget?.resistance}
         onSave={handleReflectionSave}
         onSkip={handleReflectionDone}
       />

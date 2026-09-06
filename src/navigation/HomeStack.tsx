@@ -17,6 +17,7 @@ import { PracticeSessionScreen } from '../screens/Practices/PracticeSessionScree
 import { DebriefScreen } from '../screens/Home/DebriefScreen';
 import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
 import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
+import { ArchivedHabitsScreen } from '../screens/Home/ArchivedHabitsScreen';
 import { HabitLibraryScreen } from '../screens/Home/HabitLibraryScreen';
 import { CreateHabitScreen } from '../screens/Home/CreateHabitScreen';
 import { TraditionalHabitsScreen } from '../screens/Home/TraditionalHabitsScreen';
@@ -144,6 +145,11 @@ export const HomeStack: React.FC = () => (
       name="HabitDetail"
       component={MyPracticeDetailScreen}
       options={{ title: 'Practice Details' }}
+    />
+    <Stack.Screen
+      name="ArchivedHabits"
+      component={ArchivedHabitsScreen}
+      options={{ title: 'Archived' }}
     />
     <Stack.Screen
       name="HabitActionPlan"
