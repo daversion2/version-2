@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
 import {
   POOL_PLACEHOLDER_KEYS,
@@ -617,5 +618,102 @@ export const evaluatePushRules = onSchedule(
     }
 
     console.log(`evaluatePushRules complete — ${sentCount} notification(s) sent`);
+  }
+);
+
+// ============================================================================
+// ACCOUNT DELETION
+// ============================================================================
+
+/**
+ * Top-level collections that can hold documents owned by a single user, paired
+ * with the field naming that owner. The current app no longer writes to any of
+ * these, but production data from earlier builds may still be sitting there, so
+ * deletion sweeps them anyway.
+ */
+const USER_OWNED_COLLECTIONS: { name: string; ownerField: string }[] = [
+  { name: "challengeSubmissions", ownerField: "user_id" },
+  { name: "inspirationFeed", ownerField: "user_id" },
+  { name: "challengeReviews", ownerField: "user_id" },
+  { name: "reviewVotes", ownerField: "user_id" },
+  { name: "fistBumps", ownerField: "sender_id" },
+  { name: "coachApplications", ownerField: "user_id" },
+];
+
+/** Delete every doc in a collection matching ownerField == uid, in batches. */
+const deleteOwnedDocs = async (
+  collectionName: string,
+  ownerField: string,
+  uid: string
+): Promise<number> => {
+  let deleted = 0;
+  // Firestore caps writes at 500 per batch, so page through the matches.
+  for (;;) {
+    const snap = await db
+      .collection(collectionName)
+      .where(ownerField, "==", uid)
+      .limit(400)
+      .get();
+    if (snap.empty) return deleted;
+
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    deleted += snap.size;
+
+    if (snap.size < 400) return deleted;
+  }
+};
+
+/**
+ * Permanently delete the calling user's account.
+ *
+ * Required by Google Play's User Data - Account Deletion policy and Apple's
+ * equivalent guideline: an app that lets users create an account must let them
+ * delete it. This runs server-side because a complete purge needs Admin SDK
+ * privileges — Firestore rules deny the client the broad deletes involved, and
+ * the client-side auth deleteUser() requires a recent re-login to succeed.
+ *
+ * Firestore data goes first, then the auth record. If the auth deletion fails
+ * the user can still sign in and retry; deleting auth first would strand the
+ * data with no signed-in user able to reach it.
+ */
+export const deleteAccount = onCall(
+  { timeoutSeconds: 300 },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "You must be signed in to delete your account."
+      );
+    }
+
+    console.log(`deleteAccount starting for user ${uid}`);
+
+    try {
+      // Removes the user doc and every subcollection under it (habits,
+      // challenges, completionLogs, reflections, worksheets, and any added
+      // later — no hardcoded list to fall out of date).
+      await db.recursiveDelete(db.collection("users").doc(uid));
+
+      let legacyDeleted = 0;
+      for (const { name, ownerField } of USER_OWNED_COLLECTIONS) {
+        legacyDeleted += await deleteOwnedDocs(name, ownerField, uid);
+      }
+
+      await admin.auth().deleteUser(uid);
+
+      console.log(
+        `deleteAccount complete for user ${uid} — ${legacyDeleted} legacy doc(s) removed`
+      );
+      return { success: true };
+    } catch (error) {
+      console.error(`deleteAccount failed for user ${uid}:`, error);
+      throw new HttpsError(
+        "internal",
+        "Could not delete the account. Please try again."
+      );
+    }
   }
 );

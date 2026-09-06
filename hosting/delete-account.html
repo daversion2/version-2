@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delete Your Account — Neuro-Nudge</title>
+  <meta name="description" content="How to permanently delete your Neuro-Nudge account and all associated data.">
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root {
+      --brand: #217180;
+      --dark: #2B2B2B;
+      --gray: #656565;
+      --bg: #F2F2F2;
+      --border: #E0E0E0;
+      --danger: #C62828;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0 20px 64px;
+      background: var(--bg);
+      color: var(--dark);
+      font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    header {
+      padding: 48px 0 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--brand);
+      margin: 0 0 8px;
+    }
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; }
+    h2 { font-size: 21px; margin: 40px 0 12px; }
+    .lede { color: var(--gray); margin: 0; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 0 0 20px;
+    }
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      flex: none;
+    }
+    ol, ul { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    .path {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-size: 14px;
+    }
+    a { color: var(--brand); }
+    .warn {
+      border-left: 4px solid var(--danger);
+      background: #fff;
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 24px 0;
+    }
+    .warn strong { color: var(--danger); }
+    footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--gray);
+      font-size: 14px;
+    }
+    @media (max-width: 520px) {
+      h1 { font-size: 26px; }
+      .card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow">Neuro-Nudge</p>
+      <h1>Delete your account</h1>
+      <p class="lede">
+        Neuro-Nudge (<span class="path">com.neuronudge.neuronudge</span>) lets you delete your
+        account and all of your data at any time. There are two ways to do it.
+      </p>
+    </header>
+
+    <h2>How to request deletion</h2>
+
+    <div class="card">
+      <h3><span class="num">1</span> From inside the app</h3>
+      <p>This is the fastest route — deletion happens immediately.</p>
+      <ol>
+        <li>Open Neuro-Nudge and sign in.</li>
+        <li>Go to the <span class="path">Settings</span> tab.</li>
+        <li>Scroll to the bottom and tap <span class="path">Delete Account</span>.</li>
+        <li>Confirm twice. Your data is erased and you are signed out.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3><span class="num">2</span> By email</h3>
+      <p>
+        If you have uninstalled the app or cannot sign in, email
+        <a href="mailto:jonny@neuro-nudge.net?subject=Delete%20my%20Neuro-Nudge%20account">jonny@neuro-nudge.net</a>
+        with the subject <em>“Delete my Neuro-Nudge account.”</em>
+      </p>
+      <p>
+        Send it from the email address on the account so we can confirm the request is yours.
+        We will not ask you for your password. Requests are completed within 30 days, and
+        usually within a few business days.
+      </p>
+    </div>
+
+    <div class="warn">
+      <p style="margin:0"><strong>Deletion is permanent.</strong>
+      Your account cannot be restored and none of your history can be recovered.
+      If you only want a fresh start while keeping your login, use
+      <span class="path">Settings → Clear Account</span> in the app instead.</p>
+    </div>
+
+    <h2>What gets deleted</h2>
+    <p>Everything tied to your account is removed:</p>
+    <ul>
+      <li>Your sign-in credentials — email and password, or the link to your Google account</li>
+      <li>Profile details: username, email address, and timezone</li>
+      <li>Challenges, habits, completion logs, streaks, and XP</li>
+      <li>Reflections, worksheets, tomorrow plans, and goals</li>
+      <li>Program enrollments and badges</li>
+      <li>Your push-notification token, which stops all reminders</li>
+    </ul>
+
+    <h2>What is kept, and for how long</h2>
+    <p>
+      Nothing that identifies you is kept once deletion completes. Your records are removed
+      from our live database right away.
+    </p>
+    <p>
+      Residual copies may briefly remain in the routine system backups kept by our hosting
+      provider, Google Firebase, before those backups are overwritten on their normal cycle.
+      They are not used for any purpose and are not accessible to us in normal operation.
+    </p>
+    <p>
+      We do not sell your data and we retain nothing for advertising or marketing after your
+      account is deleted.
+    </p>
+
+    <footer>
+      <p>
+        Questions about this process? Email
+        <a href="mailto:jonny@neuro-nudge.net">jonny@neuro-nudge.net</a>.
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neuro-Nudge</title>
+  <meta name="description" content="Neuro-Nudge — support and account information.">
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root { --brand: #217180; --dark: #2B2B2B; --gray: #656565; --bg: #F2F2F2; --border: #E0E0E0; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0 20px 64px;
+      background: var(--bg);
+      color: var(--dark);
+      font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; padding-top: 72px; }
+    h1 { font-size: 34px; margin: 0 0 12px; }
+    .lede { color: var(--gray); margin: 0 0 40px; }
+    a.row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    a.row:hover { border-color: var(--brand); }
+    .row strong { display: block; font-size: 17px; margin-bottom: 2px; }
+    .row span { color: var(--gray); font-size: 14px; }
+    .chev { color: var(--brand); font-size: 22px; flex: none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Neuro-Nudge</h1>
+    <p class="lede">Support and account information for the Neuro-Nudge mobile app.</p>
+
+    <a class="row" href="/delete-account">
+      <span>
+        <strong>Delete your account</strong>
+        <span>Permanently remove your account and all of your data.</span>
+      </span>
+      <span class="chev">&rsaquo;</span>
+    </a>
+  </div>
+</body>
+</html>
