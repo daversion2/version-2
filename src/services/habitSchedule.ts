@@ -133,6 +133,23 @@ export const allowedRestDays = (habit: Schedulable): number => {
   return Math.max(0, 7 - target);
 };
 
+/**
+ * A stored weekday as the number expo-notifications wants for a WEEKLY trigger.
+ *
+ * Two conventions meet here. This app stores JS weekdays — Date.getDay(), where
+ * Sunday is 0. expo-notifications documents WeeklyTriggerInput as "a number
+ * from 1 through 7, with 1 indicating Sunday", and passes the value straight
+ * through to the native trigger untouched (parseWeeklyTrigger in
+ * expo-notifications/build/scheduleNotificationAsync.js applies no conversion).
+ * So the answer is +1.
+ *
+ * It lives here, named and tested, rather than as a bare increment at the call
+ * site: off by one shifts EVERY reminder by exactly one day, and nothing short
+ * of waiting for a notification to fire would reveal it. A future reader
+ * deleting this as redundant arithmetic is the failure mode being guarded.
+ */
+export const toExpoWeekday = (day: Weekday): number => day + 1;
+
 /** "Mon, Wed & Fri" — the days spelled out, Monday first. */
 export const formatDays = (days: Weekday[]): string => {
   const ordered = WEEK_DISPLAY_ORDER.filter((d) => days.includes(d));

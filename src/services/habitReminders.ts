@@ -18,7 +18,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { HabitActionPlan, HabitReminder, PracticeInstance } from '../types';
 import { getHabitById, updateHabit } from './practices';
-import { scheduledDays } from './habitSchedule';
+import { scheduledDays, toExpoWeekday } from './habitSchedule';
 
 const ANDROID_CHANNEL = 'habit-reminders';
 
@@ -89,8 +89,8 @@ const cancel = async (notificationIds: string[]): Promise<void> => {
  * Schedule the habit's reminders; returns their ids, empty on failure.
  *
  * One daily notification, or one weekly notification per scheduled weekday.
- * Expo's weekday is 1-based with Sunday = 1, while the app stores JS weekdays
- * (Sunday = 0) — hence the +1, which is the whole of the conversion.
+ * The weekday conversion is toExpoWeekday — see its comment for why it is a
+ * named, tested function rather than arithmetic written out here.
  */
 const schedule = async (habit: RemindableHabit, time: string): Promise<string[]> => {
   const { hour, minute } = parseHHMM(time);
@@ -100,7 +100,7 @@ const schedule = async (habit: RemindableHabit, time: string): Promise<string[]>
   const triggers: Notifications.NotificationTriggerInput[] = days
     ? days.map((day) => ({
         type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-        weekday: day + 1,
+        weekday: toExpoWeekday(day),
         hour,
         minute,
         ...androidChannel,

@@ -1,10 +1,12 @@
 import {
+  WEEKDAY_LABELS,
   allowedRestDays,
   describeSchedule,
   dueDatesBetween,
   isDayScheduled,
   isDueOn,
   scheduledDays,
+  toExpoWeekday,
   weeklyTarget,
 } from '../habitSchedule';
 
@@ -87,6 +89,28 @@ describe('dueDatesBetween', () => {
 
   it('is empty when the range runs backwards', () => {
     expect(dueDatesBetween({ target_count_per_week: 3 }, SUN, MON)).toEqual([]);
+  });
+});
+
+describe('toExpoWeekday', () => {
+  // Off by one here shifts every reminder by exactly one day, and only a fired
+  // notification would ever show it. The contract, from expo-notifications'
+  // WeeklyTriggerInput: "a number from 1 through 7, with 1 indicating Sunday".
+  it('maps Sunday to 1 and Saturday to 7', () => {
+    expect(toExpoWeekday(0)).toBe(1); // Sunday
+    expect(toExpoWeekday(6)).toBe(7); // Saturday
+  });
+
+  it('maps every stored weekday into 1–7 without collision', () => {
+    const mapped = ([0, 1, 2, 3, 4, 5, 6] as const).map(toExpoWeekday);
+    expect(mapped).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it('keeps the labels aligned across the conversion', () => {
+    // A Monday habit must schedule on Expo's Monday, not Sunday or Tuesday.
+    const monday = WEEKDAY_LABELS.indexOf('Mon') as 1;
+    expect(monday).toBe(1);
+    expect(toExpoWeekday(monday)).toBe(2);
   });
 });
 
