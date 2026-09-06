@@ -1,5 +1,53 @@
 # Neuro-Nudge — Claude Code Context
 
+## ⚠️ Unfinished work — read before starting anything else
+
+*Added 2026-09-05. **Delete each item once it's done, and this whole section once
+all are** — it describes work left mid-flight, not standing policy. If it has
+been here a long time, ask the user whether it is still true rather than acting
+on it.*
+
+**1. In-app account deletion is written but NOT deployed.** Sitting uncommitted
+in the working tree: `firebase.json` (gains a `hosting` block),
+`functions/src/index.ts` (an `onCall` account-deletion function), and an
+untracked `hosting/` directory (`delete-account.html`, `index.html`,
+`favicon.ico`).
+
+None of it is in the JS bundle, so **the OTA published on 2026-09-05 does not
+include it** and the delete-account page does not work until:
+
+```bash
+git add firebase.json functions hosting
+git commit -m "Add in-app account deletion with hosted delete-account page"
+firebase deploy --only functions,hosting && git push
+```
+
+An OTA will never carry this — it needs the Firebase deploy. Account deletion is
+usually App Store compliance work, so check whether it is on a deadline rather
+than assuming it can wait.
+
+**2. The 2026-09-05 OTA shipped without ever running on a device.** Named-day
+scheduling, schedule-aware streaks, adherence and the archive screen are live to
+all users, verified by jest + `tsc` + a clean `expo export` only. Two paths
+cannot be proven from the test suite and were never exercised:
+
+- **A reminder actually firing.** Day-scheduled habits now schedule one weekly
+  notification per chosen weekday. The JS→Expo weekday conversion is pinned by
+  `toExpoWeekday` in `src/services/habitSchedule.ts` and tested, but nothing
+  proves the OS delivers. Set a reminder 2–3 minutes out on a scheduled day,
+  background the app, and confirm it arrives.
+- **Archive surviving a relaunch.** Archive a curated practice, force-quit,
+  reopen. It must stay off Home — `ensureCuratedPractices` reactivates inactive
+  curated instances and is meant to skip ones carrying `archived_at`.
+
+If both check out, delete this item.
+
+**3. Known and unguarded: the iOS 64-notification cap.** A day-scheduled habit
+now consumes one scheduled notification *per day* rather than one total, so ten
+Mon/Wed/Fri habits use thirty slots. iOS silently drops anything past 64 — no
+error anywhere, reminders just stop. Not a problem at current habit counts; fix
+it before it is.
+
 ## Verifying a Change
 
 Run these before saying a change is done. There is **no `lint` or `typecheck` npm
