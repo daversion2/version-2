@@ -1,0 +1,181 @@
+# Archive → restore round trip for a habit.
+#
+# Archiving takes a practice off Home and out of streaks/pace while keeping every
+# logged rep. This drives the whole loop and puts the habit back.
+#
+# Two things about the route, both deliberate:
+#
+# 1. The habit detail screen is opened from Progress → By Metric, NOT from Home.
+#    The Home row sets an accessibilityLabel on the outer TouchableOpacity, so
+#    iOS merges the kebab and the tick into the parent node — "Details for Test"
+#    is not an addressable element. The By Metric habit row is.
+# 2. That same route is the ONLY way back to an archived habit's detail screen.
+#    Training Volume filters on is_active (practiceProgress.ts:204) so an
+#    archived habit disappears from it; buildMetricFamilyReports is passed every
+#    habit regardless (practiceProgress.ts:355), so By Metric keeps it. A habit
+#    with zero logged reps is in neither, and — with the Archived screen having
+#    no entry point in the app — archiving one strands it.
+#
+# "Archive Practice" sits at the very bottom of the detail screen. Without
+# `centerElement: true` the scroll stops with it under the tab bar, and the tap
+# lands on the Progress tab instead — reported as COMPLETED, silently wrong.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- waitForAnimationToEnd:
+    timeout: 5000
+- repeat:
+    times: 6
+    while:
+      notVisible: "Home"
+    commands:
+      - tapOn:
+          point: "12%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "Home"
+# Home keeps its scroll position across tab switches, so come back to the top
+# for the pace headline — that number is what "out of your pace" means.
+- scrollUntilVisible:
+    element:
+      text: "This week"
+    direction: UP
+    timeout: 30000
+
+# Baseline: the habit is on Home, and the pace headline counts it.
+- takeScreenshot: 06a0-home-pace-before
+- scrollUntilVisible:
+    element:
+      text: "Log Test\\. .* this week\\."
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- takeScreenshot: 06a-home-before
+
+# --- Archive -------------------------------------------------------------
+- runFlow: subflows/open-progress.yaml
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+- tapOn:
+    text: ".*Reps"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: ".*Test, 101 reps.*"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: "Practice Detail"
+
+- scrollUntilVisible:
+    element:
+      text: ".*Archive Practice"
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: ".*Archive Practice"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Archive this practice?"
+- assertVisible: "It comes off Home and stops counting toward your streaks and pace. Every rep you logged is kept, and you can restore it from Archived at any time."
+- takeScreenshot: 06b-archive-confirm
+- tapOn: "Archive"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# --- Off Home ------------------------------------------------------------
+- repeat:
+    times: 6
+    while:
+      notVisible: "Home"
+    commands:
+      - tapOn:
+          point: "12%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "Home"
+# Home keeps its scroll position across tab switches, so come back to the top
+# for the pace headline — that number is what "out of your pace" means.
+- scrollUntilVisible:
+    element:
+      text: "This week"
+    direction: UP
+    timeout: 30000
+# The pace headline is the load-bearing check here: it counts active habits, so
+# archiving one must drop it by one. Then scroll to the neighbour that used to
+# sit just below Test and confirm the row is no longer between them.
+- takeScreenshot: 06c0-home-pace-after-archive
+- scrollUntilVisible:
+    element:
+      text: "Log Cold Exposure\\. .* this week\\."
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- assertNotVisible:
+    text: "Log Test\\. .* this week\\."
+- takeScreenshot: 06c-home-after-archive
+
+# --- Archived habit's detail: read-only banner + restore -----------------
+- runFlow: subflows/open-progress.yaml
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+- tapOn:
+    text: ".*Reps"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: ".*Test, 101 reps.*"
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: ".*Archived\\. Off Home and out of your streaks — the history below is kept\\."
+- assertVisible: ".*Restore practice"
+- takeScreenshot: 06d-archived-banner
+
+- tapOn:
+    text: ".*Restore practice"
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    notVisible:
+      text: ".*Restore practice"
+    timeout: 20000
+- takeScreenshot: 06e-after-restore
+
+# --- Back on Home --------------------------------------------------------
+- repeat:
+    times: 6
+    while:
+      notVisible: "Home"
+    commands:
+      - tapOn:
+          point: "12%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "Home"
+# Home keeps its scroll position across tab switches, so come back to the top
+# for the pace headline — that number is what "out of your pace" means.
+- scrollUntilVisible:
+    element:
+      text: "This week"
+    direction: UP
+    timeout: 30000
+- takeScreenshot: 06f0-home-pace-restored
+- scrollUntilVisible:
+    element:
+      text: "Log Test\\. .* this week\\."
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- takeScreenshot: 06f-home-restored

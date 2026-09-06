@@ -1,0 +1,31 @@
+# Get to the Progress tab, reliably.
+#
+# Two things here look redundant and are not:
+#
+# 1. The tab is tapped by COORDINATE, not by text. React Navigation exposes each
+#    tab as an accessibility element, so `tapOn: text` reports COMPLETED — and
+#    silently does nothing.
+# 2. The tap RETRIES. Straight after launchApp the accessibility tree is
+#    populated before React Native attaches its gesture responders, so the first
+#    tap can land in the gap and vanish. Waiting on a visible element does not
+#    close that window; retrying does.
+appId: com.neuronudge.neuronudge
+---
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- repeat:
+    times: 6
+    while:
+      notVisible: "Your resistance"
+    commands:
+      - tapOn:
+          point: "62%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+- assertVisible: "Your resistance"

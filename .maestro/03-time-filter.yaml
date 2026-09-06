@@ -1,0 +1,38 @@
+# The section respects the time filter, and the chip row reflects only metrics
+# with data IN that window.
+#
+# The 7-day case is the one worth watching: a metric can drop out of the chip row
+# entirely when the window narrows. Selection is derived rather than stored
+# precisely so that a chip disappearing under you does not blank the card.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- runFlow: subflows/open-progress.yaml
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+- takeScreenshot: 03a-30days
+
+- tapOn: "7 Days"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+- assertVisible: "By Metric"
+- takeScreenshot: 03b-7days
+
+- tapOn: "All Time"
+- waitForAnimationToEnd:
+    timeout: 4000
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+- assertVisible: "By Metric"
+- takeScreenshot: 03c-alltime

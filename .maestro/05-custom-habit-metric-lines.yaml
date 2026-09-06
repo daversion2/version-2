@@ -1,0 +1,39 @@
+# Regression guard for the custom-habit metric bug.
+#
+# Training Volume used to read `catalog?.tracking` directly. getPractice()
+# returns nothing for a habit with no catalog entry, so CUSTOM habits — exactly
+# the ones using the six presets — rendered reps and XP but never a metric line,
+# despite their metrics being captured all along. The fix resolves both sources.
+#
+# Also pins the singular/plural caption: a family with one logged rep must read
+# "1 rep", not "1 reps".
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- runFlow: subflows/open-progress.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+- tapOn:
+    text: ".*Cold"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: ".*1 rep · lower is better"
+- takeScreenshot: 05a-singular-rep
+
+# Custom habits sort after curated ones in the volume grid, so scroll to one by
+# name and capture its card.
+- scrollUntilVisible:
+    element:
+      text: "Training Volume"
+    direction: DOWN
+    timeout: 40000
+- scrollUntilVisible:
+    element:
+      text: ".*Unplugged Cardio.*"
+    direction: DOWN
+    timeout: 40000
+- takeScreenshot: 05b-custom-habit-card

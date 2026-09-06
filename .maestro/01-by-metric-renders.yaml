@@ -1,0 +1,18 @@
+# Smoke test: the By Metric section loads on the Progress screen and its chips
+# switch metrics. Runs against whatever data the account already has, so it
+# asserts structure rather than specific numbers.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- runFlow: subflows/open-progress.yaml
+
+# The section sits below the hero stats, several screens down.
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+
+- assertVisible: "By Metric"
+- assertVisible: "Every habit that measures the same thing, added up together."
+- takeScreenshot: 01-by-metric

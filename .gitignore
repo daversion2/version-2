@@ -41,3 +41,9 @@ yarn-error.*
 /android
 .netlify
 coverage/
+
+# Claude Code machine-local settings (skills and agents ARE shared)
+.claude/settings.local.json
+
+# Firebase deploy cache
+.firebase/

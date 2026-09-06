@@ -1,0 +1,103 @@
+# Archiving a ZERO-REP habit and getting it back.
+#
+# This is the case that used to be a one-way door. An archived habit is filtered
+# out of Training Volume by is_active (practiceProgress.ts:204) and only survives
+# in By Metric if it has logged metric values (practiceProgress.ts:355). A habit
+# with no reps is therefore in NO list once archived — and with the Archived
+# screen having no entry point, there was no route back to it at all.
+#
+# Settings → Archived Practices is that route. This flow proves it end to end:
+# archive a 0-rep habit, find it in Archived, restore it, confirm it is back.
+#
+# Safe to run: every step is reversible, and the recovery path being tested is
+# what makes it reversible.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- runFlow: subflows/open-progress.yaml
+
+# Training Volume still lists it while it is active — this is the last place a
+# 0-rep habit is reachable before archiving.
+- scrollUntilVisible:
+    element:
+      text: ".*Squat city.*"
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- takeScreenshot: 08a-before-archive
+- tapOn:
+    text: ".*Squat city.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# "Archive Practice" is the very last thing on the detail screen. Without
+# centerElement the scroll leaves it under the tab bar and the tap lands on a
+# tab instead — reported COMPLETED, silently wrong.
+- scrollUntilVisible:
+    element:
+      text: ".*Archive Practice.*"
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- tapOn:
+    text: ".*Archive Practice.*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Archive this practice?"
+# The dialog now names where Archived lives; before this fix it promised a
+# destination the app had no link to.
+- assertVisible: ".*Settings → Archived Practices.*"
+- takeScreenshot: 08b-archive-dialog
+- tapOn: "Archive"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# --- Recover it, which is the whole point ---------------------------------
+- repeat:
+    times: 6
+    while:
+      notVisible:
+        text: ".*Archived Practices.*"
+    commands:
+      - tapOn:
+          point: "87%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- tapOn:
+    text: ".*Archived Practices.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- assertVisible: "Archived"
+- assertVisible: ".*Squat city.*"
+- takeScreenshot: 08c-archived-list
+
+- tapOn: "Restore"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 08d-after-restore
+
+# --- Confirm it is genuinely back on Home ---------------------------------
+# Guard on the pace headline, NOT on "Home". A native stack back button is
+# labelled with the previous screen's title, so while sitting on Archived there
+# is a node reading exactly "Home" — a `notVisible: "Home"` guard is satisfied
+# there and skips the tab switch, passing the assertion without ever leaving the
+# screen under test. "on pace" appears only on Home.
+- repeat:
+    times: 6
+    while:
+      notVisible:
+        text: ".*on pace.*"
+    commands:
+      - tapOn:
+          point: "12%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: ".*on pace.*"
+- scrollUntilVisible:
+    element:
+      text: ".*Squat city.*"
+    direction: DOWN
+    timeout: 40000
+    centerElement: true
+- takeScreenshot: 08e-home-restored

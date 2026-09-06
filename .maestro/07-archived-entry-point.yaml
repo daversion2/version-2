@@ -1,0 +1,49 @@
+# The Archived screen is reachable from Settings.
+#
+# Regression guard for a one-way door: the archive dialog promises "you can
+# restore it ... from Settings → Archived Practices", and until this entry point
+# existed nothing in the app navigated to ArchivedHabits at all. A practice with
+# no logged reps was then in no list anywhere — off Home, filtered out of
+# Training Volume by is_active, absent from By Metric for want of metric values —
+# and could not be got back.
+#
+# The screen lives in the Home stack, so this row reaches across tabs via
+# getParent(). That is the same pattern the reflection shortcut already uses.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Settings is the 4th of 4 tabs. Retried for the same reason the Progress tap is
+# — see subflows/open-progress.yaml.
+- repeat:
+    times: 6
+    while:
+      notVisible:
+        text: ".*Archived Practices.*"
+    commands:
+      - tapOn:
+          point: "87%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+# <Card> merges its label and description into ONE accessibility node —
+# "Archived Practices, Practices you've put away — restore any of them, " — so
+# both halves are asserted through one wrapped selector. Bare text matches
+# nothing here; see .claude/skills/ui-test/SKILL.md.
+- assertVisible: ".*Archived Practices, Practices you've put away.*"
+- takeScreenshot: 07a-settings-row
+
+- tapOn:
+    text: ".*Archived Practices.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Header title comes from HomeStack's route options.
+- assertVisible: "Archived"
+- takeScreenshot: 07b-archived-screen

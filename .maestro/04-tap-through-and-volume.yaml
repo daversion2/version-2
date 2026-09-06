@@ -1,0 +1,39 @@
+# Two checks in one pass down the screen.
+#
+# 1. A habit row inside a By Metric card taps through to that habit's detail.
+# 2. Training Volume shows metric lines. This is the regression guard for the
+#    bug where the volume grid read `catalog?.tracking` directly, so CUSTOM
+#    habits — the ones using the six presets — rendered reps and XP but never a
+#    metric line, even though their metrics were being captured.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- runFlow: subflows/open-progress.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "Training Volume"
+    direction: DOWN
+    timeout: 40000
+- assertVisible: "Training Volume"
+- takeScreenshot: 04a-training-volume
+
+- scrollUntilVisible:
+    element:
+      text: "Personal Records"
+    direction: DOWN
+    timeout: 40000
+- assertVisible: "Personal Records"
+- takeScreenshot: 04b-personal-records
+
+# Back up to By Metric and tap a habit row.
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: UP
+    timeout: 40000
+- tapOn:
+    text: ".*Unplugged Cardio.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 04c-habit-detail

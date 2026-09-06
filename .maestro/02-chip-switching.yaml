@@ -1,0 +1,35 @@
+# Switching metrics via the chip row, and the direction hint.
+#
+# Selector note: chips and habit rows are TouchableOpacity wrapping an icon plus
+# text, so iOS exposes them as ", Reps" / ", Read, 50 min, 1 rep" — leading comma
+# and all. Maestro matches text as a FULL-STRING regex, so bare "Reps" finds
+# nothing and every selector here needs its .* wrapper.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- runFlow: subflows/open-progress.yaml
+- scrollUntilVisible:
+    element:
+      text: "By Metric"
+    direction: DOWN
+    timeout: 40000
+
+# Time leads: registry order 1, and the metric most habits carry.
+- assertVisible: "total across.*"
+- takeScreenshot: 02a-time
+
+- tapOn:
+    text: ".*Reps"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "By Metric"
+- takeScreenshot: 02b-reps
+
+- tapOn:
+    text: ".*Cold"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Water temperature is a metric where lower is the win, and the caption has to
+# say so. A family defaulting to 'up' would not produce this string.
+- assertVisible: ".*lower is better.*"
+- takeScreenshot: 02c-cold
