@@ -141,6 +141,27 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* Archived practices. The screen itself lives in the Home stack, so this
+          reaches across tabs the same way the reflection shortcut below does.
+          Without an entry point here the archive flow was a one-way door: it
+          promises "you can restore it from Archived at any time", and nothing
+          in the app linked to Archived — a practice with no logged reps then
+          appeared in no list at all and could not be got back. */}
+      <Card
+        style={styles.card}
+        onPress={() =>
+          navigation.getParent()?.navigate('Home', { screen: 'ArchivedHabits' })
+        }
+      >
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>Archived Practices</Text>
+            <Text style={styles.desc}>Practices you've put away — restore any of them</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
       {/* Admin — only for flagged accounts. Lives here rather than as a fifth
           tab: it is a maintenance destination, not a daily one, and a tab that
           exists for one account crowds the bar for everyone who sees it. */}

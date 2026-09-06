@@ -23,12 +23,25 @@ import { getSkipPatternsForHabit } from '../../services/skips';
 import { resolveTemplateFields } from '../../data/habitTemplates';
 import { SkipPatterns } from '../../services/skipLogic';
 import { useAuth } from '../../context/AuthContext';
-import { getHabitById, getHabitStats, getHabitCompletionLogs, updateHabit } from '../../services/practices';
+import {
+  ADHERENCE_WINDOW_DAYS,
+  archiveHabit,
+  getHabitById,
+  getHabitStats,
+  getHabitCompletionLogs,
+  habitSchedule,
+  setHabitSchedule,
+  unarchiveHabit,
+  updateHabit,
+} from '../../services/practices';
+import { HabitSchedule, describeSchedule } from '../../services/habitSchedule';
+import { AdherenceCard } from '../../components/habits/AdherenceCard';
+import { WeeklyGoalSheet } from '../../components/practices/WeeklyGoalSheet';
 import { deleteCompletionLog } from '../../services/progress';
 import { buildPracticePerformance } from '../../services/practicePerformance';
 import { getPractice, getCommitmentField, formatCommitment } from '../../data/practices';
 import { buildRaiseSuggestion } from '../../services/raiseSuggestion';
-import { cancelHabitReminder } from '../../services/habitReminders';
+import { cancelHabitReminder, syncHabitReminder } from '../../services/habitReminders';
 import { showConfirm, showAlert } from '../../utils/alert';
 import {
   isEditableDate,
@@ -71,11 +84,11 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
   const [skipPatterns, setSkipPatterns] = useState<SkipPatterns | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Edit mode (name / times-per-week / goals)
+  // Edit mode (name / schedule)
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editTimesPerWeek, setEditTimesPerWeek] = useState(3);
   const [editSaving, setEditSaving] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -113,7 +126,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
   const startEdit = () => {
     if (!habit) return;
     setEditName(habit.name);
-    setEditTimesPerWeek(habit.target_count_per_week);
     setEditing(true);
   };
 
@@ -127,7 +139,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     try {
       await updateHabit(user.uid, habitId, {
         name: editName.trim(),
-        target_count_per_week: editTimesPerWeek,
       } as Partial<PracticeInstance>);
       setEditing(false);
       await loadData();
@@ -138,28 +149,54 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     }
   };
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Practice',
-      'Are you sure you want to delete this practice? Your completion history will be preserved.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!user) return;
-            try {
-              if (habit) await cancelHabitReminder(habit);
-              await updateHabit(user.uid, habitId, { is_active: false });
-              navigation.goBack();
-            } catch (e: any) {
-              Alert.alert('Error', e.message);
-            }
-          },
-        },
-      ]
+  // The schedule saves on its own, through the one writer that keeps the days
+  // and the weekly target in agreement — it is never part of the name form.
+  const handleSaveSchedule = async (schedule: HabitSchedule) => {
+    if (!user) return;
+    try {
+      await setHabitSchedule(user.uid, habitId, schedule);
+      // Reminders fire on the scheduled days, so the days changing changes which
+      // notifications should exist.
+      if (habit?.reminder?.enabled) {
+        await syncHabitReminder(user.uid, habitId, habit.reminder);
+      }
+      await loadData();
+    } catch (e: any) {
+      showAlert("Couldn't save the schedule", e?.message ?? 'Please try again.');
+    }
+  };
+
+  const handleArchive = () => {
+    showConfirm(
+      'Archive this practice?',
+      // Names where Archived actually is. The promise is only as good as the
+      // user's ability to find the place it points at.
+      'It comes off Home and stops counting toward your streaks and pace. Every rep you logged is kept, and you can restore it any time from Settings → Archived Practices.',
+      async () => {
+        if (!user) return;
+        try {
+          if (habit) await cancelHabitReminder(habit);
+          await archiveHabit(user.uid, habitId);
+          navigation.goBack();
+        } catch (e: any) {
+          showAlert("Couldn't archive", e?.message ?? 'Please try again.');
+        }
+      },
+      'Archive'
     );
+  };
+
+  const handleRestore = async () => {
+    if (!user) return;
+    try {
+      await unarchiveHabit(user.uid, habitId);
+      if (habit?.reminder?.enabled) {
+        await syncHabitReminder(user.uid, habitId, habit.reminder);
+      }
+      await loadData();
+    } catch (e: any) {
+      showAlert("Couldn't restore", e?.message ?? 'Please try again.');
+    }
   };
 
 
@@ -295,7 +332,42 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
         )}
       </View>
 
-      {/* Inline edit form: name / times-per-week / goals */}
+      {/* An archived practice is read-only until it's back. Restoring is the
+          only action offered, so nothing here quietly edits a habit that isn't
+          running. */}
+      {!habit.is_active && (
+        <Card style={styles.archivedCard}>
+          <View style={styles.archivedRow}>
+            <Ionicons name="archive-outline" size={18} color={Colors.gray} />
+            <Text style={styles.archivedText}>
+              Archived. Off Home and out of your streaks — the history below is kept.
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} activeOpacity={0.85}>
+            <Ionicons name="arrow-undo-outline" size={15} color={Colors.white} />
+            <Text style={styles.restoreBtnText}>Restore practice</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
+
+      {/* Schedule — tappable whether or not the name form is open, because it is
+          the setting people come here to change. */}
+      <TouchableOpacity
+        style={styles.scheduleRow}
+        onPress={() => setScheduleOpen(true)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Schedule: ${describeSchedule(habit)}. Tap to change.`}
+      >
+        <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+        <View style={styles.scheduleText}>
+          <Text style={styles.scheduleLabel}>Schedule</Text>
+          <Text style={styles.scheduleValue}>{describeSchedule(habit)}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={Colors.gray} />
+      </TouchableOpacity>
+
+      {/* Inline edit form: name */}
       {editing && (
         <Card style={styles.editCard}>
           <InputField
@@ -304,25 +376,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
             onChangeText={setEditName}
             placeholder="Practice name"
           />
-          <Text style={styles.editFreqLabel}>Times per week</Text>
-          <View style={styles.editFreqRow}>
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <TouchableOpacity
-                key={n}
-                onPress={() => setEditTimesPerWeek(n)}
-                style={[styles.freqChip, editTimesPerWeek === n && styles.freqChipActive]}
-              >
-                <Text
-                  style={[
-                    styles.freqChipText,
-                    editTimesPerWeek === n && { color: Colors.white },
-                  ]}
-                >
-                  {n}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
           <View style={styles.editButtons}>
             <Button title="Save" onPress={handleSaveEdit} loading={editSaving} style={{ flex: 1 }} />
             <Button
@@ -368,6 +421,14 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
           </View>
         </View>
       </Card>
+
+      {/* Of the days this practice asked for, how many were kept. */}
+      <AdherenceCard
+        recent={stats.recentAdherence}
+        lifetime={stats.lifetimeAdherence}
+        scheduleLabel={describeSchedule(habit)}
+        windowDays={ADHERENCE_WINDOW_DAYS}
+      />
 
       {/* Active Since */}
       {stats.firstCompletionDate && (
@@ -568,11 +629,22 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
         </Card>
       )}
 
-      {/* Delete */}
-      <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-        <Ionicons name="trash-outline" size={18} color={Colors.secondary} />
-        <Text style={styles.deleteBtnText}>Delete Practice</Text>
-      </TouchableOpacity>
+      {/* Archive. Deliberately not called Delete: it never was one — the reps
+          were always kept — and now there is a screen that says so. */}
+      {habit.is_active && (
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleArchive}>
+          <Ionicons name="archive-outline" size={18} color={Colors.secondary} />
+          <Text style={styles.deleteBtnText}>Archive Practice</Text>
+        </TouchableOpacity>
+      )}
+
+      <WeeklyGoalSheet
+        visible={scheduleOpen}
+        practiceName={habit.name}
+        initialSchedule={habitSchedule(habit)}
+        onSave={handleSaveSchedule}
+        onClose={() => setScheduleOpen(false)}
+      />
     </ScrollView>
   );
 };
@@ -647,34 +719,54 @@ const styles = StyleSheet.create({
   editCard: {
     marginBottom: Spacing.lg,
   },
-  editFreqLabel: {
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.cardBg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  scheduleText: { flex: 1 },
+  scheduleLabel: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  scheduleValue: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    marginTop: 2,
+  },
+  archivedCard: { marginBottom: Spacing.md, gap: Spacing.md },
+  archivedRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  archivedText: {
+    flex: 1,
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
     color: Colors.gray,
-    marginBottom: Spacing.sm,
+    lineHeight: 20,
   },
-  editFreqRow: {
+  restoreBtn: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  freqChip: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  freqChipActive: {
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.md,
     backgroundColor: Colors.primary,
   },
-  freqChipText: {
+  restoreBtnText: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.sm,
-    color: Colors.primary,
+    color: Colors.white,
   },
   editButtons: {
     flexDirection: 'row',
