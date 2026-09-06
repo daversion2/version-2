@@ -7,7 +7,13 @@ import {
   compareByIntensity,
   DEFAULT_PRACTICE_COLOR,
 } from '../data/practices';
+import { resolveHabitTrackingFields } from '../data/habitTemplates';
 import { getCurrentWeekBounds } from './practices';
+import {
+  buildMetricFamilyReports,
+  formatMetric,
+  MetricFamilyReport,
+} from './metricFamilies';
 
 // =============================================================================
 // PRACTICE PROGRESS — the Progress screen aggregation for the practice-protocol
@@ -63,6 +69,12 @@ export interface PracticeProgress {
   weekScore: number;
   lastWeekScore: number;
   records: PersonalRecord[];
+  /**
+   * The same period reps sliced by what they MEASURED rather than which habit
+   * logged them — every distance habit under Distance, every timed one under
+   * Time. Derived from logs already fetched here; costs no extra reads.
+   */
+  metricFamilies: MetricFamilyReport[];
 }
 
 const logsRef = (uid: string) => collection(db, 'users', uid, 'completionLogs');
@@ -130,19 +142,11 @@ const buildMetricLines = (
   return lines;
 };
 
-/** All-time, metric-backed records: which catalog metric each one reads. */
-const METRIC_RECORDS: {
-  practiceId: string;
-  metricKey: string;
-  pick: 'max' | 'min';
-  icon: string;
-  label: string;
-  unit: string;
-}[] = [
-  { practiceId: 'meditation', metricKey: 'duration_min', pick: 'max', icon: 'flower-outline', label: 'Longest sit', unit: 'min' },
-  { practiceId: 'cold_exposure', metricKey: 'water_temp_f', pick: 'min', icon: 'snow-outline', label: 'Coldest plunge', unit: '°F' },
-  { practiceId: 'heat_exposure', metricKey: 'temp_f', pick: 'max', icon: 'flame-outline', label: 'Hottest sauna', unit: '°F' },
-];
+/**
+ * How many metric-backed records the card will show before it stops being a
+ * highlight reel. Best-supported (most reps behind them) win the slots.
+ */
+const MAX_METRIC_RECORDS = 6;
 
 /** A completed practice rep or challenge counts as one override. */
 const isOverride = (log: CompletionLog): boolean =>
@@ -210,7 +214,10 @@ export const getPracticeProgress = async (
         color: catalog?.color || DEFAULT_PRACTICE_COLOR,
         reps: habitLogs.length,
         points: habitLogs.reduce((s, l) => s + (l.points || 0), 0),
-        metricLines: buildMetricLines(catalog?.tracking, habitLogs),
+        // Resolves BOTH sources. Reading catalog?.tracking alone left every
+        // custom habit — the ones using the six presets — with no metric lines
+        // at all, even though their metrics were being captured.
+        metricLines: buildMetricLines(resolveHabitTrackingFields(h), habitLogs),
       };
     });
 
@@ -256,18 +263,57 @@ export const getPracticeProgress = async (
   // ---- Personal records (all-time) ----
   const records: PersonalRecord[] = [];
 
-  const habitPracticeId = new Map<string, string | undefined>();
-  habits.forEach((h) => habitPracticeId.set(h.id, h.practice_id));
-
-  METRIC_RECORDS.forEach((def) => {
-    const values = logs
-      .filter((l) => l.type === 'nudge' && habitPracticeId.get(l.reference_id) === def.practiceId)
-      .map((l) => l.metrics?.[def.metricKey])
-      .filter((v): v is number => typeof v === 'number' && isFinite(v));
-    if (values.length === 0) return;
-    const best = def.pick === 'max' ? Math.max(...values) : Math.min(...values);
-    records.push({ icon: def.icon, label: def.label, value: withUnit(best, def.unit) });
+  // Derived from every adopted habit's `TrackingField.record` config rather than
+  // a hardcoded list of practice ids — so a new habit with an interesting metric
+  // gets a record with no code change. (The old map named three practices and
+  // ignored the record labels the catalog already authored.)
+  const allNudgeLogsByHabit = new Map<string, CompletionLog[]>();
+  logs.forEach((l) => {
+    if (l.type !== 'nudge') return;
+    const list = allNudgeLogsByHabit.get(l.reference_id) || [];
+    list.push(l);
+    allNudgeLogsByHabit.set(l.reference_id, list);
   });
+
+  const metricRecords: (PersonalRecord & { support: number; habitName: string })[] = [];
+  habits.forEach((h) => {
+    const habitLogs = allNudgeLogsByHabit.get(h.id) || [];
+    if (habitLogs.length === 0) return;
+
+    resolveHabitTrackingFields(h).forEach((field) => {
+      if (!field.record) return;
+      const values = habitLogs
+        .map((l) => l.metrics?.[field.key])
+        .filter((v): v is number => typeof v === 'number' && isFinite(v));
+      if (values.length === 0) return;
+      const best =
+        field.record.pick === 'min' ? Math.min(...values) : Math.max(...values);
+      metricRecords.push({
+        icon: field.record.icon || 'stats-chart-outline',
+        label: field.record.label || field.label,
+        value: formatMetric(best, field.unit),
+        support: values.length,
+        habitName: h.name,
+      });
+    });
+  });
+
+  // "Longest session" is authored on several habits. Left alone the card would
+  // compare a sauna against a language lesson under one row, so any label
+  // claimed by more than one habit gets the habit name appended.
+  const labelCounts = new Map<string, number>();
+  metricRecords.forEach((r) => labelCounts.set(r.label, (labelCounts.get(r.label) || 0) + 1));
+
+  metricRecords
+    .sort((a, b) => b.support - a.support)
+    .slice(0, MAX_METRIC_RECORDS)
+    .forEach((r) => {
+      records.push({
+        icon: r.icon,
+        label: (labelCounts.get(r.label) || 0) > 1 ? `${r.label} · ${r.habitName}` : r.label,
+        value: r.value,
+      });
+    });
 
   // Best streak of consecutive active days
   const uniqueDates = [...new Set(logs.map((l) => l.date))].sort();
@@ -304,5 +350,8 @@ export const getPracticeProgress = async (
     weekScore,
     lastWeekScore,
     records,
+    // Period-scoped, like Training Volume beside it. All habits are passed, not
+    // just active ones: a mile logged under a habit since archived still counts.
+    metricFamilies: buildMetricFamilyReports(periodLogs, habits),
   };
 };

@@ -21,7 +21,7 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({ record
       <Text style={styles.title}>Personal Records</Text>
       {records.map((record, i) => (
         <View
-          key={record.label}
+          key={`${record.label}-${i}`}
           style={[styles.row, i < records.length - 1 && styles.rowBorder]}
         >
           <Ionicons

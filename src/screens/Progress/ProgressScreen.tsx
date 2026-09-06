@@ -38,6 +38,7 @@ import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart
 import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
 import { OverrideScoreCard } from '../../components/progress/OverrideScoreCard';
 import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
+import { MetricFamiliesSection } from '../../components/progress/MetricFamiliesSection';
 import { TrainingQualityCard } from '../../components/progress/TrainingQualityCard';
 import { WeeklyReachCard } from '../../components/progress/WeeklyReachCard';
 import { ProgressNavigation } from '../../types/navigation';
@@ -193,6 +194,17 @@ export const ProgressScreen: React.FC = () => {
               getAllPractices().filter((p) => p.active !== false && p.group !== 'custom').length
             }
           />
+
+          {/* By Metric — the same reps as Training Volume below, sliced by what
+              they measured instead of which habit logged them. Leads because
+              "38 miles this month" is the sentence people want first; the grid
+              underneath answers which habits carried it. */}
+          {progress && (
+            <MetricFamiliesSection
+              reports={progress.metricFamilies}
+              onHabitPress={(habitId) => navigation.navigate('HabitDetail', { habitId })}
+            />
+          )}
 
           {/* Training Volume (per-practice card grid + challenges strip) */}
           {progress && (

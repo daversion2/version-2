@@ -1,4 +1,4 @@
-import { TrackingField } from './practices';
+import { TrackingField, getPractice } from './practices';
 
 // =============================================================================
 // HABIT TEMPLATES (D3)
@@ -152,3 +152,17 @@ export const getTemplatePreset = (id?: string | null): HabitTemplatePreset | und
 export const resolveTemplateFields = (instance: {
   template_id?: string;
 }): TrackingField[] => getTemplatePreset(instance.template_id)?.fields ?? [];
+
+/**
+ * The tracking fields an ADOPTED habit actually logs, from either source.
+ *
+ * Curated habits carry no `template_id` — their fields live on the catalog
+ * definition — and custom habits have no catalog entry. Anything aggregating
+ * metrics across a user's whole roster has to check both, or it silently drops
+ * half of them. Use this rather than reaching for `getPractice(...)?.tracking`.
+ */
+export const resolveHabitTrackingFields = (instance: {
+  practice_id?: string;
+  template_id?: string;
+}): TrackingField[] =>
+  getPractice(instance.practice_id)?.tracking ?? resolveTemplateFields(instance);
