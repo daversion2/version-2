@@ -188,20 +188,13 @@ export const ensureCuratedPractices = async (
   // Retired curated practices (e.g. fasting) come OFF the home. Only curated
   // instances are touched — a user-authored practice that happens to share a
   // name keeps working. Logs/history are kept; the instance is just hidden.
-  const retired = getAllPractices().filter((p) => p.active === false);
+  // isRetiredCurated is the same test the archive screen uses to decide a habit
+  // can't be restored, so the two views of "retired" cannot drift apart.
   const deactivated: PracticeInstance[] = [];
-  for (const p of retired) {
-    const matches = instances.filter(
-      (h) =>
-        h.is_active !== false &&
-        h.created_by_user === false &&
-        (h.practice_id === p.id || norm(h.name) === norm(p.name))
-    );
-    for (const m of matches) {
-      await updateDoc(doc(db, 'users', userId, 'habits', m.id), { is_active: false });
-      deactivated.push(m);
-      changed++;
-    }
+  for (const m of instances.filter((h) => h.is_active !== false && isRetiredCurated(h))) {
+    await updateDoc(doc(db, 'users', userId, 'habits', m.id), { is_active: false });
+    deactivated.push(m);
+    changed++;
   }
   return { changed, deactivated };
 };
@@ -251,6 +244,27 @@ export const setHabitSchedule = async (
 export const habitSchedule = (habit: Schedulable): HabitSchedule => {
   const days = scheduledDays(habit);
   return days ? { kind: 'days', days } : { kind: 'count', target: habit.target_count_per_week ?? 0 };
+};
+
+/**
+ * Is this instance a curated habit whose catalog entry has been RETIRED?
+ *
+ * Such an instance is inactive because the catalog dropped the practice, not
+ * because the user archived it — and ensureCuratedPractices will deactivate it
+ * again on the next load. That makes it un-restorable, which the archive UI has
+ * to know: a Restore button that silently undoes itself on next launch is worse
+ * than no button.
+ *
+ * Deliberately the SAME predicate the retirement sweep below uses, so the two
+ * can never disagree about which instances are retired.
+ */
+export const isRetiredCurated = (habit: Pick<PracticeInstance, 'name' | 'practice_id' | 'created_by_user'>): boolean => {
+  // A habit the user wrote is theirs; the catalog has no say over it.
+  if (habit.created_by_user !== false) return false;
+  const norm = (s: string) => s.trim().toLowerCase();
+  return getAllPractices().some(
+    (p) => p.active === false && (habit.practice_id === p.id || norm(habit.name) === norm(p.name))
+  );
 };
 
 /**

@@ -30,6 +30,7 @@ import {
   getHabitStats,
   getHabitCompletionLogs,
   habitSchedule,
+  isRetiredCurated,
   setHabitSchedule,
   unarchiveHabit,
   updateHabit,
@@ -294,6 +295,10 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
       });
   }, [logs]);
 
+  // Inactive because the LIBRARY dropped this practice, not because the user
+  // archived it — which decides whether restoring it can actually stick.
+  const retired = useMemo(() => (habit ? isRetiredCurated(habit) : false), [habit]);
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', {
@@ -340,13 +345,20 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
           <View style={styles.archivedRow}>
             <Ionicons name="archive-outline" size={18} color={Colors.gray} />
             <Text style={styles.archivedText}>
-              Archived. Off Home and out of your streaks — the history below is kept.
+              {retired
+                ? 'Retired from the library, so it can’t be brought back — but everything you logged is kept below.'
+                : 'Archived. Off Home and out of your streaks — the history below is kept.'}
             </Text>
           </View>
-          <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} activeOpacity={0.85}>
-            <Ionicons name="arrow-undo-outline" size={15} color={Colors.white} />
-            <Text style={styles.restoreBtnText}>Restore practice</Text>
-          </TouchableOpacity>
+          {/* No Restore for a retired practice: the curated reconciler would
+              deactivate it again on the next app load, so the button would
+              silently undo itself. See isRetiredCurated. */}
+          {!retired && (
+            <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} activeOpacity={0.85}>
+              <Ionicons name="arrow-undo-outline" size={15} color={Colors.white} />
+              <Text style={styles.restoreBtnText}>Restore practice</Text>
+            </TouchableOpacity>
+          )}
         </Card>
       )}
 

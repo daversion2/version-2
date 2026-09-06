@@ -9,6 +9,7 @@ import {
   archiveHabit,
   unarchiveHabit,
   habitSchedule,
+  isRetiredCurated,
   setHabitSchedule,
 } from '../practices';
 import {
@@ -622,5 +623,74 @@ describe('setHabitSchedule', () => {
 
     await setHabitSchedule(userId, 'h1', { kind: 'count', target: 4 });
     expect(habitSchedule(read() as any)).toEqual({ kind: 'count', target: 4 });
+  });
+});
+
+describe('retired curated practices', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+  });
+
+  const read = (id: string) =>
+    (getMockDB()[`users/${userId}/habits`] || {})[id]?.data as Record<string, any>;
+
+  // 'fasting' is retired in the catalog (active: false) — kept so instances
+  // adopted before the cut still resolve.
+  const addRetired = (id = 'old') =>
+    addMockDocument(`users/${userId}/habits`, id, {
+      user_id: userId,
+      name: 'Fasting',
+      practice_id: 'fasting',
+      is_active: false,
+      created_by_user: false,
+      target_count_per_week: 3,
+    });
+
+  it('recognises an instance of a practice the catalog retired', () => {
+    expect(
+      isRetiredCurated({ name: 'Fasting', practice_id: 'fasting', created_by_user: false })
+    ).toBe(true);
+  });
+
+  it('matches a legacy instance by name when it carries no practice_id', () => {
+    expect(isRetiredCurated({ name: 'fasting  ', created_by_user: false })).toBe(true);
+  });
+
+  it('never claims a habit the user wrote themselves', () => {
+    // Someone's own "Fasting" is theirs; the catalog has no say over it.
+    expect(
+      isRetiredCurated({ name: 'Fasting', practice_id: 'fasting', created_by_user: true })
+    ).toBe(false);
+  });
+
+  it('leaves a live curated practice alone', () => {
+    expect(
+      isRetiredCurated({ name: 'Meditation', practice_id: 'meditation', created_by_user: false })
+    ).toBe(false);
+  });
+
+  // The bug: a retired practice showed a Restore button in Archived, and the
+  // curated reconciler deactivated it again on the next app load — restore it,
+  // and it vanished on relaunch. The UI now reads this flag instead of offering
+  // a button that silently undoes itself.
+  it('is exactly what the reconciler undoes, so the UI and the sweep agree', async () => {
+    addRetired();
+
+    // Simulate the restore the old UI allowed, then a normal app load.
+    await unarchiveHabit(userId, 'old');
+    expect(read('old').is_active).toBe(true);
+    await ensureCuratedPractices(userId);
+
+    expect(read('old').is_active).toBe(false);
+    expect(isRetiredCurated(read('old') as any)).toBe(true);
+  });
+
+  it('still lists it, so the reps logged against it stay reachable', async () => {
+    addRetired();
+    const archived = await getArchivedHabits(userId);
+    expect(archived.map((h) => h.id)).toContain('old');
   });
 });

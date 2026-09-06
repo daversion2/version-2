@@ -16,6 +16,7 @@ import { CompletionLog, PracticeInstance } from '../../types';
 import {
   fetchAllNudgeLogs,
   getArchivedHabits,
+  isRetiredCurated,
   unarchiveHabit,
 } from '../../services/practices';
 import { syncHabitReminder } from '../../services/habitReminders';
@@ -29,6 +30,8 @@ interface ArchivedRow {
   habit: PracticeInstance;
   reps: number;
   lastDone?: string;
+  /** Retired from the catalog rather than archived by the user — can't be restored. */
+  retired: boolean;
 }
 
 /**
@@ -116,7 +119,7 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
             with its history, schedule and plan as they were.
           </Text>
 
-          {rows.map(({ habit, reps, lastDone }) => (
+          {rows.map(({ habit, reps, lastDone, retired }) => (
             <View key={habit.id} style={styles.card}>
               <TouchableOpacity
                 style={styles.cardMain}
@@ -136,28 +139,42 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
                       }`}
                 </Text>
                 <Text style={styles.schedule}>
-                  {describeSchedule(habit)}
-                  {habit.archived_at ? ` · archived ${formatDate(habit.archived_at)}` : ''}
+                  {retired
+                    ? 'Retired from the library'
+                    : `${describeSchedule(habit)}${
+                        habit.archived_at ? ` · archived ${formatDate(habit.archived_at)}` : ''
+                      }`}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.restoreBtn}
-                onPress={() => handleRestore(habit)}
-                disabled={restoringId === habit.id}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel={`Restore ${habit.name}`}
-              >
-                {restoringId === habit.id ? (
-                  <ActivityIndicator size="small" color={Colors.primary} />
-                ) : (
-                  <>
-                    <Ionicons name="arrow-undo-outline" size={15} color={Colors.primary} />
-                    <Text style={styles.restoreText}>Restore</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              {/* A retired practice is inactive because the LIBRARY dropped it,
+                  not because the user put it away — and the curated reconciler
+                  would deactivate it again on the next app load. Offering
+                  Restore here would be a button that silently undoes itself, so
+                  it says what happened instead. The history stays reachable. */}
+              {retired ? (
+                <View style={styles.retiredChip}>
+                  <Text style={styles.retiredChipText}>Retired</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.restoreBtn}
+                  onPress={() => handleRestore(habit)}
+                  disabled={restoringId === habit.id}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Restore ${habit.name}`}
+                >
+                  {restoringId === habit.id ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <>
+                      <Ionicons name="arrow-undo-outline" size={15} color={Colors.primary} />
+                      <Text style={styles.restoreText}>Restore</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           ))}
         </>
@@ -169,7 +186,12 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
 const summarise = (habit: PracticeInstance, logs: CompletionLog[]): ArchivedRow => {
   const mine = logs.filter((l) => l.reference_id === habit.id);
   const dates = mine.map((l) => l.date).sort();
-  return { habit, reps: mine.length, lastDone: dates[dates.length - 1] };
+  return {
+    habit,
+    reps: mine.length,
+    lastDone: dates[dates.length - 1],
+    retired: isRetiredCurated(habit),
+  };
 };
 
 const formatDate = (iso: string): string =>
@@ -219,6 +241,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   restoreText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.primary },
+  retiredChip: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 92,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.lightGray,
+  },
+  retiredChipText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
   emptyCard: {
     alignItems: 'center',
     gap: Spacing.sm,
