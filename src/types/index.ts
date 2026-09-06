@@ -340,6 +340,20 @@ export interface CompletionLog {
   // mind tag ids (data/mindTags.ts). `notes` holds the joined human-readable note.
   reflection?: Record<string, string>;
   mindTags?: string[];
+  /**
+   * Which surface produced this log: the one-tap resistance chips on Today, or
+   * the full capture sheet. Recorded because the two are different acts — a chip
+   * tap is a judgement made in a second, a sheet log is a considered one — and
+   * whether they rate differently is a question worth being able to ask later.
+   * Cannot be reconstructed after the fact, so it is written from the start.
+   */
+  logged_via?: 'quick' | 'capture';
+  /**
+   * True when `metrics` was filled from the habit's committed amount rather than
+   * entered. Lets a trend separate "measured 80 oz" from "said yes to the 80 oz
+   * I promised" — both are real, but only one is a measurement.
+   */
+  metrics_assumed?: boolean;
   // Before/after emotional state tracking (habit check-ins only)
   energyBefore?: -1 | 1 | null;
   moodBefore?: -1 | 1 | null;
@@ -456,6 +470,10 @@ export interface PracticeCompletionInput {
   reflection?: Record<string, string>;
   /** Selected mind tag ids (data/mindTags.ts). */
   mindTags?: string[];
+  /** Which surface produced this log. See CompletionLog.logged_via. */
+  logged_via?: 'quick' | 'capture';
+  /** `metrics` came from the habit's commitment, not from the user typing it. */
+  metrics_assumed?: boolean;
 }
 
 // =============================================================================

@@ -1,9 +1,14 @@
 import {
   classifyPace,
   buildTodayList,
+  buildTodaySections,
   buildWeekGlance,
+  dailyAsk,
   dayIndexInWeek,
   mondayOf,
+  pickNextAction,
+  sectionFor,
+  weekDatesFor,
 } from '../habitPace';
 import { CompletionLog, PracticeInstance } from '../../types';
 
@@ -305,5 +310,228 @@ describe('habits with no weekly goal', () => {
     const glance = buildWeekGlance(list);
     expect(glance.total).toBe(0);
     expect(glance.untracked).toBe(2);
+  });
+});
+
+describe('weekDatesFor', () => {
+  it('returns the seven dates of the week, Monday first', () => {
+    const dates = weekDatesFor(THU);
+    expect(dates).toHaveLength(7);
+    expect(dates[0]).toBe(MON);
+    expect(dates[6]).toBe(SUN);
+  });
+
+  it('gives the same week from any day inside it', () => {
+    expect(weekDatesFor(SUN)).toEqual(weekDatesFor(MON));
+  });
+});
+
+describe('dailyAsk', () => {
+  it('spreads the shortfall over the days that are left, rounding up', () => {
+    // Whole reps only — 3 across 2 days is 2 today, not 1.5.
+    expect(dailyAsk(3, 2)).toBe(2);
+    expect(dailyAsk(4, 4)).toBe(1);
+  });
+
+  it('never asks for more than is actually outstanding', () => {
+    // Last day of the week: the ask is the remainder, not an inflated share.
+    expect(dailyAsk(2, 1)).toBe(2);
+    expect(dailyAsk(1, 1)).toBe(1);
+  });
+
+  it('asks for nothing once the week is met', () => {
+    expect(dailyAsk(0, 3)).toBe(0);
+    expect(dailyAsk(-1, 3)).toBe(0);
+  });
+});
+
+describe('todayTarget', () => {
+  const paceFor = (habits: PracticeInstance[], logs: CompletionLog[], today: string) =>
+    buildTodayList(habits, logs, today);
+
+  it('derives a daily ask from the weekly shortfall', () => {
+    // 4x/week, nothing done, asking on Saturday: 2 days left, 4 outstanding.
+    const [pace] = paceFor([habit({ id: 'a', target_count_per_week: 4 })], [], SAT);
+    expect(pace.todayTarget).toBe(2);
+  });
+
+  it('asks for nothing once the weekly target is met', () => {
+    const [pace] = paceFor(
+      [habit({ id: 'a', target_count_per_week: 2 })],
+      [log('a', MON), log('a', TUE)],
+      WED
+    );
+    expect(pace.status).toBe('done');
+    expect(pace.todayTarget).toBe(0);
+  });
+
+  it('asks for nothing when no goal is set', () => {
+    const [pace] = paceFor([habit({ id: 'a', target_count_per_week: 0 })], [], WED);
+    expect(pace.todayTarget).toBe(0);
+  });
+
+  it('asks a day-scheduled habit for exactly one rep, and only on a day it owes', () => {
+    // Mon/Wed/Fri. Wednesday owes one; Thursday owes none, even though the
+    // week still has an outstanding Friday.
+    const mwf = habit({ id: 'a', scheduled_days: [1, 3, 5] });
+    const [onDue] = paceFor([mwf], [], WED);
+    expect(onDue.todayTarget).toBe(1);
+
+    const [offDay] = paceFor([mwf], [log('a', WED)], THU);
+    expect(offDay.todayTarget).toBe(0);
+  });
+
+  it('exposes the days a scheduled habit owes, and none for a count habit', () => {
+    const [scheduled] = paceFor([habit({ id: 'a', scheduled_days: [1, 3, 5] })], [], WED);
+    expect(scheduled.dueDates).toEqual([MON, WED, '2026-08-28']);
+
+    const [counted] = paceFor([habit({ id: 'b', target_count_per_week: 3 })], [], WED);
+    expect(counted.dueDates).toEqual([]);
+  });
+});
+
+describe('pickNextAction', () => {
+  it('names the most behind habit and what it would take today', () => {
+    const list = buildTodayList(
+      [
+        habit({ id: 'behind', target_count_per_week: 4 }),
+        habit({ id: 'fine', target_count_per_week: 2 }),
+      ],
+      [log('fine', MON), log('fine', TUE)],
+      SAT
+    );
+    const action = pickNextAction(list);
+    expect(action).toEqual({ habitId: 'behind', reps: 2, recovers: true });
+  });
+
+  it('prefers a habit that owes today over one that is merely behind on pace', () => {
+    // A named day is a deadline; a weekly count is not.
+    const list = buildTodayList(
+      [
+        habit({ id: 'count', target_count_per_week: 4 }),
+        habit({ id: 'dueToday', scheduled_days: [3] }),
+      ],
+      [],
+      WED
+    );
+    expect(pickNextAction(list)?.habitId).toBe('dueToday');
+  });
+
+  it('skips a habit already logged today', () => {
+    // Having just done a thing is the worst moment to be told to do it again.
+    const list = buildTodayList(
+      [habit({ id: 'a', target_count_per_week: 4 })],
+      [log('a', WED)],
+      WED
+    );
+    expect(pickNextAction(list)).toBeNull();
+  });
+
+  it('returns nothing when every habit is done for the week', () => {
+    const list = buildTodayList(
+      [habit({ id: 'a', target_count_per_week: 1 })],
+      [log('a', MON)],
+      WED
+    );
+    expect(pickNextAction(list)).toBeNull();
+  });
+
+  it('still names an on-pace habit when nothing is behind', () => {
+    // Nothing is wrong, but there is still a useful next thing to do.
+    const list = buildTodayList(
+      [habit({ id: 'a', target_count_per_week: 4 })],
+      [log('a', MON), log('a', TUE)],
+      WED
+    );
+    const action = pickNextAction(list);
+    expect(action?.habitId).toBe('a');
+    expect(action?.recovers).toBe(false);
+  });
+});
+
+describe('buildTodaySections', () => {
+  const mwf = (id: string) => habit({ id, scheduled_days: [1, 3, 5], target_count_per_week: 3 });
+
+  it('groups by what the habit is asking, in priority order', () => {
+    const list = buildTodayList(
+      [
+        habit({ id: 'behind', target_count_per_week: 7 }),
+        mwf('dueToday'),
+        habit({ id: 'open', target_count_per_week: 1 }),
+        habit({ id: 'doneToday', target_count_per_week: 4 }),
+      ],
+      [log('doneToday', WED)],
+      WED
+    );
+    const sections = buildTodaySections(list);
+
+    expect(sections.map((s) => s.id)).toEqual(['due_today', 'behind', 'open', 'done']);
+    expect(sections.map((s) => s.title)).toEqual([
+      'Due today',
+      'Behind this week',
+      'This week',
+      'Done',
+    ]);
+  });
+
+  it('puts a habit in exactly one section', () => {
+    const list = buildTodayList([mwf('h1')], [], WED);
+    const sections = buildTodaySections(list);
+    const appearances = sections.flatMap((s) => s.paces).filter((p) => p.habitId === 'h1');
+    expect(appearances).toHaveLength(1);
+  });
+
+  // A habit logged an hour ago must not still sit under "Behind this week" —
+  // the heading would be telling the truth about the week while the card offers
+  // nothing to do about it.
+  it('counts a habit logged today as done, however the week is going', () => {
+    const list = buildTodayList([habit({ id: 'h1', target_count_per_week: 7 })], [log('h1', WED)], WED);
+    expect(sectionFor(list[0])).toBe('done');
+    expect(list[0].status).toBe('behind');
+  });
+
+  it('counts a finished week as done even when today was not the day', () => {
+    const list = buildTodayList(
+      [habit({ id: 'h1', target_count_per_week: 1 })],
+      [log('h1', MON)],
+      WED
+    );
+    expect(sectionFor(list[0])).toBe('done');
+  });
+
+  it('ranks a named day above a weekly shortfall — only one has a deadline', () => {
+    const list = buildTodayList(
+      [habit({ id: 'behind', target_count_per_week: 7 }), mwf('due')],
+      [],
+      WED
+    );
+    expect(buildTodaySections(list)[0].paces[0].habitId).toBe('due');
+  });
+
+  it('drops empty sections rather than heading a group of nothing', () => {
+    const list = buildTodayList([habit({ id: 'h1', target_count_per_week: 1 })], [log('h1', WED)], WED);
+    expect(buildTodaySections(list).map((s) => s.id)).toEqual(['done']);
+  });
+
+  it('keeps the pace ordering inside a section', () => {
+    const list = buildTodayList(
+      [
+        habit({ id: 'slightly', target_count_per_week: 4 }),
+        habit({ id: 'badly', target_count_per_week: 7 }),
+      ],
+      [],
+      SAT
+    );
+    const behind = buildTodaySections(list).find((s) => s.id === 'behind')!;
+    expect(behind.paces.map((p) => p.habitId)).toEqual(['badly', 'slightly']);
+  });
+
+  it('files a habit with no goal under the open section, not done', () => {
+    const list = buildTodayList([habit({ id: 'h1', target_count_per_week: 0 })], [], WED);
+    expect(sectionFor(list[0])).toBe('open');
+  });
+
+  it('returns nothing for an empty list', () => {
+    expect(buildTodaySections([])).toEqual([]);
   });
 });

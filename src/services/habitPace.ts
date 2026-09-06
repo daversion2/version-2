@@ -63,8 +63,27 @@ export interface HabitPace {
   dueToday: boolean;
   /** Due days already gone this week without a rep. Day-scheduled habits only. */
   missed: number;
+  /**
+   * The dates this week the habit actually owes, ascending. Empty for a count
+   * habit — every day is an equally legitimate day for one, so none is owed.
+   * The week strip draws these as the commitment.
+   */
+  dueDates: string[];
   /** One line describing the schedule, e.g. "Mon, Wed & Fri" or "4× a week". */
   scheduleLabel: string;
+  /**
+   * Reps to do TODAY to keep the week winnable: the weekly shortfall spread
+   * evenly over the days that are left.
+   *
+   * Every target in this app is weekly, and that stays the unit of truth — but
+   * a weekly number alone leaves the user doing the arithmetic on a screen
+   * called Today. This is the derived daily ask, not a second kind of goal.
+   *
+   * Purely the number. Whether it is worth SHOWING (already done today, week
+   * finished, no goal set) is the caller's decision, so the value stays
+   * meaningful rather than being zeroed for presentation reasons.
+   */
+  todayTarget: number;
 }
 
 const toDateStr = (d: Date): string =>
@@ -87,6 +106,18 @@ export const mondayOf = (dateStr: string): string => {
 export const dayIndexInWeek = (dateStr: string): number => {
   const dow = new Date(dateStr + 'T00:00:00').getDay();
   return dow === 0 ? 7 : dow;
+};
+
+/**
+ * Monday-first list of the seven YYYY-MM-DD dates in `todayStr`'s week.
+ *
+ * The Today row draws one cell per day against this, so the week strip and the
+ * pace maths are reading off the same calendar rather than two definitions of
+ * "this week" that could drift.
+ */
+export const weekDatesFor = (todayStr: string): string[] => {
+  const start = mondayOf(todayStr);
+  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 };
 
 /**
@@ -142,6 +173,7 @@ export const classifyScheduledPace = (
   urgency: number;
   missed: number;
   dueToday: boolean;
+  dueDates: string[];
 } => {
   const weekStart = mondayOf(todayStr);
   const weekEnd = addDays(weekStart, 6);
@@ -170,7 +202,21 @@ export const classifyScheduledPace = (
     urgency: missed + (dueToday ? 1 : 0) + outstanding.length / Math.max(1, daysLeft),
     missed,
     dueToday,
+    dueDates: dueThisWeek,
   };
+};
+
+/**
+ * The daily ask: what's still owed this week, spread over the days that remain.
+ *
+ * Rounded UP, because a habit is done in whole reps — 3 remaining across 2 days
+ * is 2 today, not 1.5. Never proposes more than the shortfall itself, so the
+ * last day of the week asks for exactly what is left rather than an inflated
+ * number.
+ */
+export const dailyAsk = (remaining: number, daysLeft: number): number => {
+  if (remaining <= 0) return 0;
+  return Math.min(remaining, Math.ceil(remaining / Math.max(1, daysLeft)));
 };
 
 /** Sort weight — the order Today uses. Lower sorts first. */
@@ -227,7 +273,12 @@ export const buildTodayList = (
           dayScheduled,
           dueToday: scheduled.dueToday,
           missed: scheduled.missed,
+          dueDates: scheduled.dueDates,
           scheduleLabel,
+          // A day-scheduled habit already named its days: today either owes one
+          // rep or none. Spreading a shortfall over the remaining days would
+          // invent obligations on days the user deliberately left empty.
+          todayTarget: scheduled.dueToday ? 1 : 0,
         };
       }
 
@@ -249,7 +300,9 @@ export const buildTodayList = (
         // Nothing is owed TODAY specifically when the days are yours to pick.
         dueToday: false,
         missed: 0,
+        dueDates: [],
         scheduleLabel,
+        todayTarget: dailyAsk(remaining, daysLeft),
       };
     })
     .sort((a, b) => {
@@ -276,6 +329,45 @@ export interface WeekGlance {
   untracked: number;
 }
 
+export interface NextAction {
+  habitId: string;
+  /** Reps of that habit to do today. Always ≥ 1. */
+  reps: number;
+  /** True when doing it clears an actual shortfall rather than just staying ahead. */
+  recovers: boolean;
+}
+
+/**
+ * The single most useful thing to do right now, or null when nothing is owed.
+ *
+ * A scoreboard ("2 of 6 on pace") tells the user where they stand; it does not
+ * tell them what to do about it, which is the question they opened the app
+ * with. This picks the one habit worth naming.
+ *
+ * Habits already logged today are skipped — having just done a thing is the
+ * worst moment to be told to do it again. Ordering matches the Today list so
+ * the named habit is the one sitting at the top of the screen: a habit that
+ * owes a specific day first, then the most pressing by pace.
+ */
+export const pickNextAction = (paces: HabitPace[]): NextAction | null => {
+  const candidates = paces.filter((p) => p.todayTarget > 0 && !p.doneToday);
+  if (candidates.length === 0) return null;
+
+  const [best] = [...candidates].sort(
+    (a, b) =>
+      Number(b.dueToday) - Number(a.dueToday) ||
+      STATUS_ORDER[a.status] - STATUS_ORDER[b.status] ||
+      b.urgency - a.urgency ||
+      b.remaining - a.remaining
+  );
+
+  return {
+    habitId: best.habitId,
+    reps: best.todayTarget,
+    recovers: best.status === 'behind',
+  };
+};
+
 /** The hero line: how many habits are on pace this week. */
 export const buildWeekGlance = (paces: HabitPace[]): WeekGlance => {
   // Habits with no goal are excluded from the denominator rather than counted as
@@ -287,4 +379,77 @@ export const buildWeekGlance = (paces: HabitPace[]): WeekGlance => {
     behind: tracked.filter((p) => p.status === 'behind').length,
     untracked: paces.length - tracked.length,
   };
+};
+
+// =============================================================================
+// SECTIONS — the list grouped by what it is asking of you.
+//
+// The status line used to be repeated on every card ("Behind pace", "Due
+// today"). Said once as a heading it costs one line for the whole group instead
+// of one line per habit, and the cards shrink to a name and an action.
+//
+// These are the same four states the sort order already used; this promotes
+// them from a hidden ordering to visible structure, which is what they were
+// doing anyway.
+//
+// A habit appears in exactly ONE section. Order is deliberate: what is owed
+// today, then what the week is short on, then the rest, then what is finished.
+// =============================================================================
+
+export type SectionId = 'due_today' | 'behind' | 'open' | 'done';
+
+export interface TodaySection {
+  id: SectionId;
+  /** Heading text. Carries the status so the cards do not have to. */
+  title: string;
+  paces: HabitPace[];
+}
+
+const SECTION_TITLES: Record<SectionId, string> = {
+  due_today: 'Due today',
+  behind: 'Behind this week',
+  open: 'This week',
+  done: 'Done',
+};
+
+/** Which section a single habit belongs in. Exported for the test to pin. */
+export const sectionFor = (pace: HabitPace): SectionId => {
+  // Done today wins over everything: a habit already logged is not also owed,
+  // however the week is going. Without this a behind-pace habit logged an hour
+  // ago would sit under "Behind this week" with no way to act on it.
+  if (pace.doneToday) return 'done';
+  // A finished week with nothing left outstanding is done, even if today was
+  // not the day it happened.
+  if (pace.status === 'done') return 'done';
+  // A named day that has arrived outranks a weekly shortfall — it has a deadline
+  // and the shortfall does not.
+  if (pace.dueToday) return 'due_today';
+  if (pace.status === 'behind') return 'behind';
+  return 'open';
+};
+
+const SECTION_ORDER: SectionId[] = ['due_today', 'behind', 'open', 'done'];
+
+/**
+ * Group the Today list into sections, preserving the pace sort within each and
+ * dropping any section that would be empty — an empty "Behind this week"
+ * heading is a reminder of nothing.
+ */
+export const buildTodaySections = (paces: HabitPace[]): TodaySection[] => {
+  const buckets: Record<SectionId, HabitPace[]> = {
+    due_today: [],
+    behind: [],
+    open: [],
+    done: [],
+  };
+
+  // `paces` arrives already sorted by buildTodayList, and push preserves that,
+  // so within a section the most pressing habit still leads.
+  for (const pace of paces) buckets[sectionFor(pace)].push(pace);
+
+  return SECTION_ORDER.filter((id) => buckets[id].length > 0).map((id) => ({
+    id,
+    title: SECTION_TITLES[id],
+    paces: buckets[id],
+  }));
 };

@@ -126,18 +126,31 @@ export const createHabit = async (
 };
 
 /**
- * Ensure every curated practice exists as an ACTIVE instance on the user's
- * home. Practices are the app's focus: the whole curated protocol lives on
- * Home for everyone, with no add/remove step. Idempotent and safe to run on
- * every load — creates missing instances and reactivates deactivated ones
- * (matching by practice_id, falling back to name for legacy instances), and
- * deactivates instances of practices retired from the catalog (active: false)
- * so they disappear from Home. Returns the number of instances changed and the
- * deactivated instances, so the caller can cancel their local reminders —
- * a retired practice is invisible in-app, leaving no other way to stop them.
+ * Ensure the starting set of curated practices exists as ACTIVE instances on
+ * the user's home. Idempotent and safe to run on every load — creates missing
+ * instances and reactivates deactivated ones (matching by practice_id, falling
+ * back to name for legacy instances), and deactivates instances of practices
+ * retired from the catalog (active: false) so they disappear from Home.
+ * Returns the number of instances changed and the deactivated instances, so the
+ * caller can cancel their local reminders — a retired practice is invisible
+ * in-app, leaving no other way to stop them.
+ *
+ * WHAT GETS SEEDED: the `core` practices, plus whichever practice the user
+ * picked during onboarding. Not the whole protocol.
+ *
+ * This used to seed all six, which set a brand-new account 26 reps a week it
+ * had never agreed to — and since pace is measured against those targets, by
+ * midweek the screen was reporting failure at a commitment nobody made. It also
+ * contradicted onboarding, which says "Pick one. Just one." The rest of the
+ * protocol stays one tap away in the library rather than pre-committed.
+ *
+ * Only CREATION is narrowed. Existing instances are still matched, reactivated
+ * and backfilled exactly as before, so nothing disappears from the home of an
+ * account that already has all six.
  */
 export const ensureCuratedPractices = async (
-  userId: string
+  userId: string,
+  startingPracticeId?: string | null
 ): Promise<{ changed: number; deactivated: PracticeInstance[] }> => {
   // All instances, including inactive ones, so a previously removed curated
   // practice is reactivated rather than duplicated.
@@ -151,6 +164,10 @@ export const ensureCuratedPractices = async (
       instances.find((h) => h.practice_id === p.id) ||
       instances.find((h) => norm(h.name) === norm(p.name));
     if (!match) {
+      // Only the core protocol and the onboarding pick are auto-adopted. The
+      // others remain browsable and addable — they are simply not commitments
+      // the user is opted into without asking.
+      if (!p.core && p.id !== startingPracticeId) continue;
       await createHabit(userId, {
         name: p.name,
         // Seeded with the catalog's suggested target rather than 0 ("unset").

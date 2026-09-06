@@ -8,31 +8,26 @@ import {
   RefreshControl,
   Linking,
 } from 'react-native';
-import { CravingCrusherTab } from './CravingCrusherTab';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Spacing } from '../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { Challenge, PracticeInstance } from '../../types';
-import { getActiveChallenges, getActiveExtendedChallenges, createChallenge, activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, completePractice, fetchAllNudgeLogs, getWeeklyCompletionCountsFromLogs, getHabitsStreaksFromLogs, getWeeklyCompletionCounts, updateHabit, setHabitSchedule, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
-import { HabitSchedule } from '../../services/habitSchedule';
+import { PracticeInstance } from '../../types';
+import { activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
+import { getActiveHabits, completePractice, fetchAllNudgeLogs, getHabitsStreaksFromLogs, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
 import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
-import { reconcileHabitReminders, cancelHabitReminder, syncHabitReminder } from '../../services/habitReminders';
+import { reconcileHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
-import { getWillpowerStats } from '../../services/willpower';
-import { HabitDifficulty, PracticeCompletionInput } from '../../types';
+import { PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { PracticeBriefingModal } from '../../components/habits/PracticeBriefingModal';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
 import { getPractice, getPracticeColor, formatCommitment } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
-import { PointsPopup } from '../../components/common/PointsPopup';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { TrainingUnlockModal } from '../../components/common/TrainingUnlockModal';
-import { CravingPointer } from '../../components/home/CravingPointer';
 import { ComebackModal } from '../../components/home/ComebackModal';
 import { saveComebackLog } from '../../services/comebackLogs';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
@@ -40,18 +35,13 @@ import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../
 import { NeuroscienceTidbit } from '../../types';
 import { getTodayString, toLocalDateString, formatRelativeDay } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
-import { markPointsIntroSeen, markTrainingUnlockSeen, markCravingPointerSeen, incrementAppOpenCount } from '../../services/users';
+import { markPointsIntroSeen, markTrainingUnlockSeen, incrementAppOpenCount } from '../../services/users';
 import { ReflectionGrade } from '../../types';
-import { resolveLayout } from '../../services/homeLayout';
-import { SECTION_REGISTRY } from './sections';
-import { HomeData, HomeCallbacks, WillpowerStatsData } from './sections/types';
-import { ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/homeLayout';
-import { ZoneHeader } from '../../components/home/ZoneHeader';
-import { getActiveMantraText } from '../../services/mantras';
 import { RuleModal } from '../../components/common/RuleModal';
 import { TodayHero } from '../../components/home/TodayHero';
 import { TodayHabitRow } from '../../components/home/TodayHabitRow';
-import { buildTodayList, buildWeekGlance } from '../../services/habitPace';
+import { buildTodayList, buildTodaySections, buildWeekGlance, pickNextAction, weekDatesFor } from '../../services/habitPace';
+import { buildQuickLogInput, quickLogEligibility } from '../../services/quickLog';
 import { RESISTANCE_SCALE, TACTIC_GATE_RESISTANCE } from '../../constants/resistance';
 import { CompletionLog } from '../../types';
 import { SkipReviewSheet } from '../../components/habits/SkipReviewSheet';
@@ -72,10 +62,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const [homeTab, setHomeTab] = useState<'practices' | 'craving'>('practices');
-
-  const [activeChallenges, setActiveChallenges] = useState<Challenge[]>([]);
-  const [extendedChallenges, setExtendedChallenges] = useState<Challenge[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   // Last week's shortfalls, if any are still unanswered. See services/skipLogic.ts.
   const [skipReview, setSkipReview] = useState<PendingSkipReview | null>(null);
@@ -91,10 +77,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [completingDate, setCompletingDate] = useState<string | undefined>(undefined);
   // Practice whose briefing is open on its own (no forward flow committed to).
   const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
-  const [weeklyCounts, setWeeklyCounts] = useState<Record<string, number>>({});
-  const [completedTodayIds, setCompletedTodayIds] = useState<string[]>([]);
+  // The one expanded card. Single-valued on purpose: several open panels turns
+  // the list back into the wall of controls this layout exists to undo.
+  const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
-  const [showPointsPopup, setShowPointsPopup] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
@@ -108,7 +94,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
-  const [willpowerStats, setWillpowerStats] = useState<WillpowerStatsData | null>(null);
 
   // Habit tidbit state. The tidbit now renders inside the celebration card;
   // only the "Learn more" expansion is still its own surface.
@@ -137,22 +122,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // and Avoidance Training together.
   const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
 
-  // One-time Craving Crusher pointer. Held locally so dismissing it is instant
-  // rather than waiting on the profile write to round-trip.
-  const [cravingPointerDismissed, setCravingPointerDismissed] = useState(false);
-  const showCravingPointer =
-    !cravingPointerDismissed && userProfile?.has_seen_craving_pointer !== true;
-
-  const dismissCravingPointer = useCallback(() => {
-    setCravingPointerDismissed(true);
-    if (user) markCravingPointerSeen(user.uid).catch(() => {});
-  }, [user]);
-
-  // Following the pointer counts as having seen it — switch to the tab and retire it.
-  const followCravingPointer = useCallback(() => {
-    dismissCravingPointer();
-    setHomeTab('craving');
-  }, [dismissCravingPointer]);
+  // The one-time Craving Crusher pointer went with the practices/craving tab
+  // strip it pointed at — the tool now has a permanent card further down, so
+  // there is no first-run discovery problem left to solve.
 
   // Track app opens
   const appOpenTrackedRef = useRef(false);
@@ -167,7 +139,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     celebrationVisible ||
     habitLearnMoreVisible ||
     reflectVisible ||
-    showPointsPopup ||
     !!briefingHabit ||
     !!completingHabit;
   const {
@@ -206,14 +177,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       console.warn('Failed to follow CTA target:', err);
     }
   }, [dismissRuleModal, ruleModalRule, navigation]);
-
-  const handlePopupComplete = useCallback(() => {
-    setShowPointsPopup(false);
-    if (pendingAlert) {
-      pendingAlert();
-      setPendingAlert(null);
-    }
-  }, [pendingAlert]);
 
   // Fires the streak-milestone alert once nothing else is on screen.
   const flushPendingAlert = useCallback(() => {
@@ -288,7 +251,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       if (!seedAttemptedRef.current) {
         seedAttemptedRef.current = true;
         try {
-          const { changed, deactivated } = await ensureCuratedPractices(user.uid);
+          // The practice chosen during onboarding is seeded even if it isn't
+          // one of the core three — "pick one, just one" has to mean the app
+          // puts that one on Home.
+          const { changed, deactivated } = await ensureCuratedPractices(
+            user.uid,
+            userProfile?.starting_practice_id ?? null
+          );
           if (changed > 0) console.log(`[home] provisioned ${changed} curated practices`);
           // A retired practice is hidden everywhere, so its daily reminder
           // would otherwise keep firing with no way to turn it off in-app
@@ -299,17 +268,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      const [dailyChallenges, extChallenges, habitList, wpStats] = await Promise.all([
-        getActiveChallenges(user.uid),
-        getActiveExtendedChallenges(user.uid),
-        getActiveHabits(user.uid),
-        getWillpowerStats(user.uid),
-      ]);
-      // Everything from the parallel batch renders immediately — practices
-      // especially. Follow-up round-trips (nudge logs, challenge maintenance,
-      // weekly plans) happen below and fill in as they arrive.
-      setActiveChallenges(dailyChallenges);
-      setExtendedChallenges(extChallenges);
+      // Home renders habits and nothing else, so it fetches habits and nothing
+      // else. It used to also pull daily challenges, extended challenges and
+      // willpower stats on every focus — four reads feeding an object no longer
+      // rendered since the zoned layout was archived.
+      const habitList = await getActiveHabits(user.uid);
       setHabits(habitList);
       // Once per session: schedule any enabled reminders that aren't scheduled yet
       // (e.g. saved before reminders shipped, or while permission was denied).
@@ -317,27 +280,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         remindersReconciledRef.current = true;
         reconcileHabitReminders(user.uid, habitList).catch(() => {});
       }
-      setWillpowerStats(wpStats);
 
       // Streak-break comeback check-in now fires via the rules engine
       // ("Comeback check-in" rule, app_open) — see the comebackRule block above.
 
-      // Fetch nudge logs once — reused by weekly counts and streaks.
-      // Windowed to the last 120 days so the read stays flat
-      // as history grows; the only casualty is that a current streak longer
-      // than the window displays capped at it.
+      // Fetch nudge logs once — the Today list, the week strips and the streaks
+      // are all derived from them. Windowed to the last 120 days so the read
+      // stays flat as history grows; the only casualty is that a current streak
+      // longer than the window displays capped at it.
       const logWindowStart = new Date();
       logWindowStart.setDate(logWindowStart.getDate() - 120);
       let cachedNudgeLogs: Awaited<ReturnType<typeof fetchAllNudgeLogs>> = [];
       try {
         cachedNudgeLogs = await fetchAllNudgeLogs(user.uid, toLocalDateString(logWindowStart));
         setNudgeLogs(cachedNudgeLogs);
-        setWeeklyCounts(getWeeklyCompletionCountsFromLogs(cachedNudgeLogs));
-        // Habit ids logged today — powers the hero counter + card "Done today" state.
         const todayStr = getTodayString();
-        setCompletedTodayIds(
-          cachedNudgeLogs.filter((l) => l.date === todayStr).map((l) => l.reference_id)
-        );
         if (habitList.length > 0) {
           setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList));
         }
@@ -355,30 +312,24 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         console.warn('Nudge logs fetch failed:', err);
       }
 
-      // Challenge maintenance (after the batch state is set, so none of it
-      // blocks the first render of practices):
-      // 1. Expire stale daily challenges from previous days
-      // 2. Activate scheduled challenges whose date has arrived
-      try {
-        const todayStr = getTodayString();
-        const expiredCount = await expireStaleDailyChallenges(user.uid, todayStr);
-        const activatedCount = await activateScheduledChallenges(user.uid, todayStr);
-        if (expiredCount > 0 || activatedCount > 0) {
-          const refreshedChallenges = await getActiveChallenges(user.uid);
-          setActiveChallenges(refreshedChallenges);
-          const refreshedExtended = await getActiveExtendedChallenges(user.uid);
-          setExtendedChallenges(refreshedExtended);
-        }
-      } catch (err) {
-        console.warn('Challenge maintenance failed:', err);
-      }
+      // Challenge maintenance. Home is the only screen that runs it, so it stays
+      // even though Home no longer shows challenges — but it is fire-and-forget
+      // now. Nothing on this screen reads the result, so awaiting it only
+      // delayed the reflection check behind two writes.
+      const maintenanceDay = getTodayString();
+      expireStaleDailyChallenges(user.uid, maintenanceDay).catch((err) =>
+        console.warn('Challenge expiry failed:', err)
+      );
+      activateScheduledChallenges(user.uid, maintenanceDay).catch((err) =>
+        console.warn('Challenge activation failed:', err)
+      );
 
       // Check nightly reflection status
       try {
+        const todayStr = getTodayString();
         const reflected = await hasReflectedToday(user.uid);
         setReflectedToday(reflected);
         if (reflected) {
-          const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
           const todayReflection = await getReflection(user.uid, todayStr);
           setTodaysGrade(todayReflection?.grade);
         }
@@ -390,7 +341,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [user, refreshProfile]);
+  }, [user, refreshProfile, userProfile?.starting_practice_id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -428,37 +379,32 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setCompletingHabit(habit);
   }, []);
 
-  const handleHabitTap = useCallback(
-    (habit: PracticeInstance) => {
-      // Tapping a habit is a request for INFORMATION, not a commitment to do it
-      // right now. Habits with briefing content open that briefing — what it is,
-      // what will try to stop you, Learn more — and its button logs. Habits with
-      // no briefing have nothing to show, so they go straight to the same
-      // single-screen capture the tick opens.
-      //
-      // The stepped Ready → Go → Capture session is no longer reached from here.
-      // One capture experience, two ways in.
-      const practice = getPractice(habit.practice_id);
-      if (practice?.ready) {
-        setBriefingHabit(habit);
-        return;
-      }
-      handleHabitLogIt(habit);
-    },
-    [handleHabitLogIt]
-  );
-
+  // NOTE: the old handleHabitTap is gone. It routed a card tap to either the
+  // briefing or the capture sheet depending on whether the catalog happened to
+  // carry `ready` content — the same gesture doing two different things, with
+  // nothing on the card to say which. The card now expands, and "About" is a
+  // labelled route inside it for the habits that have something to show.
 
   const handleHabitBriefing = useCallback((habit: PracticeInstance) => {
     setBriefingHabit(habit);
   }, []);
 
-  const handleHabitComplete = async (input: PracticeCompletionInput) => {
-    if (!user || !completingHabit) return;
+  /**
+   * The one completion path. The capture sheet passes no `forHabit` and the
+   * habit comes from `completingHabit`; the Today row's chips pass it directly,
+   * because a quick log never opens the sheet and so never sets that state.
+   *
+   * Both routes land here on purpose — XP, streak, the celebration, the tidbit
+   * and the hard-rep reflection offer are the same events whichever surface
+   * produced the rep.
+   */
+  const handleHabitComplete = async (
+    input: PracticeCompletionInput,
+    forHabit?: PracticeInstance
+  ) => {
+    const habit = forHabit ?? completingHabit;
+    if (!user || !habit) return;
     const { difficulty } = input;
-    // Snapshot the practice — `completingHabit` is cleared below, but the
-    // reflection sheet still needs its identity after the celebration.
-    const habit = completingHabit;
     // Log + XP all happen in the shared completePractice path. A failure here
     // propagates to the capture flow, which re-arms its Log button and shows
     // the error — the follow-up celebration work below stays best-effort.
@@ -470,19 +416,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // it goes in its own muted slot so backdating never looks rewarded.
       setCelebrationContext(backdated ? `Logged for ${formatRelativeDay(date)}` : null);
 
-      // Optimistically flip the card to "Done today" (loadData reconciles on
-      // next focus). Only for today's reps — a backfilled Saturday rep must not
-      // make the card claim today is handled.
-      if (!backdated) {
-        const completedId = habit.id;
-        setCompletedTodayIds((prev) => (prev.includes(completedId) ? prev : [...prev, completedId]));
-      }
-
       // Optimistically add the rep to the log set the Today list is derived
-      // from, so the weekly pips fill and the row re-sorts immediately. Without
-      // this the list would stay stale until the next focus reload, and logging
-      // a habit would appear to do nothing. Backdated reps included — they still
-      // count toward the week they were filed under.
+      // from, so the week strip fills, the row re-sorts and "done today" flips
+      // immediately. Without this the list would stay stale until the next focus
+      // reload, and logging a habit would appear to do nothing. Backdated reps
+      // included — they still count toward the week they were filed under, and
+      // the strip fills the day they were filed under rather than today.
       setNudgeLogs((prev) => [
         ...prev,
         {
@@ -587,131 +526,69 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setCelebrationVisible(true);
       }
 
-      try {
-        const counts = await getWeeklyCompletionCounts(user.uid);
-        setWeeklyCounts(counts);
-      } catch (err) {
-        console.warn('Weekly counts refresh failed:', err);
-      }
+      // No weekly-count refetch here any more: the optimistic nudge log above
+      // is the same source the week strip and pace are derived from, so the
+      // screen is already correct without another round-trip.
     } catch (e) {
       console.error(e);
     }
   };
 
-  // --- Schedule (per-practice commitment: N times a week, or named days) ---
+  // Setting a habit's weekly commitment used to live here too, wired into the
+  // archived section layout. It now belongs to the habit's own detail screen
+  // (WeeklyGoalSheet), which is the only place that still offers it.
 
-  const handleSetSchedule = useCallback(
-    async (habitId: string, schedule: HabitSchedule) => {
-      if (!user) return;
-      // Optimistic: reflect the new schedule immediately on the card. Both
-      // fields move together, exactly as setHabitSchedule writes them — a stale
-      // scheduled_days next to a fresh target would re-sort the list wrongly
-      // until the reload landed.
-      setHabits((prev) =>
-        prev.map((h) =>
-          h.id === habitId
-            ? {
-                ...h,
-                target_count_per_week:
-                  schedule.kind === 'days' ? schedule.days.length : schedule.target,
-                scheduled_days: schedule.kind === 'days' ? schedule.days : undefined,
-              }
-            : h
-        )
-      );
+  // --- Derived view state ---
+
+  // One clock reading per render, shared by the list, the week strips and the
+  // hero — so a render that straddles midnight can't disagree with itself.
+  const todayStr = getTodayString();
+
+  /**
+   * One tap on a resistance chip. The chip IS the rating, so nothing is
+   * inferred except the amount the habit already committed to — see
+   * services/quickLog.ts.
+   */
+  const handleQuickLog = useCallback(
+    async (habit: PracticeInstance, resistance: number) => {
       try {
-        await setHabitSchedule(user.uid, habitId, schedule);
-        // Reminders are pinned to the scheduled days, so changing them changes
-        // which notifications should exist.
-        const habit = habits.find((h) => h.id === habitId);
-        if (habit?.reminder?.enabled) {
-          await syncHabitReminder(user.uid, habitId, habit.reminder);
-        }
-      } catch (err) {
-        console.warn('Failed to update schedule:', err);
-        // Reload to resync if the write failed.
-        loadData();
+        await handleHabitComplete(
+          buildQuickLogInput(habit, getPractice(habit.practice_id), resistance),
+          habit
+        );
+      } catch (err: any) {
+        console.warn('Quick log failed:', err);
+        showAlert("Couldn't log that", 'Check your connection and try again.');
       }
     },
-    [user, habits, loadData]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, completingHabit, userProfile]
   );
-
-  // --- Layout & Section Props ---
-
-  const layout = useMemo(
-    () => resolveLayout(userProfile?.home_layout),
-    [userProfile?.home_layout]
-  );
-
-  const zonedLayout = useMemo(() => {
-    const visibleItems = layout.filter(item => item.visible);
-    return ZONE_CONFIG.map(zone => {
-      const zoneItems = visibleItems.filter(
-        item => SECTION_TO_ZONE[item.id as HomeSectionId] === zone.id
-      );
-      return { zone, items: zoneItems };
-    }).filter(group => group.items.length > 0);
-  }, [layout]);
-
-  const totalHabitsCompleted = userProfile?.totalHabitsCompleted ?? 0;
-  const activeMantra = getActiveMantraText(userProfile);
-  const whyStatement = userProfile?.why_statement || null;
-  const hasCompletedWhyDiscovery = userProfile?.has_completed_why_discovery === true;
-
-  const homeData: HomeData = useMemo(() => ({
-    activeChallenges,
-    extendedChallenges,
-    habits,
-    weeklyCounts,
-    habitStreaks,
-    showReflectionBanner,
-    reflectedToday,
-    todaysGrade,
-    willpowerStats,
-    totalHabitsCompleted,
-    activeMantra,
-    whyStatement,
-    hasCompletedWhyDiscovery,
-    completedTodayIds,
-    startingPracticeId: userProfile?.starting_practice_id ?? null,
-    userName: userProfile?.username ?? null,
-  }), [
-    activeChallenges, extendedChallenges, habits,
-    weeklyCounts, habitStreaks,
-    showReflectionBanner, reflectedToday, todaysGrade,
-    willpowerStats, totalHabitsCompleted, activeMantra,
-    whyStatement, hasCompletedWhyDiscovery,
-    completedTodayIds, userProfile?.starting_practice_id, userProfile?.username,
-  ]);
-
-  const onNavigate = useCallback((screen: string, params?: any) => {
-    if (screen === '__progressTab') {
-      navigation.getParent()?.navigate('Progress');
-      return;
-    }
-    navigation.navigate(screen as any, params);
-  }, [navigation]);
-
-  const homeCallbacks: HomeCallbacks = useMemo(() => ({
-    onNavigate,
-    onHabitTap: handleHabitTap,
-    onHabitLogIt: handleHabitLogIt,
-    onHabitBriefing: handleHabitBriefing,
-    onSetSchedule: handleSetSchedule,
-  }), [onNavigate, handleHabitTap, handleHabitLogIt, handleHabitBriefing, handleSetSchedule]);
-
 
   // The Today list: every active habit, ordered by what needs attention. Derived
   // rather than stored, so an optimistic habit update reorders immediately.
   const todayList = useMemo(
-    () => buildTodayList(habits, nudgeLogs, getTodayString()),
-    [habits, nudgeLogs]
+    () => buildTodayList(habits, nudgeLogs, todayStr),
+    [habits, nudgeLogs, todayStr]
   );
   const weekGlance = useMemo(() => buildWeekGlance(todayList), [todayList]);
+  // Grouped by what each habit is asking. The heading carries the status, so
+  // the cards do not repeat it once per row.
+  const todaySections = useMemo(() => buildTodaySections(todayList), [todayList]);
+  const weekDates = useMemo(() => weekDatesFor(todayStr), [todayStr]);
   const habitsById = useMemo(
     () => Object.fromEntries(habits.map((h) => [h.id, h])) as Record<string, PracticeInstance>,
     [habits]
   );
+
+  // The one habit worth naming in the hero, resolved to a display name. Falls
+  // back to null when the habit has vanished from under us mid-render.
+  const nextAction = useMemo(() => {
+    const action = pickNextAction(todayList);
+    const habit = action && habitsById[action.habitId];
+    if (!action || !habit) return null;
+    return { habitName: habit.name, reps: action.reps, recovers: action.recovers };
+  }, [todayList, habitsById]);
 
   return (
     <View style={styles.screen}>
@@ -734,31 +611,58 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       >
         <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
 
-        <TodayHero glance={weekGlance} name={userProfile?.username} />
+        <TodayHero
+          glance={weekGlance}
+          name={userProfile?.username}
+          nextAction={nextAction}
+        />
 
-        {todayList.map((pace) => {
-          const habit = habitsById[pace.habitId];
-          if (!habit) return null;
-          return (
-            <TodayHabitRow
-              key={pace.habitId}
-              // "Drink water · 80 oz". The commitment belongs on the row because
-              // this is the screen where you decide whether to act, and a habit
-              // without a threshold is one you can't really succeed or fail at.
-              name={[
-                habit.name,
-                formatCommitment(getPractice(habit.practice_id), habit.metric_goals),
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-              pace={pace}
-              accentColor={getPracticeColor(habit)}
-              onPress={() => handleHabitTap(habit)}
-              onQuickLog={() => handleHabitLogIt(habit)}
-              onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
-            />
-          );
-        })}
+        {/*
+          Grouped by what each habit is asking of you. The heading says it once
+          for the group — "Due today", "Behind this week" — which is what let the
+          cards shrink to a name and a way to log. Habits move between groups as
+          they are logged, so the list reorders under the thumb by design.
+        */}
+        {todaySections.map((section) => (
+          <View key={section.id}>
+            <Text style={styles.sectionHeading}>
+              {section.title} · {section.paces.length}
+            </Text>
+            {section.paces.map((pace) => {
+              const habit = habitsById[pace.habitId];
+              if (!habit) return null;
+              const definition = getPractice(habit.practice_id);
+              return (
+                <TodayHabitRow
+                  key={pace.habitId}
+                  // "Drink water · 80 oz". The commitment belongs on the row
+                  // because this is the screen where you decide whether to act,
+                  // and a habit without a threshold is one you can't really
+                  // succeed or fail at.
+                  name={[habit.name, formatCommitment(definition, habit.metric_goals)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                  pace={pace}
+                  accentColor={getPracticeColor(habit)}
+                  weekDates={weekDates}
+                  today={todayStr}
+                  streak={habitStreaks[habit.id]?.currentStreak ?? 0}
+                  expanded={expandedHabitId === habit.id}
+                  canQuickLog={quickLogEligibility(habit, definition).kind === 'quick'}
+                  hasAbout={!!definition?.ready}
+                  onToggleExpand={() =>
+                    setExpandedHabitId((prev) => (prev === habit.id ? null : habit.id))
+                  }
+                  onQuickLog={(resistance) => handleQuickLog(habit, resistance)}
+                  onOpenSheet={() => handleHabitLogIt(habit)}
+                  onLogDay={(date) => handleHabitLogIt(habit, date)}
+                  onAbout={() => setBriefingHabit(habit)}
+                  onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
+                />
+              );
+            })}
+          </View>
+        ))}
 
         {todayList.length === 0 && (
           <Text style={styles.emptyText}>
@@ -936,11 +840,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onSave={handleReflectionSave}
         onSkip={handleReflectionDone}
       />
-      <PointsPopup
-        points={earnedPoints}
-        visible={showPointsPopup}
-        onComplete={handlePopupComplete}
-      />
       <PointsIntroModal
         visible={pointsIntroVisible}
         onDismiss={() => {
@@ -1000,61 +899,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-const TAB_LABELS = {
-  practices: 'Practices',
-  craving: 'Craving Crusher',
-} as const;
-
-// Craving Crusher is the one feature a user may need before they've explored
-// anything — the icons keep the strip readable as two destinations rather than
-// as a line of chrome.
-const TAB_ICONS: Record<keyof typeof TAB_LABELS, keyof typeof Ionicons.glyphMap> = {
-  practices: 'flame',
-  craving: 'flash',
-};
-
-const tabStyles = StyleSheet.create({
-  strip: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  label: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 13,
-    color: Colors.gray,
-    textAlign: 'center',
-  },
-  labelActive: {
-    color: Colors.primary,
-  },
-  indicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: Colors.primary,
-  },
-});
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   scrollView: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
-  tabPanel: { flex: 1 },
+  sectionHeading: {
+    fontFamily: Fonts.primaryBold,
+    fontSize: FontSizes.xs,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    color: Colors.gray,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    marginLeft: 2,
+  },
   emptyText: {
     fontFamily: Fonts.secondary,
     fontSize: 14,
@@ -1096,6 +954,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   addText: { fontFamily: Fonts.primaryBold, fontSize: 14, color: Colors.primary },
-  tabHidden: { display: 'none' },
 });
 

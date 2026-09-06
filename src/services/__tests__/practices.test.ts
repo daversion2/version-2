@@ -694,3 +694,96 @@ describe('retired curated practices', () => {
     expect(archived.map((h) => h.id)).toContain('old');
   });
 });
+
+describe('ensureCuratedPractices — what a new account is opted into', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+  });
+
+  const seededIds = (): string[] =>
+    Object.values(getMockDB()[`users/${userId}/habits`] || {}).map(
+      (v: any) => v.data.practice_id
+    );
+
+  // The regression this guards: seeding the whole protocol set a brand-new
+  // account 26 reps a week it never agreed to, so by midweek Home reported
+  // failure at a commitment nobody had made.
+  it('seeds only the core practices, not the whole protocol', async () => {
+    await ensureCuratedPractices(userId);
+
+    const ids = seededIds();
+    expect(ids).toContain('meditation');
+    expect(ids).toContain('breathwork');
+    expect(ids).toContain('unplugged_cardio');
+    expect(ids).not.toContain('cold_exposure');
+    expect(ids).not.toContain('heat_exposure');
+    expect(ids).not.toContain('eat_healthy_unenjoyable');
+  });
+
+  it('every seeded practice is one the catalog marks core', async () => {
+    await ensureCuratedPractices(userId);
+    for (const id of seededIds()) {
+      expect(getHabitDefinition(id)!.core).toBe(true);
+    }
+  });
+
+  it('also seeds the practice chosen during onboarding, core or not', async () => {
+    // Onboarding says "Pick one. Just one." — that one has to appear on Home.
+    await ensureCuratedPractices(userId, 'cold_exposure');
+    expect(seededIds()).toContain('cold_exposure');
+  });
+
+  it('does not duplicate the onboarding pick when it is already core', async () => {
+    await ensureCuratedPractices(userId, 'meditation');
+    const meditations = seededIds().filter((id) => id === 'meditation');
+    expect(meditations).toHaveLength(1);
+  });
+
+  it('still carries a real weekly goal, so pace has something to measure', async () => {
+    await ensureCuratedPractices(userId);
+    const habits = Object.values(getMockDB()[`users/${userId}/habits`]).map((v: any) => v.data);
+    for (const h of habits) {
+      expect(h.target_count_per_week).toBe(
+        getHabitDefinition(h.practice_id)!.suggested_target_per_week
+      );
+    }
+  });
+
+  // Narrowing what gets CREATED must not disturb accounts that already hold the
+  // full set — those instances are still matched, reactivated and backfilled.
+  it('leaves a non-core practice an existing user already has alone', async () => {
+    addMockDocument(`users/${userId}/habits`, 'existing', {
+      user_id: userId,
+      name: 'Cold Exposure',
+      practice_id: 'cold_exposure',
+      is_active: true,
+      created_by_user: false,
+      target_count_per_week: 3,
+    });
+
+    await ensureCuratedPractices(userId);
+
+    const kept = (getMockDB()[`users/${userId}/habits`] as any)['existing'].data;
+    expect(kept.is_active).toBe(true);
+    expect(kept.target_count_per_week).toBe(3);
+  });
+
+  it('still reactivates a non-core practice the catalog switched off and back on', async () => {
+    // No archived_at: deactivated by a catalog change, not by the user.
+    addMockDocument(`users/${userId}/habits`, 'existing', {
+      user_id: userId,
+      name: 'Heat Exposure',
+      practice_id: 'heat_exposure',
+      is_active: false,
+      created_by_user: false,
+      target_count_per_week: 2,
+    });
+
+    await ensureCuratedPractices(userId);
+
+    expect((getMockDB()[`users/${userId}/habits`] as any)['existing'].data.is_active).toBe(true);
+  });
+});
