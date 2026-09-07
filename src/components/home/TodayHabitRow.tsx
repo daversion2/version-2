@@ -226,16 +226,28 @@ export const TodayHabitRow: React.FC<Props> = ({
             {hasAbout && (
               <TouchableOpacity style={styles.route} onPress={onAbout} activeOpacity={0.7}>
                 <Ionicons name="book-outline" size={14} color={Colors.gray} />
-                <Text style={styles.routeText}>About</Text>
+                <Text style={styles.routeText} numberOfLines={1}>
+                  About
+                </Text>
               </TouchableOpacity>
             )}
+            {/*
+              "Log with notes" undersold this once the in-app timer went away:
+              for Meditation and Breathwork this sheet is now the ONLY place to
+              record how long, and nobody reaching for a duration thinks
+              "notes". It carries the metrics, the day, and the notes — details.
+            */}
             <TouchableOpacity style={styles.route} onPress={onOpenSheet} activeOpacity={0.7}>
               <Ionicons name="create-outline" size={14} color={Colors.gray} />
-              <Text style={styles.routeText}>Log with notes</Text>
+              <Text style={styles.routeText} numberOfLines={1}>
+                Log details
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.route} onPress={onDetails} activeOpacity={0.7}>
               <Ionicons name="stats-chart-outline" size={14} color={Colors.gray} />
-              <Text style={styles.routeText}>History</Text>
+              <Text style={styles.routeText} numberOfLines={1}>
+                History
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -354,14 +366,19 @@ const styles = StyleSheet.create({
   },
   backfillHint: { fontFamily: Fonts.secondary, fontSize: 11, color: Colors.border },
 
-  routes: { flexDirection: 'row', gap: Spacing.sm, marginTop: 2 },
+  routes: { flexDirection: 'row', gap: Spacing.xs, marginTop: 2 },
   route: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    paddingVertical: Spacing.sm,
+    // Three of these share the panel's width, so the widest label sets the
+    // budget: about 99pt each on a 393pt screen, less 19 for icon and gap.
+    // Vertical padding carries the tap target instead — 40pt tall, rather than
+    // horizontal room the labels cannot spare.
+    paddingVertical: 11,
+    paddingHorizontal: Spacing.xs,
     borderRadius: BorderRadius.sm,
     borderWidth: 1,
     borderColor: Colors.border,
