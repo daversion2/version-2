@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import { HomeSectionProps } from './types';
-import { getCurrentDayNumber } from '../../../services/challenges';
+import { getCurrentDayNumber } from '../../../../services/challenges';
 
 // "Also today" — a conditional, self-collapsing band pinned above the practices.
 // It surfaces the day's *other* actionable things (an active challenge check-in,

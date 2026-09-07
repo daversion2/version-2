@@ -3,11 +3,15 @@ import { ActivityIndicator, Linking, Platform, View } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+import { RETIRED_CTA_SCREENS } from '../types/rules';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../context/AuthContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
-import { OverrideOnboardingScreen } from '../screens/Auth/OverrideOnboardingScreen';
+// The previous flow (OverrideOnboardingScreen) is archived, unrouted and still
+// compiling, in screens/Auth/_archived/ — see the README there before restoring
+// it, since curated seeding was narrowed alongside this change.
+import { OnboardingScreen } from '../screens/Auth/OnboardingScreen';
 import { Colors } from '../constants/theme';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -43,9 +47,10 @@ const navigateToRuleCta = (
       return;
     }
     if (data.cta_screen) {
-      // TODO(tools-tab): the Tools tab is hidden, so pushes targeting it are
-      // ignored. When the tab returns, restore 'Tools' to the tab branch below.
-      if (data.cta_screen === 'Tools') return;
+      // A rule stored in Firestore can outlive the screen it points at, so
+      // retired targets are dropped rather than navigated to. Same list the
+      // in-app modal CTA reads — see types/rules.ts.
+      if (RETIRED_CTA_SCREENS.includes(data.cta_screen)) return;
       if (data.cta_screen === 'Progress') {
         navigationRef.current?.navigate('Main', { screen: data.cta_screen } as any);
       } else {
@@ -108,7 +113,7 @@ export const RootNavigator: React.FC = () => {
         {!user ? (
           <Stack.Screen name="Auth" component={AuthStack} />
         ) : needsOnboarding ? (
-          <Stack.Screen name="Onboarding" component={OverrideOnboardingScreen} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
           <Stack.Screen name="Main" component={MainTabs} />
         )}

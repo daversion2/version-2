@@ -15,15 +15,27 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { Button } from '../../components/common/Button';
-import { FadeRise } from '../../components/common/FadeRise';
-import { useAuth } from '../../context/AuthContext';
-import { markOnboardingComplete, setStartingPractice } from '../../services/users';
-import { createHabit, getActiveHabits, ensureCuratedPractices } from '../../services/practices';
-import { getAllPractices, getCuratedPractices, DEFAULT_PRACTICE_COLOR } from '../../data/practices';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { Button } from '../../../components/common/Button';
+import { FadeRise } from '../../../components/common/FadeRise';
+import { useAuth } from '../../../context/AuthContext';
+import { markOnboardingComplete, setStartingPractice } from '../../../services/users';
+import { createHabit, getActiveHabits, ensureCuratedPractices } from '../../../services/practices';
+import { getAllPractices, getCuratedPractices, DEFAULT_PRACTICE_COLOR } from '../../../data/practices';
 
 const { width } = Dimensions.get('window');
+
+// ============================================================================
+// ARCHIVED 2026-09-06 — superseded by screens/Auth/OnboardingScreen.tsx.
+//
+// Not deleted, and deliberately still COMPILING: it is kept buildable so that
+// restoring it is a one-line change in RootNavigator rather than an
+// archaeology exercise. Nothing imports it. See _archived/README.md.
+//
+// It sells the pre-2026-09 product — the pleasure trap, deliberate discomfort,
+// and a pick from six curated practices — which stopped being what the app is
+// when practices merged into habits with tracking templates.
+// ============================================================================
 
 // ============================================================================
 // FLOW — the emotional half of the story only: get hooked → see what you're

@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
 import {
   OPENING_QUESTION_INTRO,
   OPENING_QUESTION,
@@ -22,18 +22,18 @@ import {
   MIN_WHY_DEPTH,
   MAX_WHY_DEPTH,
   WHY_STATEMENT_MIN_LENGTH,
-} from '../../constants/whyDiscovery';
-import { Button } from '../../components/common/Button';
-import { InputField } from '../../components/common/InputField';
-import { useAuth } from '../../context/AuthContext';
-import { completeFullOnboarding, saveDeferredOnboardingProgress } from '../../services/users';
+} from '../../../constants/whyDiscovery';
+import { Button } from '../../../components/common/Button';
+import { InputField } from '../../../components/common/InputField';
+import { useAuth } from '../../../context/AuthContext';
+import { completeFullOnboarding, saveDeferredOnboardingProgress } from '../../../services/users';
 import {
   initializeWhyProfile,
   saveWhyIterations,
   completeWhyDiscovery,
   saveWhyProfileCBT,
-} from '../../services/whyDiscovery';
-import { HomeScreenProps } from '../../types/navigation';
+} from '../../../services/whyDiscovery';
+import { HomeScreenProps } from '../../../types/navigation';
 
 
 const STAGES = [

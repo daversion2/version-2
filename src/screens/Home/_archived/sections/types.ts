@@ -3,8 +3,8 @@ import {
   PracticeInstance,
   HabitStreakInfo,
   ReflectionGrade,
-} from '../../../types';
-import { HabitSchedule } from '../../../services/habitSchedule';
+} from '../../../../types';
+import { HabitSchedule } from '../../../../services/habitSchedule';
 
 export interface WillpowerStatsData {
   totalPoints: number;

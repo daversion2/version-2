@@ -1,21 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import { HomeSectionProps } from './types';
-import { PracticeInstance } from '../../../types';
-import { PracticeCard } from '../../../components/practices/PracticeCard';
-import { WeeklyGoalSheet } from '../../../components/practices/WeeklyGoalSheet';
-import { habitSchedule } from '../../../services/practices';
-import { FeatureInfoModal } from '../../../components/common/FeatureInfoModal';
+import { PracticeInstance } from '../../../../types';
+import { PracticeCard } from '../../../../components/practices/PracticeCard';
+import { WeeklyGoalSheet } from '../../../../components/practices/WeeklyGoalSheet';
+import { habitSchedule } from '../../../../services/practices';
+import { FeatureInfoModal } from '../../../../components/common/FeatureInfoModal';
 import {
   getPractice,
   getPracticeColor,
   getPracticeIntensity,
   getIntensityTier,
   compareByIntensity,
-} from '../../../data/practices';
-import { getYesterdayString } from '../../../utils/date';
+} from '../../../../data/practices';
+import { getYesterdayString } from '../../../../utils/date';
 
 /**
  * "Your Practices" — the home redesign's centerpiece. Every adopted practice is

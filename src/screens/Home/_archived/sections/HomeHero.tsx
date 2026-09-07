@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import { HomeSectionProps } from './types';
 
 const getGreeting = (): string => {

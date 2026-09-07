@@ -475,6 +475,84 @@ describe('ensureCuratedPractices — weekly goals', () => {
   });
 });
 
+describe('ensureCuratedPractices — what an onboarding pick seeds', () => {
+  const userId = 'test-user-123';
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+  });
+
+  const habitsWritten = () => {
+    const db = getMockDB();
+    return Object.entries(db[`users/${userId}/habits`] || {}).map(([id, v]: [string, any]) => ({
+      id,
+      ...v.data,
+    }));
+  };
+
+  it('seeds the core protocol when the user never picked one', async () => {
+    // Skipped onboarding, or an account from before the pick existed. Landing
+    // on a genuinely empty Today is worse than landing on a short one.
+    await ensureCuratedPractices(userId);
+    const seeded = habitsWritten();
+    expect(seeded.length).toBeGreaterThan(0);
+    seeded.forEach((h) => expect(getHabitDefinition(h.practice_id)!.core).toBe(true));
+  });
+
+  it('seeds ONLY the picked habit, not the core protocol alongside it', async () => {
+    // Onboarding says "Pick one. Just one." That has to still be true thirty
+    // seconds later, on the screen they land on.
+    await ensureCuratedPractices(userId, 'cold_exposure');
+    const seeded = habitsWritten();
+    expect(seeded).toHaveLength(1);
+    expect(seeded[0].practice_id).toBe('cold_exposure');
+  });
+
+  it('creates nothing when onboarding already created the picked habit', async () => {
+    addMockDocument('users/' + userId + '/habits', 'from-onboarding', {
+      user_id: userId,
+      name: 'Meditation',
+      practice_id: 'meditation',
+      is_active: true,
+      created_by_user: false,
+      target_count_per_week: 5,
+      scheduled_days: [1, 3, 5],
+    });
+
+    await ensureCuratedPractices(userId, 'meditation');
+
+    const seeded = habitsWritten();
+    expect(seeded).toHaveLength(1);
+    // And the schedule onboarding wrote is left exactly as the user set it.
+    expect(seeded[0].scheduled_days).toEqual([1, 3, 5]);
+  });
+
+  it('seeds nothing when the pick is a library habit outside the curated set', async () => {
+    // Beat 2 offers the whole library. A pick like "Protect my bedtime" is not
+    // in getDefaultSeedPractices at all, and must not fall back to the cores.
+    await ensureCuratedPractices(userId, 'consistent-bedtime');
+    expect(habitsWritten()).toHaveLength(0);
+  });
+
+  it('still reactivates an existing curated instance the user has not archived', async () => {
+    // Narrowing applies to CREATION only — nothing disappears from an account
+    // that already has the full protocol.
+    addMockDocument('users/' + userId + '/habits', 'dormant', {
+      user_id: userId,
+      name: 'Meditation',
+      practice_id: 'meditation',
+      is_active: false,
+      created_by_user: false,
+      target_count_per_week: 5,
+    });
+
+    await ensureCuratedPractices(userId, 'cold_exposure');
+
+    expect(habitsWritten().find((h) => h.id === 'dormant')!.is_active).toBe(true);
+  });
+});
+
 describe('archive', () => {
   const userId = 'test-user-123';
 
@@ -730,8 +808,10 @@ describe('ensureCuratedPractices — what a new account is opted into', () => {
     }
   });
 
-  it('also seeds the practice chosen during onboarding, core or not', async () => {
+  it('seeds the practice chosen during onboarding, core or not', async () => {
     // Onboarding says "Pick one. Just one." — that one has to appear on Home.
+    // It is now the ONLY thing seeded; see the "what an onboarding pick seeds"
+    // block above for the core-vs-pick rule.
     await ensureCuratedPractices(userId, 'cold_exposure');
     expect(seededIds()).toContain('cold_exposure');
   });

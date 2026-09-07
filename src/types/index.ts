@@ -289,6 +289,28 @@ export interface PracticeInstance {
    * .commitmentKey); this holds the number the user actually chose.
    */
   metric_goals?: Record<string, number>;
+  /**
+   * How hard the user EXPECTED this habit to be, answered once during
+   * onboarding before they had ever done it.
+   *
+   * Deliberately NOT part of the resistance series. A prediction is not a rep:
+   * folding it into the trend would mean the curve opens with a point nobody
+   * earned, which is the exact failure decision #5 guards against elsewhere
+   * ("a defaulted rating would poison the trend it exists to draw"). Its only
+   * job is to be the "before" in a sentence the app can eventually say —
+   * "you expected this to take everything you had; you're now calling it
+   * manageable" — so it is read on its own, never averaged in.
+   *
+   * Written only by onboarding, and only for the first habit.
+   */
+  expected_resistance?: number;
+  /**
+   * The scale `expected_resistance` was recorded on (3 today). Stored for the
+   * same reason logs store `resistance_scale`: the ranges of the old and new
+   * scales OVERLAP, so a bare 2 is uninterpretable without knowing which scale
+   * produced it. See constants/resistance.ts.
+   */
+  expected_resistance_scale?: number;
 }
 
 export type Quadrant = 'stressed' | 'energized' | 'depleted' | 'calm';

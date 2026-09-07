@@ -107,17 +107,34 @@ export interface RuleCtaTarget {
  */
 export const CTA_SCREEN_TARGETS: { value: string; label: string }[] = [
   { value: 'StartChallenge', label: 'Start a challenge' },
-  { value: 'ManageHabits', label: 'Manage practices' },
   { value: 'NightlyReflection', label: 'Nightly reflection' },
   { value: 'JourneyCheckin', label: 'Journey check-in (day 14/28)' },
   { value: 'ProgramDiscovery', label: 'Programs' },
   { value: 'Progress', label: 'Progress tab' },
   // TODO(tools-tab): re-add when the Tools tab is un-hidden.
   // { value: 'Tools', label: 'Tools tab' },
+  // Removed 2026-09-06: 'ManageHabits' (the old practices screen) is archived
+  // and no longer routed. See RETIRED_CTA_SCREENS.
 ];
 
 /** Tab-level targets that need parent-navigator handling. */
 export const CTA_TAB_TARGETS = ['Progress', 'Tools'];
+
+/**
+ * Targets that must be IGNORED at navigation time rather than followed.
+ *
+ * Removing an entry from CTA_SCREEN_TARGETS above only stops an admin picking
+ * it in future — rules already stored in Firestore keep whatever target they
+ * were saved with, and `cta_target.screen` is a plain string, so a live rule
+ * can outlive the screen it points at. Every CTA follower reads this list first
+ * so a stale rule dismisses quietly instead of navigating nowhere.
+ *
+ * - 'Tools'        the tab is hidden (TODO(tools-tab): drop when it returns)
+ * - 'ManageHabits' the practices screen is archived; the seeded "Journey day 3"
+ *                  rule pointed here and the live copy in Firestore still may,
+ *                  because seedDefaultRules skips rules that already exist.
+ */
+export const RETIRED_CTA_SCREENS = ['Tools', 'ManageHabits'];
 
 /**
  * Bespoke in-app flows a modal rule can open instead of the generic RuleModal.

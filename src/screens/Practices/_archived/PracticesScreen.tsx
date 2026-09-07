@@ -2,10 +2,10 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { PRACTICE_GROUPS, getAllPractices, getPracticesByGroup, resolvePracticeGroup, Practice } from '../../data/practices';
-import { HomeScreenProps } from '../../types/navigation';
-import { useAuth } from '../../context/AuthContext';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { PRACTICE_GROUPS, getAllPractices, getPracticesByGroup, resolvePracticeGroup, Practice } from '../../../data/practices';
+import { HomeScreenProps } from '../../../types/navigation';
+import { useAuth } from '../../../context/AuthContext';
 import {
   archiveHabit,
   getActiveHabits,
@@ -13,16 +13,16 @@ import {
   habitSchedule,
   setHabitSchedule,
   updateHabit,
-} from '../../services/practices';
-import { cancelHabitReminder, syncHabitReminder } from '../../services/habitReminders';
-import { HabitSchedule, describeSchedule } from '../../services/habitSchedule';
-import { WeeklyGoalSheet } from '../../components/practices/WeeklyGoalSheet';
-import { PracticeInstance } from '../../types';
-import { SHOW_HABIT_LIBRARY } from '../../constants/featureFlags';
-import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { InputField } from '../../components/common/InputField';
-import { showAlert, showConfirm } from '../../utils/alert';
+} from '../../../services/practices';
+import { cancelHabitReminder, syncHabitReminder } from '../../../services/habitReminders';
+import { HabitSchedule, describeSchedule } from '../../../services/habitSchedule';
+import { WeeklyGoalSheet } from '../../../components/practices/WeeklyGoalSheet';
+import { PracticeInstance } from '../../../types';
+import { SHOW_HABIT_LIBRARY } from '../../../constants/featureFlags';
+import { Card } from '../../../components/common/Card';
+import { Button } from '../../../components/common/Button';
+import { InputField } from '../../../components/common/InputField';
+import { showAlert, showConfirm } from '../../../utils/alert';
 
 type Props = HomeScreenProps<'ManageHabits'>;
 
@@ -115,10 +115,12 @@ const CustomPracticeCard: React.FC<{
 };
 
 /**
+ * ARCHIVED 2026-09-06 — unrouted. See _archived/README.md.
+ *
  * The single practice management screen: browse the curated protocol by group
  * and edit weekly goals. Every curated practice lives on Home automatically
  * (no adopt/remove); doing reps (completion) also lives on Home — this screen
- * never logs a completion. Route name 'ManageHabits'.
+ * never logs a completion. Was route name 'ManageHabits'.
  */
 export const PracticesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();

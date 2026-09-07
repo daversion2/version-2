@@ -11,7 +11,6 @@ import { ChallengeLibraryScreen } from '../screens/Home/ChallengeLibraryScreen';
 import { ActionChallengesScreen } from '../screens/Home/BarrierChallengesScreen';
 import { CompleteChallengeScreen } from '../screens/Home/CompleteChallengeScreen';
 import { ChallengeDetailScreen } from '../screens/Challenges/ChallengeDetailScreen';
-import { PracticesScreen } from '../screens/Practices/PracticesScreen';
 import { PracticeDetailScreen } from '../screens/Practices/PracticeDetailScreen';
 import { PracticeSessionScreen } from '../screens/Practices/PracticeSessionScreen';
 import { DebriefScreen } from '../screens/Home/DebriefScreen';
@@ -31,9 +30,7 @@ import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
 import { JourneyCheckinScreen } from '../screens/Home/JourneyCheckinScreen';
-import { CustomizeHomeScreen } from '../screens/Home/CustomizeHomeScreen';
 import { MantraScreen } from '../screens/Home/MantraScreen';
-import { DeferredOnboardingScreen } from '../screens/Auth/DeferredOnboardingScreen';
 import { MicroExerciseFeelingScreen } from '../screens/MicroExercise/MicroExerciseFeelingScreen';
 import { MicroExerciseQuestionScreen } from '../screens/MicroExercise/MicroExerciseQuestionScreen';
 import { MicroExerciseCommitmentScreen } from '../screens/MicroExercise/MicroExerciseCommitmentScreen';
@@ -131,11 +128,10 @@ export const HomeStack: React.FC = () => (
       component={DebriefScreen}
       options={{ headerShown: false }}
     />
-    <Stack.Screen
-      name="ManageHabits"
-      component={PracticesScreen}
-      options={{ title: 'Practices' }}
-    />
+    {/* 'ManageHabits' (PracticesScreen) archived 2026-09-06 — everything it did
+        lives on the habit's own detail screen, and it rendered the retired
+        PracticeGroup taxonomy. Its param-list entry is kept so the archived
+        file still compiles. See screens/Practices/_archived/README.md. */}
     <Stack.Screen
       name="PracticeDetail"
       component={PracticeDetailScreen}
@@ -221,21 +217,15 @@ export const HomeStack: React.FC = () => (
       component={JourneyCheckinScreen}
       options={{ title: 'Check-in' }}
     />
-    <Stack.Screen
-      name="CustomizeHome"
-      component={CustomizeHomeScreen}
-      options={{ title: 'Customize Home' }}
-    />
+    {/* 'CustomizeHome' archived 2026-09-06 — it edited the section layout of a
+        Home screen that no longer renders sections. See Home/_archived/. */}
     <Stack.Screen
       name="MantraScreen"
       component={MantraScreen}
       options={{ title: 'My Mantras' }}
     />
-    <Stack.Screen
-      name="DeferredOnboarding"
-      component={DeferredOnboardingScreen}
-      options={{ title: '', headerShown: false, presentation: 'fullScreenModal' }}
-    />
+    {/* 'DeferredOnboarding' archived 2026-09-06 — registered but reachable from
+        nowhere, and superseded by Auth/OnboardingScreen. See Auth/_archived/. */}
     <Stack.Screen
       name="MicroExerciseFeeling"
       component={MicroExerciseFeelingScreen}

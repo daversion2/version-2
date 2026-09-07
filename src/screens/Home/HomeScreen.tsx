@@ -54,7 +54,7 @@ import {
 import { PendingSkipReview } from '../../services/skipLogic';
 import { RuleBanner } from '../../components/common/RuleBanner';
 import { useRuleSurfaces } from '../../hooks/useRuleSurfaces';
-import { CTA_TAB_TARGETS } from '../../types/rules';
+import { CTA_TAB_TARGETS, RETIRED_CTA_SCREENS } from '../../types/rules';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
@@ -164,9 +164,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           console.warn('Failed to open CTA URL:', err)
         );
       } else if (target.type === 'screen' && target.screen) {
-        // TODO(tools-tab): the Tools tab is hidden, so CTAs targeting it are
-        // ignored. Remove this guard when the tab returns.
-        if (target.screen === 'Tools') return;
+        // A rule stored in Firestore can outlive the screen it points at, so
+        // retired targets dismiss quietly rather than navigating nowhere.
+        if (RETIRED_CTA_SCREENS.includes(target.screen)) return;
         if (CTA_TAB_TARGETS.includes(target.screen)) {
           navigation.getParent()?.navigate(target.screen as any);
         } else {

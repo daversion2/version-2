@@ -96,6 +96,13 @@ export const createHabit = async (
      * key — e.g. `{ water_oz: 80 }`. See HabitDefinition.commitmentKey.
      */
     metric_goals?: Record<string, number>;
+    /**
+     * How hard the user expected this to be, asked once during onboarding
+     * before they had ever done it. Read on its own, never folded into the
+     * resistance trend — see PracticeInstance.expected_resistance.
+     */
+    expected_resistance?: number;
+    expected_resistance_scale?: number;
     group?: PracticeGroup;
     action_plan?: HabitActionPlan;
     created_by_user?: boolean;
@@ -135,13 +142,23 @@ export const createHabit = async (
  * caller can cancel their local reminders — a retired practice is invisible
  * in-app, leaving no other way to stop them.
  *
- * WHAT GETS SEEDED: the `core` practices, plus whichever practice the user
- * picked during onboarding. Not the whole protocol.
+ * WHAT GETS SEEDED depends on whether the user ever chose:
+ *
+ *   CHOSE (startingPracticeId set)  ONLY that habit. Onboarding has already
+ *                                   created it, with a schedule, a committed
+ *                                   amount and an anchor, so in practice this
+ *                                   creates nothing — the id is still honoured
+ *                                   as a safety net in case that write failed.
+ *   DIDN'T CHOOSE                   the `core` practices, so an account that
+ *                                   skipped onboarding still lands on a Today
+ *                                   with something on it.
  *
  * This used to seed all six, which set a brand-new account 26 reps a week it
  * had never agreed to — and since pace is measured against those targets, by
- * midweek the screen was reporting failure at a commitment nobody made. It also
- * contradicted onboarding, which says "Pick one. Just one." The rest of the
+ * midweek the screen was reporting failure at a commitment nobody made. It then
+ * seeded core + the pick, which was still four habits for a user who had just
+ * been told "Pick one. Just one." — a promise the very next screen broke.
+ * Honouring the pick exactly is what makes that sentence true. The rest of the
  * protocol stays one tap away in the library rather than pre-committed.
  *
  * Only CREATION is narrowed. Existing instances are still matched, reactivated
@@ -158,16 +175,21 @@ export const ensureCuratedPractices = async (
   const instances = snap.docs.map((d) => ({ id: d.id, ...d.data() } as PracticeInstance));
   const norm = (s: string) => s.trim().toLowerCase();
 
+  // An explicit onboarding pick REPLACES the core set rather than adding to it.
+  // See the "what gets seeded" table above.
+  const userChose = !!startingPracticeId;
+
   let changed = 0;
   for (const p of getDefaultSeedPractices()) {
     const match =
       instances.find((h) => h.practice_id === p.id) ||
       instances.find((h) => norm(h.name) === norm(p.name));
     if (!match) {
-      // Only the core protocol and the onboarding pick are auto-adopted. The
-      // others remain browsable and addable — they are simply not commitments
-      // the user is opted into without asking.
-      if (!p.core && p.id !== startingPracticeId) continue;
+      // Nothing is auto-adopted beyond this. The rest stay browsable and
+      // addable — they are simply not commitments the user is opted into
+      // without being asked.
+      const seedThis = userChose ? p.id === startingPracticeId : !!p.core;
+      if (!seedThis) continue;
       await createHabit(userId, {
         name: p.name,
         // Seeded with the catalog's suggested target rather than 0 ("unset").

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import { HomeSectionProps } from './types';
 
 export const MantraSection: React.FC<HomeSectionProps> = React.memo(({ data, callbacks }) => {

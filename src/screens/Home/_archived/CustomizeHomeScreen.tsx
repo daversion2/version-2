@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { useAuth } from '../../context/AuthContext';
-import { HomeLayoutItem } from '../../types';
-import { resolveLayout, saveHomeLayout } from '../../services/homeLayout';
-import { DEFAULT_HOME_LAYOUT, SECTION_LABELS, SECTION_ICONS, ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../constants/homeLayout';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { useAuth } from '../../../context/AuthContext';
+import { HomeLayoutItem } from '../../../types';
+import { resolveLayout, saveHomeLayout } from '../../../services/homeLayout';
+import { DEFAULT_HOME_LAYOUT, SECTION_LABELS, SECTION_ICONS, ZONE_CONFIG, SECTION_TO_ZONE, HomeSectionId } from '../../../constants/homeLayout';
 
 export const CustomizeHomeScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();

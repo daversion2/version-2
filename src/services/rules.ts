@@ -254,9 +254,14 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     },
   },
   {
+    // NAME IS FROZEN. seedDefaultRules matches on `name` and skips rules that
+    // already exist, so renaming this would leave the original live in
+    // Firestore and seed a SECOND day-3 rule beside it — two modals, same day.
+    // The name reads oddly now (the goal is set during onboarding, not here);
+    // that is the cost of not duplicating it.
     name: 'Journey day 3: set a weekly goal',
     description:
-      'In-app prompt to set a weekly target on their practice, a few days in. Window capped at day 10 so existing users never see it.',
+      'In-app reminder, a few days in, that the schedule set during onboarding is a promise and is adjustable. Window capped at day 10 so existing users never see it. No cta_target: it used to open the practices screen, which is archived — and a modal that fires on Home cannot usefully navigate to Home.',
     enabled: true,
     surface: 'modal',
     event: 'app_open',
@@ -268,10 +273,9 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     frequency: { type: 'once_ever' },
     priority: 30,
     content: {
-      title: 'Make it a target',
-      body: "You've been showing up. Lock it in — decide how many times this week you'll train, and hold yourself to it.",
-      cta: 'Set a weekly goal',
-      cta_target: { type: 'screen', screen: 'ManageHabits' },
+      title: 'Three days in',
+      body: "The schedule you set when you started is a promise, not a score to hit — falling short of it still counts as showing up. Open any habit to change what you committed to.",
+      cta: 'Got it',
     },
   },
   {
