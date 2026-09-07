@@ -23,6 +23,8 @@ import { syncHabitReminder } from '../../services/habitReminders';
 import { describeSchedule } from '../../services/habitSchedule';
 import { formatRelativeDay } from '../../utils/date';
 import { showAlert } from '../../utils/alert';
+import { useScreenIntro } from '../../hooks/useScreenIntro';
+import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 
 type Props = HomeScreenProps<'ArchivedHabits'>;
 
@@ -44,6 +46,12 @@ interface ArchivedRow {
  * what it did while it was active, and the way back.
  */
 export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
+  // First visit explains the screen; the ⓘ in the header brings it back.
+  const intro = useScreenIntro('archived', {
+    navigation,
+    side: 'right',
+    renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
+  });
   const { user } = useAuth();
   const [rows, setRows] = useState<ArchivedRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,6 +187,7 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
           ))}
         </>
       )}
+      <ScreenIntro intro={intro} />
     </ScrollView>
   );
 };

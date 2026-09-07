@@ -56,6 +56,21 @@ export const markPointsIntroSeen = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_seen_points_intro: true }, { merge: true });
 };
 
+/**
+ * Record that a screen has shown its first-visit intro.
+ *
+ * `merge: true` is load-bearing. setDoc with merge DEEP-merges a nested map, so
+ * this adds one key and leaves the others alone. The same value passed to
+ * updateDoc would replace the whole map and clear every other screen's flag —
+ * a user who had seen Today's intro would get it again on opening Progress.
+ */
+export const markScreenIntroSeen = async (
+  userId: string,
+  screenId: string
+): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { seen_intros: { [screenId]: true } }, { merge: true });
+};
+
 export const dismissGoalPrompt = async (userId: string): Promise<void> => {
   await setDoc(doc(db, 'users', userId), { has_dismissed_goal_prompt: true }, { merge: true });
 };

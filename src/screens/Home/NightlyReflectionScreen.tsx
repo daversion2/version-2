@@ -22,10 +22,18 @@ import { getActiveHabits } from '../../services/practices';
 import { showAlert } from '../../utils/alert';
 import { WHY_REFLECTION_PROMPTS } from '../../constants/whyDiscovery';
 import { BadDayModal } from '../../components/home/BadDayModal';
+import { useScreenIntro } from '../../hooks/useScreenIntro';
+import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 
 type Props = HomeScreenProps<'NightlyReflection'>;
 
 export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
+  // First visit explains the screen; the ⓘ in the header brings it back.
+  const intro = useScreenIntro('nightly_reflection', {
+    navigation,
+    side: 'right',
+    renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
+  });
   const { user, userProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -328,6 +336,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </>
       )}
+      <ScreenIntro intro={intro} />
     </ScrollView>
   );
 };

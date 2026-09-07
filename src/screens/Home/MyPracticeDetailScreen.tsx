@@ -51,6 +51,8 @@ import {
   EDITABLE_WINDOW_DAYS,
 } from '../../utils/date';
 import { PracticeInstance, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
+import { useScreenIntro } from '../../hooks/useScreenIntro';
+import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 
 type Props = HomeScreenProps<'HabitDetail'>;
 
@@ -76,6 +78,12 @@ const planValueFor = (
 ): string | undefined => plan[key] || (fallbackKey ? plan[fallbackKey] : undefined);
 
 export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) => {
+  // First visit explains the screen; the ⓘ in the header brings it back.
+  const intro = useScreenIntro('habit_detail', {
+    navigation,
+    side: 'right',
+    renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
+  });
   const { habitId } = route.params;
   const { user } = useAuth();
 
@@ -657,6 +665,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
         onSave={handleSaveSchedule}
         onClose={() => setScheduleOpen(false)}
       />
+      <ScreenIntro intro={intro} />
     </ScrollView>
   );
 };

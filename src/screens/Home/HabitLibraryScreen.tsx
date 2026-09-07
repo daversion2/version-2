@@ -6,6 +6,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { HabitLibraryList } from '../../components/habits/HabitLibraryList';
 import { HABIT_CATEGORIES } from '../../data/habitLibrary';
 import { getBrowsableHabits } from '../../data/practices';
+import { useScreenIntro } from '../../hooks/useScreenIntro';
+import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 
 type Props = HomeScreenProps<'HabitLibrary'>;
 
@@ -22,6 +24,13 @@ type Props = HomeScreenProps<'HabitLibrary'>;
  * See docs/habit-template-unification.md.
  */
 export const HabitLibraryScreen: React.FC<Props> = ({ navigation }) => {
+  // First visit explains the screen; the ⓘ in the header brings it back.
+  const intro = useScreenIntro('library', {
+    navigation,
+    side: 'right',
+    renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
+  });
+
   // Sits above the list rather than at the bottom: someone who searches for
   // their habit and doesn't find it needs this in view at that moment, not
   // after scrolling past 45 things that weren't what they wanted.
@@ -45,12 +54,15 @@ export const HabitLibraryScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   return (
-    <HabitLibraryList
-      habits={getBrowsableHabits()}
-      categories={HABIT_CATEGORIES}
-      listHeader={createOwn}
-      onSelectHabit={(habitId) => navigation.navigate('HabitLibraryDetail', { habitId })}
-    />
+    <>
+      <HabitLibraryList
+        habits={getBrowsableHabits()}
+        categories={HABIT_CATEGORIES}
+        listHeader={createOwn}
+        onSelectHabit={(habitId) => navigation.navigate('HabitLibraryDetail', { habitId })}
+      />
+      <ScreenIntro intro={intro} />
+    </>
   );
 };
 

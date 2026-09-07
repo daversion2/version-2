@@ -45,6 +45,8 @@ import { ProgressNavigation } from '../../types/navigation';
 import { getReflections } from '../../services/reflections';
 import { DailyReflection } from '../../types';
 import { toLocalDateString, getWeekStart } from '../../utils/date';
+import { useScreenIntro } from '../../hooks/useScreenIntro';
+import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 
 function getStartDateForFilter(filter: TimeFilter): string | undefined {
   if (filter === 'all') return undefined;
@@ -57,6 +59,12 @@ function getStartDateForFilter(filter: TimeFilter): string | undefined {
 export const ProgressScreen: React.FC = () => {
   const { user, userProfile } = useAuth();
   const navigation = useNavigation<ProgressNavigation>();
+  // First visit explains the screen; the ⓘ in the header brings it back.
+  const intro = useScreenIntro('progress', {
+    navigation,
+    side: 'right',
+    renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
+  });
 
   const [loading, setLoading] = useState(true);
   const [resistance, setResistance] = useState<ResistanceOverview | null>(null);
@@ -253,6 +261,7 @@ export const ProgressScreen: React.FC = () => {
           {progress && <PersonalRecordsCard records={progress.records} />}
         </>
       )}
+      <ScreenIntro intro={intro} />
     </ScrollView>
   );
 };

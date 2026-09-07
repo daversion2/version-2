@@ -69,6 +69,16 @@ export interface User {
   active_mantra_id?: string;
   onboarding_pattern?: string;
   onboarding_reflection?: string;
+  /**
+   * Which screens have shown their first-visit intro, keyed by screen id (see
+   * data/screenIntros.ts). A MAP rather than another has_seen_* boolean —
+   * there are already five of those and one is legacy-superseded, and a
+   * per-screen flag would mean a schema change every time a screen is added.
+   *
+   * Write through markScreenIntroSeen, which uses setDoc + merge so one key
+   * lands without disturbing the rest of the map.
+   */
+  seen_intros?: Record<string, boolean>;
   // One-time intro flags
   has_seen_points_intro?: boolean;
   has_dismissed_goal_prompt?: boolean;

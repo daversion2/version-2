@@ -55,10 +55,18 @@ import { PendingSkipReview } from '../../services/skipLogic';
 import { RuleBanner } from '../../components/common/RuleBanner';
 import { useRuleSurfaces } from '../../hooks/useRuleSurfaces';
 import { CTA_TAB_TARGETS, RETIRED_CTA_SCREENS } from '../../types/rules';
+import { useScreenIntro } from '../../hooks/useScreenIntro';
+import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  // First visit explains the screen; the ⓘ in the header brings it back.
+  const intro = useScreenIntro('today', {
+    navigation,
+    side: 'left',
+    renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
+  });
   const { user, userProfile, refreshProfile } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -893,6 +901,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           onClose={handleHabitLearnMoreClose}
         />
       )}
+      <ScreenIntro intro={intro} />
     </View>
   );
 };
