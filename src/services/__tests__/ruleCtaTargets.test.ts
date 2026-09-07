@@ -1,5 +1,11 @@
 import { DEFAULT_RULES } from '../rules';
-import { CTA_SCREEN_TARGETS, CTA_TAB_TARGETS, RETIRED_CTA_SCREENS } from '../../types/rules';
+import {
+  CTA_SCREEN_TARGETS,
+  CTA_TAB_TARGETS,
+  RETIRED_CTA_SCREENS,
+  isOfferedCtaScreen,
+  resolveEditableCtaTarget,
+} from '../../types/rules';
 
 // =============================================================================
 // RULE CTA TARGETS — guards the one thing that can rot silently here.
@@ -57,5 +63,76 @@ describe('the target lists themselves', () => {
   it('has no duplicate destinations', () => {
     const values = CTA_SCREEN_TARGETS.map((t) => t.value);
     expect(new Set(values).size).toBe(values.length);
+  });
+});
+
+describe('resolveEditableCtaTarget', () => {
+  it('loads a live screen target unchanged', () => {
+    expect(resolveEditableCtaTarget({ type: 'screen', screen: 'Progress' })).toEqual({
+      kind: 'screen',
+      screen: 'Progress',
+    });
+  });
+
+  it('loads a url target unchanged', () => {
+    expect(resolveEditableCtaTarget({ type: 'url', url: 'https://example.com' })).toEqual({
+      kind: 'url',
+      url: 'https://example.com',
+    });
+  });
+
+  it('reads a missing target as none', () => {
+    expect(resolveEditableCtaTarget(undefined)).toEqual({ kind: 'none' });
+  });
+
+  it('DROPS a screen the picker can no longer offer', () => {
+    // The bug this exists to kill: the picker renders from CTA_SCREEN_TARGETS,
+    // so a retired value shows no chip selected while the state still holds it.
+    // Saving then wrote the dead target straight back, which meant retiring a
+    // screen survived every attempt to edit the rule pointing at it.
+    expect(resolveEditableCtaTarget({ type: 'screen', screen: 'ManageHabits' })).toEqual({
+      kind: 'none',
+      droppedRetiredScreen: 'ManageHabits',
+    });
+  });
+
+  it('reports what was dropped, so the form can say so rather than go quiet', () => {
+    const resolved = resolveEditableCtaTarget({ type: 'screen', screen: 'ManageHabits' });
+    expect(resolved.droppedRetiredScreen).toBe('ManageHabits');
+    expect(resolved.screen).toBeUndefined();
+  });
+
+  it('cannot round-trip a retired target back into a rule', () => {
+    // Loading then saving must not reproduce the dead target — this is the
+    // whole contract, expressed end to end.
+    const resolved = resolveEditableCtaTarget({ type: 'screen', screen: 'ManageHabits' });
+    const rebuilt =
+      resolved.kind === 'screen' ? { type: 'screen' as const, screen: resolved.screen } : undefined;
+    expect(rebuilt).toBeUndefined();
+  });
+
+  it('drops any retired screen, not just the one that prompted this', () => {
+    RETIRED_CTA_SCREENS.forEach((screen) => {
+      expect(resolveEditableCtaTarget({ type: 'screen', screen }).kind).toBe('none');
+    });
+  });
+
+  it('treats a malformed target as none rather than throwing', () => {
+    expect(resolveEditableCtaTarget({ type: 'screen' }).kind).toBe('none');
+    expect(resolveEditableCtaTarget({ type: 'url' }).kind).toBe('none');
+  });
+});
+
+describe('isOfferedCtaScreen', () => {
+  it('accepts every destination the picker lists', () => {
+    CTA_SCREEN_TARGETS.forEach((target) => {
+      expect(isOfferedCtaScreen(target.value)).toBe(true);
+    });
+  });
+
+  it('rejects retired and unknown screens', () => {
+    expect(isOfferedCtaScreen('ManageHabits')).toBe(false);
+    expect(isOfferedCtaScreen('NoSuchScreen')).toBe(false);
+    expect(isOfferedCtaScreen(undefined)).toBe(false);
   });
 });

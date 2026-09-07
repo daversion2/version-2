@@ -136,6 +136,44 @@ export const CTA_TAB_TARGETS = ['Progress', 'Tools'];
  */
 export const RETIRED_CTA_SCREENS = ['Tools', 'ManageHabits'];
 
+/** Can the admin editor still display, and therefore round-trip, this target? */
+export const isOfferedCtaScreen = (screen?: string): boolean =>
+  !!screen && CTA_SCREEN_TARGETS.some((target) => target.value === screen);
+
+/** The editor's CTA-target control has three states. */
+export type CtaTargetKind = 'none' | 'screen' | 'url';
+
+export interface EditableCtaTarget {
+  kind: CtaTargetKind;
+  screen?: string;
+  url?: string;
+  /**
+   * True when a stored target was DISCARDED because the editor can no longer
+   * show it. The editor surfaces this so the admin knows the rule is losing a
+   * destination rather than silently never having had one.
+   */
+  droppedRetiredScreen?: string;
+}
+
+/**
+ * Load a stored cta_target into the state the editor edits.
+ *
+ * A screen target the picker no longer offers is resolved to 'none' rather than
+ * kept. This is the whole point: the picker renders from CTA_SCREEN_TARGETS, so
+ * a retired value shows NO option selected while the underlying state still
+ * holds it — and saving would write the dead target straight back. Retiring a
+ * screen would therefore survive every attempt to edit the rule that pointed at
+ * it. Resolving to 'none' makes the control honest about what it is holding.
+ */
+export const resolveEditableCtaTarget = (target?: RuleCtaTarget): EditableCtaTarget => {
+  if (target?.type === 'url' && target.url) return { kind: 'url', url: target.url };
+  if (target?.type === 'screen' && target.screen) {
+    if (isOfferedCtaScreen(target.screen)) return { kind: 'screen', screen: target.screen };
+    return { kind: 'none', droppedRetiredScreen: target.screen };
+  }
+  return { kind: 'none' };
+};
+
 /**
  * Bespoke in-app flows a modal rule can open instead of the generic RuleModal.
  * The rule still owns the trigger (conditions, frequency, enabled) and the

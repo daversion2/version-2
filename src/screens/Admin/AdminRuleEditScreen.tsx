@@ -35,6 +35,7 @@ import {
   RuleCtaTarget,
   RuleModalComponent,
   CTA_SCREEN_TARGETS,
+  resolveEditableCtaTarget,
 } from '../../types/rules';
 import { AdminNavigation, AdminStackParamList } from '../../types/navigation';
 
@@ -124,6 +125,10 @@ export const AdminRuleEditScreen: React.FC = () => {
   const [ctaTargetType, setCtaTargetType] = useState<CtaTargetType>('none');
   const [ctaScreen, setCtaScreen] = useState(CTA_SCREEN_TARGETS[0].value);
   const [ctaUrl, setCtaUrl] = useState('');
+  // Set when the stored target pointed at a screen the picker can no longer
+  // offer, so the form can say the destination was dropped rather than let it
+  // look as though the rule never had one.
+  const [droppedTarget, setDroppedTarget] = useState<string | null>(null);
   // Bespoke-flow marker (e.g. the comeback flow). Set in code, not the UI —
   // loaded and written back so editing a rule never strips it.
   const [component, setComponent] = useState<RuleModalComponent | undefined>(undefined);
@@ -150,14 +155,14 @@ export const AdminRuleEditScreen: React.FC = () => {
         setBody(rule.content.body);
         setCta(rule.content.cta || '');
         setComponent(rule.content.component);
-        const target = rule.content.cta_target;
-        if (target?.type === 'screen' && target.screen) {
-          setCtaTargetType('screen');
-          setCtaScreen(target.screen);
-        } else if (target?.type === 'url' && target.url) {
-          setCtaTargetType('url');
-          setCtaUrl(target.url);
-        }
+        // Never load a screen target the picker can no longer show — the chips
+        // would render with nothing selected while the state still held it, and
+        // saving would write the dead target back. See resolveEditableCtaTarget.
+        const target = resolveEditableCtaTarget(rule.content.cta_target);
+        setCtaTargetType(target.kind);
+        if (target.screen) setCtaScreen(target.screen);
+        if (target.url) setCtaUrl(target.url);
+        setDroppedTarget(target.droppedRetiredScreen ?? null);
       } catch (error: any) {
         showAlert('Error', error.message);
       } finally {
@@ -434,8 +439,17 @@ export const AdminRuleEditScreen: React.FC = () => {
               <ChipRow
                 options={CTA_TARGET_TYPES}
                 selected={ctaTargetType}
-                onSelect={setCtaTargetType}
+                onSelect={(next) => {
+                  setCtaTargetType(next);
+                  setDroppedTarget(null);
+                }}
               />
+              {!!droppedTarget && (
+                <Text style={styles.droppedTargetNote}>
+                  This rule pointed at "{droppedTarget}", a screen the app no longer has. The
+                  destination has been cleared — pick a new one or leave it as None.
+                </Text>
+              )}
               {ctaTargetType === 'screen' && (
                 <ChipRow
                   options={CTA_SCREEN_TARGETS}
@@ -637,5 +651,17 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.sm,
     color: Colors.white,
+  },
+  droppedTargetNote: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    lineHeight: 17,
+    backgroundColor: Colors.secondary + '10',
+    borderWidth: 1,
+    borderColor: Colors.secondary + '30',
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.sm,
+    marginTop: Spacing.sm,
   },
 });

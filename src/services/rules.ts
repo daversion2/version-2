@@ -261,8 +261,11 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     // that is the cost of not duplicating it.
     name: 'Journey day 3: set a weekly goal',
     description:
-      'In-app reminder, a few days in, that the schedule set during onboarding is a promise and is adjustable. Window capped at day 10 so existing users never see it. No cta_target: it used to open the practices screen, which is archived — and a modal that fires on Home cannot usefully navigate to Home.',
-    enabled: true,
+      'PARKED 2026-09-06 (enabled: false). Onboarding now sets a schedule at adoption, so a day-3 prompt to set a weekly target asks for something already done. Kept rather than deleted — day 3 is the most valuable slot in the journey sequence and deserves a message that is actually true. Content and cta_target were cleaned up first so re-enabling is a one-switch decision.',
+    // Parked, not deleted. The live doc was disabled to match by
+    // scripts/fixJourneyDay3Rule.js — seedDefaultRules could not reach it,
+    // since it skips rules whose name already exists.
+    enabled: false,
     surface: 'modal',
     event: 'app_open',
     conditions: [
