@@ -47,3 +47,6 @@ coverage/
 
 # Firebase deploy cache
 .firebase/
+
+# Personal scratchpad — the user's own running notes, not shared state
+docs/todo.md

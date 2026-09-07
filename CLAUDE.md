@@ -243,9 +243,14 @@ unless the user asks for one.
 - `docs/habit-template-unification.md` — the active direction (practices merging
   into habits with tracking templates)
 - `docs/habit-library-audit.md`, `docs/challenge-library.md`, `docs/tidbit-audit.md` — content inventories
-- `docs/go-live-checklist.md`, `docs/todo.md`
+- `docs/go-live-checklist.md`
 - `docs/app-overview-user-facing.md` — the product in the user's own words
 - `.maestro/README.md`, `.claude/skills/ui-test/SKILL.md`
+
+**Personal, not in the repo:** `docs/todo.md` is the user's own running notes
+and is git-ignored. It may exist on their machine and not in a fresh clone —
+don't cite it as a source of truth, don't edit it, and don't act on it unless
+they bring it up. (Older entries in `go-live-checklist.md` still quote it.)
 
 **Historical — describes earlier structures, do not treat as current intent:**
 - `RESTRUCTURE_PLAN.md`, `APP_OVERVIEW.md`, `TESTING.md` (a hand-run QA
