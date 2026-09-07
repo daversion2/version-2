@@ -1,7 +1,6 @@
 import { PracticeCompletionInput, PracticeInstance } from '../types';
 import { HabitDefinition, getCommitmentField } from '../data/practices';
 import { RESISTANCE_MAX, RESISTANCE_MIN, resistanceToDifficulty } from '../constants/resistance';
-import { resolveTemplateFields } from '../data/habitTemplates';
 
 // =============================================================================
 // QUICK LOG — one tap on Today, one complete log.
@@ -24,39 +23,21 @@ import { resolveTemplateFields } from '../data/habitTemplates';
 //   promised at adoption, and it is flagged when it is. "80 oz" on a water habit
 //   is not a measurement, it is the commitment being affirmed — so analytics can
 //   tell the two apart via metrics_assumed.
+//
+// EVERY habit can be logged this way, including the ones that run a timer or
+// carry a two-factor dose. There used to be a gate here that sent those to the
+// capture sheet instead, on the reasoning that "how long" IS a timed practice.
+// The reasoning was sound and the result was not: the six habits it caught are
+// the curated practices seeded onto every home, so on a real screen the
+// exception was the majority, and a row of chips sat next to a row with a bare
+// chevron for reasons no user could infer.
+//
+// A session is now a ROUTE, not a gate. The timer lives one tap inside the
+// card's expansion, so a user who wants to time their meditation still can, and
+// one who already did it somewhere else is not made to run a countdown to say
+// so. What a quick log costs on those habits is the duration or the dose — a
+// real loss, taken knowingly, and only on the reps where speed was chosen.
 // =============================================================================
-
-/** Which habits can be logged in one tap, and which still need the sheet. */
-export type QuickLogEligibility =
-  | { kind: 'quick' }
-  | { kind: 'sheet'; reason: 'timer' | 'multi_metric' };
-
-/**
- * Can this habit be logged with a single chip tap?
- *
- * A timed practice can't: "how long" IS the practice, and a guessed duration is
- * worse than no duration. Neither can a habit asking for several numbers — the
- * commitment covers one amount, not a form. Everything else can, which is the
- * large majority of the library.
- */
-export const quickLogEligibility = (
-  habit: PracticeInstance,
-  definition?: HabitDefinition
-): QuickLogEligibility => {
-  if (definition?.flow === 'timer') return { kind: 'sheet', reason: 'timer' };
-
-  // Curated habits carry their template in the catalog; custom habits resolve a
-  // preset off the instance. Same fallback the detail screen uses.
-  const fields = definition?.tracking ?? resolveTemplateFields(habit);
-  const commitment = getCommitmentField(definition);
-
-  // One field that IS the commitment is answerable from the promise. Anything
-  // beyond that is a form, and a form needs the sheet.
-  const unanswerable = fields.filter((f) => f.key !== commitment?.key);
-  if (unanswerable.length > 0) return { kind: 'sheet', reason: 'multi_metric' };
-
-  return { kind: 'quick' };
-};
 
 /**
  * The completion input for a one-tap log at the given resistance level.

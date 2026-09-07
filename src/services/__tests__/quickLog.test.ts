@@ -1,4 +1,4 @@
-import { buildQuickLogInput, quickLogEligibility } from '../quickLog';
+import { buildQuickLogInput } from '../quickLog';
 import { PracticeInstance } from '../../types';
 import { HabitDefinition } from '../../data/practices';
 
@@ -87,41 +87,57 @@ describe('buildQuickLogInput', () => {
   });
 });
 
-describe('quickLogEligibility', () => {
-  it('lets a plain check-in habit log in one tap', () => {
-    expect(quickLogEligibility(habit(), definition())).toEqual({ kind: 'quick' });
-  });
-
-  it('sends a timed practice to the sheet', () => {
-    // "How long" is the practice. A guessed duration is worse than none.
-    const def = definition({ flow: 'timer' });
-    expect(quickLogEligibility(habit(), def)).toEqual({ kind: 'sheet', reason: 'timer' });
-  });
-
-  it('allows one tap when the only field IS the commitment', () => {
-    const def = definition({ commitmentKey: 'water_oz', tracking: [waterField] });
-    expect(quickLogEligibility(habit(), def)).toEqual({ kind: 'quick' });
-  });
-
-  it('sends a habit asking for more than its commitment to the sheet', () => {
-    // A form needs the sheet; the commitment answers one amount, not several.
+describe('every habit is quick-loggable', () => {
+  // The gate that used to live here sent timed and multi-field habits to the
+  // capture sheet. It caught exactly the six curated practices seeded onto
+  // every home, so the exception became the rule on a real screen — a row of
+  // chips beside a bare chevron, for reasons no user could infer.
+  //
+  // A session is a route now, not a gate: the timer lives inside the card's
+  // expansion. These pin the consequence — a timed practice still produces a
+  // valid one-tap log, just without the duration nobody measured.
+  it('logs a timed practice without inventing a duration', () => {
     const def = definition({
-      commitmentKey: 'water_oz',
-      tracking: [waterField, { key: 'temp_f', label: 'How cold?', type: 'number' }],
+      flow: 'timer',
+      timer: true,
+      tracking: [{ key: 'duration_min', label: 'How long?', type: 'duration' }],
     });
-    expect(quickLogEligibility(habit(), def)).toEqual({ kind: 'sheet', reason: 'multi_metric' });
+    const input = buildQuickLogInput(habit({ name: 'Meditation' }), def, 3);
+
+    expect(input.resistance).toBe(3);
+    expect(input.logged_via).toBe('quick');
+    // No duration rather than a guessed one. The number is absent, not wrong.
+    expect(input.metrics).toBeUndefined();
   });
 
-  it('sends a habit with tracking but no commitment to the sheet', () => {
-    const def = definition({ tracking: [{ key: 'reps', label: 'How many?', type: 'number' }] });
-    expect(quickLogEligibility(habit(), def)).toEqual({ kind: 'sheet', reason: 'multi_metric' });
+  it('logs a dose practice without inventing either factor', () => {
+    const def = definition({
+      tracking: [
+        { key: 'duration_min', label: 'How long?', type: 'duration' },
+        { key: 'water_temp_f', label: 'How cold?', type: 'number' },
+      ],
+      dose: {
+        durationKey: 'duration_min',
+        magnitudeKey: 'water_temp_f',
+        baseline: 70,
+        direction: 'below',
+        title: 'Dose',
+        description: '',
+      },
+    });
+    expect(buildQuickLogInput(habit({ name: 'Cold Exposure' }), def, 2).metrics).toBeUndefined();
   });
 
-  it('resolves a custom habit’s preset rather than assuming it has none', () => {
-    // Without the template fallback, a custom habit with a "time" preset would
-    // be quick-logged and never asked how long.
-    const timed = habit({ created_by_user: true, template_id: 'time' });
-    expect(quickLogEligibility(timed, undefined).kind).toBe('sheet');
-    expect(quickLogEligibility(habit({ created_by_user: true }), undefined).kind).toBe('quick');
+  it('still fills a commitment on a habit that also runs a timer', () => {
+    // The two are unrelated: a commitment is a number the user chose, and it
+    // stands whether or not the practice has a session.
+    const def = definition({
+      timer: true,
+      commitmentKey: 'duration_min',
+      tracking: [{ key: 'duration_min', label: 'How long?', type: 'duration', default: 10 }],
+    });
+    const input = buildQuickLogInput(habit({ metric_goals: { duration_min: 15 } }), def, 1);
+    expect(input.metrics).toEqual({ duration_min: 15 });
+    expect(input.metrics_assumed).toBe(true);
   });
 });

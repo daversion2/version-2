@@ -17,17 +17,23 @@ interface Props {
   streak?: number;
   /** Open? Only one row is open at a time, so the list never becomes a wall. */
   expanded: boolean;
-  /** False for timed and multi-metric habits, which still need the sheet. */
-  canQuickLog: boolean;
   /** Does this habit have briefing content worth an "About" route? */
   hasAbout: boolean;
+  /**
+   * Does this habit run an in-app timer? Only changes what the expansion's log
+   * route is CALLED and which mode it opens — never whether the chips appear.
+   * Every habit can be logged in one tap; a session is an offer, not a toll.
+   */
+  hasSession: boolean;
 
   /** Open/close this row's panel. The card body's tap. */
   onToggleExpand: () => void;
   /** One-tap log at the pressed resistance level (1–3). */
   onQuickLog: (resistance: number) => void;
-  /** The full capture sheet — for sheet-only habits, and for adding notes. */
+  /** The capture sheet, compact — for adding notes or metrics to a rep. */
   onOpenSheet: () => void;
+  /** The guided flow, timer included. Only offered for habits that have one. */
+  onStartSession: () => void;
   /** Backfill a specific past day. */
   onLogDay: (date: string) => void;
   /** The briefing: what it is, what will try to stop you. */
@@ -90,11 +96,12 @@ export const TodayHabitRow: React.FC<Props> = ({
   today,
   streak = 0,
   expanded,
-  canQuickLog,
   hasAbout,
+  hasSession,
   onToggleExpand,
   onQuickLog,
   onOpenSheet,
+  onStartSession,
   onLogDay,
   onAbout,
   onDetails,
@@ -134,18 +141,17 @@ export const TodayHabitRow: React.FC<Props> = ({
         </TouchableOpacity>
 
         {/*
-          The action zone. Three states, and only ever one of them:
-
-            done      a tick, nothing to press
-            quick     three chips — the tap that logs is the tap that rates
-            sheet     a single control, because a timed or multi-field habit
-                      cannot be answered in one tap and should not pretend to be
+          The action zone. Every habit that isn't already done shows the same
+          three chips — the tap that logs is the tap that rates. Habits that run
+          a timer are no exception: their session is offered inside the
+          expansion, so timing a practice stays possible without being the toll
+          for admitting you did it.
         */}
         {isDone ? (
           <View style={[styles.doneMark, { backgroundColor: accentColor }]}>
             <Ionicons name="checkmark" size={17} color={Colors.white} />
           </View>
-        ) : canQuickLog ? (
+        ) : (
           <View style={styles.chips}>
             {RESISTANCE_LEVELS.map((level, i) => (
               <TouchableOpacity
@@ -161,16 +167,6 @@ export const TodayHabitRow: React.FC<Props> = ({
               </TouchableOpacity>
             ))}
           </View>
-        ) : (
-          <TouchableOpacity
-            onPress={onOpenSheet}
-            hitSlop={8}
-            style={[styles.sheetBtn, { borderColor: accentColor }]}
-            accessibilityRole="button"
-            accessibilityLabel={`Log ${name}`}
-          >
-            <Ionicons name="chevron-forward" size={18} color={accentColor} />
-          </TouchableOpacity>
         )}
       </View>
 
@@ -243,10 +239,17 @@ export const TodayHabitRow: React.FC<Props> = ({
                 <Text style={styles.routeText}>About</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.route} onPress={onOpenSheet} activeOpacity={0.7}>
-              <Ionicons name="create-outline" size={14} color={Colors.gray} />
-              <Text style={styles.routeText}>Log with notes</Text>
-            </TouchableOpacity>
+            {hasSession ? (
+              <TouchableOpacity style={styles.route} onPress={onStartSession} activeOpacity={0.7}>
+                <Ionicons name="timer-outline" size={14} color={Colors.gray} />
+                <Text style={styles.routeText}>Start timer</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.route} onPress={onOpenSheet} activeOpacity={0.7}>
+                <Ionicons name="create-outline" size={14} color={Colors.gray} />
+                <Text style={styles.routeText}>Log with notes</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.route} onPress={onDetails} activeOpacity={0.7}>
               <Ionicons name="stats-chart-outline" size={14} color={Colors.gray} />
               <Text style={styles.routeText}>History</Text>
@@ -329,15 +332,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: Spacing.sm,
-  },
-  sheetBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: Spacing.sm,
