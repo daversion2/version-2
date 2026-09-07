@@ -545,17 +545,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const todayStr = getTodayString();
 
   /**
-   * The guided flow — the timer for practices that have one. Distinct from
-   * handleHabitLogIt, which opens the same sheet in its compact "already did it"
-   * mode. `logOnly: false` is the whole difference.
-   */
-  const handleHabitStartSession = useCallback((habit: PracticeInstance) => {
-    setCompletingLogOnly(false);
-    setCompletingDate(undefined);
-    setCompletingHabit(habit);
-  }, []);
-
-  /**
    * One tap on a resistance chip. The chip IS the rating, so nothing is
    * inferred except the amount the habit already committed to — see
    * services/quickLog.ts.
@@ -660,13 +649,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   streak={habitStreaks[habit.id]?.currentStreak ?? 0}
                   expanded={expandedHabitId === habit.id}
                   hasAbout={!!definition?.ready}
-                  hasSession={!!definition?.timer}
                   onToggleExpand={() =>
                     setExpandedHabitId((prev) => (prev === habit.id ? null : habit.id))
                   }
                   onQuickLog={(resistance) => handleQuickLog(habit, resistance)}
                   onOpenSheet={() => handleHabitLogIt(habit)}
-                  onStartSession={() => handleHabitStartSession(habit)}
                   onLogDay={(date) => handleHabitLogIt(habit, date)}
                   onAbout={() => setBriefingHabit(habit)}
                   onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
@@ -805,7 +792,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // resistance and silently never ask for its metric.
         templateId={completingHabit?.template_id}
         metricGoals={completingHabit?.metric_goals}
-        actionPlan={completingHabit?.action_plan}
         logOnly={completingLogOnly}
         initialDate={completingDate}
         onSubmit={handleHabitComplete}

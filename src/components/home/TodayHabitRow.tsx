@@ -19,12 +19,6 @@ interface Props {
   expanded: boolean;
   /** Does this habit have briefing content worth an "About" route? */
   hasAbout: boolean;
-  /**
-   * Does this habit run an in-app timer? Only changes what the expansion's log
-   * route is CALLED and which mode it opens — never whether the chips appear.
-   * Every habit can be logged in one tap; a session is an offer, not a toll.
-   */
-  hasSession: boolean;
 
   /** Open/close this row's panel. The card body's tap. */
   onToggleExpand: () => void;
@@ -32,8 +26,6 @@ interface Props {
   onQuickLog: (resistance: number) => void;
   /** The capture sheet, compact — for adding notes or metrics to a rep. */
   onOpenSheet: () => void;
-  /** The guided flow, timer included. Only offered for habits that have one. */
-  onStartSession: () => void;
   /** Backfill a specific past day. */
   onLogDay: (date: string) => void;
   /** The briefing: what it is, what will try to stop you. */
@@ -97,11 +89,9 @@ export const TodayHabitRow: React.FC<Props> = ({
   streak = 0,
   expanded,
   hasAbout,
-  hasSession,
   onToggleExpand,
   onQuickLog,
   onOpenSheet,
-  onStartSession,
   onLogDay,
   onAbout,
   onDetails,
@@ -142,10 +132,10 @@ export const TodayHabitRow: React.FC<Props> = ({
 
         {/*
           The action zone. Every habit that isn't already done shows the same
-          three chips — the tap that logs is the tap that rates. Habits that run
-          a timer are no exception: their session is offered inside the
-          expansion, so timing a practice stays possible without being the toll
-          for admitting you did it.
+          three chips — the tap that logs is the tap that rates. There is no
+          second kind of row: the in-app timer that used to make meditation and
+          breathwork different is gone, and how long you sat is now a number the
+          capture sheet asks for like any other.
         */}
         {isDone ? (
           <View style={[styles.doneMark, { backgroundColor: accentColor }]}>
@@ -239,17 +229,10 @@ export const TodayHabitRow: React.FC<Props> = ({
                 <Text style={styles.routeText}>About</Text>
               </TouchableOpacity>
             )}
-            {hasSession ? (
-              <TouchableOpacity style={styles.route} onPress={onStartSession} activeOpacity={0.7}>
-                <Ionicons name="timer-outline" size={14} color={Colors.gray} />
-                <Text style={styles.routeText}>Start timer</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.route} onPress={onOpenSheet} activeOpacity={0.7}>
-                <Ionicons name="create-outline" size={14} color={Colors.gray} />
-                <Text style={styles.routeText}>Log with notes</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.route} onPress={onOpenSheet} activeOpacity={0.7}>
+              <Ionicons name="create-outline" size={14} color={Colors.gray} />
+              <Text style={styles.routeText}>Log with notes</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.route} onPress={onDetails} activeOpacity={0.7}>
               <Ionicons name="stats-chart-outline" size={14} color={Colors.gray} />
               <Text style={styles.routeText}>History</Text>

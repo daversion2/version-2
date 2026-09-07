@@ -1050,7 +1050,7 @@ export const SUPERSEDED_HABIT_IDS: Record<string, string> = {
 };
 
 /**
- * Every bundled habit definition: the 9 rich ones above plus the 42-habit library,
+ * Every bundled habit definition: the 9 rich ones above plus the 43-habit library,
  * minus the superseded duplicates. This is the single catalog — there is no longer
  * a separate "practices" list and "habits" list.
  */

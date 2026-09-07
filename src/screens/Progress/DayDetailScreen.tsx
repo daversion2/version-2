@@ -286,7 +286,6 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         visible={!!capturing}
         habitName={capturing?.habit.name || ''}
         practiceId={capturing?.habit.practice_id}
-        actionPlan={capturing?.habit.action_plan}
         logOnly
         initialDate={date}
         lockDate

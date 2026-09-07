@@ -21,9 +21,9 @@ import { buildPracticePerformance } from '../../services/practicePerformance';
 
 describe('unified habit catalog', () => {
   it('merges the curated practices and the habit library into one catalog', () => {
-    // 9 practices + 42 library habits - 6 superseded duplicates.
+    // 9 practices + 43 library habits - 6 superseded duplicates.
     expect(BUNDLED_HABIT_DEFINITIONS.length).toBe(
-      BUNDLED_PRACTICES.length + 42 - Object.keys(SUPERSEDED_HABIT_IDS).length
+      BUNDLED_PRACTICES.length + 43 - Object.keys(SUPERSEDED_HABIT_IDS).length
     );
   });
 

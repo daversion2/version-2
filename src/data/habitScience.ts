@@ -83,6 +83,19 @@ export const HABIT_SCIENCE: Record<string, HabitScienceEntry> = {
   },
 
   // ─── Movement ─────────────────────────────────────────────────────────────
+  // No `research` array by design — the mechanisms below are well established,
+  // but no specific study was verified for this entry. See the citation policy.
+  'workout': {
+    whyItWorks:
+      'The training effect comes from the part you wanted to skip. Effort you chose, not effort that happened to you, is what adapts.',
+    science:
+      'Hard physical work is a stressor the body answers by rebuilding above where it started — stronger muscle, denser mitochondria, a heart that moves more blood per beat. That answer is triggered by load near your current limit, which is why the last part of a session, the part you have to decide to finish, does most of the work. The same session pays a second time in the head: acute exercise raises norepinephrine and BDNF, which support focus and learning for hours afterwards, and the deliberate act of choosing effort over comfort rehearses exactly the override you are trying to strengthen everywhere else.',
+    tips: [
+      'Four ordinary sessions beat one heroic one. Consistency is the variable that compounds.',
+      'The urge to cut it short usually peaks early. Getting to the warm-up is most of the decision.',
+      'Any modality counts — the override is choosing effort, not choosing a particular sport.',
+    ],
+  },
   'trad-10k-steps': {
     whyItWorks:
       'The benefit curve starts far below 10,000 and rises steeply at the bottom — the first few thousand steps do most of the work.',

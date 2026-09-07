@@ -67,6 +67,14 @@ export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
       record: { label: 'Longest session', icon: 'barbell-outline' },
     },
   },
+  'workout': {
+    prompt: 'How long each session?',
+    field: {
+      key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min',
+      min: 10, max: 120, step: 5, default: 45,
+      record: { label: 'Longest session', icon: 'barbell-outline' },
+    },
+  },
   'cook-real-meal': {
     prompt: 'How many meals a day?',
     field: {

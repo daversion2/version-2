@@ -59,6 +59,23 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     identity: "I'm someone who moves my body, no matter the week.",
   },
   {
+    id: 'workout',
+    name: 'Workout',
+    category_id: 'Body',
+    arena_id: 'physical_discomfort',
+    description: 'A real training session — lift, run, row, or a class. Not a walk you talked yourself into calling a workout: effort you have to decide to keep giving.',
+    suggested_target_per_week: 4,
+    action_plan: {
+      anchor: 'finish work for the day',
+      pairing: 'a training playlist',
+      environment_change: 'Pack the bag the night before and leave it by the door; put the session in the calendar as a fixed slot',
+      obstacle_plan: "If I can't make the gym, I do a 20-minute session at home rather than write the day off",
+      minimum_version: 'One hard set, or ten minutes of real effort',
+      accountability_person: '',
+    },
+    identity: "I'm someone who trains.",
+  },
+  {
     id: 'morning-daylight',
     name: 'Get outside in the morning',
     category_id: 'Body',
