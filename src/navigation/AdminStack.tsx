@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AdminStackParamList } from '../types/navigation';
@@ -20,6 +20,7 @@ import { AdminMicroExerciseEditScreen } from '../screens/Admin/AdminMicroExercis
 import { AdminPracticesScreen } from '../screens/Admin/AdminPracticesScreen';
 import { AdminPracticeEditScreen } from '../screens/Admin/AdminPracticeEditScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
@@ -45,7 +46,7 @@ export const AdminStack: React.FC = () => (
         headerLeft: () => (
           <TouchableOpacity
             onPress={() => navigation.getParent()?.goBack()}
-            hitSlop={12}
+            style={styles.headerButton}
             accessibilityRole="button"
             accessibilityLabel="Back to settings"
           >
@@ -131,3 +132,14 @@ export const AdminStack: React.FC = () => (
     />
   </Stack.Navigator>
 );
+
+const styles = StyleSheet.create({
+  // Fixed square so the glyph sits centred inside the Liquid Glass capsule iOS
+  // 26 draws behind every bar button item. See components/common/ScreenIntro.
+  headerButton: {
+    width: HEADER_BUTTON_SIZE,
+    height: HEADER_BUTTON_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

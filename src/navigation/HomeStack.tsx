@@ -38,6 +38,7 @@ import { MicroExerciseCompleteScreen } from '../screens/MicroExercise/MicroExerc
 import { MicroExerciseFollowUpScreen } from '../screens/MicroExercise/MicroExerciseFollowUpScreen';
 import { CravingCrusherScreen } from '../screens/Home/CravingCrusherScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
 
 const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
@@ -71,10 +72,13 @@ export const HomeStack: React.FC = () => (
         // Shortcut to the Library TAB, not the copy of the library that also
         // lives in this stack — otherwise there would be two independent
         // instances of the same screen with separate scroll and search state.
+        // The square frame centres the glyph inside the Liquid Glass capsule
+        // iOS 26 draws behind every bar button item — see ScreenIntroButton for
+        // why the capsule itself cannot be removed from JS.
         headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.getParent()?.navigate('Library')}
-            hitSlop={12}
+            style={styles.headerButton}
             accessibilityRole="button"
             accessibilityLabel="Browse the habit library"
           >
@@ -262,6 +266,12 @@ export const HomeStack: React.FC = () => (
 );
 
 const styles = StyleSheet.create({
+  headerButton: {
+    width: HEADER_BUTTON_SIZE,
+    height: HEADER_BUTTON_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerBg: {
     flex: 1,
     backgroundColor: '#FBFBFB',

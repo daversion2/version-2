@@ -11,6 +11,7 @@ import { YourStoryLandingScreen } from '../screens/YourStory/YourStoryLandingScr
 import { AddProofPointScreen } from '../screens/YourStory/AddProofPointScreen';
 import { ProofPointLibraryScreen } from '../screens/YourStory/ProofPointLibraryScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
 
 const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
@@ -39,7 +40,9 @@ export const WorksheetsStack: React.FC = () => (
         headerRight: () => (
           <TouchableOpacity
             onPress={() => navigation.navigate('WorksheetHistory')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.headerButton}
+            accessibilityRole="button"
+            accessibilityLabel="Worksheet history"
           >
             <Ionicons name="time-outline" size={24} color={Colors.primary} />
           </TouchableOpacity>
@@ -80,6 +83,14 @@ export const WorksheetsStack: React.FC = () => (
 );
 
 const styles = StyleSheet.create({
+  // Fixed square so the glyph sits centred inside the Liquid Glass capsule iOS
+  // 26 draws behind every bar button item. See components/common/ScreenIntro.
+  headerButton: {
+    width: HEADER_BUTTON_SIZE,
+    height: HEADER_BUTTON_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerLogo: {
     width: 32,
     height: 32,
