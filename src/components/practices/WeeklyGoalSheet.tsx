@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { SchedulePicker } from '../common/SchedulePicker';
 import {
   HabitSchedule,
-  WEEKDAY_LABELS,
-  WEEK_DISPLAY_ORDER,
-  Weekday,
+  defaultScheduleForTarget,
+  isScheduleValid,
 } from '../../services/habitSchedule';
 
-const MIN_TARGET = 1;
-const MAX_TARGET = 7;
+/**
+ * A habit that never had a goal opens on the app-wide default rather than on
+ * "0× a week" with the save button dead — a sheet whose first job is to make
+ * the user fix a zero is a sheet that explains nothing. Nothing is written
+ * until they press Save.
+ */
+const seed = (schedule: HabitSchedule): HabitSchedule =>
+  isScheduleValid(schedule) ? schedule : defaultScheduleForTarget();
 
 interface WeeklyGoalSheetProps {
   visible: boolean;
@@ -23,27 +28,14 @@ interface WeeklyGoalSheetProps {
   onClose: () => void;
 }
 
-const COUNT_PRESETS: { label: string; value: number }[] = [
-  { label: '3×', value: 3 },
-  { label: '5×', value: 5 },
-  { label: 'Daily', value: 7 },
-];
-
-const DAY_PRESETS: { label: string; days: Weekday[] }[] = [
-  { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
-  { label: 'Weekends', days: [0, 6] },
-  { label: 'Every day', days: [0, 1, 2, 3, 4, 5, 6] },
-];
-
 /**
- * Bottom sheet for a practice's schedule.
+ * Bottom sheet for a practice's schedule — the EDIT-AFTER-THE-FACT surface.
  *
- * Two modes, because the two are genuinely different promises. "4× a week"
- * leaves the days to you and can only ever be judged at the end of the week;
- * "Mon, Wed & Fri" names them, which is what makes a missed day a fact rather
- * than a projection — and what lets the reminder fire only on days you actually
- * claimed. Writes through setHabitSchedule, which keeps the weekly target and
- * the days in agreement.
+ * The control inside is the same SchedulePicker that onboarding, the library
+ * and the custom-habit form use, so changing a schedule a month later offers
+ * exactly the promises that were available when the habit was created. Saving
+ * goes through setHabitSchedule, which keeps the weekly target and the days in
+ * agreement.
  */
 export const WeeklyGoalSheet: React.FC<WeeklyGoalSheetProps> = ({
   visible,
@@ -52,39 +44,22 @@ export const WeeklyGoalSheet: React.FC<WeeklyGoalSheetProps> = ({
   onSave,
   onClose,
 }) => {
-  const [mode, setMode] = useState<HabitSchedule['kind']>(initialSchedule.kind);
-  const [target, setTarget] = useState(
-    initialSchedule.kind === 'count' ? initialSchedule.target : 3
-  );
-  const [days, setDays] = useState<Weekday[]>(
-    initialSchedule.kind === 'days' ? initialSchedule.days : []
-  );
+  const [schedule, setSchedule] = useState<HabitSchedule>(() => seed(initialSchedule));
 
   // Re-seed when the sheet (re)opens for a (different) practice.
   useEffect(() => {
     if (!visible) return;
-    setMode(initialSchedule.kind);
-    setTarget(clamp(initialSchedule.kind === 'count' ? initialSchedule.target : 3));
-    setDays(initialSchedule.kind === 'days' ? initialSchedule.days : []);
+    setSchedule(seed(initialSchedule));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const dec = () => setTarget((v) => clamp(v - 1));
-  const inc = () => setTarget((v) => clamp(v + 1));
-
-  const toggleDay = (day: Weekday) =>
-    setDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b)
-    );
-
-  // A day-scheduled habit with no days is a habit that is never due. Saving is
-  // blocked rather than silently falling back to a count, which would discard
-  // the mode the user just picked.
-  const canSave = mode === 'count' || days.length > 0;
+  // A habit with no days is a habit that is never due, and a target of zero is
+  // no goal at all. Saving is blocked rather than silently falling back.
+  const canSave = isScheduleValid(schedule);
 
   const handleSave = () => {
     if (!canSave) return;
-    onSave(mode === 'days' ? { kind: 'days', days } : { kind: 'count', target: clamp(target) });
+    onSave(schedule);
     onClose();
   };
 
@@ -99,136 +74,16 @@ export const WeeklyGoalSheet: React.FC<WeeklyGoalSheetProps> = ({
             change this anytime.
           </Text>
 
-          {/* Mode switch */}
-          <View style={styles.modeRow}>
-            {(
-              [
-                { kind: 'count', label: 'Times a week' },
-                { kind: 'days', label: 'Specific days' },
-              ] as const
-            ).map((option) => {
-              const on = mode === option.kind;
-              return (
-                <TouchableOpacity
-                  key={option.kind}
-                  style={[styles.modeBtn, on && styles.modeBtnOn]}
-                  onPress={() => setMode(option.kind)}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
-                >
-                  <Text style={[styles.modeText, on && styles.modeTextOn]}>{option.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {mode === 'count' ? (
-            <>
-              {/* Stepper */}
-              <View style={styles.stepper}>
-                <TouchableOpacity
-                  style={[styles.step, target <= MIN_TARGET && styles.stepDisabled]}
-                  onPress={dec}
-                  disabled={target <= MIN_TARGET}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="remove"
-                    size={26}
-                    color={target <= MIN_TARGET ? Colors.border : Colors.primary}
-                  />
-                </TouchableOpacity>
-
-                <View style={styles.valueBox}>
-                  <Text style={styles.valueNum}>{target}</Text>
-                  <Text style={styles.valueUnit}>
-                    {target === 7 ? 'every day' : 'times / week'}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.step, target >= MAX_TARGET && styles.stepDisabled]}
-                  onPress={inc}
-                  disabled={target >= MAX_TARGET}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="add"
-                    size={26}
-                    color={target >= MAX_TARGET ? Colors.border : Colors.primary}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Presets */}
-              <View style={styles.presets}>
-                {COUNT_PRESETS.map((p) => {
-                  const on = target === p.value;
-                  return (
-                    <TouchableOpacity
-                      key={p.value}
-                      style={[styles.preset, on && styles.presetOn]}
-                      onPress={() => setTarget(p.value)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.presetText, on && styles.presetTextOn]}>{p.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.modeNote}>
-                Any days you like — the week is what counts.
-              </Text>
-            </>
-          ) : (
-            <>
-              <View style={styles.dayRow}>
-                {WEEK_DISPLAY_ORDER.map((day) => {
-                  const on = days.includes(day);
-                  return (
-                    <TouchableOpacity
-                      key={day}
-                      style={[styles.dayChip, on && styles.dayChipOn]}
-                      onPress={() => toggleDay(day)}
-                      activeOpacity={0.7}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: on }}
-                      accessibilityLabel={WEEKDAY_LABELS[day]}
-                    >
-                      <Text style={[styles.dayChipText, on && styles.dayChipTextOn]}>
-                        {WEEKDAY_LABELS[day][0]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <View style={styles.presets}>
-                {DAY_PRESETS.map((p) => {
-                  const on =
-                    p.days.length === days.length && p.days.every((d) => days.includes(d));
-                  return (
-                    <TouchableOpacity
-                      key={p.label}
-                      style={[styles.preset, on && styles.presetOn]}
-                      onPress={() => setDays(p.days)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.presetText, on && styles.presetTextOn]}>{p.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={styles.modeNote}>
-                {days.length === 0
-                  ? 'Pick at least one day.'
-                  : `${days.length} ${days.length === 1 ? 'day' : 'days'} a week. Missing one counts as a miss — and reminders only fire on these days.`}
-              </Text>
-            </>
-          )}
+          <SchedulePicker
+            schedule={schedule}
+            onChange={setSchedule}
+            style={styles.picker}
+            helper={
+              schedule.kind === 'days'
+                ? 'Missing one counts as a miss — and reminders only fire on these days.'
+                : 'Any days you like — the week is what counts.'
+            }
+          />
 
           <TouchableOpacity
             style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
@@ -243,8 +98,6 @@ export const WeeklyGoalSheet: React.FC<WeeklyGoalSheetProps> = ({
     </Modal>
   );
 };
-
-const clamp = (n: number) => Math.min(Math.max(Math.round(n) || MIN_TARGET, MIN_TARGET), MAX_TARGET);
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
@@ -273,85 +126,7 @@ const styles = StyleSheet.create({
   },
   bold: { fontFamily: Fonts.secondaryBold, color: Colors.dark },
 
-  modeRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    padding: 4,
-    marginTop: Spacing.lg,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.lightGray,
-  },
-  modeBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-  },
-  modeBtnOn: { backgroundColor: Colors.white },
-  modeText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.gray },
-  modeTextOn: { color: Colors.primary },
-  modeNote: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: Spacing.lg,
-  },
-
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xl,
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.sm,
-  },
-  step: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepDisabled: { borderColor: Colors.border },
-  valueBox: { alignItems: 'center', minWidth: 110 },
-  valueNum: { fontFamily: Fonts.primaryBold, fontSize: 44, color: Colors.dark, lineHeight: 48 },
-  valueUnit: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 2 },
-
-  dayRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-    marginTop: Spacing.xl,
-  },
-  dayChip: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayChipOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  dayChipText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.gray },
-  dayChipTextOn: { color: Colors.white },
-
-  presets: { flexDirection: 'row', gap: Spacing.sm, justifyContent: 'center', marginTop: Spacing.lg, marginBottom: Spacing.md },
-  preset: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.lightGray,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  presetOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  presetText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.gray },
-  presetTextOn: { color: Colors.white },
+  picker: { marginTop: Spacing.lg, marginBottom: Spacing.lg },
 
   saveBtn: {
     backgroundColor: Colors.primary,

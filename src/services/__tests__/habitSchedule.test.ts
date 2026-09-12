@@ -1,11 +1,15 @@
 import {
+  HabitSchedule,
   WEEKDAY_LABELS,
   allowedRestDays,
+  defaultScheduleForTarget,
   describeSchedule,
   dueDatesBetween,
   isDayScheduled,
   isDueOn,
+  scheduleFields,
   scheduledDays,
+  switchScheduleKind,
   toExpoWeekday,
   weeklyTarget,
 } from '../habitSchedule';
@@ -129,5 +133,70 @@ describe('describeSchedule', () => {
     expect(describeSchedule({ target_count_per_week: 4 })).toBe('4× a week');
     expect(describeSchedule({ target_count_per_week: 7 })).toBe('Every day');
     expect(describeSchedule({ target_count_per_week: 0 })).toBe('No weekly goal set');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// EDITING A SCHEDULE — the rules the picker renders. Four screens now choose a
+// schedule (onboarding, the library, the custom-habit form, the edit sheet);
+// these are what keep them from disagreeing.
+// ---------------------------------------------------------------------------
+
+describe('defaultScheduleForTarget', () => {
+  it('opens on named days, spread from the suggested target', () => {
+    expect(defaultScheduleForTarget(5)).toEqual({ kind: 'days', days: [1, 2, 3, 4, 5] });
+  });
+
+  it('falls back to a three-day week when nothing is suggested', () => {
+    const schedule = defaultScheduleForTarget();
+    expect(schedule.kind).toBe('days');
+    expect(schedule.kind === 'days' && schedule.days).toHaveLength(3);
+  });
+});
+
+describe('switchScheduleKind', () => {
+  it('carries the size of the commitment from a count into days', () => {
+    const next = switchScheduleKind({ kind: 'count', target: 4 }, 'days');
+    expect(next.kind).toBe('days');
+    expect(next.kind === 'days' && next.days).toHaveLength(4);
+  });
+
+  it('carries the day COUNT back into a weekly target', () => {
+    expect(switchScheduleKind({ kind: 'days', days: [1, 3, 5] }, 'count')).toEqual({
+      kind: 'count',
+      target: 3,
+    });
+  });
+
+  it('is a no-op when the kind already matches', () => {
+    const schedule: HabitSchedule = { kind: 'days', days: [1, 3] };
+    expect(switchScheduleKind(schedule, 'days')).toBe(schedule);
+  });
+});
+
+describe('scheduleFields', () => {
+  // The whole point: the count and the days are written together, so no
+  // creation screen can produce a habit due three days a week with a target of
+  // five. setHabitSchedule guarantees this for edits; this guarantees it for
+  // creation, where there is no document to update yet.
+  it('derives the weekly target from the days, sorted and deduped', () => {
+    expect(scheduleFields({ kind: 'days', days: [5, 1, 3, 1] })).toEqual({
+      target_count_per_week: 3,
+      scheduled_days: [1, 3, 5],
+    });
+  });
+
+  it('leaves scheduled_days undefined for a count, so the field is never written', () => {
+    expect(scheduleFields({ kind: 'count', target: 4 })).toEqual({
+      target_count_per_week: 4,
+      scheduled_days: undefined,
+    });
+  });
+
+  it('round-trips through every schedule reader', () => {
+    const fields = scheduleFields({ kind: 'days', days: [1, 3, 5] });
+    expect(isDayScheduled(fields)).toBe(true);
+    expect(weeklyTarget(fields)).toBe(3);
+    expect(describeSchedule(fields)).toBe('Mon, Wed & Fri');
   });
 });

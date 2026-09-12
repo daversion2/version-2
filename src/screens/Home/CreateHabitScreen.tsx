@@ -13,20 +13,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
+import { SchedulePicker } from '../../components/common/SchedulePicker';
 import { useAuth } from '../../context/AuthContext';
 import { createHabit } from '../../services/practices';
+import {
+  HabitSchedule,
+  defaultScheduleForTarget,
+  isScheduleValid,
+  scheduleFields,
+} from '../../services/habitSchedule';
 import { HABIT_CATEGORIES } from '../../data/habitLibrary';
 import { HABIT_TEMPLATE_PRESETS } from '../../data/habitTemplates';
 import { showAlert } from '../../utils/alert';
 
 type Props = HomeScreenProps<'CreateHabit'>;
 
-const TARGETS = [1, 2, 3, 4, 5, 6, 7];
-
 /**
  * Create a habit of your own.
  *
- * DELIBERATELY MINIMAL: name, category, weekly target, template. The action
+ * DELIBERATELY MINIMAL: name, category, schedule, template. The action
  * plan (anchor, environment tweak, obstacle plan) is where the behaviour-change
  * substance lives, but it is five more fields on a form — and a form people
  * abandon creates no habits at all. It is added afterwards from the habit's own
@@ -37,11 +42,13 @@ export const CreateHabitScreen: React.FC<Props> = ({ navigation }) => {
 
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState<string>(HABIT_CATEGORIES[0]?.id ?? 'Body');
-  const [target, setTarget] = useState(3);
+  // Opens on named days, same as onboarding and the library — see
+  // defaultScheduleForTarget for why days rather than a count.
+  const [schedule, setSchedule] = useState<HabitSchedule>(() => defaultScheduleForTarget());
   const [templateId, setTemplateId] = useState<string>('none');
   const [saving, setSaving] = useState(false);
 
-  const canSave = name.trim().length > 0 && !saving;
+  const canSave = name.trim().length > 0 && isScheduleValid(schedule) && !saving;
 
   const handleCreate = async () => {
     if (!user || !canSave) return;
@@ -50,7 +57,9 @@ export const CreateHabitScreen: React.FC<Props> = ({ navigation }) => {
       const habitId = await createHabit(user.uid, {
         name: name.trim(),
         category_id: categoryId,
-        target_count_per_week: target,
+        // Writes target_count_per_week and scheduled_days together, so the two
+        // can't disagree. See services/habitSchedule.scheduleFields.
+        ...scheduleFields(schedule),
         // 'none' means no template. Storing it would be a lie the completion
         // flow then has to interpret, so it is simply omitted.
         template_id: templateId === 'none' ? undefined : templateId,
@@ -115,22 +124,16 @@ export const CreateHabitScreen: React.FC<Props> = ({ navigation }) => {
           })}
         </View>
 
-        <Text style={styles.label}>How many times a week?</Text>
-        <View style={styles.chipWrap}>
-          {TARGETS.map((n) => {
-            const active = n === target;
-            return (
-              <TouchableOpacity
-                key={n}
-                style={[styles.numChip, active && styles.numChipActive]}
-                onPress={() => setTarget(n)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{n}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <Text style={styles.label}>When?</Text>
+        <SchedulePicker
+          schedule={schedule}
+          onChange={setSchedule}
+          helper={
+            schedule.kind === 'days'
+              ? 'Naming the days is the stronger promise — a reminder fires only on these, and missing one counts as a miss.'
+              : 'Any days you like — the week is what counts.'
+          }
+        />
 
         <Text style={styles.label}>What do you want to track?</Text>
         <Text style={styles.hint}>
@@ -221,17 +224,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     backgroundColor: Colors.white,
   },
-  numChip: {
-    minWidth: 44,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-  },
-  numChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark },
   chipTextActive: { color: Colors.white, fontFamily: Fonts.primaryBold },
   templateList: { gap: Spacing.sm },

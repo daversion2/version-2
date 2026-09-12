@@ -5,22 +5,13 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { ANCHORS, defaultTimeForAnchor, findAnchorByPhrase } from '../../data/anchors';
 import { HabitDefinition, getCommitmentField } from '../../data/practices';
 import {
-  HabitSchedule,
-  WEEKDAY_LABELS,
-  WEEK_DISPLAY_ORDER,
-  Weekday,
-  describeSchedule,
-} from '../../services/habitSchedule';
-import {
   FALLBACK_REMINDER_TIME,
   HabitSetupDraft,
-  defaultDaysForTarget,
   describePromise,
-  draftSchedulable,
   formatReminderTime,
   stepAmount,
-  toggleDay,
 } from '../../services/onboardingSetup';
+import { SchedulePicker } from '../common/SchedulePicker';
 import { ob } from './onboardingStyles';
 
 // ============================================================================
@@ -53,9 +44,6 @@ const timeToDate = (hhmm: string): Date => {
   return new Date(2000, 0, 1, Number.isNaN(h) ? 9 : h, Number.isNaN(m) ? 0 : m);
 };
 
-const MIN_COUNT = 1;
-const MAX_COUNT = 7;
-
 export const OnboardingPromise: React.FC<Props> = ({ definition, draft, onChange }) => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const commitment = getCommitmentField(definition);
@@ -65,39 +53,6 @@ export const OnboardingPromise: React.FC<Props> = ({ definition, draft, onChange
   const onAmountStep = (direction: 1 | -1) => {
     if (typeof draft.amount !== 'number') return;
     patch({ amount: stepAmount(definition, draft.amount, direction) });
-  };
-
-  const setMode = (kind: HabitSchedule['kind']) => {
-    if (kind === draft.schedule.kind) return;
-    // Carry the size of the commitment across the switch rather than resetting
-    // it — the user picked "five" once and shouldn't have to pick it again.
-    // Days come from defaultDaysForTarget so switching to "specific days" gives
-    // a spread week rather than Mon–Wed.
-    patch({
-      schedule:
-        kind === 'days'
-          ? {
-              kind: 'days',
-              days: defaultDaysForTarget(
-                draft.schedule.kind === 'count' ? draft.schedule.target : 3
-              ),
-            }
-          : {
-              kind: 'count',
-              target: draft.schedule.kind === 'days' ? draft.schedule.days.length : 3,
-            },
-    });
-  };
-
-  const onToggleDay = (day: Weekday) => {
-    if (draft.schedule.kind !== 'days') return;
-    patch({ schedule: { kind: 'days', days: toggleDay(draft.schedule.days, day) } });
-  };
-
-  const onCountStep = (direction: 1 | -1) => {
-    if (draft.schedule.kind !== 'count') return;
-    const target = Math.max(MIN_COUNT, Math.min(MAX_COUNT, draft.schedule.target + direction));
-    patch({ schedule: { kind: 'count', target } });
   };
 
   const onPickAnchor = (phrase: string) => {
@@ -164,71 +119,20 @@ export const OnboardingPromise: React.FC<Props> = ({ definition, draft, onChange
         )}
       </View>
 
-      {/* ---- Which days? -------------------------------------------------- */}
+      {/* ---- Which days? --------------------------------------------------
+          The same control the library, the custom-habit form and the edit
+          sheet use — dressed in onboarding's own choice styling, but the same
+          component, so the first habit is promised the way every later one is.
+          Presets stay off here: this beat is already four questions deep. */}
       <View style={ob.field}>
         <Text style={ob.label}>Which days?</Text>
-        <View style={styles.modes}>
-          {(['days', 'count'] as const).map((kind) => {
-            const on = draft.schedule.kind === kind;
-            return (
-              <TouchableOpacity
-                key={kind}
-                style={[styles.mode, ob.choice, on && ob.choiceOn]}
-                onPress={() => setMode(kind)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-              >
-                <Text style={[styles.modeText, on && styles.modeTextOn]}>
-                  {kind === 'days' ? 'Specific days' : 'A number each week'}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {draft.schedule.kind === 'days' ? (
-          <View style={styles.days}>
-            {WEEK_DISPLAY_ORDER.map((day) => {
-              const on = draft.schedule.kind === 'days' && draft.schedule.days.includes(day);
-              return (
-                <TouchableOpacity
-                  key={day}
-                  style={[styles.day, on && styles.dayOn]}
-                  onPress={() => onToggleDay(day)}
-                  accessibilityRole="button"
-                  accessibilityLabel={WEEKDAY_LABELS[day]}
-                  accessibilityState={{ selected: on }}
-                >
-                  <Text style={[styles.dayText, on && styles.dayTextOn]}>
-                    {WEEKDAY_LABELS[day].charAt(0)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={styles.stepper}>
-            <TouchableOpacity
-              style={styles.stepButton}
-              onPress={() => onCountStep(-1)}
-              accessibilityLabel="Fewer"
-            >
-              <Text style={styles.stepButtonText}>−</Text>
-            </TouchableOpacity>
-            <Text style={styles.stepValue}>{draft.schedule.target}</Text>
-            <Text style={styles.stepUnit}>× a week</Text>
-            <TouchableOpacity
-              style={[styles.stepButton, { marginLeft: 'auto' }]}
-              onPress={() => onCountStep(1)}
-              accessibilityLabel="More"
-            >
-              <Text style={styles.stepButtonText}>+</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-        <Text style={[ob.helper, styles.helperSpaced]}>
-          {describeSchedule(draftSchedulable(draft))}
-        </Text>
+        <SchedulePicker
+          schedule={draft.schedule}
+          onChange={(schedule) => patch({ schedule })}
+          showPresets={false}
+          modeStyle={ob.choice}
+          modeStyleOn={ob.choiceOn}
+        />
       </View>
 
       {/* ---- After what? -------------------------------------------------- */}
@@ -346,25 +250,6 @@ const styles = StyleSheet.create({
     minWidth: 56,
   },
   stepUnit: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, marginLeft: -Spacing.sm },
-
-  modes: { flexDirection: 'row', gap: Spacing.xs, marginBottom: Spacing.sm },
-  mode: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  modeText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
-  modeTextOn: { color: Colors.primary },
-
-  days: { flexDirection: 'row', gap: Spacing.xs },
-  day: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dayOn: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  dayText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
-  dayTextOn: { color: Colors.white },
 
   anchors: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: Spacing.sm },
   anchor: { paddingVertical: 6, paddingHorizontal: 11, borderRadius: BorderRadius.full },

@@ -7,6 +7,7 @@ import { HomeScreenProps } from '../../types/navigation';
 import { getPractice, PRACTICE_GROUPS, resolvePracticeGroup } from '../../data/practices';
 import { useAuth } from '../../context/AuthContext';
 import { getActiveHabits, getWeeklyCompletionCounts, createHabit } from '../../services/practices';
+import { defaultScheduleForTarget, scheduleFields } from '../../services/habitSchedule';
 import { PracticeInstance } from '../../types';
 
 // Learn + adopt + status. Doing reps (completion) lives on Home, so detail carries
@@ -120,7 +121,10 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
     try {
       await createHabit(user.uid, {
         name: practice.name,
-        target_count_per_week: practice.suggested_target_per_week,
+        // One-tap adopt, so there is no picker here — but it lands on the same
+        // named-day default every other creation path uses, rather than a bare
+        // weekly count. Editable afterwards from the habit's own schedule sheet.
+        ...scheduleFields(defaultScheduleForTarget(practice.suggested_target_per_week)),
         practice_id: practice.id,
         created_by_user: false,
       });

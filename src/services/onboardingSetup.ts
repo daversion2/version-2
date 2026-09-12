@@ -4,10 +4,10 @@ import { RESISTANCE_SCALE } from '../constants/resistance';
 import {
   HabitSchedule,
   Schedulable,
-  Weekday,
-  WEEK_DISPLAY_ORDER,
+  defaultScheduleForTarget,
   describeSchedule,
-  scheduledDays,
+  isScheduleValid,
+  scheduleFields,
 } from './habitSchedule';
 
 // =============================================================================
@@ -85,22 +85,11 @@ export const formatReminderTime = (hhmm: string): string => {
 };
 
 /**
- * Weekdays for a habit that asks for `target` days a week, Monday-first.
- *
- * Five reads as the working week and six as "every day but Sunday" — both are
- * what people mean by those numbers, so they are named rather than derived.
- * Anything smaller is spread across the week instead of front-loaded, because
- * Mon/Tue/Wed is a worse three-times-a-week habit than Mon/Wed/Sat.
+ * Schedule editing moved to services/habitSchedule when the picker became
+ * shared — onboarding is no longer the only screen that chooses days. Re-exported
+ * so this module still reads as the whole of the onboarding vocabulary.
  */
-export const defaultDaysForTarget = (target: number): Weekday[] => {
-  const n = Math.max(1, Math.min(7, Math.round(target)));
-  if (n >= 7) return [...WEEK_DISPLAY_ORDER];
-  if (n === 6) return WEEK_DISPLAY_ORDER.slice(0, 6);
-  if (n === 5) return [1, 2, 3, 4, 5];
-  const picked = new Set<Weekday>();
-  for (let i = 0; i < n; i++) picked.add(WEEK_DISPLAY_ORDER[Math.round((i * 7) / n)]);
-  return WEEK_DISPLAY_ORDER.filter((d) => picked.has(d));
-};
+export { defaultDaysForTarget, isScheduleValid, toggleDay } from './habitSchedule';
 
 /**
  * Seed a setup draft from the habit's own definition, so beat 3 opens
@@ -108,12 +97,10 @@ export const defaultDaysForTarget = (target: number): Weekday[] => {
  * a guess the user has to correct — every value is one the catalog already
  * suggests.
  *
- * DAY-SCHEDULED BY DEFAULT. A named-day habit knows exactly which days it owed,
- * so pace and adherence become facts rather than estimates, and "weekdays"
- * reads as a stronger promise than "5× a week". The cost is notification slots:
- * a day-scheduled habit schedules one weekly notification PER DAY, against iOS's
- * silent 64-notification ceiling (see CLAUDE.md). At one habit from onboarding
- * that is not close to a problem, but this is the function that decides it.
+ * DAY-SCHEDULED BY DEFAULT, via defaultScheduleForTarget — the same default the
+ * library and custom-habit screens use, so the first habit is set up exactly
+ * the way every later one is. See that function for why days win, and what
+ * they cost.
  */
 export const deriveHabitSetupDraft = (def: HabitDefinition): HabitSetupDraft => {
   const commitment = getCommitmentField(def);
@@ -121,7 +108,7 @@ export const deriveHabitSetupDraft = (def: HabitDefinition): HabitSetupDraft => 
   return {
     definitionId: def.id,
     amount: typeof commitment?.default === 'number' ? commitment.default : undefined,
-    schedule: { kind: 'days', days: defaultDaysForTarget(def.suggested_target_per_week ?? 3) },
+    schedule: defaultScheduleForTarget(def.suggested_target_per_week),
     anchor,
     reminderEnabled: true,
     reminderTime: defaultTimeForAnchor(anchor) ?? FALLBACK_REMINDER_TIME,
@@ -187,19 +174,6 @@ export const describePromise = (def: HabitDefinition, draft: HabitSetupDraft): s
   return `${parts.join(', ')}.`;
 };
 
-/** A schedule you could actually keep — at least one day, or a target above zero. */
-export const isScheduleValid = (schedule: HabitSchedule): boolean =>
-  schedule.kind === 'days' ? schedule.days.length > 0 : schedule.target > 0;
-
-/** Add or remove a day, refusing to empty the set — no days is not a schedule. */
-export const toggleDay = (days: Weekday[], day: Weekday): Weekday[] => {
-  if (days.includes(day)) {
-    const next = days.filter((d) => d !== day);
-    return next.length ? next : days;
-  }
-  return WEEK_DISPLAY_ORDER.filter((d) => d === day || days.includes(d));
-};
-
 export interface OnboardingProgress {
   definitionId: string | null;
   draft: HabitSetupDraft | null;
@@ -261,17 +235,15 @@ export const buildHabitCreationPayload = (
   expectedResistance?: number | null
 ): HabitCreationPayload => {
   const commitment = getCommitmentField(def);
-  const schedulable = draftSchedulable(draft);
-  const days = scheduledDays(schedulable);
   const anchor = draft.anchor.trim();
   return {
     name: def.name,
     practice_id: def.id,
     category_id: def.category_id,
-    // Kept in agreement with the days, exactly as setHabitSchedule would —
-    // pace, the weekly pips and the trend chart all read the count.
-    target_count_per_week: days?.length ?? schedulable.target_count_per_week ?? 0,
-    scheduled_days: days,
+    // scheduleFields keeps the count in agreement with the days, exactly as
+    // setHabitSchedule would — pace, the weekly pips and the trend chart all
+    // read the count. Every creation screen goes through it.
+    ...scheduleFields(draft.schedule),
     // Only written when the habit actually asks for an amount. An empty map on
     // every other habit would be noise in every document.
     metric_goals:

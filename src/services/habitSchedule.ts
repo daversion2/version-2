@@ -158,6 +158,110 @@ export const formatDays = (days: Weekday[]): string => {
   return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
 };
 
+// -----------------------------------------------------------------------------
+// EDITING A SCHEDULE
+//
+// Everything the picker does to a schedule lives here rather than in the
+// component, because there are now four places a schedule can be chosen —
+// onboarding beat 3, the custom-habit form, the library detail screen and the
+// edit sheet — and a rule that only holds in three of them is a bug that only
+// reproduces on one screen.
+// -----------------------------------------------------------------------------
+
+/**
+ * Weekdays for a habit that asks for `target` days a week, Monday-first.
+ *
+ * Five reads as the working week and six as "every day but Sunday" — both are
+ * what people mean by those numbers, so they are named rather than derived.
+ * Anything smaller is spread across the week instead of front-loaded, because
+ * Mon/Tue/Wed is a worse three-times-a-week habit than Mon/Wed/Sat.
+ */
+export const defaultDaysForTarget = (target: number): Weekday[] => {
+  const n = Math.max(1, Math.min(7, Math.round(target)));
+  if (n >= 7) return [...WEEK_DISPLAY_ORDER];
+  if (n === 6) return WEEK_DISPLAY_ORDER.slice(0, 6);
+  if (n === 5) return [1, 2, 3, 4, 5];
+  const picked = new Set<Weekday>();
+  for (let i = 0; i < n; i++) picked.add(WEEK_DISPLAY_ORDER[Math.round((i * 7) / n)]);
+  return WEEK_DISPLAY_ORDER.filter((d) => picked.has(d));
+};
+
+/** Add or remove a day, refusing to empty the set — no days is not a schedule. */
+export const toggleDay = (days: Weekday[], day: Weekday): Weekday[] => {
+  if (days.includes(day)) {
+    const next = days.filter((d) => d !== day);
+    return next.length ? next : days;
+  }
+  return WEEK_DISPLAY_ORDER.filter((d) => d === day || days.includes(d));
+};
+
+/** A schedule you could actually keep — at least one day, or a target above zero. */
+export const isScheduleValid = (schedule: HabitSchedule): boolean =>
+  schedule.kind === 'days' ? schedule.days.length > 0 : schedule.target > 0;
+
+/** The schedule a habit starts on when nothing more specific is known. */
+export const DEFAULT_WEEKLY_TARGET = 3;
+
+/**
+ * The schedule a newly created habit opens on.
+ *
+ * DAY-SCHEDULED, seeded from whatever weekly target the catalog (or the form)
+ * suggests. A named-day habit knows exactly which days it owed, so pace and
+ * adherence become facts rather than estimates — and the reminder fires only on
+ * days the user actually claimed. This is the same default onboarding has
+ * always used; it lives here so every creation screen agrees with it.
+ *
+ * The cost is notification slots: a day-scheduled habit schedules one weekly
+ * notification PER DAY against iOS's silent 64-notification ceiling (see
+ * CLAUDE.md). This function is where that trade is made for the whole app.
+ */
+export const defaultScheduleForTarget = (target?: number): HabitSchedule => ({
+  kind: 'days',
+  days: defaultDaysForTarget(target ?? DEFAULT_WEEKLY_TARGET),
+});
+
+/**
+ * Switch a schedule between its two kinds, carrying the SIZE of the commitment
+ * across: 4× a week becomes four spread days, and Mon/Wed/Fri becomes 3×. The
+ * user picked "how much" once and shouldn't have to pick it again to change how
+ * it's expressed.
+ */
+export const switchScheduleKind = (
+  schedule: HabitSchedule,
+  kind: HabitSchedule['kind']
+): HabitSchedule => {
+  if (schedule.kind === kind) return schedule;
+  if (kind === 'days') {
+    return { kind: 'days', days: defaultDaysForTarget(schedule.kind === 'count' ? schedule.target : DEFAULT_WEEKLY_TARGET) };
+  }
+  return {
+    kind: 'count',
+    target: schedule.kind === 'days' ? schedule.days.length : DEFAULT_WEEKLY_TARGET,
+  };
+};
+
+/**
+ * A schedule as the two Firestore fields, ready to spread into `createHabit`.
+ *
+ * The creation-time twin of setHabitSchedule, and it exists for the same
+ * reason: `target_count_per_week` and `scheduled_days` have to agree, and a
+ * screen that writes them by hand is a screen that can write a habit due three
+ * days a week with a target of five. Creation can't use setHabitSchedule —
+ * there is no document to update yet — so it uses this.
+ *
+ * `scheduled_days` is left UNDEFINED rather than empty for a count schedule;
+ * createHabit strips undefined values, so the field is simply never written.
+ */
+export const scheduleFields = (
+  schedule: HabitSchedule
+): { target_count_per_week: number; scheduled_days?: number[] } => {
+  if (schedule.kind === 'days') {
+    const days = [...new Set(schedule.days)].sort((a, b) => a - b);
+    return { target_count_per_week: days.length, scheduled_days: days };
+  }
+  return { target_count_per_week: schedule.target, scheduled_days: undefined };
+};
+
 /** One line describing the schedule, for a row or a header. */
 export const describeSchedule = (habit: Schedulable): string => {
   const days = scheduledDays(habit);

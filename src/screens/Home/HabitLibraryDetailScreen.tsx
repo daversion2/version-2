@@ -21,9 +21,15 @@ import { getHabitCategory } from '../../data/habitLibrary';
 import { getHabitDefinition, getCommitmentField } from '../../data/practices';
 import { getCommitmentPrompt } from '../../data/habitCommitments';
 import { Slider } from '../../components/common/Slider';
+import { SchedulePicker } from '../../components/common/SchedulePicker';
 import { defaultTimeForAnchor } from '../../data/anchors';
 import { useAuth } from '../../context/AuthContext';
 import { createHabit, updateHabit } from '../../services/practices';
+import {
+  HabitSchedule,
+  defaultScheduleForTarget,
+  scheduleFields,
+} from '../../services/habitSchedule';
 import { syncHabitReminder } from '../../services/habitReminders';
 import { HabitActionPlan } from '../../types';
 import { showAlert } from '../../utils/alert';
@@ -80,7 +86,12 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
   // library template. `editing` flips the preview cards into inputs.
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(habit?.name ?? '');
-  const [target, setTarget] = useState(habit?.suggested_target_per_week ?? 5);
+  // Named days by default, spread from the catalog's suggested weekly target —
+  // the same schedule onboarding would have built for this habit. The user can
+  // switch to a plain weekly count in the picker.
+  const [schedule, setSchedule] = useState<HabitSchedule>(() =>
+    defaultScheduleForTarget(habit?.suggested_target_per_week ?? 5)
+  );
   // The per-occasion amount this habit asks you to commit to, if it has one.
   // Seeded from the definition's default so the picker opens somewhere sensible;
   // the user must confirm or change it before adding. See data/habitCommitments.ts.
@@ -138,7 +149,9 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
 
       const newHabitId = await createHabit(user.uid, {
         name: finalName,
-        target_count_per_week: target,
+        // target_count_per_week and scheduled_days written as one, so a habit
+        // due three named days can't carry a target of five.
+        ...scheduleFields(schedule),
         arena_id: habit.arena_id,
         // Link back to the catalog definition. Without this the adopted habit
         // resolves to nothing, so it would lose its tracking template, its
@@ -311,34 +324,24 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
           </View>
         )}
 
-        {/* Frequency */}
-        {editing ? (
-          <View style={styles.freqEditRow}>
-            <Text style={styles.fieldLabel}>Times per week</Text>
-            <View style={styles.stepper}>
-              <TouchableOpacity
-                style={styles.stepperBtn}
-                onPress={() => setTarget((t) => Math.max(1, t - 1))}
-                hitSlop={8}
-              >
-                <Ionicons name="remove" size={18} color={Colors.dark} />
-              </TouchableOpacity>
-              <Text style={styles.stepperValue}>{target}</Text>
-              <TouchableOpacity
-                style={styles.stepperBtn}
-                onPress={() => setTarget((t) => Math.min(7, t + 1))}
-                hitSlop={8}
-              >
-                <Ionicons name="add" size={18} color={Colors.dark} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.freqRow}>
-            <Ionicons name="repeat-outline" size={16} color={Colors.gray} />
-            <Text style={styles.freqText}>{target}× per week</Text>
-          </View>
-        )}
+        {/*
+          Schedule. Always editable, unlike the action plan below it — this is
+          the promise itself, not a detail to personalise afterwards, and
+          hiding it behind Edit is what left library habits stuck on a
+          suggested count nobody had agreed to.
+        */}
+        <View style={styles.scheduleBlock}>
+          <Text style={styles.fieldLabel}>When?</Text>
+          <SchedulePicker
+            schedule={schedule}
+            onChange={setSchedule}
+            helper={
+              schedule.kind === 'days'
+                ? 'Your reminder fires only on these days, and missing one counts as a miss.'
+                : 'Any days you like — the week is what counts.'
+            }
+          />
+        </View>
 
         {/* Action Plan header + edit toggle */}
         <View style={styles.sectionHeader}>
@@ -598,49 +601,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: Spacing.sm,
   },
-  freqRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.lg,
-  },
-  freqText: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-  },
-  freqEditRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.lg,
-    marginTop: Spacing.xs,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-  },
-  stepperBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperValue: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.md,
-    color: Colors.dark,
-    minWidth: 16,
-    textAlign: 'center',
-  },
+  scheduleBlock: { marginTop: Spacing.xs, marginBottom: Spacing.lg },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
