@@ -20,6 +20,7 @@ import { Card } from '../../components/common/Card';
 import { getHabitCategory } from '../../data/habitLibrary';
 import { getHabitDefinition, getCommitmentField } from '../../data/practices';
 import { getCommitmentPrompt } from '../../data/habitCommitments';
+import { scaleLabel } from '../../data/gradeScale';
 import { Slider } from '../../components/common/Slider';
 import { SchedulePicker } from '../../components/common/SchedulePicker';
 import { defaultTimeForAnchor } from '../../data/anchors';
@@ -308,8 +309,10 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
               {getCommitmentPrompt(habit.id) ?? commitmentField.label}
             </Text>
             <Text style={[styles.commitValue, { color }]}>
-              {commitment.toLocaleString()}
-              {commitmentField.unit ? ` ${commitmentField.unit}` : ''}
+              {/* A graded commitment ("how well will you hold to it?") reads as
+                  its letter; the slider below still moves in 1–5. */}
+              {scaleLabel(commitmentField, commitment) ??
+                `${commitment.toLocaleString()}${commitmentField.unit ? ` ${commitmentField.unit}` : ''}`}
             </Text>
             <Slider
               value={commitment}

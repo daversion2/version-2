@@ -1,4 +1,5 @@
 import type { HabitDefinition, TrackingField } from './practices';
+import { GRADE_MAX, GRADE_MIN, GRADE_VALUE_LABELS } from './gradeScale';
 
 // =============================================================================
 // HABIT COMMITMENTS — the per-occasion amount a user promises.
@@ -86,7 +87,12 @@ export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
     prompt: 'How well did you hold to it?',
     field: {
       key: 'adherence', label: 'How well did you hold to it?', type: 'scale',
-      min: 1, max: 5, step: 1, default: 5,
+      min: GRADE_MIN, max: GRADE_MAX, step: 1, default: 5,
+      // Lettered for the same reason the 'grade' template is: this is the SAME
+      // 1-5 question under another name, and METRIC_FAMILIES rolls the two into
+      // one "Grade" family. Leaving this numeric would put a 4 and a B side by
+      // side under one heading.
+      valueLabels: GRADE_VALUE_LABELS,
       labels: { low: 'Fell off it', high: 'Completely' },
       record: { label: 'Best day', icon: 'ribbon-outline' },
     },
@@ -95,7 +101,12 @@ export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
     prompt: 'How well did you hold to it?',
     field: {
       key: 'adherence', label: 'How well did you hold to it?', type: 'scale',
-      min: 1, max: 5, step: 1, default: 5,
+      min: GRADE_MIN, max: GRADE_MAX, step: 1, default: 5,
+      // Lettered for the same reason the 'grade' template is: this is the SAME
+      // 1-5 question under another name, and METRIC_FAMILIES rolls the two into
+      // one "Grade" family. Leaving this numeric would put a 4 and a B side by
+      // side under one heading.
+      valueLabels: GRADE_VALUE_LABELS,
       labels: { low: 'Fell off it', high: 'Completely' },
     },
   },

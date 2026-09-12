@@ -19,6 +19,7 @@ import {
   JournalSearchResult,
 } from '../types';
 import { getPastChallenges } from './challenges';
+import { gradeToNumber, numberToGrade } from '../data/gradeScale';
 
 // ============================================================================
 // COLLECTION REFERENCES
@@ -32,26 +33,13 @@ const logsRef = (userId: string) =>
 
 // ============================================================================
 // GRADE HELPERS
+//
+// The A–F ↔ 5–1 mapping moved to data/gradeScale when habit tracking
+// templates started grading too — a B has to mean 4 on both screens. Re-exported
+// here because the reflection surfaces import it from this module.
 // ============================================================================
 
-const GRADE_TO_NUM: Record<ReflectionGrade, number> = {
-  A: 5, B: 4, C: 3, D: 2, F: 1,
-};
-
-const NUM_TO_GRADE: [number, ReflectionGrade][] = [
-  [4.5, 'A'], [3.5, 'B'], [2.5, 'C'], [1.5, 'D'], [0, 'F'],
-];
-
-export function gradeToNumber(grade: ReflectionGrade): number {
-  return GRADE_TO_NUM[grade];
-}
-
-export function numberToGrade(num: number): ReflectionGrade {
-  for (const [threshold, grade] of NUM_TO_GRADE) {
-    if (num >= threshold) return grade;
-  }
-  return 'F';
-}
+export { gradeToNumber, numberToGrade } from '../data/gradeScale';
 
 function getTodayStr(): string {
   const now = new Date();

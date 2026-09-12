@@ -146,6 +146,14 @@ export interface TrackingField {
    */
   labels?: { low: string; high: string };
   /**
+   * What each numeric stop is CALLED, e.g. { 5: 'A', 4: 'B', … } for a graded
+   * scale. The value written to Firestore is still the number — this only
+   * changes what the user reads, everywhere a value is shown.
+   *
+   * See data/gradeScale.scaleLabel, which every display site goes through.
+   */
+  valueLabels?: Record<number, string>;
+  /**
    * Personal-record display for this metric (Phase 3 — replaces the hardcoded
    * RECORD_OVERRIDES map that used to key off practice id).
    */

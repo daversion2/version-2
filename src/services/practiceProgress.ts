@@ -8,6 +8,7 @@ import {
   DEFAULT_PRACTICE_COLOR,
 } from '../data/practices';
 import { resolveHabitTrackingFields } from '../data/habitTemplates';
+import { scaleLabel } from '../data/gradeScale';
 import { getCurrentWeekBounds } from './practices';
 import {
   buildMetricFamilyReports,
@@ -96,7 +97,13 @@ const daysBetween = (fromStr: string, toStr: string): number => {
   return Math.round((to.getTime() - from.getTime()) / 86400000);
 };
 
-const withUnit = (value: number, unit?: string): string => {
+const withUnit = (
+  value: number,
+  unit?: string,
+  valueLabels?: Record<number, string>
+): string => {
+  const labelled = scaleLabel({ valueLabels }, value);
+  if (labelled) return labelled;
   if (!unit) return String(value);
   return unit.startsWith('°') ? `${value}${unit}` : `${value} ${unit}`;
 };
@@ -125,10 +132,10 @@ const buildMetricLines = (
       if (nums.length === 0) continue;
       if (field.type === 'duration') {
         const total = Math.round(nums.reduce((s, n) => s + n, 0));
-        lines.push(`${withUnit(total, field.unit)} total`);
+        lines.push(`${withUnit(total, field.unit, field.valueLabels)} total`);
       } else {
         const avg = Math.round(nums.reduce((s, n) => s + n, 0) / nums.length);
-        lines.push(`avg ${withUnit(avg, field.unit)}`);
+        lines.push(`avg ${withUnit(avg, field.unit, field.valueLabels)}`);
       }
     } else {
       const counts = new Map<string, number>();
@@ -291,7 +298,7 @@ export const getPracticeProgress = async (
       metricRecords.push({
         icon: field.record.icon || 'stats-chart-outline',
         label: field.record.label || field.label,
-        value: formatMetric(best, field.unit),
+        value: formatMetric(best, field.unit, field.valueLabels),
         support: values.length,
         habitName: h.name,
       });

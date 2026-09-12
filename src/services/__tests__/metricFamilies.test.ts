@@ -131,6 +131,29 @@ describe('buildMetricFamilyReports', () => {
     ]);
   });
 
+  it('shows grades as letters while still storing and averaging numbers', () => {
+    // The value stays a number so it can average; only the reading changes. A
+    // regression here means a user who logged a B sees "4".
+    const noSugar = habit({ name: 'No sugar', practice_id: 'trad-no-sugar' });
+    const custom = habit({ name: 'Practice piano', created_by_user: true, template_id: 'grade' });
+
+    const reports = buildMetricFamilyReports(
+      [
+        log(noSugar.id, { adherence: 2 }),
+        log(custom.id, { grade: 5 }),
+        log(custom.id, { grade: 5 }),
+      ],
+      [noSugar, custom],
+      TODAY
+    );
+
+    const grade = byId(reports, 'grade')!;
+    expect(grade.value).toBe(4);
+    expect(grade.formattedValue).toBe('B'); // the mean, lettered
+    expect(grade.habits.map((h) => h.formattedValue)).toEqual(['A', 'D']);
+    expect(grade.best?.formatted).toBe('A');
+  });
+
   it('refuses to combine habits that count different things', () => {
     // Both are the Count template, but one counts gratitude "things" and the
     // other is an unlabelled tally. 5 pages + 3 gratitudes is not 8 of anything.

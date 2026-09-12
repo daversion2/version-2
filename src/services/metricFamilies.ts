@@ -1,5 +1,6 @@
 import { CompletionLog, PracticeInstance } from '../types';
 import { TrackingField, getPractice, DEFAULT_PRACTICE_COLOR } from '../data/practices';
+import { scaleLabel } from '../data/gradeScale';
 import { resolveHabitTrackingFields } from '../data/habitTemplates';
 import {
   METRIC_FAMILIES,
@@ -74,8 +75,10 @@ export interface MetricFamilyReport {
   combinable: boolean;
   /** The headline number. Null when !combinable. */
   value: number | null;
-  /** Preformatted `value`, e.g. "186 min". Null when !combinable. */
+  /** Preformatted `value`, e.g. "186 min" or "B". Null when !combinable. */
   formattedValue: string | null;
+  /** Named stops, when this family's metric is lettered rather than counted. */
+  valueLabels?: Record<number, string>;
   /** Total reps across the family that carried the metric. */
   logged: number;
   /** Contributing habits, biggest contribution first. */
@@ -98,7 +101,17 @@ const withThousands = (s: string): string => {
  * Not practicePerformance's `withUnit`: this one has to render '$' as a prefix
  * and group thousands, because step counts and dollar amounts both land here.
  */
-export const formatMetric = (value: number, unit?: string): string => {
+export const formatMetric = (
+  value: number,
+  unit?: string,
+  /**
+   * Named stops, when the metric has them — a grade reads "B", not "4". Wins
+   * over the unit outright: a letter with a unit glued on says nothing.
+   */
+  valueLabels?: Record<number, string>
+): string => {
+  const labelled = scaleLabel({ valueLabels }, value);
+  if (labelled) return labelled;
   const rounded = Math.round(value * 10) / 10;
   const num = withThousands(Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1));
   if (!unit) return num;
@@ -161,6 +174,12 @@ interface FamilyAccumulator {
   family: MetricFamily;
   /** Every unit seen across contributing fields — a family is only combinable when this has one entry. */
   units: Set<string>;
+  /**
+   * Named stops for this family's values, from the first contributing field
+   * that has them. Gathered like units: the Grade family merges 'grade' and
+   * 'adherence', and both letter their scale, so the family headline can too.
+   */
+  valueLabels?: Record<number, string>;
   samples: Sample[];
   byHabit: Map<string, { field: TrackingField; samples: Sample[] }>;
 }
@@ -206,6 +225,7 @@ export const buildMetricFamilyReports = (
       // '' stands in for "no unit" so an unlabelled tally and a 'things' tally
       // register as the disagreement they are.
       acc.units.add(field.unit ?? '');
+      if (!acc.valueLabels && field.valueLabels) acc.valueLabels = field.valueLabels;
 
       const sample: Sample = { value: raw, date: log.date, habitId: habit.id };
       acc.samples.push(sample);
@@ -253,7 +273,7 @@ export const buildMetricFamilyReports = (
           best: bestOf(values, family.direction),
           unit,
           value,
-          formattedValue: formatMetric(value, unit),
+          formattedValue: formatMetric(value, unit, field.valueLabels),
         };
       })
       .sort((a, b) => b.value - a.value);
@@ -288,7 +308,7 @@ export const buildMetricFamilyReports = (
       const bestSample = samples.find((s) => s.value === bestValue)!;
       best = {
         value: bestValue,
-        formatted: formatMetric(bestValue, familyUnit),
+        formatted: formatMetric(bestValue, familyUnit, acc.valueLabels),
         date: bestSample.date,
         habitName: habitById.get(bestSample.habitId)?.name ?? '',
       };
@@ -303,7 +323,8 @@ export const buildMetricFamilyReports = (
       unit: familyUnit,
       combinable,
       value,
-      formattedValue: value === null ? null : formatMetric(value, familyUnit),
+      formattedValue: value === null ? null : formatMetric(value, familyUnit, acc.valueLabels),
+      valueLabels: acc.valueLabels,
       logged: samples.length,
       habits: habitRows,
       weekly,

@@ -1,4 +1,5 @@
 import { TrackingField, getPractice } from './practices';
+import { GRADE_MAX, GRADE_MIN, GRADE_VALUE_LABELS } from './gradeScale';
 
 // =============================================================================
 // HABIT TEMPLATES (D3)
@@ -113,7 +114,7 @@ export const HABIT_TEMPLATE_PRESETS: HabitTemplatePreset[] = [
   {
     id: 'grade',
     label: 'Grade',
-    description: 'How well you held to it — for habits that aren’t all-or-nothing.',
+    description: 'Give the day a letter grade, A–F — for habits that aren’t all-or-nothing.',
     icon: 'ribbon-outline',
     fields: [
       {
@@ -121,11 +122,16 @@ export const HABIT_TEMPLATE_PRESETS: HabitTemplatePreset[] = [
         label: 'How well did you stick to it?',
         // 'scale', not 'choice' — a grade has to be numeric so it draws a trend
         // line rather than a distribution. See TrackingField in data/practices.ts.
+        //
+        // The user sees A–F; Firestore still holds 5–1, so every log written
+        // before the letters existed reads back correctly and nothing
+        // downstream (averages, records, the Grade family) had to change.
         type: 'scale',
-        min: 1,
-        max: 5,
+        min: GRADE_MIN,
+        max: GRADE_MAX,
         step: 1,
-        default: 3,
+        default: 3, // a C — the middle of the scale, not a verdict
+        valueLabels: GRADE_VALUE_LABELS,
         labels: { low: 'Fell off it', high: 'Nailed it' },
         record: { label: 'Best day', icon: 'ribbon-outline' },
       },

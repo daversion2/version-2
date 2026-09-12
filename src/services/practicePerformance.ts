@@ -1,6 +1,7 @@
 import { CompletionLog } from '../types';
 import { Practice, TrackingField } from '../data/practices';
 import { getTacticLabel } from '../data/overrideTactics';
+import { scaleLabel } from '../data/gradeScale';
 import {
   logResistance,
   isHardRep,
@@ -186,7 +187,17 @@ const lastNWeeks = (todayStr: string, n: number): { start: string; end: string }
 
 const fmtNum = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-export const withUnit = (value: number, unit?: string): string => {
+/**
+ * A value as the user should read it. `valueLabels` wins when the field has
+ * them — a grade reads "B", never "4" and never "4 grade".
+ */
+export const withUnit = (
+  value: number,
+  unit?: string,
+  valueLabels?: Record<number, string>
+): string => {
+  const labelled = scaleLabel({ valueLabels }, value);
+  if (labelled) return labelled;
   const v = fmtNum(value);
   if (!unit) return v;
   return unit.startsWith('°') ? `${v}${unit}` : `${v} ${unit}`;
@@ -395,7 +406,7 @@ export const buildPracticePerformance = (
     records.push({
       icon: override.icon || (field.type === 'duration' ? 'timer-outline' : 'speedometer-outline'),
       label: override.label || (field.type === 'duration' ? 'Longest session' : `Best ${field.label.toLowerCase()}`),
-      value: withUnit(best.value, field.unit),
+      value: withUnit(best.value, field.unit, field.valueLabels),
       date: best.date,
     });
   }
@@ -460,7 +471,7 @@ export const buildPracticePerformance = (
       insights.push({
         tone: up ? 'progress' : 'nudge',
         icon: up ? 'trending-up-outline' : 'trending-down-outline',
-        text: `Your last 5 sessions average ${withUnit(primaryTrend.recentAvg, primaryField!.unit)} — ${
+        text: `Your last 5 sessions average ${withUnit(primaryTrend.recentAvg, primaryField!.unit, primaryField!.valueLabels)} — ${
           up ? 'up' : 'down'
         } ${Math.abs(changePct)}% from your first 5.`,
       });
@@ -477,7 +488,7 @@ export const buildPracticePerformance = (
       insights.push({
         tone: 'nudge',
         icon: 'flag-outline',
-        text: `You've logged ${withUnit(value, primaryField.unit)} for your last ${MIN_PLATEAU_SESSIONS} sessions — try ${withUnit(next, primaryField.unit)} next time.`,
+        text: `You've logged ${withUnit(value, primaryField.unit, primaryField.valueLabels)} for your last ${MIN_PLATEAU_SESSIONS} sessions — try ${withUnit(next, primaryField.unit, primaryField.valueLabels)} next time.`,
       });
     }
   }

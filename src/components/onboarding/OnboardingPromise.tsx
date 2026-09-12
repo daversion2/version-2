@@ -4,6 +4,7 @@ import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-communi
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ANCHORS, defaultTimeForAnchor, findAnchorByPhrase } from '../../data/anchors';
 import { HabitDefinition, getCommitmentField } from '../../data/practices';
+import { scaleLabel } from '../../data/gradeScale';
 import {
   FALLBACK_REMINDER_TIME,
   HabitSetupDraft,
@@ -94,8 +95,14 @@ export const OnboardingPromise: React.FC<Props> = ({ definition, draft, onChange
               >
                 <Text style={styles.stepButtonText}>−</Text>
               </TouchableOpacity>
-              <Text style={styles.stepValue}>{draft.amount}</Text>
-              {!!commitment.unit && <Text style={styles.stepUnit}>{commitment.unit}</Text>}
+              {/* Graded commitments read as a letter — same scale, same
+                  vocabulary as everywhere else. See data/gradeScale. */}
+              <Text style={styles.stepValue}>
+                {scaleLabel(commitment, draft.amount) ?? draft.amount}
+              </Text>
+              {!!commitment.unit && !commitment.valueLabels && (
+                <Text style={styles.stepUnit}>{commitment.unit}</Text>
+              )}
               <TouchableOpacity
                 style={[styles.stepButton, { marginLeft: 'auto' }]}
                 onPress={() => onAmountStep(1)}

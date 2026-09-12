@@ -14,6 +14,7 @@ import { StepFlowShell } from '../common/StepFlowShell';
 import { AppMessage } from '../../screens/Tools/components/AppMessage';
 import { PracticeCompletionInput } from '../../types';
 import { getPractice, TrackingField } from '../../data/practices';
+import { scaleLabel } from '../../data/gradeScale';
 import { RESISTANCE_LEVELS, resistanceToDifficulty } from '../../constants/resistance';
 import { showAlert } from '../../utils/alert';
 import {
@@ -211,11 +212,13 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
       // setting 80 oz is that the sheet opens on 80 oz.
       const fallback = metricGoals?.[field.key] ?? field.default ?? Math.round((min + max) / 2);
       const shown = touched ? (currentValue as number) : fallback;
+      // A lettered scale reads as its letter. The slider underneath still moves
+      // in 1–5 and that is still what gets stored — see data/gradeScale.
+      const letter = scaleLabel(field, shown);
       return (
         <View style={styles.fieldBlock}>
           <Text style={[styles.fieldValueBig, !touched && styles.fieldValueMuted]}>
-            {shown}
-            {field.unit ? ` ${field.unit}` : ''}
+            {letter ?? `${shown}${field.unit ? ` ${field.unit}` : ''}`}
           </Text>
           <Slider
             value={shown}

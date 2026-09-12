@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
+import { scaleLabel } from '../../data/gradeScale';
 import {
   PracticePerformance,
   MetricTrend,
@@ -34,6 +35,7 @@ const formatShortDate = (dateStr: string): string =>
 const SessionTrendCard: React.FC<{ trend: MetricTrend }> = ({ trend }) => {
   const max = Math.max(...trend.points.map((p) => p.value), 1);
   const unit = trend.field.unit;
+  const labels = trend.field.valueLabels;
   return (
     <Card style={styles.card}>
       <Text style={styles.cardTitle}>{trend.field.label.replace(/\?$/, '')} Per Session</Text>
@@ -43,7 +45,9 @@ const SessionTrendCard: React.FC<{ trend: MetricTrend }> = ({ trend }) => {
       <View style={styles.sessionChart}>
         {trend.points.map((p, i) => (
           <View key={`${p.date}-${i}`} style={styles.sessionBarContainer}>
-            <Text style={styles.sessionBarValue}>{p.value}</Text>
+            <Text style={styles.sessionBarValue}>
+              {scaleLabel(trend.field, p.value) ?? p.value}
+            </Text>
             <View style={styles.sessionBarWrapper}>
               <View
                 style={[
@@ -62,11 +66,11 @@ const SessionTrendCard: React.FC<{ trend: MetricTrend }> = ({ trend }) => {
       {trend.firstAvg !== null && (
         <View style={styles.avgRow}>
           <Text style={styles.avgText}>
-            First 5 avg: <Text style={styles.avgValue}>{withUnit(trend.firstAvg, unit)}</Text>
+            First 5 avg: <Text style={styles.avgValue}>{withUnit(trend.firstAvg, unit, labels)}</Text>
           </Text>
           <Ionicons name="arrow-forward" size={12} color={Colors.gray} />
           <Text style={styles.avgText}>
-            Last 5 avg: <Text style={styles.avgValue}>{withUnit(trend.recentAvg, unit)}</Text>
+            Last 5 avg: <Text style={styles.avgValue}>{withUnit(trend.recentAvg, unit, labels)}</Text>
           </Text>
         </View>
       )}
