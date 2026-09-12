@@ -40,11 +40,10 @@ import { OverrideScoreCard } from '../../components/progress/OverrideScoreCard';
 import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
 import { MetricFamiliesSection } from '../../components/progress/MetricFamiliesSection';
 import { TrainingQualityCard } from '../../components/progress/TrainingQualityCard';
-import { WeeklyReachCard } from '../../components/progress/WeeklyReachCard';
+import { WeeklyRadarCard } from '../../components/progress/WeeklyRadarCard';
 import { ProgressNavigation } from '../../types/navigation';
-import { getReflections } from '../../services/reflections';
-import { DailyReflection } from '../../types';
-import { toLocalDateString, getWeekStart } from '../../utils/date';
+import { CompletionLog } from '../../types';
+import { toLocalDateString } from '../../utils/date';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 
@@ -83,10 +82,10 @@ export const ProgressScreen: React.FC = () => {
   // Trend
   const [trendData, setTrendData] = useState<WeeklyTrendPoint[]>([]);
 
-  // This week's reflections, for the reach radar. Fetched from Monday rather
-  // than the selected filter window: the radar always shows the current week,
-  // like the Override Score above it.
-  const [weekReflections, setWeekReflections] = useState<DailyReflection[]>([]);
+  // Every log in the window, kept for the weekly radar. It slices out the
+  // current week itself — the smallest filter (7d) always covers the elapsed
+  // part of it, so the radar stays filter-independent without a second fetch.
+  const [logs, setLogs] = useState<CompletionLog[]>([]);
 
   // Calendar
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
@@ -106,7 +105,6 @@ export const ProgressScreen: React.FC = () => {
         willpower,
         allLogs,
         practiceProgress,
-        thisWeeksReflections,
       ] = await Promise.all([
         getTotalActions(user.uid, startDate),
         getTotalPoints(user.uid, startDate),
@@ -115,7 +113,6 @@ export const ProgressScreen: React.FC = () => {
         getWillpowerStats(user.uid),
         getCompletionLogs(user.uid, startDate),
         getPracticeProgress(user.uid, startDate),
-        getReflections(user.uid, toLocalDateString(getWeekStart(new Date()))),
       ]);
 
       // Built from allLogs, which is already fetched above — no extra read.
@@ -136,7 +133,7 @@ export const ProgressScreen: React.FC = () => {
       setTrendData(trend);
       setCurrentStreak(willpower.currentStreak);
       setProgress(practiceProgress);
-      setWeekReflections(thisWeeksReflections);
+      setLogs(allLogs);
 
       // Calendar marks
       const marks: Record<string, any> = {};
@@ -184,9 +181,10 @@ export const ProgressScreen: React.FC = () => {
             lastWeekScore={progress?.lastWeekScore ?? 0}
           />
 
-          {/* How far past the comfort zone the week got — same weekly,
-              filter-independent scope as the Override Score above it. */}
-          <WeeklyReachCard reflections={weekReflections} />
+          {/* The week as one shape — habits per day or the XP they earned,
+              toggled on the card. Same weekly, filter-independent scope as the
+              Override Score above it. */}
+          <WeeklyRadarCard logs={logs} />
 
           {/* Time Filter */}
           <TimeFilterChips selected={filter} onSelect={setFilter} />

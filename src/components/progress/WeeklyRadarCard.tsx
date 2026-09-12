@@ -1,11 +1,16 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
-import { DailyReflection, ReflectionGrade } from '../../types';
-import { REACH_STOPS, EDGE_STOP_INDEX, reachIndexOf } from '../../data/comfortZone';
+import { CompletionLog } from '../../types';
 import {
-  getWeekDates,
+  RadarDay,
+  WeekMetric,
+  buildWeekRadar,
+  formatRadarValue,
+  radiusFactor,
+} from '../../services/weeklyRadar';
+import {
   getWeekStart,
   getWeekEnd,
   formatWeekRange,
@@ -19,30 +24,25 @@ import {
 const SIZE = 260;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
-const RADII = [22, 40, 60, 81, 103];
+const OUTER = 103;
+/** Grid rings as fractions of OUTER. Quarters — a scale, not five named stops. */
+const RING_FRACTIONS = [0.25, 0.5, 0.75, 1];
 const LABEL_RADIUS = 122;
 const DOT = 12;
 const TODAY_DOT = 16;
 
-// Mon-first, matching getWeekDates() and the rest of the app's week handling.
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-interface DayPoint {
-  label: string;
-  date: string;
-  /** Index into REACH_STOPS, or null when nothing was logged that day. */
-  reach: number | null;
-  isToday: boolean;
-  isFuture: boolean;
-}
+const METRICS: { key: WeekMetric; label: string }[] = [
+  { key: 'habits', label: 'Habits' },
+  { key: 'xp', label: 'XP' },
+];
 
 /** Angle for a spoke, starting at the top and running clockwise. */
 const angleFor = (i: number, count: number) =>
   -Math.PI / 2 + (i * 2 * Math.PI) / count;
 
-const pointFor = (i: number, count: number, reach: number) => ({
-  x: CX + Math.cos(angleFor(i, count)) * RADII[reach],
-  y: CY + Math.sin(angleFor(i, count)) * RADII[reach],
+const pointAt = (i: number, count: number, factor: number) => ({
+  x: CX + Math.cos(angleFor(i, count)) * OUTER * factor,
+  y: CY + Math.sin(angleFor(i, count)) * OUTER * factor,
 });
 
 /** A plain grid ring. */
@@ -57,15 +57,13 @@ const Ring: React.FC<{ radius: number }> = ({ radius }) => (
         borderRadius: radius,
         left: CX - radius,
         top: CY - radius,
-        borderWidth: 1,
-        borderColor: Colors.border,
       },
     ]}
   />
 );
 
 /**
- * The comfort zone boundary, drawn as individual tangent dashes.
+ * The reference ring — your average day — drawn as individual tangent dashes.
  *
  * `borderStyle: 'dashed'` is silently ignored on iOS as soon as borderRadius is
  * non-zero, so a dashed circle drawn with a border renders solid — and this ring
@@ -83,7 +81,7 @@ const DashedRing: React.FC<{ radius: number }> = ({ radius }) => {
         const a = (i * 2 * Math.PI) / count;
         return (
           <View
-            key={`edge-${i}`}
+            key={`avg-${i}`}
             pointerEvents="none"
             style={{
               position: 'absolute',
@@ -139,52 +137,35 @@ const Segment: React.FC<{
 };
 
 interface Props {
-  /** Every reflection available; this card slices out the current week itself. */
-  reflections: DailyReflection[];
+  /**
+   * Every completion log in the selected window. The card slices out the
+   * current week itself — the smallest window on Progress (7d) always covers
+   * the elapsed part of it, so this needs no fetch of its own.
+   */
+  logs: CompletionLog[];
 }
 
 /**
- * "How far you got" — the week plotted as distance from the comfort zone.
+ * Your week as one shape — habits done per day, or the XP they were worth.
  *
- * Each day is a spoke, the radius is how far past the edge that day went, and
- * the dashed ring is the threshold itself. A single night's answer isn't
- * interesting; the shape of a week is — which is why this lives on Progress
- * rather than on the reflection screen, where it would have cost 260pt of
- * height on a form people fill in tired.
+ * Each day is a spoke and the radius is that day's value against the week's
+ * BEST day, so the outline always fills the chart. That is a relative scale, and
+ * it means the shape alone can't tell you whether this was a big week — the
+ * footer carries the absolute numbers, and the dashed ring marks your average
+ * day, so there is always something real to read the shape against.
  *
- * Days with no reflection are deliberately NOT plotted at the centre. Zero is a
- * real answer here ("stayed comfortable"), so collapsing an unanswered day to
- * the middle would draw the worst possible result and make every user's week
- * look worse than it was. Unlogged days break the outline instead.
+ * This used to plot the nightly reflection's comfort-zone grade. That framing
+ * (the fixed five stops, the edge ring, "past your comfort zone") went with the
+ * data; the reflection grade still has the Grade line and distribution charts
+ * further down the screen.
  */
-export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
+export const WeeklyRadarCard: React.FC<Props> = ({ logs }) => {
+  const [metric, setMetric] = useState<WeekMetric>('habits');
   const today = toLocalDateString(new Date());
 
-  const days: DayPoint[] = useMemo(() => {
-    const weekDates = getWeekDates(new Date());
-    const byDate = new Map<string, ReflectionGrade>();
-    reflections.forEach((r) => {
-      if (r.grade) byDate.set(r.date, r.grade);
-    });
-
-    return weekDates.map((date, i) => {
-      const grade = byDate.get(date);
-      const idx = grade ? reachIndexOf(grade) : -1;
-      return {
-        label: DAY_LABELS[i],
-        date,
-        reach: idx >= 0 ? idx : null,
-        isToday: date === today,
-        isFuture: date > today,
-      };
-    });
-  }, [reflections, today]);
-
-  const answered = days.filter((d) => d.reach !== null);
-  const pastEdge = answered.filter((d) => (d.reach as number) > EDGE_STOP_INDEX);
-  const furthest = answered.reduce<DayPoint | null>(
-    (best, d) => (!best || (d.reach as number) > (best.reach as number) ? d : best),
-    null
+  const radar = useMemo(
+    () => buildWeekRadar(logs, metric, today),
+    [logs, metric, today]
   );
 
   const weekLabel = formatWeekRange(
@@ -192,54 +173,84 @@ export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
     toLocalDateString(getWeekEnd(new Date()))
   );
 
-  // Outline segments only between CONSECUTIVE answered days. A gap in the week
-  // is a gap in the line, not a shortcut across it — connecting Monday straight
-  // to Friday would invent a trend through days that were never logged.
-  const segments: { from: DayPoint; to: DayPoint; fromI: number; toI: number }[] = [];
-  for (let i = 0; i < days.length - 1; i++) {
-    if (days[i].reach !== null && days[i + 1].reach !== null) {
-      segments.push({ from: days[i], to: days[i + 1], fromI: i, toI: i + 1 });
+  const plotted = radar.days
+    .map((day, i) => ({ day, i }))
+    .filter(({ day }) => !day.isFuture);
+
+  // Outline segments only between CONSECUTIVE elapsed days. A zero day is on the
+  // line (at the centre) because zero is a real value; the line stops at today
+  // rather than running out through days that have not happened.
+  const segments: { from: RadarDay; to: RadarDay; fromI: number; toI: number }[] = [];
+  for (let i = 0; i < plotted.length - 1; i++) {
+    const a = plotted[i];
+    const b = plotted[i + 1];
+    if (b.i === a.i + 1) {
+      segments.push({ from: a.day, to: b.day, fromI: a.i, toI: b.i });
     }
   }
 
-  if (answered.length === 0) {
+  const metricToggle = (
+    <View style={styles.toggle}>
+      {METRICS.map((m) => {
+        const on = metric === m.key;
+        return (
+          <TouchableOpacity
+            key={m.key}
+            style={[styles.toggleBtn, on && styles.toggleBtnOn]}
+            onPress={() => setMetric(m.key)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+          >
+            <Text style={[styles.toggleText, on && styles.toggleTextOn]}>{m.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
+  if (radar.max === 0) {
     return (
       <Card style={styles.card}>
         <View style={styles.head}>
-          <Text style={styles.title}>How far you got</Text>
+          <Text style={styles.title}>Your week</Text>
           <Text style={styles.week}>{weekLabel}</Text>
         </View>
+        {metricToggle}
         <Text style={styles.empty}>
-          Reflect at the end of a day and your week starts taking shape here.
+          {metric === 'habits'
+            ? 'Complete a habit and your week starts taking shape here.'
+            : 'Log a habit and the XP it earned shows up here.'}
         </Text>
       </Card>
     );
   }
 
+  const averageFactor = radiusFactor(radar.average, radar.max);
+
   return (
     <Card style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.title}>How far you got</Text>
+        <Text style={styles.title}>Your week</Text>
         <Text style={styles.week}>{weekLabel}</Text>
       </View>
 
+      {metricToggle}
+
       <View style={styles.figureWrap}>
         <View style={styles.figure}>
-          {/* Grid rings first, then the edge ring on top of them. */}
-          {RADII.map((r, i) =>
-            i === EDGE_STOP_INDEX ? null : <Ring key={r} radius={r} />
-          )}
-          <DashedRing radius={RADII[EDGE_STOP_INDEX]} />
+          {/* Grid rings first, then the average ring on top of them. */}
+          {RING_FRACTIONS.map((f) => (
+            <Ring key={f} radius={OUTER * f} />
+          ))}
+          {averageFactor > 0.02 && <DashedRing radius={OUTER * averageFactor} />}
 
           {/* Spokes */}
-          {days.map((d, i) => (
+          {radar.days.map((d, i) => (
             <Segment
               key={`spoke-${d.date}`}
               from={{ x: CX, y: CY }}
-              to={{
-                x: CX + Math.cos(angleFor(i, days.length)) * RADII[RADII.length - 1],
-                y: CY + Math.sin(angleFor(i, days.length)) * RADII[RADII.length - 1],
-              }}
+              to={pointAt(i, radar.days.length, 1)}
               color={Colors.border}
               thickness={1}
             />
@@ -249,8 +260,8 @@ export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
           {segments.map((s) => (
             <Segment
               key={`seg-${s.from.date}`}
-              from={pointFor(s.fromI, days.length, s.from.reach as number)}
-              to={pointFor(s.toI, days.length, s.to.reach as number)}
+              from={pointAt(s.fromI, radar.days.length, radiusFactor(s.from.value, radar.max))}
+              to={pointAt(s.toI, radar.days.length, radiusFactor(s.to.value, radar.max))}
               color={Colors.primary}
               thickness={2}
               opacity={0.55}
@@ -258,13 +269,12 @@ export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
           ))}
 
           {/* Day markers */}
-          {days.map((d, i) => {
-            if (d.reach === null) return null;
-            const p = pointFor(i, days.length, d.reach);
-            const size = d.isToday ? TODAY_DOT : DOT;
+          {plotted.map(({ day, i }) => {
+            const p = pointAt(i, radar.days.length, radiusFactor(day.value, radar.max));
+            const size = day.isToday ? TODAY_DOT : DOT;
             return (
               <View
-                key={`dot-${d.date}`}
+                key={`dot-${day.date}`}
                 pointerEvents="none"
                 style={[
                   styles.dot,
@@ -274,8 +284,17 @@ export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
                     borderRadius: size / 2,
                     left: p.x - size / 2,
                     top: p.y - size / 2,
-                    backgroundColor: REACH_STOPS[d.reach].color,
-                    borderWidth: d.isToday ? 3 : 2,
+                    // The best day of the week is called out; a day with nothing
+                    // on it is drawn hollow, so "did nothing" and "did least"
+                    // don't look like the same dot at the centre.
+                    backgroundColor:
+                      day.value === 0
+                        ? Colors.white
+                        : day.value === radar.max
+                        ? Colors.secondary
+                        : Colors.primary,
+                    borderColor: day.value === 0 ? Colors.border : Colors.white,
+                    borderWidth: day.isToday ? 3 : 2,
                   },
                 ]}
               />
@@ -283,8 +302,8 @@ export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
           })}
 
           {/* Day labels */}
-          {days.map((d, i) => {
-            const a = angleFor(i, days.length);
+          {radar.days.map((d, i) => {
+            const a = angleFor(i, radar.days.length);
             return (
               <Text
                 key={`label-${d.date}`}
@@ -294,7 +313,7 @@ export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
                     left: CX + Math.cos(a) * LABEL_RADIUS - 18,
                     top: CY + Math.sin(a) * LABEL_RADIUS - 8,
                   },
-                  d.reach === null && styles.dayLabelEmpty,
+                  d.isFuture && styles.dayLabelEmpty,
                   d.isToday && styles.dayLabelToday,
                 ]}
               >
@@ -313,28 +332,23 @@ export const WeeklyReachCard: React.FC<Props> = ({ reflections }) => {
           ))}
         </View>
         <Text style={styles.legendText}>
-          Outside this line is past your comfort zone
+          Your average day this week · {formatRadarValue(radar.average, metric)}
         </Text>
       </View>
 
       <View style={styles.stats}>
         <View style={styles.stat}>
           <Text style={styles.statNum}>
-            {pastEdge.length} of {answered.length}
+            {radar.aboveAverage} of {radar.elapsed}
           </Text>
-          <Text style={styles.statCap}>days past the edge</Text>
+          <Text style={styles.statCap}>days above your average</Text>
         </View>
-        {furthest && (
+        {radar.best && (
           <View style={styles.stat}>
-            <Text
-              style={[
-                styles.statNum,
-                { color: REACH_STOPS[furthest.reach as number].color },
-              ]}
-            >
-              {furthest.label}
+            <Text style={[styles.statNum, { color: Colors.secondary }]}>
+              {radar.best.label} · {formatRadarValue(radar.best.value, metric)}
             </Text>
-            <Text style={styles.statCap}>furthest out</Text>
+            <Text style={styles.statCap}>best day</Text>
           </View>
         )}
       </View>
@@ -360,6 +374,27 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.gray,
   },
+  toggle: {
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.lightGray,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+  },
+  toggleBtnOn: { backgroundColor: Colors.white },
+  toggleText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+  },
+  toggleTextOn: { color: Colors.primary },
   empty: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
@@ -379,10 +414,11 @@ const styles = StyleSheet.create({
   ring: {
     position: 'absolute',
     backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   dot: {
     position: 'absolute',
-    borderColor: Colors.white,
   },
   dayLabel: {
     position: 'absolute',
