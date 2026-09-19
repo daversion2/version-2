@@ -29,17 +29,12 @@ import {
   ResistanceOverview,
 } from '../../services/practicePerformance';
 import { ResistanceCurveCard } from '../../components/progress/ResistanceCurveCard';
-import { SkipPatternsCard } from '../../components/progress/SkipPatternsCard';
-import { getSkipPatterns } from '../../services/skips';
-import { SkipPatterns } from '../../services/skipLogic';
 import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
 import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
 import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
 import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
-import { OverrideScoreCard } from '../../components/progress/OverrideScoreCard';
 import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
 import { MetricFamiliesSection } from '../../components/progress/MetricFamiliesSection';
-import { TrainingQualityCard } from '../../components/progress/TrainingQualityCard';
 import { WeeklyRadarCard } from '../../components/progress/WeeklyRadarCard';
 import { ProgressNavigation } from '../../types/navigation';
 import { CompletionLog } from '../../types';
@@ -67,10 +62,9 @@ export const ProgressScreen: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [resistance, setResistance] = useState<ResistanceOverview | null>(null);
-  const [skipPatterns, setSkipPatterns] = useState<SkipPatterns | null>(null);
   const [filter, setFilter] = useState<TimeFilter>('30d');
 
-  // Practice-protocol aggregation (volume grid, quality, override score, records)
+  // Practice-protocol aggregation (volume grid, records)
   const [progress, setProgress] = useState<PracticeProgress | null>(null);
 
   // Hero stats
@@ -118,15 +112,6 @@ export const ProgressScreen: React.FC = () => {
       // Built from allLogs, which is already fetched above — no extra read.
       setResistance(buildResistanceOverview(allLogs));
 
-      // Skip patterns come from their own collection (misses are deliberately
-      // not completionLogs). Best-effort: a failure here must not blank the
-      // whole Progress screen.
-      try {
-        setSkipPatterns(await getSkipPatterns(user.uid));
-      } catch (err) {
-        console.warn('Skip patterns fetch failed:', err);
-      }
-
       setCompletions(actions);
       setPoints(periodPoints);
       setDaysActive(activeDaysResult);
@@ -167,29 +152,10 @@ export const ProgressScreen: React.FC = () => {
         />
       ) : (
         <>
-          {/* Resistance leads. Streaks measure attendance; this measures change,
-              which is the claim the product is built to make. */}
-          {resistance && <ResistanceCurveCard overview={resistance} />}
-
-          {/* Why you skip — the other half of the same story. Sits directly
-              under the curve: one card is the days you won, this is the rest. */}
-          {skipPatterns && <SkipPatternsCard patterns={skipPatterns} />}
-
-          {/* Override Score (weekly, independent of the time filter) */}
-          <OverrideScoreCard
-            score={progress?.weekScore ?? 0}
-            lastWeekScore={progress?.lastWeekScore ?? 0}
-          />
-
-          {/* The week as one shape — habits per day or the XP they earned,
-              toggled on the card. Same weekly, filter-independent scope as the
-              Override Score above it. */}
-          <WeeklyRadarCard logs={logs} />
-
-          {/* Time Filter */}
+          {/* The filter and the totals it drives lead the screen — they set the
+              window everything filter-dependent below is read through. */}
           <TimeFilterChips selected={filter} onSelect={setFilter} />
 
-          {/* Hero Stats */}
           <HeroStatsRow
             completions={completions}
             points={points}
@@ -200,6 +166,15 @@ export const ProgressScreen: React.FC = () => {
               getAllPractices().filter((p) => p.active !== false && p.group !== 'custom').length
             }
           />
+
+          {/* Resistance: streaks measure attendance, this measures change —
+              the claim the product is built to make. */}
+          {resistance && <ResistanceCurveCard overview={resistance} />}
+
+          {/* The week as one shape — habits per day or the XP they earned,
+              toggled on the card. Always the current week, regardless of the
+              filter above. */}
+          <WeeklyRadarCard logs={logs} />
 
           {/* By Metric — the same reps as Training Volume below, sliced by what
               they measured instead of which habit logged them. Leads because
@@ -212,19 +187,15 @@ export const ProgressScreen: React.FC = () => {
             />
           )}
 
-          {/* Training Volume (per-practice card grid + challenges strip) */}
+          {/* Training Volume (per-practice card grid) */}
           {progress && (
             <TrainingVolumeSection
               practices={progress.practices}
-              challenges={progress.challenges}
               onPracticePress={(habitId) =>
                 navigation.navigate('HabitDetail', { habitId })
               }
             />
           )}
-
-          {/* Training Quality */}
-          {progress && <TrainingQualityCard quality={progress.quality} />}
 
           {/* Activity Trend */}
           <ActivityTrendChart data={trendData} />

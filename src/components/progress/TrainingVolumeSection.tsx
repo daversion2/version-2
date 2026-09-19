@@ -2,11 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { PracticeVolume, ChallengeSummary } from '../../services/practiceProgress';
+import { PracticeVolume } from '../../services/practiceProgress';
 
 interface TrainingVolumeSectionProps {
   practices: PracticeVolume[];
-  challenges: ChallengeSummary;
   onPracticePress: (habitId: string) => void;
 }
 
@@ -19,7 +18,6 @@ interface TrainingVolumeSectionProps {
  */
 export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
   practices,
-  challenges,
   onPracticePress,
 }) => (
   <View style={styles.section}>
@@ -39,19 +37,6 @@ export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
         ))}
       </View>
     )}
-
-    <View style={styles.challengeStrip}>
-      <Ionicons name="trophy" size={20} color={Colors.secondary} />
-      <View style={styles.challengeBody}>
-        <Text style={styles.challengeTitle}>Challenges</Text>
-        <Text style={styles.challengeStats}>
-          {challenges.completions} completed · {challenges.points} XP
-          {challenges.avgDifficulty != null
-            ? ` · avg difficulty ${challenges.avgDifficulty} / 5`
-            : ''}
-        </Text>
-      </View>
-    </View>
   </View>
 );
 
@@ -196,35 +181,5 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 0.8,
     color: '#8A8F98',
-  },
-  challengeStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md - 4,
-    backgroundColor: Colors.cardBg,
-    borderRadius: BorderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.secondary,
-    padding: Spacing.sm + 5,
-    marginTop: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  challengeBody: {
-    flex: 1,
-  },
-  challengeTitle: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  challengeStats: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    marginTop: 1,
   },
 });

@@ -41,7 +41,17 @@ export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
       {stats.map((stat) => (
         <View key={stat.label} style={styles.statCard}>
           <Text style={styles.value}>{stat.value}</Text>
-          <Text style={styles.label}>{stat.label}</Text>
+          {/* Five cards share the row, so the longest label ("Completions")
+              only just fits. Keep it on one line and let it shrink rather
+              than wrap mid-word. */}
+          <Text
+            style={styles.label}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
+            {stat.label}
+          </Text>
         </View>
       ))}
     </View>
@@ -51,15 +61,16 @@ export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs + 1,
     marginBottom: Spacing.lg,
   },
   statCard: {
     flex: 1,
+    minWidth: 0,
     backgroundColor: Colors.cardBg,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: 2,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -75,7 +86,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs - 1,
+    fontSize: FontSizes.xs - 2,
     color: Colors.gray,
     textAlign: 'center',
   },
