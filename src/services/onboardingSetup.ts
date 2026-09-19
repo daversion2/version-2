@@ -6,31 +6,51 @@ import {
   Schedulable,
   defaultScheduleForTarget,
   describeSchedule,
-  isScheduleValid,
   scheduleFields,
 } from './habitSchedule';
 
 // =============================================================================
-// ONBOARDING SETUP — the logic behind the five-beat first-run flow.
+// ONBOARDING SETUP — the logic behind the seven-beat first-run flow.
 //
 // Pure functions only, no Firestore. The screen renders these and writes the
 // result; everything that can be got wrong (what a habit's defaults are, when a
-// beat is answered, how a promise reads) lives here where jest can see it.
-// The screen itself is untestable — jest's testMatch excludes .tsx — so any
-// logic that ends up in OnboardingScreen.tsx is logic nothing is guarding.
+// beat is answered) lives here where jest can see it. The screen itself is
+// untestable — jest's testMatch excludes .tsx — so any logic that ends up in
+// OnboardingScreen.tsx is logic nothing is guarding.
 //
-// THE RULE THE FLOW IS BUILT ON: every beat stores a value. The premise beat is
-// the single deliberate exception, and it is the only one — a screen that
-// stores nothing is a slide, and slides belong in the App Store listing.
+//   1 premise        the friction is the training
+//   2 neurons        what repeating the override wires
+//   3 thesis         leaving the comfort zone IS the habit
+//   4 loopHabit      it sits on Today; you tap it after
+//   5 loopRating     one question, three answers, and the line comes down
+//   6 loopReflect    optional, encouraged, and why
+//   7 pick           one habit → practice_id · has_completed_onboarding
 //
-// Beat 1  premise    nothing (the exception)
-// Beat 2  pick       practice_id
-// Beat 3  promise    metric_goals · scheduled_days · action_plan.anchor · reminder
-// Beat 4  rehearse   expected_resistance · journey_checkins.baseline
-// Beat 5  land       has_completed_onboarding
+// THE RULE THIS FLOW DELIBERATELY BREAKS. The five-beat version it replaces
+// made every beat store a value, on the reasoning that a screen storing nothing
+// is a slide. That produced two forms (amount/days/anchor/reminder, then a
+// resistance guess and three baseline sliders) asked of someone who had not yet
+// done the habit once — the single heaviest thing about the old first run.
+//
+// Six of these seven store nothing. What they buy instead is that the user
+// meets the resistance question and the optional reflection HERE, explained,
+// rather than as a surprise toll after their first rep. Everything the promise
+// beat used to ask for now comes from the habit definition's own defaults
+// (deriveHabitSetupDraft), which is where it was always suggested from, and
+// stays editable on the habit afterwards.
+//
+// The two forms are kept, unrouted and still compiling, in
+// components/onboarding/_archived/.
 // =============================================================================
 
-export type OnboardingBeatKey = 'premise' | 'pick' | 'promise' | 'rehearse' | 'land';
+export type OnboardingBeatKey =
+  | 'premise'
+  | 'neurons'
+  | 'thesis'
+  | 'loopHabit'
+  | 'loopRating'
+  | 'loopReflect'
+  | 'pick';
 
 export interface OnboardingBeat {
   key: OnboardingBeatKey;
@@ -41,17 +61,31 @@ export interface OnboardingBeat {
 }
 
 export const ONBOARDING_BEATS: OnboardingBeat[] = [
-  { key: 'premise', cta: 'Set up my first habit →' },
-  { key: 'pick', cta: 'Set it up →', hint: 'Choose one habit' },
-  { key: 'promise', cta: "That's the promise →", hint: 'Pick at least one day' },
-  { key: 'rehearse', cta: 'Done →', hint: 'Make your guess' },
-  { key: 'land', cta: 'Start' },
+  { key: 'premise', cta: 'Go on →' },
+  { key: 'neurons', cta: 'Go on →' },
+  { key: 'thesis', cta: 'Show me how it works →' },
+  { key: 'loopHabit', cta: 'Next →' },
+  { key: 'loopRating', cta: 'Next →' },
+  { key: 'loopReflect', cta: 'Pick my first habit →' },
+  { key: 'pick', cta: 'Start training', hint: 'Choose one habit' },
 ];
 
 /**
- * The habit setup a user builds during beat 3. Mirrors the fields that get
- * written on completion, so the screen holds one object rather than six
- * useStates that can disagree with each other.
+ * Which beats offer "just take me to the app".
+ *
+ * Nothing is written before the pick, so an escape hatch is safe anywhere —
+ * but it is deliberately absent from the three walkthrough beats. Those are the
+ * shortest screens in the flow and the ones that make the daily loop legible;
+ * a second, quieter button under the CTA there mostly invites people to leave
+ * before the part that explains how the app works.
+ */
+export const beatAllowsSkip = (key: OnboardingBeatKey): boolean =>
+  key === 'premise' || key === 'neurons' || key === 'thesis' || key === 'pick';
+
+/**
+ * The habit setup written on completion. Seeded whole from the chosen habit's
+ * definition — the flow no longer has a beat that edits it — and kept as one
+ * object rather than six useStates that can disagree with each other.
  */
 export interface HabitSetupDraft {
   /** Catalog id of the chosen habit — becomes PracticeInstance.practice_id. */
@@ -176,35 +210,20 @@ export const describePromise = (def: HabitDefinition, draft: HabitSetupDraft): s
 
 export interface OnboardingProgress {
   definitionId: string | null;
-  draft: HabitSetupDraft | null;
-  /** The rehearsal answer, 1–3. Null until they answer. */
-  resistance: number | null;
 }
 
 /**
  * Can the user move on from this beat?
  *
- * Only two beats gate, and both gate on something the user has to supply:
- * a habit, and an answer to the resistance question. The baseline sliders do
- * NOT gate — they carry sensible middle defaults, and a required slider is a
- * question people answer by dragging it anywhere.
+ * Exactly one beat gates, on the one thing the flow asks for. Every other beat
+ * is read and tapped past, which is the whole point of the rewrite — a forward
+ * button that is disabled on six of seven screens is a flow that feels like a
+ * form even when it is mostly prose.
  */
 export const isBeatComplete = (
   key: OnboardingBeatKey,
   progress: OnboardingProgress
-): boolean => {
-  switch (key) {
-    case 'pick':
-      return !!progress.definitionId;
-    case 'promise':
-      return !!progress.draft && isScheduleValid(progress.draft.schedule);
-    case 'rehearse':
-      return progress.resistance !== null;
-    case 'premise':
-    case 'land':
-      return true;
-  }
-};
+): boolean => (key === 'pick' ? !!progress.definitionId : true);
 
 /**
  * What gets written for the chosen habit on completion. Returned as data rather
@@ -229,8 +248,13 @@ export const buildHabitCreationPayload = (
   def: HabitDefinition,
   draft: HabitSetupDraft,
   /**
-   * The beat-4 guess, 1–3. Stored beside the habit as its "before", never
-   * folded into the resistance trend — a prediction is not a rep.
+   * A forward-looking resistance guess, 1–3. Stored beside the habit as its
+   * "before", never folded into the resistance trend — a prediction is not a rep.
+   *
+   * The seven-beat flow never passes one: the guess used to be a required beat,
+   * and the first real rating now arrives one rep later anyway. The parameter
+   * stays because the field is still readable on habits created before the
+   * rewrite, and because nothing else would make it cheaper to reintroduce.
    */
   expectedResistance?: number | null
 ): HabitCreationPayload => {

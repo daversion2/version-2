@@ -54,6 +54,44 @@ export const slotForJourneyDay = (daysSinceSignup: number): Exclude<CheckinSlot,
 export const journeyDayFor = (createdAt?: string): number =>
   createdAt ? daysBetween(localToday(), String(createdAt).slice(0, 10)) : 0;
 
+/** Chronological order of the slots. The comparison reads them in this order. */
+export const CHECKIN_SLOT_ORDER: CheckinSlot[] = ['baseline', 'day14', 'day28'];
+
+export interface CheckinReference {
+  slot: CheckinSlot;
+  checkin: JourneyCheckin;
+}
+
+/**
+ * The earliest check-in on record, which every later take is measured against.
+ *
+ * USUALLY THE BASELINE, BUT NOT NECESSARILY. Onboarding stopped collecting one
+ * in the seven-beat rewrite — three sliders before the user had done anything
+ * was most of what made the old first run heavy. Without this fallback, every
+ * account created since would compare against a slot that is always empty, so the
+ * day-14 and day-28 screens would show no deltas ever: not a degraded payoff,
+ * an absent one.
+ *
+ * Falling back to the first recorded take keeps the comparison honest — it is
+ * still "you, earlier" — and the screen names which take it used rather than
+ * implying a day-0 reading exists.
+ *
+ * Returns undefined only when nothing has been recorded at all.
+ */
+export const referenceCheckin = (
+  checkins: Partial<Record<CheckinSlot, JourneyCheckin>> | undefined,
+  /** The take being viewed, which cannot be its own reference. */
+  exclude?: CheckinSlot
+): CheckinReference | undefined => {
+  if (!checkins) return undefined;
+  for (const slot of CHECKIN_SLOT_ORDER) {
+    if (slot === exclude) continue;
+    const checkin = checkins[slot];
+    if (checkin) return { slot, checkin };
+  }
+  return undefined;
+};
+
 export const saveJourneyCheckin = async (
   userId: string,
   slot: CheckinSlot,

@@ -10,45 +10,48 @@ import { showAlert } from '../../utils/alert';
 import { markOnboardingComplete, setStartingPractice } from '../../services/users';
 import { createHabit, ensureCuratedPractices, updateHabit } from '../../services/practices';
 import { syncHabitReminder } from '../../services/habitReminders';
-import { saveJourneyCheckin, CheckinAnswers } from '../../services/checkins';
 import { HabitDefinition } from '../../data/practices';
 import {
-  HabitSetupDraft,
   ONBOARDING_BEATS,
   OnboardingBeatKey,
+  beatAllowsSkip,
   buildHabitCreationPayload,
   deriveHabitSetupDraft,
   isBeatComplete,
 } from '../../services/onboardingSetup';
 import { OnboardingPremise } from '../../components/onboarding/OnboardingPremise';
+import { OnboardingNeurons } from '../../components/onboarding/OnboardingNeurons';
+import { OnboardingThesis } from '../../components/onboarding/OnboardingThesis';
+import {
+  OnboardingLoopHabit,
+  OnboardingLoopRating,
+  OnboardingLoopReflect,
+} from '../../components/onboarding/OnboardingLoop';
 import { OnboardingHabitPicker } from '../../components/onboarding/OnboardingHabitPicker';
-import { OnboardingPromise } from '../../components/onboarding/OnboardingPromise';
-import { OnboardingRehearsal } from '../../components/onboarding/OnboardingRehearsal';
-import { OnboardingLanding } from '../../components/onboarding/OnboardingLanding';
 
 // ============================================================================
-// ONBOARDING — five beats, about ninety seconds.
+// ONBOARDING — seven beats, about a minute, one of them a question.
 //
-//   1 premise    the friction is the training           (stores nothing)
-//   2 pick       one habit, from the real catalog       practice_id
-//   3 promise    amount · days · anchor · reminder      the commitment
-//   4 rehearse   the one forward-looking guess          expected_resistance
-//                plus where they are today              journey_checkins.baseline
-//   5 land       confirm, write, drop onto Today        has_completed_onboarding
+//   1 premise      the friction is the training
+//   2 neurons      what repeating the override wires
+//   3 thesis       leaving the comfort zone IS the habit
+//   4 loopHabit    it sits on Today; you tap it after
+//   5 loopRating   one question, three answers, and the line comes down
+//   6 loopReflect  optional, encouraged, and why
+//   7 pick         one habit → practice_id · has_completed_onboarding
 //
-// THE RULE: every beat stores a value. Beat 1 is the single deliberate
-// exception — a screen that stores nothing is a slide, and one slide is the
-// budget. The flow this replaced was five of them; it is kept, unrouted and
-// still compiling, in screens/Auth/_archived/.
+// The five-beat flow this replaces asked for a commitment (amount, days,
+// anchor, reminder) and a rehearsal (a resistance guess and three baseline
+// sliders) from someone who had not yet done the habit once. Both are gone.
+// Their components are kept, unrouted and still compiling, in
+// components/onboarding/_archived/ — see onboardingSetup.ts for what that cost
+// and where each value went.
 //
 // This file is PRESENTATION AND ORCHESTRATION ONLY. Everything decidable —
 // what a habit's defaults are, when a beat is answered, what gets written —
 // lives in services/onboardingSetup.ts, because jest's testMatch excludes .tsx
 // and logic that ends up here is logic nothing is guarding.
 // ============================================================================
-
-/** Middle of the 1–5 scale. A defaulted extreme would bias every later delta. */
-const BASELINE_DEFAULT: CheckinAnswers = { mood: 3, focus: 3, motivation: 3 };
 
 export const OnboardingScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
@@ -57,15 +60,11 @@ export const OnboardingScreen: React.FC = () => {
 
   const [beatIndex, setBeatIndex] = useState(0);
   const [definition, setDefinition] = useState<HabitDefinition | null>(null);
-  const [draft, setDraft] = useState<HabitSetupDraft | null>(null);
-  const [resistance, setResistance] = useState<number | null>(null);
-  const [baseline, setBaseline] = useState<CheckinAnswers>(BASELINE_DEFAULT);
   const [saving, setSaving] = useState(false);
 
   const beat = ONBOARDING_BEATS[beatIndex];
   const isLast = beatIndex === ONBOARDING_BEATS.length - 1;
-  const progress = { definitionId: definition?.id ?? null, draft, resistance };
-  const canAdvance = isBeatComplete(beat.key, progress);
+  const canAdvance = isBeatComplete(beat.key, { definitionId: definition?.id ?? null });
 
   // Direction of travel, so a beat slides in from the side it came from.
   const directionRef = useRef<1 | -1>(1);
@@ -76,18 +75,7 @@ export const OnboardingScreen: React.FC = () => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
 
-  const handleSelectHabit = (selected: HabitDefinition) => {
-    if (selected.id === definition?.id) return;
-    setDefinition(selected);
-    // Re-seed rather than patch: a draft carried over from a different habit
-    // would keep the previous habit's amount and anchor, which is a worse
-    // starting point than the one this habit's own definition supplies.
-    setDraft(deriveHabitSetupDraft(selected));
-    // The guess in beat 4 is about a specific habit. Going back and changing
-    // the habit makes it a prediction about something else, so it is cleared
-    // rather than silently attached to the new one.
-    setResistance(null);
-  };
+  const handleSelectHabit = (selected: HabitDefinition) => setDefinition(selected);
 
   // --------------------------------------------------------------------------
   // Completion
@@ -116,13 +104,13 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   const handleComplete = async () => {
-    if (!user || !definition || !draft || saving) return;
+    if (!user || !definition || saving) return;
     setSaving(true);
     try {
-      const habitId = await createHabit(
-        user.uid,
-        buildHabitCreationPayload(definition, draft, resistance)
-      );
+      // Derived here rather than held in state: nothing edits it any more, so
+      // a stored draft could only ever disagree with the habit it describes.
+      const draft = deriveHabitSetupDraft(definition);
+      const habitId = await createHabit(user.uid, buildHabitCreationPayload(definition, draft));
 
       // The reminder is a second write because createHabit doesn't take one, and
       // syncHabitReminder reads the saved habit rather than taking the value.
@@ -146,12 +134,11 @@ export const OnboardingScreen: React.FC = () => {
       // with no habits and no fallback.
       await setStartingPractice(user.uid, definition.id);
 
-      try {
-        await saveJourneyCheckin(user.uid, 'baseline', baseline);
-      } catch (err) {
-        // A missing baseline costs the day-14/28 comparison, not the account.
-        console.warn('Failed to save journey baseline:', err);
-      }
+      // NO BASELINE CHECK-IN IS WRITTEN. The rehearsal beat used to capture
+      // mood/focus/motivation here; asking for three sliders before the user
+      // has done anything was most of what made the old flow heavy. The
+      // day-14/28 check-ins fall back to the earliest take on record instead —
+      // see referenceCheckin in services/checkins.ts.
 
       // Last: this flips RootNavigator into the app.
       await markOnboardingComplete(user.uid);
@@ -170,34 +157,24 @@ export const OnboardingScreen: React.FC = () => {
     switch (key) {
       case 'premise':
         return <OnboardingPremise />;
+      case 'neurons':
+        return <OnboardingNeurons />;
+      case 'thesis':
+        return <OnboardingThesis />;
+      case 'loopHabit':
+        return <OnboardingLoopHabit />;
+      case 'loopRating':
+        return <OnboardingLoopRating />;
+      case 'loopReflect':
+        return <OnboardingLoopReflect />;
       case 'pick':
         return (
           <OnboardingHabitPicker selectedId={definition?.id ?? null} onSelect={handleSelectHabit} />
         );
-      case 'promise':
-        return definition && draft ? (
-          <OnboardingPromise definition={definition} draft={draft} onChange={setDraft} />
-        ) : null;
-      case 'rehearse':
-        return (
-          <OnboardingRehearsal
-            habitName={definition?.name ?? 'your habit'}
-            resistance={resistance}
-            onSelectResistance={setResistance}
-            baseline={baseline}
-            onChangeBaseline={setBaseline}
-          />
-        );
-      case 'land':
-        return definition && draft ? (
-          <OnboardingLanding definition={definition} draft={draft} />
-        ) : null;
     }
   };
 
-  // Offered only before the user has invested anything. Past the pick, "skip"
-  // would silently discard a commitment they just spent a minute making.
-  const canSkip = beat.key === 'premise' || beat.key === 'pick';
+  const canSkip = beatAllowsSkip(beat.key);
 
   return (
     <View style={styles.screen}>

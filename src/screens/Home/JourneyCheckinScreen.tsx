@@ -11,9 +11,11 @@ import {
   CHECKIN_SCALE_LOW,
   CHECKIN_SCALE_HIGH,
   CHECKIN_SLOT_LABELS,
+  CHECKIN_SLOT_ORDER,
   CheckinSlot,
   JourneyCheckin,
   journeyDayFor,
+  referenceCheckin,
   saveJourneyCheckin,
   slotForJourneyDay,
 } from '../../services/checkins';
@@ -68,23 +70,27 @@ export const JourneyCheckinScreen: React.FC = () => {
 
   const renderResults = () => {
     const current = saved ?? checkins[slot];
-    const slots: CheckinSlot[] = ['baseline', 'day14', 'day28'];
-    const recorded = slots.filter((s) => (s === slot ? current : checkins[s]));
+    const recorded = CHECKIN_SLOT_ORDER.filter((s) => (s === slot ? current : checkins[s]));
     const valueFor = (s: CheckinSlot) => (s === slot ? current : checkins[s]);
-    const baseline = checkins.baseline;
+    // Onboarding no longer captures a day-0 baseline, so the reference is the
+    // earliest take on record rather than that slot specifically. Without this,
+    // every account created since the seven-beat rewrite would show no deltas.
+    const reference = referenceCheckin({ ...checkins, [slot]: current }, slot);
 
     return (
       <>
         <Text style={styles.title}>Your trajectory</Text>
         <Text style={styles.subtitle}>
-          {baseline
-            ? 'Same three questions, answered over time. This is your own data — not our word for it.'
-            : 'No day-0 baseline on record, so this take becomes your reference point.'}
+          {reference
+            ? `Same three questions, answered over time — measured against your ${CHECKIN_SLOT_LABELS[
+                reference.slot
+              ].toLowerCase()} answers. This is your own data, not our word for it.`
+            : 'Nothing earlier on record, so this take becomes your reference point.'}
         </Text>
 
         {CHECKIN_METRICS.map((metric) => {
           const currentValue = current[metric.key];
-          const delta = baseline ? currentValue - baseline[metric.key] : null;
+          const delta = reference ? currentValue - reference.checkin[metric.key] : null;
           return (
             <View key={metric.key} style={styles.resultCard}>
               <View style={styles.resultHeader}>

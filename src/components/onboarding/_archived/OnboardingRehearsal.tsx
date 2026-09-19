@@ -1,16 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { FadeRise } from '../common/FadeRise';
-import { Slider } from '../common/Slider';
-import { RESISTANCE_LEVELS } from '../../constants/resistance';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { FadeRise } from '../../common/FadeRise';
+import { Slider } from '../../common/Slider';
+import { RESISTANCE_LEVELS } from '../../../constants/resistance';
 import {
   CHECKIN_METRICS,
   CHECKIN_SCALE_HIGH,
   CHECKIN_SCALE_LOW,
   CheckinAnswers,
-} from '../../services/checkins';
-import { ob } from './onboardingStyles';
+} from '../../../services/checkins';
+import { ob } from '../onboardingStyles';
 
 // ============================================================================
 // BEAT 4 — THE ONE GUESS

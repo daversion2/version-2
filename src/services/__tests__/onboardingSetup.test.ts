@@ -1,9 +1,10 @@
 import { HabitDefinition, getHabitDefinition } from '../../data/practices';
-import { RESISTANCE_LEVELS, RESISTANCE_SCALE } from '../../constants/resistance';
+import { RESISTANCE_SCALE } from '../../constants/resistance';
 import { HabitSchedule } from '../habitSchedule';
 import {
   FALLBACK_REMINDER_TIME,
   ONBOARDING_BEATS,
+  beatAllowsSkip,
   buildHabitCreationPayload,
   clampAmount,
   defaultDaysForTarget,
@@ -41,20 +42,58 @@ const timed: HabitDefinition = {
 };
 
 describe('ONBOARDING_BEATS', () => {
-  it('runs premise → pick → promise → rehearse → land', () => {
+  it('argues, then walks the loop, then asks — in that order', () => {
     expect(ONBOARDING_BEATS.map((b) => b.key)).toEqual([
       'premise',
+      'neurons',
+      'thesis',
+      'loopHabit',
+      'loopRating',
+      'loopReflect',
       'pick',
-      'promise',
-      'rehearse',
-      'land',
     ]);
+  });
+
+  it('asks for exactly one thing, and asks for it last', () => {
+    // The point of the rewrite. A second gated beat anywhere means a form crept
+    // back in; a gated beat that is not last means the argument got interrupted.
+    const gated = ONBOARDING_BEATS.filter((b) => !isBeatComplete(b.key, { definitionId: null }));
+    expect(gated.map((b) => b.key)).toEqual(['pick']);
+    expect(ONBOARDING_BEATS[ONBOARDING_BEATS.length - 1].key).toBe('pick');
   });
 
   it('gives every gated beat a hint, so a disabled button always says why', () => {
     ONBOARDING_BEATS.forEach((beat) => {
-      const gated = !isBeatComplete(beat.key, { definitionId: null, draft: null, resistance: null });
+      const gated = !isBeatComplete(beat.key, { definitionId: null });
       if (gated) expect(beat.hint && beat.hint.length).toBeTruthy();
+    });
+  });
+
+  it('gives every beat a forward label', () => {
+    ONBOARDING_BEATS.forEach((beat) => expect(beat.cta.trim().length).toBeGreaterThan(0));
+  });
+});
+
+describe('beatAllowsSkip', () => {
+  it('offers the escape hatch on the argument and on the ask', () => {
+    expect(beatAllowsSkip('premise')).toBe(true);
+    expect(beatAllowsSkip('neurons')).toBe(true);
+    expect(beatAllowsSkip('thesis')).toBe(true);
+    expect(beatAllowsSkip('pick')).toBe(true);
+  });
+
+  it('keeps it off the walkthrough, which is the part worth staying for', () => {
+    expect(beatAllowsSkip('loopHabit')).toBe(false);
+    expect(beatAllowsSkip('loopRating')).toBe(false);
+    expect(beatAllowsSkip('loopReflect')).toBe(false);
+  });
+
+  it('never strands a user on a beat with no way out', () => {
+    // Every beat either advances freely or offers the skip. A beat that gates
+    // AND hides the skip is a dead end for anyone who will not pick a habit.
+    ONBOARDING_BEATS.forEach((beat) => {
+      const canAdvance = isBeatComplete(beat.key, { definitionId: null });
+      expect(canAdvance || beatAllowsSkip(beat.key)).toBe(true);
     });
   });
 });
@@ -225,43 +264,17 @@ describe('toggleDay', () => {
 });
 
 describe('isBeatComplete', () => {
-  const empty = { definitionId: null, draft: null, resistance: null };
+  const empty = { definitionId: null };
 
-  it('lets the premise and landing beats through unconditionally', () => {
-    expect(isBeatComplete('premise', empty)).toBe(true);
-    expect(isBeatComplete('land', empty)).toBe(true);
+  it('lets every read-only beat through unconditionally', () => {
+    (['premise', 'neurons', 'thesis', 'loopHabit', 'loopRating', 'loopReflect'] as const).forEach(
+      (key) => expect(isBeatComplete(key, empty)).toBe(true)
+    );
   });
 
   it('holds the pick beat until a habit is chosen', () => {
     expect(isBeatComplete('pick', empty)).toBe(false);
-    expect(isBeatComplete('pick', { ...empty, definitionId: 'test-timed' })).toBe(true);
-  });
-
-  it('holds the promise beat on a keepable schedule', () => {
-    const draft = deriveHabitSetupDraft(timed);
-    expect(isBeatComplete('promise', { ...empty, draft })).toBe(true);
-    expect(
-      isBeatComplete('promise', { ...empty, draft: { ...draft, schedule: { kind: 'days', days: [] } } })
-    ).toBe(false);
-    expect(
-      isBeatComplete('promise', { ...empty, draft: { ...draft, schedule: { kind: 'count', target: 0 } } })
-    ).toBe(false);
-  });
-
-  it('holds the rehearsal beat until the resistance question is answered', () => {
-    // The whole point of the beat is performing the check-in once. Skipping it
-    // would put the user's first-ever rating at their first real rep, which is
-    // exactly the surprise this beat exists to remove.
-    expect(isBeatComplete('rehearse', empty)).toBe(false);
-    RESISTANCE_LEVELS.forEach((level) => {
-      expect(isBeatComplete('rehearse', { ...empty, resistance: level.value })).toBe(true);
-    });
-  });
-
-  it('does not gate on the baseline sliders', () => {
-    // They carry middle defaults; a required slider is a question people answer
-    // by dragging it anywhere, which poisons the very metric it feeds.
-    expect(isBeatComplete('rehearse', { ...empty, resistance: 2 })).toBe(true);
+    expect(isBeatComplete('pick', { definitionId: 'test-timed' })).toBe(true);
   });
 });
 
@@ -320,7 +333,15 @@ describe('buildHabitCreationPayload', () => {
     expect(buildHabitCreationPayload(plain, deriveHabitSetupDraft(plain)).practice_id).toBe('test-plain');
   });
 
-  describe('the beat-4 guess', () => {
+  describe('the optional resistance guess', () => {
+    it('is absent from what the seven-beat flow actually writes', () => {
+      // The flow calls this with two arguments. If a guess ever reappears in a
+      // habit created by onboarding, a beat asking for one has crept back in.
+      const payload = buildHabitCreationPayload(timed, deriveHabitSetupDraft(timed));
+      expect(payload.expected_resistance).toBeUndefined();
+      expect(payload.expected_resistance_scale).toBeUndefined();
+    });
+
     it('stores the expectation with the scale it was recorded on', () => {
       // A bare 2 is uninterpretable if the scale ever changes again — the old
       // and new ranges overlap. Same reason logs carry resistance_scale.

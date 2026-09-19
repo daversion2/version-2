@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Platform, Switch } from 'react-native';
 import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { ANCHORS, defaultTimeForAnchor, findAnchorByPhrase } from '../../data/anchors';
-import { HabitDefinition, getCommitmentField } from '../../data/practices';
-import { scaleLabel } from '../../data/gradeScale';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { ANCHORS, defaultTimeForAnchor, findAnchorByPhrase } from '../../../data/anchors';
+import { HabitDefinition, getCommitmentField } from '../../../data/practices';
+import { scaleLabel } from '../../../data/gradeScale';
 import {
   FALLBACK_REMINDER_TIME,
   HabitSetupDraft,
   describePromise,
   formatReminderTime,
   stepAmount,
-} from '../../services/onboardingSetup';
-import { SchedulePicker } from '../common/SchedulePicker';
-import { ob } from './onboardingStyles';
+} from '../../../services/onboardingSetup';
+import { SchedulePicker } from '../../common/SchedulePicker';
+import { ob } from '../onboardingStyles';
 
 // ============================================================================
 // BEAT 3 — MAKE IT A PROMISE

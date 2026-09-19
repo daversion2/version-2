@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { FadeRise } from '../common/FadeRise';
-import { HabitDefinition } from '../../data/practices';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { FadeRise } from '../../common/FadeRise';
+import { HabitDefinition } from '../../../data/practices';
 import {
   HabitSetupDraft,
   describePromise,
   formatReminderTime,
-} from '../../services/onboardingSetup';
-import { ob } from './onboardingStyles';
+} from '../../../services/onboardingSetup';
+import { ob } from '../onboardingStyles';
 
 // ============================================================================
 // BEAT 5 — LAND

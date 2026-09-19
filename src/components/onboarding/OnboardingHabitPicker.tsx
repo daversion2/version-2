@@ -12,7 +12,17 @@ import {
 import { ob } from './onboardingStyles';
 
 // ============================================================================
-// BEAT 2 — PICK ONE HABIT
+// BEAT 7 — PICK ONE HABIT
+//
+// The last beat, and the only one that asks for anything. It used to be second,
+// ahead of two setup forms; now the argument and the walkthrough come first, so
+// by the time this appears the user knows what they are picking a habit FOR.
+//
+// Nothing else is asked. Amount, days, anchor and reminder all come from the
+// chosen habit's own definition via deriveHabitSetupDraft — which is where the
+// old promise beat got its starting values anyway — and stay editable on the
+// habit afterwards. The note under the list says so, because a reminder that
+// appears without having been agreed to is a surprise.
 //
 // Browses the REAL catalog by category, not the six curated practices the
 // previous onboarding offered. A user who came for "No social media before
@@ -49,11 +59,11 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
 
   return (
     <View style={{ flex: 1 }}>
-      <Text style={ob.eyebrow}>Your first habit</Text>
-      <Text style={ob.headline}>Pick one. Just one.</Text>
+      <Text style={ob.eyebrow}>Your turn</Text>
+      <Text style={ob.headline}>Pick the first one to push against.</Text>
       <Text style={ob.body}>
-        You'll add more when this one is sticking. Starting with five is how people end the week
-        with none.
+        Just one. You'll add more when this one is sticking — starting with five is how people end
+        the week with none.
       </Text>
 
       <View style={styles.categories}>
@@ -108,6 +118,14 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
           </FadeRise>
         );
       })}
+
+      {/* Says out loud what gets written without being asked. The reminder in
+          particular: it is scheduled on completion, and a notification nobody
+          agreed to is the kind of surprise that gets an app deleted. */}
+      <Text style={styles.defaultsNote}>
+        Amount, days and reminders are already set to something sensible. Change any of it later,
+        or add more from the Library.
+      </Text>
 
       {showCaution && (
         <View style={styles.caution}>
@@ -164,6 +182,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: Colors.secondary,
     marginTop: 4,
+  },
+
+  defaultsNote: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    lineHeight: 18,
+    marginTop: Spacing.sm,
   },
 
   caution: {
