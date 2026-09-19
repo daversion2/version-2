@@ -133,6 +133,23 @@ export const savePushTokenAndTimezone = async (
   await setDoc(doc(db, 'users', userId), { expoPushToken: token, timezone }, { merge: true });
 };
 
+/**
+ * Stop server pushes for this user — the off half of the Settings toggle.
+ *
+ * Writes null rather than deleting the field, because null is what the server's
+ * recipient query (`where('expoPushToken', '!=', null)` in evaluatePushRules)
+ * actually excludes, and it leaves visible evidence that the user turned this
+ * off rather than never having been asked. It also makes the has_push_token
+ * rule fact read 0, so the opt-in ask can come back.
+ *
+ * Local habit reminders are untouched: they need no token and the user never
+ * asked to lose them. Revoking at the OS level is the only way to lose those,
+ * which is exactly why this toggle needs to exist.
+ */
+export const clearPushToken = async (userId: string): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { expoPushToken: null }, { merge: true });
+};
+
 // ============================================================================
 // USERNAME FUNCTIONS
 // ============================================================================

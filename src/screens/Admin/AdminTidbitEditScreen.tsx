@@ -20,11 +20,17 @@ import {
 import { TidbitContextType } from '../../types';
 import { AdminScreenProps, AdminNavigation } from '../../types/navigation';
 
+// The two live types come first; the retired ones are kept so that opening an
+// old Challenges-era doc still shows a selected chip rather than a blank row.
+// Nothing new should be authored into the retired types — their only reader is
+// selectTidbitForCompletion, which is off the tab bar. See types/index.ts.
 const CONTEXT_TYPE_OPTIONS: { label: string; value: TidbitContextType }[] = [
-  { label: 'Challenge Type', value: 'challenge_type' },
-  { label: 'Category', value: 'category' },
-  { label: 'State', value: 'state' },
-  { label: 'Generic', value: 'generic' },
+  { label: 'Habit', value: 'habit' },
+  { label: 'Habit Type', value: 'habit_type' },
+  { label: 'Challenge Type (retired)', value: 'challenge_type' },
+  { label: 'Category (retired)', value: 'category' },
+  { label: 'State (retired)', value: 'state' },
+  { label: 'Generic (retired)', value: 'generic' },
 ];
 
 type Props = AdminScreenProps<'AdminTidbitEdit'>;

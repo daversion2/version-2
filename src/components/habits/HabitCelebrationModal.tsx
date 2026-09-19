@@ -29,6 +29,18 @@ interface HabitCelebrationModalProps {
    */
   contextLabel?: string | null;
   /**
+   * Crossing a streak tier — "7-day streak: Committed · 2× XP from here".
+   *
+   * Its own slot for the same reason contextLabel has one: this is a different
+   * kind of news from bonusLabel, and both can land on the same rep (a first
+   * try that also crosses a tier). It used to be a native Alert fired after the
+   * celebration was dismissed, held in a `pendingAlert` ref and flushed from
+   * four different handlers — an OS dialog with an OK button, announcing good
+   * news, after the card that was already announcing good news. Moving it here
+   * keeps the information and removes the interruption.
+   */
+  milestoneLabel?: string | null;
+  /**
    * Neuroscience tidbit shown inside this card. Previously a second modal that
    * opened after this one was dismissed — two sequential native modals (plus a
    * 300ms handoff) on every completion. Passing it here collapses the reward
@@ -128,6 +140,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
   pointsEarned,
   streakDays,
   bonusLabel,
+  milestoneLabel,
   contextLabel,
   tidbit,
   onLearnMore,
@@ -282,6 +295,13 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
               <View style={styles.bonusRow}>
                 <Ionicons name="sparkles" size={14} color={AMBER} />
                 <Text style={styles.bonusText}>{bonusLabel}</Text>
+              </View>
+            )}
+
+            {!!milestoneLabel && (
+              <View style={styles.milestoneRow}>
+                <Ionicons name="trophy" size={14} color={AMBER} />
+                <Text style={styles.milestoneText}>{milestoneLabel}</Text>
               </View>
             )}
 
@@ -466,6 +486,21 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondaryBold,
     fontSize: FontSizes.sm,
     color: Colors.dark,
+  },
+  milestoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    // Sits directly under the bonus row when both are present, so the two pieces
+    // of good news read as one block rather than drifting apart.
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  milestoneText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
+    flexShrink: 1,
   },
   contextRow: {
     flexDirection: 'row',

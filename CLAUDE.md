@@ -55,11 +55,15 @@ unless the behaviour change was the point.
 | File | Error |
 |---|---|
 | `src/screens/Home/MantraScreen.tsx:312` | array-style `ViewStyle` not assignable |
-| `src/screens/Settings/HowItWorksScreen.tsx:178` | array-style `ViewStyle` not assignable |
 | `src/screens/Settings/EditProfileScreen.tsx:121` | `InputField` missing required `label` |
 | `src/services/firebase.ts:2` | `getReactNativePersistence` not exported |
 
-Any error beyond those four is yours. If the count changes, say so explicitly.
+Any error beyond those three is yours. If the count changes, say so explicitly.
+
+*Was four until 2026-09-18. `HowItWorksScreen.tsx:178` left the list when the
+screen was deleted — it described the app as Challenges / Practices / Programs,
+which is two archived features and a renamed one. Explanation now lives in the
+per-screen ⓘ intros (`data/screenIntros.ts`, `ScreenIntro`, `FeatureInfoModal`).*
 
 ### What the tests actually cover
 

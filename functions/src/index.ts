@@ -10,6 +10,8 @@ import {
   buildUserFacts,
   ctaTargetData,
   frequencyAllows,
+  pushBudgetAllows,
+  recordPushSend,
   referencedGlobalKeys,
   renderTemplate,
   resolveUserGlobals,
@@ -75,20 +77,67 @@ const getHourInTimezone = (timezone: string): number => {
   }
 };
 
-// Helper to send push notification via Expo
+/**
+ * Atomically reserve one slot from the user's push budget.
+ *
+ * A transaction rather than a read-then-write because the send paths are not
+ * mutually exclusive: onChallengeFailure is a Firestore trigger that can run
+ * while either hourly cron is mid-flight, and checkMicroCommitmentFollowUps
+ * loops over several exercises for one user off a single stale userData read.
+ * Every one of those would otherwise see the same pre-send history and all
+ * decide they were within budget.
+ *
+ * Claims BEFORE the send, so a send that then fails still costs a slot. That
+ * direction is deliberate: a push silently dropped is recoverable, a burst
+ * delivered to a real person is not.
+ *
+ * Fails closed — a transaction error means no push.
+ */
+const claimPushBudget = async (userId: string, nowIso: string): Promise<boolean> => {
+  const ref = db.collection("users").doc(userId);
+  try {
+    return await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const history = (snap.data()?.push_send_history as string[] | undefined) ?? [];
+      if (!pushBudgetAllows(history, nowIso)) return false;
+      tx.set(ref, { push_send_history: recordPushSend(history, nowIso) }, { merge: true });
+      return true;
+    });
+  } catch (error) {
+    console.error(`Push budget claim failed for user ${userId}:`, error);
+    return false;
+  }
+};
+
+/**
+ * Send one push via Expo, subject to the global per-user budget.
+ *
+ * This is the ONLY way a push leaves the server, and it takes a userId rather
+ * than just a token precisely so the budget cannot be bypassed by a future
+ * caller that forgets it exists.
+ *
+ * @returns whether the push was actually sent — callers MUST NOT record a rule
+ *   as fired on a false, or a once_ever rule burns without reaching anyone.
+ */
 const sendPushNotification = async (
+  userId: string,
   pushToken: string,
   title: string,
   body: string,
   data?: Record<string, string>
-): Promise<void> => {
+): Promise<boolean> => {
   if (!PUSH_NOTIFICATIONS_ENABLED) {
     console.log("Push notifications disabled — skipping");
-    return;
+    return false;
   }
   if (!Expo.isExpoPushToken(pushToken)) {
     console.log(`Invalid Expo push token: ${pushToken}`);
-    return;
+    return false;
+  }
+
+  if (!(await claimPushBudget(userId, new Date().toISOString()))) {
+    console.log(`Push budget exhausted for user ${userId} — skipping: ${title}`);
+    return false;
   }
 
   const message: ExpoPushMessage = {
@@ -104,9 +153,11 @@ const sendPushNotification = async (
     for (const chunk of chunks) {
       await expo.sendPushNotificationsAsync(chunk);
     }
-    console.log(`Notification sent to ${pushToken}: ${title}`);
+    console.log(`Notification sent to user ${userId}: ${title}`);
+    return true;
   } catch (error) {
     console.error("Error sending push notification:", error);
+    return false;
   }
 };
 
@@ -119,23 +170,17 @@ const sendPushNotification = async (
 // with the original hardcoded copy, so behavior is continuous and the rule
 // becomes editable from the Admin screen.
 // KEEP IN SYNC with DEFAULT_RULES in src/services/rules.ts (matched by name).
+//
+// AN ENTRY HERE IS A RESURRECTION SWITCH, NOT JUST A DEFAULT. Auto-seeding on
+// `snap.empty` means DELETING a rule document re-creates it ENABLED the next
+// time its event fires. Retiring an event-triggered push therefore takes two
+// moves: disable the live document in Admin > Rules (so the collection is not
+// empty for that event), AND delete its entry here (so an eventual document
+// cleanup cannot bring it back). `challenge_failed` was retired 2026-09-18 that
+// way — see the parked rule in src/services/rules.ts for why.
 // ============================================
 
 const DEFAULT_EVENT_RULES: Record<string, Omit<Rule, "id" | "created_at" | "updated_at">> = {
-  challenge_failed: {
-    name: "Challenge failed encouragement",
-    description: "Immediate encouragement when a user's challenge is marked failed.",
-    enabled: true,
-    surface: "push",
-    event: "challenge_failed",
-    conditions: [],
-    frequency: { type: "always" },
-    priority: 20,
-    content: {
-      title: "Growth Through Effort",
-      body: "Failure is part of the journey. The fact that you tried is what matters most. Every attempt builds your willpower.",
-    },
-  },
   micro_commitment_followup: {
     name: "Micro-commitment follow-up",
     description: "Day-after check-in on a micro-exercise commitment. The 'Hour of day' condition sets the local send hour. Placeholders: {commitment}.",
@@ -293,12 +338,18 @@ const fireEventRuleForUser = async (
   if (globalVars === null) return false;
   const vars = { ...globalVars, ...templateVars };
 
-  await sendPushNotification(
+  const sent = await sendPushNotification(
+    userId,
     pushToken,
     renderTemplate(rule.content.title, vars),
     renderTemplate(rule.content.body, vars),
     { rule_id: rule.id, ...ctaTargetData(rule), ...data }
   );
+  // Budget-blocked (or failed) sends must not touch ruleState: recording a fire
+  // that never reached the user would spend a once_ever rule on nothing, and
+  // there is no way to un-spend it.
+  if (!sent) return false;
+
   await stateRef.set(
     {
       rule_id: rule.id,
@@ -315,6 +366,14 @@ const fireEventRuleForUser = async (
 // ============================================
 // 3. Challenge Failed: Immediate encouragement
 // Triggers when a challenge status changes to 'failed'
+//
+// INERT AS OF 2026-09-18 and expected to stay that way: the rule is parked and
+// its DEFAULT_EVENT_RULES entry is gone, so getPushRuleForEvent returns null and
+// this early-returns on every invocation. Kept as the evaluation point rather
+// than deleted, matching how the parked rules are handled — re-enabling becomes
+// "create a challenge_failed rule in Admin" instead of a redeploy. If the
+// per-update invocation cost ever matters more than that optionality, this whole
+// export is the thing to remove.
 // ============================================
 export const onChallengeFailure = onDocumentUpdated(
   "users/{userId}/challenges/{challengeId}",
@@ -569,6 +628,11 @@ export const evaluatePushRules = onSchedule(
         const todayLocal = getDateInTimezone(timezone);
         const facts = buildUserFacts(userData, todayLocal, localHour, undefined, timezone);
 
+        // Cheap pre-check off the batch query's data — no extra read. The
+        // authoritative claim still happens inside sendPushNotification; this
+        // only skips the per-rule ruleState reads for users who are capped out.
+        if (!pushBudgetAllows(userData.push_send_history, nowIso)) continue;
+
         for (const rule of rules) {
           if (!ruleMatches(rule, facts)) continue;
 
@@ -593,12 +657,18 @@ export const evaluatePushRules = onSchedule(
           const globalVars = await resolveGlobalVars(rule, userDoc.id, userData, poolCache);
           if (globalVars === null) continue;
 
-          await sendPushNotification(
+          const sent = await sendPushNotification(
+            userDoc.id,
             pushToken,
             renderTemplate(rule.content.title, globalVars),
             renderTemplate(rule.content.body, globalVars),
             { rule_id: rule.id, ...ctaTargetData(rule) }
           );
+          // Don't record a fire that never landed (see fireEventRuleForUser),
+          // and don't try lower-priority rules either: the budget is per user,
+          // so if this send was refused every other rule would be too.
+          if (!sent) break;
+
           await stateRef.set(
             {
               rule_id: rule.id,

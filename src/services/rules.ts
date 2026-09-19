@@ -146,12 +146,24 @@ export const markRuleShown = async (userId: string, ruleId: string): Promise<voi
 /**
  * Default rules, seeded from the Admin Rules screen.
  *
- * The Comeback nudge is seeded disabled. The event-triggered rules below it
- * replaced the legacy hardcoded notification functions, so they're seeded
- * ENABLED with the original copy — the Cloud Function evaluation points also
- * auto-seed them (matched by name) the first time their event fires with no
- * rule present. KEEP IN SYNC with DEFAULT_EVENT_RULES in
- * functions/src/index.ts.
+ * KEEP IN SYNC with DEFAULT_EVENT_RULES in functions/src/index.ts, which
+ * auto-seeds an event's rule (matched by name) the first time that event fires
+ * with no rule document present at all.
+ *
+ * ---------------------------------------------------------------------------
+ * EDITING enabled HERE DOES NOT CHANGE PRODUCTION. seedDefaultRules skips any
+ * rule whose `name` already exists, so these values only ever apply to a fresh
+ * seed. Turning a live rule off is done in Admin > Rules, against the Firestore
+ * document. The flags below are kept truthful anyway so a new environment comes
+ * up matching production rather than resurrecting a parked message.
+ * ---------------------------------------------------------------------------
+ *
+ * The enabled set is deliberately small — see PUSH_BUDGET in rulesEngine.ts.
+ * Every push here is a response to something the user did or didn't do; a rule
+ * that fires purely because a date arrived has to earn a slot against one that
+ * does. Parked rules keep their content and cta_target so re-enabling is a
+ * one-switch decision, and so ruleCtaTargets.test.ts keeps guarding their
+ * destinations against screen renames.
  */
 export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
@@ -180,6 +192,35 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     },
   },
   {
+    name: 'Push opt-in ask',
+    description:
+      'The only place the app asks for notification permission. Fires on app open once the ' +
+      'user has logged at least one rep — deliberately NOT during onboarding: iOS grants one ' +
+      'permission prompt per install, and spending it before the app has done anything for ' +
+      'them is how you get a permanent no. Conditioned on has_push_token == 0 so it never ' +
+      'asks someone who already said yes (or who turned it off in Settings and then back on). ' +
+      'Opens the bespoke PushOptInModal, which states the 3/week ceiling and only then triggers ' +
+      'the OS prompt. once_ever: declining is an answer, and Settings owns the switch after that.',
+    enabled: true,
+    surface: 'modal',
+    event: 'app_open',
+    conditions: [
+      { fact: 'total_habits_completed', op: '>=', value: 1 },
+      { fact: 'has_push_token', op: '==', value: 0 },
+    ],
+    frequency: { type: 'once_ever' },
+    // Below the comeback check-in (50) — a broken streak is the more urgent
+    // conversation — but above the day-30 recap (40), because every push rule in
+    // the system is dead weight until this one succeeds.
+    priority: 45,
+    content: {
+      title: 'Want a nudge when it matters?',
+      body: "You've logged your first rep. A reminder on the days you said you'd train makes the second one easier — and we'll keep it to three a week, at most.",
+      cta: 'Turn them on',
+      component: 'push_optin',
+    },
+  },
+  {
     name: 'Comeback nudge',
     description: 'Re-engage users who have been inactive for a couple of days.',
     enabled: false,
@@ -198,8 +239,16 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   },
   {
     name: 'Challenge failed encouragement',
-    description: "Immediate encouragement when a user's challenge is marked failed.",
-    enabled: true,
+    description:
+      'PARKED 2026-09-18 (enabled: false). This fired seconds after the user marked a ' +
+      'challenge failed — while they were still inside CompleteChallengeScreen, which ' +
+      'already walks them through a reward moment and then ChallengeFailureModal ' +
+      '(barrier → next action). The push was a notification about a screen the user was ' +
+      'looking at. The in-app flow is the better version of this message and already ships. ' +
+      'ALSO REMOVED from DEFAULT_EVENT_RULES in functions/src/index.ts: getPushRuleForEvent ' +
+      'auto-seeds a default ENABLED when no document exists for an event, so deleting this ' +
+      'rule would have resurrected it on the next failure. Disabled + no default = actually off.',
+    enabled: false,
     surface: 'push',
     event: 'challenge_failed',
     conditions: [],
@@ -229,10 +278,28 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   // ---------------------------------------------------------------------
   // First-30-days journey (docs: 30-day user journey). Day-based rules use
   // days_since_signup so they only ever reach users inside the window —
-  // existing accounts are past it and never see them. Edit copy/timing here
-  // in Admin > Rules; the schedule is: day 0 evening rescue → day 3 goal →
-  // weekly recaps (7/21) → check-in prompts (14/28) → day 30 send-off, plus
-  // a morning-after miss nudge throughout month one.
+  // existing accounts are past it and never see them. Edit copy/timing in
+  // Admin > Rules.
+  //
+  // TRIMMED 2026-09-18 from six push messages to three. The original schedule
+  // (day 0 → 7 → 14 → 17 → 21 → 28 → 30) was a broadcast drip: it fired
+  // because a date arrived, not because the user did anything. Under a 3/week
+  // ceiling those slots have to be earned, and the missed-a-day nudge earns
+  // one every time it fires. What survives:
+  //
+  //   day 0   evening rescue — signed up, hasn't logged. Highest-value
+  //           message in the set; the only one that catches the drop-off
+  //           that actually kills retention.
+  //   day 7   week-one recap — first real proof, and the first point at
+  //           which {habits_completed} says something worth reading.
+  //   day 28  check-in retake — pays off the explicit 2–4 week promise
+  //           onboarding made. The one date-triggered message the app owes.
+  //   day 30  month-one recap (MODAL, not push — costs no budget).
+  //   any day missed-a-day nudge, behaviour-triggered, month one only.
+  //
+  // Parked: 14 (asks for the same check-in day 28 pays off), 17 (a tidbit
+  // with no ask — tidbits already surface in-app after every completion via
+  // selectHabitTidbit), 21 (the day-7 recap again, three weeks later).
   // ---------------------------------------------------------------------
   {
     name: 'Journey day 0: first rep tonight',
@@ -304,8 +371,12 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
     name: 'Journey day 14: two-week check-in',
     description:
-      'Midpoint of the research window (2–4 weeks). Taps through to the check-in screen — same 3 questions as the onboarding baseline.',
-    enabled: true,
+      'PARKED 2026-09-18 (enabled: false). Asked for the same mood/focus/motivation retake ' +
+      'that day 28 asks for, two weeks earlier — and day 28 is the one that pays off the ' +
+      'promise onboarding actually made ("improvements within 2–4 weeks"). Prompting twice ' +
+      'inside one research window made the second ask the boring one. Re-enable only if the ' +
+      'check-in screen gains a reason to be visited mid-window.',
+    enabled: false,
     surface: 'push',
     event: 'scheduled_hourly',
     conditions: [
@@ -323,8 +394,12 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
     name: 'Journey day 17: from the research',
     description:
-      'Week-3 value-give — a neuroscience tidbit, no ask. Placeholder: {tidbit} (needs at least one active tidbit in the pool).',
-    enabled: true,
+      'PARKED 2026-09-18 (enabled: false). A tidbit with no ask is pleasant but it is not a ' +
+      'reason to interrupt someone, and tidbits are already the app\'s most-delivered content: ' +
+      'selectHabitTidbit surfaces one inside HabitCelebrationModal after completions, with ' +
+      '"learn more" attached. This spent a push slot re-delivering an in-app surface. ' +
+      'Placeholder: {tidbit} (needs at least one active tidbit in the pool).',
+    enabled: false,
     surface: 'push',
     event: 'scheduled_hourly',
     conditions: [
@@ -341,8 +416,11 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
     name: 'Journey day 21: week three recap',
     description:
-      'Volume + variety recap. Placeholders: {habits_completed}, {practices_tried}.',
-    enabled: true,
+      'PARKED 2026-09-18 (enabled: false). Structurally the day-7 recap again — same two ' +
+      'placeholders, same shape, two weeks later. Repeating a message format is what made ' +
+      'the journey read as a drip rather than as the app noticing something. Day 7 keeps the ' +
+      'recap slot; day 28 keeps the milestone. Placeholders: {habits_completed}, {practices_tried}.',
+    enabled: false,
     surface: 'push',
     event: 'scheduled_hourly',
     conditions: [

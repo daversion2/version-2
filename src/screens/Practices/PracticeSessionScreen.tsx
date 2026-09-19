@@ -126,7 +126,12 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
     try {
       const picked = await selectHabitTidbit(user.uid, {
         streakDays: result.streakBefore,
+        habitName,
+        resistance: input.resistance,
         difficulty: input.difficulty,
+        // Coming back: the streak was broken, but they've done this habit
+        // before — so it's a gap being closed, not a first attempt.
+        isReturn: result.streakBefore === 0 && !result.firstTry,
       });
       if (picked) {
         await recordTidbitShown(user.uid, picked.id);

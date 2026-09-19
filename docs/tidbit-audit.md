@@ -1,108 +1,212 @@
-# Neuroscience Tidbit Audit — Practice Completions
+# Neuroscience Tidbit Audit
 
-> Audit + rewrite of the neuroscience tidbits that pop up **after a practice is completed**.
-> Motivation: the originals were written for a habit-formation app and celebrated *automaticity*
-> ("this becomes effortless, your basal ganglia takes over"). That directly contradicts the app's
-> current thesis — deliberately doing hard things outside your comfort zone to train the *override*.
-> If a practice becomes automatic/effortless, it's no longer training the override.
+> The card shown after a habit check-in — "Your brain right now", inside
+> `HabitCelebrationModal`.
 >
-> Status: **Applied** (commit `ef5fb4b`, OTA on production branch, runtime 2.2.0, 2026-07-24).
+> Status: **rewritten 2026-09-18 for the resistance-habit-tracker direction.**
+> Code is in; **the Firestore step has NOT been run** — see "Shipping this" at
+> the bottom. Until it is, users still see the 2026-07 set.
 
 ---
 
-## Scope: which tidbits fire after a practice
+## Why it was rewritten (2026-09-18)
 
-After a practice completion the app calls `selectHabitTidbit`, which **only** selects tidbits where
-`context_type === 'habit'` ([neuroscienceTidbits.ts](../src/services/neuroscienceTidbits.ts)). The
-`challenge_type`, `state`, and `generic` tidbits fire after **challenges**, not practices — so this
-audit covered only the 14 `habit` tidbits.
+Two separate problems, found by auditing the pool against the app as it actually
+ships today.
 
-Selection buckets (`context_value`) and their priority logic:
-- `struggle` — returning after a miss, or rated the practice "challenging"
-- `established` — streak ≥ 30
-- `streak` — streak ≥ 7
-- `new_habit` — streak ≤ 14
-- `generic` — fallback when no state matches
+**1. More than half the library was unreachable.** 17 of 31 tidbits
+(`challenge_type`, `state`, `generic`) were only ever read by
+`selectTidbitForCompletion`, whose sole entry point is `CompleteChallengeScreen`
+— reachable only from `ChallengesHomeScreen`, which came off the tab bar when
+Challenges was archived. That content had been dead since the tab restructure
+and nothing surfaced it.
 
-The rewrite kept the same bucket distribution: **generic 3, new_habit 4, streak 3, established 2, struggle 2 = 14**.
+**2. The 14 that did fire argued against the product.** They were written in
+2026-07 for the override thesis, which held that a habit becoming easier was a
+*failure* ("you're not building something that runs itself"). The app now sells
+a falling resistance score as its headline proof of change. The tidbits were
+contradicting the chart.
 
----
-
-## Original audit verdicts (14 habit tidbits)
-
-| # | Theme | Verdict | Why |
-|---|-------|---------|-----|
-| 1 | Basal-ganglia "chunking" — *less brainpower required* | **Cut** | celebrates effortlessness |
-| 2 | Task-bracketing completion signal | **Rework** | "completion matters" good, wrapped in automaticity |
-| 3 | Sleep consolidation — *tomorrow's habit is easier* | **Rework** | science good, "easier" frame off |
-| 4 | Dopamine migrates to cue — *teaching your brain to want it* | **Cut** | "wanting it automatically" undercuts override |
-| 5 | Lally 66-day / 21-day myth | **Rework** | habit-timeline framed |
-| 6 | PFC → basal ganglia — *future you won't have to think* | **Cut** | automaticity |
-| 7 | Identity — *casting a vote for who you are* | **Keep** | strong fit |
-| 8 | Myelin — *dial-up → fiber, 100x faster* | **Cut** | speed/automaticity |
-| 9 | Context/cue (Wendy Wood) — *brain recognizes setting and executes* | **Cut** | context-binding automaticity |
-| 10 | Harvard gray-matter — *brain reshapes around what you practice* | **Keep** | fit |
-| 11 | PFC → basal ganglia — *don't feel like decisions* | **Cut** | automaticity |
-| 12 | Stress defaults to encoded habit | **Rework** | resilience angle salvageable |
-| 13 | Lally missed-day — *you're back* | **Keep** | comeback/resilience |
-| 14 | Amabile progress principle — small wins/momentum | **Keep** | fit |
-
-**Result: Keep 4, Rework 4, Cut 6.** The 6 cuts all shared one flaw — selling the practice becoming automatic/effortless.
+Smaller but real: the copy used "rep" 8 times and "practice" 14 times, both
+against the standing voice rules; and the `struggle` bucket had swallowed most
+check-ins (see below).
 
 ---
 
-## Final set (14, all in the override/discomfort frame)
+## The thesis the new set is written to
 
-Source of truth for copy is [src/data/tidbitSeedData.ts](../src/data/tidbitSeedData.ts) (the `HABIT` section).
+**Repetition automates the launch, not the work.**
 
-**generic**
-- ACC / effort — "the moment you wanted to stop and didn't, your anterior cingulate cortex lit up" (replaced #1)
-- Follow-through — "finishing matters more than starting" (reworked #2)
-- Sleep — "today's effort becomes tomorrow's capacity" (reworked #3)
+What the basal ganglia takes over is *initiation* — the cue-to-action link, the
+negotiation that used to happen before anything began. The effort itself stays
+effortful. That is why a habit can be easy to start and just as hard to finish,
+and it is exactly what a falling resistance score measures.
 
-**new_habit**
-- Effort valuation — "dopamine tracks the effort it took" / learned industriousness (replaced #4)
-- Prefrontal override — "your PFC does a real rep… stronger under load" (replaced #6)
-- Training curve — "no magic number of reps… missing a day doesn't set you back" (reworked #5)
-- Progress principle — Amabile small wins (kept #14)
+This reconciles the two things the app has to say at once: *this gets easier*
+(true, and measurable) and *the hard days are the valuable ones* (also true).
+The 2026-07 audit cut six tidbits for mentioning automaticity at all; that was
+over-corrected, and the mechanism is back — bounded by the line above.
 
-**streak**
-- Identity — "casting a vote for a new identity" (kept #7, "habit"→"practice")
-- Distress tolerance — "your baseline moves… harder to rattle" / hormesis (replaced #8)
-- Urge surfing — "the urge to quit isn't a command, it's a wave" (replaced #9)
+Voice rules, unchanged and now enforced by test: never "rep", never "practice"
+as a noun for the tracked thing, never promise effortlessness.
 
-**established**
-- Gray matter — Harvard MBSR (kept #10, "habit"→"practice")
-- Amygdala down-regulation — "harder to alarm" (replaced #11)
+---
 
-**struggle**
-- Stress inoculation — "practicing discomfort when you don't have to" (reworked #12)
-- Comeback — Lally missed-day (kept #13)
+## Selection
+
+`selectHabitTidbit` in [neuroscienceTidbits.ts](../src/services/neuroscienceTidbits.ts),
+called from `HomeScreen` and `PracticeSessionScreen`. Cascade:
+
+| Step | Bucket | Fires when |
+|---|---|---|
+| 1 | `struggle` | `isReturn` — streak was 0 and they've done this habit before |
+| 1 | `hardest` | resistance level 3, "took everything I had" |
+| 2 | `habit_type` | the habit's **name** matches `deriveHabitType` |
+| 3 | `easing` | level 1 **and** streak ≥ 7 |
+| 3 | `established` | streak ≥ 30 |
+| 3 | `streak` | streak ≥ 7 |
+| 3 | `new_habit` | streak ≤ 14 |
+| 4 | `generic` | fallback, then recycle if the 14-day window excluded everything |
+
+Three things worth knowing about that order:
+
+- **Level 2 routes nowhere special, deliberately.** The old cascade used the
+  legacy binary, where `resistance >= 2` meant "challenging" — so two of the
+  three levels landed in `struggle`, and most check-ins drew from the same two
+  tidbits. Level 2 is the ordinary answer; it now falls through to the streak
+  buckets where the variety is. Pinned by test.
+- **`habit_type` sits below the urgent states.** A comeback deserves a response,
+  not a lecture on BDNF. It sits above the streak buckets because it's the most
+  specific thing the pool knows about this habit.
+- **`easing` needs a streak behind it.** An easy day on day two is one easy day,
+  not the curve bending.
+
+`isReturn` is derived at the call sites as `streakBefore === 0 && !firstTry`.
+Before this rework nothing passed it at all, so `struggle` was only ever reached
+via the binary — the bucket carrying the comeback message was, in effect,
+firing for the wrong reason.
+
+---
+
+## The set — 32 tidbits, all reachable
+
+Source of truth for copy is [tidbitSeedData.ts](../src/data/tidbitSeedData.ts).
+
+**`habit_type` (9)** — the science of one kind of habit, matched off the name.
+Nine types, chosen to cover the library: `workout` (BDNF), `cold`
+(norepinephrine), `meditation` (grey matter / amygdala), `breathwork` (vagal
+tone), `sleep` (consolidation), `journaling` (affect labelling), `screen_limit`
+(variable reward), `diet` (preference shift), `deep_work` (acetylcholine).
+
+Six of these are rewrites of the stranded `challenge_type` tidbits — the best
+content in the dead half, retargeted from challenges to habits. `sleep`,
+`journaling` and `screen_limit` are new, and cover the library habits that had
+nothing to say to them.
+
+**`hardest` (3)** — ACC/effort; extinction burst; stress inoculation.
+The extinction-burst pair was stranded in `state`; it belongs here, where it
+lands on the day it describes.
+
+**`struggle` (3)** — Lally missed-day; comeback/reward-system; self-compassion
+vs. self-criticism. This is the highest-stakes bucket in the product — the
+response to a lapse is what decides whether it ends — and it was previously
+reachable only by accident.
+
+**`easing` (3)** — new bucket, and the one that carries the differentiator.
+Chunking (Graybiel), context/cues (Wood), dopamine shifting to the cue
+(Schultz). All three are revivals of tidbits the 2026-07 audit cut for
+automaticity, reframed around initiation cost.
+
+**`established` (3)** — grey matter (Hölzel/Lazar); amygdala down-regulation;
+myelin, reframed as why *starting* got cheap.
+
+**`streak` (4)** — identity; the basal-ganglia launch handoff (the thesis stated
+outright); distress tolerance; urge surfing (Marlatt).
+
+**`new_habit` (4)** — Lally training curve / 21-day myth; the prefrontal cost of
+the early days; Amabile progress principle; learned industriousness
+(Eisenberger, explicitly hedged — the evidence leans on animal work).
+
+**`generic` (3)** — dopamine starts at the decision; task-bracketing /
+follow-through; sleep consolidation.
 
 ### Accuracy notes
-- ACC/effort, urge-surfing, hormesis/stress-inoculation, amygdala-reactivity claims are well-grounded.
-- The softest claim is the `new_habit` effort-valuation tidbit's "learned industriousness" (Eisenberger) — real and cited, but based heavily on animal work. Hedge if desired.
-- Two tidbits cite the Lally study (the `new_habit` training-curve one and the `struggle` comeback one). Different angles/buckets, but note the mild overlap.
+
+- Citation policy carried over from the habit-science work: **verified or
+  absent**. Every named study was already cited in the previous set or its
+  audit; no new names were introduced.
+- The softest claim is still learned industriousness. It is hedged in the copy
+  itself ("hold it loosely") rather than left to the reader.
+- Two tidbits cite Lally, in `new_habit` (the curve) and `struggle` (the missed
+  day). Different angles, different buckets, and they cannot both fire on the
+  same check-in — but it's the one overlap in the set.
 
 ---
 
-## How to apply changes (the seeding pipeline)
+## What the tests cover
 
-**Source of truth is Firestore** (`neuroscienceTidbits` collection), NOT the seed file.
-[src/utils/seedTidbits.ts](../src/utils/seedTidbits.ts) is **append-only and dedupes by exact `text`** —
-it only ever *adds*, never updates or deletes.
+[neuroscienceTidbits.test.ts](../src/services/__tests__/neuroscienceTidbits.test.ts)
+— 23 tests, and the service had none before this.
 
-To change what users see:
-1. Edit [src/data/tidbitSeedData.ts](../src/data/tidbitSeedData.ts).
-2. Ship it (commit + `eas update --branch production`) so the app bundle has the new seed data.
-3. Delete the stale tidbits in **Admin → Tidbits** (or toggle inactive), then
-   **Admin → Dashboard → Seed Tidbits** to add the new ones. The button runs as your authenticated
-   admin account.
+Selection: every bucket, the cascade's precedence, the level-2 regression, the
+legacy-binary and legacy-1–10-scale paths, the 14-day exclusion, recycling, and
+the empty pool.
 
-**Why not seed from a script:** Firestore rules gate `neuroscienceTidbits` writes to
-`request.auth.uid` with `is_admin == true` ([firestore.rules](../firestore.rules)). A headless client
-script gets `permission-denied`. [scripts/runSeedTidbits.ts](../scripts/runSeedTidbits.ts) exists as a
-backup but needs a service-account key or `gcloud` ADC to bypass rules.
+Content, which is the part likely to drift: every bucket the selector asks for
+is populated; no bucket is used that the selector never asks for; every
+`habit_type` value is reachable from some real habit name; no duplicate text
+(the seeder dedupes on it); and **the voice rules are asserted** — a "rep" or a
+"the practice" in new copy fails the suite.
 
-**Editing an existing tidbit's text** via the seeder creates a *duplicate* (new text ≠ old), so always
-deactivate/delete the old one in Admin too.
+`deriveHabitType` pattern order is load-bearing and pinned: "Screen-free
+wind-down" must reach `sleep` rather than `screen_limit`, "No phone for the
+first 30 minutes" must reach `screen_limit` rather than `deep_work`.
+
+---
+
+## Shipping this — READ BEFORE SEEDING
+
+**Source of truth is Firestore** (`neuroscienceTidbits`), not the seed file.
+[seedTidbits.ts](../src/utils/seedTidbits.ts) is **append-only and dedupes by
+exact `text`** — it only ever adds.
+
+Every string in the set was rewritten, so **nothing will dedupe**. Seeding
+without deactivating first leaves ~63 active tidbits, old and new, competing in
+the same buckets — `generic`, `new_habit`, `streak`, `established` and
+`struggle` all still exist under those names. Users would get a random mix of
+two contradictory sets, and the old half still says "rep" and "practice".
+
+Order matters:
+
+1. Commit + `eas update --branch production` so the bundle carries the new data
+   **and the bulk button in step 2** — that button ships in the same JS bundle,
+   so it won't exist in the app until this update lands.
+2. **Admin → Tidbits → "Deactivate all".** Mandatory, not housekeeping.
+   `getAllActiveTidbits` filters on `active`, so this fully clears the pool.
+   Nothing is deleted and "Reactivate all" puts it back — the button pair is
+   `setAllTidbitsActive` in the service, covered by test.
+3. **Admin → Dashboard → Seed Tidbits** to add the 32.
+4. Back on Admin → Tidbits, confirm it reads **63 tidbits (32 active)**. If
+   active is higher than 32, step 2 didn't take and both sets are live.
+5. Complete one habit and confirm the card reads correctly.
+
+The old docs stay in Firestore as inactive rows. That's deliberate — it keeps
+the rollback one tap away. Delete them row by row later if the admin list gets
+annoying; there is no bulk delete on purpose, because an append-only seeder
+plus a bulk delete is a bad thing to have within one tap of each other.
+
+**Why not a script:** `firestore.rules` gates `neuroscienceTidbits` writes to an
+authenticated uid with `is_admin == true`, so a headless client gets
+`permission-denied`. [runSeedTidbits.ts](../scripts/runSeedTidbits.ts) exists as
+a backup but needs a service-account key or `gcloud` ADC.
+
+---
+
+## If Challenges ever comes back
+
+`selectTidbitForCompletion`, the `challenge_type` / `category` / `state` /
+`generic` context types, and `deriveChallengeType` (now an alias of
+`deriveHabitType`) are all still in place — archived, not deleted, matching how
+`MainTabs` treats the stack itself. But **nothing seeds those types any more**,
+so restoring the tab gives challenge completions an empty pool. That's a content
+task at that point, not a code one. The retired copy is in git at `824d1cf`.

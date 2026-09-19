@@ -13,7 +13,11 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { getAllTidbits, deleteTidbit } from '../../services/neuroscienceTidbits';
+import {
+  getAllTidbits,
+  deleteTidbit,
+  setAllTidbitsActive,
+} from '../../services/neuroscienceTidbits';
 import { NeuroscienceTidbit } from '../../types';
 import { AdminNavigation } from '../../types/navigation';
 
@@ -22,6 +26,7 @@ export const AdminTidbitsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tidbits, setTidbits] = useState<NeuroscienceTidbit[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -68,6 +73,55 @@ export const AdminTidbitsScreen: React.FC = () => {
     );
   };
 
+  /**
+   * Retire or restore the whole pool in one action. This is the reseed path:
+   * the seeder only ever appends, so rewritten copy has to be preceded by
+   * clearing what's live or both sets compete in the same buckets.
+   *
+   * Deactivating is not destructive — users only ever see `active` tidbits, and
+   * the opposite button puts them back.
+   */
+  const handleBulkActive = (active: boolean) => {
+    const count = active
+      ? tidbits.filter((t) => !t.active).length
+      : tidbits.filter((t) => t.active).length;
+
+    if (count === 0) return;
+
+    Alert.alert(
+      active ? 'Reactivate all tidbits' : 'Deactivate all tidbits',
+      active
+        ? `Make all ${count} inactive tidbit${count !== 1 ? 's' : ''} visible to users again?`
+        : `Hide all ${count} active tidbit${count !== 1 ? 's' : ''} from users?\n\n` +
+          'Nothing is deleted — you can reactivate them from this screen. ' +
+          'Do this before seeding a rewritten set.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: active ? 'Reactivate all' : 'Deactivate all',
+          style: active ? 'default' : 'destructive',
+          onPress: async () => {
+            setBulkBusy(true);
+            try {
+              const changed = await setAllTidbitsActive(active);
+              await loadData();
+              Alert.alert(
+                'Done',
+                `${changed} tidbit${changed !== 1 ? 's' : ''} ${
+                  active ? 'reactivated' : 'deactivated'
+                }.`
+              );
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            } finally {
+              setBulkBusy(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -77,6 +131,7 @@ export const AdminTidbitsScreen: React.FC = () => {
   }
 
   const activeCount = tidbits.filter((t) => t.active).length;
+  const inactiveCount = tidbits.length - activeCount;
 
   return (
     <View style={styles.screen}>
@@ -90,6 +145,39 @@ export const AdminTidbitsScreen: React.FC = () => {
         <Text style={styles.countText}>
           {tidbits.length} tidbit{tidbits.length !== 1 ? 's' : ''} ({activeCount} active)
         </Text>
+
+        {/* Bulk actions — the reseed path. Only offered when they'd do
+            something, so the row disappears once the pool is all one way. */}
+        {tidbits.length > 0 && (
+          <View style={styles.bulkRow}>
+            {bulkBusy ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <>
+                {activeCount > 0 && (
+                  <TouchableOpacity
+                    style={styles.bulkButton}
+                    onPress={() => handleBulkActive(false)}
+                  >
+                    <Ionicons name="eye-off-outline" size={16} color={Colors.secondary} />
+                    <Text style={styles.bulkTextDestructive}>
+                      Deactivate all ({activeCount})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {inactiveCount > 0 && (
+                  <TouchableOpacity
+                    style={styles.bulkButton}
+                    onPress={() => handleBulkActive(true)}
+                  >
+                    <Ionicons name="eye-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.bulkText}>Reactivate all ({inactiveCount})</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        )}
 
         {tidbits.length === 0 ? (
           <Card style={styles.emptyCard}>
@@ -205,6 +293,32 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray,
     marginBottom: Spacing.md,
+  },
+  bulkRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: Spacing.lg,
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    minHeight: 24,
+  },
+  bulkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  bulkText: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
+  bulkTextDestructive: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.sm,
+    color: Colors.secondary,
   },
   emptyCard: {
     alignItems: 'center',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Linking, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SettingsNavigation } from '../../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
-import { resetOnboarding, getUser, clearUserAccount, deleteAccountPermanently } from '../../services/users';
+import { resetOnboarding, getUser, clearUserAccount, deleteAccountPermanently, clearPushToken } from '../../services/users';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { registerForPushNotifications } from '../../services/notifications';
@@ -20,6 +20,11 @@ export const SettingsScreen: React.FC = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+
+  // A stored token IS the opt-in record — the same signal the server filters on,
+  // so the switch shows exactly what the backend believes.
+  const pushEnabled = !!userProfile?.expoPushToken;
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -45,19 +50,41 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  const handleEnableNotifications = async () => {
+  /**
+   * The on/off switch for SERVER pushes.
+   *
+   * Turning it off clears the stored token, which is what removes the user from
+   * the server's recipient query — it does not touch per-habit reminders, which
+   * are local and were configured habit by habit. Before this existed the only
+   * way out was revoking notifications at the OS level, which took the habit
+   * reminders down with it.
+   */
+  const handleTogglePush = async (next: boolean) => {
+    if (!user) return;
+    setPushBusy(true);
     try {
-      console.log('Enable notifications pressed, user:', user?.uid);
-      const token = await registerForPushNotifications(user?.uid);
-      console.log('Token received:', token);
-      if (!token) {
-        showAlert('Notifications', 'Could not enable notifications. Check device settings.');
+      if (!next) {
+        await clearPushToken(user.uid);
+        await refreshProfile();
         return;
       }
-      showAlert('Notifications', 'Reminders enabled! Token saved for push notifications.');
+      const token = await registerForPushNotifications(user.uid);
+      if (!token) {
+        // No token means the OS refused, or this is a simulator (which cannot
+        // issue one at all). Either way the switch must stay off — showing it on
+        // would promise notifications that can never arrive.
+        showAlert(
+          'Notifications are blocked',
+          'Your phone is blocking notifications for Neuro-Nudge. You can turn them on in your device Settings, under Notifications.'
+        );
+        return;
+      }
+      await refreshProfile();
     } catch (error) {
-      console.error('Error enabling notifications:', error);
-      showAlert('Error', `Failed to enable notifications: ${error}`);
+      console.error('Error toggling notifications:', error);
+      showAlert('Something went wrong', 'Could not change your notification setting. Please try again.');
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -130,22 +157,17 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
-      {/* How It Works */}
-      <Card style={styles.card} onPress={() => navigation.navigate('HowItWorks')}>
-        <View style={styles.navRow}>
-          <View>
-            <Text style={styles.label}>How It Works</Text>
-            <Text style={styles.desc}>Learn how the XP system works</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
+      {/* NOTE: "How It Works" was removed 2026-09-18. It described the app as
+          three pillars — Challenges, Practices, Programs — none of which are
+          current: two are off the tab bar and the third is now just habits.
+          Explanation lives on the screens themselves, in the "i" info icons
+          (FeatureInfoModal / ScreenIntro), which is where it gets read. */}
 
-      {/* Archived practices. The screen itself lives in the Home stack, so this
+      {/* Archived habits. The screen itself lives in the Home stack, so this
           reaches across tabs the same way the reflection shortcut below does.
           Without an entry point here the archive flow was a one-way door: it
           promises "you can restore it from Archived at any time", and nothing
-          in the app linked to Archived — a practice with no logged reps then
+          in the app linked to Archived — a habit with no logged check-ins then
           appeared in no list at all and could not be got back. */}
       <Card
         style={styles.card}
@@ -155,8 +177,8 @@ export const SettingsScreen: React.FC = () => {
       >
         <View style={styles.navRow}>
           <View>
-            <Text style={styles.label}>Archived Practices</Text>
-            <Text style={styles.desc}>Practices you've put away — restore any of them</Text>
+            <Text style={styles.label}>Archived Habits</Text>
+            <Text style={styles.desc}>Habits you've put away — restore any of them</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
@@ -204,88 +226,90 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Notifications */}
       <Card style={styles.card}>
-        <Text style={styles.label}>Notifications</Text>
-        <Text style={styles.desc}>
-          Get a morning reminder to set your challenge and an evening nudge to complete it.
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleText}>
+            <Text style={styles.label}>Notifications</Text>
+            <Text style={styles.desc}>
+              Occasional nudges when you've been away, and a recap when you've put a week
+              together. At most three a week, never more than one a day.
+            </Text>
+          </View>
+          <Switch
+            value={pushEnabled}
+            onValueChange={handleTogglePush}
+            disabled={pushBusy}
+            trackColor={{ true: Colors.primary }}
+          />
+        </View>
+        <Text style={styles.footnote}>
+          Reminders for individual habits are set on each habit and aren't affected by this.
         </Text>
-        <Button
-          title="Enable Reminders"
-          onPress={handleEnableNotifications}
-          variant="secondary"
-          style={{ marginTop: Spacing.md }}
-        />
       </Card>
 
-      {/* Dev Testing Tools */}
-      <Card style={{ marginTop: Spacing.lg }}>
-        <Text style={{ fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, marginBottom: Spacing.sm }}>
-          Dev Testing
-        </Text>
-        <Button
-          title="Simulate Day 3 (Training Unlock)"
-          onPress={async () => {
-            if (!user) return;
-            await setDoc(doc(db, 'users', user.uid), {
-              has_seen_points_intro: true,
-              has_dismissed_goal_prompt: true,
-              has_seen_training_unlock: false,
-              totalHabitsCompleted: 2,
-            }, { merge: true });
-            await refreshProfile();
-            showAlert('Done', 'Day 3 state set. Complete one more habit on Home to trigger the unlock.');
-          }}
-          variant="outline"
-          style={{ marginBottom: Spacing.sm }}
-        />
-        <Button
-          title="Simulate Streak Break (Comeback)"
-          onPress={async () => {
-            if (!user) return;
-            await setDoc(doc(db, 'users', user.uid), {
-              currentStreak: 0,
-              lastActivityDate: null,
-            }, { merge: true });
-            showAlert('Done', 'Streak reset to 0. Go back to Home to see the comeback modal.');
-          }}
-          variant="outline"
-          style={{ marginBottom: Spacing.sm }}
-        />
-        <Button
-          title="Micro-Exercise: Reflection"
-          onPress={() => navigation.getParent()?.navigate('Home', { screen: 'MicroExerciseFeeling', params: { trigger_context: 'reflection' } })}
-          variant="outline"
-          style={{ marginBottom: Spacing.sm }}
-        />
-        <Button
-          title="Reset All Intro Flags"
-          onPress={async () => {
-            if (!user) return;
-            const { deleteField } = await import('firebase/firestore');
-            await setDoc(doc(db, 'users', user.uid), {
-              has_seen_points_intro: deleteField(),
-              has_dismissed_goal_prompt: deleteField(),
-              has_seen_challenges_unlock: deleteField(),
-              has_seen_training_unlock: deleteField(),
-              has_seen_craving_pointer: deleteField(),
-              has_seen_debrief: deleteField(),
-              app_open_count: deleteField(),
-            }, { merge: true });
-            await refreshProfile();
-            showAlert('Done', 'All intro flags reset.');
-          }}
-          variant="outline"
-        />
-      </Card>
+      {/* Dev Testing Tools — admin only, same gate as the Admin card above.
+          These were shipping to every user until 2026-09-18: any account could
+          wipe its own data with Clear Account or silently zero its streak with
+          Simulate Streak Break. They are build tools, not features. */}
+      {userProfile?.is_admin === true && (
+        <>
+          <Card style={{ marginTop: Spacing.lg }}>
+            <Text style={{ fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, marginBottom: Spacing.sm }}>
+              Dev Testing
+            </Text>
+            <Button
+              title="Simulate Streak Break (Comeback)"
+              onPress={async () => {
+                if (!user) return;
+                await setDoc(doc(db, 'users', user.uid), {
+                  currentStreak: 0,
+                  lastActivityDate: null,
+                }, { merge: true });
+                showAlert('Done', 'Streak reset to 0. Go back to Home to see the comeback modal.');
+              }}
+              variant="outline"
+              style={{ marginBottom: Spacing.sm }}
+            />
+            <Button
+              title="Micro-Exercise: Reflection"
+              onPress={() => navigation.getParent()?.navigate('Home', { screen: 'MicroExerciseFeeling', params: { trigger_context: 'reflection' } })}
+              variant="outline"
+              style={{ marginBottom: Spacing.sm }}
+            />
+            <Button
+              title="Reset All Intro Flags"
+              onPress={async () => {
+                if (!user) return;
+                const { deleteField } = await import('firebase/firestore');
+                await setDoc(doc(db, 'users', user.uid), {
+                  has_seen_points_intro: deleteField(),
+                  has_dismissed_goal_prompt: deleteField(),
+                  has_seen_debrief: deleteField(),
+                  app_open_count: deleteField(),
+                  // Kept in the reset list despite their features being off the
+                  // tab bar: an account that still carries these flags would
+                  // skip the unlock moments if Challenges is ever restored.
+                  has_seen_challenges_unlock: deleteField(),
+                  has_seen_training_unlock: deleteField(),
+                  has_seen_craving_pointer: deleteField(),
+                }, { merge: true });
+                await refreshProfile();
+                showAlert('Done', 'All intro flags reset.');
+              }}
+              variant="outline"
+            />
+          </Card>
 
-      {/* Clear Account (dev tool) */}
-      <Button
-        title={clearing ? 'Clearing...' : 'Clear Account'}
-        onPress={handleClearAccount}
-        variant="outline"
-        disabled={clearing}
-        loading={clearing}
-        style={{ marginTop: Spacing.lg }}
-      />
+          {/* Clear Account (dev tool) */}
+          <Button
+            title={clearing ? 'Clearing...' : 'Clear Account'}
+            onPress={handleClearAccount}
+            variant="outline"
+            disabled={clearing}
+            loading={clearing}
+            style={{ marginTop: Spacing.lg }}
+          />
+        </>
+      )}
 
       {/* Sign Out */}
       <Button
@@ -352,6 +376,22 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     flex: 1,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  toggleText: {
+    flex: 1,
+  },
+  footnote: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: Spacing.md,
+    lineHeight: 18,
   },
   desc: {
     fontFamily: Fonts.secondary,

@@ -150,6 +150,77 @@ export const allowedRestDays = (habit: Schedulable): number => {
  */
 export const toExpoWeekday = (day: Weekday): number => day + 1;
 
+// -----------------------------------------------------------------------------
+// NOTIFICATION SLOT BUDGET
+//
+// iOS keeps at most 64 PENDING local notifications per app and silently discards
+// everything past that — no error, no rejected promise, no callback. Reminders
+// simply stop, for whichever habits lost the race, and nothing in the app can
+// tell that it happened.
+//
+// Day-scheduled habits made this reachable. The OS has no "these four days"
+// trigger, so a Mon/Wed/Fri habit costs THREE slots, not one — ten of them is
+// thirty. Before this budget existed the app scheduled optimistically and let
+// iOS decide what to drop.
+//
+// The budget makes the cut deterministic and, more importantly, KNOWABLE: a
+// habit that doesn't fit is reported back to the caller instead of vanishing.
+// Silence was the actual bug.
+// -----------------------------------------------------------------------------
+
+/** iOS's hard ceiling on pending local notifications per app. */
+export const IOS_PENDING_NOTIFICATION_LIMIT = 64;
+
+/**
+ * Slots held back for notifications that aren't habit reminders — today the two
+ * craving-ride pings (see cravingNotifications), which are scheduled mid-session
+ * and would otherwise be the thing that silently fails to appear.
+ */
+export const NON_REMINDER_SLOT_RESERVE = 4;
+
+/** What habit reminders may consume between them. */
+export const HABIT_REMINDER_SLOT_BUDGET =
+  IOS_PENDING_NOTIFICATION_LIMIT - NON_REMINDER_SLOT_RESERVE;
+
+/**
+ * OS notification slots one habit's reminder needs: one per day it asks for, or
+ * one for a count habit's daily trigger. Mirrors what `schedule` in
+ * habitReminders actually builds — if that gains a trigger, this has to agree.
+ */
+export const reminderSlotsFor = (habit: Schedulable): number =>
+  scheduledDays(habit)?.length ?? 1;
+
+/**
+ * Split habits into the ones whose reminders fit the remaining slots and the
+ * ones that don't.
+ *
+ * ALL-OR-NOTHING per habit, deliberately. Scheduling three of a Mon/Wed/Fri
+ * habit's days and dropping Friday produces a reminder that lies about the
+ * commitment — worse than no reminder, because the user trusts it.
+ *
+ * First fit, preserving the caller's order, so a small habit after a rejected
+ * large one still gets its reminder. That means the caller's ordering IS the
+ * priority: pass habits in the order they deserve to win.
+ */
+export const fitRemindersToBudget = <T extends Schedulable>(
+  habits: T[],
+  availableSlots: number
+): { scheduled: T[]; skipped: T[] } => {
+  const scheduled: T[] = [];
+  const skipped: T[] = [];
+  let used = 0;
+  for (const habit of habits) {
+    const needed = reminderSlotsFor(habit);
+    if (used + needed <= availableSlots) {
+      scheduled.push(habit);
+      used += needed;
+    } else {
+      skipped.push(habit);
+    }
+  }
+  return { scheduled, skipped };
+};
+
 /** "Mon, Wed & Fri" — the days spelled out, Monday first. */
 export const formatDays = (days: Weekday[]): string => {
   const ordered = WEEK_DISPLAY_ORDER.filter((d) => days.includes(d));

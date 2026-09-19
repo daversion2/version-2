@@ -137,6 +137,96 @@ export const frequencyAllows = (
   }
 };
 
+// ============================================================================
+// GLOBAL PUSH BUDGET
+//
+// frequencyAllows caps ONE rule. It cannot cap a total, so before this existed
+// the real ceiling was "every enabled rule, each at its own cap" — the hourly
+// evaluator alone could fire 24 times a day, and the event-triggered rules
+// (seeded `always`) were unbounded. Adding a rule silently made the app louder.
+//
+// This is the ceiling on everything the SERVER decides to say unprompted. It
+// deliberately does NOT cover local notifications: a per-habit reminder is
+// configured by the user, at a time they chose, and is not the app talking on
+// its own initiative.
+//
+// Rolling windows, not calendar days. A calendar-day cap would happily send at
+// 23:00 and again at 00:01, which is the exact experience the budget exists to
+// prevent — and a rolling window needs no timezone argument, so it has no
+// timezone bug to have.
+//
+// TESTED IN THE APP COPY (src/services/rulesEngine.ts). functions/ has no test
+// runner at all, so this mirror is the untested one — change it there first.
+// ============================================================================
+
+const HOUR_MS = 60 * 60 * 1000;
+
+export interface PushBudget {
+  /** Ceiling within any rolling 24 hours. */
+  perDay: number;
+  /** Ceiling within any rolling 7 days. */
+  perWeek: number;
+}
+
+/** "Earned and quiet": at most one push a day, three a week. */
+export const PUSH_BUDGET: PushBudget = { perDay: 1, perWeek: 3 };
+
+/**
+ * Guard against unbounded growth of the stored history. Pruning to the weekly
+ * window already keeps this at perWeek entries; the cap only matters if the
+ * budget is later raised or something writes junk into the field.
+ */
+const MAX_STORED_SENDS = 20;
+
+/** Stored timestamps as sorted epoch ms, dropping anything unparseable. */
+const parseSends = (recentSends: string[] | undefined): number[] =>
+  (recentSends ?? [])
+    .map((iso) => Date.parse(iso))
+    .filter((t) => !Number.isNaN(t))
+    .sort((a, b) => a - b);
+
+/**
+ * Whether a server push may be sent to this user right now.
+ *
+ * Fails CLOSED on an unparseable `nowIso` — staying silent is the recoverable
+ * failure, sending an unbounded burst is not. Timestamps in the future (clock
+ * skew) count against the budget for the same reason.
+ *
+ * @param recentSends the user's stored `push_send_history`
+ */
+export const pushBudgetAllows = (
+  recentSends: string[] | undefined,
+  nowIso: string,
+  budget: PushBudget = PUSH_BUDGET
+): boolean => {
+  const now = Date.parse(nowIso);
+  if (Number.isNaN(now)) return false;
+  const sends = parseSends(recentSends);
+  const countWithin = (hours: number) =>
+    sends.filter((t) => now - t < hours * HOUR_MS).length;
+  return countWithin(24) < budget.perDay && countWithin(24 * 7) < budget.perWeek;
+};
+
+/**
+ * The history to store after a send: this send appended, anything outside the
+ * weekly window dropped. Pure — the caller writes the result.
+ *
+ * An unparseable `nowIso` returns the pruned history WITHOUT a new entry rather
+ * than inventing a timestamp; pushBudgetAllows has already refused that case,
+ * so reaching here with one means a caller passed different values to the two.
+ */
+export const recordPushSend = (
+  recentSends: string[] | undefined,
+  nowIso: string
+): string[] => {
+  const now = Date.parse(nowIso);
+  const kept = parseSends(recentSends).filter(
+    (t) => Number.isNaN(now) || now - t < 24 * 7 * HOUR_MS
+  );
+  const next = Number.isNaN(now) ? kept : [...kept, now];
+  return next.slice(-MAX_STORED_SENDS).map((t) => new Date(t).toISOString());
+};
+
 /**
  * Render {placeholder} tokens in rule content using event-supplied variables
  * (e.g. {username}, {challenge_name}). Unknown placeholders are left literal
@@ -300,6 +390,10 @@ export const buildUserFacts = (
     // days_since_last_activity falls back to the signup date, so it can't
     // distinguish "trained today" from "signed up today" — this can.
     completed_today: userData.lastActivityDate === todayLocal ? 1 : 0,
+    // Our record of the user having opted in, not the OS permission state —
+    // a token cleared from Settings reads as 0 here, which is what the opt-in
+    // ask should key off.
+    has_push_token: userData.expoPushToken ? 1 : 0,
     ...extras,
   };
 };

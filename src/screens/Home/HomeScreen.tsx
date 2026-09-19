@@ -27,7 +27,6 @@ import { PracticeReflectionSheet, ReflectionInput } from '../../components/habit
 import { getPractice, getPracticeColor, formatCommitment } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
-import { TrainingUnlockModal } from '../../components/common/TrainingUnlockModal';
 import { ComebackModal } from '../../components/home/ComebackModal';
 import { saveComebackLog } from '../../services/comebackLogs';
 import { TidbitLearnMore } from '../../components/reward/TidbitLearnMore';
@@ -35,9 +34,11 @@ import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../
 import { NeuroscienceTidbit } from '../../types';
 import { getTodayString, toLocalDateString, formatRelativeDay } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
-import { markPointsIntroSeen, markTrainingUnlockSeen, incrementAppOpenCount } from '../../services/users';
+import { markPointsIntroSeen, incrementAppOpenCount } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
+import { PushOptInModal } from '../../components/common/PushOptInModal';
+import { registerForPushNotifications } from '../../services/notifications';
 import { TodayHero } from '../../components/home/TodayHero';
 import { TodayHabitRow } from '../../components/home/TodayHabitRow';
 import { buildTodayList, buildTodaySections, buildWeekGlance, pickNextAction, weekDatesFor } from '../../services/habitPace';
@@ -90,7 +91,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
   const [earnedPoints, setEarnedPoints] = useState(0);
-  const [pendingAlert, setPendingAlert] = useState<(() => void) | null>(null);
+  const [celebrationMilestone, setCelebrationMilestone] = useState<string | null>(null);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationStreak, setCelebrationStreak] = useState(0);
   const [celebrationBonus, setCelebrationBonus] = useState<string | null>(null);
@@ -126,13 +127,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Points intro modal (one-time, first habit completion)
   const [pointsIntroVisible, setPointsIntroVisible] = useState(false);
 
-  // Training unlock modal (after 3 practice completions) — covers Challenges
-  // and Avoidance Training together.
-  const [challengesUnlockVisible, setChallengesUnlockVisible] = useState(false);
-
   // The one-time Craving Crusher pointer went with the practices/craving tab
   // strip it pointed at — the tool now has a permanent card further down, so
   // there is no first-run discovery problem left to solve.
+  //
+  // The Training unlock moment (3 completions → Challenges + Avoidance Training)
+  // went the same way when the Training tab was archived. Its state used to be
+  // set here and could only be cleared by a modal rendered `visible={false}`, so
+  // it latched anyModalActive on for the rest of the session and held every
+  // rule-driven modal off-screen. The component survives at
+  // components/common/TrainingUnlockModal.tsx for whenever that tab comes back;
+  // restoring it means re-adding the state, the render, and the flag write.
 
   // Track app opens
   const appOpenTrackedRef = useRef(false);
@@ -141,12 +146,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
   // The modal is held while any bespoke modal is up so they never stack.
+  //
+  // EVERY modal this screen can show belongs in this list. Two were missing: the
+  // first-visit ScreenIntro and the skip-review sheet, either of which could have
+  // shared the screen with a rule modal. Neither pairing was reachable in
+  // practice — both live rule modals need days of absence or day 30+, by which
+  // point the Today intro is long seen — but the next intro id added would have
+  // made it reachable, and nothing here would have flagged it.
   const anyModalActive =
     pointsIntroVisible ||
-    challengesUnlockVisible ||
     celebrationVisible ||
     habitLearnMoreVisible ||
     reflectVisible ||
+    intro.visible ||
+    !!skipReview ||
     !!briefingHabit ||
     !!completingHabit;
   const {
@@ -157,9 +170,26 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     dismissBanner: dismissRuleBanner,
   } = useRuleSurfaces('app_open', anyModalActive);
 
-  // A modal rule marked component:'comeback' opens the bespoke comeback flow
-  // (barrier → recommit) in the rule-modal slot instead of the generic RuleModal.
+  // A modal rule can name a bespoke component to open in the rule-modal slot
+  // instead of the generic RuleModal: 'comeback' is the barrier → recommit flow,
+  // 'push_optin' is the notification permission ask.
   const comebackRule = ruleModalRule?.content.component === 'comeback' ? ruleModalRule : null;
+  const pushOptInRule = ruleModalRule?.content.component === 'push_optin' ? ruleModalRule : null;
+
+  // Registering writes the token to the user doc, which flips the has_push_token
+  // fact to 1 — so refresh the profile or this session keeps thinking it's 0.
+  const handleEnablePush = useCallback(async (): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const token = await registerForPushNotifications(user.uid);
+      if (!token) return false;
+      await refreshProfile();
+      return true;
+    } catch (err) {
+      console.warn('Push registration failed:', err);
+      return false;
+    }
+  }, [user, refreshProfile]);
 
   // Rule modal CTA: dismiss, then follow the rule's target (screen or URL)
   const handleRuleModalCta = useCallback(() => {
@@ -186,18 +216,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [dismissRuleModal, ruleModalRule, navigation]);
 
-  // Fires the streak-milestone alert once nothing else is on screen.
-  const flushPendingAlert = useCallback(() => {
-    if (pendingAlert) {
-      pendingAlert();
-      setPendingAlert(null);
-    }
-  }, [pendingAlert]);
-
   const handleCelebrationDismiss = useCallback(() => {
     setCelebrationVisible(false);
-    flushPendingAlert();
-  }, [flushPendingAlert]);
+  }, []);
 
   const handleHabitLearnMore = useCallback(() => {
     if (user && habitTidbit) {
@@ -215,10 +236,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (reflectTarget) {
       setCelebrationSkipIntro(true);
       setCelebrationVisible(true);
-      return;
     }
-    flushPendingAlert();
-  }, [reflectTarget, flushPendingAlert]);
+  }, [reflectTarget]);
 
   // Celebration → reflection. The log already exists, so the sheet patches it.
   const handleOpenReflection = useCallback(() => {
@@ -230,8 +249,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setReflectVisible(false);
     setReflectTarget(null);
     setReflectPattern(null);
-    flushPendingAlert();
-  }, [flushPendingAlert]);
+  }, []);
 
   const handleReflectionSave = useCallback(
     async (input: ReflectionInput) => {
@@ -481,37 +499,31 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      // Show the Training unlock when crossing 3 total completions. Gated on its
-      // own flag rather than the legacy challenges-only one, so users who saw the
-      // old modal still get introduced to Avoidance Training once.
-      const newTotal = (userProfile?.totalHabitsCompleted ?? 0) + 1;
-      if (newTotal >= 3 && !userProfile?.has_seen_training_unlock) {
-        setChallengesUnlockVisible(true);
-        try {
-          await markTrainingUnlockSeen(user.uid);
-          await refreshProfile();
-        } catch (err) {
-          console.warn('Failed to mark challenges unlock seen:', err);
-        }
-        // Still show the normal points flow after dismiss, don't return
-      }
+      // The 3-completion Training unlock used to fire here. It was writing
+      // has_seen_training_unlock — burning the one-time flag — for a modal that
+      // has been rendered `visible={false}` since the Training tab was archived.
+      // Nothing was shown and the flag is spent, so users who cross 3 completions
+      // now keep an unspent flag and would get the moment properly if that tab
+      // ever returns.
 
-      // Prepare alerts to show after popup animation completes
-      const showAlerts = async () => {
-        if (updateResult.newTierReached && updateResult.tierInfo) {
-          showAlert(
-            'Streak Milestone!',
-            `${updateResult.newStreak}-Day Streak: ${updateResult.tierInfo.tierName}!\n\nYou're now earning ${updateResult.tierInfo.multiplier}x XP on all activities!`
-          );
-        }
-      };
+      // Crossing a streak tier goes into the celebration card's own slot rather
+      // than a native Alert fired after it was dismissed. Same news, one surface.
+      const milestoneLabel =
+        updateResult.newTierReached && updateResult.tierInfo
+          ? `${updateResult.newStreak}-day streak: ${updateResult.tierInfo.tierName} · ${updateResult.tierInfo.multiplier}× XP from here`
+          : null;
 
       // Fetch habit tidbit — staged now, shown after the celebration
       let tidbit: NeuroscienceTidbit | null = null;
       try {
         tidbit = await selectHabitTidbit(user.uid, {
           streakDays: streakBefore,
+          habitName: habit.name,
+          resistance: input.resistance,
           difficulty,
+          // Coming back: the streak was broken, but they've done this habit
+          // before — so it's a gap being closed, not a first attempt.
+          isReturn: streakBefore === 0 && !firstTry,
         });
         if (tidbit) {
           await recordTidbitShown(user.uid, tidbit.id);
@@ -524,8 +536,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setEarnedPoints(pointsEarned);
       setCelebrationStreak(updateResult.newStreak);
       setCelebrationBonus(bonusLabel);
+      setCelebrationMilestone(milestoneLabel);
       setCelebrationSkipIntro(false);
-      setPendingAlert(() => showAlerts);
       // The points intro goes first on the very first completion; dismissing it
       // opens the celebration staged above.
       if (needsPointsIntro) {
@@ -830,6 +842,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         pointsEarned={earnedPoints}
         streakDays={celebrationStreak}
         bonusLabel={celebrationBonus}
+        milestoneLabel={celebrationMilestone}
         contextLabel={celebrationContext}
         tidbit={habitTidbit}
         onLearnMore={handleHabitLearnMore}
@@ -855,17 +868,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           setCelebrationVisible(true);
         }}
       />
-      {/*
-        Suppressed: the Training tab is archived, so this modal would announce a
-        feature the user cannot reach and its CTA would navigate to a tab that no
-        longer exists (a silent no-op). Left in place rather than deleted so
-        restoring the Challenges tab restores this with a one-line change.
-      */}
-      <TrainingUnlockModal
-        visible={false}
-        onOpenTraining={() => setChallengesUnlockVisible(false)}
-        onDismiss={() => setChallengesUnlockVisible(false)}
-      />
       {/* The "Comeback check-in" rule fires the bespoke comeback/story flow in
           the rule-modal slot; every other modal rule gets the generic RuleModal. */}
       {comebackRule && (
@@ -886,7 +888,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onDismiss={dismissRuleModal}
       />
       )}
-      {!comebackRule && (
+      {pushOptInRule && (
+      <PushOptInModal
+        visible={ruleModalVisible}
+        title={pushOptInRule.content.title}
+        body={pushOptInRule.content.body}
+        ctaLabel={pushOptInRule.content.cta}
+        onEnable={handleEnablePush}
+        onDismiss={dismissRuleModal}
+      />
+      )}
+      {!comebackRule && !pushOptInRule && (
       <RuleModal
         rule={ruleModalRule}
         visible={ruleModalVisible}

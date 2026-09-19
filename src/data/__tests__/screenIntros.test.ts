@@ -39,6 +39,27 @@ describe('screen intros', () => {
     }
   });
 
+  // These intros are now the app's only "how does this work" surface — the
+  // Settings > How It Works screen was deleted in favour of them. That makes
+  // their vocabulary load-bearing, and it had already drifted once: they went
+  // on calling habits "practices" for weeks after the rename.
+  it('holds the copy voice rules', () => {
+    for (const [key, intro] of entries) {
+      const copy = [
+        intro.title,
+        intro.intro,
+        ...intro.points.flatMap((p) => [p.label, p.text]),
+        ...(intro.science ?? []).flatMap((s) => [s.label, s.text]),
+        intro.footer ?? '',
+      ].join(' ');
+
+      // Practices merged into habits; there is no separate entity to name.
+      expect({ key, copy }).toEqual({ key, copy: expect.not.stringMatching(/practice/i) });
+      // "Log the rep" — the banned gym shorthand.
+      expect({ key, copy }).toEqual({ key, copy: expect.not.stringMatching(/\breps?\b/i) });
+    }
+  });
+
   it('resolves a known id and shrugs at an unknown one', () => {
     // The renderer returns null for a miss, so a screen can adopt the hook
     // before its copy exists without crashing.

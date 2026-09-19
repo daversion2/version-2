@@ -1,8 +1,11 @@
 import {
+  PUSH_BUDGET,
   buildUserFacts,
   conditionMet,
   daysBetween,
   frequencyAllows,
+  pushBudgetAllows,
+  recordPushSend,
   renderTemplate,
   ruleMatches,
   selectFiringRules,
@@ -91,6 +94,73 @@ describe('frequencyAllows', () => {
   });
 });
 
+describe('pushBudgetAllows', () => {
+  const now = '2026-06-10T18:00:00.000Z';
+  const hoursAgo = (h: number) =>
+    new Date(Date.parse(now) - h * 60 * 60 * 1000).toISOString();
+
+  it('allows a user who has never been sent anything', () => {
+    expect(pushBudgetAllows(undefined, now)).toBe(true);
+    expect(pushBudgetAllows([], now)).toBe(true);
+  });
+
+  it('blocks a second push inside 24 hours', () => {
+    expect(pushBudgetAllows([hoursAgo(23)], now)).toBe(false);
+    expect(pushBudgetAllows([hoursAgo(25)], now)).toBe(true);
+  });
+
+  it('blocks a 23:00 + 00:01 pair that a calendar-day cap would allow', () => {
+    // Both sends sit in the same rolling 24h window but on different dates.
+    const lateLastNight = '2026-06-09T23:00:00.000Z';
+    expect(pushBudgetAllows([lateLastNight], '2026-06-10T00:01:00.000Z')).toBe(false);
+  });
+
+  it('enforces the weekly ceiling even when each day is clear', () => {
+    const threeThisWeek = [hoursAgo(120), hoursAgo(96), hoursAgo(72)];
+    expect(threeThisWeek.length).toBe(PUSH_BUDGET.perWeek);
+    expect(pushBudgetAllows(threeThisWeek, now)).toBe(false);
+    // Age the oldest out of the 7-day window and a slot frees up.
+    expect(pushBudgetAllows([hoursAgo(169), hoursAgo(96), hoursAgo(72)], now)).toBe(true);
+  });
+
+  it('fails closed on an unparseable now, and counts future timestamps', () => {
+    expect(pushBudgetAllows([], 'not-a-date')).toBe(false);
+    expect(pushBudgetAllows([hoursAgo(-2)], now)).toBe(false);
+  });
+
+  it('ignores junk entries rather than letting them block or crash', () => {
+    expect(pushBudgetAllows(['', 'nope', hoursAgo(200)], now)).toBe(true);
+  });
+});
+
+describe('recordPushSend', () => {
+  const now = '2026-06-10T18:00:00.000Z';
+  const hoursAgo = (h: number) =>
+    new Date(Date.parse(now) - h * 60 * 60 * 1000).toISOString();
+
+  it('appends the send and drops entries outside the weekly window', () => {
+    const result = recordPushSend([hoursAgo(200), hoursAgo(48)], now);
+    expect(result).toEqual([hoursAgo(48), now]);
+  });
+
+  it('normalises and sorts whatever was stored', () => {
+    const result = recordPushSend([hoursAgo(24), 'junk', hoursAgo(48)], now);
+    expect(result).toEqual([hoursAgo(48), hoursAgo(24), now]);
+  });
+
+  it('records nothing new when now is unparseable', () => {
+    const stored = [hoursAgo(48)];
+    expect(recordPushSend(stored, 'not-a-date')).toEqual(stored);
+  });
+
+  it('round-trips with pushBudgetAllows: one send closes the day', () => {
+    const after = recordPushSend([], now);
+    expect(pushBudgetAllows(after, now)).toBe(false);
+    const nextDay = new Date(Date.parse(now) + 25 * 60 * 60 * 1000).toISOString();
+    expect(pushBudgetAllows(after, nextDay)).toBe(true);
+  });
+});
+
 describe('daysBetween / buildUserFacts', () => {
   it('computes day gaps', () => {
     expect(daysBetween('2026-06-10', '2026-06-08')).toBe(2);
@@ -122,6 +192,19 @@ describe('daysBetween / buildUserFacts', () => {
   it('falls back to signup date so new users are not treated as dormant', () => {
     const facts = buildUserFacts({ created_at: '2026-06-10T08:00:00.000Z' }, '2026-06-10', 9);
     expect(facts.days_since_last_activity).toBe(0);
+  });
+
+  it('reports has_push_token, which gates the opt-in ask', () => {
+    // 0 means "ask" — so a token that reads as present when it isn't would
+    // silence the only permission prompt the app gets, and a token that reads
+    // as absent would re-ask someone who already said yes.
+    const withToken = buildUserFacts({ expoPushToken: 'ExponentPushToken[x]' }, '2026-06-10', 9);
+    expect(withToken.has_push_token).toBe(1);
+
+    expect(buildUserFacts({}, '2026-06-10', 9).has_push_token).toBe(0);
+    // Cleared from Settings writes null, and an empty string is a bad write.
+    expect(buildUserFacts({ expoPushToken: null }, '2026-06-10', 9).has_push_token).toBe(0);
+    expect(buildUserFacts({ expoPushToken: '' }, '2026-06-10', 9).has_push_token).toBe(0);
   });
 });
 

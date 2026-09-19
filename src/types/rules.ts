@@ -23,6 +23,12 @@ export const RULE_FACTS = {
   active_habit_count: 'Active practices',
   local_hour: 'Hour of day in user timezone (0–23)',
   completed_today: 'Completed a rep today (0/1)',
+  /**
+   * Whether we hold a push token for this user. Exists so the push opt-in ask
+   * can be conditioned on NOT already having said yes — without it that rule
+   * would ask people who enabled notifications months ago.
+   */
+  has_push_token: 'Push notifications enabled (0/1)',
 } as const;
 
 export type FactKey = keyof typeof RULE_FACTS;
@@ -179,7 +185,7 @@ export const resolveEditableCtaTarget = (target?: RuleCtaTarget): EditableCtaTar
  * The rule still owns the trigger (conditions, frequency, enabled) and the
  * title/body copy; the component owns the interaction beyond the first step.
  */
-export type RuleModalComponent = 'comeback';
+export type RuleModalComponent = 'comeback' | 'push_optin';
 
 export interface RuleContent {
   title: string;

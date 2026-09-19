@@ -217,8 +217,18 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
 
       // Schedule / cancel the on-device daily reminder. `reminder` (route param) is the
       // previous state, so its notificationId gets cancelled before rescheduling.
+      // The plan itself is already saved, so a reminder that can't be scheduled
+      // is reported and the save still stands.
       try {
-        await syncHabitReminder(user.uid, habitId, reminder);
+        const result = await syncHabitReminder(user.uid, habitId, reminder);
+        if (reminderEnabled && result.reason === 'no_slots') {
+          // iOS drops notifications past its ceiling without telling anyone, so
+          // this is the one place the user can learn the reminder isn't live.
+          Alert.alert(
+            'Reminder not set',
+            'Your phone is holding as many scheduled reminders as it allows. This habit is saved, but it won’t remind you until you turn off a reminder on another habit.'
+          );
+        }
       } catch (err) {
         console.warn('Habit reminder sync failed:', err);
       }

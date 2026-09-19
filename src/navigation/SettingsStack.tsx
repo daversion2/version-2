@@ -3,7 +3,6 @@ import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SettingsStackParamList } from '../types/navigation';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
-import { HowItWorksScreen } from '../screens/Settings/HowItWorksScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
 import { AdminStack } from './AdminStack';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
@@ -33,11 +32,6 @@ export const SettingsStack: React.FC = () => (
           <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
         ),
       }}
-    />
-    <Stack.Screen
-      name="HowItWorks"
-      component={HowItWorksScreen}
-      options={{ title: 'How It Works' }}
     />
     <Stack.Screen
       name="Admin"

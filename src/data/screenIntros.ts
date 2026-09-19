@@ -38,7 +38,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     points: [
       {
         label: 'Tap 1, 2 or 3 to log it',
-        text: 'The number is how hard it was to start — easy, had to push, or nearly didn’t. That single tap records the practice and the difficulty together.',
+        text: 'The number is how hard it was to start — easy, had to push, or nearly didn’t. That single tap records the habit and how hard it was, together.',
       },
       {
         label: 'Rate it honestly, not generously',
@@ -46,17 +46,17 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Tap the name for more',
-        text: 'The card opens to show your week, where you can fill in a day you forgot, read about the practice, or log with the full detail.',
+        text: 'The card opens to show your week, where you can fill in a day you forgot, read about the habit, or log with the full detail.',
       },
       {
         label: 'The headings tell you where you stand',
-        text: 'Due today, behind this week, done. Practices move between them as you log, so the top of the list is always what needs you.',
+        text: 'Due today, behind this week, done. Habits move between them as you log, so the top of the list is always what needs you.',
       },
     ],
     science: [
       {
         label: 'Resistance is the measurement',
-        text: 'How hard a thing feels to start is the clearest signal of whether it is becoming automatic. Watching that number fall over weeks is the point of tracking it at all — which is why logging always asks for it.',
+        text: 'How hard a thing feels to start is the clearest signal of whether it is bedding in. What repetition makes automatic is the starting, not the work — so the number falls while the habit itself stays exactly as demanding. Watching that fall over weeks is the point of tracking it at all.',
       },
     ],
   },
@@ -69,7 +69,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     points: [
       {
         label: 'Look for the line going down',
-        text: 'The resistance trend is the headline. Falling means the same practices are costing you less than they used to.',
+        text: 'The resistance trend is the headline. Falling means the same habits are costing you less to start than they used to.',
       },
       {
         label: 'The calendar shows the shape of it',
@@ -86,7 +86,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     id: 'library',
     icon: 'library-outline',
     title: 'Library',
-    intro: 'Practices you can take on, and what each one asks of you.',
+    intro: 'Habits you can take on, and what each one asks of you.',
     points: [
       {
         label: 'Open one to read it first',
@@ -98,7 +98,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Start with fewer than you want to',
-        text: 'Two practices you keep beat six you abandon. You can always add more once the first ones hold.',
+        text: 'Two habits you keep beat six you abandon. You can always add more once the first ones hold.',
       },
     ],
   },
@@ -106,12 +106,12 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
   habit_detail: {
     id: 'habit_detail',
     icon: 'stats-chart-outline',
-    title: 'Practice details',
-    intro: 'Everything this one practice has done since you started it.',
+    title: 'Habit details',
+    intro: 'Everything this one habit has done since you started it.',
     points: [
       {
         label: 'Adherence is the honest number',
-        text: 'Of the days this practice asked for, how many you kept. Totals tell you how much; this tells you how reliably.',
+        text: 'Of the days this habit asked for, how many you kept. Totals tell you how much; this tells you how reliably.',
       },
       {
         label: 'Change the schedule any time',
@@ -119,7 +119,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Archive rather than delete',
-        text: 'A practice you archive comes off Today and stops counting toward your streaks, but every rep you logged is kept and you can bring it back.',
+        text: 'A habit you archive comes off Today and stops counting toward your streaks, but every check-in you logged is kept and you can bring it back.',
       },
     ],
   },
@@ -127,8 +127,8 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
   archived: {
     id: 'archived',
     icon: 'archive-outline',
-    title: 'Archived',
-    intro: 'Practices you have put away. Nothing here was deleted.',
+    title: 'Archived habits',
+    intro: 'Habits you have put away. Nothing here was deleted.',
     points: [
       {
         label: 'Restore brings it back whole',
@@ -146,7 +146,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     icon: 'moon-outline',
     title: 'Closing out the day',
     intro:
-      'One honest look back at the whole day — a different question from how any single practice went.',
+      'One honest look back at the whole day — a different question from how any single habit went.',
     points: [
       {
         label: 'Grade the day, not the list',

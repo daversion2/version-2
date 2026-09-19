@@ -30,17 +30,17 @@ type Props = HomeScreenProps<'ArchivedHabits'>;
 
 interface ArchivedRow {
   habit: PracticeInstance;
-  reps: number;
+  checkIns: number;
   lastDone?: string;
   /** Retired from the catalog rather than archived by the user — can't be restored. */
   retired: boolean;
 }
 
 /**
- * Practices you've put away.
+ * Habits you've put away.
  *
  * Archiving already existed as a side effect — "Delete" wrote is_active: false
- * and kept every log — but nothing ever read those rows back, so a practice you
+ * and kept every log — but nothing ever read those rows back, so a habit you
  * removed was gone in every way that mattered while its history sat in the
  * database being counted by nothing. This is the other half: what you archived,
  * what it did while it was active, and the way back.
@@ -69,7 +69,7 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
       ]);
       setRows(habits.map((habit) => summarise(habit, logs)));
     } catch (err) {
-      console.warn('Failed to load archived practices:', err);
+      console.warn('Failed to load archived habits:', err);
     } finally {
       setLoading(false);
     }
@@ -116,8 +116,8 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="archive-outline" size={28} color={Colors.gray} />
           <Text style={styles.emptyTitle}>Nothing archived</Text>
           <Text style={styles.emptyText}>
-            Practices you archive land here — off Home, out of your streaks and pace, with every
-            rep you logged kept intact.
+            Habits you archive land here — off Home, out of your streaks and pace, with every
+            check-in you logged kept intact.
           </Text>
         </View>
       ) : (
@@ -127,7 +127,7 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
             with its history, schedule and plan as they were.
           </Text>
 
-          {rows.map(({ habit, reps, lastDone, retired }) => (
+          {rows.map(({ habit, checkIns, lastDone, retired }) => (
             <View key={habit.id} style={styles.card}>
               <TouchableOpacity
                 style={styles.cardMain}
@@ -140,9 +140,9 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
                   {habit.name}
                 </Text>
                 <Text style={styles.meta}>
-                  {reps === 0
+                  {checkIns === 0
                     ? 'Never logged'
-                    : `${reps} ${reps === 1 ? 'rep' : 'reps'}${
+                    : `${checkIns} check-in${checkIns === 1 ? '' : 's'}${
                         lastDone ? ` · last ${formatRelativeDay(lastDone).toLowerCase()}` : ''
                       }`}
                 </Text>
@@ -155,7 +155,7 @@ export const ArchivedHabitsScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
 
-              {/* A retired practice is inactive because the LIBRARY dropped it,
+              {/* A retired habit is inactive because the LIBRARY dropped it,
                   not because the user put it away — and the curated reconciler
                   would deactivate it again on the next app load. Offering
                   Restore here would be a button that silently undoes itself, so
@@ -197,7 +197,7 @@ const summarise = (habit: PracticeInstance, logs: CompletionLog[]): ArchivedRow 
   const dates = mine.map((l) => l.date).sort();
   return {
     habit,
-    reps: mine.length,
+    checkIns: mine.length,
     lastDone: dates[dates.length - 1],
     retired: isRetiredCurated(habit),
   };

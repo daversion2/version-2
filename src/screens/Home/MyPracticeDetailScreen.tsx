@@ -165,9 +165,17 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     try {
       await setHabitSchedule(user.uid, habitId, schedule);
       // Reminders fire on the scheduled days, so the days changing changes which
-      // notifications should exist.
+      // notifications should exist — and widening the week costs more notification
+      // slots, which is how an edit here can hit the iOS ceiling. The schedule is
+      // already saved at this point; only the reminder is in question.
       if (habit?.reminder?.enabled) {
-        await syncHabitReminder(user.uid, habitId, habit.reminder);
+        const result = await syncHabitReminder(user.uid, habitId, habit.reminder);
+        if (result.reason === 'no_slots') {
+          showAlert(
+            'Schedule saved, reminder paused',
+            `${result.slotsNeeded} reminders are needed for these days and your phone has room for ${result.slotsAvailable}. Turn off a reminder on another habit to switch this one back on.`
+          );
+        }
       }
       await loadData();
     } catch (e: any) {

@@ -149,7 +149,7 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="ArchivedHabits"
       component={ArchivedHabitsScreen}
-      options={{ title: 'Archived' }}
+      options={{ title: 'Archived Habits' }}
     />
     <Stack.Screen
       name="HabitActionPlan"

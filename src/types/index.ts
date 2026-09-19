@@ -34,6 +34,14 @@ export interface User {
   has_completed_onboarding?: boolean;
   expoPushToken?: string;
   timezone?: string; // IANA timezone e.g. "America/New_York"
+  /**
+   * ISO timestamps of recent SERVER-sent pushes, newest last, pruned to the
+   * last 7 days. Backs the global push budget (see PUSH_BUDGET in
+   * services/rulesEngine.ts) — written only by the Cloud Function that claims
+   * a budget slot. Local habit reminders are not recorded here and are not
+   * capped by it.
+   */
+  push_send_history?: string[];
   // XP
   totalWillpowerPoints?: number;
   currentStreak?: number;
@@ -485,7 +493,10 @@ export type HabitDifficulty = 'easy' | 'challenging';
 export interface PracticeCompletionInput {
   /** Derived from `resistance` — see constants/resistance.ts. */
   difficulty: HabitDifficulty;
-  /** How hard it was to start, 1–10. Captured on every check-in. */
+  /**
+   * How hard it was to start, on the 3-point scale in constants/resistance.ts.
+   * Captured on every check-in.
+   */
   resistance?: number;
   /**
    * The day the practice actually happened (YYYY-MM-DD, local). Omitted means
@@ -625,14 +636,36 @@ export interface FunFact {
 
 // --- Neuroscience Tidbits ---
 
-export type TidbitContextType = 'challenge_type' | 'category' | 'state' | 'generic' | 'habit';
+/**
+ * Which surface a tidbit belongs to, and how it gets selected.
+ *
+ * LIVE:
+ * - `habit`      — shown after a habit check-in. `context_value` is the bucket
+ *                  (`hardest` | `struggle` | `easing` | `established` | `streak`
+ *                  | `new_habit` | `generic`), picked by `selectHabitTidbit`.
+ * - `habit_type` — the science of one KIND of habit. `context_value` is a type
+ *                  key (`workout`, `cold`, `sleep`, …) matched against the
+ *                  habit's name by `deriveHabitType`.
+ *
+ * RETIRED — kept so the archived Challenges stack still compiles. Nothing seeds
+ * these any more; `selectTidbitForCompletion` is their only reader and it is
+ * only reachable from `ChallengesHomeScreen`, which is off the tab bar.
+ * - `challenge_type` | `category` | `state` | `generic`
+ */
+export type TidbitContextType =
+  | 'habit'
+  | 'habit_type'
+  | 'challenge_type'
+  | 'category'
+  | 'state'
+  | 'generic';
 
 export interface NeuroscienceTidbit {
   id: string;
   text: string;                    // 2-3 sentences, ~8s read
   extended_text: string;           // 2-3 paragraphs for "learn more"
   context_type: TidbitContextType;
-  context_value: string;           // e.g. 'workout', 'physical', 'comeback', 'generic'
+  context_value: string;           // e.g. 'hardest', 'new_habit', 'cold'
   active: boolean;
   tags: string[];
   created_at: string;

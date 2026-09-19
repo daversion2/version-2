@@ -220,7 +220,6 @@ export type WorksheetsStackParamList = {
 
 export type SettingsStackParamList = {
   SettingsScreen: undefined;
-  HowItWorks: undefined;
   EditProfile: undefined;
   /**
    * The admin area, nested here rather than occupying a fifth tab. Admin is a

@@ -398,6 +398,15 @@ export const AdminRuleEditScreen: React.FC = () => {
               steps and buttons are fixed in the app, so the CTA fields below don't apply.
             </Text>
           )}
+          {component === 'push_optin' && (
+            <Text style={styles.hintText}>
+              This rule opens the notification permission ask. Title, body and CTA label are
+              yours; the "At most three a week" line and the blocked-notifications message are
+              fixed in the app, because they describe what the code actually enforces. Note that
+              iOS allows ONE permission prompt per install — if this fires too early, or too
+              often for it to feel earned, there is no second chance at it.
+            </Text>
+          )}
           {(EVENT_PLACEHOLDERS[event] ?? []).length > 0 && (
             <Text style={styles.hintText}>
               This event fills in placeholders:{' '}
