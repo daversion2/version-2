@@ -885,8 +885,14 @@ export interface DailyReflection {
   factors?: DailyFactors;
   prompt_went_well?: string;
   prompt_hardest?: string;
+  /** Superseded by the if-then pair below; still read back in history. */
   prompt_tomorrow?: string;
   prompt_why_connection?: string;
+  // Tomorrow's plan as an implementation intention — "when <cue>, I'll <response>".
+  // Stored as two fields rather than one sentence so the cue stays machine-readable
+  // and something can surface the plan at the moment it applies.
+  prompt_ifthen_cue?: string;
+  prompt_ifthen_response?: string;
   daily_summary: DailySummary;
   created_at: string;
 }

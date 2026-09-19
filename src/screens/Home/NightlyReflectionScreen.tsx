@@ -46,7 +46,8 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
   const [factors, setFactors] = useState<DailyFactors>({});
   const [wentWell, setWentWell] = useState('');
   const [hardest, setHardest] = useState('');
-  const [tomorrow, setTomorrow] = useState('');
+  const [ifThenCue, setIfThenCue] = useState('');
+  const [ifThenResponse, setIfThenResponse] = useState('');
   const [whyReflection, setWhyReflection] = useState('');
   const [deeperOpen, setDeeperOpen] = useState(false);
   const [badDayModalVisible, setBadDayModalVisible] = useState(false);
@@ -82,13 +83,17 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         setFactors(existing.factors || {});
         setWentWell(existing.prompt_went_well || '');
         setHardest(existing.prompt_hardest || '');
-        setTomorrow(existing.prompt_tomorrow || '');
+        setIfThenCue(existing.prompt_ifthen_cue || '');
+        setIfThenResponse(existing.prompt_ifthen_response || '');
         setWhyReflection(existing.prompt_why_connection || '');
-        // Auto-expand the written reflection if this day has any.
+        // Auto-expand the written reflection if this day has any. `prompt_tomorrow`
+        // is no longer collected but an older day may still carry one.
         if (
           existing.prompt_went_well ||
           existing.prompt_hardest ||
           existing.prompt_tomorrow ||
+          existing.prompt_ifthen_cue ||
+          existing.prompt_ifthen_response ||
           existing.prompt_why_connection
         ) {
           setDeeperOpen(true);
@@ -136,8 +141,12 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         factors: Object.keys(factors).length > 0 ? factors : undefined,
         prompt_went_well: wentWell.trim() || undefined,
         prompt_hardest: hardest.trim() || undefined,
-        prompt_tomorrow: tomorrow.trim() || undefined,
+        prompt_ifthen_cue: ifThenCue.trim() || undefined,
+        prompt_ifthen_response: ifThenResponse.trim() || undefined,
         prompt_why_connection: whyReflection.trim() || undefined,
+        // No longer collected, but saveReflection writes the whole document — so
+        // editing an old day would erase the answer it already holds.
+        prompt_tomorrow: existingReflection?.prompt_tomorrow || undefined,
         daily_summary: summary,
         created_at: new Date().toISOString(),
       });
@@ -236,7 +245,7 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.collapseTextWrap}>
             <Text style={styles.collapseTitle}>Write a reflection</Text>
             <Text style={styles.collapseSub}>
-              What you pushed on, where comfort won, tomorrow's edge
+              What you almost skipped, the hardest moment, tomorrow's plan
             </Text>
           </View>
         </View>
@@ -249,12 +258,16 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
 
       {deeperOpen && (
       <>
-      {/* Prompts */}
+      {/* Prompts — ordered win → hard moment → plan. Opening on a deficit invites
+          the shame spiral that predicts people dropping the habit entirely, and the
+          if-then goes last because it's the one with a behavioural payload. */}
       <View style={[styles.promptSection, styles.promptSectionFirst]}>
-        <Text style={styles.promptLabel}>What did you do that was uncomfortable?</Text>
+        <Text style={styles.promptLabel}>
+          What's one thing you did today that you almost didn't?
+        </Text>
         <TextInput
           style={styles.textArea}
-          placeholder="The thing you didn't want to do, and did anyway..."
+          placeholder="One moment, not the whole day..."
           placeholderTextColor={Colors.gray}
           multiline
           numberOfLines={3}
@@ -266,10 +279,12 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.promptSection}>
-        <Text style={styles.promptLabel}>Where did you pick the comfortable option?</Text>
+        <Text style={styles.promptLabel}>
+          What was the hardest moment today — and what happened right before it?
+        </Text>
         <TextInput
           style={styles.textArea}
-          placeholder="Where you took the easy way — no judgment, just name it..."
+          placeholder="What was going on, where you were, who you were with..."
           placeholderTextColor={Colors.gray}
           multiline
           numberOfLines={3}
@@ -280,19 +295,37 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
         />
       </View>
 
+      {/* Tomorrow as an if-then, not a vow. Two fields rather than one box because
+          the situation→response pairing IS the active ingredient — a single
+          textarea reliably collects "be more disciplined", which does nothing. */}
       <View style={styles.promptSection}>
-        <Text style={styles.promptLabel}>What will you push on tomorrow?</Text>
-        <TextInput
-          style={styles.textArea}
-          placeholder="One edge you'll go at..."
-          placeholderTextColor={Colors.gray}
-          multiline
-          numberOfLines={3}
-          textAlignVertical="top"
-          value={tomorrow}
-          onChangeText={isReadOnly ? () => {} : setTomorrow}
-          editable={!isReadOnly}
-        />
+        <Text style={styles.promptLabel}>What's your plan for tomorrow?</Text>
+        <View style={styles.ifThenRow}>
+          <Text style={styles.ifThenWord}>When</Text>
+          <TextInput
+            style={[styles.textArea, styles.ifThenInput]}
+            placeholder="the thing that got in the way today shows up again..."
+            placeholderTextColor={Colors.gray}
+            multiline
+            textAlignVertical="top"
+            value={ifThenCue}
+            onChangeText={isReadOnly ? () => {} : setIfThenCue}
+            editable={!isReadOnly}
+          />
+        </View>
+        <View style={styles.ifThenRow}>
+          <Text style={styles.ifThenWord}>I'll</Text>
+          <TextInput
+            style={[styles.textArea, styles.ifThenInput]}
+            placeholder="do this specific thing instead..."
+            placeholderTextColor={Colors.gray}
+            multiline
+            textAlignVertical="top"
+            value={ifThenResponse}
+            onChangeText={isReadOnly ? () => {} : setIfThenResponse}
+            editable={!isReadOnly}
+          />
+        </View>
       </View>
 
       {/* Why Connection Prompt (rotating daily) */}
@@ -450,6 +483,25 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm + 4,
     backgroundColor: Colors.white,
     minHeight: 80,
+  },
+  ifThenRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  // "When" / "I'll" sit on the first line of their input rather than above it, so
+  // the two fields read as one sentence instead of two unrelated questions.
+  ifThenWord: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.md,
+    color: Colors.dark,
+    paddingTop: Spacing.sm + 5,
+    minWidth: 42,
+  },
+  ifThenInput: {
+    flex: 1,
+    minHeight: 60,
   },
   saveButton: {
     marginTop: Spacing.sm,

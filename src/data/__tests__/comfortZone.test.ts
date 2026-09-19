@@ -38,7 +38,7 @@ describe('comfort zone reach scale', () => {
 
     it('returns -1 for an unrecognised grade', () => {
       // Callers branch on >= 0 to tell "no answer" from "answered"; a silent 0
-      // would plot an unlogged day as "Stayed comfortable".
+      // would plot an unlogged day as "Took the easy way".
       expect(reachIndexOf('E' as ReflectionGrade)).toBe(-1);
     });
   });
@@ -50,8 +50,9 @@ describe('comfort zone reach scale', () => {
     });
 
     it('does not count touching the edge as passing it', () => {
-      // "Touched the edge" IS the boundary. Counting it would inflate the
-      // weekly "days past the edge" stat with days that only reached it.
+      // C ("Showed up") was the boundary stop back when the slider drew one.
+      // Kept green only so `isPastTheEdge` stays pinned until the onboarding
+      // rework retires it — nothing in app code calls it any more.
       expect(isPastTheEdge('C')).toBe(false);
     });
 

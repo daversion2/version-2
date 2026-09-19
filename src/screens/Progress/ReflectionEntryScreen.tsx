@@ -84,6 +84,20 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
         </Card>
       )}
 
+      {/* The if-then pair reads as the sentence it was entered as. Either half can
+          be missing, so each is guarded on its own. */}
+      {(reflection.prompt_ifthen_cue || reflection.prompt_ifthen_response) && (
+        <Card style={styles.promptCard}>
+          <Text style={styles.promptLabel}>Tomorrow's plan</Text>
+          <Text style={styles.promptText}>
+            {reflection.prompt_ifthen_cue ? `When ${reflection.prompt_ifthen_cue}` : null}
+            {reflection.prompt_ifthen_cue && reflection.prompt_ifthen_response ? ', ' : null}
+            {reflection.prompt_ifthen_response ? `I'll ${reflection.prompt_ifthen_response}` : null}
+          </Text>
+        </Card>
+      )}
+
+      {/* Older days only — the if-then pair replaced this question. */}
       {reflection.prompt_tomorrow && (
         <Card style={styles.promptCard}>
           <Text style={styles.promptLabel}>{REFLECTION_PROMPT_LABELS.prompt_tomorrow}</Text>
@@ -98,7 +112,7 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
         </Card>
       )}
 
-      {!reflection.prompt_went_well && !reflection.prompt_hardest && !reflection.prompt_tomorrow && !reflection.prompt_why_connection && (
+      {!reflection.prompt_went_well && !reflection.prompt_hardest && !reflection.prompt_tomorrow && !reflection.prompt_ifthen_cue && !reflection.prompt_ifthen_response && !reflection.prompt_why_connection && (
         <Card>
           <Text style={styles.noPromptsText}>No written reflections for this day.</Text>
         </Card>

@@ -2,11 +2,14 @@ import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ReflectionGrade } from '../../types';
-import { REACH_STOPS, EDGE_STOP_INDEX, reachIndexOf } from '../../data/comfortZone';
+import { REACH_STOPS, reachIndexOf } from '../../data/comfortZone';
 
 const TRACK_HEIGHT = 44;
 const LINE = 8;
 const THUMB = 26;
+
+/** Where the thumb parks before the first answer. Centre, claiming nothing. */
+const MIDDLE_INDEX = Math.floor((REACH_STOPS.length - 1) / 2);
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
@@ -18,13 +21,15 @@ interface GradeSelectorProps {
 }
 
 /**
- * "How far did you push past your comfort zone today?" — answered by dragging
- * across a line rather than picking one of five chips.
+ * "How hard did you push today?" — answered by dragging across a line rather
+ * than picking one of five chips.
  *
- * The chips never said where the comfort zone actually ended, which left the
- * question rhetorical: five equal buttons imply five unrelated options, not a
- * distance from a threshold. Here the boundary is drawn on the track, and
- * crossing it is a physical act.
+ * An earlier version asked how far past the comfort zone the day got, and drew
+ * the boundary on the track. That framing made the user locate an invisible
+ * threshold before they could answer at all; the question now runs easier →
+ * harder with no boundary to find, so the colour ramp and the stop labels carry
+ * the whole gradient. "Comfort zone" survives as prose elsewhere in the app,
+ * where it reads as ordinary English rather than as a ruler.
  *
  * Built on PanResponder for the same reason as <Slider>: no native module, so
  * this ships over the air.
@@ -95,7 +100,7 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
   // so an untouched control never reads as a claim about the day.
   const index = value ? reachIndexOf(value) : -1;
   const answered = index >= 0;
-  const shownIndex = answered ? index : EDGE_STOP_INDEX;
+  const shownIndex = answered ? index : MIDDLE_INDEX;
   const stop = REACH_STOPS[shownIndex];
   const accent = answered ? stop.color : Colors.border;
   const ratio = shownIndex / lastIndex;
@@ -104,7 +109,7 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.question}>
-        How far did you push past your comfort zone today? *
+        How hard did you push today? *
       </Text>
 
       <View
@@ -113,7 +118,7 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
         onLayout={onLayout}
         {...(readOnly ? {} : pan.panHandlers)}
         accessibilityRole="adjustable"
-        accessibilityLabel="How far did you push past your comfort zone today?"
+        accessibilityLabel="How hard did you push today?"
         accessibilityValue={{
           min: 1,
           max: REACH_STOPS.length,
@@ -131,16 +136,6 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
         {answered && (
           <View style={[styles.fill, { width: filled, backgroundColor: accent }]} />
         )}
-
-        {/* The comfort zone's boundary, drawn on the track it belongs to.
-            Stacked segments rather than borderStyle:'dashed' — RN's dashed
-            borders are unreliable across platforms, and this line is the whole
-            point of the control, so it can't be allowed to render solid. */}
-        <View style={styles.boundary} pointerEvents="none">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <View key={i} style={styles.boundaryDash} />
-          ))}
-        </View>
 
         <View
           style={[
@@ -169,15 +164,11 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
         ))}
       </View>
 
-      {/* "THE EDGE" is centred absolutely rather than laid out between the two
-          end labels — with space-between it would drift off the dashed line,
-          which is the one thing it has to point at. */}
+      {/* Direction only. The readout below names the actual answer, so these
+          orient the drag without competing with it. */}
       <View style={styles.ends}>
-        <Text style={styles.endLabel}>INSIDE THE ZONE</Text>
-        <Text style={styles.endLabel}>PAST IT</Text>
-        <View style={styles.edgeLabelWrap} pointerEvents="none">
-          <Text style={styles.edgeLabel}>THE EDGE</Text>
-        </View>
+        <Text style={styles.endLabel}>EASIER</Text>
+        <Text style={styles.endLabel}>HARDER</Text>
       </View>
 
       <View style={styles.readout}>
@@ -221,21 +212,6 @@ const styles = StyleSheet.create({
     height: LINE,
     borderRadius: LINE / 2,
   },
-  boundary: {
-    position: 'absolute',
-    left: '50%',
-    top: 3,
-    bottom: 3,
-    width: 2,
-    marginLeft: -1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  boundaryDash: {
-    width: 2,
-    height: 4,
-    backgroundColor: Colors.gray,
-  },
   thumb: {
     position: 'absolute',
     width: THUMB,
@@ -271,19 +247,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 0.7,
     color: Colors.gray,
-  },
-  edgeLabelWrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    alignItems: 'center',
-  },
-  edgeLabel: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 9,
-    letterSpacing: 0.7,
-    color: Colors.dark,
   },
   readout: {
     marginTop: Spacing.md,

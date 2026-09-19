@@ -363,17 +363,23 @@ export const getReflectionStats = async (
  * answer is shown back to the user (the entry screen, journal search).
  *
  * The field KEYS are storage and never change — `prompt_went_well` has held
- * three different questions now ("What went well?", "Where did you override an
- * urge today?", and currently "What did you do that was uncomfortable?"). These
- * labels live here, in one place, because the entry screen and journal search
- * each used to hardcode their own copy and had already drifted a rewrite behind
- * the questions they were labelling.
+ * four different questions now ("What went well?", "Where did you override an
+ * urge today?", "What did you do that was uncomfortable?", and currently "What's
+ * one thing you did today that you almost didn't?"). These labels live here, in
+ * one place, because the entry screen and journal search each used to hardcode
+ * their own copy and had already drifted a rewrite behind the questions they
+ * were labelling.
+ *
+ * `prompt_tomorrow` is no longer collected — the if-then pair replaced it — but
+ * it stays here so the years of saved answers still render with a label.
  */
 export const REFLECTION_PROMPT_LABELS = {
-  prompt_went_well: 'Where you pushed',
-  prompt_hardest: 'Where comfort won',
+  prompt_went_well: 'What you almost skipped',
+  prompt_hardest: 'The hardest moment',
   prompt_tomorrow: "Tomorrow's edge",
   prompt_why_connection: 'Why connection',
+  prompt_ifthen_cue: "Tomorrow's cue",
+  prompt_ifthen_response: 'The planned response',
 } as const;
 
 const REFLECTION_FIELDS = [
@@ -381,6 +387,8 @@ const REFLECTION_FIELDS = [
   { key: 'prompt_hardest' as const, label: REFLECTION_PROMPT_LABELS.prompt_hardest },
   { key: 'prompt_tomorrow' as const, label: REFLECTION_PROMPT_LABELS.prompt_tomorrow },
   { key: 'prompt_why_connection' as const, label: REFLECTION_PROMPT_LABELS.prompt_why_connection },
+  { key: 'prompt_ifthen_cue' as const, label: REFLECTION_PROMPT_LABELS.prompt_ifthen_cue },
+  { key: 'prompt_ifthen_response' as const, label: REFLECTION_PROMPT_LABELS.prompt_ifthen_response },
 ];
 
 const CHALLENGE_FIELDS = [

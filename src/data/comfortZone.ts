@@ -1,19 +1,27 @@
 import { ReflectionGrade } from '../types';
 
 /**
- * The nightly question — "How far did you push past your comfort zone today?" —
- * expressed as positions relative to the edge of the comfort zone.
+ * The nightly question — "How hard did you push today?" — as five escalating
+ * answers.
+ *
+ * Each label names a CHOICE, not a feeling. That distinction is the whole point:
+ * rating strain would make this scale decay exactly as the app works, because
+ * effort dropping is the signature of a habit forming. Someone six months in
+ * whose practices have gone automatic should not be sliding toward "took the
+ * easy way" every night. "Did you take the harder option when it was your call"
+ * stays answerable forever; "how tired are you" does not.
  *
  * The A–F letters are the STORED value and never change: reflections going back
  * to the first release are saved as letters, and the streaks, grade averages and
  * distribution chart all read them. Only the words and colours here change, which
- * is how this framing could replace two earlier ones ("alignment to purpose",
- * then "how you trained your override") without migrating a single document.
+ * is how this framing could replace three earlier ones ("alignment to purpose",
+ * "how you trained your override", then "past your comfort zone") without
+ * migrating a single document.
  *
- * Ordered WORST → BEST so an index doubles as a position: index 0 is deepest
- * inside the comfort zone, index 4 is furthest beyond it. The slider maps that
- * index straight to a position on its track, and the weekly radar maps it
- * straight to a radius, so the ordering is a contract both depend on.
+ * Ordered WORST → BEST so an index doubles as a position: index 0 is the easiest
+ * day, index 4 the hardest. The slider maps that index straight to a position on
+ * its track, and the weekly radar maps it straight to a radius, so the ordering
+ * is a contract both depend on.
  */
 export interface ReachStop {
   grade: ReflectionGrade;
@@ -22,17 +30,22 @@ export interface ReachStop {
 }
 
 export const REACH_STOPS: ReachStop[] = [
-  { grade: 'F', label: 'Stayed comfortable', color: '#C62828' },
-  { grade: 'D', label: 'Backed off', color: '#EF6C00' },
-  { grade: 'C', label: 'Touched the edge', color: '#F9A825' },
-  { grade: 'B', label: 'Pushed past', color: '#558B2F' },
-  { grade: 'A', label: 'Way past it', color: '#2E7D32' },
+  { grade: 'F', label: 'Took the easy way', color: '#C62828' },
+  { grade: 'D', label: 'Did the minimum', color: '#EF6C00' },
+  { grade: 'C', label: 'Showed up', color: '#F9A825' },
+  { grade: 'B', label: 'Pushed myself', color: '#558B2F' },
+  { grade: 'A', label: 'Left nothing in the tank', color: '#2E7D32' },
 ];
 
 /**
- * The stop that IS the boundary. Two stops sit inside it and two beyond, so the
- * threshold lands dead centre of the slider — which is what lets the dashed line
- * read as a real edge rather than an arbitrary mark.
+ * The middle stop. The slider no longer draws a threshold — the colour ramp and
+ * the labels carry the gradient, so there is nothing left for a boundary to mean
+ * — but this is still the centre index, and OnboardingThesis draws its figure
+ * around it.
+ *
+ * `isPastTheEdge` below has no caller in app code (the weekly radar moved off the
+ * nightly grade). Both are kept because onboarding imports this one and the test
+ * suite pins both; retire them with the onboarding rework, not before.
  */
 export const EDGE_STOP_INDEX = 2;
 
