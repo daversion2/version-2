@@ -202,6 +202,29 @@ export const METRIC_FAMILIES: MetricFamily[] = [
     unit: '$',
     order: 14,
   },
+  // Both are levels you hold day to day, not quantities that accumulate: a week
+  // of 8-hour cutoffs is not a 56-hour cutoff, and the useful protein number is
+  // the typical day against the target. Unregistered, each would derive a sum.
+  {
+    id: 'caffeine',
+    label: 'Caffeine cutoff',
+    icon: 'cafe-outline',
+    keys: ['cutoff_hrs'],
+    aggregate: 'avg',
+    direction: 'up',
+    unit: 'hrs',
+    order: 15,
+  },
+  {
+    id: 'protein',
+    label: 'Protein',
+    icon: 'restaurant-outline',
+    keys: ['protein_g'],
+    aggregate: 'avg',
+    direction: 'up',
+    unit: 'g',
+    order: 16,
+  },
 ];
 
 const FAMILY_BY_KEY: Record<string, MetricFamily> = METRIC_FAMILIES.reduce(

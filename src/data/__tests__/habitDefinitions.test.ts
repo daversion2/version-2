@@ -21,9 +21,9 @@ import { buildPracticePerformance } from '../../services/practicePerformance';
 
 describe('unified habit catalog', () => {
   it('merges the curated practices and the habit library into one catalog', () => {
-    // 9 practices + 43 library habits - 6 superseded duplicates.
+    // 9 practices + 50 library habits - 11 superseded duplicates.
     expect(BUNDLED_HABIT_DEFINITIONS.length).toBe(
-      BUNDLED_PRACTICES.length + 43 - Object.keys(SUPERSEDED_HABIT_IDS).length
+      BUNDLED_PRACTICES.length + 50 - Object.keys(SUPERSEDED_HABIT_IDS).length
     );
   });
 
@@ -60,8 +60,6 @@ describe('unified habit catalog', () => {
     for (const id of [
       'inbox-after-focus',
       'make-the-call',
-      'note-one-good-thing',
-      'plan-tomorrow',
       'phone-free-dinner',
       'reach-out',
       'trad-skincare',
@@ -70,6 +68,24 @@ describe('unified habit catalog', () => {
       expect(browsable.has(id)).toBe(false);
       // Still resolvable, so an already-adopted instance keeps working.
       expect(getHabitDefinition(id)).toBeDefined();
+    }
+  });
+
+  it('offers the habits added in the 2026-09-29 audit, and the two it restored', () => {
+    const browsable = new Set(getBrowsableHabits().map((d) => d.id));
+    for (const id of [
+      'dreaded-task-first',
+      'caffeine-cutoff',
+      'alcohol-free-day',
+      'protein-target',
+      'nsdr',
+      'wait-24-hours',
+      'no-spend-day',
+      // Restored as the better-worded survivors of trad-gratitude / trad-todo-list.
+      'note-one-good-thing',
+      'plan-tomorrow',
+    ]) {
+      expect(browsable.has(id)).toBe(true);
     }
   });
 
@@ -102,11 +118,19 @@ describe('superseded ids', () => {
       expect(ids.has(survivorId)).toBe(true);
     }
   });
+
+  it('never supersedes to another superseded id', () => {
+    // getHabitDefinition follows the map one hop only, so a chain would resolve
+    // to nothing and orphan the adopted habit.
+    for (const survivorId of Object.values(SUPERSEDED_HABIT_IDS)) {
+      expect(SUPERSEDED_HABIT_IDS[survivorId]).toBeUndefined();
+    }
+  });
 });
 
 describe('flow', () => {
   it("defaults to 'tap' — an ordinary habit is a plain check-in", () => {
-    expect(getHabitFlow(getHabitDefinition('trad-drink-water'))).toBe('tap');
+    expect(getHabitFlow(getHabitDefinition('water-only'))).toBe('tap');
     expect(getHabitFlow(undefined)).toBe('tap');
   });
 
@@ -138,7 +162,7 @@ describe('seeding is scoped', () => {
 
   it('never seeds a plain library habit onto a new user', () => {
     const seededIds = new Set(getDefaultSeedPractices().map((d) => d.id));
-    expect(seededIds.has('trad-drink-water')).toBe(false);
+    expect(seededIds.has('water-only')).toBe(false);
     expect(seededIds.has('no-snooze')).toBe(false);
   });
 

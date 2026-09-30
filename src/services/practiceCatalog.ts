@@ -4,6 +4,7 @@ import {
   Practice,
   PracticeGroup,
   BUNDLED_HABIT_DEFINITIONS,
+  SUPERSEDED_HABIT_IDS,
   setPracticeCatalog,
 } from '../data/practices';
 
@@ -138,7 +139,10 @@ export const fetchPracticeCatalog = async (): Promise<Practice[]> => {
     seen.add(bundled.id);
   }
   for (const p of remote) {
-    if (!seen.has(p.id)) merged.push(p);
+    // A superseded id is filtered out of the bundle, so a doc seeded for it
+    // before the dedupe would otherwise come back as a "new" Firestore-only
+    // habit — browsable again, and shadowing the redirect to its survivor.
+    if (!seen.has(p.id) && !SUPERSEDED_HABIT_IDS[p.id]) merged.push(p);
   }
   return merged;
 };

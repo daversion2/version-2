@@ -28,14 +28,6 @@ export interface HabitCommitment {
 
 export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
   // ─── Body ─────────────────────────────────────────────────────────────────
-  'trad-drink-water': {
-    prompt: 'How much water a day?',
-    field: {
-      key: 'water_oz', label: 'How much?', type: 'number', unit: 'oz',
-      min: 20, max: 160, step: 10, default: 80,
-      record: { label: 'Most in a day', icon: 'water-outline' },
-    },
-  },
   'trad-eat-vegetables': {
     prompt: 'How many servings a day?',
     field: {
@@ -119,20 +111,38 @@ export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
     },
   },
 
+  'caffeine-cutoff': {
+    prompt: 'How many hours before bed is your cutoff?',
+    field: {
+      key: 'cutoff_hrs', label: 'Last caffeine, hours before bed', type: 'number', unit: 'hrs',
+      min: 4, max: 14, step: 1, default: 8,
+      record: { label: 'Earliest cutoff', icon: 'cafe-outline' },
+    },
+  },
+  'protein-target': {
+    prompt: 'How much protein a day?',
+    field: {
+      key: 'protein_g', label: 'How much?', type: 'number', unit: 'g',
+      min: 40, max: 250, step: 10, default: 120,
+      record: { label: 'Most in a day', icon: 'restaurant-outline' },
+    },
+  },
+
   // ─── Mind ─────────────────────────────────────────────────────────────────
+  'nsdr': {
+    prompt: 'How long each session?',
+    field: {
+      key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min',
+      min: 5, max: 45, step: 5, default: 20,
+      record: { label: 'Longest session', icon: 'moon-outline' },
+    },
+  },
   'trad-journal': {
     prompt: 'How long each time?',
     field: {
       key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min',
       min: 2, max: 60, step: 1, default: 10,
       record: { label: 'Longest entry', icon: 'create-outline' },
-    },
-  },
-  'trad-gratitude': {
-    prompt: 'How many things each time?',
-    field: {
-      key: 'count', label: 'How many?', type: 'number', unit: 'things',
-      min: 1, max: 10, step: 1, default: 3,
     },
   },
 
@@ -176,14 +186,6 @@ export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
       min: 1, max: 12, step: 1, default: 3,
       // Less is the achievement here.
       record: { label: 'Lowest day', icon: 'phone-portrait-outline', pick: 'min' },
-    },
-  },
-  'phone-free-first-hour': {
-    prompt: 'How long phone-free?',
-    field: {
-      key: 'duration_min', label: 'How long?', type: 'duration', unit: 'min',
-      min: 10, max: 120, step: 10, default: 30,
-      record: { label: 'Longest', icon: 'phone-portrait-outline' },
     },
   },
   'trad-tidy': {

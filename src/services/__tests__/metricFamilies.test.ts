@@ -1,7 +1,7 @@
 import { buildMetricFamilyReports, formatMetric } from '../metricFamilies';
 import { resolveHabitTrackingFields } from '../../data/habitTemplates';
 import { familyForField } from '../../data/metricFamilies';
-import { getPractice } from '../../data/practices';
+import { BUNDLED_HABIT_DEFINITIONS, getPractice, setPracticeCatalog } from '../../data/practices';
 import { CompletionLog, PracticeInstance } from '../../types';
 
 // Fixed "today" so week bucketing is deterministic: 2026-07-12 is a Sunday, so
@@ -155,20 +155,38 @@ describe('buildMetricFamilyReports', () => {
   });
 
   it('refuses to combine habits that count different things', () => {
-    // Both are the Count template, but one counts gratitude "things" and the
-    // other is an unlabelled tally. 5 pages + 3 gratitudes is not 8 of anything.
-    const gratitude = habit({ name: 'Gratitude', practice_id: 'trad-gratitude' });
+    // Both log `count`, but one counts gratitude "things" and the other is an
+    // unlabelled tally. 5 pages + 3 gratitudes is not 8 of anything. No bundled
+    // habit counts in a unit since trad-gratitude was superseded, but an admin
+    // can add one, so the catalog entry is a fixture.
+    setPracticeCatalog([
+      ...BUNDLED_HABIT_DEFINITIONS,
+      {
+        id: 'fixture-gratitude',
+        name: 'Gratitude',
+        description: '',
+        category_id: 'Mind',
+        suggested_target_per_week: 7,
+        tracking: [{ key: 'count', label: 'How many?', type: 'number', unit: 'things' }],
+      },
+    ]);
+    const gratitude = habit({ name: 'Gratitude', practice_id: 'fixture-gratitude' });
     const pages = habit({ name: 'Pages read', created_by_user: true, template_id: 'count' });
 
-    const reports = buildMetricFamilyReports(
-      [
-        log(gratitude.id, { count: 3 }),
-        log(gratitude.id, { count: 4 }),
-        log(pages.id, { count: 50 }),
-      ],
-      [gratitude, pages],
-      TODAY
-    );
+    let reports: ReturnType<typeof buildMetricFamilyReports>;
+    try {
+      reports = buildMetricFamilyReports(
+        [
+          log(gratitude.id, { count: 3 }),
+          log(gratitude.id, { count: 4 }),
+          log(pages.id, { count: 50 }),
+        ],
+        [gratitude, pages],
+        TODAY
+      );
+    } finally {
+      setPracticeCatalog(BUNDLED_HABIT_DEFINITIONS);
+    }
 
     const count = byId(reports, 'count')!;
     expect(count.combinable).toBe(false);

@@ -1055,10 +1055,19 @@ export const SUPERSEDED_HABIT_IDS: Record<string, string> = {
   'trad-meditate': 'meditation',
   'breathing-break': 'breathwork',
   'trad-budget': 'log-the-spend',
+  // 2026-09-29 library audit — near-duplicates folded into the better-worded one.
+  // An adopted instance keeps its place on Home but takes on the survivor's
+  // definition, so metrics only the old one tracked (water_oz, the gratitude
+  // count) stay in the logs but no longer chart.
+  'trad-wake-early': 'no-snooze',
+  'trad-drink-water': 'water-only',
+  'phone-free-first-hour': 'protect-attention',
+  'trad-gratitude': 'note-one-good-thing',
+  'trad-todo-list': 'plan-tomorrow',
 };
 
 /**
- * Every bundled habit definition: the 9 rich ones above plus the 43-habit library,
+ * Every bundled habit definition: the 9 rich ones above plus the 50-habit library,
  * minus the superseded duplicates. This is the single catalog — there is no longer
  * a separate "practices" list and "habits" list.
  */

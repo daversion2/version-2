@@ -1,5 +1,6 @@
-import { validatePractice } from '../practiceCatalog';
+import { fetchPracticeCatalog, validatePractice } from '../practiceCatalog';
 import { BUNDLED_HABIT_DEFINITIONS } from '../../data/practices';
+import { addMockDocument, resetMockDB } from '../__mocks__/firestore';
 
 // Phase 4: the validator was loosened because most fields became optional under
 // the unified HabitDefinition. These tests pin both halves of that — it must let
@@ -77,5 +78,32 @@ describe('validatePractice — optional fields', () => {
     });
     expect(result).not.toBeNull();
     expect(result!.research).toHaveLength(1);
+  });
+});
+
+describe('fetchPracticeCatalog — merge', () => {
+  beforeEach(() => resetMockDB());
+
+  const remoteDoc = (id: string, name: string) => ({
+    name,
+    description: 'Seeded before it was deduped.',
+    category_id: 'Body',
+    suggested_target_per_week: 7,
+  });
+
+  it('keeps a Firestore-only habit the bundle does not know about', async () => {
+    addMockDocument('practiceCatalog', 'admin-added', remoteDoc('admin-added', 'Admin added'));
+    const ids = (await fetchPracticeCatalog()).map((p) => p.id);
+    expect(ids).toContain('admin-added');
+  });
+
+  it('does not resurrect a superseded habit from a doc seeded before the dedupe', async () => {
+    // The whole catalog was seeded to Firestore (D2), so a doc can outlive the
+    // bundle entry. Letting it through would put the duplicate back in the
+    // library and stop the id redirecting to its survivor.
+    addMockDocument('practiceCatalog', 'trad-drink-water', remoteDoc('trad-drink-water', 'Drink more water'));
+    const ids = (await fetchPracticeCatalog()).map((p) => p.id);
+    expect(ids).not.toContain('trad-drink-water');
+    expect(ids).toContain('water-only');
   });
 });

@@ -57,13 +57,6 @@ export const HABIT_SCIENCE: Record<string, HabitScienceEntry> = {
       'Anything low-stakes works: reading, stretching, tidying. It only has to be non-interactive.',
     ],
   },
-  'trad-wake-early': {
-    whyItWorks:
-      'An early, fixed wake time is the single strongest lever on the whole circadian system.',
-    science:
-      'Wake time anchors the clock more firmly than bedtime, because light exposure on waking is the dominant entrainment signal. Fixing the wake time drags sleep onset earlier within a week or two without needing to force it directly — which is why "just go to bed earlier" usually fails and "get up at the same time" usually works.',
-    tips: ['Hold the wake time on weekends too — that is where most drift comes from.'],
-  },
   'no-snooze': {
     whyItWorks:
       'Snoozing restarts a sleep cycle you do not have time to finish, which is why the second waking feels worse than the first.',
@@ -136,12 +129,23 @@ export const HABIT_SCIENCE: Record<string, HabitScienceEntry> = {
       'One block done properly beats three blocks defended half-heartedly.',
     ],
   },
-  'phone-free-first-hour': {
+  'dreaded-task-first': {
     whyItWorks:
-      'What you do first sets the mode you spend the morning in — reactive or directed.',
+      'Procrastination is mood repair, not bad time management. You are avoiding the feeling the task brings, not the task.',
     science:
-      'Opening a feed first thing loads a queue of other people\'s priorities before you have set your own, and starts the day in a responsive posture. The habit is less about the hour than about the ordering: doing one self-directed thing before the first inbound demand changes which mode the rest of the morning inherits.',
-    tips: ['Decide the night before what the first thing is, so the morning has no decision in it.'],
+      'An aversive task produces a small spike of negative emotion — boredom, anxiety, self-doubt — and switching to something easier relieves it instantly. That relief is the reward that trains avoidance, which is why putting something off gets easier every time it works. Starting anyway breaks the loop from the other side: the discomfort you anticipate is usually larger than the discomfort of doing it, so each start corrects the forecast a little. Going first also means the hardest work gets your freshest attention, before the day\'s decisions have piled up.',
+    research: [
+      {
+        finding:
+          'A review of the procrastination research concluded that it is primarily a failure of emotion regulation: people delay tasks to repair their mood in the short term, and the cost lands on their future self.',
+        source: 'Sirois & Pychyl, 2013 — Social and Personality Psychology Compass',
+        url: 'https://compass.onlinelibrary.wiley.com/doi/abs/10.1111/spc3.12011',
+      },
+    ],
+    tips: [
+      'Choose it the night before. Choosing it in the morning is one more place to stall.',
+      'Make the first step small and physical — open the file, write the first line.',
+    ],
   },
   'protect-attention': {
     whyItWorks:
@@ -181,27 +185,30 @@ export const HABIT_SCIENCE: Record<string, HabitScienceEntry> = {
     ],
     tips: ['Specific beats general. "The coffee was good" outperforms "my health".'],
   },
-  'trad-gratitude': {
-    whyItWorks:
-      'One of the most reliably replicated interventions in the wellbeing literature, and among the cheapest.',
-    science:
-      'Gratitude practice works by shifting the comparison point. Most dissatisfaction comes from measuring what you have against what you expected; naming what you already have moves the reference downward, which changes the felt gap without changing circumstances.',
-    research: [
-      {
-        finding:
-          'Across three experiments, gratitude-listing groups showed heightened wellbeing on multiple measures relative to hassle-listing and neutral-event controls.',
-        source: 'Emmons & McCullough, 2003 — Journal of Personality and Social Psychology',
-        url: 'https://pubmed.ncbi.nlm.nih.gov/12585811/',
-      },
-    ],
-    tips: ['Weekly can outperform daily — done every day it habituates and stops landing.'],
-  },
   'trad-journal': {
     whyItWorks:
       'Putting a feeling into words reduces its intensity. Naming is itself regulation.',
     science:
       'Translating an emotional state into language ("affect labelling") is associated with reduced amygdala reactivity and increased prefrontal engagement — the act of describing what you feel appears to partially regulate it. Writing also converts a looping, unstructured worry into a fixed, finite object, which is why the same problem often feels smaller on the page than in the head.',
     tips: ['Write badly and quickly. Editing turns regulation back into rumination.'],
+  },
+  'nsdr': {
+    whyItWorks:
+      'Deep rest without sleep: the body powers down while attention stays just awake enough to follow a voice.',
+    science:
+      'Guided protocols like yoga nidra move attention slowly through the body and the breath while you lie still. That shifts the nervous system toward parasympathetic, rest-and-digest activity and lowers the drive to act, without tipping into sleep — so there is no grogginess afterwards. It is not a substitute for a night\'s sleep, but it is a dependable way to recover some calm and alertness in the middle of the day.',
+    research: [
+      {
+        finding:
+          'In a PET brain-imaging study, dopamine release in the ventral striatum rose by an estimated 65% during yoga nidra, alongside a reported drop in the desire to act. A small study, but one of the few to image the state directly.',
+        source: 'Kjaer et al., 2002 — Cognitive Brain Research',
+        url: 'https://www.sciencedirect.com/science/article/abs/pii/S0926641001001069',
+      },
+    ],
+    tips: [
+      'Lie down if you can. Sitting works, but lying down gets you deeper.',
+      'Nodding off now and then is fine. If it happens every time, try it earlier in the day.',
+    ],
   },
   'plan-tomorrow': {
     whyItWorks:
@@ -218,28 +225,69 @@ export const HABIT_SCIENCE: Record<string, HabitScienceEntry> = {
     ],
     tips: ['One priority, not a list. A list is a way of not choosing.'],
   },
-  'trad-todo-list': {
-    whyItWorks:
-      'An unfinished task holds attention until it is written down somewhere trusted.',
-    science:
-      'Open loops occupy working memory — the mind keeps re-surfacing them precisely because they are unresolved. Externalising them into a system you trust releases that hold, which is why writing a list often reduces anxiety before any item is actually done.',
-    tips: ['Capture everything, then pick three. Capture and prioritise are different jobs.'],
-  },
 
   // ─── Food & drink ─────────────────────────────────────────────────────────
-  'trad-drink-water': {
-    whyItWorks:
-      'Mild dehydration shows up as mood and concentration changes well before you feel thirsty.',
-    science:
-      'Losing even 1–2% of body water is associated with measurable declines in mood, alertness and sustained attention. Thirst lags behind that threshold, so the first signal most people notice is a headache or an afternoon slump rather than an urge to drink.',
-    tips: ['Anchor it to something you already do — every coffee, every meal.'],
-  },
   'water-only': {
     whyItWorks:
       'Liquid calories are the easiest ones to consume without noticing and the least satiating per calorie.',
     science:
       'Drinks high in sugar deliver a rapid glucose load with little of the satiety signalling that solid food produces, so they add intake without displacing it. Cutting to water removes the largest source of accidental calories for most people without requiring any judgement about food.',
     tips: ['Sparkling water covers the ritual, which is often what is actually missed.'],
+  },
+  'caffeine-cutoff': {
+    whyItWorks:
+      'Caffeine does not give you energy. It hides how tired you are — and at bedtime it is still hiding it.',
+    science:
+      'Caffeine works by blocking adenosine receptors. Adenosine builds up the longer you are awake and is what makes you feel sleepy, so caffeine masks sleep pressure rather than removing it. Its half-life averages around five hours and varies widely between people, which means a quarter of a 2pm coffee can still be circulating at midnight — enough to cut into deep sleep even when you fall asleep without trouble.',
+    research: [
+      {
+        finding:
+          'In a placebo-controlled study, 400 mg of caffeine taken six hours before bed still cut objectively measured sleep by more than an hour — and participants did not notice the loss.',
+        source: 'Drake et al., 2013 — Journal of Clinical Sleep Medicine',
+        url: 'https://jcsm.aasm.org/doi/10.5664/jcsm.3170',
+      },
+    ],
+    tips: [
+      'Count everything: tea, cola, pre-workout and dark chocolate all carry caffeine.',
+      'Falling asleep fine is not proof it is harmless. The damage is to sleep depth, which you cannot feel.',
+    ],
+  },
+  'alcohol-free-day': {
+    whyItWorks:
+      'Alcohol helps you fall asleep, then takes back more than it gave in the second half of the night.',
+    science:
+      'Alcohol is a sedative, so it shortens the time it takes to fall asleep and deepens the first few hours. As it is metabolised the effect reverses: the second half of the night fragments, with more waking and less REM sleep — the stage most involved in emotional processing and memory. That is why a night after drinking can be long and still unrefreshing. Dry days also make the pattern visible: how often "one drink" is a default rather than a choice.',
+    research: [
+      {
+        finding:
+          'A review of every known study of alcohol and sleep in healthy adults found that, at all doses, alcohol shortens the time to fall asleep and consolidates the first half of the night, then increases sleep disruption in the second half.',
+        source: 'Ebrahim et al., 2013 — Alcoholism: Clinical and Experimental Research',
+        url: 'https://onlinelibrary.wiley.com/doi/abs/10.1111/acer.12006',
+      },
+    ],
+    tips: [
+      'Decide your dry days at the start of the week, not at 6pm.',
+      'Have a replacement drink you actually like. The ritual is often what you miss.',
+      'CAUTION: if you drink heavily every day, stopping suddenly can be medically dangerous — talk to a doctor first.',
+    ],
+  },
+  'protein-target': {
+    whyItWorks:
+      'Training breaks muscle down. What you eat decides how much of it comes back.',
+    science:
+      'Resistance training creates the signal for muscle growth, but the rebuilding runs on amino acids from dietary protein. Pooled trial data suggest the benefit keeps rising up to roughly 1.6 g per kilogram of bodyweight a day before it flattens out, and the total across the day matters far more than timing or source. Protein is also the most filling macronutrient per calorie, so hitting a target tends to crowd out food you would rather not be eating.',
+    research: [
+      {
+        finding:
+          'Across 49 trials and 1,863 participants, extra protein increased the strength and muscle gained from resistance training, with the benefit levelling off at around 1.6 g per kg of bodyweight per day.',
+        source: 'Morton et al., 2018 — British Journal of Sports Medicine',
+        url: 'https://pubmed.ncbi.nlm.nih.gov/28698222/',
+      },
+    ],
+    tips: [
+      'Spread it across meals. 25–40 g at each is easier than one enormous dinner.',
+      'CAUTION: if you have kidney disease, check with a doctor before raising your protein intake.',
+    ],
   },
   'trad-eat-vegetables': {
     whyItWorks:
@@ -291,6 +339,28 @@ export const HABIT_SCIENCE: Record<string, HabitScienceEntry> = {
     science:
       'Saving what is left at month end fails because it competes with every spending impulse in between. Moving money first makes saving the default and spending the constrained choice — the same amount, but with the willpower requirement removed from the loop entirely.',
     tips: ['Automate the transfer for payday. A habit that runs itself cannot be skipped.'],
+  },
+  // No `research` on the two below by design — the mechanisms are well
+  // established, but no specific study was verified. See the citation policy.
+  'wait-24-hours': {
+    whyItWorks:
+      'The want you feel in the moment is the want at its peak. A day later you get to see how much of it was real.',
+    science:
+      'An urge to buy is a spike of anticipated reward, and like most cravings it rises fast and fades on its own if you do not act on it. While you are in that "hot" state, you reliably overestimate how much you will still want the thing once the feeling passes. A fixed delay moves the decision to a cooler version of you. It does not ban the purchase — it only stops the craving from being the one who makes it.',
+    tips: [
+      'If you still want it after 24 hours, buy it without guilt. The rule is a delay, not a ban.',
+      'Keep a list of what you put on hold. Reading it a week later is usually persuasive.',
+    ],
+  },
+  'no-spend-day': {
+    whyItWorks:
+      'A zero budget for the day turns every automatic purchase into one you notice.',
+    science:
+      'Most everyday spending is habitual rather than decided — set off by a place, a time of day or a mood, and finished before any deliberate thought arrives. A no-spend day takes the option away entirely, so each cue that would normally end in a purchase shows up as an urge instead. Those urges are the useful part: they show you where your autopilot spending lives. Tap-to-pay makes the autopilot easier still, because it removes most of the felt cost of paying.',
+    tips: [
+      'Choose the days in advance. Deciding that morning is how they get skipped.',
+      'Pack lunch and coffee the night before. Most no-spend days fail at the café.',
+    ],
   },
 
   // ─── Connection ───────────────────────────────────────────────────────────

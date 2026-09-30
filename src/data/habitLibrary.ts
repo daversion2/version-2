@@ -157,6 +157,53 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     },
     identity: "I'm someone who doesn't need a crutch to get through the day.",
   },
+  {
+    id: 'caffeine-cutoff',
+    name: 'Caffeine cutoff',
+    category_id: 'Body',
+    arena_id: 'impulse_control',
+    description: 'Nothing caffeinated after your cutoff — coffee, tea, energy drinks, pre-workout. For most people that means eight hours or more before bed. The afternoon cup is the one that costs you tonight.',
+    suggested_target_per_week: 5,
+    action_plan: {
+      anchor: 'finish lunch',
+      environment_change: 'Keep decaf or herbal tea at work so the afternoon ritual has a stand-in',
+      obstacle_plan: 'If the afternoon slump hits, I take a 10-minute walk outside or drink a glass of cold water instead',
+      minimum_version: 'Nothing caffeinated within six hours of bed',
+      accountability_person: '',
+    },
+    identity: "I'm someone who protects tonight's sleep with today's choices.",
+  },
+  {
+    id: 'alcohol-free-day',
+    name: 'Alcohol-free day',
+    category_id: 'Body',
+    arena_id: 'impulse_control',
+    description: 'No alcohol today — not one drink. Counted by the day, so the pattern across your week shows up instead of hiding inside "just the one".',
+    suggested_target_per_week: 5,
+    action_plan: {
+      anchor: 'get home in the evening',
+      environment_change: "Keep alcohol out of the house on dry days, and stock a drink I actually like — sparkling water, kombucha, a non-alcoholic beer",
+      obstacle_plan: "If I'm out and everyone's drinking, I order my alternative first, before anyone asks",
+      minimum_version: 'No alcohol at home tonight',
+      accountability_person: '',
+    },
+    identity: "I'm someone who doesn't need a drink to switch off.",
+  },
+  {
+    id: 'protein-target',
+    name: 'Hit my protein',
+    category_id: 'Body',
+    description: 'Reach a daily protein target you set. The total across the day is what counts — timing and source matter far less.',
+    suggested_target_per_week: 5,
+    action_plan: {
+      anchor: 'make breakfast',
+      environment_change: 'Keep easy protein on hand — eggs, Greek yogurt, tinned fish, protein powder — so the target never depends on cooking',
+      obstacle_plan: "If I'm behind by dinner, I add one high-protein item rather than write the day off",
+      minimum_version: 'A real source of protein at every meal',
+      accountability_person: '',
+    },
+    identity: "I'm someone who fuels the work I put in.",
+  },
 
   // ─── Focus & Craft ───────────────────────────────────────────────────────────
   {
@@ -211,10 +258,25 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     identity: "I'm someone who can go deep on what matters.",
   },
   {
+    id: 'dreaded-task-first',
+    name: 'Do the dreaded task first',
+    category_id: 'Focus',
+    arena_id: 'cognitive_resistance',
+    description: "Start the day's work with the one task you most want to avoid — before email, before the easy wins. The dread is almost always bigger than the task.",
+    suggested_target_per_week: 5,
+    action_plan: {
+      anchor: 'sit down at my desk',
+      environment_change: "Name tomorrow's dreaded task before I finish today, and leave it open on the screen",
+      obstacle_plan: "If the whole thing is too big, I do the first ten minutes — starting is the part I'm avoiding",
+      minimum_version: 'Ten minutes on it before anything else',
+      accountability_person: '',
+    },
+    identity: "I'm someone who goes toward the hard thing first.",
+  },
+  {
     id: 'plan-tomorrow',
-    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
-    // deleted so any already-adopted instance keeps its history.
-    active: false,
+    // Cut in the 2026-08-30 audit, restored 2026-09-29: it is the better-worded
+    // version of 'trad-todo-list', which now supersedes to it.
     name: "Set tomorrow's top priority",
     category_id: 'Focus',
     off_thesis: true,
@@ -223,7 +285,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     action_plan: {
       anchor: 'finish my workday',
       environment_change: "Keep a notepad by the laptop or a pinned note on my phone's home screen",
-      obstacle_plan: "If I can't think of three, I write just one — the single most important thing for tomorrow",
+      obstacle_plan: "If I can't choose, I write down the one thing I'd most regret not doing",
       minimum_version: 'Writing down one priority for tomorrow',
       accountability_person: '',
     },
@@ -280,10 +342,25 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     identity: "I'm someone who decides where my attention goes.",
   },
   {
+    id: 'nsdr',
+    name: 'Non-sleep deep rest',
+    category_id: 'Mind',
+    arena_id: 'mental_stillness',
+    description: 'Ten to twenty minutes lying still with a guided NSDR or yoga nidra recording — deeply relaxed, but not asleep. A reset for the middle of the day, or for a night that came up short.',
+    suggested_target_per_week: 4,
+    action_plan: {
+      anchor: 'finish lunch',
+      environment_change: 'Save two or three recordings I like, so there is nothing to choose in the moment',
+      obstacle_plan: "If I can't lie down, I do it sitting — in the car or at my desk, headphones in, eyes closed",
+      minimum_version: 'A 10-minute recording, eyes closed',
+      accountability_person: '',
+    },
+    identity: "I'm someone who recovers on purpose.",
+  },
+  {
     id: 'note-one-good-thing',
-    // Cut from the library in the 2026-08-30 audit. Kept resolvable rather than
-    // deleted so any already-adopted instance keeps its history.
-    active: false,
+    // Cut in the 2026-08-30 audit, restored 2026-09-29: it is the better-worded
+    // version of 'trad-gratitude', which now supersedes to it.
     name: 'Name one good thing',
     category_id: 'Mind',
     off_thesis: true,
@@ -347,6 +424,38 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
       accountability_person: '',
     },
     identity: "I'm someone who pays my future self first.",
+  },
+  {
+    id: 'wait-24-hours',
+    name: 'Wait 24 hours before buying',
+    category_id: 'Money',
+    arena_id: 'impulse_control',
+    description: "Anything you didn't plan to buy waits a day. Leave it in the cart, close the tab, and decide tomorrow — once the want has had a chance to pass.",
+    suggested_target_per_week: 7,
+    action_plan: {
+      anchor: 'feel the urge to buy something',
+      environment_change: 'Remove saved cards from shopping sites and turn off one-click ordering',
+      obstacle_plan: 'If it feels urgent, I write down what it is and the price, and set a reminder for this time tomorrow',
+      minimum_version: 'Waiting until tonight before buying anything unplanned',
+      accountability_person: '',
+    },
+    identity: "I'm someone who decides what I buy, instead of being sold it.",
+  },
+  {
+    id: 'no-spend-day',
+    name: 'No-spend day',
+    category_id: 'Money',
+    arena_id: 'impulse_control',
+    description: 'A day with nothing spent beyond fixed bills. Every purchase you catch yourself reaching for is one that was running on autopilot.',
+    suggested_target_per_week: 2,
+    action_plan: {
+      anchor: 'pack lunch and coffee the night before',
+      environment_change: 'Pick my no-spend days at the start of the week, and leave cards at home on those days',
+      obstacle_plan: 'If a real need comes up, I buy exactly that and nothing else, and note what it was',
+      minimum_version: 'No unplanned spending — bills and groceries only',
+      accountability_person: '',
+    },
+    identity: "I'm someone who can go a day without buying my way through it.",
   },
 
   // ─── Connection ──────────────────────────────────────────────────────────────
