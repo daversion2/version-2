@@ -1,6 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Image, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeStackParamList } from '../types/navigation';
 import { HomeScreen } from '../screens/Home/HomeScreen';
@@ -38,7 +37,6 @@ import { MicroExerciseCompleteScreen } from '../screens/MicroExercise/MicroExerc
 import { MicroExerciseFollowUpScreen } from '../screens/MicroExercise/MicroExerciseFollowUpScreen';
 import { CravingCrusherScreen } from '../screens/Home/CravingCrusherScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
-import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
 
 const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
@@ -59,7 +57,7 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="HomeScreen"
       component={HomeScreen}
-      options={({ navigation }) => ({
+      options={{
         title: 'Home',
         // Render the logo in the header's background layer, pinned to the
         // bottom-left corner. This keeps it out of the headerLeft bar-button
@@ -69,23 +67,7 @@ export const HomeStack: React.FC = () => (
             <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
           </View>
         ),
-        // Shortcut to the Library TAB, not the copy of the library that also
-        // lives in this stack — otherwise there would be two independent
-        // instances of the same screen with separate scroll and search state.
-        // The square frame centres the glyph inside the Liquid Glass capsule
-        // iOS 26 draws behind every bar button item — see ScreenIntroButton for
-        // why the capsule itself cannot be removed from JS.
-        headerRight: () => (
-          <TouchableOpacity
-            onPress={() => navigation.getParent()?.navigate('Library')}
-            style={styles.headerButton}
-            accessibilityRole="button"
-            accessibilityLabel="Browse the habit library"
-          >
-            <Ionicons name="library-outline" size={22} color={Colors.primary} />
-          </TouchableOpacity>
-        ),
-      })}
+      }}
     />
     <Stack.Screen
       name="StartChallenge"
@@ -266,12 +248,6 @@ export const HomeStack: React.FC = () => (
 );
 
 const styles = StyleSheet.create({
-  headerButton: {
-    width: HEADER_BUTTON_SIZE,
-    height: HEADER_BUTTON_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   headerBg: {
     flex: 1,
     backgroundColor: '#FBFBFB',
