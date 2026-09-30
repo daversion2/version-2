@@ -60,7 +60,7 @@ appId: com.neuronudge.neuronudge
 - runFlow: subflows/open-progress.yaml
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
 - tapOn:
@@ -128,7 +128,7 @@ appId: com.neuronudge.neuronudge
 - runFlow: subflows/open-progress.yaml
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
 - tapOn:

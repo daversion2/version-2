@@ -26,10 +26,10 @@ export const ResistanceCurveCard: React.FC<Props> = ({ overview }) => {
   if (recentAvg === null) {
     return (
       <View style={styles.card}>
-        <Text style={styles.label}>Your resistance</Text>
+        <Text style={styles.label}>Effort Level</Text>
         <Text style={styles.empty}>
           Log a few more check-ins and this will show whether your habits are
-          getting easier.
+          taking less effort.
         </Text>
       </View>
     );
@@ -41,7 +41,7 @@ export const ResistanceCurveCard: React.FC<Props> = ({ overview }) => {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>Your resistance</Text>
+      <Text style={styles.label}>Effort Level</Text>
 
       <View style={styles.headlineRow}>
         <Text style={styles.big}>{recentAvg}</Text>
@@ -63,9 +63,9 @@ export const ResistanceCurveCard: React.FC<Props> = ({ overview }) => {
       <Text style={styles.caption}>
         {meaningful
           ? falling
-            ? 'Your habits are getting easier.'
-            : 'They have been getting harder lately.'
-          : 'How hard your habits have felt.'}
+            ? 'Your habits are taking less effort.'
+            : 'Your habits have taken more effort lately.'
+          : 'How much effort you put into your habits'}
       </Text>
 
       {/* Bars, oldest → newest. A week with no rated check-in renders as a
@@ -95,7 +95,7 @@ export const ResistanceCurveCard: React.FC<Props> = ({ overview }) => {
       </View>
 
       <Text style={styles.footnote}>
-        Based on {rated} rated check-in{rated === 1 ? '' : 's'}.
+        Based on {rated} rated check-in{rated === 1 ? '' : 's'}. Not affected by the time filter.
       </Text>
     </View>
   );

@@ -10,7 +10,7 @@ appId: com.neuronudge.neuronudge
 - runFlow: subflows/open-progress.yaml
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
 - takeScreenshot: 03a-30days
@@ -20,10 +20,10 @@ appId: com.neuronudge.neuronudge
     timeout: 4000
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
-- assertVisible: "By Metric"
+- assertVisible: "Totals by Type"
 - takeScreenshot: 03b-7days
 
 - tapOn: "All Time"
@@ -31,8 +31,8 @@ appId: com.neuronudge.neuronudge
     timeout: 4000
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
-- assertVisible: "By Metric"
+- assertVisible: "Totals by Type"
 - takeScreenshot: 03c-alltime

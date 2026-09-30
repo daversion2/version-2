@@ -18,7 +18,8 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({ record
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Personal Records</Text>
+      <Text style={styles.title}>Personal Bests</Text>
+      <Text style={styles.note}>Your all-time bests. Not affected by the time filter.</Text>
       {records.map((record, i) => (
         <View
           key={`${record.label}-${i}`}
@@ -46,6 +47,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.md,
     color: Colors.dark,
+    marginBottom: Spacing.xs,
+  },
+  note: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
     marginBottom: Spacing.xs,
   },
   row: {

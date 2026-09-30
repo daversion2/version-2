@@ -14,8 +14,8 @@ export const ActivityTrendChart: React.FC<ActivityTrendChartProps> = ({ data }) 
   if (data.length === 0) {
     return (
       <Card style={styles.card}>
-        <Text style={styles.title}>Activity Trend</Text>
-        <Text style={styles.emptyText}>Complete some actions to see your trend</Text>
+        <Text style={styles.title}>Week by week</Text>
+        <Text style={styles.emptyText}>Complete some habits to see your trend</Text>
       </Card>
     );
   }
@@ -25,8 +25,8 @@ export const ActivityTrendChart: React.FC<ActivityTrendChartProps> = ({ data }) 
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Activity Trend</Text>
-      <Text style={styles.subtitle}>Actions per week</Text>
+      <Text style={styles.title}>Week by week</Text>
+      <Text style={styles.subtitle}>Habits per week</Text>
       <View style={styles.chartContainer}>
         {/* Y-axis labels */}
         <View style={styles.yAxis}>

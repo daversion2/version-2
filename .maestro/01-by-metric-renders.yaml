@@ -9,10 +9,10 @@ appId: com.neuronudge.neuronudge
 # The section sits below the hero stats, several screens down.
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
 
-- assertVisible: "By Metric"
+- assertVisible: "Totals by Type"
 - assertVisible: "Every habit that measures the same thing, added up together."
 - takeScreenshot: 01-by-metric

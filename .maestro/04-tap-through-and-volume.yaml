@@ -12,24 +12,24 @@ appId: com.neuronudge.neuronudge
 
 - scrollUntilVisible:
     element:
-      text: "Training Volume"
+      text: "Habit by Habit"
     direction: DOWN
     timeout: 40000
-- assertVisible: "Training Volume"
+- assertVisible: "Habit by Habit"
 - takeScreenshot: 04a-training-volume
 
 - scrollUntilVisible:
     element:
-      text: "Personal Records"
+      text: "Personal Bests"
     direction: DOWN
     timeout: 40000
-- assertVisible: "Personal Records"
+- assertVisible: "Personal Bests"
 - takeScreenshot: 04b-personal-records
 
 # Back up to By Metric and tap a habit row.
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: UP
     timeout: 40000
 - tapOn:

@@ -21,14 +21,14 @@ export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
   onPracticePress,
 }) => (
   <View style={styles.section}>
-    <Text style={styles.title}>Training Volume</Text>
+    <Text style={styles.title}>Habit by Habit</Text>
     <Text style={styles.note}>
-      Reps and XP always count. Time & temp reflect only the reps where you logged them.
+      Completions and XP always count. Time & temp reflect only the completions where you logged them.
     </Text>
 
     {practices.length === 0 ? (
       <Text style={styles.empty}>
-        Adopt practices from Home to see your training volume here.
+        Add a habit from Home to see it here.
       </Text>
     ) : (
       <View style={styles.grid}>
@@ -66,7 +66,7 @@ const PracticeCard: React.FC<{
       </Text>
       {untrained ? (
         <>
-          <Text style={styles.cardRepsUntrained}>0 reps</Text>
+          <Text style={styles.cardRepsUntrained}>0 completions</Text>
           <View style={styles.untrainedBadge}>
             <Text style={styles.untrainedBadgeText}>UNTRAINED</Text>
           </View>
@@ -74,7 +74,7 @@ const PracticeCard: React.FC<{
       ) : (
         <>
           <Text style={styles.cardReps}>
-            {practice.reps} {practice.reps === 1 ? 'rep' : 'reps'}
+            {practice.reps} {practice.reps === 1 ? 'completion' : 'completions'}
             <Text style={styles.cardPts}> · {practice.points} XP</Text>
           </Text>
           {practice.metricLines.map((line) => (

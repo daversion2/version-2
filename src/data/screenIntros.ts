@@ -69,7 +69,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     points: [
       {
         label: 'Look for the line going down',
-        text: 'The resistance trend is the headline. Falling means the same habits are costing you less to start than they used to.',
+        text: 'Effort Level is the headline. Falling means the same habits are taking less effort than they used to.',
       },
       {
         label: 'The calendar shows the shape of it',

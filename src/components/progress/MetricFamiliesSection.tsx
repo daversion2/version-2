@@ -27,7 +27,7 @@ export const MetricFamiliesSection: React.FC<MetricFamiliesSectionProps> = ({
   if (reports.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={styles.title}>By Metric</Text>
+        <Text style={styles.title}>Totals by Type</Text>
         <Text style={styles.empty}>
           Log a habit that tracks something — minutes, miles, reps — and every habit
           measuring the same thing will roll up here.
@@ -42,7 +42,7 @@ export const MetricFamiliesSection: React.FC<MetricFamiliesSectionProps> = ({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>By Metric</Text>
+      <Text style={styles.title}>Totals by Type</Text>
       <Text style={styles.note}>
         Every habit that measures the same thing, added up together.
       </Text>

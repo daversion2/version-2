@@ -10,7 +10,7 @@ appId: com.neuronudge.neuronudge
 - runFlow: subflows/open-progress.yaml
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
 
@@ -22,7 +22,7 @@ appId: com.neuronudge.neuronudge
     text: ".*Reps"
 - waitForAnimationToEnd:
     timeout: 3000
-- assertVisible: "By Metric"
+- assertVisible: "Totals by Type"
 - takeScreenshot: 02b-reps
 
 - tapOn:

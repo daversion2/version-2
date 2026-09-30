@@ -7,9 +7,6 @@ interface HeroStatsRowProps {
   points: number;
   currentStreak: number;
   daysActive: number;
-  /** Sampler stat: distinct practices completed at least once, of the catalog total. */
-  practicesTried?: number;
-  practicesTotal?: number;
 }
 
 const formatValue = (value: number): string =>
@@ -20,8 +17,6 @@ export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
   points,
   currentStreak,
   daysActive,
-  practicesTried,
-  practicesTotal,
 }) => {
   const stats: { value: string; label: string }[] = [
     { value: formatValue(completions), label: 'Completions' },
@@ -29,40 +24,48 @@ export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
     { value: formatValue(currentStreak), label: 'Streak' },
     { value: formatValue(daysActive), label: 'Active Days' },
   ];
-  if (practicesTried !== undefined && practicesTotal !== undefined && practicesTotal > 0) {
-    stats.push({
-      value: `${Math.min(practicesTried, practicesTotal)}/${practicesTotal}`,
-      label: 'Tried',
-    });
-  }
 
   return (
-    <View style={styles.container}>
-      {stats.map((stat) => (
-        <View key={stat.label} style={styles.statCard}>
-          <Text style={styles.value}>{stat.value}</Text>
-          {/* Five cards share the row, so the longest label ("Completions")
-              only just fits. Keep it on one line and let it shrink rather
-              than wrap mid-word. */}
-          <Text
-            style={styles.label}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-          >
-            {stat.label}
-          </Text>
-        </View>
-      ))}
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        {stats.map((stat) => (
+          <View key={stat.label} style={styles.statCard}>
+            <Text style={styles.value}>{stat.value}</Text>
+            {/* Four cards share the row. Keep the longest label ("Completions")
+              on one line and let it shrink rather than wrap mid-word. */}
+            <Text
+              style={styles.label}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {stat.label}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {/* Streak comes from the profile, not the log window, so it can't follow
+          the filter — say so rather than let it look stuck. */}
+      <Text style={styles.note}>
+        Streak is your current streak. Not affected by the time filter.
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    marginBottom: Spacing.lg,
+  },
   container: {
     flexDirection: 'row',
     gap: Spacing.xs + 1,
-    marginBottom: Spacing.lg,
+  },
+  note: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: Spacing.sm,
   },
   statCard: {
     flex: 1,

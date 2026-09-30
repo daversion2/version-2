@@ -347,7 +347,11 @@ export const getPracticeProgress = async (
     if (count > bestWeek) bestWeek = count;
   });
   if (bestWeek > 0) {
-    records.push({ icon: 'trophy', label: 'Best week', value: `${bestWeek} overrides` });
+    records.push({
+      icon: 'trophy',
+      label: 'Best week',
+      value: `${bestWeek} ${bestWeek === 1 ? 'habit' : 'habits'}`,
+    });
   }
 
   return {

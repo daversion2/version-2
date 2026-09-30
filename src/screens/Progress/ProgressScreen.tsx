@@ -23,7 +23,6 @@ import {
   getPracticeProgress,
   PracticeProgress,
 } from '../../services/practiceProgress';
-import { getAllPractices } from '../../data/practices';
 import {
   buildResistanceOverview,
   ResistanceOverview,
@@ -35,9 +34,7 @@ import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart
 import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
 import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
 import { MetricFamiliesSection } from '../../components/progress/MetricFamiliesSection';
-import { WeeklyRadarCard } from '../../components/progress/WeeklyRadarCard';
 import { ProgressNavigation } from '../../types/navigation';
-import { CompletionLog } from '../../types';
 import { toLocalDateString } from '../../utils/date';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
@@ -51,7 +48,7 @@ function getStartDateForFilter(filter: TimeFilter): string | undefined {
 }
 
 export const ProgressScreen: React.FC = () => {
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const navigation = useNavigation<ProgressNavigation>();
   // First visit explains the screen; the ⓘ in the header brings it back.
   const intro = useScreenIntro('progress', {
@@ -76,11 +73,6 @@ export const ProgressScreen: React.FC = () => {
   // Trend
   const [trendData, setTrendData] = useState<WeeklyTrendPoint[]>([]);
 
-  // Every log in the window, kept for the weekly radar. It slices out the
-  // current week itself — the smallest filter (7d) always covers the elapsed
-  // part of it, so the radar stays filter-independent without a second fetch.
-  const [logs, setLogs] = useState<CompletionLog[]>([]);
-
   // Calendar
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -97,7 +89,7 @@ export const ProgressScreen: React.FC = () => {
         activeDaysResult,
         trend,
         willpower,
-        allLogs,
+        allTimeLogs,
         practiceProgress,
       ] = await Promise.all([
         getTotalActions(user.uid, startDate),
@@ -105,12 +97,15 @@ export const ProgressScreen: React.FC = () => {
         getActiveDaysCount(user.uid, startDate),
         getActivityTrendByWeek(user.uid, startDate),
         getWillpowerStats(user.uid),
-        getCompletionLogs(user.uid, startDate),
+        // Deliberately unfiltered: Effort Level and the calendar ignore the
+        // time filter. Clipping them made a short filter read as "no ratings"
+        // and "didn't show up" for days that simply fell outside the window.
+        getCompletionLogs(user.uid),
         getPracticeProgress(user.uid, startDate),
       ]);
 
-      // Built from allLogs, which is already fetched above — no extra read.
-      setResistance(buildResistanceOverview(allLogs));
+      // Built from allTimeLogs, which is already fetched above — no extra read.
+      setResistance(buildResistanceOverview(allTimeLogs));
 
       setCompletions(actions);
       setPoints(periodPoints);
@@ -118,11 +113,10 @@ export const ProgressScreen: React.FC = () => {
       setTrendData(trend);
       setCurrentStreak(willpower.currentStreak);
       setProgress(practiceProgress);
-      setLogs(allLogs);
 
       // Calendar marks
       const marks: Record<string, any> = {};
-      allLogs.forEach((log) => {
+      allTimeLogs.forEach((log) => {
         marks[log.date] = { marked: true, dotColor: Colors.secondary };
       });
       setMarkedDates(marks);
@@ -161,20 +155,11 @@ export const ProgressScreen: React.FC = () => {
             points={points}
             currentStreak={currentStreak}
             daysActive={daysActive}
-            practicesTried={userProfile?.practices_tried ?? 0}
-            practicesTotal={
-              getAllPractices().filter((p) => p.active !== false && p.group !== 'custom').length
-            }
           />
 
           {/* Resistance: streaks measure attendance, this measures change —
               the claim the product is built to make. */}
           {resistance && <ResistanceCurveCard overview={resistance} />}
-
-          {/* The week as one shape — habits per day or the XP they earned,
-              toggled on the card. Always the current week, regardless of the
-              filter above. */}
-          <WeeklyRadarCard logs={logs} />
 
           {/* By Metric — the same reps as Training Volume below, sliced by what
               they measured instead of which habit logged them. Leads because
@@ -201,7 +186,10 @@ export const ProgressScreen: React.FC = () => {
           <ActivityTrendChart data={trendData} />
 
           {/* Activity Calendar */}
-          <Text style={styles.sectionTitle}>Activity Calendar</Text>
+          <Text style={styles.sectionTitle}>Days you showed up</Text>
+          <Text style={styles.sectionNote}>
+            Dots mark days you checked in. Tap a day to see it. Not affected by the time filter.
+          </Text>
           <Calendar
             markedDates={{
               ...markedDates,
@@ -243,6 +231,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.lg,
     color: Colors.dark,
+    marginBottom: Spacing.sm,
+  },
+  sectionNote: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    marginTop: -Spacing.xs,
     marginBottom: Spacing.sm,
   },
   calendar: {

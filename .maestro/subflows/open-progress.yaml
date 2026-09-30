@@ -28,4 +28,4 @@ appId: com.neuronudge.neuronudge
       - waitForAnimationToEnd:
           timeout: 4000
 
-- assertVisible: "Your resistance"
+- assertVisible: "Effort Level"

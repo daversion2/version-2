@@ -14,7 +14,7 @@ appId: com.neuronudge.neuronudge
 
 - scrollUntilVisible:
     element:
-      text: "By Metric"
+      text: "Totals by Type"
     direction: DOWN
     timeout: 40000
 - tapOn:
@@ -28,7 +28,7 @@ appId: com.neuronudge.neuronudge
 # name and capture its card.
 - scrollUntilVisible:
     element:
-      text: "Training Volume"
+      text: "Habit by Habit"
     direction: DOWN
     timeout: 40000
 - scrollUntilVisible:
