@@ -4,11 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
 import { HABIT_CATEGORIES } from '../../data/habitLibrary';
-import {
-  HabitDefinition,
-  getHabitDefinitionsByCategory,
-  getPracticeIntensity,
-} from '../../data/practices';
+import { HabitDefinition, getPracticeIntensity } from '../../data/practices';
+import { getOnboardingHabitsByCategory } from '../../data/onboardingOrder';
 import { ob } from './onboardingStyles';
 
 // ============================================================================
@@ -54,7 +51,8 @@ const flameCount = (def: HabitDefinition): number => {
 export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect }) => {
   const [categoryId, setCategoryId] = useState(HABIT_CATEGORIES[0].id);
 
-  const habits = useMemo(() => getHabitDefinitionsByCategory(categoryId), [categoryId]);
+  // Likeliest first picks on top — see data/onboardingOrder.ts.
+  const habits = useMemo(() => getOnboardingHabitsByCategory(categoryId), [categoryId]);
   const showCaution = habits.some(needsMedicalCaution);
 
   return (
