@@ -42,7 +42,7 @@ const DAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
  * for the accessibility label, so a screen reader hears "Difficult but
  * manageable" while the chip shows what fits in 34 points.
  */
-const CHIP_CAPTIONS = ['Easy', 'Push', 'Hard'];
+export const CHIP_CAPTIONS = ['Easy', 'Push', 'Hard'];
 
 /**
  * What this card adds to what its SECTION already said.
@@ -258,13 +258,14 @@ export const TodayHabitRow: React.FC<Props> = ({
 
 // Intensity ramp, reusing the app's own semantics: neutral, then primary, then
 // the orange it already spends on effort and attention.
-const CHIP_STYLES = [
+/** Exported with CHIP_TEXT so the onboarding walkthrough draws the same chips. */
+export const CHIP_STYLES = [
   { borderColor: '#C9D6D6' },
   { borderColor: Colors.primary },
   { borderColor: Colors.secondary },
 ];
 
-const CHIP_TEXT = [
+export const CHIP_TEXT = [
   { color: Colors.gray },
   { color: Colors.primary },
   { color: Colors.secondary },
