@@ -8,7 +8,25 @@ service cloud.firestore {
     // Only the authenticated owner can read/write their own data.
     // ========================================================================
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Writes are owner-only AND may not touch the privilege flags.
+      //
+      // The admin gates throughout this file read is_admin off this same
+      // document, so the owner must not be able to set it. Keep these guards —
+      // see the security audit for the reasoning before changing them.
+      //
+      // Nothing in the app writes either flag, and every user-doc write passes
+      // merge: true, so this costs the client nothing. Grant the flags from the
+      // Firebase console or an Admin SDK script; both bypass these rules.
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && !request.resource.data.keys().hasAny(['is_admin', 'is_coach']);
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data)
+                         .affectedKeys().hasAny(['is_admin', 'is_coach']);
+      allow delete: if request.auth != null && request.auth.uid == userId;
 
       // Subcollections: challenges, habits, completionLogs, categories,
       // challengeStats, reflections, skipLogs, skipReviews.
@@ -20,6 +38,12 @@ service cloud.firestore {
 
     // Allow authenticated users to query the users collection
     // (needed for username availability checks and team member lookups)
+    //
+    // This read is deliberately broader than the owner-only rule above.
+    // Narrowing it is tracked in the security audit — read that before touching
+    // either rule. It cannot simply be deleted: the username availability and
+    // rename checks are list queries that the owner-only rule cannot authorize,
+    // so removing this block breaks signup.
     match /users/{userId} {
       allow read: if request.auth != null;
     }

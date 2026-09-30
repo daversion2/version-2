@@ -237,6 +237,31 @@ export const cancelHabitReminder = async (habit: RemindableHabit): Promise<void>
 };
 
 /**
+ * Cancel every local notification pending on this device, whoever scheduled it.
+ *
+ * Call before sign-out and before account deletion. A habit's notification ids
+ * live on its Firestore document, so once the session ends there is no handle
+ * left to cancel with — and after the delete function's recursiveDelete the
+ * document itself is gone. Left alone the OS keeps firing reminders that quote
+ * the user's own words (see reminderCopy) onto a lock screen that may no longer
+ * be theirs, with no remedy short of uninstalling.
+ *
+ * Blanket-cancelling is safe because nothing durable is lost: reconcileHabitReminders
+ * rebuilds every enabled reminder from Firestore on the next Home load, and the
+ * only other scheduler (cravingNotifications) holds short-lived one-shot pings
+ * for a ride that is already over. Never throws — sign-out has to proceed
+ * whether or not the OS call succeeds.
+ */
+export const cancelAllHabitReminders = async (): Promise<void> => {
+  if (Platform.OS === 'web') return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch (e) {
+    console.warn('Failed to cancel scheduled notifications', e);
+  }
+};
+
+/**
  * Gap-fill: schedule any enabled reminder that isn't actually scheduled on this
  * device — e.g. habits whose reminder was saved before scheduling shipped, while
  * permission was denied, or on a new device/reinstall. The stored notificationId

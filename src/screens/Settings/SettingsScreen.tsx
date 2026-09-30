@@ -12,6 +12,7 @@ import { resetOnboarding, getUser, clearUserAccount, deleteAccountPermanently, c
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { registerForPushNotifications } from '../../services/notifications';
+import { cancelAllHabitReminders } from '../../services/habitReminders';
 import { showAlert, showConfirm } from '../../utils/alert';
 
 export const SettingsScreen: React.FC = () => {
@@ -123,6 +124,11 @@ export const SettingsScreen: React.FC = () => {
           async () => {
             setDeleting(true);
             try {
+              // Before the account goes, not after: the delete function
+              // recursiveDeletes the habit documents that hold the only copy of
+              // these notification ids, and the user can never sign back in to
+              // reach them. Cancel while there is still a session to do it in.
+              await cancelAllHabitReminders();
               await deleteAccountPermanently();
               // Sign-out inside the service drops us back to the auth screen,
               // so there is no post-delete UI to return to.
@@ -140,7 +146,19 @@ export const SettingsScreen: React.FC = () => {
   };
 
   const handleLogout = () => {
-    showConfirm('Sign Out', 'Are you sure?', logOut, 'Sign Out');
+    showConfirm(
+      'Sign Out',
+      'Are you sure?',
+      async () => {
+        // Reminders are scheduled against the device, not the account, so they
+        // outlive the session — and they carry this user's habit names and their
+        // own cue text. Cancel before dropping the session; Home rebuilds them
+        // via reconcileHabitReminders on the next sign-in.
+        await cancelAllHabitReminders();
+        await logOut();
+      },
+      'Sign Out'
+    );
   };
 
   return (
