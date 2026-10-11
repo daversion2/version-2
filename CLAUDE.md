@@ -7,13 +7,6 @@ all are** — it describes work left mid-flight, not standing policy. If it has
 been here a long time, ask the user whether it is still true rather than acting
 on it.*
 
-**1. Cloud Functions run on Node 20, which is decommissioned 2026-10-30.**
-After that date `firebase deploy --only functions` FAILS — including an urgent
-one. The deploy already warns on every run. Needs `functions/package.json`
-moved to a supported runtime (and `firebase-functions` upgraded, which the CLI
-also flags as having breaking changes). Do it while it is a chore rather than
-an outage.
-
 **2. The 2026-09-05 OTA shipped without ever running on a device.** Named-day
 scheduling, schedule-aware streaks, adherence and the archive screen are live to
 all users, verified by jest + `tsc` + a clean `expo export` only. Two paths
