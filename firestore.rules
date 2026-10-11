@@ -36,16 +36,13 @@ service cloud.firestore {
       }
     }
 
-    // Allow authenticated users to query the users collection
-    // (needed for username availability checks and team member lookups)
-    //
-    // This read is deliberately broader than the owner-only rule above.
-    // Narrowing it is tracked in the security audit — read that before touching
-    // either rule. It cannot simply be deleted: the username availability and
-    // rename checks are list queries that the owner-only rule cannot authorize,
-    // so removing this block breaks signup.
+    // Admins may read and list every profile (the Admin dashboard's user
+    // counts). Nobody else can read another user's profile: it holds their
+    // email and push token. Username availability goes through the
+    // checkUsernameAvailable Cloud Function instead of a client query.
     match /users/{userId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null
+                  && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
     }
 
     // ========================================================================

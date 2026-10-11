@@ -787,3 +787,35 @@ export const deleteAccount = onCall(
     }
   }
 );
+
+/**
+ * Callable: is this username free?
+ *
+ * Exists so the client never has to query other people's profile documents.
+ * Profiles hold emails and push tokens, so security rules restrict them to
+ * their owner (and admins); this answers the one cross-user question the app
+ * needs — "is the name taken?" — with a yes/no and nothing else.
+ *
+ * The caller's own current name counts as available, so renaming to a
+ * different case of your own username works.
+ */
+const USERNAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+
+export const checkUsernameAvailable = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Sign in to check a username.");
+  }
+  const username = request.data?.username;
+  if (typeof username !== "string" || !USERNAME_PATTERN.test(username)) {
+    throw new HttpsError("invalid-argument", "That isn't a valid username.");
+  }
+
+  const snap = await db
+    .collection("users")
+    .where("username_lowercase", "==", username.toLowerCase())
+    .limit(2)
+    .get();
+
+  return { available: snap.docs.every((d) => d.id === uid) };
+});

@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, deleteField } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, getDocs, deleteDoc, deleteField } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import app, { db } from './firebase';
 import { logOut } from './auth';
@@ -174,13 +174,18 @@ export const validateUsername = (username: string): { valid: boolean; error?: st
 };
 
 /**
- * Check if a username is available (case-insensitive)
+ * Is this username free? (case-insensitive; your own current name counts as free)
+ *
+ * Asked of a Cloud Function rather than queried directly: profile documents
+ * hold emails and push tokens, so security rules keep them owner-only.
  */
 export const checkUsernameAvailable = async (username: string): Promise<boolean> => {
-  const usersRef = collection(db, 'users');
-  const q = query(usersRef, where('username_lowercase', '==', username.toLowerCase()));
-  const snap = await getDocs(q);
-  return snap.empty;
+  const check = httpsCallable<{ username: string }, { available: boolean }>(
+    getFunctions(app),
+    'checkUsernameAvailable'
+  );
+  const result = await check({ username });
+  return result.data.available;
 };
 
 /**
@@ -219,18 +224,10 @@ export const updateUsername = async (
     throw new Error(validation.error);
   }
 
-  // Check if the username is taken by someone else
-  const usersRef = collection(db, 'users');
-  const q = query(usersRef, where('username_lowercase', '==', newUsername.toLowerCase()));
-  const snap = await getDocs(q);
-
-  // If found, check if it's the same user
-  if (!snap.empty) {
-    const existingUser = snap.docs[0];
-    if (existingUser.id !== userId) {
-      throw new Error('This username is already taken');
-    }
-    // Same user, same username (case might differ) - allow update
+  // Taken by someone else? (The check treats your own current name as free,
+  // so changing only its case is allowed.)
+  if (!(await checkUsernameAvailable(newUsername))) {
+    throw new Error('This username is already taken');
   }
 
   await setDoc(
