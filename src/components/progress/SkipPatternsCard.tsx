@@ -47,7 +47,7 @@ export const SkipPatternsCard: React.FC<Props> = ({ patterns, habitName }) => {
         {topReason ? `Most often: ${topReason.label.toLowerCase()}` : 'Your reasons'}
       </Text>
       <Text style={styles.sub}>
-        {totalMissed} missed {totalMissed === 1 ? 'rep' : 'reps'}
+        {totalMissed} missed {totalMissed === 1 ? 'check-in' : 'check-ins'}
         {habitName ? ` on ${habitName}` : ' across your habits'}.
       </Text>
 

@@ -333,13 +333,13 @@ describe('createHabit — undefined stripping', () => {
       name: 'Cold Exposure',
       target_count_per_week: 3,
       practice_id: 'cold_exposure',
-      category_id: 'Body',
+      category_id: 'Move',
       created_by_user: false,
     });
 
     const data = written();
     expect(data.name).toBe('Cold Exposure');
-    expect(data.category_id).toBe('Body');
+    expect(data.category_id).toBe('Move');
     expect(data.practice_id).toBe('cold_exposure');
     expect(data.created_by_user).toBe(false);
     expect(data.is_active).toBe(true);

@@ -268,7 +268,7 @@ export const PracticeCard: React.FC<PracticeCardProps> = React.memo(
           ) : (
             <TouchableOpacity style={styles.planToggle} onPress={onOpenPlan} activeOpacity={0.7}>
               <Ionicons name="clipboard-outline" size={14} color={Colors.primary} />
-              <Text style={styles.planToggleText}>Create a plan for this practice</Text>
+              <Text style={styles.planToggleText}>Create a plan for this habit</Text>
             </TouchableOpacity>
           )}
         </View>

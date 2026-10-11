@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
+import { Copy } from '../common/Copy';
 import { REACH_STOPS, EDGE_STOP_INDEX } from '../../data/comfortZone';
 import { ob } from './onboardingStyles';
 
@@ -38,11 +39,12 @@ const FILLED_FROM = EDGE_STOP_INDEX + 1;
 export const OnboardingThesis: React.FC = () => (
   <View style={styles.container}>
     <FadeRise>
-      <Text style={ob.eyebrow}>The real habit</Text>
-      <Text style={ob.headline}>
-        The pathway isn't any specific habit. It's turning{' '}
-        <Text style={ob.headlineAccent}>"I didn't want to" into "I did it anyway."</Text>
-      </Text>
+      <Copy id="onboarding.thesis.eyebrow" style={ob.eyebrow}>
+        {'The real habit'}
+      </Copy>
+      <Copy id="onboarding.thesis.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'The pathway isn\'t any specific habit. It\'s turning **"I didn\'t want to" into "I did it anyway."**'}
+      </Copy>
     </FadeRise>
 
     <FadeRise delay={400}>
@@ -54,7 +56,9 @@ export const OnboardingThesis: React.FC = () => (
           REACH_STOPS[REACH_STOPS.length - 1].label
         }", with recent days landing past the edge of the comfort zone.`}
       >
-        <Text style={styles.edgeLabel}>THE EDGE</Text>
+        <Copy id="onboarding.thesis.edgeLabel" style={styles.edgeLabel}>
+          {'THE EDGE'}
+        </Copy>
 
         <View style={styles.track}>
           <View style={styles.trackInside} />
@@ -85,12 +89,9 @@ export const OnboardingThesis: React.FC = () => (
     </FadeRise>
 
     <FadeRise delay={800}>
-      <Text style={ob.body}>
-        The habit you pick is only the vehicle. What you're actually training is the move itself —
-        from "I don't want to" to doing it regardless. Every night the app asks one question about
-        that move, not about the habit.{' '}
-        <Text style={ob.bodyStrong}>Leaving your comfort zone becomes the habit.</Text>
-      </Text>
+      <Copy id="onboarding.thesis.body" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'The habit you pick is only the vehicle. What you\'re actually training is the move itself — from "I don\'t want to" to doing it regardless. Every night the app asks one question about that move, not about the habit. **Leaving your comfort zone becomes the habit.**'}
+      </Copy>
     </FadeRise>
   </View>
 );

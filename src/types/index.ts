@@ -926,6 +926,8 @@ export interface DailyReflection {
   // and something can surface the plan at the moment it applies.
   prompt_ifthen_cue?: string;
   prompt_ifthen_response?: string;
+  /** The habit tomorrow's plan was drafted from, so Today can hide it once logged. */
+  plan_habit_id?: string;
   daily_summary: DailySummary;
   created_at: string;
 }

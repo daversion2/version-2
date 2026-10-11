@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../common/Card';
+import { Copy } from '../common/Copy';
 import { PersonalRecord } from '../../services/practiceProgress';
 
 interface PersonalRecordsCardProps {
@@ -18,8 +19,12 @@ export const PersonalRecordsCard: React.FC<PersonalRecordsCardProps> = ({ record
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Personal Bests</Text>
-      <Text style={styles.note}>Your all-time bests. Not affected by the time filter.</Text>
+      <Copy id="progress.records.title" style={styles.title}>
+        Personal Bests
+      </Copy>
+      <Copy id="progress.records.note" style={styles.note}>
+        Your all-time bests. Not affected by the time filter.
+      </Copy>
       {records.map((record, i) => (
         <View
           key={`${record.label}-${i}`}

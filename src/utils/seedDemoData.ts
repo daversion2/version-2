@@ -7,12 +7,11 @@
  *   await disableDemoData(userId);  // deletes them and restores counters
  *
  * How it stays reversible:
- * - Every seeded doc (completionLogs + challenges) carries `is_demo: true`,
+ * - Every seeded doc (completionLogs, challenges, habits) carries `is_demo: true`,
  *   so disable is a simple tagged-doc sweep. Real history is never modified.
- * - Demo logs attach to the account's EXISTING curated practice instances
- *   (ensureCuratedPractices guarantees they exist), so every screen — home
- *   cards, weekly counts, streaks, the Performance section — lights up with
- *   no changes to any read path.
+ * - Demo logs attach to the account's LIVE habits (active, not archived) —
+ *   exactly what Today and Progress show. If there are too few, tagged demo
+ *   habits are added from the library first, and removed again on disable.
  * - User-doc counters are bumped by exact deltas recorded in `demo_data` on
  *   the user doc, then reversed on disable; streak/lastActivityDate are
  *   recomputed from the remaining real logs via recalculateUserStats.
@@ -32,6 +31,18 @@ import {
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { recalculateUserStats } from '../services/willpower';
+import {
+  scheduledDays,
+  defaultDaysForTarget,
+  defaultScheduleForTarget,
+  scheduleFields,
+  weeklyTarget,
+  weekdayOf,
+} from '../services/habitSchedule';
+import { getHabitDefinition, TrackingField } from '../data/practices';
+import { resolveHabitTrackingFields } from '../data/habitTemplates';
+import { RESISTANCE_SCALE } from '../constants/resistance';
+import { PracticeInstance } from '../types';
 import { toLocalDateString, getTodayString } from './date';
 
 const logsRef = (userId: string) => collection(db, 'users', userId, 'completionLogs');
@@ -45,6 +56,7 @@ export interface DemoDataState {
   xp_added: number;
   habit_logs_added: number;
   challenges_completed_added: number;
+  habits_added?: number;
 }
 
 // Firestore batches cap at 500 ops; stay well under.
@@ -71,124 +83,65 @@ const jitter = (seed: number, mod: number): number => {
 };
 
 // ---------------------------------------------------------------------------
-// Demo practice reps — one spec per curated practice, spread over ~8 weeks so
-// every Performance gate clears: metric trends (≥10 sessions), weekly
-// challenging chart (≥6 rated), choice breakdowns (≥3 per option), mind-tag
-// insight (top tag ≥5), and the streak (daily coverage of recent days).
+// Demo habit logs, shaped for the Progress screen:
+// - "Friction you can handle": habits start at staggered points (STARTS) and
+//   are rated on the 1–3 scale, Hard early and easing off, so friction faced
+//   climbs as habits are added while friction felt falls behind it.
+// - Habit by Habit / Totals by Type: metrics come from each habit's own
+//   tracking fields, so every habit has amounts to show.
 // ---------------------------------------------------------------------------
 
-interface DemoLogSpec {
-  offset: number; // days ago
-  difficulty: 1 | 2; // 1 = easy, 2 = challenging
-  metrics: Record<string, number | string>;
-  mindTags?: string[];
-  hitHardMoment?: boolean;
-  notes?: string;
-}
+/** 8 weeks — the friction card's full window. */
+const DAYS = 56;
+/** Top the account up to this many live habits with tagged demo habits. */
+export const DEMO_TARGET_HABITS = 5;
+/**
+ * Plain library habits with tracked amounts in different families. Never
+ * curated practices: ensureCuratedPractices manages those and a second
+ * instance would confuse it.
+ */
+export const DEMO_HABIT_IDS = ['workout', 'trad-10k-steps', 'protein-target', 'deep-focus-session', 'trad-read'];
+/** Days ago each habit starts, by position — two from the start, then one added every couple of weeks. */
+const STARTS = [DAYS - 1, DAYS - 1, 41, 27, 13];
+/** Starting rating by position: mostly Hard, a couple of Meds. */
+const BASELINES = [3, 2, 3, 3, 2];
+/** Tactics on Med/Hard logs, so the post-log "Your pattern" has a favourite to find. */
+const DEMO_TACTICS = [['first_step'], ['first_step'], ['made_smaller'], ['first_step', 'countdown']];
 
-const DAYS = 56; // 8 Monday-based weeks
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Progress from `from` (oldest) to `to` (newest) across the window, stepped. */
-const trend = (offset: number, from: number, to: number, step: number): number => {
-  const progress = (DAYS - offset) / DAYS;
-  const raw = from + (to - from) * progress;
-  return Math.round(raw / step) * step;
+/**
+ * The rating for one demo check-in. The first three hold at the habit's
+ * baseline (that's what its starting difficulty is computed from); after
+ * that it eases with time since the habit began, plus a little noise.
+ */
+export const demoRating = (baseline: number, k: number, daysIn: number, seed: number): number => {
+  if (k < 3) return baseline;
+  const drop = (daysIn / DAYS) * 2 + (jitter(seed, 10) / 10) * 0.8 - 0.4;
+  return clamp(Math.round(baseline - drop), 1, 3);
 };
 
-const buildMeditationSpecs = (): DemoLogSpec[] => {
-  const specs: DemoLogSpec[] = [];
-  const techniques = ['breath', 'breath', 'breath', 'open', 'body_scan'];
-  const tagSets = [['bargaining'], ['bargaining', 'watching'], ['letting-go'], ['bargaining'], ['watching']];
-  for (let offset = 0; offset < DAYS; offset++) {
-    const dow = new Date(new Date().setDate(new Date().getDate() - offset)).getDay();
-    if (![1, 2, 4, 6].includes(dow)) continue;
-    const i = specs.length;
-    specs.push({
-      offset,
-      // Early sessions mostly challenging, recent mostly easy → adaptation arc
-      difficulty: offset > 21 ? (jitter(offset, 4) === 0 ? 1 : 2) : jitter(offset, 3) === 0 ? 2 : 1,
-      metrics: {
-        duration_min: trend(offset, 8, 16, 1) + jitter(offset, 2),
-        technique: techniques[i % techniques.length],
-      },
-      mindTags: tagSets[i % tagSets.length],
-      hitHardMoment: jitter(offset + 1, 3) !== 0,
-    });
+/** A plausible value for one tracking field. Durations grow a little over time. */
+export const demoMetric = (
+  field: TrackingField,
+  k: number,
+  daysIn: number,
+  seed: number
+): number | string | undefined => {
+  if (field.type === 'choice') {
+    const options = field.options ?? [];
+    return options.length ? options[k % options.length].value : undefined;
   }
-  return specs;
-};
-
-const buildBreathworkSpecs = (): DemoLogSpec[] => {
-  const specs: DemoLogSpec[] = [];
-  const patterns = ['sigh', 'box', 'coherent', 'sigh', 'extended'];
-  for (let offset = 0; offset < DAYS; offset++) {
-    const dow = new Date(new Date().setDate(new Date().getDate() - offset)).getDay();
-    // Daily for the last 12 days (guarantees a 12-day streak), ~4×/wk before
-    if (offset >= 12 && ![0, 1, 3, 5].includes(dow)) continue;
-    const i = specs.length;
-    specs.push({
-      offset,
-      difficulty: jitter(offset + 2, 5) === 0 ? 2 : 1,
-      metrics: {
-        duration_min: 4 + jitter(offset, 3),
-        technique: patterns[i % patterns.length],
-      },
-      hitHardMoment: false,
-    });
-  }
-  return specs;
-};
-
-const buildCardioSpecs = (): DemoLogSpec[] => {
-  const specs: DemoLogSpec[] = [];
-  const tagSets = [['escaping'], ['escaping', 'pushing'], ['pushing'], ['escaping']];
-  for (let offset = 0; offset < DAYS; offset++) {
-    const dow = new Date(new Date().setDate(new Date().getDate() - offset)).getDay();
-    if (![2, 4, 6].includes(dow)) continue;
-    const i = specs.length;
-    const pace = offset > 35 ? 'walk' : offset > 14 ? 'mixed' : 'run';
-    specs.push({
-      offset,
-      difficulty: jitter(offset + 3, 4) === 0 ? 1 : 2,
-      metrics: {
-        duration_min: trend(offset, 20, 40, 5),
-        pace,
-      },
-      mindTags: tagSets[i % tagSets.length],
-      hitHardMoment: jitter(offset + 4, 4) !== 0,
-    });
-  }
-  return specs;
-};
-
-const buildColdSpecs = (): DemoLogSpec[] => {
-  const specs: DemoLogSpec[] = [];
-  const tagSets = [['resisting'], ['catastrophizing'], ['resisting', 'catastrophizing']];
-  for (let offset = 0; offset < DAYS; offset++) {
-    const dow = new Date(new Date().setDate(new Date().getDate() - offset)).getDay();
-    if (![1, 3, 5].includes(dow)) continue;
-    const i = specs.length;
-    specs.push({
-      offset,
-      difficulty: jitter(offset + 5, 5) === 0 ? 1 : 2,
-      metrics: {
-        duration_min: trend(offset, 1, 3, 1),
-        water_temp_f: trend(offset, 58, 50, 1) - jitter(offset, 2),
-      },
-      mindTags: tagSets[i % tagSets.length],
-      hitHardMoment: true,
-      notes: i % 6 === 0 ? 'First 30 seconds were brutal, then it settled.' : undefined,
-    });
-  }
-  return specs;
-};
-
-/** practice_id → rep specs. Only practices the account has instances for get seeded. */
-const DEMO_PRACTICE_SPECS: Record<string, () => DemoLogSpec[]> = {
-  meditation: buildMeditationSpecs,
-  breathwork: buildBreathworkSpecs,
-  unplugged_cardio: buildCardioSpecs,
-  cold_exposure: buildColdSpecs,
+  const min = field.min ?? 1;
+  const max = field.max ?? Number.MAX_SAFE_INTEGER;
+  const step = field.step ?? 1;
+  const base = field.default ?? (field.type === 'scale' ? Math.round((min + (field.max ?? 5)) / 2) : min);
+  const progress = daysIn / DAYS;
+  const raw =
+    field.type === 'duration'
+      ? base * (0.8 + 0.5 * progress) + jitter(seed, 3) * step
+      : base * (0.9 + 0.05 * jitter(seed, 5));
+  return clamp(Math.round(raw / step) * step, min, max);
 };
 
 // ---------------------------------------------------------------------------
@@ -300,46 +253,86 @@ export const enableDemoData = async (
     throw new Error('Demo data is already enabled for this account.');
   }
 
-  // Resolve the account's existing practice instances (curated ones are
-  // guaranteed by ensureCuratedPractices on home load). Logs must reference
-  // the instance doc id — that's what every screen queries by.
-  const habitsSnap = await getDocs(habitsRef(userId));
-  const instanceIdByPracticeId = new Map<string, string>();
-  habitsSnap.docs.forEach((d) => {
-    const pid = d.data().practice_id;
-    if (pid) instanceIdByPracticeId.set(pid, d.id);
-  });
-
   const ops: ((batch: ReturnType<typeof writeBatch>) => void)[] = [];
   let habitLogs = 0;
   let xp = 0;
   const loggedDates = new Set<string>();
 
-  for (const [practiceId, buildSpecs] of Object.entries(DEMO_PRACTICE_SPECS)) {
-    const instanceId = instanceIdByPracticeId.get(practiceId);
-    if (!instanceId) continue; // practice not on this account — skip quietly
-    for (const spec of buildSpecs()) {
+  // The habits Progress actually shows: active, not archived. Leftover demo
+  // habits never count (enable refuses to run twice, but be safe).
+  const habitsSnap = await getDocs(habitsRef(userId));
+  const live = habitsSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as PracticeInstance & { is_demo?: boolean })
+    .filter((h) => h.is_active && !h.archived_at && !h.is_demo);
+
+  // Too few habits for a convincing screen → add tagged demo habits.
+  const owned = new Set(live.map((h) => h.practice_id).filter(Boolean));
+  const habits: PracticeInstance[] = [...live];
+  let habitsAdded = 0;
+  for (const id of DEMO_HABIT_IDS) {
+    if (habits.length >= DEMO_TARGET_HABITS) break;
+    const def = getHabitDefinition(id);
+    if (!def || owned.has(def.id)) continue;
+    const ref = doc(habitsRef(userId));
+    const start = STARTS[Math.min(habits.length, STARTS.length - 1)];
+    const data = {
+      user_id: userId,
+      name: def.name,
+      practice_id: def.id,
+      category_id: def.category_id,
+      is_active: true,
+      created_by_user: false,
+      ...scheduleFields(defaultScheduleForTarget(def.suggested_target_per_week)),
+      action_plan: def.action_plan ?? {},
+      created_at: timestampNDaysAgo(start, 8),
+      is_demo: true,
+    };
+    ops.push((batch) => batch.set(ref, data));
+    habits.push({ id: ref.id, ...data } as PracticeInstance);
+    habitsAdded++;
+  }
+
+  habits.forEach((habit, idx) => {
+    const start = STARTS[Math.min(idx, STARTS.length - 1)];
+    const baseline = BASELINES[idx % BASELINES.length];
+    const days = scheduledDays(habit) ?? defaultDaysForTarget(weeklyTarget(habit) || 3);
+    const fields = resolveHabitTrackingFields(habit);
+    let k = 0;
+    for (let offset = start; offset >= 0; offset--) {
+      const date = dateNDaysAgo(offset);
+      if (!days.includes(weekdayOf(date))) continue;
+      // The occasional miss, so the calendar looks lived-in — never in the last two days.
+      if (offset > 1 && jitter(offset * 7 + idx, 9) === 0) continue;
+      const seed = offset * 13 + idx;
+      const daysIn = start - offset;
+      const rating = demoRating(baseline, k, daysIn, seed);
+      const metrics: Record<string, number | string> = {};
+      for (const field of fields) {
+        const value = demoMetric(field, k, daysIn, seed);
+        if (value !== undefined) metrics[field.key] = value;
+      }
       const logDoc: Record<string, unknown> = {
         user_id: userId,
         type: 'nudge',
-        reference_id: instanceId,
-        points: spec.difficulty,
-        difficulty: spec.difficulty,
-        date: dateNDaysAgo(spec.offset),
-        completed_at: timestampNDaysAgo(spec.offset, 7 + jitter(spec.offset, 12)),
-        metrics: spec.metrics,
+        reference_id: habit.id,
+        points: rating,
+        difficulty: rating === 1 ? 1 : 2,
+        resistance: rating,
+        resistance_scale: RESISTANCE_SCALE,
+        date,
+        completed_at: timestampNDaysAgo(offset, 7 + jitter(seed, 12)),
+        hitHardMoment: rating === RESISTANCE_SCALE,
         is_demo: true,
       };
-      if (spec.mindTags?.length) logDoc.mindTags = spec.mindTags;
-      if (typeof spec.hitHardMoment === 'boolean') logDoc.hitHardMoment = spec.hitHardMoment;
-      if (spec.notes) logDoc.notes = spec.notes;
-
+      if (Object.keys(metrics).length) logDoc.metrics = metrics;
+      if (rating >= 2) logDoc.tactics = DEMO_TACTICS[seed % DEMO_TACTICS.length];
       ops.push((batch) => batch.set(doc(logsRef(userId)), logDoc));
       habitLogs++;
-      xp += spec.difficulty;
-      loggedDates.add(logDoc.date as string);
+      xp += rating;
+      loggedDates.add(date);
+      k++;
     }
-  }
+  });
 
   // Daily challenges (+ a matching type:'challenge' log for each completed one,
   // mirroring completeChallenge's side effects)
@@ -449,6 +442,7 @@ export const enableDemoData = async (
     xp_added: xp,
     habit_logs_added: habitLogs,
     challenges_completed_added: challengesCompleted,
+    habits_added: habitsAdded,
   };
   await updateDoc(userRef, {
     demo_data: demoState,
@@ -476,14 +470,16 @@ export const disableDemoData = async (
     ? userSnap.data().demo_data
     : undefined;
 
-  const [logsSnap, challengesSnap] = await Promise.all([
+  const [logsSnap, challengesSnap, habitsSnap] = await Promise.all([
     getDocs(query(logsRef(userId), where('is_demo', '==', true))),
     getDocs(query(challengesRef(userId), where('is_demo', '==', true))),
+    getDocs(query(habitsRef(userId), where('is_demo', '==', true))),
   ]);
 
   const ops: ((batch: ReturnType<typeof writeBatch>) => void)[] = [
     ...logsSnap.docs.map((d) => (batch: ReturnType<typeof writeBatch>) => batch.delete(d.ref)),
     ...challengesSnap.docs.map((d) => (batch: ReturnType<typeof writeBatch>) => batch.delete(d.ref)),
+    ...habitsSnap.docs.map((d) => (batch: ReturnType<typeof writeBatch>) => batch.delete(d.ref)),
   ];
   await commitInChunks(ops);
 

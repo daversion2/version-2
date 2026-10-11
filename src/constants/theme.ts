@@ -15,6 +15,17 @@ export const Colors = {
   border: '#E0E0E0',
 };
 
+// Habit-category accents. Six-digit hex only: screens append an alpha suffix
+// (`color + '1A'`) for tinted chip backgrounds.
+export const CategoryColors = {
+  move: '#217180',
+  fuel: '#B7791F',
+  sleep: '#3949AB',
+  mind: '#7B1FA2',
+  focus: '#FF5B02',
+  money: '#2E7D32',
+};
+
 // Font families from brand guidelines
 // Primary: Garet, Secondary: Avenir, Complementary: Racing Sans One
 export const Fonts = {

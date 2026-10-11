@@ -3,12 +3,7 @@ import { db } from './firebase';
 import { CravingLog, CravingOutcome } from '../types';
 import { getCravingType } from '../data/cravings';
 import { getTodayString, toLocalDateString } from '../utils/date';
-import {
-  adjustWillpowerPoints,
-  calculateHabitPoints,
-  getWillpowerStats,
-  updateWillpowerStats,
-} from './willpower';
+import { adjustWillpowerPoints, updateWillpowerStats } from './willpower';
 
 /** Base points for riding a craving out — same as a 'challenging' practice rep. */
 const CRAVING_PASSED_BASE_POINTS = 2;
@@ -18,13 +13,6 @@ const CRAVING_PASSED_BASE_POINTS = 2;
  * the streak — the streak stays a record of completed reps.
  */
 const CRAVING_LOGGED_POINTS = 1;
-/**
- * Chance a ridden-out craving pays double. Variable-ratio rewards bind habit
- * loops measurably harder than fixed ones — the one mechanism worth borrowing
- * from slot machines for a good cause. The floor never drops: a normal win
- * always pays full points; the bonus only ever adds.
- */
-const CRAVING_BONUS_CHANCE = 0.2;
 
 const cravingLogsRef = (userId: string) =>
   collection(db, 'users', userId, 'cravingLogs');
@@ -54,8 +42,6 @@ export interface CravingSessionInput {
 export interface CravingSessionResult {
   logId: string;
   pointsEarned: number;
-  /** True when the variable reward hit and points were doubled. */
-  bonus: boolean;
   /** Present only when the outcome fed the streak (a ridden-out craving). */
   willpower: Awaited<ReturnType<typeof updateWillpowerStats>> | null;
 }
@@ -92,13 +78,10 @@ export const logCravingSession = async (
 
   if (input.outcome === 'gave_in') {
     await adjustWillpowerPoints(userId, CRAVING_LOGGED_POINTS);
-    return { logId: docRef.id, pointsEarned: CRAVING_LOGGED_POINTS, bonus: false, willpower: null };
+    return { logId: docRef.id, pointsEarned: CRAVING_LOGGED_POINTS, willpower: null };
   }
 
-  const { currentStreak } = await getWillpowerStats(userId);
-  let points = calculateHabitPoints(CRAVING_PASSED_BASE_POINTS, currentStreak);
-  const bonus = Math.random() < CRAVING_BONUS_CHANCE;
-  if (bonus) points *= 2;
+  const points = CRAVING_PASSED_BASE_POINTS;
   const willpower = await updateWillpowerStats(userId, points);
 
   const minutes = Math.max(1, Math.round(input.secondsHeld / 60));
@@ -123,7 +106,7 @@ export const logCravingSession = async (
     ...(input.mindTags && input.mindTags.length ? { mindTags: input.mindTags } : {}),
   });
 
-  return { logId: docRef.id, pointsEarned: points, bonus, willpower };
+  return { logId: docRef.id, pointsEarned: points, willpower };
 };
 
 /**

@@ -1,9 +1,6 @@
 import {
-  getStreakMultiplier,
-  calculateChallengePoints,
-  calculateFailedChallengePoints,
-  calculateHabitPoints,
   getStreakTierInfo,
+  updateWillpowerStats,
   getSuckFactorTier,
   subtractWillpowerPoints,
   adjustWillpowerPoints,
@@ -21,116 +18,60 @@ import {
 import { toLocalDateString } from '../../utils/date';
 
 describe('Willpower Service', () => {
-  describe('getStreakMultiplier', () => {
-    it('returns 1.0x for days 1-2', () => {
-      expect(getStreakMultiplier(1)).toBe(1.0);
-      expect(getStreakMultiplier(2)).toBe(1.0);
-    });
-
-    it('returns 1.2x for days 3-6', () => {
-      expect(getStreakMultiplier(3)).toBe(1.2);
-      expect(getStreakMultiplier(6)).toBe(1.2);
-    });
-
-    it('returns 1.5x for days 7-13', () => {
-      expect(getStreakMultiplier(7)).toBe(1.5);
-      expect(getStreakMultiplier(13)).toBe(1.5);
-    });
-
-    it('returns 1.75x for days 14-29', () => {
-      expect(getStreakMultiplier(14)).toBe(1.75);
-      expect(getStreakMultiplier(29)).toBe(1.75);
-    });
-
-    it('returns 2.0x for days 30+', () => {
-      expect(getStreakMultiplier(30)).toBe(2.0);
-      expect(getStreakMultiplier(100)).toBe(2.0);
-    });
-
-    it('returns 1.0 for 0 days (edge case)', () => {
-      expect(getStreakMultiplier(0)).toBe(1.0);
-    });
-  });
-
-  describe('calculateChallengePoints', () => {
-    it('returns base difficulty when no streak', () => {
-      expect(calculateChallengePoints(3, 1)).toBe(3);
-      expect(calculateChallengePoints(5, 1)).toBe(5);
-    });
-
-    it('applies streak multiplier correctly', () => {
-      // 3-day streak = 1.2x multiplier
-      // difficulty 5 * 1.2 = 6
-      expect(calculateChallengePoints(5, 3)).toBe(6);
-    });
-
-    it('rounds points correctly', () => {
-      // difficulty 3 * 1.2 = 3.6, rounds to 4
-      expect(calculateChallengePoints(3, 3)).toBe(4);
-    });
-  });
-
-  describe('calculateFailedChallengePoints', () => {
-    it('returns 1 point for failed challenge with no streak', () => {
-      expect(calculateFailedChallengePoints(1)).toBe(1);
-    });
-
-    it('applies streak multiplier', () => {
-      // 1 * 1.2 = 1.2, rounds to 1
-      expect(calculateFailedChallengePoints(3)).toBe(1);
-      // 1 * 1.5 = 1.5, rounds to 2
-      expect(calculateFailedChallengePoints(7)).toBe(2);
-    });
-  });
-
-  describe('calculateHabitPoints', () => {
-    it('returns difficulty for easy habit (1 point)', () => {
-      expect(calculateHabitPoints(1, 1)).toBe(1);
-    });
-
-    it('returns difficulty for challenging habit (2 points)', () => {
-      expect(calculateHabitPoints(2, 1)).toBe(2);
-    });
-
-    it('applies streak multiplier', () => {
-      // easy (1) * 1.2 = 1.2, rounds to 1
-      expect(calculateHabitPoints(1, 3)).toBe(1);
-      // challenging (2) * 1.2 = 2.4, rounds to 2
-      expect(calculateHabitPoints(2, 3)).toBe(2);
-      // challenging (2) * 1.5 = 3
-      expect(calculateHabitPoints(2, 7)).toBe(3);
-    });
-  });
-
   describe('getStreakTierInfo', () => {
-    it('returns Starting tier for days 1-2', () => {
-      const info = getStreakTierInfo(1);
-      expect(info.tierName).toBe('Starting');
-      expect(info.multiplier).toBe(1.0);
+    it('names each tier by its streak length', () => {
+      expect(getStreakTierInfo(1).tierName).toBe('Starting');
+      expect(getStreakTierInfo(3).tierName).toBe('Building Momentum');
+      expect(getStreakTierInfo(7).tierName).toBe('On Fire');
+      expect(getStreakTierInfo(14).tierName).toBe('Unstoppable');
+      expect(getStreakTierInfo(30).tierName).toBe('Legendary');
+      expect(getStreakTierInfo(100).tierName).toBe('Legendary');
     });
 
-    it('returns Building Momentum tier for days 3-6', () => {
-      const info = getStreakTierInfo(3);
-      expect(info.tierName).toBe('Building Momentum');
-      expect(info.multiplier).toBe(1.2);
+    it('treats a zero streak as Starting', () => {
+      expect(getStreakTierInfo(0).tierName).toBe('Starting');
+    });
+  });
+
+  describe('updateWillpowerStats', () => {
+    const userId = 'u1';
+    const seedUser = (data: Record<string, any>) => addMockDocument('users', userId, data);
+    const yesterday = () => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return toLocalDateString(d);
+    };
+
+    beforeEach(() => resetMockDB());
+
+    it('adds points as given, however long the streak', () => {
+      // XP is friction overcome: a 40-day streak must not inflate it.
+      seedUser({ totalWillpowerPoints: 100, currentStreak: 40, lastActivityDate: yesterday() });
+      return updateWillpowerStats(userId, 2).then((result) => {
+        expect(result.newTotal).toBe(102);
+        expect(result.newStreak).toBe(41);
+        expect(getMockDB().users[userId].data.totalWillpowerPoints).toBe(102);
+      });
     });
 
-    it('returns On Fire tier for days 7-13', () => {
-      const info = getStreakTierInfo(7);
-      expect(info.tierName).toBe('On Fire');
-      expect(info.multiplier).toBe(1.5);
+    it('reports crossing into a new tier', async () => {
+      seedUser({ totalWillpowerPoints: 0, currentStreak: 2, lastActivityDate: yesterday() });
+      const result = await updateWillpowerStats(userId, 1);
+      expect(result.newTierReached).toBe(true);
+      expect(result.tierInfo).toEqual({ tierName: 'Building Momentum', minDays: 3 });
     });
 
-    it('returns Unstoppable tier for days 14-29', () => {
-      const info = getStreakTierInfo(14);
-      expect(info.tierName).toBe('Unstoppable');
-      expect(info.multiplier).toBe(1.75);
+    it('does not call a first-ever day a new tier', async () => {
+      const result = await updateWillpowerStats(userId, 1);
+      expect(result.newStreak).toBe(1);
+      expect(result.newTierReached).toBe(false);
+      expect(result.tierInfo).toBeNull();
     });
 
-    it('returns Legendary tier for days 30+', () => {
-      const info = getStreakTierInfo(30);
-      expect(info.tierName).toBe('Legendary');
-      expect(info.multiplier).toBe(2.0);
+    it('stays quiet inside a tier', async () => {
+      seedUser({ currentStreak: 4, lastActivityDate: yesterday() });
+      const result = await updateWillpowerStats(userId, 1);
+      expect(result.newTierReached).toBe(false);
     });
   });
 

@@ -112,7 +112,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
   if (!habit) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Practice not found.</Text>
+        <Text style={styles.errorText}>Habit not found.</Text>
       </View>
     );
   }
@@ -213,7 +213,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
 
         {editing ? (
           <>
-            <Text style={styles.fieldLabel}>Practice name</Text>
+            <Text style={styles.fieldLabel}>Habit name</Text>
             <TextInput
               style={styles.nameInput}
               value={name}
@@ -451,7 +451,7 @@ export const HabitLibraryDetailScreen: React.FC<Props> = ({ navigation, route })
           ) : (
             <>
               <Ionicons name="add-circle-outline" size={20} color={Colors.white} />
-              <Text style={styles.addBtnText}>Add to My Practices</Text>
+              <Text style={styles.addBtnText}>Add to my habits</Text>
             </>
           )}
         </TouchableOpacity>

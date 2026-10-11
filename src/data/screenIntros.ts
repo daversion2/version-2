@@ -63,13 +63,13 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
 
   progress: {
     id: 'progress',
-    icon: 'trending-down-outline',
+    icon: 'trending-up-outline',
     title: 'Progress',
     intro: 'What has actually changed, rather than how much you have done.',
     points: [
       {
-        label: 'Look for the line going down',
-        text: 'Effort Level is the headline. Falling means the same habits are taking less effort than they used to.',
+        label: 'Friction you can handle',
+        text: 'The bars are friction faced: each habit counted at how hard it was when you started it. They climb as you take on more. The dots are how hard it actually felt. The gap between them is how much stronger you’ve got.',
       },
       {
         label: 'The calendar shows the shape of it',
@@ -146,25 +146,33 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     icon: 'moon-outline',
     title: 'Closing out the day',
     intro:
-      'One honest look back at the whole day — a different question from how any single habit went.',
+      'Under a minute: see one win, grade the effort, and decide exactly when tomorrow’s hardest habit happens.',
     points: [
       {
-        label: 'Grade the day, not the list',
+        label: 'One win, already found',
+        text: 'It picks out the habit you did even though it was hard. Nothing to type.',
+      },
+      {
+        label: 'Grade the effort, not the list',
         text: 'A day where you did little but held the line under pressure can beat one where everything got ticked.',
       },
       {
-        label: 'A sentence is enough',
-        text: 'This is not journalling. Name what happened and what got in the way.',
+        label: 'Tomorrow as a when-then',
+        text: 'It’s pre-filled from your toughest habit due tomorrow. Edit it if you like — it’s waiting at the top of Today in the morning.',
       },
       {
-        label: 'Skipping a night costs nothing',
-        text: 'It builds a weekly picture on Progress, and that picture survives gaps.',
+        label: 'A rough day gets a smaller plan',
+        text: 'Grade it D or F and the plan shrinks to the minimum version. Getting back on track beats making up for it.',
       },
     ],
     science: [
       {
-        label: 'Naming it is what makes it stick',
-        text: 'Effort you examine transfers to new situations; effort you do not mostly stays stuck to the task it happened in. Writing one line is the cheapest version of that examination.',
+        label: 'Plans beat intentions',
+        text: 'Deciding when and where you’ll act — an if-then plan — is one of the most reliable ways to close the gap between meaning to and doing.',
+      },
+      {
+        label: 'End the night looking forward',
+        text: 'Writing down what’s next, rather than replaying what went wrong, helps people fall asleep faster.',
       },
     ],
   },

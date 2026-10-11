@@ -7,8 +7,7 @@ import { getWeekDates, toLocalDateString } from '../utils/date';
 // Feeds the radar on Progress. Two metrics, one geometry:
 //
 //   HABITS  how many habits you completed that day
-//   XP      what those completions were worth — difficulty × streak multiplier,
-//           already baked into CompletionLog.points by willpower.ts
+//   XP      what those completions were worth, as stored on CompletionLog.points
 //
 // HABITS ONLY. Challenge and program logs are excluded deliberately: this chart
 // is about the daily habit loop, so a challenge completed on Thursday must not

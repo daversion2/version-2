@@ -1,0 +1,19 @@
+# Read-only: confirm Progress and Today after demo data removal.
+appId: com.neuronudge.neuronudge
+---
+- runFlow: subflows/open-progress.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 09f-1-progress-after
+- repeat:
+    times: 4
+    while:
+      notVisible: "Today"
+    commands:
+      - tapOn:
+          point: "12%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: 09f-2-today-after

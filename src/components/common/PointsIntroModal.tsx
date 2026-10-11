@@ -17,17 +17,17 @@ export const PointsIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
           <Ionicons name="flash" size={36} color={Colors.primary} style={styles.icon} />
           <Text style={styles.title}>XP</Text>
           <Text style={styles.body}>
-            Every time you complete a habit or challenge, you earn XP.
+            XP is the total friction you’ve pushed through. Every habit you log adds to it.
           </Text>
           <View style={styles.bulletList}>
             <Text style={styles.bullet}>
-              <Text style={styles.bulletBold}>Streaks multiply your XP</Text> — the more consecutive days you show up, the bigger the bonus.
+              <Text style={styles.bulletBold}>Harder days earn more</Text> — if it felt tough but you did it anyway, it counts for more.
             </Text>
             <Text style={styles.bullet}>
-              <Text style={styles.bulletBold}>Harder days earn more</Text> — if it felt tough but you did it anyway, you get extra credit.
+              <Text style={styles.bulletBold}>It only goes up</Text> — a missed day never takes XP away. It’s a record of what you’ve already overcome.
             </Text>
           </View>
-          <Text style={styles.footer}>Just keep showing up. The XP takes care of itself.</Text>
+          <Text style={styles.footer}>Streaks show consistency. XP shows how much you’ve taken on.</Text>
           <Button title="Got it" onPress={onDismiss} style={styles.button} />
         </Pressable>
       </Pressable>

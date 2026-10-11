@@ -1,0 +1,11 @@
+appId: com.neuronudge.neuronudge
+---
+- repeat:
+    times: 4
+    while:
+      notVisible: "Settings"
+    commands:
+      - tapOn:
+          point: "87%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000

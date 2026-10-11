@@ -18,7 +18,6 @@ interface RewardMomentProps {
   message: string;
   narrativeLine: string;
   pointsEarned: number;
-  streakMultiplier: number;
   challengeResult: 'completed' | 'failed';
   repeatMilestone?: number | null;
   totalChallengesCompleted?: number;
@@ -140,7 +139,6 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   message,
   narrativeLine,
   pointsEarned,
-  streakMultiplier,
   challengeResult,
   totalChallengesCompleted,
   tidbit,
@@ -308,11 +306,8 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
 
   if (!visible) return null;
 
-  // Build points text (used for failed challenges)
-  let pointsText = `+${pointsEarned} XP`;
-  if (streakMultiplier > 1) {
-    pointsText += ` (${streakMultiplier}x streak)`;
-  }
+  // Points text (used for failed challenges)
+  const pointsText = `+${pointsEarned} XP`;
 
   // Generate particles — varied sizes and distances for visual depth
   const particles = isCompleted

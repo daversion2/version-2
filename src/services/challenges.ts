@@ -218,8 +218,8 @@ export const completeChallenge = async (
   result: {
     status: 'completed' | 'failed';
     difficulty_actual: number;
-    /** The XP actually credited to the user (streak multiplier / failed-challenge
-     *  rate included). Stored so deletions subtract what was really awarded. */
+    /** The XP actually credited to the user. Stored so deletions subtract what
+     *  was really awarded — older completions carried a streak multiplier. */
     points_awarded?: number;
     reflection_note?: string;
     failure_reflection?: string;
@@ -381,8 +381,8 @@ export const updateChallengeCompletion = async (
   const challenge = challengeSnap.data() as Challenge;
   const oldPoints = challenge.points_awarded || 0;
 
-  // Preserve whatever streak multiplier was applied at completion time by
-  // scaling the new difficulty with the original points-per-difficulty ratio
+  // Scale by the original points-per-difficulty ratio, so a completion from
+  // before multipliers were removed keeps the rate it was awarded at
   const oldDifficulty = challenge.difficulty_actual || 0;
   const ratio = oldDifficulty > 0 && oldPoints > 0 ? oldPoints / oldDifficulty : 1;
   const newPoints = Math.round(newDifficultyActual * ratio);

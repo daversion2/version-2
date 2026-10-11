@@ -1,0 +1,10 @@
+# Read-only: dismiss the enable alert, open Progress, capture the populated screen.
+appId: com.neuronudge.neuronudge
+---
+- tapOn:
+    text: "OK"
+    optional: true
+- runFlow: subflows/open-progress.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 09b-1-progress-top

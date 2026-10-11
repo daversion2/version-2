@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, PanResponder, LayoutChangeEvent } from 'react-n
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { ReflectionGrade } from '../../types';
 import { REACH_STOPS, reachIndexOf } from '../../data/comfortZone';
+import { Copy } from '../common/Copy';
 
 const TRACK_HEIGHT = 44;
 const LINE = 8;
@@ -21,7 +22,7 @@ interface GradeSelectorProps {
 }
 
 /**
- * "How hard did you push today?" — answered by dragging across a line rather
+ * "How hard did you push yourself today?" — answered by dragging across a line rather
  * than picking one of five chips.
  *
  * An earlier version asked how far past the comfort zone the day got, and drew
@@ -108,9 +109,9 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.question}>
-        How hard did you push today? *
-      </Text>
+      <Copy id="nightly.grade.question" style={styles.question}>
+        How hard did you push yourself today? *
+      </Copy>
 
       <View
         ref={trackRef}
@@ -118,7 +119,7 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
         onLayout={onLayout}
         {...(readOnly ? {} : pan.panHandlers)}
         accessibilityRole="adjustable"
-        accessibilityLabel="How hard did you push today?"
+        accessibilityLabel="How hard did you push yourself today?"
         accessibilityValue={{
           min: 1,
           max: REACH_STOPS.length,
@@ -167,14 +168,22 @@ export const GradeSelector: React.FC<GradeSelectorProps> = ({
       {/* Direction only. The readout below names the actual answer, so these
           orient the drag without competing with it. */}
       <View style={styles.ends}>
-        <Text style={styles.endLabel}>EASIER</Text>
-        <Text style={styles.endLabel}>HARDER</Text>
+        <Copy id="nightly.grade.end.easier" style={styles.endLabel}>
+          EASIER
+        </Copy>
+        <Copy id="nightly.grade.end.harder" style={styles.endLabel}>
+          HARDER
+        </Copy>
       </View>
 
       <View style={styles.readout}>
-        <Text style={[styles.answer, { color: answered ? accent : Colors.gray }]}>
-          {answered ? stop.label : 'Drag to answer'}
-        </Text>
+        {answered ? (
+          <Text style={[styles.answer, { color: accent }]}>{stop.label}</Text>
+        ) : (
+          <Copy id="nightly.grade.unanswered" style={[styles.answer, { color: Colors.gray }]}>
+            Drag to answer
+          </Copy>
+        )}
       </View>
     </View>
   );

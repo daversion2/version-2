@@ -7,6 +7,7 @@ import { DailyReflection } from '../../types';
 import { GRADE_COLORS, GRADE_LABELS } from '../../data/comfortZone';
 import { DAILY_FACTORS } from '../../data/dailyFactors';
 import { REFLECTION_PROMPT_LABELS } from '../../services/reflections';
+import { formatPlan } from '../../services/nightlyClose';
 import { ProgressScreenProps } from '../../types/navigation';
 
 type Props = ProgressScreenProps<'ReflectionEntry'>;
@@ -84,15 +85,14 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
         </Card>
       )}
 
-      {/* The if-then pair reads as the sentence it was entered as. Either half can
-          be missing, so each is guarded on its own. */}
       {(reflection.prompt_ifthen_cue || reflection.prompt_ifthen_response) && (
         <Card style={styles.promptCard}>
           <Text style={styles.promptLabel}>Tomorrow's plan</Text>
           <Text style={styles.promptText}>
-            {reflection.prompt_ifthen_cue ? `When ${reflection.prompt_ifthen_cue}` : null}
-            {reflection.prompt_ifthen_cue && reflection.prompt_ifthen_response ? ', ' : null}
-            {reflection.prompt_ifthen_response ? `I'll ${reflection.prompt_ifthen_response}` : null}
+            {formatPlan({
+              cue: reflection.prompt_ifthen_cue,
+              response: reflection.prompt_ifthen_response,
+            })}
           </Text>
         </Card>
       )}

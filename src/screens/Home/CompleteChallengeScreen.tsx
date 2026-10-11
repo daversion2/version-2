@@ -17,13 +17,8 @@ import { useAuth } from '../../context/AuthContext';
 import { ChallengeReflectionFlow } from './components/ChallengeReflectionFlow';
 import { completeChallenge, saveReflectionAnswers, cancelChallenge, getChallengeRepeatStats, getRepeatMilestone, getTotalCompletionCount } from '../../services/challenges';
 import { showConfirm } from '../../utils/alert';
-import {
-  calculateChallengePoints,
-  calculateFailedChallengePoints,
-  updateWillpowerStats,
-  getWillpowerStats,
-  getStreakMultiplier,
-} from '../../services/willpower';
+import { updateWillpowerStats, getWillpowerStats } from '../../services/willpower';
+import { POINTS } from '../../constants/willpower';
 import { showAlert } from '../../utils/alert';
 import { CountdownTimer } from '../../components/challenge/CountdownTimer';
 import { RewardMoment } from '../../components/reward/RewardMoment';
@@ -74,10 +69,9 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
   const [rewardMessage, setRewardMessage] = useState('');
   const [narrativeLine, setNarrativeLine] = useState('');
   const [rewardPoints, setRewardPoints] = useState(0);
-  const [rewardStreakMultiplier, setRewardStreakMultiplier] = useState(1);
 
   // Milestone alerts (fire after reward moment)
-  const [pendingStreakTier, setPendingStreakTier] = useState<{ streak: number; tierName: string; multiplier: number } | null>(null);
+  const [pendingStreakTier, setPendingStreakTier] = useState<{ streak: number; tierName: string } | null>(null);
 
   const [failureModalVisible, setFailureModalVisible] = useState(false);
 
@@ -92,7 +86,7 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       triggerMilestoneHaptic();
       showAlert(
         'Streak Milestone!',
-        `${pendingStreakTier.streak}-Day Streak: ${pendingStreakTier.tierName}!\n\nYou're now earning ${pendingStreakTier.multiplier}x XP on all activities!`,
+        `${pendingStreakTier.streak}-Day Streak: ${pendingStreakTier.tierName}!`,
         () => navigateHome()
       );
       setPendingStreakTier(null);
@@ -186,12 +180,9 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
       const trimmedFailureReflection = failureReflection.trim();
 
       // Compute the XP up front so the stored points_awarded matches what is
-      // actually credited below (streak multiplier / failed-challenge rate)
+      // actually credited below (difficulty, or the failed-challenge rate)
       const stats = await getWillpowerStats(user.uid);
-      const pointsEarned =
-        result === 'completed'
-          ? calculateChallengePoints(difficulty, stats.currentStreak)
-          : calculateFailedChallengePoints(stats.currentStreak);
+      const pointsEarned = result === 'completed' ? difficulty : POINTS.FAILED_CHALLENGE;
 
       await completeChallenge(user.uid, challenge.id, {
         status: result,
@@ -227,7 +218,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         setPendingStreakTier({
           streak: updateResult.newStreak,
           tierName: updateResult.tierInfo.tierName,
-          multiplier: updateResult.tierInfo.multiplier,
         });
       }
 
@@ -262,8 +252,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         });
       } else {
         // Failed — supportive reward moment, then the failure reflection modal
-        const multiplier = getStreakMultiplier(stats.currentStreak);
-
         // Static, consistent message for the failed / "Not yet" moment.
         const messageText = 'Progress, not perfection.';
 
@@ -285,7 +273,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         setRewardMessage(messageText);
         setNarrativeLine(narrativeText);
         setRewardPoints(pointsEarned);
-        setRewardStreakMultiplier(multiplier);
         setRewardVisible(true);
       }
     } catch (e: any) {
@@ -496,7 +483,6 @@ export const CompleteChallengeScreen: React.FC<Props> = ({ route, navigation }) 
         message={rewardMessage}
         narrativeLine={narrativeLine}
         pointsEarned={rewardPoints}
-        streakMultiplier={rewardStreakMultiplier}
         challengeResult="failed"
         onDismiss={handleRewardDismiss}
       />

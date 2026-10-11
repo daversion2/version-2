@@ -1,7 +1,7 @@
 import { ReflectionGrade } from '../types';
 
 /**
- * The nightly question — "How hard did you push today?" — as five escalating
+ * The nightly question — "How hard did you push yourself today?" — as five escalating
  * answers.
  *
  * Each label names a CHOICE, not a feeling. That distinction is the whole point:

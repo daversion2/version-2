@@ -6,7 +6,7 @@
 # with no reps is therefore in NO list once archived — and with the Archived
 # screen having no entry point, there was no route back to it at all.
 #
-# Settings → Archived Practices is that route. This flow proves it end to end:
+# Settings → Archived Habits is that route. This flow proves it end to end:
 # archive a 0-rep habit, find it in Archived, restore it, confirm it is back.
 #
 # Safe to run: every step is reversible, and the recovery path being tested is
@@ -30,23 +30,23 @@ appId: com.neuronudge.neuronudge
 - waitForAnimationToEnd:
     timeout: 5000
 
-# "Archive Practice" is the very last thing on the detail screen. Without
+# "Archive Habit" is the very last thing on the detail screen. Without
 # centerElement the scroll leaves it under the tab bar and the tap lands on a
 # tab instead — reported COMPLETED, silently wrong.
 - scrollUntilVisible:
     element:
-      text: ".*Archive Practice.*"
+      text: ".*Archive Habit.*"
     direction: DOWN
     timeout: 40000
     centerElement: true
 - tapOn:
-    text: ".*Archive Practice.*"
+    text: ".*Archive Habit.*"
 - waitForAnimationToEnd:
     timeout: 3000
-- assertVisible: "Archive this practice?"
+- assertVisible: "Archive this habit?"
 # The dialog now names where Archived lives; before this fix it promised a
 # destination the app had no link to.
-- assertVisible: ".*Settings → Archived Practices.*"
+- assertVisible: ".*Settings → Archived Habits.*"
 - takeScreenshot: 08b-archive-dialog
 - tapOn: "Archive"
 - waitForAnimationToEnd:
@@ -57,14 +57,14 @@ appId: com.neuronudge.neuronudge
     times: 6
     while:
       notVisible:
-        text: ".*Archived Practices.*"
+        text: ".*Archived Habits.*"
     commands:
       - tapOn:
           point: "87%,94%"
       - waitForAnimationToEnd:
           timeout: 4000
 - tapOn:
-    text: ".*Archived Practices.*"
+    text: ".*Archived Habits.*"
 - waitForAnimationToEnd:
     timeout: 5000
 

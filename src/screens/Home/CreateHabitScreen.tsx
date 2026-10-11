@@ -41,7 +41,7 @@ export const CreateHabitScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
 
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<string>(HABIT_CATEGORIES[0]?.id ?? 'Body');
+  const [categoryId, setCategoryId] = useState<string>(HABIT_CATEGORIES[0]?.id ?? 'Move');
   // Opens on named days, same as onboarding and the library — see
   // defaultScheduleForTarget for why days rather than a count.
   const [schedule, setSchedule] = useState<HabitSchedule>(() => defaultScheduleForTarget());

@@ -93,7 +93,7 @@ export const PracticeSessionScreen: React.FC<Props> = ({ route, navigation }) =>
   if (!practice) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.muted}>Practice not found.</Text>
+        <Text style={styles.muted}>Habit not found.</Text>
       </View>
     );
   }

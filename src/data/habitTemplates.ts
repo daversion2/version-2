@@ -76,7 +76,7 @@ export const HABIT_TEMPLATE_PRESETS: HabitTemplatePreset[] = [
   },
   {
     id: 'reps',
-    label: 'Reps or sets',
+    label: 'Exercise count',
     description: 'How many you did — push-ups, sets, rounds.',
     icon: 'barbell-outline',
     fields: [
@@ -84,12 +84,11 @@ export const HABIT_TEMPLATE_PRESETS: HabitTemplatePreset[] = [
         key: 'reps',
         label: 'How many?',
         type: 'number',
-        unit: 'reps',
         min: 1,
         max: 200,
         step: 1,
         default: 20,
-        record: { label: 'Most reps', icon: 'barbell-outline' },
+        record: { label: 'Most in one go', icon: 'barbell-outline' },
       },
     ],
   },

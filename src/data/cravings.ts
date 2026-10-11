@@ -271,7 +271,7 @@ export const CRAVING_FACTS: CravingFact[] = [
   },
   {
     kicker: 'Extinction',
-    fact: 'Every time a craving fires and you don\'t act on it, your brain runs "extinction learning" — actively weakening the cue-reward link. The signal gets quieter with every rep.',
+    fact: 'Every time a craving fires and you don\'t act on it, your brain runs "extinction learning" — actively weakening the cue-reward link. The signal gets quieter every time you ride one out.',
   },
   {
     kicker: 'Suppression',
@@ -279,7 +279,7 @@ export const CRAVING_FACTS: CravingFact[] = [
   },
   {
     kicker: 'Transfer',
-    fact: 'Riding out a food craving trains the same neural circuit you\'d use on a scroll urge or an impulse buy. One circuit, many cravings — every rep counts everywhere.',
+    fact: 'Riding out a food craving trains the same neural circuit you\'d use on a scroll urge or an impulse buy. One circuit, many cravings — every one you ride out counts everywhere.',
   },
   {
     kicker: 'Prediction',
@@ -323,7 +323,7 @@ export const CRAVING_FACTS: CravingFact[] = [
   },
   {
     kicker: 'Habituation',
-    fact: 'Repeated exposure without reward causes the craving signal to weaken through habituation — the same mechanism behind exposure therapy. The signal fades with reps.',
+    fact: 'Repeated exposure without reward causes the craving signal to weaken through habituation — the same mechanism behind exposure therapy. The signal fades with repetition.',
   },
   {
     kicker: 'Identity',
@@ -355,7 +355,7 @@ export const CRAVING_FACTS: CravingFact[] = [
   },
   {
     kicker: 'Compounding',
-    fact: 'Craving resistance has a compounding curve: the first few reps are hard, the next few get easier. After enough sessions, many riders describe urges as "background noise."',
+    fact: 'Craving resistance has a compounding curve: the first few are hard, the next few get easier. After enough sessions, many riders describe urges as "background noise."',
   },
   {
     kicker: 'Observation',
@@ -512,7 +512,7 @@ export const OUTCOME_COPY = {
     emoji: '⚡',
     headline: 'You rode it out.',
     body:
-      'The wave peaked and passed — exactly like the science said it would. That’s one more rep of your brain learning the craving isn’t in charge.',
+      'The wave peaked and passed — exactly like the science said it would. That’s your brain learning, once more, that the craving isn’t in charge.',
   },
   gave_in: {
     emoji: '🌊',

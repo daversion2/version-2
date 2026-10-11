@@ -1,74 +1,16 @@
 import { doc, getDoc, setDoc, collection, getDocs, query, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
-import { STREAK_MULTIPLIERS, POINTS } from '../constants/willpower';
+import { STREAK_TIERS } from '../constants/willpower';
 import { getTodayString, getYesterdayString, toLocalDateString } from '../utils/date';
 
-// Get the streak multiplier based on current streak days
-export const getStreakMultiplier = (streakDays: number): number => {
-  const tier = STREAK_MULTIPLIERS.find(
-    (t) => streakDays >= t.minDays && streakDays <= t.maxDays
-  );
-  return tier?.multiplier || 1.0;
-};
-
-// Calculate points for a completed challenge
-export const calculateChallengePoints = (
-  difficultyActual: number,
-  streakDays: number
-): number => {
-  const multiplier = getStreakMultiplier(streakDays);
-  const basePoints = difficultyActual;
-
-  return Math.round(basePoints * multiplier);
-};
-
-// Calculate points for a failed challenge
-export const calculateFailedChallengePoints = (streakDays: number): number => {
-  const multiplier = getStreakMultiplier(streakDays);
-  const basePoints = POINTS.FAILED_CHALLENGE;
-
-  return Math.round(basePoints * multiplier);
-};
-
-// Calculate the buddy bonus delta (extra points when both partners complete)
-export const calculateBuddyBonusPoints = (basePoints: number): number => {
-  return Math.round(basePoints * POINTS.BUDDY_BONUS_MULTIPLIER) - basePoints;
-};
-
-// Calculate points for a completed habit
-export const calculateHabitPoints = (
-  difficulty: number,
-  streakDays: number
-): number => {
-  const multiplier = getStreakMultiplier(streakDays);
-  return Math.round(difficulty * multiplier);
-};
+// A streak of 0 sits in the first tier, so a first-ever day is not a "new tier".
+const streakTierIndex = (streakDays: number): number =>
+  Math.max(0, STREAK_TIERS.findIndex((t) => streakDays >= t.minDays && streakDays <= t.maxDays));
 
 // Get streak tier info for display
-export const getStreakTierInfo = (streakDays: number): {
-  multiplier: number;
-  tierName: string;
-  minDays: number;
-} => {
-  const tier = STREAK_MULTIPLIERS.find(
-    (t) => streakDays >= t.minDays && streakDays <= t.maxDays
-  );
-
-  if (!tier) return { multiplier: 1.0, tierName: 'Starting', minDays: 1 };
-
-  const tierNames: Record<number, string> = {
-    1.0: 'Starting',
-    1.2: 'Building Momentum',
-    1.5: 'On Fire',
-    1.75: 'Unstoppable',
-    2.0: 'Legendary',
-  };
-
-  return {
-    multiplier: tier.multiplier,
-    tierName: tierNames[tier.multiplier] || 'Active',
-    minDays: tier.minDays,
-  };
+export const getStreakTierInfo = (streakDays: number): { tierName: string; minDays: number } => {
+  const tier = STREAK_TIERS[streakTierIndex(streakDays)];
+  return { tierName: tier.name, minDays: tier.minDays };
 };
 
 // Update user's willpower stats (points and streak)
@@ -78,9 +20,8 @@ export const updateWillpowerStats = async (
 ): Promise<{
   newTotal: number;
   newStreak: number;
-  multiplier: number;
   newTierReached: boolean;
-  tierInfo: { multiplier: number; tierName: string; minDays: number } | null;
+  tierInfo: { tierName: string; minDays: number } | null;
 }> => {
   const userRef = doc(db, 'users', userId);
   const today = getTodayString();
@@ -92,8 +33,6 @@ export const updateWillpowerStats = async (
     const lastActivityDate = userData.lastActivityDate || null;
     const currentStreak = userData.currentStreak || 0;
     const totalPoints = userData.totalWillpowerPoints || 0;
-
-    const oldMultiplier = getStreakMultiplier(currentStreak);
 
     let newStreak = currentStreak;
 
@@ -109,8 +48,7 @@ export const updateWillpowerStats = async (
       }
     }
 
-    const newMultiplier = getStreakMultiplier(newStreak);
-    const newTierReached = newMultiplier > oldMultiplier;
+    const newTierReached = streakTierIndex(newStreak) > streakTierIndex(currentStreak);
     const tierInfo = newTierReached ? getStreakTierInfo(newStreak) : null;
 
     const newTotal = totalPoints + pointsToAdd;
@@ -125,7 +63,7 @@ export const updateWillpowerStats = async (
       { merge: true }
     );
 
-    return { newTotal, newStreak, multiplier: newMultiplier, newTierReached, tierInfo };
+    return { newTotal, newStreak, newTierReached, tierInfo };
   });
 
   return result;
@@ -137,7 +75,6 @@ export const getWillpowerStats = async (
 ): Promise<{
   totalPoints: number;
   currentStreak: number;
-  multiplier: number;
 }> => {
   const userRef = doc(db, 'users', userId);
   const userSnap = await getDoc(userRef);
@@ -159,12 +96,9 @@ export const getWillpowerStats = async (
     }
   }
 
-  const multiplier = getStreakMultiplier(validStreak);
-
   return {
     totalPoints,
     currentStreak: validStreak,
-    multiplier,
   };
 };
 

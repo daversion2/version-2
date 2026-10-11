@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, ScrollView, StyleProp, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from './Button';
+import { Copy } from './Copy';
+import { useCopy } from '../../context/CopyContext';
+import { parseBold } from '../../services/appCopy';
 
 export interface FeatureInfoPoint {
   /** Short bold lead-in, e.g. "Ride it out". */
@@ -33,6 +36,11 @@ interface Props {
   science?: FeatureInfoScience[];
   /** Optional closing line, shown italic. */
   footer?: string;
+  /**
+   * When set, every line is admin-editable copy keyed under this prefix
+   * (e.g. "intro.today" → "intro.today.title", "intro.today.point1").
+   */
+  copyPrefix?: string;
 }
 
 /** Hex accent → very light tint for the science card background. */
@@ -61,7 +69,29 @@ export const FeatureInfoModal: React.FC<Props> = ({
   points,
   science,
   footer,
+  copyPrefix,
 }) => {
+  const t = useCopy();
+  // Editable when keyed; otherwise the same rendering as plain text.
+  const words = (key: string, text: string, style: StyleProp<TextStyle>, boldStyle?: StyleProp<TextStyle>) =>
+    copyPrefix ? (
+      <Copy id={`${copyPrefix}.${key}`} style={style} boldStyle={boldStyle}>
+        {text}
+      </Copy>
+    ) : (
+      <Text style={style}>
+        {parseBold(text).map((seg, i) =>
+          seg.bold ? (
+            <Text key={i} style={boldStyle}>
+              {seg.text}
+            </Text>
+          ) : (
+            seg.text
+          )
+        )}
+      </Text>
+    );
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.overlay}>
@@ -77,20 +107,19 @@ export const FeatureInfoModal: React.FC<Props> = ({
             <View style={[styles.iconWrap, { backgroundColor: accent }]}>
               <Ionicons name={icon} size={28} color={Colors.white} />
             </View>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.intro}>{intro}</Text>
+            {words('title', title, styles.title)}
+            {words('intro', intro, styles.intro)}
 
-            <Text style={[styles.sectionLabel, { color: accent }]}>HOW IT WORKS</Text>
+            <Copy id="info.howItWorks" style={[styles.sectionLabel, { color: accent }]}>
+              HOW IT WORKS
+            </Copy>
             <View style={styles.points}>
               {points.map((p, i) => (
                 <View key={i} style={styles.point}>
                   <View style={[styles.dot, { backgroundColor: accent }]}>
                     <Text style={styles.dotNum}>{i + 1}</Text>
                   </View>
-                  <Text style={styles.pointText}>
-                    <Text style={styles.pointLabel}>{p.label}</Text>
-                    {`  ${p.text}`}
-                  </Text>
+                  {words(`point${i + 1}`, `**${p.label}**  ${p.text}`, styles.pointText, styles.pointLabel)}
                 </View>
               ))}
             </View>
@@ -99,23 +128,30 @@ export const FeatureInfoModal: React.FC<Props> = ({
               <View style={[styles.scienceCard, { backgroundColor: tint(accent, 0.07) }]}>
                 <View style={styles.scienceHeader}>
                   <Ionicons name="flask" size={14} color={accent} />
-                  <Text style={[styles.sectionLabel, styles.scienceHeaderText, { color: accent }]}>
+                  <Copy
+                    id="info.whyThisWorks"
+                    style={[styles.sectionLabel, styles.scienceHeaderText, { color: accent }]}
+                  >
                     WHY THIS WORKS
-                  </Text>
+                  </Copy>
                 </View>
                 {science.map((sItem, i) => (
-                  <Text key={i} style={[styles.scienceText, i > 0 && styles.scienceSpaced]}>
-                    <Text style={styles.scienceLabel}>{sItem.label}</Text>
-                    {`  ${sItem.text}`}
-                  </Text>
+                  <React.Fragment key={i}>
+                    {words(
+                      `science${i + 1}`,
+                      `**${sItem.label}**  ${sItem.text}`,
+                      [styles.scienceText, i > 0 && styles.scienceSpaced],
+                      styles.scienceLabel
+                    )}
+                  </React.Fragment>
                 ))}
               </View>
             ) : null}
 
-            {footer ? <Text style={styles.footer}>{footer}</Text> : null}
+            {footer ? words('footer', footer, styles.footer) : null}
           </ScrollView>
 
-          <Button title="Got it" onPress={onDismiss} style={styles.button} />
+          <Button title={t('info.gotIt', 'Got it')} onPress={onDismiss} style={styles.button} />
         </View>
       </View>
     </Modal>

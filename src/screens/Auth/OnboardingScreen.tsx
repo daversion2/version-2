@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { FadeRise } from '../../components/common/FadeRise';
 import { useAuth } from '../../context/AuthContext';
 import { showAlert } from '../../utils/alert';
@@ -56,6 +58,7 @@ import { OnboardingHabitPicker } from '../../components/onboarding/OnboardingHab
 export const OnboardingScreen: React.FC = () => {
   const { user, refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const scrollRef = useRef<ScrollView>(null);
 
   const [beatIndex, setBeatIndex] = useState(0);
@@ -98,7 +101,10 @@ export const OnboardingScreen: React.FC = () => {
       await markOnboardingComplete(user.uid);
       await refreshProfile();
     } catch (error: any) {
-      showAlert('Something went wrong', error?.message ?? 'Please try again.');
+      showAlert(
+        t('onboarding.error.title', 'Something went wrong'),
+        error?.message ?? t('onboarding.error.skipRetry', 'Please try again.')
+      );
       setSaving(false);
     }
   };
@@ -144,7 +150,10 @@ export const OnboardingScreen: React.FC = () => {
       await markOnboardingComplete(user.uid);
       await refreshProfile();
     } catch (error: any) {
-      showAlert('Something went wrong', error?.message ?? 'Failed to finish setup. Please try again.');
+      showAlert(
+        t('onboarding.error.title', 'Something went wrong'),
+        error?.message ?? t('onboarding.error.finishRetry', 'Failed to finish setup. Please try again.')
+      );
       setSaving(false);
     }
   };
@@ -214,18 +223,24 @@ export const OnboardingScreen: React.FC = () => {
       <View
         style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}
       >
-        {!canAdvance && !!beat.hint && <Text style={styles.hint}>{beat.hint}</Text>}
+        {!canAdvance && !!beat.hint && (
+          <Copy id={`onboarding.hint.${beat.key}`} style={styles.hint}>
+            {beat.hint}
+          </Copy>
+        )}
         <View style={styles.footerRow}>
           {beatIndex > 0 ? (
             <TouchableOpacity onPress={() => goTo(beatIndex - 1)} style={styles.back}>
               <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-              <Text style={styles.backText}>Back</Text>
+              <Copy id="onboarding.cta.back" style={styles.backText}>
+                {'Back'}
+              </Copy>
             </TouchableOpacity>
           ) : (
             <View />
           )}
           <Button
-            title={beat.cta}
+            title={t(`onboarding.cta.${beat.key}`, beat.cta)}
             onPress={isLast ? handleComplete : () => goTo(beatIndex + 1)}
             disabled={!canAdvance || saving}
             loading={isLast && saving}
@@ -234,7 +249,9 @@ export const OnboardingScreen: React.FC = () => {
         </View>
         {canSkip && (
           <TouchableOpacity onPress={handleSkip} disabled={saving} style={styles.skip}>
-            <Text style={styles.skipText}>Just take me to the app</Text>
+            <Copy id="onboarding.cta.skip" style={styles.skipText}>
+              {'Just take me to the app'}
+            </Copy>
           </TouchableOpacity>
         )}
       </View>

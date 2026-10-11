@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PracticeVolume } from '../../services/practiceProgress';
+import { Copy } from '../common/Copy';
 
 interface TrainingVolumeSectionProps {
   practices: PracticeVolume[];
@@ -21,15 +22,17 @@ export const TrainingVolumeSection: React.FC<TrainingVolumeSectionProps> = ({
   onPracticePress,
 }) => (
   <View style={styles.section}>
-    <Text style={styles.title}>Habit by Habit</Text>
-    <Text style={styles.note}>
+    <Copy id="progress.volume.title" style={styles.title}>
+      Habit by Habit
+    </Copy>
+    <Copy id="progress.volume.note" style={styles.note}>
       Completions and XP always count. Time & temp reflect only the completions where you logged them.
-    </Text>
+    </Copy>
 
     {practices.length === 0 ? (
-      <Text style={styles.empty}>
+      <Copy id="progress.volume.empty" style={styles.empty}>
         Add a habit from Home to see it here.
-      </Text>
+      </Copy>
     ) : (
       <View style={styles.grid}>
         {practices.map((p) => (
@@ -66,17 +69,36 @@ const PracticeCard: React.FC<{
       </Text>
       {untrained ? (
         <>
-          <Text style={styles.cardRepsUntrained}>0 completions</Text>
+          <Copy id="progress.volume.card.zero" style={styles.cardRepsUntrained}>
+            0 completions
+          </Copy>
           <View style={styles.untrainedBadge}>
-            <Text style={styles.untrainedBadgeText}>UNTRAINED</Text>
+            <Copy id="progress.volume.card.untrained" style={styles.untrainedBadgeText}>
+              UNTRAINED
+            </Copy>
           </View>
         </>
       ) : (
         <>
-          <Text style={styles.cardReps}>
-            {practice.reps} {practice.reps === 1 ? 'completion' : 'completions'}
-            <Text style={styles.cardPts}> · {practice.points} XP</Text>
-          </Text>
+          {practice.reps === 1 ? (
+            <Copy
+              id="progress.volume.card.reps.one"
+              style={styles.cardReps}
+              boldStyle={styles.cardPts}
+              vars={{ count: practice.reps, points: practice.points }}
+            >
+              {'{count} completion**\n{points} XP**'}
+            </Copy>
+          ) : (
+            <Copy
+              id="progress.volume.card.reps.other"
+              style={styles.cardReps}
+              boldStyle={styles.cardPts}
+              vars={{ count: practice.reps, points: practice.points }}
+            >
+              {'{count} completions**\n{points} XP**'}
+            </Copy>
+          )}
           {practice.metricLines.map((line) => (
             <Text key={line} style={styles.cardMetric}>
               {line}

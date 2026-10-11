@@ -68,7 +68,7 @@ const ThreadScreen: React.FC = () => (
               Feeling the pull to quit — and not quitting — is the entire method. The same dopamine driving
               that scroll also powers your <Text style={styles.threadBold}>prefrontal cortex</Text>: the part
               of your brain responsible for decisions, focus, and self-control.{' '}
-              <Text style={styles.threadBold}>Every rep like the one you just finished trains it.</Text>
+              <Text style={styles.threadBold}>Every time you do it anyway, like you just did, you train it.</Text>
             </Text>
           </View>
         </View>
@@ -298,7 +298,7 @@ const ResearchScreen: React.FC = () => (
           </Text>
         </View>
         <Text style={styles.statDesc}>
-          <Text style={styles.statDescBold}>Many people who stick with practices like these</Text> report
+          <Text style={styles.statDescBold}>Many people who stick with habits like these</Text> report
           improvements in mood stability, focus, and motivation within a few weeks.
         </Text>
       </View>

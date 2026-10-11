@@ -74,7 +74,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     try {
       setDayPractices(await getHabitsForDate(user.uid, date));
     } catch (error) {
-      showAlert('Error', 'Failed to load practices. Please try again.');
+      showAlert('Error', 'Failed to load habits. Please try again.');
     } finally {
       setLoadingHabits(false);
     }
@@ -83,7 +83,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
   // Picked a practice → hand off to the same capture flow today's reps use,
   // locked to this day. Going through completePractice (rather than writing the
   // log here) is what keeps a backfilled rep worth the same as a live one:
-  // streak multiplier, first-try bonus, and the practice's tracking fields.
+  // the same XP and the practice's tracking fields.
   const handleAddPractice = async (input: PracticeCompletionInput) => {
     if (!user || !capturing) return;
     const { habit } = capturing;
@@ -102,7 +102,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     if (!user) return;
 
     showConfirm(
-      'Delete Practice Entry',
+      'Delete Habit Entry',
       `Delete "${log.name}"? This will remove ${log.points} XP.`,
       async () => {
         try {
@@ -182,7 +182,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
               ? 'Challenge'
               : item.type === 'craving'
                 ? 'Craving'
-                : 'Practice'}
+                : 'Habit'}
           </Text>
           {item.completed_at && (
             <Text style={styles.metaText}>
@@ -246,7 +246,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       {/* Backfill a practice onto this day */}
       {isEditable && (
         <Button
-          title="Log a practice for this day"
+          title="Log a habit for this day"
           onPress={handleOpenPicker}
           variant="outline"
           style={styles.addHabitButton}

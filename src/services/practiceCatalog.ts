@@ -7,6 +7,7 @@ import {
   SUPERSEDED_HABIT_IDS,
   setPracticeCatalog,
 } from '../data/practices';
+import { isHabitCategoryId } from '../data/habitLibrary';
 
 // =============================================================================
 // PRACTICE CATALOG — the curated practices, editable without a code change.
@@ -130,6 +131,11 @@ export const fetchPracticeCatalog = async (): Promise<Practice[]> => {
       remoteDoc
         ? {
             ...remoteDoc,
+            // A doc saved under the retired 'Body' category would otherwise
+            // vanish from every browse tab.
+            category_id: isHabitCategoryId(remoteDoc.category_id)
+              ? remoteDoc.category_id
+              : bundled.category_id,
             research: remoteDoc.research ?? bundled.research,
             techniques: remoteDoc.techniques ?? bundled.techniques,
             howToTitle: remoteDoc.howToTitle ?? bundled.howToTitle,

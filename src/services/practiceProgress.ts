@@ -350,7 +350,7 @@ export const getPracticeProgress = async (
     records.push({
       icon: 'trophy',
       label: 'Best week',
-      value: `${bestWeek} ${bestWeek === 1 ? 'habit' : 'habits'}`,
+      value: `${bestWeek} ${bestWeek === 1 ? 'check-in' : 'check-ins'}`,
     });
   }
 

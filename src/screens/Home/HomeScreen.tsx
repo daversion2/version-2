@@ -34,6 +34,7 @@ import { selectHabitTidbit, recordTidbitShown, recordLearnMoreTap } from '../../
 import { NeuroscienceTidbit } from '../../types';
 import { getTodayString, toLocalDateString, formatRelativeDay } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
+import { PlanDraft, getPlanForToday, isPlanDone, formatPlan } from '../../services/nightlyClose';
 import { markPointsIntroSeen, incrementAppOpenCount } from '../../services/users';
 import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
@@ -58,6 +59,8 @@ import { useRuleSurfaces } from '../../hooks/useRuleSurfaces';
 import { CTA_TAB_TARGETS, RETIRED_CTA_SCREENS } from '../../types/rules';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
@@ -69,6 +72,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
   });
   const { user, userProfile, refreshProfile } = useAuth();
+  const t = useCopy();
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
@@ -94,7 +98,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [celebrationMilestone, setCelebrationMilestone] = useState<string | null>(null);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const [celebrationStreak, setCelebrationStreak] = useState(0);
-  const [celebrationBonus, setCelebrationBonus] = useState<string | null>(null);
   // Muted "Logged for Yesterday" note on the celebration, for backfilled reps.
   const [celebrationContext, setCelebrationContext] = useState<string | null>(null);
   // Reopening the celebration after "Learn more" — render it already settled
@@ -103,6 +106,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
+  const [todaysPlan, setTodaysPlan] = useState<PlanDraft | null>(null);
 
   // Habit tidbit state. The tidbit now renders inside the celebration card;
   // only the "Learn more" expansion is still its own surface.
@@ -353,8 +357,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // Check nightly reflection status
       try {
         const todayStr = getTodayString();
-        const reflected = await hasReflectedToday(user.uid);
+        const [reflected, plan] = await Promise.all([
+          hasReflectedToday(user.uid),
+          getPlanForToday(user.uid, todayStr),
+        ]);
         setReflectedToday(reflected);
+        setTodaysPlan(plan);
         if (reflected) {
           const todayReflection = await getReflection(user.uid, todayStr);
           setTodaysGrade(todayReflection?.grade);
@@ -437,10 +445,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const { logId, pointsEarned, streakBefore, firstTry, backdated, date, willpower: updateResult } =
       await completePractice(user.uid, { id: habit.id, name: habit.name }, input);
     try {
-      const bonusLabel = firstTry ? 'First time trying this practice — XP doubled' : null;
       // Neutral confirmation of which day the rep landed on. Not a bonus —
       // it goes in its own muted slot so backdating never looks rewarded.
-      setCelebrationContext(backdated ? `Logged for ${formatRelativeDay(date)}` : null);
+      setCelebrationContext(
+        backdated
+          ? t('today.celebration.loggedFor', 'Logged for {day}', { day: formatRelativeDay(date) })
+          : null
+      );
 
       // Optimistically add the rep to the log set the Today list is derived
       // from, so the week strip fills, the row re-sorts and "done today" flips
@@ -510,7 +521,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // than a native Alert fired after it was dismissed. Same news, one surface.
       const milestoneLabel =
         updateResult.newTierReached && updateResult.tierInfo
-          ? `${updateResult.newStreak}-day streak: ${updateResult.tierInfo.tierName} · ${updateResult.tierInfo.multiplier}× XP from here`
+          ? t('today.celebration.milestone', '{days}-day streak: {tier}', {
+              days: updateResult.newStreak,
+              tier: updateResult.tierInfo.tierName,
+            })
           : null;
 
       // Fetch habit tidbit — staged now, shown after the celebration
@@ -535,7 +549,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       setEarnedPoints(pointsEarned);
       setCelebrationStreak(updateResult.newStreak);
-      setCelebrationBonus(bonusLabel);
       setCelebrationMilestone(milestoneLabel);
       setCelebrationSkipIntro(false);
       // The points intro goes first on the very first completion; dismissing it
@@ -578,11 +591,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         );
       } catch (err: any) {
         console.warn('Quick log failed:', err);
-        showAlert("Couldn't log that", 'Check your connection and try again.');
+        showAlert(
+          t('today.alert.quickLogFailed.title', "Couldn't log that"),
+          t('today.alert.quickLogFailed.message', 'Check your connection and try again.')
+        );
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, completingHabit, userProfile]
+    [user, completingHabit, userProfile, t]
   );
 
   // The Today list: every active habit, ordered by what needs attention. Derived
@@ -637,6 +653,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           nextAction={nextAction}
         />
 
+        {/* Last night's if-then, shown until the habit it names is logged. The
+            plan only works if it's in front of you when the cue arrives. */}
+        {todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr) && (
+          <View style={styles.planCard}>
+            <Ionicons name="navigate-outline" size={18} color={Colors.primary} />
+            <View style={styles.utilityText}>
+              <Copy id="today.plan.label" style={styles.planLabel}>{'Today’s plan'}</Copy>
+              <Text style={styles.planText}>{formatPlan(todaysPlan)}</Text>
+            </View>
+          </View>
+        )}
+
         {/*
           Grouped by what each habit is asking of you. The heading says it once
           for the group — "Due today", "Behind this week" — which is what let the
@@ -646,7 +674,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {todaySections.map((section) => (
           <View key={section.id}>
             <Text style={styles.sectionHeading}>
-              {section.title} · {section.paces.length}
+              {t(`today.section.${section.id}`, section.title)} · {section.paces.length}
             </Text>
             {section.paces.map((pace) => {
               const habit = habitsById[pace.habitId];
@@ -684,9 +712,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         ))}
 
         {todayList.length === 0 && (
-          <Text style={styles.emptyText}>
-            No habits yet. Browse the library to add your first one.
-          </Text>
+          <Copy id="today.empty" style={styles.emptyText}>
+            {'No habits yet. Browse the library to add your first one.'}
+          </Copy>
         )}
 
         {/*
@@ -711,16 +739,34 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             color={reflectedToday ? Colors.primary : Colors.gray}
           />
           <View style={styles.utilityText}>
-            <Text style={styles.utilityTitle}>
-              {reflectedToday ? 'Today’s reflection' : 'Close out the day'}
-            </Text>
-            <Text style={styles.utilitySubtitle}>
-              {reflectedToday
-                ? todaysGrade
-                  ? `You graded today a ${todaysGrade}. Tap to review.`
-                  : 'Saved. Tap to review.'
-                : 'How did today actually go?'}
-            </Text>
+            {reflectedToday ? (
+              <Copy id="today.close.titleDone" style={styles.utilityTitle}>
+                {'Today’s reflection'}
+              </Copy>
+            ) : (
+              <Copy id="today.close.title" style={styles.utilityTitle}>
+                {'Close out the day'}
+              </Copy>
+            )}
+            {reflectedToday ? (
+              todaysGrade ? (
+                <Copy
+                  id="today.close.graded"
+                  style={styles.utilitySubtitle}
+                  vars={{ grade: todaysGrade }}
+                >
+                  {'You graded today a {grade}. Tap to review.'}
+                </Copy>
+              ) : (
+                <Copy id="today.close.saved" style={styles.utilitySubtitle}>
+                  {'Saved. Tap to review.'}
+                </Copy>
+              )
+            ) : (
+              <Copy id="today.close.subtitle" style={styles.utilitySubtitle}>
+                {'Grade the effort, set tomorrow’s plan.'}
+              </Copy>
+            )}
           </View>
           <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
         </TouchableOpacity>
@@ -733,8 +779,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         >
           <Ionicons name="flash-outline" size={20} color={Colors.secondary} />
           <View style={styles.utilityText}>
-            <Text style={styles.utilityTitle}>Craving Crusher</Text>
-            <Text style={styles.utilitySubtitle}>Ride out an urge without giving in.</Text>
+            <Copy id="today.craving.title" style={styles.utilityTitle}>
+              {'Craving Crusher'}
+            </Copy>
+            <Copy id="today.craving.subtitle" style={styles.utilitySubtitle}>
+              {'Ride out an urge without giving in.'}
+            </Copy>
           </View>
           <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
         </TouchableOpacity>
@@ -752,7 +802,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             activeOpacity={0.7}
           >
             <Ionicons name="library-outline" size={18} color={Colors.primary} />
-            <Text style={styles.addText}>Browse library</Text>
+            <Copy id="today.add.browse" style={styles.addText}>{'Browse library'}</Copy>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addBtn}
@@ -760,7 +810,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             activeOpacity={0.7}
           >
             <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
-            <Text style={styles.addText}>Create your own</Text>
+            <Copy id="today.add.create" style={styles.addText}>{'Create your own'}</Copy>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -841,7 +891,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={celebrationVisible}
         pointsEarned={earnedPoints}
         streakDays={celebrationStreak}
-        bonusLabel={celebrationBonus}
         milestoneLabel={celebrationMilestone}
         contextLabel={celebrationContext}
         tidbit={habitTidbit}
@@ -951,6 +1000,25 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   utilityText: { flex: 1, gap: 2 },
+  planCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    backgroundColor: Colors.primary + '10',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  planLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: Colors.primary,
+  },
+  planText: { fontFamily: Fonts.secondary, fontSize: 15, color: Colors.dark, lineHeight: 21 },
   utilityTitle: { fontFamily: Fonts.primaryBold, fontSize: 16, color: Colors.dark },
   utilitySubtitle: { fontFamily: Fonts.secondary, fontSize: 13, color: Colors.gray },
   addRow: {

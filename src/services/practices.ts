@@ -15,14 +15,12 @@ import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, Habi
 import { PracticeGroup, getDefaultSeedPractices, getAllPractices } from '../data/practices';
 import {
   getWillpowerStats,
-  calculateHabitPoints,
   updateWillpowerStats,
   adjustWillpowerPoints,
   recalculateUserStats,
-  getStreakMultiplier,
 } from './willpower';
 import { toLocalDateString, getTodayString } from '../utils/date';
-import { RESISTANCE_SCALE } from '../constants/resistance';
+import { RESISTANCE_SCALE, normalizeResistance } from '../constants/resistance';
 import { HabitSchedule, Schedulable, scheduledDays } from './habitSchedule';
 
 export type { HabitSchedule } from './habitSchedule';
@@ -465,7 +463,7 @@ export interface CompletePracticeResult {
   pointsEarned: number;
   /** Streak (in days) as of *before* this completion — used for tidbit selection. */
   streakBefore: number;
-  /** First-ever completion of this practice — points were doubled. */
+  /** First-ever completion of this practice. */
   firstTry: boolean;
   /** The day this rep was filed under (YYYY-MM-DD, local). */
   date: string;
@@ -477,8 +475,7 @@ export interface CompletePracticeResult {
 /**
  * Single source of truth for completing a practice, whether it happened just
  * now or on an earlier day. Beyond logging the completion it awards willpower
- * XP (with streak multiplier), pays the first-try bonus, and bumps the sampler
- * counter. Every entry point (Home, Practices tab, day detail) should call this
+ * XP and bumps the sampler counter. Every entry point (Home, Practices tab, day detail) should call this
  * so the side effects stay consistent; each screen renders its own celebration
  * UI from the returned result.
  *
@@ -488,9 +485,8 @@ export interface CompletePracticeResult {
  * reps instead adjust the XP total directly and then recalculate streak and
  * lastActivityDate from the logs — so a backfilled rep that closes a gap
  * extends the streak correctly, and one that doesn't leaves it alone.
- * Everything else (multiplier, first-try double, tracking metrics) is
- * identical, because a rep you did yesterday is not worth less than one you
- * did an hour ago.
+ * The XP and tracking metrics are identical, because a rep you did yesterday
+ * is not worth less than one you did an hour ago.
  */
 export const completePractice = async (
   userId: string,
@@ -504,8 +500,8 @@ export const completePractice = async (
   const backdated = date !== today;
 
   // First-ever completion of this practice → bump the user's sampler counter
-  // (powers the {practices_tried} rule placeholder) and flag the first-try
-  // bonus. Best-effort: never block the completion.
+  // (powers the {practices_tried} rule placeholder). Best-effort: never block
+  // the completion.
   let firstTry = false;
   try {
     const prior = await getHabitCompletionLogs(userId, practice.id);
@@ -526,12 +522,15 @@ export const completePractice = async (
     mindTags,
   });
 
-  // Award XP using the streak-aware multiplier; first time trying a practice
-  // pays double — sampling the catalog is itself the behavior we reward.
-  const difficultyNum = difficulty === 'easy' ? 1 : 2;
+  // XP is friction overcome: the 1–3 rating itself, never multiplied. The
+  // binary difficulty is only a fallback for a caller with no rating.
+  const pointsEarned =
+    typeof resistance === 'number'
+      ? normalizeResistance(resistance, RESISTANCE_SCALE)
+      : difficulty === 'easy'
+        ? 1
+        : 2;
   const stats = await getWillpowerStats(userId);
-  const basePoints = calculateHabitPoints(difficultyNum, stats.currentStreak);
-  const pointsEarned = firstTry ? basePoints * 2 : basePoints;
 
   let willpower: Awaited<ReturnType<typeof updateWillpowerStats>>;
   if (backdated) {
@@ -543,7 +542,6 @@ export const completePractice = async (
     willpower = {
       newTotal,
       newStreak,
-      multiplier: getStreakMultiplier(newStreak),
       newTierReached: false,
       tierInfo: null,
     };

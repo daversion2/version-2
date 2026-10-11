@@ -27,7 +27,7 @@ export interface HabitCommitment {
 }
 
 export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
-  // ─── Body ─────────────────────────────────────────────────────────────────
+  // ─── Move · Fuel · Sleep ──────────────────────────────────────────────────
   'trad-eat-vegetables': {
     prompt: 'How many servings a day?',
     field: {
@@ -146,7 +146,7 @@ export const HABIT_COMMITMENTS: Record<string, HabitCommitment> = {
     },
   },
 
-  // ─── Focus & Craft ────────────────────────────────────────────────────────
+  // ─── Focus ────────────────────────────────────────────────────────────────
   'deep-focus-session': {
     prompt: 'How long is a block?',
     field: {

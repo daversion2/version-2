@@ -140,7 +140,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
-      Alert.alert('Required', 'Practice name cannot be empty.');
+      Alert.alert('Required', 'Habit name cannot be empty.');
       return;
     }
     if (!user) return;
@@ -185,10 +185,10 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
 
   const handleArchive = () => {
     showConfirm(
-      'Archive this practice?',
+      'Archive this habit?',
       // Names where Archived actually is. The promise is only as good as the
       // user's ability to find the place it points at.
-      'It comes off Home and stops counting toward your streaks and pace. Every rep you logged is kept, and you can restore it any time from Settings → Archived Practices.',
+      'It comes off Home and stops counting toward your streaks and pace. Every check-in you logged is kept, and you can restore it any time from Settings → Archived Habits.',
       async () => {
         if (!user) return;
         try {
@@ -286,7 +286,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
   const handleDeleteRep = (log: CompletionLog) => {
     if (!user) return;
     showConfirm(
-      'Delete this rep?',
+      'Delete this check-in?',
       `${formatDayHeader(log.date)} · ${log.points} XP will be removed.`,
       async () => {
         try {
@@ -335,7 +335,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
   if (!habit || !stats) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Practice not found</Text>
+        <Text style={styles.errorText}>Habit not found</Text>
       </View>
     );
   }
@@ -372,7 +372,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
           {!retired && (
             <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore} activeOpacity={0.85}>
               <Ionicons name="arrow-undo-outline" size={15} color={Colors.white} />
-              <Text style={styles.restoreBtnText}>Restore practice</Text>
+              <Text style={styles.restoreBtnText}>Restore habit</Text>
             </TouchableOpacity>
           )}
         </Card>
@@ -399,10 +399,10 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
       {editing && (
         <Card style={styles.editCard}>
           <InputField
-            label="Practice Name"
+            label="Habit Name"
             value={editName}
             onChangeText={setEditName}
-            placeholder="Practice name"
+            placeholder="Habit name"
           />
           <View style={styles.editButtons}>
             <Button title="Save" onPress={handleSaveEdit} loading={editSaving} style={{ flex: 1 }} />
@@ -550,7 +550,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
       {/* Recent reps — with per-rep delete inside the editable window */}
       {recentReps.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Recent reps</Text>
+          <Text style={styles.sectionTitle}>Recent check-ins</Text>
           <Card style={styles.repsCard}>
             {recentReps.map((log, i) => {
               const editable = isEditableDate(log.date);
@@ -567,7 +567,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
                       onPress={() => handleDeleteRep(log)}
                       hitSlop={10}
                       style={styles.repDeleteBtn}
-                      accessibilityLabel={`Delete the rep from ${formatDayHeader(log.date)}`}
+                      accessibilityLabel={`Delete the check-in from ${formatDayHeader(log.date)}`}
                     >
                       <Ionicons name="trash-outline" size={17} color={Colors.fail} />
                     </TouchableOpacity>
@@ -640,7 +640,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
       ) : (
         <Card style={styles.planEmptyCard}>
           <Text style={styles.planEmptyText}>
-            Set yourself up for success — create an action plan for this practice.
+            Set yourself up for success — create an action plan for this habit.
           </Text>
           <TouchableOpacity
             onPress={() =>
@@ -662,7 +662,7 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
       {habit.is_active && (
         <TouchableOpacity style={styles.deleteBtn} onPress={handleArchive}>
           <Ionicons name="archive-outline" size={18} color={Colors.secondary} />
-          <Text style={styles.deleteBtnText}>Archive Practice</Text>
+          <Text style={styles.deleteBtnText}>Archive Habit</Text>
         </TouchableOpacity>
       )}
 

@@ -85,12 +85,11 @@ export const METRIC_FAMILIES: MetricFamily[] = [
   },
   {
     id: 'reps',
-    label: 'Reps',
+    label: 'Exercise count',
     icon: 'barbell-outline',
     keys: ['reps'],
     aggregate: 'sum',
     direction: 'up',
-    unit: 'reps',
     order: 4,
   },
   // A real merge: 'grade' (the custom preset) and 'adherence' (no-sugar,

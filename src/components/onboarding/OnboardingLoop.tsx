@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
+import { Copy } from '../common/Copy';
 import {
   RESISTANCE_LEVELS,
-  RESISTANCE_MAX,
   TACTIC_GATE_RESISTANCE,
 } from '../../constants/resistance';
 import { TACTIC_PROMPT, TACTIC_HELPER, OFFERED_TACTICS } from '../../data/overrideTactics';
@@ -19,14 +19,14 @@ import { ob } from './onboardingStyles';
 // The daily loop as the app actually runs it:
 //   4. Two ways to log — a one-tap 1/2/3 chip on Today, or tap the habit and
 //      choose Log details.
-//   5. What 1, 2 and 3 mean — the Log details rating, and the Effort Level
-//      card on Progress those answers turn into.
+//   5. What 1, 2 and 3 mean — the Log details rating, and the "Friction you
+//      can handle" card on Progress those answers turn into.
 //   6. After a 2 or 3, the celebration offers a reflection. Never required.
 //
 // The previous version described a flow the app had moved on from: a tick
 // circle to tap, a rating asked as a separate step afterwards, and a
 // reflection implied after every log. Each mock here is drawn from the real
-// screen it depicts (TodayHabitRow, PracticeCaptureFlow, the Effort Level card,
+// screen it depicts (TodayHabitRow, PracticeCaptureFlow, FrictionCard,
 // HabitCelebrationModal, PracticeReflectionSheet) — if one of those changes
 // shape, change its mock here too.
 //
@@ -42,7 +42,11 @@ import { ob } from './onboardingStyles';
 // ============================================================================
 
 /** The eyebrow, so the user can see how much walkthrough is left. */
-const step = (n: number) => `How it works · ${n} of 3`;
+const Step: React.FC<{ n: number }> = ({ n }) => (
+  <Copy id="onboarding.loop.eyebrow" style={ob.eyebrow} vars={{ step: n }}>
+    {'How it works · {step} of 3'}
+  </Copy>
+);
 
 /** "2 or 3" — the ratings that earn the reflection offer, from the real gate. */
 const HARD_LEVELS = RESISTANCE_LEVELS.filter((l) => l.value >= TACTIC_GATE_RESISTANCE)
@@ -60,8 +64,13 @@ const MOCK_WEEK: { initial: string; state: 'done' | 'missed' | 'open' | 'today' 
   { initial: 'S', state: 'future' },
 ];
 
-/** Weekly averages behind the Effort Level mock, oldest first. Illustrative. */
-const EFFORT_WEEKS = [2.9, 2.8, 2.6, 2.5, 2.3, 2.1, 1.9, 1.8];
+/**
+ * The friction card mock, oldest window first. Illustrative: one habit getting
+ * easier, then a harder one added — faced climbs while felt falls behind it.
+ */
+const FRICTION_FACED = [9, 9, 9, 9, 9, 15, 18, 18];
+const FRICTION_FELT = [9, 9, 8, 7, 6, 12, 15, 13];
+const FRICTION_MAX = 18;
 
 /** Shown in the celebration mock. Real tidbits come from Firestore and vary. */
 const MOCK_TIDBIT =
@@ -73,9 +82,16 @@ const TACTICS_SHOWN = 2;
 // ---------------------------------------------------------------- shared bits
 
 /** Orange callout pinned to a mock, naming what to look at. */
-const Tag: React.FC<{ label: string; style: StyleProp<ViewStyle> }> = ({ label, style }) => (
+const Tag: React.FC<{
+  id: string;
+  label: string;
+  vars?: Record<string, string | number>;
+  style: StyleProp<ViewStyle>;
+}> = ({ id, label, vars, style }) => (
   <View style={[styles.tag, style]}>
-    <Text style={styles.tagText}>{label}</Text>
+    <Copy id={id} style={styles.tagText} vars={vars}>
+      {label}
+    </Copy>
   </View>
 );
 
@@ -99,8 +115,10 @@ const Chips: React.FC<{ highlight?: number }> = ({ highlight }) => (
 export const OnboardingLoopHabit: React.FC = () => (
   <View style={styles.container}>
     <FadeRise>
-      <Text style={ob.eyebrow}>{step(1)}</Text>
-      <Text style={ob.headline}>Two ways to log a habit.</Text>
+      <Step n={1} />
+      <Copy id="onboarding.loop.habit.headline" style={ob.headline}>
+        {'Two ways to log a habit.'}
+      </Copy>
     </FadeRise>
 
     <FadeRise delay={400}>
@@ -110,7 +128,9 @@ export const OnboardingLoopHabit: React.FC = () => (
         accessibilityRole="image"
         accessibilityLabel="The Today screen. Each habit has 1, 2 and 3 buttons to log it in one tap. Tapping a habit opens it, with a Log details button."
       >
-        <Text style={styles.sectionHeading}>Due today · 2</Text>
+        <Copy id="onboarding.loop.habit.mockDueToday" style={styles.sectionHeading}>
+          {'Due today · 2'}
+        </Copy>
 
         {/* A collapsed row: the quick tap. */}
         <View style={styles.rowCard}>
@@ -126,7 +146,7 @@ export const OnboardingLoopHabit: React.FC = () => (
             </View>
             <View>
               <Chips highlight={2} />
-              <Tag label="Quick tap" style={styles.tagQuick} />
+              <Tag id="onboarding.loop.habit.tagQuickTap" label="Quick tap" style={styles.tagQuick} />
             </View>
           </View>
         </View>
@@ -136,7 +156,9 @@ export const OnboardingLoopHabit: React.FC = () => (
           <View style={styles.rowHead}>
             <View style={styles.rowBody}>
               <Text style={styles.rowName}>Read</Text>
-              <Text style={styles.rowDetail}>Missed 1 day this week</Text>
+              <Copy id="onboarding.loop.habit.mockMissed" style={styles.rowDetail}>
+                {'Missed 1 day this week'}
+              </Copy>
             </View>
             <Chips />
           </View>
@@ -158,38 +180,46 @@ export const OnboardingLoopHabit: React.FC = () => (
                   </Text>
                 </View>
               ))}
-              <Text style={styles.weekCount}>1 of 3</Text>
+              <Copy id="onboarding.loop.habit.mockWeekCount" style={styles.weekCount}>
+                {'1 of 3'}
+              </Copy>
             </View>
-            <Text style={styles.backfillHint}>Tap a day to log it for that date.</Text>
+            <Copy id="onboarding.loop.habit.mockBackfillHint" style={styles.backfillHint}>
+              {'Tap a day to log it for that date.'}
+            </Copy>
             <View style={styles.routes}>
               <View style={styles.route}>
                 <Ionicons name="book-outline" size={14} color={Colors.gray} />
-                <Text style={styles.routeText}>About</Text>
+                <Copy id="onboarding.loop.habit.mockAbout" style={styles.routeText}>
+                  {'About'}
+                </Copy>
               </View>
               <View style={[styles.route, styles.routeOn, styles.ring]}>
                 <Ionicons name="create-outline" size={14} color={Colors.gray} />
-                <Text style={styles.routeText}>Log details</Text>
+                <Copy id="onboarding.loop.habit.mockLogDetails" style={styles.routeText}>
+                  {'Log details'}
+                </Copy>
               </View>
               <View style={styles.route}>
                 <Ionicons name="stats-chart-outline" size={14} color={Colors.gray} />
-                <Text style={styles.routeText}>History</Text>
+                <Copy id="onboarding.loop.habit.mockHistory" style={styles.routeText}>
+                  {'History'}
+                </Copy>
               </View>
             </View>
           </View>
-          <Tag label="Tap the habit" style={styles.tagOpen} />
+          <Tag id="onboarding.loop.habit.tagTapHabit" label="Tap the habit" style={styles.tagOpen} />
         </View>
       </View>
     </FadeRise>
 
     <FadeRise delay={800}>
-      <Text style={ob.body}>
-        Done it? <Text style={ob.bodyStrong}>Tap 1, 2 or 3</Text> for how hard it was. One tap and
-        it’s logged.
-      </Text>
-      <Text style={ob.body}>
-        Want to add minutes, pages or a note? <Text style={ob.bodyStrong}>Tap the habit</Text>,
-        then Log details.
-      </Text>
+      <Copy id="onboarding.loop.habit.body1" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Done it? **Tap 1, 2 or 3** for how hard it was. One tap and it’s logged.'}
+      </Copy>
+      <Copy id="onboarding.loop.habit.body2" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Want to add minutes, pages or a note? **Tap the habit**, then Log details.'}
+      </Copy>
     </FadeRise>
   </View>
 );
@@ -199,15 +229,14 @@ export const OnboardingLoopHabit: React.FC = () => (
 export const OnboardingLoopRating: React.FC = () => {
   // The same labels the real date picker shows, so "Today" is today.
   const dates = getEditableDates().slice(0, 5).map(formatRelativeDay);
-  const first = EFFORT_WEEKS[0];
-  const latest = EFFORT_WEEKS[EFFORT_WEEKS.length - 1];
-  const drop = Math.round((first - latest) * 10) / 10;
 
   return (
     <View style={styles.container}>
       <FadeRise>
-        <Text style={ob.eyebrow}>{step(2)}</Text>
-        <Text style={ob.headline}>What 1, 2 and 3 mean.</Text>
+        <Step n={2} />
+        <Copy id="onboarding.loop.rating.headline" style={ob.headline}>
+          {'What 1, 2 and 3 mean.'}
+        </Copy>
       </FadeRise>
 
       <FadeRise delay={400}>
@@ -227,7 +256,9 @@ export const OnboardingLoopRating: React.FC = () => {
               <Ionicons name="close" size={14} color={Colors.dark} />
             </View>
           </View>
-          <Text style={styles.whenLabel}>When did you do it?</Text>
+          <Copy id="onboarding.loop.rating.mockWhen" style={styles.whenLabel}>
+            {'When did you do it?'}
+          </Copy>
           <View style={styles.dateRow}>
             {dates.map((label, i) => (
               <View key={label} style={[styles.dateChip, i === 0 && styles.dateChipOn]}>
@@ -236,7 +267,9 @@ export const OnboardingLoopRating: React.FC = () => {
             ))}
           </View>
           <View style={styles.bubble}>
-            <Text style={styles.bubbleText}>How hard was it?</Text>
+            <Copy id="onboarding.loop.rating.mockHowHard" style={styles.bubbleText}>
+              {'How hard was it?'}
+            </Copy>
           </View>
           <View style={styles.levels}>
             {RESISTANCE_LEVELS.map((level) => (
@@ -251,50 +284,64 @@ export const OnboardingLoopRating: React.FC = () => {
               </View>
             ))}
           </View>
-          <Tag label="Log details" style={styles.tagOpen} />
+          <Tag id="onboarding.loop.rating.tagLogDetails" label="Log details" style={styles.tagOpen} />
         </View>
 
-        {/* The Effort Level card from Progress, falling — so teal, as there. */}
+        {/* The friction card from Progress: faced climbing, felt falling behind it. */}
         <View
           style={[styles.mock, styles.effortCard]}
           accessible
           accessibilityRole="image"
-          accessibilityLabel={`The Effort Level card on Progress: ${latest} out of ${RESISTANCE_MAX}, down ${drop} over eight weeks.`}
+          accessibilityLabel="The Friction you can handle card on Progress: 18 friction faced in the last 7 days, twice the first weeks, and it felt like a 13."
         >
-          <Text style={styles.effortLabel}>Effort Level</Text>
+          <Copy id="onboarding.loop.rating.mockFrictionTitle" style={styles.effortLabel}>
+            {'Friction you can handle'}
+          </Copy>
           <View style={styles.effortHead}>
-            <Text style={styles.effortBig}>{latest}</Text>
-            <Text style={styles.effortOutOf}>/ {RESISTANCE_MAX}</Text>
-            <View style={styles.effortPill}>
-              <Ionicons name="arrow-down" size={11} color={Colors.primary} />
-              <Text style={styles.effortPillText}>
-                {drop} from {first}
-              </Text>
-            </View>
+            <Text style={styles.effortBig}>18</Text>
+            <Copy id="onboarding.loop.rating.mockFrictionCaption" style={styles.effortCaption}>
+              {'friction faced in the last 7 days'}
+            </Copy>
           </View>
-          <Text style={styles.effortCaption}>Your habits are taking less effort.</Text>
+          <View style={styles.effortPill}>
+            <Ionicons name="arrow-up" size={11} color={Colors.primary} />
+            <Copy id="onboarding.loop.rating.mockFrictionTrend" style={styles.effortPillText}>
+              {'Twice your first weeks'}
+            </Copy>
+          </View>
           <View style={styles.effortBars}>
-            {EFFORT_WEEKS.map((value, i) => (
+            {FRICTION_FACED.map((faced, i) => (
               <View key={i} style={styles.effortTrack}>
                 <View
-                  style={[styles.effortBar, { height: (value / RESISTANCE_MAX) * EFFORT_HEIGHT }]}
+                  style={[styles.effortBar, { height: (faced / FRICTION_MAX) * EFFORT_HEIGHT }]}
+                />
+                <View
+                  style={[
+                    styles.effortDot,
+                    { bottom: (FRICTION_FELT[i] / FRICTION_MAX) * EFFORT_HEIGHT - EFFORT_DOT / 2 },
+                  ]}
                 />
               </View>
             ))}
           </View>
           <View style={styles.axisRow}>
-            <Text style={styles.axisText}>8 weeks ago</Text>
-            <Text style={styles.axisText}>This week</Text>
+            <Copy id="onboarding.loop.rating.mockAxisStart" style={styles.axisText}>
+              {'8 weeks ago'}
+            </Copy>
+            <Copy id="onboarding.loop.rating.mockAxisEnd" style={styles.axisText}>
+              {'Last 7 days'}
+            </Copy>
           </View>
         </View>
       </FadeRise>
 
       <FadeRise delay={800}>
-        <Text style={ob.body}>
-          The same three answers whether you tap them on Today or pick one in Log details. Over the
-          weeks, they become your <Text style={ob.bodyStrong}>Effort Level</Text> on Progress.
-        </Text>
-        <Text style={ob.body}>Watching it come down is watching the wiring change.</Text>
+        <Copy id="onboarding.loop.rating.body1" style={ob.body} boldStyle={ob.bodyStrong}>
+          {'The same three answers whether you tap them on Today or pick one in Log details. Over the weeks, they become **friction you can handle** on Progress.'}
+        </Copy>
+        <Copy id="onboarding.loop.rating.body2" style={ob.body}>
+          {'The bars climb as you take on more. The dots fall as it gets easier. That gap is you getting stronger.'}
+        </Copy>
       </FadeRise>
     </View>
   );
@@ -309,8 +356,10 @@ export const OnboardingLoopReflect: React.FC = () => {
   return (
     <View style={styles.container}>
       <FadeRise>
-        <Text style={ob.eyebrow}>{step(3)}</Text>
-        <Text style={ob.headline}>After a hard one, reflect — if you want to.</Text>
+        <Step n={3} />
+        <Copy id="onboarding.loop.reflect.headline" style={ob.headline}>
+          {'After a hard one, reflect — if you want to.'}
+        </Copy>
       </FadeRise>
 
       <FadeRise delay={400}>
@@ -323,31 +372,48 @@ export const OnboardingLoopReflect: React.FC = () => {
         >
           <View style={styles.celebrate}>
             <Text style={styles.xp}>+2</Text>
-            <Text style={styles.xpUnit}>XP</Text>
+            <Copy id="onboarding.loop.reflect.mockXpUnit" style={styles.xpUnit}>
+              {'XP'}
+            </Copy>
             <View style={styles.dots}>
               {Array.from({ length: 7 }).map((_, i) => (
                 <View key={i} style={[styles.dot, i === 0 && styles.dotOn]} />
               ))}
             </View>
             <View style={styles.streakPill}>
-              <Text style={styles.streakPillText}>1 day streak</Text>
+              <Copy id="onboarding.loop.reflect.mockStreak" style={styles.streakPillText}>
+                {'1 day streak'}
+              </Copy>
             </View>
             <View style={styles.tidbit}>
               <View style={styles.tidbitHeader}>
                 <Ionicons name="flash" size={12} color={Colors.primary} />
-                <Text style={styles.tidbitLabel}>Your brain right now</Text>
+                <Copy id="onboarding.loop.reflect.mockTidbitLabel" style={styles.tidbitLabel}>
+                  {'Your brain right now'}
+                </Copy>
               </View>
-              <Text style={styles.tidbitText}>{MOCK_TIDBIT}</Text>
+              <Copy id="onboarding.loop.reflect.mockTidbit" style={styles.tidbitText}>
+                {MOCK_TIDBIT}
+              </Copy>
             </View>
             <View style={styles.doneButton}>
-              <Text style={styles.doneText}>Done</Text>
+              <Copy id="onboarding.loop.reflect.mockDone" style={styles.doneText}>
+                {'Done'}
+              </Copy>
             </View>
             <View>
               <View style={[styles.reflectLink, styles.ring]}>
                 <Ionicons name="chatbubbles-outline" size={14} color={Colors.primary} />
-                <Text style={styles.reflectText}>Reflect on what it took</Text>
+                <Copy id="onboarding.loop.reflect.mockReflectLink" style={styles.reflectText}>
+                  {'Reflect on what it took'}
+                </Copy>
               </View>
-              <Tag label={`After a ${HARD_LEVELS}`} style={styles.tagReflect} />
+              <Tag
+                id="onboarding.loop.reflect.tagAfterHard"
+                label="After a {levels}"
+                vars={{ levels: HARD_LEVELS }}
+                style={styles.tagReflect}
+              />
             </View>
           </View>
         </View>
@@ -372,7 +438,9 @@ export const OnboardingLoopReflect: React.FC = () => {
             <Text style={styles.bubbleText}>{TACTIC_PROMPT}</Text>
             <Text style={styles.bubbleSub}>{TACTIC_HELPER}</Text>
           </View>
-          <Text style={styles.optional}>Optional — skip if nothing comes to mind</Text>
+          <Copy id="onboarding.loop.reflect.mockOptional" style={styles.optional}>
+            {'Optional — skip if nothing comes to mind'}
+          </Copy>
           {shown.map((tactic, i) => {
             const on = i === 0;
             return (
@@ -394,26 +462,33 @@ export const OnboardingLoopReflect: React.FC = () => {
               </View>
             );
           })}
-          {more > 0 && <Text style={styles.more}>+ {more} more</Text>}
+          {more > 0 && (
+            <Copy id="onboarding.loop.reflect.mockMore" style={styles.more} vars={{ count: more }}>
+              {'+ {count} more'}
+            </Copy>
+          )}
           <View style={styles.saveButton}>
-            <Text style={styles.saveText}>Save reflection</Text>
+            <Copy id="onboarding.loop.reflect.mockSave" style={styles.saveText}>
+              {'Save reflection'}
+            </Copy>
           </View>
-          <Text style={styles.skipText}>Skip for now</Text>
+          <Copy id="onboarding.loop.reflect.mockSkip" style={styles.skipText}>
+            {'Skip for now'}
+          </Copy>
         </View>
       </FadeRise>
 
       <FadeRise delay={800}>
-        <Text style={ob.body}>
-          Tap a {HARD_LEVELS} and you’ll be offered this after the celebration. Never required,
-          always worth it — it quietly builds a playbook of{' '}
-          <Text style={ob.bodyStrong}>what actually works for you.</Text>
-        </Text>
+        <Copy id="onboarding.loop.reflect.body" style={ob.body} boldStyle={ob.bodyStrong} vars={{ levels: HARD_LEVELS }}>
+          {'Tap a {levels} and you’ll be offered this after the celebration. Never required, always worth it — it quietly builds a playbook of **what actually works for you.**'}
+        </Copy>
       </FadeRise>
     </View>
   );
 };
 
 const EFFORT_HEIGHT = 44;
+const EFFORT_DOT = 7;
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', paddingVertical: Spacing.md },
@@ -575,7 +650,7 @@ const styles = StyleSheet.create({
   routeOn: { borderColor: Colors.secondary },
   routeText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.dark },
 
-  // ---- beat 5: Log details + Effort Level ----------------------------------
+  // ---- beat 5: Log details + friction card ---------------------------------
   logDetails: {
     backgroundColor: Colors.lightGray,
     borderRadius: BorderRadius.md,
@@ -629,15 +704,15 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     padding: Spacing.md,
   },
-  effortLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
+  effortLabel: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: Colors.primary,
+  },
   effortHead: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.xs },
   effortBig: { fontFamily: Fonts.primaryBold, fontSize: 30, lineHeight: 34, color: Colors.dark },
-  effortOutOf: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    marginBottom: 5,
-  },
   effortPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -646,15 +721,16 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primary + '1A',
-    marginBottom: 6,
-    marginLeft: Spacing.xs,
+    alignSelf: 'flex-start',
+    marginTop: Spacing.xs,
   },
   effortPillText: { fontFamily: Fonts.secondary, fontSize: 11, color: Colors.primary },
   effortCaption: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
-    color: Colors.dark,
-    marginTop: 2,
+    color: Colors.gray,
+    marginBottom: 5,
+    flexShrink: 1,
   },
   effortBars: {
     flexDirection: 'row',
@@ -667,10 +743,20 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     backgroundColor: Colors.border + '55',
     borderRadius: BorderRadius.sm,
   },
-  effortBar: { backgroundColor: Colors.primary, borderRadius: BorderRadius.sm },
+  effortBar: { width: '100%', backgroundColor: Colors.primary, borderRadius: BorderRadius.sm },
+  effortDot: {
+    position: 'absolute',
+    width: EFFORT_DOT,
+    height: EFFORT_DOT,
+    borderRadius: EFFORT_DOT / 2,
+    backgroundColor: Colors.secondary,
+    borderWidth: 1,
+    borderColor: Colors.white,
+  },
   axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs },
   axisText: { fontFamily: Fonts.secondary, fontSize: 11, color: Colors.gray },
 

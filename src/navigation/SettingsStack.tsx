@@ -1,13 +1,10 @@
 import React from 'react';
-import { Image, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SettingsStackParamList } from '../types/navigation';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
 import { AdminStack } from './AdminStack';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
-
-const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
@@ -26,12 +23,7 @@ export const SettingsStack: React.FC = () => (
     <Stack.Screen
       name="SettingsScreen"
       component={SettingsScreen}
-      options={{
-        title: 'Settings',
-        headerLeft: () => (
-          <Image source={logo} style={styles.headerLogo} resizeMode="contain" />
-        ),
-      }}
+      options={{ title: 'Settings' }}
     />
     <Stack.Screen
       name="Admin"
@@ -45,10 +37,3 @@ export const SettingsStack: React.FC = () => (
     />
   </Stack.Navigator>
 );
-
-const styles = StyleSheet.create({
-  headerLogo: {
-    width: 32,
-    height: 32,
-  },
-});

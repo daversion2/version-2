@@ -1,16 +1,16 @@
-// XP Bank Configuration
-// These values can be adjusted to tune the gamification system
+// XP is the running total of friction the user has pushed through. It is never
+// multiplied — not by streaks, not by bonuses — so the number stays honest.
 
-export const STREAK_MULTIPLIERS = [
-  { minDays: 1, maxDays: 2, multiplier: 1.0 },
-  { minDays: 3, maxDays: 6, multiplier: 1.2 },
-  { minDays: 7, maxDays: 13, multiplier: 1.5 },
-  { minDays: 14, maxDays: 29, multiplier: 1.75 },
-  { minDays: 30, maxDays: Infinity, multiplier: 2.0 },
+// Streak milestones, named for the celebration only. They don't change XP.
+export const STREAK_TIERS = [
+  { minDays: 1, maxDays: 2, name: 'Starting' },
+  { minDays: 3, maxDays: 6, name: 'Building Momentum' },
+  { minDays: 7, maxDays: 13, name: 'On Fire' },
+  { minDays: 14, maxDays: 29, name: 'Unstoppable' },
+  { minDays: 30, maxDays: Infinity, name: 'Legendary' },
 ];
 
 // Points awarded for different actions
 export const POINTS = {
   FAILED_CHALLENGE: 1,
-  BUDDY_BONUS_MULTIPLIER: 1.25,
 };

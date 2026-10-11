@@ -9,8 +9,6 @@ import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
 import { resetOnboarding, getUser, clearUserAccount, deleteAccountPermanently, clearPushToken } from '../../services/users';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
 import { registerForPushNotifications } from '../../services/notifications';
 import { cancelAllHabitReminders } from '../../services/habitReminders';
 import { showAlert, showConfirm } from '../../utils/alert';
@@ -264,69 +262,18 @@ export const SettingsScreen: React.FC = () => {
         </Text>
       </Card>
 
-      {/* Dev Testing Tools — admin only, same gate as the Admin card above.
-          These were shipping to every user until 2026-09-18: any account could
-          wipe its own data with Clear Account or silently zero its streak with
-          Simulate Streak Break. They are build tools, not features. */}
+      {/* Clear Account (dev tool) — admin only, same gate as the Admin card above.
+          This was shipping to every user until 2026-09-18: any account could
+          wipe its own data with it. It's a build tool, not a feature. */}
       {userProfile?.is_admin === true && (
-        <>
-          <Card style={{ marginTop: Spacing.lg }}>
-            <Text style={{ fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, marginBottom: Spacing.sm }}>
-              Dev Testing
-            </Text>
-            <Button
-              title="Simulate Streak Break (Comeback)"
-              onPress={async () => {
-                if (!user) return;
-                await setDoc(doc(db, 'users', user.uid), {
-                  currentStreak: 0,
-                  lastActivityDate: null,
-                }, { merge: true });
-                showAlert('Done', 'Streak reset to 0. Go back to Home to see the comeback modal.');
-              }}
-              variant="outline"
-              style={{ marginBottom: Spacing.sm }}
-            />
-            <Button
-              title="Micro-Exercise: Reflection"
-              onPress={() => navigation.getParent()?.navigate('Home', { screen: 'MicroExerciseFeeling', params: { trigger_context: 'reflection' } })}
-              variant="outline"
-              style={{ marginBottom: Spacing.sm }}
-            />
-            <Button
-              title="Reset All Intro Flags"
-              onPress={async () => {
-                if (!user) return;
-                const { deleteField } = await import('firebase/firestore');
-                await setDoc(doc(db, 'users', user.uid), {
-                  has_seen_points_intro: deleteField(),
-                  has_dismissed_goal_prompt: deleteField(),
-                  has_seen_debrief: deleteField(),
-                  app_open_count: deleteField(),
-                  // Kept in the reset list despite their features being off the
-                  // tab bar: an account that still carries these flags would
-                  // skip the unlock moments if Challenges is ever restored.
-                  has_seen_challenges_unlock: deleteField(),
-                  has_seen_training_unlock: deleteField(),
-                  has_seen_craving_pointer: deleteField(),
-                }, { merge: true });
-                await refreshProfile();
-                showAlert('Done', 'All intro flags reset.');
-              }}
-              variant="outline"
-            />
-          </Card>
-
-          {/* Clear Account (dev tool) */}
-          <Button
-            title={clearing ? 'Clearing...' : 'Clear Account'}
-            onPress={handleClearAccount}
-            variant="outline"
-            disabled={clearing}
-            loading={clearing}
-            style={{ marginTop: Spacing.lg }}
-          />
-        </>
+        <Button
+          title={clearing ? 'Clearing...' : 'Clear Account'}
+          onPress={handleClearAccount}
+          variant="outline"
+          disabled={clearing}
+          loading={clearing}
+          style={{ marginTop: Spacing.lg }}
+        />
       )}
 
       {/* Sign Out */}

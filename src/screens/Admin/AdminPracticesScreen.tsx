@@ -13,7 +13,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { Practice, PRACTICE_GROUPS, getIntensityTier } from '../../data/practices';
+import { Practice, getIntensityTier } from '../../data/practices';
+import { getHabitCategory } from '../../data/habitLibrary';
 import {
   getAllPracticeCatalogItems,
   setPracticeActive,
@@ -61,7 +62,7 @@ export const AdminPracticesScreen: React.FC = () => {
   const handleSeed = () => {
     Alert.alert(
       'Write defaults to Firestore',
-      'This writes every bundled practice into the catalog, overwriting any edits to those ids. Use it once to populate, or to reset. Continue?',
+      'This writes every bundled habit into the catalog, overwriting any edits to those ids. Use it once to populate, or to reset. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -71,7 +72,7 @@ export const AdminPracticesScreen: React.FC = () => {
             setSeeding(true);
             try {
               const n = await seedPracticeCatalogFromBundled();
-              Alert.alert('Done', `Wrote ${n} practices to the catalog.`);
+              Alert.alert('Done', `Wrote ${n} habits to the catalog.`);
               await loadData();
             } catch (e: any) {
               Alert.alert('Error', e.message);
@@ -93,8 +94,6 @@ export const AdminPracticesScreen: React.FC = () => {
   }
 
   const activeCount = practices.filter((p) => p.active !== false).length;
-  const groupName = (id: string) => PRACTICE_GROUPS.find((g) => g.id === id)?.name ?? id;
-  const groupColor = (id: string) => PRACTICE_GROUPS.find((g) => g.id === id)?.color ?? Colors.primary;
 
   return (
     <View style={styles.screen}>
@@ -104,7 +103,7 @@ export const AdminPracticesScreen: React.FC = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
       >
         <Text style={styles.countText}>
-          {practices.length} practice{practices.length !== 1 ? 's' : ''} ({activeCount} active)
+          {practices.length} habit{practices.length !== 1 ? 's' : ''} ({activeCount} active)
         </Text>
 
         <TouchableOpacity style={styles.seedBtn} onPress={handleSeed} disabled={seeding}>
@@ -120,6 +119,7 @@ export const AdminPracticesScreen: React.FC = () => {
 
         {practices.map((p) => {
           const retired = p.active === false;
+          const category = getHabitCategory(p.category_id);
           return (
             <Card
               key={p.id}
@@ -127,14 +127,22 @@ export const AdminPracticesScreen: React.FC = () => {
               onPress={() => navigation.navigate('AdminPracticeEdit', { mode: 'edit', practiceId: p.id })}
             >
               <View style={styles.badgeRow}>
-                <View style={[styles.badge, { backgroundColor: groupColor(p.group ?? 'custom') + '20' }]}>
-                  <Text style={[styles.badgeText, { color: groupColor(p.group ?? 'custom') }]}>
-                    {groupName(p.group ?? 'custom')}
-                  </Text>
-                </View>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeTextMuted}>{p.flow}</Text>
-                </View>
+                {category ? (
+                  <View style={[styles.badge, { backgroundColor: category.color + '20' }]}>
+                    <Text style={[styles.badgeText, { color: category.color }]}>{category.name}</Text>
+                  </View>
+                ) : (
+                  <View style={[styles.badge, { backgroundColor: Colors.secondary + '20' }]}>
+                    <Text style={[styles.badgeText, { color: Colors.secondary }]}>
+                      No category{p.category_id ? ` (${p.category_id})` : ''}
+                    </Text>
+                  </View>
+                )}
+                {!!p.flow && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeTextMuted}>{p.flow}</Text>
+                  </View>
+                )}
                 {!!p.intensity && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeTextMuted}>

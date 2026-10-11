@@ -55,7 +55,14 @@ export const collection = jest.fn((_db: any, ...pathSegments: string[]) => {
   return { _path: path };
 });
 
-export const doc = jest.fn((_db: any, ...pathSegments: string[]) => {
+let autoIdSeq = 0;
+
+export const doc = jest.fn((dbOrCollection: any, ...pathSegments: string[]) => {
+  // doc(collectionRef) with no id → a new auto-id document in that collection.
+  if (pathSegments.length === 0 && dbOrCollection?._path) {
+    const docId = `auto_${++autoIdSeq}`;
+    return { _path: `${dbOrCollection._path}/${docId}`, id: docId };
+  }
   const path = pathSegments.join('/');
   const parts = path.split('/');
   const docId = parts[parts.length - 1];
@@ -232,6 +239,29 @@ export const deleteDoc = jest.fn(async (docRef: any) => {
   if (mockDB[collectionPath]?.[docId]) {
     delete mockDB[collectionPath][docId];
   }
+});
+
+/** Queues writes and applies them on commit(), in order. No atomicity — tests are single-threaded. */
+export const writeBatch = jest.fn((_db: any) => {
+  const ops: (() => Promise<void>)[] = [];
+  const batch = {
+    set: (docRef: any, data: Record<string, any>, options?: { merge?: boolean }) => {
+      ops.push(() => setDoc(docRef, data, options));
+      return batch;
+    },
+    update: (docRef: any, data: Record<string, any>) => {
+      ops.push(() => updateDoc(docRef, data));
+      return batch;
+    },
+    delete: (docRef: any) => {
+      ops.push(() => deleteDoc(docRef));
+      return batch;
+    },
+    commit: async () => {
+      for (const op of ops) await op();
+    },
+  };
+  return batch;
 });
 
 /**

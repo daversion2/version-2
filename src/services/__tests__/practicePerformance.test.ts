@@ -1,4 +1,4 @@
-import { buildPracticePerformance, buildResistanceOverview } from '../practicePerformance';
+import { buildPracticePerformance } from '../practicePerformance';
 import { CompletionLog } from '../../types';
 import { getPractice } from '../../data/practices';
 
@@ -326,7 +326,7 @@ describe('buildPracticePerformance', () => {
       expect(byLabel['Coldest plunge'].value).toBe('44°F');
       expect(byLabel['Coldest plunge'].date).toBe('2026-07-07');
       expect(byLabel['Total time trained'].value).toBe('9 min');
-      expect(byLabel['Best week'].value).toBe('3 reps');
+      expect(byLabel['Best week'].value).toBe('3 check-ins');
       expect(byLabel['Best week'].date).toBe('2026-07-06');
     });
 
@@ -453,43 +453,5 @@ describe('config-driven dose (Phase 3)', () => {
       icon: 'snow-outline',
       pick: 'min',
     });
-  });
-});
-
-describe('resistance overview (Progress headline)', () => {
-  it('reports nothing to claim below the minimum rated logs', () => {
-    const overview = buildResistanceOverview(resistanceSeries([3, 2]), TODAY);
-    expect(overview.recentAvg).toBeNull();
-    expect(overview.change).toBeNull();
-    expect(overview.rated).toBe(2);
-  });
-
-  it('summarises a falling curve across all habits', () => {
-    const overview = buildResistanceOverview(
-      resistanceSeries([3, 3, 3, 3, 3, 1, 1, 1, 1, 1]),
-      TODAY
-    );
-    expect(overview.firstAvg).toBe(3);
-    expect(overview.recentAvg).toBe(1);
-    expect(overview.change).toBeLessThan(0);
-  });
-
-  it('shows a current number without a change until there is history to compare', () => {
-    const overview = buildResistanceOverview(resistanceSeries([3, 2, 2]), TODAY);
-    expect(overview.recentAvg).toBeCloseTo(2.3, 1);
-    expect(overview.change).toBeNull();
-  });
-
-  it('leaves an empty week null rather than zero, so a gap never reads as progress', () => {
-    // Three logs this week only; the seven earlier buckets have nothing in them.
-    const overview = buildResistanceOverview(resistanceSeries([2, 2, 2]), TODAY);
-    expect(overview.weekly).toHaveLength(8);
-    expect(overview.weekly.slice(0, 7).every((v) => v === null)).toBe(true);
-    expect(overview.weekly[7]).toBe(2);
-  });
-
-  it('returns one week bucket per week, aligned with its start dates', () => {
-    const overview = buildResistanceOverview(resistanceSeries([2, 2, 2]), TODAY);
-    expect(overview.weekStarts).toEqual(WEEK_STARTS);
   });
 });

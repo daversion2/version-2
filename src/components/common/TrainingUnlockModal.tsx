@@ -42,7 +42,7 @@ export const TrainingUnlockModal: React.FC<Props> = ({ visible, onOpenTraining, 
           <Text style={styles.unlocked}>Unlocked</Text>
           <Text style={styles.title}>Training</Text>
           <Text style={styles.body}>
-            Your practices are the foundation. Training is where you go past them — two ways to
+            Your habits are the foundation. Training is where you go past them — two ways to
             put yourself somewhere uncomfortable on purpose.
           </Text>
 

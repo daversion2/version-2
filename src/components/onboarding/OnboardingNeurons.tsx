@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
+import { Copy } from '../common/Copy';
 import { ob } from './onboardingStyles';
 
 // ============================================================================
@@ -111,10 +112,12 @@ export const OnboardingNeurons: React.FC = () => {
   return (
     <View style={styles.container}>
       <FadeRise>
-        <Text style={ob.eyebrow}>What it wires</Text>
-        <Text style={ob.headline}>
-          Push through it and the same handful of neurons fire together.
-        </Text>
+        <Copy id="onboarding.neurons.eyebrow" style={ob.eyebrow}>
+          {'What it wires'}
+        </Copy>
+        <Copy id="onboarding.neurons.headline" style={ob.headline}>
+          {'Push through it and the same handful of neurons fire together.'}
+        </Copy>
       </FadeRise>
 
       <FadeRise delay={400}>
@@ -139,19 +142,20 @@ export const OnboardingNeurons: React.FC = () => {
             <Pulse width={trackWidth} />
           </View>
           <View style={styles.captionRow}>
-            <Text style={styles.caption}>First time</Text>
-            <Text style={styles.caption}>Hundredth time</Text>
+            <Copy id="onboarding.neurons.captionFirst" style={styles.caption}>
+              {'First time'}
+            </Copy>
+            <Copy id="onboarding.neurons.captionHundredth" style={styles.caption}>
+              {'Hundredth time'}
+            </Copy>
           </View>
         </View>
       </FadeRise>
 
       <FadeRise delay={800}>
-        <Text style={ob.body}>
-          Neurons that fire together wire together. Repeat the same override and that pathway
-          thickens and speeds up, until pushing through that internal resistance you feel becomes
-          second nature.{' '}
-          <Text style={ob.bodyStrong}>The friction drops because the wiring changed.</Text>
-        </Text>
+        <Copy id="onboarding.neurons.body" style={ob.body} boldStyle={ob.bodyStrong}>
+          {'Neurons that fire together wire together. Repeat the same override and that pathway thickens and speeds up, until pushing through that internal resistance you feel becomes second nature. **The friction drops because the wiring changed.**'}
+        </Copy>
       </FadeRise>
     </View>
   );

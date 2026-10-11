@@ -70,13 +70,13 @@ export const PracticePickerModal: React.FC<Props> = ({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <Pressable style={styles.overlay} onPress={onCancel}>
         <Pressable style={styles.card} onPress={() => {}}>
-          <Text style={styles.title}>Log a practice</Text>
+          <Text style={styles.title}>Log a habit</Text>
           <Text style={styles.subtitle}>For {formatDayHeader(date)}</Text>
 
           {loading ? (
             <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
           ) : practices.length === 0 ? (
-            <Text style={styles.emptyText}>You have no active practices.</Text>
+            <Text style={styles.emptyText}>You have no active habits.</Text>
           ) : (
             <FlatList
               data={practices}

@@ -126,7 +126,7 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="HabitDetail"
       component={MyPracticeDetailScreen}
-      options={{ title: 'Practice Details' }}
+      options={{ title: 'Habit Details' }}
     />
     <Stack.Screen
       name="ArchivedHabits"
@@ -146,12 +146,12 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="HabitLibrary"
       component={HabitLibraryScreen}
-      options={{ title: 'Practice Library' }}
+      options={{ title: 'Habit Library' }}
     />
     <Stack.Screen
       name="TraditionalHabits"
       component={TraditionalHabitsScreen}
-      options={{ title: 'Traditional Practices' }}
+      options={{ title: 'Traditional Habits' }}
     />
     <Stack.Screen
       name="HabitLibraryDetail"

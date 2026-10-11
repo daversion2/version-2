@@ -12,7 +12,7 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { updateWillpowerStats, getStreakMultiplier } from './willpower';
+import { updateWillpowerStats } from './willpower';
 import { createHabit } from './practices';
 import { getCurrentDayNumber } from './challenges';
 import {

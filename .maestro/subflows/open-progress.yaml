@@ -21,11 +21,11 @@ appId: com.neuronudge.neuronudge
 - repeat:
     times: 6
     while:
-      notVisible: "Your resistance"
+      notVisible: ".*(friction faced in the last 7 days|how much friction you.re handling).*"
     commands:
       - tapOn:
           point: "62%,94%"
       - waitForAnimationToEnd:
           timeout: 4000
 
-- assertVisible: "Effort Level"
+- assertVisible: ".*(friction faced in the last 7 days|how much friction you.re handling).*"

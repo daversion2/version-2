@@ -14,12 +14,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { triggerRewardHaptic } from '../../utils/haptics';
 import { NeuroscienceTidbit } from '../../types';
+import { Copy } from '../common/Copy';
 
 interface HabitCelebrationModalProps {
   visible: boolean;
   pointsEarned: number;
   streakDays: number;
-  /** Optional line under the points, e.g. the first-try double-points note. */
+  /** Optional reward line under the points, e.g. a challenge repeat milestone. */
   bonusLabel?: string | null;
   /**
    * Neutral note under the points — currently "which day this was filed under"
@@ -29,11 +30,10 @@ interface HabitCelebrationModalProps {
    */
   contextLabel?: string | null;
   /**
-   * Crossing a streak tier — "7-day streak: Committed · 2× XP from here".
+   * Crossing a streak tier — "7-day streak: On Fire".
    *
    * Its own slot for the same reason contextLabel has one: this is a different
-   * kind of news from bonusLabel, and both can land on the same rep (a first
-   * try that also crosses a tier). It used to be a native Alert fired after the
+   * kind of news from bonusLabel, and both can land on the same completion. It used to be a native Alert fired after the
    * celebration was dismissed, held in a `pendingAlert` ref and flushed from
    * four different handlers — an OS dialog with an OK button, announcing good
    * news, after the card that was already announcing good news. Moving it here
@@ -289,7 +289,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
             bounces={false}
           >
             <Text style={styles.pointsText}>+{pointsEarned}</Text>
-            <Text style={styles.pointsLabel}>XP</Text>
+            <Copy id="celebration.xp" style={styles.pointsLabel}>{'XP'}</Copy>
 
             {!!bonusLabel && (
               <View style={styles.bonusRow}>
@@ -334,7 +334,9 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
                   ))}
                 </View>
                 <View style={styles.streakRow}>
-                  <Text style={styles.streakText}>{streakDays} day streak</Text>
+                  <Copy id="celebration.streak" style={styles.streakText} vars={{ days: streakDays }}>
+                    {'{days} day streak'}
+                  </Copy>
                 </View>
               </>
             )}
@@ -343,7 +345,9 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
               <View style={styles.tidbitBlock}>
                 <View style={styles.tidbitHeader}>
                   <Ionicons name="flash" size={15} color={Colors.primary} />
-                  <Text style={styles.tidbitLabel}>Your brain right now</Text>
+                  <Copy id="celebration.tidbitLabel" style={styles.tidbitLabel}>
+                    {'Your brain right now'}
+                  </Copy>
                 </View>
                 <Text style={styles.tidbitText}>{tidbit.text}</Text>
                 {!!tidbit.extended_text && !!onLearnMore && (
@@ -353,7 +357,9 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
                     activeOpacity={0.7}
                     disabled={dismissed}
                   >
-                    <Text style={styles.learnMoreText}>Learn more</Text>
+                    <Copy id="celebration.learnMore" style={styles.learnMoreText}>
+                      {'Learn more'}
+                    </Copy>
                     <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
                   </TouchableOpacity>
                 )}
@@ -369,7 +375,9 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
                 activeOpacity={0.8}
                 disabled={dismissed}
               >
-                <Text style={styles.doneText}>Done</Text>
+                <Copy id="celebration.done" style={styles.doneText}>
+                  {'Done'}
+                </Copy>
               </TouchableOpacity>
             </Animated.View>
 
@@ -381,7 +389,9 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
                 disabled={dismissed}
               >
                 <Ionicons name="chatbubbles-outline" size={16} color={Colors.primary} />
-                <Text style={styles.reflectText}>Reflect on what it took</Text>
+                <Copy id="celebration.reflect" style={styles.reflectText}>
+                  {'Reflect on what it took'}
+                </Copy>
               </TouchableOpacity>
             )}
           </View>

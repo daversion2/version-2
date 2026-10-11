@@ -185,7 +185,8 @@ const lastNWeeks = (todayStr: string, n: number): { start: string; end: string }
 
 // ---- Formatting ----
 
-const fmtNum = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+const fmtNum = (n: number): string =>
+  n.toLocaleString('en-US', { maximumFractionDigits: Number.isInteger(n) ? 0 : 1, minimumFractionDigits: Number.isInteger(n) ? 0 : 1 });
 
 /**
  * A value as the user should read it. `valueLabels` wins when the field has
@@ -435,7 +436,7 @@ export const buildPracticePerformance = (
     records.push({
       icon: 'trophy-outline',
       label: 'Best week',
-      value: `${bestWeek[1]} reps`,
+      value: `${bestWeek[1]} check-ins`,
       date: bestWeek[0],
     });
   }
@@ -502,7 +503,7 @@ export const buildPracticePerformance = (
       insights.push({
         tone: 'nudge',
         icon: 'barbell-outline',
-        text: `Only ${challenging} of your last ${window.length} reps felt challenging. You may have adapted — consider raising the dose.`,
+        text: `Only ${challenging} of your last ${window.length} check-ins were Med or Hard. You may have adapted — consider raising the dose.`,
       });
     }
   }
@@ -513,7 +514,7 @@ export const buildPracticePerformance = (
     insights.push({
       tone: 'progress',
       icon: 'flash-outline',
-      text: `"${topTactic.label}" got you started on ${topTactic.count} of your hard reps — your most reliable move. Reach for it first.`,
+      text: `"${topTactic.label}" got you started on ${topTactic.count} of your hard check-ins — your most reliable move. Reach for it first.`,
     });
   }
 
@@ -527,75 +528,5 @@ export const buildPracticePerformance = (
     choiceBreakdowns,
     tacticStats,
     records,
-  };
-};
-
-// =============================================================================
-// RESISTANCE OVERVIEW — the headline for the Progress screen.
-//
-// buildPracticePerformance() answers "how is THIS habit going". This answers
-// "how is the resistance you face overall going", across every habit, which is
-// the number the whole product is organised around.
-// =============================================================================
-
-export interface ResistanceOverview {
-  /** Weekly mean resistance, oldest → newest. null = nothing rated that week. */
-  weekly: (number | null)[];
-  /** Monday of each bucket, aligned with `weekly`. */
-  weekStarts: string[];
-  /** Mean of the earliest rated logs, once there are enough to compare. */
-  firstAvg: number | null;
-  /** Mean of the most recent rated logs. */
-  recentAvg: number | null;
-  /** recentAvg − firstAvg. NEGATIVE means resistance is falling. */
-  change: number | null;
-  /** How many logs carried a rating. */
-  rated: number;
-}
-
-/** Minimum rated logs before the overview is worth showing at all. */
-export const MIN_RATED_FOR_OVERVIEW = 3;
-
-export const buildResistanceOverview = (
-  logs: CompletionLog[],
-  todayStr: string = toDateStr(new Date())
-): ResistanceOverview => {
-  const weeks = lastNWeeks(todayStr, WEEKS);
-  const series = [...logs]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((l) => ({ date: l.date, value: logResistance(l) }))
-    .filter((p): p is { date: string; value: number } => typeof p.value === 'number');
-
-  const weekly = weeks.map((w) => {
-    const inWeek = series.filter((p) => p.date >= w.start && p.date <= w.end);
-    return inWeek.length ? round1(avg(inWeek.map((p) => p.value))) : null;
-  });
-
-  if (series.length < MIN_RATED_FOR_OVERVIEW) {
-    return {
-      weekly,
-      weekStarts: weeks.map((w) => w.start),
-      firstAvg: null,
-      recentAvg: null,
-      change: null,
-      rated: series.length,
-    };
-  }
-
-  const recentAvg = round1(avg(series.slice(-5).map((p) => p.value)));
-  // Only claim a trend once there is enough history for "then vs now" to mean
-  // something. Below that the number is shown without a change figure.
-  const firstAvg =
-    series.length >= MIN_PROGRESS_SESSIONS
-      ? round1(avg(series.slice(0, 5).map((p) => p.value)))
-      : null;
-
-  return {
-    weekly,
-    weekStarts: weeks.map((w) => w.start),
-    firstAvg,
-    recentAvg,
-    change: firstAvg === null ? null : round1(recentAvg - firstAvg),
-    rated: series.length,
   };
 };

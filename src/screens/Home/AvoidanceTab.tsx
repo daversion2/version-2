@@ -137,7 +137,7 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ visible, onClose, onCom
             <Text style={iv.introTitle}>Build Your Override Queue</Text>
             <Text style={iv.introBody}>
               Avoidance is how discomfort wins. Answer 4 quick questions to surface the tasks
-              you keep putting off — then chip away at them one rep at a time.
+              you keep putting off — then chip away at them one at a time.
             </Text>
             <TouchableOpacity
               style={iv.primaryBtn}
@@ -227,7 +227,7 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ visible, onClose, onCom
             <Text style={iv.doneCountLabel}>avoidance tasks queued</Text>
             <Text style={iv.doneTitle}>Queue is ready.</Text>
             <Text style={iv.doneBody}>
-              Every task you complete is a rep at doing things your brain resists.
+              Every task you complete trains you to do the things your brain resists.
               That's the training.
             </Text>
             <TouchableOpacity

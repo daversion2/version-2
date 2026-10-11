@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
+import { Copy } from '../common/Copy';
 import { ob } from './onboardingStyles';
 
 // ============================================================================
@@ -27,28 +28,28 @@ const FRICTION_MOMENTS = [
 export const OnboardingPremise: React.FC = () => (
   <View style={styles.container}>
     <FadeRise>
-      <Text style={ob.eyebrow}>Neuro-Nudge</Text>
-      <Text style={ob.headline}>
-        The hardest part of a habit is the friction right before it.{' '}
-        <Text style={ob.headlineAccent}>That friction is the training.</Text>
-      </Text>
+      <Copy id="onboarding.premise.eyebrow" style={ob.eyebrow}>
+        {'Neuro-Nudge'}
+      </Copy>
+      <Copy id="onboarding.premise.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'The hardest part of a habit is the friction right before it. **That friction is the training.**'}
+      </Copy>
     </FadeRise>
 
     <FadeRise delay={400}>
       <View style={styles.friction}>
-        {FRICTION_MOMENTS.map((line) => (
-          <Text key={line} style={styles.frictionLine}>
+        {FRICTION_MOMENTS.map((line, i) => (
+          <Copy key={line} id={`onboarding.premise.friction${i + 1}`} style={styles.frictionLine}>
             {line}
-          </Text>
+          </Copy>
         ))}
       </View>
     </FadeRise>
 
     <FadeRise delay={800}>
-      <Text style={ob.body}>
-        That's not a character flaw you keep failing to beat. It's resistance — and it's the thing
-        you're here to train against.
-      </Text>
+      <Copy id="onboarding.premise.body" style={ob.body}>
+        {"That's not a character flaw you keep failing to beat. It's resistance — and it's the thing you're here to train against."}
+      </Copy>
     </FadeRise>
   </View>
 );

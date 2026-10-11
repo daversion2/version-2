@@ -4,7 +4,10 @@
  * Run with: npx tsx scripts/runSeedTidbits.ts
  *
  * Adds new tidbits only — skips any that already exist (matched by exact text).
- * Mirrors src/utils/seedTidbits.ts but runs outside the app (own Firebase app).
+ *
+ * PREFER Admin → Dashboard → Sync Tidbits (src/utils/seedTidbits.ts). This
+ * script never switches anything off, so running it after rewording tidbits
+ * leaves the old versions active alongside the new ones.
  */
 
 import { initializeApp } from 'firebase/app';

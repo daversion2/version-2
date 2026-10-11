@@ -115,7 +115,7 @@ const WeeklyDoseCard: React.FC<{ dose: WeeklyDose }> = ({ dose }) => {
 const ChallengeRatingCard: React.FC<{ weeks: WeeklyRate[] }> = ({ weeks }) => (
   <Card style={styles.card}>
     <Text style={styles.cardTitle}>Challenge Rating</Text>
-    <Text style={styles.cardSub}>Share of reps rated "challenging" each week</Text>
+    <Text style={styles.cardSub}>Share of check-ins rated Med or Hard each week</Text>
     <View style={styles.weekChart}>
       {weeks.map((w, i) => {
         const pct = w.rated > 0 ? Math.round((w.challenging / w.rated) * 100) : null;
@@ -154,7 +154,7 @@ const ChoiceBreakdownCard: React.FC<{ breakdown: ChoiceBreakdown }> = ({ breakdo
           <View style={styles.hbarLabelRow}>
             <Text style={styles.hbarLabel}>{o.label}</Text>
             <Text style={styles.hbarCount}>
-              {o.count} {o.count === 1 ? 'rep' : 'reps'} · {o.pct}%
+              {o.count} {o.count === 1 ? 'check-in' : 'check-ins'} · {o.pct}%
             </Text>
           </View>
           <View style={styles.hbarTrack}>
@@ -168,7 +168,7 @@ const ChoiceBreakdownCard: React.FC<{ breakdown: ChoiceBreakdown }> = ({ breakdo
         <>
           <View style={styles.cardDivider} />
           <Text style={styles.cardTitle}>Where It Gets Hard</Text>
-          <Text style={styles.cardSub}>Share of reps rated "challenging"</Text>
+          <Text style={styles.cardSub}>Share of check-ins rated Med or Hard</Text>
           {[...withDifficulty]
             .sort((a, b) => (b.challengingPct || 0) - (a.challengingPct || 0))
             .map((o) => (
@@ -208,7 +208,7 @@ export const PracticePerformanceSection: React.FC<Props> = ({ performance }) => 
         <View style={styles.teaserRow}>
           <Ionicons name="stats-chart-outline" size={20} color={Colors.gray} />
           <Text style={styles.teaserText}>
-            Log a few more reps to unlock detailed performance reporting for this practice.
+            Log it a few more times to unlock detailed performance reporting for this habit.
           </Text>
         </View>
       </Card>
@@ -255,7 +255,7 @@ export const PracticePerformanceSection: React.FC<Props> = ({ performance }) => 
         <Card style={styles.card}>
           <Text style={styles.cardTitle}>What Works For You</Text>
           <Text style={styles.cardSub}>
-            What got you through the reps that were hard
+            What got you started when it was hard
           </Text>
           <View style={styles.chipsRow}>
             {performance.tacticStats.tactics.map((tactic) => (

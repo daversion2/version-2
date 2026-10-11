@@ -1,7 +1,7 @@
 # The Archived screen is reachable from Settings.
 #
 # Regression guard for a one-way door: the archive dialog promises "you can
-# restore it ... from Settings → Archived Practices", and until this entry point
+# restore it ... from Settings → Archived Habits", and until this entry point
 # existed nothing in the app navigated to ArchivedHabits at all. A practice with
 # no logged reps was then in no list anywhere — off Home, filtered out of
 # Training Volume by is_active, absent from By Metric for want of metric values —
@@ -25,7 +25,7 @@ appId: com.neuronudge.neuronudge
     times: 6
     while:
       notVisible:
-        text: ".*Archived Practices.*"
+        text: ".*Archived Habits.*"
     commands:
       - tapOn:
           point: "87%,94%"
@@ -33,14 +33,14 @@ appId: com.neuronudge.neuronudge
           timeout: 4000
 
 # <Card> merges its label and description into ONE accessibility node —
-# "Archived Practices, Practices you've put away — restore any of them, " — so
+# "Archived Habits, Habits you've put away — restore any of them, " — so
 # both halves are asserted through one wrapped selector. Bare text matches
 # nothing here; see .claude/skills/ui-test/SKILL.md.
-- assertVisible: ".*Archived Practices, Practices you've put away.*"
+- assertVisible: ".*Archived Habits, Habits you've put away.*"
 - takeScreenshot: 07a-settings-row
 
 - tapOn:
-    text: ".*Archived Practices.*"
+    text: ".*Archived Habits.*"
 - waitForAnimationToEnd:
     timeout: 5000
 

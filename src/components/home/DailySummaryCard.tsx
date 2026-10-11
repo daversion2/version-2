@@ -20,19 +20,19 @@ function buildComparisonMessages(summary: DailySummary): ComparisonMessage[] {
   const messages: ComparisonMessage[] = [];
 
   if (c.habits_more_vs_last_week) {
-    messages.push({ text: `You did ${c.habits_more_vs_last_week} more practice${c.habits_more_vs_last_week === 1 ? '' : 's'} this week than last week` });
+    messages.push({ text: `You did ${c.habits_more_vs_last_week} more habit${c.habits_more_vs_last_week === 1 ? '' : 's'} this week than last week` });
   }
   if (c.challenges_more_vs_last_week) {
     messages.push({ text: `You completed ${c.challenges_more_vs_last_week} more challenge${c.challenges_more_vs_last_week === 1 ? '' : 's'} this week than last week` });
   }
   if (c.habits_more_vs_last_month) {
-    messages.push({ text: `You've done ${c.habits_more_vs_last_month} more practice${c.habits_more_vs_last_month === 1 ? '' : 's'} this month than last month` });
+    messages.push({ text: `You've done ${c.habits_more_vs_last_month} more habit${c.habits_more_vs_last_month === 1 ? '' : 's'} this month than last month` });
   }
   if (c.challenges_more_vs_last_month) {
     messages.push({ text: `You've done ${c.challenges_more_vs_last_month} more challenge${c.challenges_more_vs_last_month === 1 ? '' : 's'} this month than last month` });
   }
   if (c.habits_more_vs_yesterday) {
-    messages.push({ text: `You did ${c.habits_more_vs_yesterday} more practice${c.habits_more_vs_yesterday === 1 ? '' : 's'} today than yesterday` });
+    messages.push({ text: `You did ${c.habits_more_vs_yesterday} more habit${c.habits_more_vs_yesterday === 1 ? '' : 's'} today than yesterday` });
   }
   if (c.challenges_more_vs_yesterday) {
     messages.push({ text: `You completed ${c.challenges_more_vs_yesterday} more challenge${c.challenges_more_vs_yesterday === 1 ? '' : 's'} today than yesterday` });
@@ -72,7 +72,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
       ? `You pushed through the hard moment ${overridesToday} time${overridesToday === 1 ? '' : 's'} today.`
       : practicesToday > 0
       ? 'You showed up today — no hard moments logged.'
-      : 'No practices logged yet today.';
+      : 'No habits logged yet today.';
 
   return (
     <Card style={styles.card}>
@@ -87,7 +87,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
         <View style={styles.statText}>
           <Text style={styles.statMain}>
             <Text style={styles.statNumber}>{practicesToday}</Text>
-            <Text style={styles.statLabel}> practice{practicesToday === 1 ? '' : 's'} logged today</Text>
+            <Text style={styles.statLabel}> habit{practicesToday === 1 ? '' : 's'} logged today</Text>
           </Text>
         </View>
       </View>
@@ -121,7 +121,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ summary }) =
         <View style={styles.statText}>
           <Text style={styles.statMain}>
             <Text style={styles.statNumber}>{habitsThisWeek}</Text>
-            <Text style={styles.statLabel}> practice{habitsThisWeek === 1 ? '' : 's'} this week</Text>
+            <Text style={styles.statLabel}> habit{habitsThisWeek === 1 ? '' : 's'} this week</Text>
           </Text>
           {totalHabits > 0 && (
             <Text style={styles.statSubtitle}>{totalHabits.toLocaleString()} all time</Text>

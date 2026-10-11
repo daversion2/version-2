@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { HabitPace, sectionFor } from '../../services/habitPace';
 import { RESISTANCE_LEVELS } from '../../constants/resistance';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 interface Props {
   name: string;
@@ -42,7 +44,7 @@ const DAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
  * for the accessibility label, so a screen reader hears "Difficult but
  * manageable" while the chip shows what fits in 34 points.
  */
-export const CHIP_CAPTIONS = ['Easy', 'Push', 'Hard'];
+export const CHIP_CAPTIONS = ['Easy', 'Med', 'Hard'];
 
 /**
  * What this card adds to what its SECTION already said.
@@ -52,23 +54,36 @@ export const CHIP_CAPTIONS = ['Easy', 'Push', 'Hard'];
  * habit. This returns only the part the heading cannot: how short the week is,
  * or which specific days were missed.
  */
-const detailFor = (pace: HabitPace): string | null => {
+const detailFor = (pace: HabitPace, t: ReturnType<typeof useCopy>): string | null => {
+  const vars = {
+    count: pace.missed,
+    completed: pace.completed,
+    target: pace.target,
+    todayTarget: pace.todayTarget,
+  };
   switch (sectionFor(pace)) {
     case 'due_today':
-      return pace.missed > 0
-        ? `Missed ${pace.missed} ${pace.missed === 1 ? 'day' : 'days'} this week`
-        : null;
+      if (pace.missed === 0) return null;
+      return pace.missed === 1
+        ? t('today.row.missed.one', 'Missed {count} day this week', vars)
+        : t('today.row.missed.other', 'Missed {count} days this week', vars);
     case 'behind':
       return pace.todayTarget > 0
-        ? `${pace.completed} of ${pace.target} · do ${pace.todayTarget} today`
-        : `${pace.completed} of ${pace.target} this week`;
+        ? t('today.row.behindDoToday', '{completed} of {target} · do {todayTarget} today', vars)
+        : t('today.row.behindThisWeek', '{completed} of {target} this week', vars);
     case 'open':
       if (pace.status === 'no_target') {
-        return pace.completed === 0 ? 'No weekly goal set' : `${pace.completed} this week`;
+        return pace.completed === 0
+          ? t('today.row.noGoal', 'No weekly goal set')
+          : t('today.row.countThisWeek', '{completed} this week', vars);
       }
-      return pace.dayScheduled ? pace.scheduleLabel : `${pace.completed} of ${pace.target}`;
+      return pace.dayScheduled
+        ? pace.scheduleLabel
+        : t('today.row.ofTarget', '{completed} of {target}', vars);
     case 'done':
-      return pace.doneToday ? 'Logged today' : 'Target hit';
+      return pace.doneToday
+        ? t('today.row.loggedToday', 'Logged today')
+        : t('today.row.targetHit', 'Target hit');
   }
 };
 
@@ -96,8 +111,9 @@ export const TodayHabitRow: React.FC<Props> = ({
   onAbout,
   onDetails,
 }) => {
+  const t = useCopy();
   const { doneToday } = pace;
-  const detail = detailFor(pace);
+  const detail = detailFor(pace, t);
   const isDone = sectionFor(pace) === 'done';
   const doneDates = new Set(pace.doneDates);
   const dueDates = new Set(pace.dueDates);
@@ -212,23 +228,37 @@ export const TodayHabitRow: React.FC<Props> = ({
                 </TouchableOpacity>
               );
             })}
-            <Text style={styles.weekCount}>
-              {pace.status === 'no_target'
-                ? `${pace.completed} this week`
-                : `${pace.completed} of ${pace.target}`}
-            </Text>
+            {pace.status === 'no_target' ? (
+              <Copy
+                id="today.row.countThisWeek"
+                style={styles.weekCount}
+                vars={{ completed: pace.completed }}
+              >
+                {'{completed} this week'}
+              </Copy>
+            ) : (
+              <Copy
+                id="today.row.ofTarget"
+                style={styles.weekCount}
+                vars={{ completed: pace.completed, target: pace.target }}
+              >
+                {'{completed} of {target}'}
+              </Copy>
+            )}
           </View>
 
-          <Text style={styles.backfillHint}>Tap a day to log it for that date.</Text>
+          <Copy id="today.row.backfillHint" style={styles.backfillHint}>
+            {'Tap a day to log it for that date.'}
+          </Copy>
 
           {/* Named routes, replacing the ⋮ that hid all of this behind a glyph. */}
           <View style={styles.routes}>
             {hasAbout && (
               <TouchableOpacity style={styles.route} onPress={onAbout} activeOpacity={0.7}>
                 <Ionicons name="book-outline" size={14} color={Colors.gray} />
-                <Text style={styles.routeText} numberOfLines={1}>
-                  About
-                </Text>
+                <Copy id="today.row.about" style={styles.routeText} numberOfLines={1}>
+                  {'About'}
+                </Copy>
               </TouchableOpacity>
             )}
             {/*
@@ -239,15 +269,15 @@ export const TodayHabitRow: React.FC<Props> = ({
             */}
             <TouchableOpacity style={styles.route} onPress={onOpenSheet} activeOpacity={0.7}>
               <Ionicons name="create-outline" size={14} color={Colors.gray} />
-              <Text style={styles.routeText} numberOfLines={1}>
-                Log details
-              </Text>
+              <Copy id="today.row.logDetails" style={styles.routeText} numberOfLines={1}>
+                {'Log details'}
+              </Copy>
             </TouchableOpacity>
             <TouchableOpacity style={styles.route} onPress={onDetails} activeOpacity={0.7}>
               <Ionicons name="stats-chart-outline" size={14} color={Colors.gray} />
-              <Text style={styles.routeText} numberOfLines={1}>
-                History
-              </Text>
+              <Copy id="today.row.history" style={styles.routeText} numberOfLines={1}>
+                {'History'}
+              </Copy>
             </TouchableOpacity>
           </View>
         </View>

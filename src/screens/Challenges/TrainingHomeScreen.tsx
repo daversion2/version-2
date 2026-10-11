@@ -24,14 +24,14 @@ export const TrainingHomeScreen: React.FC<Props> = ({ navigation }) => {
       key: 'challenges',
       icon: 'flash',
       title: 'Challenges',
-      subtitle: 'Set yourself a test — a deliberate push beyond your daily practices.',
+      subtitle: 'Set yourself a test — a deliberate push beyond your daily habits.',
       route: 'ChallengesHome',
     },
     {
       key: 'avoidance',
       icon: 'barbell',
       title: 'Avoidance Training',
-      subtitle: 'Clear the things you keep putting off, one rep at a time.',
+      subtitle: 'Clear the things you keep putting off, one at a time.',
       route: 'AvoidanceTraining',
     },
     // Programs are admin-only until launch — mirrors the gating on the

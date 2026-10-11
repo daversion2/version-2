@@ -173,7 +173,7 @@ describe('seeding is scoped', () => {
 
 describe('category browsing', () => {
   it('returns habits for a real category and nothing for an unknown one', () => {
-    expect(getHabitDefinitionsByCategory('Body').length).toBeGreaterThan(0);
+    expect(getHabitDefinitionsByCategory('Move').length).toBeGreaterThan(0);
     expect(getHabitDefinitionsByCategory('NotACategory')).toEqual([]);
   });
 

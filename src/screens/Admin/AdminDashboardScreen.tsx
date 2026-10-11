@@ -8,6 +8,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Alert,
+  Switch,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,14 +17,16 @@ import { Card } from '../../components/common/Card';
 import { getUserStats, getLibraryStats } from '../../services/admin';
 import { reseedPrograms } from '../../utils/seedPrograms';
 import { seedRewardMessages } from '../../utils/seedRewardMessages';
-import { seedNeuroscienceTidbits } from '../../utils/seedTidbits';
+import { syncNeuroscienceTidbits } from '../../utils/seedTidbits';
 import { enableDemoData, disableDemoData } from '../../utils/seedDemoData';
 import { useAuth } from '../../context/AuthContext';
+import { useCopyContext } from '../../context/CopyContext';
 import { AdminNavigation } from '../../types/navigation';
 
 export const AdminDashboardScreen: React.FC = () => {
   const navigation = useNavigation<AdminNavigation>();
   const { user, userProfile, refreshProfile } = useAuth();
+  const { editMode, setEditMode } = useCopyContext();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userStats, setUserStats] = useState<{
@@ -107,17 +110,32 @@ export const AdminDashboardScreen: React.FC = () => {
     }
   };
 
-  const handleSeedTidbits = async () => {
-    setSeedingTidbits(true);
-    try {
-      const count = await seedNeuroscienceTidbits();
-      Alert.alert('Success', `Seeded ${count} new neuroscience tidbits.`);
-    } catch (error) {
-      console.error('Error seeding tidbits:', error);
-      Alert.alert('Error', 'Failed to seed tidbits.');
-    } finally {
-      setSeedingTidbits(false);
-    }
+  const handleSyncTidbits = () => {
+    Alert.alert(
+      'Sync tidbits with the app',
+      "This makes the live tidbits match the set in the app's code: new ones are added, changed ones updated, and any the code no longer has are switched off (not deleted — Reactivate all in Admin → Tidbits undoes it). Wording edited only in Admin → Tidbits will be switched off. Continue?",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sync',
+          onPress: async () => {
+            setSeedingTidbits(true);
+            try {
+              const r = await syncNeuroscienceTidbits();
+              Alert.alert(
+                'Tidbits synced',
+                `${r.active} active. Added ${r.added}, updated ${r.updated}, switched off ${r.deactivated}.`
+              );
+            } catch (error) {
+              console.error('Error syncing tidbits:', error);
+              Alert.alert('Error', 'Failed to sync tidbits. Nothing was deleted; try again.');
+            } finally {
+              setSeedingTidbits(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const demoEnabled = userProfile?.demo_data?.enabled === true;
@@ -127,8 +145,8 @@ export const AdminDashboardScreen: React.FC = () => {
     Alert.alert(
       demoEnabled ? 'Remove Demo Data' : 'Enable Demo Data',
       demoEnabled
-        ? 'This deletes all seeded demo reps and challenges from YOUR account and restores your real stats. Your real history is untouched. Continue?'
-        : 'This seeds ~8 weeks of realistic practice reps, challenges, and stats into YOUR account for demos. Everything is tagged and fully removable. Your real data is untouched. Continue?',
+        ? 'This deletes all seeded demo habits, habit logs and challenges from YOUR account and restores your real stats. Your real history is untouched. Continue?'
+        : 'This seeds ~8 weeks of realistic habit logs, challenges, and stats into YOUR account for demos. If you have fewer than 5 active habits, demo habits are added to Today to fill the set. Everything is tagged and fully removable. Your real data is untouched. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -141,13 +159,13 @@ export const AdminDashboardScreen: React.FC = () => {
                 const { deletedLogs, deletedChallenges } = await disableDemoData(user.uid);
                 Alert.alert(
                   'Demo Data Removed',
-                  `Deleted ${deletedLogs} demo reps and ${deletedChallenges} demo challenges. Your real stats are restored.`
+                  `Deleted ${deletedLogs} demo habit logs and ${deletedChallenges} demo challenges. Your real stats are restored.`
                 );
               } else {
                 const { habitLogs, challenges, xp } = await enableDemoData(user.uid);
                 Alert.alert(
                   'Demo Data Enabled',
-                  `Seeded ${habitLogs} practice reps, ${challenges} challenges, and +${xp} XP. Toggle off here when the demo is done.`
+                  `Seeded ${habitLogs} habit logs, ${challenges} challenges, and +${xp} XP. Toggle off here when the demo is done.`
                 );
               }
               await refreshProfile();
@@ -270,7 +288,7 @@ export const AdminDashboardScreen: React.FC = () => {
       <View style={[styles.actionsRow, { marginTop: Spacing.md }]}>
         <TouchableOpacity
           style={[styles.actionCard, seedingTidbits && { opacity: 0.6 }]}
-          onPress={handleSeedTidbits}
+          onPress={handleSyncTidbits}
           disabled={seedingTidbits}
         >
           {seedingTidbits ? (
@@ -279,7 +297,7 @@ export const AdminDashboardScreen: React.FC = () => {
             <Ionicons name="flash" size={32} color={Colors.primary} />
           )}
           <Text style={styles.actionText}>
-            {seedingTidbits ? 'Seeding...' : 'Seed Tidbits'}
+            {seedingTidbits ? 'Syncing...' : 'Sync Tidbits'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -314,7 +332,7 @@ export const AdminDashboardScreen: React.FC = () => {
             </Text>
             <Text style={styles.demoStateText}>
               {demoEnabled
-                ? 'ON — seeded reps, challenges & stats are live'
+                ? 'ON — seeded habit logs, challenges & stats are live'
                 : 'Off — tap to seed 8 weeks of demo activity'}
             </Text>
           </View>
@@ -326,6 +344,33 @@ export const AdminDashboardScreen: React.FC = () => {
         </View>
       </Card>
 
+      {/* Live copy editing — wording only, styling stays in code. */}
+      <Text style={styles.sectionTitle}>App wording</Text>
+      <Card style={styles.linkCard}>
+        <View style={styles.linkRow}>
+          <Ionicons name="create-outline" size={24} color={Colors.secondary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkText}>Edit wording on screen</Text>
+            <Text style={styles.copyHint}>
+              Editable text gets a dotted underline. Long-press it to change the wording. Saves go
+              live for everyone. Turns off when the app restarts.
+            </Text>
+          </View>
+          <Switch
+            value={editMode}
+            onValueChange={setEditMode}
+            trackColor={{ true: Colors.secondary }}
+          />
+        </View>
+      </Card>
+      <Card style={styles.linkCard} onPress={() => navigation.navigate('AdminCopy')}>
+        <View style={styles.linkRow}>
+          <Ionicons name="list-outline" size={24} color={Colors.primary} />
+          <Text style={styles.linkText}>All wording</Text>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
       {/* Management Links */}
       <Text style={styles.sectionTitle}>Manage</Text>
       <Card
@@ -334,7 +379,7 @@ export const AdminDashboardScreen: React.FC = () => {
       >
         <View style={styles.linkRow}>
           <Ionicons name="flame" size={24} color={Colors.primary} />
-          <Text style={styles.linkText}>Practices</Text>
+          <Text style={styles.linkText}>Habits</Text>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
       </Card>
@@ -485,6 +530,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.md,
     color: Colors.dark,
+  },
+  copyHint: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    lineHeight: 16,
+    marginTop: 2,
   },
   demoStateText: {
     fontFamily: Fonts.secondary,

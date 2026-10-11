@@ -106,4 +106,20 @@ describe('fetchPracticeCatalog — merge', () => {
     expect(ids).not.toContain('trad-drink-water');
     expect(ids).toContain('water-only');
   });
+
+  it('files a doc seeded under the retired Body category by its bundled category', async () => {
+    addMockDocument('practiceCatalog', 'workout', remoteDoc('workout', 'Workout'));
+    addMockDocument('practiceCatalog', 'no-snooze', remoteDoc('no-snooze', 'Get up at the first alarm'));
+    const byId = new Map((await fetchPracticeCatalog()).map((p) => [p.id, p]));
+    expect(byId.get('workout')!.category_id).toBe('Move');
+    expect(byId.get('no-snooze')!.category_id).toBe('Sleep');
+    // The rest of the remote doc still wins.
+    expect(byId.get('workout')!.description).toBe('Seeded before it was deduped.');
+  });
+
+  it('keeps a remote category that is current, so an admin can re-file a habit', async () => {
+    addMockDocument('practiceCatalog', 'workout', { ...remoteDoc('workout', 'Workout'), category_id: 'Fuel' });
+    const workout = (await fetchPracticeCatalog()).find((p) => p.id === 'workout');
+    expect(workout!.category_id).toBe('Fuel');
+  });
 });

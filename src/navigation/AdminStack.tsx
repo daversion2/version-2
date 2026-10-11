@@ -19,6 +19,7 @@ import { AdminMicroExercisesScreen } from '../screens/Admin/AdminMicroExercisesS
 import { AdminMicroExerciseEditScreen } from '../screens/Admin/AdminMicroExerciseEditScreen';
 import { AdminPracticesScreen } from '../screens/Admin/AdminPracticesScreen';
 import { AdminPracticeEditScreen } from '../screens/Admin/AdminPracticeEditScreen';
+import { AdminCopyScreen } from '../screens/Admin/AdminCopyScreen';
 import { Colors, Fonts, FontSizes } from '../constants/theme';
 import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
 
@@ -123,12 +124,17 @@ export const AdminStack: React.FC = () => (
     <Stack.Screen
       name="AdminPractices"
       component={AdminPracticesScreen}
-      options={{ title: 'Practices' }}
+      options={{ title: 'Habits' }}
     />
     <Stack.Screen
       name="AdminPracticeEdit"
       component={AdminPracticeEditScreen}
-      options={{ title: 'Edit Practice' }}
+      options={{ title: 'Edit Habit' }}
+    />
+    <Stack.Screen
+      name="AdminCopy"
+      component={AdminCopyScreen}
+      options={{ title: 'All Wording' }}
     />
   </Stack.Navigator>
 );

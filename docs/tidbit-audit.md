@@ -1,5 +1,16 @@
 # Neuroscience Tidbit Audit
 
+> **2026-10-11 revision.** Re-audited against the capacity thesis (getting
+> easier is the evidence; growing capacity to handle friction is the point).
+> Cut 2 (the 30+ grey-matter card that applied a meditation study to every
+> habit, and a third "the start gets cheap, the work stays" streak card),
+> rewrote 9 cards whose claims went beyond the evidence or contradicted the
+> moment they fire in, and fixed 2 Learn more texts. **30 tidbits.**
+> Shipping is now **Admin → Dashboard → Sync Tidbits**
+> (`syncNeuroscienceTidbits`): it makes Firestore's active set match the code
+> exactly and switches off anything else (never deletes). The append-only
+> procedure described further down is historical.
+
 > The card shown after a habit check-in — "Your brain right now", inside
 > `HabitCelebrationModal`.
 >

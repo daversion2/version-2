@@ -50,7 +50,7 @@ export const SECTION_LABELS: Record<HomeSectionId, string> = {
   hero: 'Welcome',
   mantra: 'Redirect Mantra',
   also_today: 'Also Today',
-  practices: 'Your Practices',
+  practices: 'Your Habits',
 };
 
 export const SECTION_ICONS: Record<HomeSectionId, string> = {

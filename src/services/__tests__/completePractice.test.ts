@@ -71,6 +71,25 @@ describe('completePractice', () => {
     });
   });
 
+  describe('XP is the friction overcome', () => {
+    it.each([
+      [1, 'easy' as const, 1],
+      [2, 'challenging' as const, 2],
+      [3, 'challenging' as const, 3],
+    ])('a rating of %i (%s) earns %i XP', async (resistance, difficulty, expected) => {
+      seedUser({ totalWillpowerPoints: 10 });
+      const result = await completePractice(userId, practice, { difficulty, resistance });
+      expect(result.pointsEarned).toBe(expected);
+      expect(userDoc().totalWillpowerPoints).toBe(10 + expected);
+    });
+
+    it('falls back to the binary difficulty when there is no rating', async () => {
+      seedUser();
+      const result = await completePractice(userId, practice, { difficulty: 'challenging' });
+      expect(result.pointsEarned).toBe(2);
+    });
+  });
+
   describe('backdating', () => {
     it('files the rep under the given day, not today', async () => {
       seedUser();
@@ -139,7 +158,7 @@ describe('completePractice', () => {
   });
 
   describe('parity between a backdated rep and a live one', () => {
-    it('pays the first-try bonus and counts the practice as tried', async () => {
+    it('counts a first try as tried, without doubling its XP', async () => {
       seedUser();
 
       const result = await completePractice(userId, practice, {
@@ -148,12 +167,11 @@ describe('completePractice', () => {
       });
 
       expect(result.firstTry).toBe(true);
-      // Easy = 1 base point at a 1.0x multiplier, doubled for the first try.
-      expect(result.pointsEarned).toBe(2);
+      expect(result.pointsEarned).toBe(1);
       expect(userDoc().practices_tried).toBe(1);
     });
 
-    it('does not pay the first-try bonus twice for the same practice', async () => {
+    it('does not count the same practice as tried twice', async () => {
       seedUser();
       seedRep('log-old', practice.id, daysAgo(5));
 
@@ -167,10 +185,9 @@ describe('completePractice', () => {
       expect(userDoc().practices_tried).toBe(0);
     });
 
-    it('applies the streak multiplier, same as a live rep', async () => {
-      // 7-day streak sits in a >1.0x tier; a backfill must not be flattened to
-      // the raw 1/2 points the old backdate path awarded.
-      seedUser({ currentStreak: 7, lastActivityDate: getTodayString() });
+    it('awards the same unmultiplied XP as a live rep, whatever the streak', async () => {
+      // XP is friction overcome: a long streak must not inflate it.
+      seedUser({ currentStreak: 30, lastActivityDate: getTodayString() });
       seedRep('log-prior', practice.id, daysAgo(5)); // not a first try
 
       const result = await completePractice(userId, practice, {
@@ -178,7 +195,7 @@ describe('completePractice', () => {
         date: daysAgo(2),
       });
 
-      expect(result.pointsEarned).toBeGreaterThan(2);
+      expect(result.pointsEarned).toBe(2);
     });
 
     it('persists tracking metrics captured for a past day', async () => {

@@ -7,7 +7,7 @@ export const REWARD_MESSAGES_SEED_DATA: SeedRewardMessage[] = [
   // Identity messages — who you're becoming
   { text: "This is who you are now.", category: 'identity' },
   { text: "You're not the person who quits.", category: 'identity' },
-  { text: "Every rep builds the person you're becoming.", category: 'identity' },
+  { text: "Every check-in builds the person you're becoming.", category: 'identity' },
   { text: "You chose hard. That says everything.", category: 'identity' },
 
   // Effort messages — acknowledging the work

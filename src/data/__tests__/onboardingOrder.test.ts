@@ -50,9 +50,9 @@ describe('onboarding order', () => {
   });
 
   it('keeps catalog order for everything in between', () => {
-    const listed = new Set([...ONBOARDING_LEAD_HABITS.Body, ...ONBOARDING_TRAILING_HABITS.Body]);
-    const middle = getOnboardingHabitsByCategory('Body').map((d) => d.id).filter((id) => !listed.has(id));
-    const catalog = getHabitDefinitionsByCategory('Body').map((d) => d.id).filter((id) => !listed.has(id));
+    const listed = new Set([...ONBOARDING_LEAD_HABITS.Fuel, ...ONBOARDING_TRAILING_HABITS.Fuel]);
+    const middle = getOnboardingHabitsByCategory('Fuel').map((d) => d.id).filter((id) => !listed.has(id));
+    const catalog = getHabitDefinitionsByCategory('Fuel').map((d) => d.id).filter((id) => !listed.has(id));
     expect(middle).toEqual(catalog);
   });
 

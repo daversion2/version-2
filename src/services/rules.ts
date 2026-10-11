@@ -195,7 +195,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     name: 'Push opt-in ask',
     description:
       'The only place the app asks for notification permission. Fires on app open once the ' +
-      'user has logged at least one rep — deliberately NOT during onboarding: iOS grants one ' +
+      'user has logged at least one habit — deliberately NOT during onboarding: iOS grants one ' +
       'permission prompt per install, and spending it before the app has done anything for ' +
       'them is how you get a permanent no. Conditioned on has_push_token == 0 so it never ' +
       'asks someone who already said yes (or who turned it off in Settings and then back on). ' +
@@ -215,7 +215,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 45,
     content: {
       title: 'Want a nudge when it matters?',
-      body: "You've logged your first rep. A reminder on the days you said you'd train makes the second one easier — and we'll keep it to three a week, at most.",
+      body: "You've logged your first habit. A reminder on the days you said you'd train makes the second one easier — and we'll keep it to three a week, at most.",
       cta: 'Turn them on',
       component: 'push_optin',
     },
@@ -302,9 +302,9 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   // selectHabitTidbit), 21 (the day-7 recap again, three weeks later).
   // ---------------------------------------------------------------------
   {
-    name: 'Journey day 0: first rep tonight',
+    name: 'Journey day 0: first check-in tonight',
     description:
-      'Signup-day evening rescue for users who have not logged their first rep. Skipped automatically once they train.',
+      'Signup-day evening rescue for users who have not logged their first habit. Skipped automatically once they train.',
     enabled: true,
     surface: 'push',
     event: 'scheduled_hourly',
@@ -316,7 +316,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     frequency: { type: 'once_ever' },
     priority: 30,
     content: {
-      title: 'One rep before bed still counts',
+      title: 'One check-in before bed still counts',
       body: "You picked your starting point today. Your brain will say tomorrow. That's the moment — go do the thing.",
     },
   },
@@ -364,7 +364,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'Week one: {habits_completed} overrides logged',
-      body: "That's {habits_completed} times your brain said stop and you didn't. You've tried {practices_tried} practices so far — pick one you haven't this week.",
+      body: "That's {habits_completed} times your brain said stop and you didn't. You've tried {practices_tried} habits so far — pick one you haven't this week.",
       cta_target: { type: 'screen', screen: 'Progress' },
     },
   },
@@ -432,7 +432,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'Three weeks. {habits_completed} overrides.',
-      body: "You've tried {practices_tried} practices. The ones you're avoiding are the ones with the most to teach.",
+      body: "You've tried {practices_tried} habits. The ones you're avoiding are the ones with the most to teach.",
       cta_target: { type: 'screen', screen: 'Progress' },
     },
   },
@@ -471,7 +471,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 40,
     content: {
       title: 'Month one complete',
-      body: '{habits_completed} overrides. {practices_tried} practices tried. {xp} XP earned. What you built this month is your baseline now — set the next target.',
+      body: '{habits_completed} overrides. {practices_tried} habits tried. {xp} XP earned. What you built this month is your baseline now — set the next target.',
       cta: 'See your training volume',
       cta_target: { type: 'screen', screen: 'Progress' },
     },
@@ -493,7 +493,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 20,
     content: {
       title: "Yesterday didn't happen. Fine.",
-      body: "Today's rep can be the two-minute version. Volume beats perfection — one small override keeps the protocol alive.",
+      body: "Today can be the two-minute version. Volume beats perfection — one small override keeps the protocol alive.",
     },
   },
 ];

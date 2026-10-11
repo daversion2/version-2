@@ -93,7 +93,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
   if (!practice && !customHabitId) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.muted}>Practice not found.</Text>
+        <Text style={styles.muted}>Habit not found.</Text>
       </View>
     );
   }
@@ -102,7 +102,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
   if (!practice && !habit) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.muted}>This practice is no longer active.</Text>
+        <Text style={styles.muted}>This habit is no longer active.</Text>
       </View>
     );
   }
@@ -161,7 +161,7 @@ export const PracticeDetailScreen: React.FC<Props> = ({ route }) => {
             {busy ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
-              <Text style={styles.ctaText}>Add to my practices · {target}×/week</Text>
+              <Text style={styles.ctaText}>Add to my habits · {target}×/week</Text>
             )}
           </TouchableOpacity>
         ) : (

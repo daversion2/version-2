@@ -244,7 +244,7 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
         icon="trophy"
         accent={Colors.secondary}
         title="Challenges"
-        intro="A test you set for yourself — a deliberate push past your daily practices, decided in advance so the version of you who’d rather not doesn’t get a vote."
+        intro="A test you set for yourself — a deliberate push past your daily habits, decided in advance so the version of you who’d rather not doesn’t get a vote."
         points={[
           {
             label: 'Set the terms.',
@@ -266,14 +266,14 @@ export const ChallengesHomeScreen: React.FC<Props> = ({ navigation }) => {
           },
           {
             label: 'Escalation is the stimulus.',
-            text: 'Like any training load, difficulty you’ve already adapted to stops producing change. Challenges exist to reintroduce the stretch your practices have quietly made routine.',
+            text: 'Like any training load, difficulty you’ve already adapted to stops producing change. Challenges exist to reintroduce the stretch your habits have quietly made routine.',
           },
           {
             label: 'Finishing builds evidence, not just points.',
             text: 'Each completed challenge is a concrete instance of you doing what you said you’d do — the raw material for a self-image built on record instead of intention. That self-concept is what carries the behavior once motivation is gone.',
           },
         ]}
-        footer="Practices build the capacity. Challenges are where you find out how much you built."
+        footer="Habits build the capacity. Challenges are where you find out how much you built."
       />
     </ScrollView>
   );

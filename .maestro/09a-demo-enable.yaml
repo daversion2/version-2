@@ -1,0 +1,15 @@
+# Admin-approved write: enable demo data on the signed-in admin account.
+# Assumes the Admin dashboard is already on screen with demo data OFF.
+appId: com.neuronudge.neuronudge
+---
+- assertVisible: ".*Demo Data \\(this account\\), Off.*"
+- tapOn: ".*Demo Data \\(this account\\).*"
+- extendedWaitUntil:
+    visible: "Enable Demo Data"
+    timeout: 10000
+- takeScreenshot: 09a-1-confirm
+- tapOn: "Enable"
+- extendedWaitUntil:
+    visible: "Demo Data Enabled"
+    timeout: 120000
+- takeScreenshot: 09a-2-enabled-alert

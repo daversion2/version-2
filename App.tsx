@@ -6,6 +6,7 @@ import * as Font from 'expo-font';
 import { Platform } from 'react-native';
 import { AuthProvider } from './src/context/AuthContext';
 import { ToolsProvider } from './src/context/ToolsContext';
+import { CopyProvider } from './src/context/CopyContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 SplashScreen.preventAutoHideAsync();
@@ -52,9 +53,11 @@ export default function App() {
     <SafeAreaProvider onLayout={onLayoutRootView}>
       <StatusBar style="dark" />
       <AuthProvider>
-        <ToolsProvider>
-          <RootNavigator />
-        </ToolsProvider>
+        <CopyProvider>
+          <ToolsProvider>
+            <RootNavigator />
+          </ToolsProvider>
+        </CopyProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

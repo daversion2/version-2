@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -23,11 +22,8 @@ import {
   getPracticeProgress,
   PracticeProgress,
 } from '../../services/practiceProgress';
-import {
-  buildResistanceOverview,
-  ResistanceOverview,
-} from '../../services/practicePerformance';
-import { ResistanceCurveCard } from '../../components/progress/ResistanceCurveCard';
+import { buildFrictionOverview, FrictionOverview } from '../../services/frictionCapacity';
+import { FrictionCard } from '../../components/progress/FrictionCard';
 import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
 import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
 import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
@@ -35,9 +31,10 @@ import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCa
 import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
 import { MetricFamiliesSection } from '../../components/progress/MetricFamiliesSection';
 import { ProgressNavigation } from '../../types/navigation';
-import { toLocalDateString } from '../../utils/date';
+import { toLocalDateString, getTodayString } from '../../utils/date';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
+import { Copy } from '../../components/common/Copy';
 
 function getStartDateForFilter(filter: TimeFilter): string | undefined {
   if (filter === 'all') return undefined;
@@ -58,7 +55,7 @@ export const ProgressScreen: React.FC = () => {
   });
 
   const [loading, setLoading] = useState(true);
-  const [resistance, setResistance] = useState<ResistanceOverview | null>(null);
+  const [friction, setFriction] = useState<FrictionOverview | null>(null);
   const [filter, setFilter] = useState<TimeFilter>('30d');
 
   // Practice-protocol aggregation (volume grid, records)
@@ -97,7 +94,7 @@ export const ProgressScreen: React.FC = () => {
         getActiveDaysCount(user.uid, startDate),
         getActivityTrendByWeek(user.uid, startDate),
         getWillpowerStats(user.uid),
-        // Deliberately unfiltered: Effort Level and the calendar ignore the
+        // Deliberately unfiltered: the friction card and the calendar ignore the
         // time filter. Clipping them made a short filter read as "no ratings"
         // and "didn't show up" for days that simply fell outside the window.
         getCompletionLogs(user.uid),
@@ -105,7 +102,7 @@ export const ProgressScreen: React.FC = () => {
       ]);
 
       // Built from allTimeLogs, which is already fetched above — no extra read.
-      setResistance(buildResistanceOverview(allTimeLogs));
+      setFriction(buildFrictionOverview(allTimeLogs, getTodayString()));
 
       setCompletions(actions);
       setPoints(periodPoints);
@@ -157,9 +154,10 @@ export const ProgressScreen: React.FC = () => {
             daysActive={daysActive}
           />
 
-          {/* Resistance: streaks measure attendance, this measures change —
-              the claim the product is built to make. */}
-          {resistance && <ResistanceCurveCard overview={resistance} />}
+          {/* The headline: friction faced climbing while friction felt falls
+              behind it — the user getting stronger, not just one habit getting
+              easier. Streaks measure attendance; this measures growth. */}
+          {friction && <FrictionCard overview={friction} />}
 
           {/* By Metric — the same reps as Training Volume below, sliced by what
               they measured instead of which habit logged them. Leads because
@@ -186,10 +184,12 @@ export const ProgressScreen: React.FC = () => {
           <ActivityTrendChart data={trendData} />
 
           {/* Activity Calendar */}
-          <Text style={styles.sectionTitle}>Days you showed up</Text>
-          <Text style={styles.sectionNote}>
+          <Copy id="progress.calendar.title" style={styles.sectionTitle}>
+            Days you showed up
+          </Copy>
+          <Copy id="progress.calendar.note" style={styles.sectionNote}>
             Dots mark days you checked in. Tap a day to see it. Not affected by the time filter.
-          </Text>
+          </Copy>
           <Calendar
             markedDates={{
               ...markedDates,

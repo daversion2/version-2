@@ -64,7 +64,7 @@ export const ProgressStack: React.FC = () => (
     <Stack.Screen
       name="HabitDetail"
       component={MyPracticeDetailScreen}
-      options={{ title: 'Practice Detail' }}
+      options={{ title: 'Habit Details' }}
     />
     <Stack.Screen
       name="HabitActionPlan"

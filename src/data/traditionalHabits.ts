@@ -21,7 +21,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-drink-water',
     name: 'Drink more water',
-    category_id: 'Body',
+    category_id: 'Fuel',
     off_thesis: true,
     description: 'Stay hydrated through the day — aim for around eight glasses of water.',
     suggested_target_per_week: 7,
@@ -37,7 +37,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-exercise',
     name: 'Exercise',
-    category_id: 'Body',
+    category_id: 'Move',
     arena_id: 'physical_discomfort',
     description: 'Get a proper workout in — gym, run, class, or home session.',
     suggested_target_per_week: 4,
@@ -54,7 +54,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-10k-steps',
     name: 'Hit 10,000 steps',
-    category_id: 'Body',
+    category_id: 'Move',
     arena_id: 'physical_discomfort',
     description: 'Stay active across the day and reach a 10,000-step target.',
     suggested_target_per_week: 5,
@@ -71,7 +71,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-stretch',
     name: 'Stretch',
-    category_id: 'Body',
+    category_id: 'Move',
     arena_id: 'physical_discomfort',
     description: 'A few minutes of stretching to stay loose and mobile.',
     suggested_target_per_week: 5,
@@ -87,7 +87,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-eat-vegetables',
     name: 'Eat your vegetables',
-    category_id: 'Body',
+    category_id: 'Fuel',
     off_thesis: true,
     description: 'Include vegetables or fruit with your meals today.',
     suggested_target_per_week: 7,
@@ -106,7 +106,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
     // deleted so any already-adopted instance keeps its history.
     active: false,
     name: 'Take vitamins',
-    category_id: 'Body',
+    category_id: 'Fuel',
     off_thesis: true,
     description: 'Take your daily vitamins or supplements.',
     suggested_target_per_week: 7,
@@ -256,7 +256,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-floss',
     name: 'Floss',
-    category_id: 'Body',
+    category_id: 'Sleep',
     off_thesis: true,
     description: 'Floss your teeth as part of your nightly routine.',
     suggested_target_per_week: 7,
@@ -275,7 +275,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
     // deleted so any already-adopted instance keeps its history.
     active: false,
     name: 'Skincare routine',
-    category_id: 'Body',
+    category_id: 'Sleep',
     off_thesis: true,
     description: 'Follow your skincare routine, morning or night.',
     suggested_target_per_week: 7,
@@ -291,7 +291,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-no-sugar',
     name: 'Cut the sugar',
-    category_id: 'Body',
+    category_id: 'Fuel',
     arena_id: 'impulse_control',
     description: 'Skip added sugar and sugary snacks today.',
     suggested_target_per_week: 5,
@@ -307,7 +307,7 @@ export const TRADITIONAL_HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'trad-budget',
     name: 'Track your spending',
-    category_id: 'Body',
+    category_id: 'Money',
     off_thesis: true,
     description: 'Note what you spent today to stay on top of your budget.',
     suggested_target_per_week: 7,

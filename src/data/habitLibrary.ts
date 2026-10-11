@@ -1,4 +1,5 @@
 import { HabitCategory, LibraryHabit } from '../types';
+import { CategoryColors } from '../constants/theme';
 import { TRADITIONAL_HABIT_CATEGORIES, TRADITIONAL_HABIT_LIBRARY } from './traditionalHabits';
 
 // ─── Categories ──────────────────────────────────────────────────────────────
@@ -6,11 +7,18 @@ import { TRADITIONAL_HABIT_CATEGORIES, TRADITIONAL_HABIT_LIBRARY } from './tradi
 // so the two can evolve independently. `LibraryHabit.category_id` references an id
 // below. Order here is the display order in the library + filter chips.
 export const HABIT_CATEGORIES: HabitCategory[] = [
-  { id: 'Body', name: 'Body', icon: 'barbell-outline', color: '#217180' },
-  { id: 'Focus', name: 'Focus & Craft', icon: 'flash-outline', color: '#FF5B02' },
-  { id: 'Mind', name: 'Mind', icon: 'leaf-outline', color: '#7B1FA2' },
-  { id: 'Money', name: 'Money', icon: 'wallet-outline', color: '#2E7D32' },
+  { id: 'Move', name: 'Move', icon: 'barbell-outline', color: CategoryColors.move },
+  { id: 'Fuel', name: 'Fuel', icon: 'nutrition-outline', color: CategoryColors.fuel },
+  { id: 'Sleep', name: 'Sleep', icon: 'moon-outline', color: CategoryColors.sleep },
+  { id: 'Mind', name: 'Mind', icon: 'leaf-outline', color: CategoryColors.mind },
+  { id: 'Focus', name: 'Focus', icon: 'flash-outline', color: CategoryColors.focus },
+  { id: 'Money', name: 'Money', icon: 'wallet-outline', color: CategoryColors.money },
 ];
+
+// False for retired ids ('Body', 'Connection'), which Firestore catalog docs
+// saved before the 2026-10 split may still carry.
+export const isHabitCategoryId = (id: string): boolean =>
+  HABIT_CATEGORIES.some((c) => c.id === id);
 
 // Resolves a category from either the curated or traditional taxonomy.
 export const getHabitCategory = (categoryId?: string): HabitCategory | undefined =>
@@ -24,11 +32,11 @@ export const findLibraryHabit = (habitId: string): LibraryHabit | undefined =>
 
 // ─── Habits ──────────────────────────────────────────────────────────────────
 export const HABIT_LIBRARY: LibraryHabit[] = [
-  // ─── Body ──────────────────────────────────────────────────────────────────
+  // ─── Move · Fuel · Sleep ───────────────────────────────────────────────────
   {
     id: 'no-snooze',
     name: 'Get up at the first alarm',
-    category_id: 'Body',
+    category_id: 'Sleep',
     arena_id: 'impulse_control',
     description: 'When the alarm goes, feet on the floor — no negotiation. The same action, every morning: win the first decision of the day.',
     suggested_target_per_week: 5,
@@ -44,7 +52,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'move-20min',
     name: '20 minutes of movement',
-    category_id: 'Body',
+    category_id: 'Move',
     arena_id: 'physical_discomfort',
     description: 'Twenty minutes of intentional movement — walk, workout, run, or yoga. The form is flexible; showing up isn\'t.',
     suggested_target_per_week: 4,
@@ -61,7 +69,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'workout',
     name: 'Workout',
-    category_id: 'Body',
+    category_id: 'Move',
     arena_id: 'physical_discomfort',
     description: 'A real training session — lift, run, row, or a class. Not a walk you talked yourself into calling a workout: effort you have to decide to keep giving.',
     suggested_target_per_week: 4,
@@ -78,7 +86,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'morning-daylight',
     name: 'Get outside in the morning',
-    category_id: 'Body',
+    category_id: 'Move',
     off_thesis: true,
     description: 'Ten minutes of daylight early in the day — real circadian benefit, not vibes. Light and air before the day starts.',
     suggested_target_per_week: 5,
@@ -95,7 +103,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'consistent-bedtime',
     name: 'Protect my bedtime',
-    category_id: 'Body',
+    category_id: 'Sleep',
     arena_id: 'impulse_control',
     description: 'A consistent bedtime to protect sleep and recovery — the foundation everything else runs on.',
     suggested_target_per_week: 5,
@@ -111,7 +119,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'wind-down',
     name: 'Screen-free wind-down',
-    category_id: 'Body',
+    category_id: 'Sleep',
     arena_id: 'deliberate_boredom',
     description: 'A 30-minute screen-free wind-down before bed — read, stretch, or sit quietly. An off-ramp instead of a feed.',
     suggested_target_per_week: 5,
@@ -127,7 +135,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'cook-real-meal',
     name: 'Cook one real meal',
-    category_id: 'Body',
+    category_id: 'Fuel',
     off_thesis: true,
     description: 'Prepare at least one nutritious meal from scratch — an act of looking after yourself that pays off in energy.',
     suggested_target_per_week: 5,
@@ -144,7 +152,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'water-only',
     name: 'Water only today',
-    category_id: 'Body',
+    category_id: 'Fuel',
     arena_id: 'impulse_control',
     description: 'Water is the only thing you drink today — no soda, juice, energy drinks, or alcohol. A daily discipline that cuts empty calories and the small crutches you reach for without thinking.',
     suggested_target_per_week: 5,
@@ -160,7 +168,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'caffeine-cutoff',
     name: 'Caffeine cutoff',
-    category_id: 'Body',
+    category_id: 'Sleep',
     arena_id: 'impulse_control',
     description: 'Nothing caffeinated after your cutoff — coffee, tea, energy drinks, pre-workout. For most people that means eight hours or more before bed. The afternoon cup is the one that costs you tonight.',
     suggested_target_per_week: 5,
@@ -176,7 +184,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'alcohol-free-day',
     name: 'Alcohol-free day',
-    category_id: 'Body',
+    category_id: 'Fuel',
     arena_id: 'impulse_control',
     description: 'No alcohol today — not one drink. Counted by the day, so the pattern across your week shows up instead of hiding inside "just the one".',
     suggested_target_per_week: 5,
@@ -192,7 +200,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
   {
     id: 'protein-target',
     name: 'Hit my protein',
-    category_id: 'Body',
+    category_id: 'Fuel',
     description: 'Reach a daily protein target you set. The total across the day is what counts — timing and source matter far less.',
     suggested_target_per_week: 5,
     action_plan: {
@@ -205,7 +213,7 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     identity: "I'm someone who fuels the work I put in.",
   },
 
-  // ─── Focus & Craft ───────────────────────────────────────────────────────────
+  // ─── Focus ───────────────────────────────────────────────────────────────────
   {
     id: 'phone-free-first-hour',
     name: 'No phone for the first 30 minutes',

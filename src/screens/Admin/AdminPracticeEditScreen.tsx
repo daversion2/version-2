@@ -15,9 +15,7 @@ import { Button } from '../../components/common/Button';
 import { AdminScreenProps } from '../../types/navigation';
 import {
   Practice,
-  PracticeGroup,
   PracticeResearchEntry,
-  PRACTICE_GROUPS,
   INTENSITY_TIERS,
   IntensityLevel,
   HabitFlow,
@@ -27,6 +25,7 @@ import {
   upsertPracticeCatalogItem,
   validatePractice,
 } from '../../services/practiceCatalog';
+import { HABIT_CATEGORIES, isHabitCategoryId } from '../../data/habitLibrary';
 
 type Props = AdminScreenProps<'AdminPracticeEdit'>;
 
@@ -104,7 +103,7 @@ const Toggle: React.FC<{ label: string; value: boolean; onChange: (v: boolean) =
   onChange,
 }) => (
   <View style={styles.toggleRow}>
-    <Text style={styles.label}>{label}</Text>
+    <Text style={[styles.label, styles.toggleLabel]}>{label}</Text>
     <Switch value={value} onValueChange={onChange} trackColor={{ true: Colors.primary }} />
   </View>
 );
@@ -123,7 +122,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('ellipse-outline');
-  const [group, setGroup] = useState<PracticeGroup>('custom');
+  const [categoryId, setCategoryId] = useState<string>(HABIT_CATEGORIES[0].id);
   // '' = no tier set (no flames shown); otherwise an IntensityLevel id.
   const [intensity, setIntensity] = useState<string>('');
   const [core, setCore] = useState(false);
@@ -159,7 +158,9 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
           // Every content field below is optional on HabitDefinition now that plain
           // library habits share the type — a habit with no science/howTo is valid.
           setIcon(p.icon ?? '');
-          setGroup(p.group ?? 'custom');
+          // A retired id ('Connection') shows no chip selected, so saving
+          // forces a deliberate re-file.
+          setCategoryId(isHabitCategoryId(p.category_id) ? p.category_id : '');
           setIntensity(p.intensity ?? '');
           setCore(!!p.core);
           setActive(p.active !== false);
@@ -194,6 +195,10 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       Alert.alert('Required', 'Enter a unique id (e.g. "cold_shower").');
       return;
     }
+    if (!isHabitCategoryId(categoryId)) {
+      Alert.alert('Required', 'Pick a category.');
+      return;
+    }
 
     // Preserve unedited fields (variations, tracking, timer) by spreading the original.
     const ready =
@@ -212,7 +217,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       name: name.trim(),
       description: description.trim(),
       icon: icon.trim() || 'ellipse-outline',
-      group,
+      category_id: categoryId,
       core,
       active,
       suggested_target_per_week: Number(target) || 1,
@@ -241,7 +246,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
     if (!validatePractice(merged)) {
       Alert.alert(
         'Missing fields',
-        'Name, description, icon, group, flow, "why it works", science, at least one How-to step, and at least one tip are all required.'
+        'Name and description are required.'
       );
       return;
     }
@@ -283,10 +288,10 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
       <Field label="Icon" value={icon} onChange={setIcon} hint="Ionicons name, e.g. snow-outline" />
 
       <ChipPicker
-        label="Group"
-        value={group}
-        onChange={(v) => setGroup(v as PracticeGroup)}
-        options={PRACTICE_GROUPS.map((g) => ({ value: g.id, label: g.name }))}
+        label="Category"
+        value={categoryId}
+        onChange={setCategoryId}
+        options={HABIT_CATEGORIES.map((c) => ({ value: c.id, label: c.name }))}
       />
 
       <ChipPicker
@@ -316,7 +321,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
         </View>
       </View>
 
-      <Toggle label="Core practice" value={core} onChange={setCore} />
+      <Toggle label="Core habit (added to new accounts by default)" value={core} onChange={setCore} />
       <Toggle label="Active (shown to users)" value={active} onChange={setActive} />
 
       <ChipPicker
@@ -348,7 +353,7 @@ export const AdminPracticeEditScreen: React.FC<Props> = ({ route, navigation }) 
         multiline
         hint={'One study per line: finding | source | url\ne.g. Cyclic sighing beat mindfulness for mood in a 1-month RCT. | Stanford, 2023 — Cell Reports Medicine | https://…'}
       />
-      <Field label="Optional reason (optional)" value={optionalReason} onChange={setOptionalReason} multiline hint="Why it isn't core (for optional practices)" />
+      <Field label="Optional reason (optional)" value={optionalReason} onChange={setOptionalReason} multiline hint="Why it isn't core (for optional habits)" />
 
       <View style={styles.divider} />
       <Text style={styles.sectionTitle}>Override & briefing</Text>
@@ -402,8 +407,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing.md,
     marginBottom: Spacing.md,
   },
+  // Lets a long label wrap instead of shoving the switch past the margin.
+  toggleLabel: { flex: 1, marginBottom: 0 },
   row: { flexDirection: 'row', gap: Spacing.md },
   rowHalf: { flex: 1 },
   divider: { height: 1, backgroundColor: Colors.border, marginVertical: Spacing.md },

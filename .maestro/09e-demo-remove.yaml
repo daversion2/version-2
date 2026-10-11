@@ -1,0 +1,29 @@
+# Admin-approved write: remove demo data. Assumes Settings root is on screen.
+appId: com.neuronudge.neuronudge
+---
+- tapOn: "Admin, Catalog.*"
+- extendedWaitUntil:
+    visible: ".*Sync Tidbits.*"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: ".*Demo Data \\(this account\\).*"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- assertVisible: ".*Demo Data \\(this account\\), ON.*"
+- takeScreenshot: 09e-1-on-before-remove
+- tapOn: ".*Demo Data \\(this account\\).*"
+- extendedWaitUntil:
+    visible: "Remove Demo Data"
+    timeout: 10000
+- takeScreenshot: 09e-2-confirm
+- tapOn: "Remove"
+- extendedWaitUntil:
+    visible: "Demo Data Removed"
+    timeout: 120000
+- takeScreenshot: 09e-3-removed-alert
+- tapOn: "OK"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 09e-4-off

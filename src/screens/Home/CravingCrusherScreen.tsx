@@ -161,7 +161,6 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
   // Post-log completion state
   const [saveResult, setSaveResult] = useState<{
     points: number;
-    bonus: boolean;
     logId: string;
   } | null>(null);
   const [savorDone, setSavorDone] = useState(false);
@@ -282,7 +281,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
     if (!user || !startedAtRef.current || saving) return;
     setSaving(true);
     try {
-      const { pointsEarned, bonus, logId } = await logCravingSession(user.uid, {
+      const { pointsEarned, logId } = await logCravingSession(user.uid, {
         cravingType,
         customLabel: cravingType === 'other' ? customLabel : undefined,
         intensity,
@@ -296,7 +295,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
         mission: usedMissionRef.current ?? undefined,
       });
       triggerRewardHaptic().catch(() => {});
-      setSaveResult({ points: pointsEarned, bonus, logId });
+      setSaveResult({ points: pointsEarned, logId });
       setPhase('complete');
     } catch (err) {
       console.warn('Failed to save craving session:', err);
@@ -657,11 +656,6 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
           <ScrollView contentContainerStyle={styles.completeContent} showsVerticalScrollIndicator={false}>
             <Text style={styles.outcomeEmoji}>⚡</Text>
             <Text style={styles.completePoints}>+{saveResult.points} XP</Text>
-            {saveResult.bonus && (
-              <View style={styles.bonusChip}>
-                <Text style={styles.bonusChipText}>Wave bonus — XP doubled this time</Text>
-              </View>
-            )}
             <Text style={styles.completeSub}>
               {exitIntensity !== null
                 ? `Wave: ${intensity}/10 → ${exitIntensity}/10 · ${held} ridden`
@@ -1355,20 +1349,6 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     textAlign: 'center',
     marginTop: Spacing.xs,
-  },
-  bonusChip: {
-    backgroundColor: '#FFF3EC',
-    borderWidth: 1,
-    borderColor: Colors.secondary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.xs + 2,
-    paddingHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-  },
-  bonusChipText: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: FontSizes.xs,
-    color: Colors.secondary,
   },
   completeChartWrap: { alignSelf: 'stretch', marginTop: Spacing.lg },
   completeDone: { alignSelf: 'stretch', marginTop: Spacing.xl },

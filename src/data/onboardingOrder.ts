@@ -4,8 +4,8 @@ import { HabitDefinition, getHabitDefinitionsByCategory } from './practices';
 // ONBOARDING ORDER — which habits a new user sees first in the "pick one" beat.
 //
 // Without this the picker falls back to the catalog order: the curated practices
-// by `order`, then everything else ALPHABETICALLY — so the first plain habits on
-// the Body tab were whichever started with "A". This puts the likeliest first
+// by `order`, then everything else ALPHABETICALLY — so the first plain habits in
+// a tab were whichever started with "A". This puts the likeliest first
 // picks for the target user on top instead: recognisable to the self-optimizer
 // crowd, done most days so data builds in week one, and carrying resistance that
 // actually varies from day to day, which is what the rating is there to show.
@@ -19,14 +19,9 @@ import { HabitDefinition, getHabitDefinitionsByCategory } from './practices';
 
 /** Shown first, in this order. Keyed by HabitCategory id. */
 export const ONBOARDING_LEAD_HABITS: Record<string, string[]> = {
-  Body: [
-    'no-snooze',
-    'workout',
-    'cold_exposure',
-    'morning-daylight',
-    'caffeine-cutoff',
-    'alcohol-free-day',
-  ],
+  Move: ['workout', 'cold_exposure', 'morning-daylight'],
+  Fuel: ['alcohol-free-day'],
+  Sleep: ['no-snooze', 'caffeine-cutoff'],
   Focus: ['dreaded-task-first', 'deep-focus-session', 'trad-read', 'plan-tomorrow'],
   Mind: ['protect-attention', 'meditation', 'breathwork', 'nsdr'],
   Money: ['no-spend-day', 'check-the-numbers'],
@@ -34,7 +29,8 @@ export const ONBOARDING_LEAD_HABITS: Record<string, string[]> = {
 
 /** Shown last, in this order — still pickable, just not what a new user meets first. */
 export const ONBOARDING_TRAILING_HABITS: Record<string, string[]> = {
-  Body: ['trad-floss', 'trad-eat-vegetables', 'cook-real-meal', 'eat_healthy_unenjoyable'],
+  Fuel: ['trad-eat-vegetables', 'cook-real-meal', 'eat_healthy_unenjoyable'],
+  Sleep: ['trad-floss'],
   Focus: ['trad-make-bed', 'trad-tidy'],
   Mind: ['trad-limit-screens'],
   // A rule you only get to practise when you want to buy something — weak as a

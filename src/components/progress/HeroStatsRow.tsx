@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Copy } from '../common/Copy';
 
 interface HeroStatsRowProps {
   completions: number;
@@ -18,11 +19,11 @@ export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
   currentStreak,
   daysActive,
 }) => {
-  const stats: { value: string; label: string }[] = [
-    { value: formatValue(completions), label: 'Completions' },
-    { value: formatValue(points), label: 'XP' },
-    { value: formatValue(currentStreak), label: 'Streak' },
-    { value: formatValue(daysActive), label: 'Active Days' },
+  const stats: { id: string; value: string; label: string }[] = [
+    { id: 'progress.hero.completions', value: formatValue(completions), label: 'Completions' },
+    { id: 'progress.hero.xp', value: formatValue(points), label: 'XP' },
+    { id: 'progress.hero.streak', value: formatValue(currentStreak), label: 'Streak' },
+    { id: 'progress.hero.activedays', value: formatValue(daysActive), label: 'Active Days' },
   ];
 
   return (
@@ -33,22 +34,23 @@ export const HeroStatsRow: React.FC<HeroStatsRowProps> = ({
             <Text style={styles.value}>{stat.value}</Text>
             {/* Four cards share the row. Keep the longest label ("Completions")
               on one line and let it shrink rather than wrap mid-word. */}
-            <Text
+            <Copy
+              id={stat.id}
               style={styles.label}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.7}
             >
               {stat.label}
-            </Text>
+            </Copy>
           </View>
         ))}
       </View>
       {/* Streak comes from the profile, not the log window, so it can't follow
           the filter — say so rather than let it look stuck. */}
-      <Text style={styles.note}>
+      <Copy id="progress.hero.note" style={styles.note}>
         Streak is your current streak. Not affected by the time filter.
-      </Text>
+      </Copy>
     </View>
   );
 };

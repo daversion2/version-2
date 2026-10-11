@@ -75,6 +75,7 @@ export const ScreenIntro: React.FC<{ intro: ScreenIntroState; accent?: string }>
       points={content.points}
       science={content.science}
       footer={content.footer}
+      copyPrefix={`intro.${intro.screenId}`}
     />
   );
 };

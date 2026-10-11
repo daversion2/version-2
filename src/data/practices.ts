@@ -365,7 +365,7 @@ export const PRACTICE_GROUPS: PracticeGroupDef[] = [
     // "your own / not part of the curated protocol."
     id: 'custom',
     name: 'Custom',
-    description: 'Practices you create yourself.',
+    description: 'Habits you create yourself.',
     color: '#8A8F98',
     order: 4,
   },
@@ -390,7 +390,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     suggested_target_per_week: 5,
     description: 'Sit quietly and observe your mind without acting on every urge to move or escape.',
     whyItWorks:
-      "Sitting with no input trains the prefrontal cortex to regulate the brain's default-mode network. The foundational override rep — staying when everything says get up.",
+      "Sitting with no input trains the prefrontal cortex to regulate the brain's default-mode network. The foundational override: staying when everything says get up.",
     icon: 'flower-outline',
     order: 1,
     howToTitle: 'How To Meditate',
@@ -402,7 +402,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ],
     minimumVersion: 'Two minutes watching a single breath in and out.',
     science:
-      "Sitting with no input shifts activity away from the default-mode network — the wandering, self-referential chatter — toward the prefrontal and anterior cingulate cortex, the circuits of effortful attention. Every time you notice you've drifted and come back, you do one rep of the same control you use to override any urge.",
+      "Sitting with no input shifts activity away from the default-mode network — the wandering, self-referential chatter — toward the prefrontal and anterior cingulate cortex, the circuits of effortful attention. Every time you notice you've drifted and come back, you exercise the same control you use to override any urge.",
     tips: [
       "Wandering isn't failure — noticing it and returning is the entire exercise.",
       'Same time, same spot each day makes it automatic.',
@@ -416,7 +416,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
           'Pick one anchor — your breath, or a fixed point in front of you.',
           'Rest your attention there. Nothing to control, just watch it.',
           "When you notice your mind has wandered (it will, repeatedly), don't judge it — just notice, and bring attention back to the anchor.",
-          "That moment of noticing and returning is the actual rep. The wandering isn't failure — it's the setup for it.",
+          "That moment of noticing and returning is the actual training. The wandering isn't failure — it's the setup for it.",
           "Repeat for the full duration. Some sessions you'll return dozens of times; that's not a bad session, that's a full one.",
         ],
       },
@@ -563,7 +563,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   // ---- Activate ----
   {
     id: 'movement',
-    category_id: 'Body',
+    category_id: 'Move',
     name: 'Movement',
     group: 'activate',
     intensity: 'challenging',
@@ -616,7 +616,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'unplugged_cardio',
-    category_id: 'Body',
+    category_id: 'Move',
     name: 'Unplugged Cardio',
     group: 'activate',
     intensity: 'challenging',
@@ -637,7 +637,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ],
     minimumVersion: 'Ten minutes walking with no phone and no audio.',
     science:
-      'Choosing exertion engages the prefrontal-cortex-over-limbic pathway and raises norepinephrine and BDNF — which support focus and mood. Removing all input at the same time lets your dopamine baseline recover instead of chasing novelty. Doing both together is a double rep: the body works while the mind practices staying with discomfort.',
+      'Choosing exertion engages the prefrontal-cortex-over-limbic pathway and raises norepinephrine and BDNF — which support focus and mood. Removing all input at the same time lets your dopamine baseline recover instead of chasing novelty. Doing both together trains two things at once: the body works while the mind practices staying with discomfort.',
     tips: [
       'Phone in a bag or locker beats willpower — remove the option entirely.',
       'Boredom and the urge to stop both peak early; ride past them.',
@@ -686,7 +686,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'cold_exposure',
-    category_id: 'Body',
+    category_id: 'Move',
     name: 'Cold Exposure',
     group: 'activate',
     intensity: 'extreme',
@@ -707,7 +707,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ],
     minimumVersion: '30 seconds of cold at the end of your shower.',
     science:
-      "Cold triggers a sharp norepinephrine spike — focus and alertness — and an extended dopamine rise afterward, without the crash other sources cause. Choosing to stay while your body screams 'get out' is a pure rep of acting through stress, and repeated exposure recalibrates what your nervous system counts as a threat (stress inoculation).",
+      "Cold triggers a sharp norepinephrine spike — focus and alertness — and an extended dopamine rise afterward, without the crash other sources cause. Choosing to stay while your body screams 'get out' is pure training in acting through stress, and repeated exposure recalibrates what your nervous system counts as a threat (stress inoculation).",
     tips: [
       'Control the breath first — long, slow exhales kill the panic.',
       "It should be cold, not dangerous: warm up after, don't push numbness.",
@@ -763,7 +763,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'heat_exposure',
-    category_id: 'Body',
+    category_id: 'Move',
     name: 'Heat Exposure',
     group: 'activate',
     intensity: 'extreme',
@@ -902,7 +902,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'fasting',
-    category_id: 'Body',
+    category_id: 'Fuel',
     name: 'Fasting',
     group: 'restrain',
     intensity: 'extreme',
@@ -959,7 +959,7 @@ export const BUNDLED_PRACTICES: Practice[] = [
   },
   {
     id: 'eat_healthy_unenjoyable',
-    category_id: 'Body',
+    category_id: 'Fuel',
     name: 'Eat Healthy Food I Don’t Enjoy',
     group: 'restrain',
     intensity: 'challenging',
@@ -968,9 +968,9 @@ export const BUNDLED_PRACTICES: Practice[] = [
     suggested_target_per_week: 5,
     description: 'Choose the nutritious option over the one you crave — and eat it without doctoring it up.',
     whyItWorks:
-      'Every meal is a fork between what’s rewarding and what’s good for you. Picking the plain, healthy option is a rep of overriding the reward circuit in real time.',
+      'Every meal is a fork between what’s rewarding and what’s good for you. Picking the plain, healthy option overrides the reward circuit in real time.',
     icon: 'nutrition-outline',
-    optional_reason: 'A discipline rep — adopt it if food is one of your battlegrounds.',
+    optional_reason: 'A discipline habit — adopt it if food is one of your battlegrounds.',
     order: 9,
     howTo: [
       'Pick a genuinely healthy option you don’t love — not a tasty “healthy” treat.',
@@ -980,11 +980,11 @@ export const BUNDLED_PRACTICES: Practice[] = [
     ],
     minimumVersion: 'Swap the most craving-driven item in one meal for something plain and healthy.',
     science:
-      'Hyper-palatable food is engineered to hijack the same dopamine reward pathway as any other craving. Deliberately choosing food you don’t enjoy — and eating it anyway — is a direct rep of prefrontal control over the reward system. Done often, the pull of the tastiest option loses some of its grip, because you’ve trained the choice instead of feeding the craving.',
+      'Hyper-palatable food is engineered to hijack the same dopamine reward pathway as any other craving. Deliberately choosing food you don’t enjoy — and eating it anyway — directly trains prefrontal control over the reward system. Done often, the pull of the tastiest option loses some of its grip, because you’ve trained the choice instead of feeding the craving.',
     tips: [
       'Decide before you’re hungry — willpower is weakest at the moment of craving.',
       'Don’t disguise it. The point is to sit with “not enjoyable,” not to make it enjoyable.',
-      'Bland and nutritious beats tasty and “healthy” for this rep.',
+      'Bland and nutritious beats tasty and “healthy” for this habit.',
       'CAUTION: this is discipline, not deprivation — eat enough, and skip it if you have any history of disordered eating.',
     ],
     variations: [

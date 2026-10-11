@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
+import { Copy } from '../common/Copy';
 import { HABIT_CATEGORIES } from '../../data/habitLibrary';
 import { HabitDefinition, getPracticeIntensity } from '../../data/practices';
 import { getOnboardingHabitsByCategory } from '../../data/onboardingOrder';
@@ -57,12 +58,15 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
 
   return (
     <View style={{ flex: 1 }}>
-      <Text style={ob.eyebrow}>Your turn</Text>
-      <Text style={ob.headline}>Pick the first one to push against.</Text>
-      <Text style={ob.body}>
-        Just one. You'll add more when this one is sticking — starting with five is how people end
-        the week with none.
-      </Text>
+      <Copy id="onboarding.pick.eyebrow" style={ob.eyebrow}>
+        {'Your turn'}
+      </Copy>
+      <Copy id="onboarding.pick.headline" style={ob.headline}>
+        {'Pick the first one to push against.'}
+      </Copy>
+      <Copy id="onboarding.pick.body" style={ob.body}>
+        {"Just one. You'll add more when this one is sticking — starting with five is how people end the week with none."}
+      </Copy>
 
       <View style={styles.categories}>
         {HABIT_CATEGORIES.map((category) => {
@@ -108,7 +112,13 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
                     one-liner. Either informs the pick — an empty row does not. */}
                 <Text style={styles.rowWhy}>{habit.whyItWorks ?? habit.description}</Text>
                 {flames > 0 && (
-                  <Text style={styles.rowFlames}>{'▲'.repeat(flames)} INTENSE</Text>
+                  <Copy
+                    id="onboarding.pick.intense"
+                    style={styles.rowFlames}
+                    vars={{ flames: '▲'.repeat(flames) }}
+                  >
+                    {'{flames} INTENSE'}
+                  </Copy>
                 )}
               </View>
               {on && <Ionicons name="checkmark-circle" size={22} color={Colors.primary} />}
@@ -120,19 +130,16 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
       {/* Says out loud what gets written without being asked. The reminder in
           particular: it is scheduled on completion, and a notification nobody
           agreed to is the kind of surprise that gets an app deleted. */}
-      <Text style={styles.defaultsNote}>
-        Amount, days and reminders are already set to something sensible. Change any of it later,
-        or add more from the Library.
-      </Text>
+      <Copy id="onboarding.pick.defaultsNote" style={styles.defaultsNote}>
+        {'Amount, days and reminders are already set to something sensible. Change any of it later, or add more from the Library.'}
+      </Copy>
 
       {showCaution && (
         <View style={styles.caution}>
           <Ionicons name="warning" size={15} color={Colors.secondary} style={{ marginTop: 1 }} />
-          <Text style={styles.cautionText}>
-            <Text style={styles.cautionBold}>Cold and heat exposure</Text> put real stress on the
-            body. Check with your doctor before starting — especially if you have a heart, blood
-            pressure, or other medical condition.
-          </Text>
+          <Copy id="onboarding.pick.caution" style={styles.cautionText} boldStyle={styles.cautionBold}>
+            {'**Cold and heat exposure** put real stress on the body. Check with your doctor before starting — especially if you have a heart, blood pressure, or other medical condition.'}
+          </Copy>
         </View>
       )}
     </View>

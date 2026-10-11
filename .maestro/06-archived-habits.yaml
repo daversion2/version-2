@@ -16,7 +16,7 @@
 #    with zero logged reps is in neither, and — with the Archived screen having
 #    no entry point in the app — archiving one strands it.
 #
-# "Archive Practice" sits at the very bottom of the detail screen. Without
+# "Archive Habit" sits at the very bottom of the detail screen. Without
 # `centerElement: true` the scroll stops with it under the tab bar, and the tap
 # lands on the Progress tab instead — reported as COMPLETED, silently wrong.
 appId: com.neuronudge.neuronudge
@@ -71,21 +71,21 @@ appId: com.neuronudge.neuronudge
     text: ".*Test, 101 reps.*"
 - waitForAnimationToEnd:
     timeout: 4000
-- assertVisible: "Practice Detail"
+- assertVisible: "Habit Details"
 
 - scrollUntilVisible:
     element:
-      text: ".*Archive Practice"
+      text: ".*Archive Habit"
     direction: DOWN
     timeout: 40000
     centerElement: true
 - waitForAnimationToEnd:
     timeout: 3000
 - tapOn:
-    text: ".*Archive Practice"
+    text: ".*Archive Habit"
 - waitForAnimationToEnd:
     timeout: 3000
-- assertVisible: "Archive this practice?"
+- assertVisible: "Archive this habit?"
 - assertVisible: "It comes off Home and stops counting toward your streaks and pace. Every rep you logged is kept, and you can restore it from Archived at any time."
 - takeScreenshot: 06b-archive-confirm
 - tapOn: "Archive"
@@ -140,16 +140,16 @@ appId: com.neuronudge.neuronudge
 - waitForAnimationToEnd:
     timeout: 4000
 - assertVisible: ".*Archived\\. Off Home and out of your streaks — the history below is kept\\."
-- assertVisible: ".*Restore practice"
+- assertVisible: ".*Restore habit"
 - takeScreenshot: 06d-archived-banner
 
 - tapOn:
-    text: ".*Restore practice"
+    text: ".*Restore habit"
 - waitForAnimationToEnd:
     timeout: 5000
 - extendedWaitUntil:
     notVisible:
-      text: ".*Restore practice"
+      text: ".*Restore habit"
     timeout: 20000
 - takeScreenshot: 06e-after-restore
 

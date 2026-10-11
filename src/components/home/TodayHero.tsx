@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { WeekGlance } from '../../services/habitPace';
+import { Copy } from '../common/Copy';
 
 interface Props {
   glance: WeekGlance;
@@ -13,10 +14,6 @@ interface Props {
    */
   nextAction?: { habitName: string; reps: number; recovers: boolean } | null;
 }
-
-/** "once" / "twice" / "3×" — a count you'd say out loud. */
-const timesLabel = (reps: number): string =>
-  reps === 1 ? 'once' : reps === 2 ? 'twice' : `${reps}×`;
 
 /**
  * The one line above the list: what to do next, and where the week stands.
@@ -36,8 +33,12 @@ export const TodayHero: React.FC<Props> = ({ glance, name, nextAction }) => {
   if (total === 0 && untracked === 0) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.big}>Nothing tracked yet</Text>
-        <Text style={styles.sub}>Add a habit from the library to get started.</Text>
+        <Copy id="today.hero.empty.title" style={styles.big}>
+          {'Nothing tracked yet'}
+        </Copy>
+        <Copy id="today.hero.empty.subtitle" style={styles.sub}>
+          {'Add a habit from the library to get started.'}
+        </Copy>
       </View>
     );
   }
@@ -48,13 +49,21 @@ export const TodayHero: React.FC<Props> = ({ glance, name, nextAction }) => {
   if (total === 0) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.eyebrow}>This week</Text>
-        <Text style={styles.big}>
-          {untracked} {untracked === 1 ? 'habit' : 'habits'}, no goals yet
-        </Text>
-        <Text style={styles.sub}>
-          Set how many times a week on any habit to start tracking your pace.
-        </Text>
+        <Copy id="today.hero.eyebrow.thisWeek" style={styles.eyebrow}>
+          {'This week'}
+        </Copy>
+        {untracked === 1 ? (
+          <Copy id="today.hero.noGoals.one" style={styles.big} vars={{ count: untracked }}>
+            {'{count} habit, no goals yet'}
+          </Copy>
+        ) : (
+          <Copy id="today.hero.noGoals.other" style={styles.big} vars={{ count: untracked }}>
+            {'{count} habits, no goals yet'}
+          </Copy>
+        )}
+        <Copy id="today.hero.noGoals.subtitle" style={styles.sub}>
+          {'Set how many times a week on any habit to start tracking your pace.'}
+        </Copy>
       </View>
     );
   }
@@ -64,34 +73,82 @@ export const TodayHero: React.FC<Props> = ({ glance, name, nextAction }) => {
   // Something is owed today — lead with it. The pace summary moves to the sub
   // line so the screen still says where the week stands, just second.
   if (nextAction) {
+    const { habitName, reps, recovers } = nextAction;
+    const paceVars = { onPace, total, behind };
     return (
       <View style={styles.wrap}>
-        <Text style={styles.eyebrow}>{name ? `Next up, ${name}` : 'Next up'}</Text>
-        <Text style={styles.big}>
-          {nextAction.habitName} {timesLabel(nextAction.reps)} today
-        </Text>
-        <Text style={styles.sub}>
-          {nextAction.recovers ? 'Puts it back on pace. ' : ''}
-          {onPace} of {total} on pace
-          {behind > 0 ? ` · ${behind} behind` : ''}
-        </Text>
+        {name ? (
+          <Copy id="today.hero.eyebrow.nextUpNamed" style={styles.eyebrow} vars={{ name }}>
+            {'Next up, {name}'}
+          </Copy>
+        ) : (
+          <Copy id="today.hero.eyebrow.nextUp" style={styles.eyebrow}>
+            {'Next up'}
+          </Copy>
+        )}
+        {reps === 1 ? (
+          <Copy id="today.hero.next.once" style={styles.big} vars={{ habit: habitName }}>
+            {'{habit} once today'}
+          </Copy>
+        ) : reps === 2 ? (
+          <Copy id="today.hero.next.twice" style={styles.big} vars={{ habit: habitName }}>
+            {'{habit} twice today'}
+          </Copy>
+        ) : (
+          <Copy id="today.hero.next.many" style={styles.big} vars={{ habit: habitName, count: reps }}>
+            {'{habit} {count}× today'}
+          </Copy>
+        )}
+        {recovers ? (
+          behind > 0 ? (
+            <Copy id="today.hero.next.paceRecoversBehind" style={styles.sub} vars={paceVars}>
+              {'Puts it back on pace. {onPace} of {total} on pace · {behind} behind'}
+            </Copy>
+          ) : (
+            <Copy id="today.hero.next.paceRecovers" style={styles.sub} vars={paceVars}>
+              {'Puts it back on pace. {onPace} of {total} on pace'}
+            </Copy>
+          )
+        ) : behind > 0 ? (
+          <Copy id="today.hero.next.paceBehind" style={styles.sub} vars={paceVars}>
+            {'{onPace} of {total} on pace · {behind} behind'}
+          </Copy>
+        ) : (
+          <Copy id="today.hero.next.pace" style={styles.sub} vars={paceVars}>
+            {'{onPace} of {total} on pace'}
+          </Copy>
+        )}
       </View>
     );
   }
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.eyebrow}>{name ? `This week, ${name}` : 'This week'}</Text>
-      <Text style={styles.big}>
-        {onPace} of {total} on pace
-      </Text>
-      <Text style={styles.sub}>
-        {allGood
-          ? 'Everything is where it should be.'
-          : behind === 1
-            ? 'One is behind — it’s at the top.'
-            : `${behind} are behind — they’re at the top.`}
-      </Text>
+      {name ? (
+        <Copy id="today.hero.eyebrow.thisWeekNamed" style={styles.eyebrow} vars={{ name }}>
+          {'This week, {name}'}
+        </Copy>
+      ) : (
+        <Copy id="today.hero.eyebrow.thisWeek" style={styles.eyebrow}>
+          {'This week'}
+        </Copy>
+      )}
+      <Copy id="today.hero.week.pace" style={styles.big} vars={{ onPace, total }}>
+        {'{onPace} of {total} on pace'}
+      </Copy>
+      {allGood ? (
+        <Copy id="today.hero.week.allGood" style={styles.sub}>
+          {'Everything is where it should be.'}
+        </Copy>
+      ) : behind === 1 ? (
+        <Copy id="today.hero.week.behindOne" style={styles.sub}>
+          {'One is behind — it’s at the top.'}
+        </Copy>
+      ) : (
+        <Copy id="today.hero.week.behindMany" style={styles.sub} vars={{ behind }}>
+          {'{behind} are behind — they’re at the top.'}
+        </Copy>
+      )}
     </View>
   );
 };

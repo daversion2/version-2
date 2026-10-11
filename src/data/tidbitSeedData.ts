@@ -71,9 +71,9 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     tags: ['BDNF', 'exercise', 'neuroplasticity', 'hippocampus'],
   },
   {
-    text: "Cold drives norepinephrine up to several times baseline — and unlike caffeine, nothing is being borrowed. That clear, switched-on feeling you have right now is the aftermath, and it outlasts the cold by hours.",
+    text: "Cold drives norepinephrine to several times baseline — that's the clear, switched-on feeling you have right now. The part that carries over: you stayed in something your whole body wanted out of.",
     extended_text:
-      "Cold exposure triggers a large release of norepinephrine, a neurotransmitter that sharpens attention, lifts mood and raises arousal. Studies of cold-water immersion have recorded increases of two to three times baseline, sustained well beyond the exposure itself.\n\nThe mechanism is worth contrasting with stimulants. Caffeine works by blocking adenosine, the molecule that accumulates as you stay awake — it masks tiredness you will still have to pay for. Cold produces norepinephrine directly, so the alertness isn't drawn against later.\n\nThere is a second-order effect too. Deliberately entering something your body wants out of, and staying, is a repeatable lesson that the alarm is not the same thing as danger. The clarity is the obvious reward. The recalibration is the one that lasts.",
+      "Cold exposure triggers a large release of norepinephrine, a neurotransmitter that sharpens attention, lifts mood and raises arousal. Studies of cold-water immersion have recorded several-fold increases while in the water.\n\nThere is a second-order effect too. Deliberately entering something your body wants out of, and staying, is a repeatable lesson that the alarm is not the same thing as danger. The clarity is the obvious reward. The recalibration is the one that lasts.",
     context_type: 'habit_type',
     context_value: 'cold',
     tags: ['norepinephrine', 'cold exposure', 'alertness', 'stress response'],
@@ -119,7 +119,7 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     tags: ['dopamine', 'variable reward', 'screen time', 'attention'],
   },
   {
-    text: "The choice you just made will be slightly easier next time, and it barely involves willpower. Repeated decisions reshape the circuit that produces them — you're not only changing what you eat, you're changing what gets suggested to you.",
+    text: "That choice counts twice: once today, and once as a vote for what feels normal. Cut back for a few weeks and the same foods start tasting sweeter — the cost is front-loaded.",
     extended_text:
       "Neural pathways follow a use-it-or-lose-it economy. Circuits that fire together repeatedly get reinforced, while unused ones are gradually pruned. A food choice is never a single event in isolation — it is one more piece of evidence in a long-running process that determines which option turns up first next time.\n\nThere is a physiological layer under that. Repeated exposure shifts taste preference: reduce added sugar consistently and foods you used to find pleasantly sweet start reading as too sweet. The reference point moves. This is generally reported as one of the more surprising effects, because it arrives without effort after a period that required quite a lot.\n\nSo the early weeks are the expensive part by design. You are paying for a change in what feels normal, and once it lands, most of the deciding stops.",
     context_type: 'habit_type',
@@ -127,9 +127,9 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     tags: ['neural pathways', 'diet', 'taste adaptation', 'preference'],
   },
   {
-    text: "Concentration releases acetylcholine, which tags the synapses you're using to be strengthened later while you sleep. The strained feeling of hard focus is the tagging. It's supposed to be uncomfortable.",
+    text: "Hard focus feels effortful because it is. Attention is expensive, and the strain is the work — not a sign you're bad at it. Stop while the session is still good: rest is when it sets.",
     extended_text:
-      "Acetylcholine is released during sustained, effortful attention and functions as a marker: it flags which circuits were active, so that the consolidation process during subsequent sleep knows what to reinforce. Focus is the tagging pass; sleep is the write.\n\nThis explains something most people misread. The discomfort of deep work is not a sign you are doing it badly or that you are unsuited to it — it is the sensation of the mechanism running. Attention that costs nothing is not marking anything for keeps.\n\nIt also explains why the session has to end. The system depends on a cycle of effortful engagement followed by genuine rest, and grinding past the point of diminishing returns degrades the consolidation the work was for. Stop while the session is still good.",
+      "Sustained attention is expensive. Acetylcholine, among other signals, rises during effortful focus and is thought to help mark what gets strengthened during later rest and sleep. The exact mechanism is still being worked out, but the outline is consistent: effortful engagement first, consolidation after.\n\nThis explains something most people misread. The discomfort of deep work is not a sign you are doing it badly or that you are unsuited to it — it is what effortful attention feels like. Attention that costs nothing usually isn't doing much.\n\nIt also explains why the session has to end. The system depends on a cycle of effortful engagement followed by genuine rest, and grinding past the point of diminishing returns degrades the consolidation the work was for. Stop while the session is still good.",
     context_type: 'habit_type',
     context_value: 'deep_work',
     tags: ['acetylcholine', 'focus', 'deep work', 'consolidation'],
@@ -149,7 +149,7 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     tags: ['anterior cingulate cortex', 'effort', 'self-control'],
   },
   {
-    text: "Around now is when the old pattern pushes back hardest. Behavioural science calls it an extinction burst — resistance spiking right before it fades. It only happens because the change is landing.",
+    text: "Days like this are often the old pattern pushing back. Behavioural science calls it an extinction burst — resistance spiking before it fades. Holding through it is how it fades.",
     extended_text:
       "When a reliably reinforced behaviour stops being reinforced, it does not fade smoothly. It first intensifies — more frequent, more insistent — before declining. This is an extinction burst, and it is one of the most consistently reproduced patterns in behavioural research.\n\nApplied here: the circuits that supported your old default are not gone, and they are effectively testing whether the old routine still works. That is what a day like this feels like from the inside. The surge is evidence of disruption, not of failure — an unchallenged pattern has no reason to protest.\n\nThe practical problem is the timing. The burst lands exactly when someone is most likely to conclude they aren't capable of this, and quitting during it is the single most common way a change dies. Reading the spike correctly is most of the work. You just did the hard version of that.",
     context_type: 'habit',
@@ -179,9 +179,9 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     tags: ['Lally study', 'comeback', 'perfectionism'],
   },
   {
-    text: "Coming back after a gap engages the reward system much like starting does. Your brain isn't running a tally of the days you missed — it responds to the decision in front of it, and the decision in front of it was to return.",
+    text: "Your brain isn't keeping a tally of missed days. The real danger after a gap is the story — 'I've blown it' — which turns one missed day into a month. You came back, and that's the part that matters.",
     extended_text:
-      "The brain's valuation machinery is oriented toward the choice currently on the table, not toward an audit of prior ones. Re-engaging after a break registers as a fresh start rather than a continuation of failure, which is why returning often feels better than people expect given how much dread preceded it.\n\nThere's a well-documented trap in the other direction. The abstinence violation effect describes what happens when someone treats a single lapse as evidence of total failure: the guilt itself becomes a reason to keep not doing the thing, and one missed day turns into a month. The lapse is small; the story told about it is not.\n\nThe practical upshot is unglamorous. The return is the skill worth having, and you can only train it on days like this — which means a run without a single gap never teaches it at all.",
+      "What you did yesterday doesn't decide what today is worth. Returning after a break is a fresh decision, and it often feels better than people expect given how much dread preceded it.\n\nThere's a well-documented trap in the other direction. The abstinence violation effect describes what happens when someone treats a single lapse as evidence of total failure: the guilt itself becomes a reason to keep not doing the thing, and one missed day turns into a month. The lapse is small; the story told about it is not.\n\nThe practical upshot is unglamorous. The return is the skill worth having, and you can only train it on days like this — which means a run without a single gap never teaches it at all.",
     context_type: 'habit',
     context_value: 'struggle',
     tags: ['comeback', 'reward system', 'abstinence violation effect'],
@@ -202,9 +202,9 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
   // ==========================================================================
 
   {
-    text: "That was easy today, and it's worth being precise about what changed. The work is the same size. What got cheaper is starting it — the part that used to need a decision is being handled further down.",
+    text: "That felt easy today, and the work didn't shrink. What got cheaper is starting it. That's capacity you've freed up: room to take on more, or something harder.",
     extended_text:
-      "Repetition doesn't reduce the effort a task takes. It reduces the cost of initiating it. Ann Graybiel's work on chunking describes how the basal ganglia compresses a repeated sequence into a single unit that can be triggered as a whole, so the prefrontal cortex stops having to assemble it from scratch each time.\n\nWhat that removes is the deliberation — the negotiation, the timing, the weighing-up that happens before anything begins. For most people, most days, that negotiation was the expensive part. Losing it is a substantial saving and it feels like the whole thing got easier, which is why the distinction is worth drawing carefully.\n\nSo a low resistance score is not the habit becoming trivial. It is the overhead being paid off, leaving the work itself — which is still the work, and still yours to do.",
+      "Repetition doesn't reduce the effort a task takes. It reduces the cost of initiating it. Ann Graybiel's work on chunking describes how the basal ganglia compresses a repeated sequence into a single unit that can be triggered as a whole, so the prefrontal cortex stops having to assemble it from scratch each time.\n\nWhat that removes is the deliberation — the negotiation, the timing, the weighing-up that happens before anything begins. For most people, most days, that negotiation was the expensive part. Losing it is a substantial saving and it feels like the whole thing got easier, which is why the distinction is worth drawing carefully.\n\nSo a low resistance score is not the habit becoming trivial. It is the overhead being paid off — and what you no longer spend on starting this is now available for something else. That's what getting stronger looks like from the inside.",
     context_type: 'habit',
     context_value: 'easing',
     tags: ['chunking', 'basal ganglia', 'initiation cost', 'resistance curve'],
@@ -220,7 +220,7 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
   {
     text: "Dopamine has been shifting earlier. It used to arrive when you finished; with enough repetition it moves to the cue — so some of the pull toward this now shows up before you've started, where the resistance used to be.",
     extended_text:
-      "Dopamine is a prediction signal more than a pleasure one. Wolfram Schultz's work showed that as an animal learns which cue reliably precedes a reward, the dopamine response migrates backwards from the reward itself to the cue that predicts it. The system stops responding to the payoff and starts responding to the signal.\n\nRun that on a habit and something useful happens. The moment that used to be pure cost — the approach, the getting ready, the bit where you'd normally talk yourself out of it — acquires some of the reward value of the outcome. The anticipation starts pulling in the same direction as the intention rather than against it.\n\nThis is the clearest neural account of why an established habit feels different from a new one, and it is measurable in exactly the number this app tracks. Nothing got easier. The pull reversed.",
+      "Dopamine is a prediction signal more than a pleasure one. Wolfram Schultz's work showed that as an animal learns which cue reliably precedes a reward, the dopamine response migrates backwards from the reward itself to the cue that predicts it. The system stops responding to the payoff and starts responding to the signal.\n\nRun that on a habit and something useful happens. The moment that used to be pure cost — the approach, the getting ready, the bit where you'd normally talk yourself out of it — acquires some of the reward value of the outcome. The anticipation starts pulling in the same direction as the intention rather than against it.\n\nThis is the clearest neural account of why an established habit feels different from a new one. It feels easier because some of the pull now runs with you instead of against you.",
     context_type: 'habit',
     context_value: 'easing',
     tags: ['dopamine', 'prediction', 'cue', 'anticipation'],
@@ -231,14 +231,6 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
   // ==========================================================================
 
   {
-    text: "Consistent training physically changes brain tissue. Eight weeks of daily mindfulness produced measurable grey matter increases in the hippocampus in a Harvard-affiliated trial. Your brain is not fixed hardware — it reshapes around whatever you repeat.",
-    extended_text:
-      "Britta Hölzel and colleagues ran structural MRI on participants before and after an eight-week mindfulness-based stress reduction course, and found increased grey matter density in the hippocampus, posterior cingulate cortex and cerebellum — alongside decreased density in the amygdala that correlated with participants' own reports of reduced stress. Sara Lazar's earlier work at Harvard found greater cortical thickness in the prefrontal cortex and right anterior insula in long-term meditators.\n\nExercise shows the same kind of result through a different route. Aerobic training is associated with increased hippocampal volume in older adults, running against the shrinkage that otherwise comes with age, with BDNF as the most likely mediator.\n\nThese are macroscopic, measurable changes in tissue, not metaphors for commitment. At a month of consistency you are past the point where this is theoretical. The brain you'll have after a year of this is a different organ from the one you started with.",
-    context_type: 'habit',
-    context_value: 'established',
-    tags: ['grey matter', 'neuroplasticity', 'brain structure'],
-  },
-  {
     text: "Keep choosing discomfort and the alarm system turns its own volume down. Repeated voluntary stress is associated with an amygdala that fires less readily and settles faster. You're not numbing out — you're getting harder to startle.",
     extended_text:
       "The amygdala drives threat detection and the felt sense of needing to get out of a situation. Avoidance keeps it sensitised: every retreat confirms that the thing was worth retreating from. Controlled, repeated exposure does the reverse.\n\nStudies of experienced meditators and of sustained exposure protocols show reduced amygdala reactivity and stronger prefrontal regulation over it — and in some samples, reduced amygdala grey matter density. The signature isn't the absence of a stress response. It's a faster return to baseline once one has fired.\n\nThe alarm still works where it should. What changes is its threshold, so it stops going off over things that were never dangerous — cold water, a hard set, an uncomfortable conversation, the first five minutes of something you didn't feel like starting. At this length of consistency, that shift is well underway.",
@@ -247,9 +239,9 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     tags: ['amygdala', 'threat reactivity', 'equanimity'],
   },
   {
-    text: "Pathways you use repeatedly get wrapped in more myelin, which makes them faster and more efficient. That's the physical reason starting costs less than it did a month ago — better wiring on the route, not a smaller job at the end of it.",
+    text: "Pathways you use often get more myelin — faster, more reliable signalling. It's part of why starting costs less than it did a month ago. What you've saved is yours to spend: the same effort now carries more.",
     extended_text:
-      "Myelin is the fatty sheath that insulates nerve fibres, and it substantially increases the speed and reliability of signal transmission along them. Oligodendrocytes produce more of it around circuits that are used consistently, which means a well-practised pathway is physically different from a neglected one — not merely more familiar.\n\nIt is worth being careful about what this buys you. Faster, cheaper signalling on the route from intention to action is exactly the thing that lowers the cost of beginning. It does not make the work smaller. A habit can be simultaneously easy to start and genuinely hard to complete, and at this point that is probably what yours is.\n\nThat combination is the goal, not a halfway state. The overhead is gone and the substance remains — which is the most efficient arrangement available to you.",
+      "Myelin is the fatty sheath that insulates nerve fibres, and it substantially increases the speed and reliability of signal transmission along them. Oligodendrocytes produce more of it around circuits that are used consistently, which means a well-practised pathway is physically different from a neglected one — not merely more familiar.\n\nIt is worth being careful about what this buys you. Faster, cheaper signalling on the route from intention to action is plausibly part of what lowers the cost of beginning. It does not make the work smaller. A habit can be simultaneously easy to start and genuinely hard to complete, and at this point that is probably what yours is.\n\nThat combination isn't the finish line. The overhead you no longer pay is capacity you can put somewhere else — more habits, or a harder version of this one.",
     context_type: 'habit',
     context_value: 'established',
     tags: ['myelin', 'efficiency', 'neuroplasticity'],
@@ -266,14 +258,6 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     context_type: 'habit',
     context_value: 'streak',
     tags: ['identity', 'self-concept', 'medial prefrontal cortex'],
-  },
-  {
-    text: "If this is getting easier to start, that's the basal ganglia taking over the launch — the cue-to-action link, not the work. Watch for the difference. The beginning gets cheap; the finishing is still yours.",
-    extended_text:
-      "Habit formation is often described as the brain handing a behaviour off from the prefrontal cortex to the basal ganglia, and imaging supports the broad picture: as a sequence is repeated, prefrontal involvement drops while basal ganglia activity rises. What that handoff covers is the initiation — the cue arriving and the action following without deliberation in between.\n\nIt does not cover execution. A hard run does not become an easy run because you've run for three weeks. The demanding part stays demanding; what disappears is the thirty minutes of negotiation that used to precede it.\n\nThis is the most useful distinction in the whole subject, and the most commonly fumbled. People expecting the work to become effortless conclude they're doing it wrong when it doesn't. People who know to expect a cheaper start and an unchanged middle recognise progress when they see it — and what you're seeing this week is progress.",
-    context_type: 'habit',
-    context_value: 'streak',
-    tags: ['basal ganglia', 'automaticity', 'initiation', 'prefrontal cortex'],
   },
   {
     text: "Do hard things on purpose often enough and your baseline moves. What felt brutal a fortnight ago now reads as merely uncomfortable — you're not just getting through it, you're raising what counts as tolerable.",
@@ -300,7 +284,7 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
   {
     text: "There's no magic number of days that flips a switch. The first real study put the average near 66 days, with a range from 18 to 254 — and found that missing a single day didn't measurably dent the curve. It accumulates. Today counted.",
     extended_text:
-      "The '21 days to form a habit' figure has no research behind it; it comes from a plastic surgeon's observation about patients adjusting to their appearance, repeated until it sounded like a finding. The first rigorous real-world test was Phillippa Lally's 2010 study at University College London, which tracked 96 people for twelve weeks.\n\nTwo results matter more than the headline average of 66 days. First, the spread was enormous — 18 to 254 days — and it tracked difficulty, so a demanding habit taking months is the expected case, not evidence that something is wrong with you. Second, there was no threshold. Automaticity rose along a gradual curve rather than switching on.\n\nThird, and most usefully: participants who missed a single day showed no statistically significant deviation from their trajectory. Perfection is not the mechanism. Accumulation is.",
+      "The '21 days to form a habit' figure has no research behind it; it comes from a plastic surgeon's observation about patients adjusting to their appearance, repeated until it sounded like a finding. The first rigorous real-world test was Phillippa Lally's 2010 study at University College London, which tracked 96 people for twelve weeks.\n\nThree results matter more than the headline average of 66 days. First, the spread was enormous — 18 to 254 days — and it tracked difficulty, so a demanding habit taking months is the expected case, not evidence that something is wrong with you. Second, there was no threshold. Automaticity rose along a gradual curve rather than switching on.\n\nThird, and most usefully: participants who missed a single day showed no statistically significant deviation from their trajectory. Perfection is not the mechanism. Accumulation is.",
     context_type: 'habit',
     context_value: 'new_habit',
     tags: ['Lally study', 'training curve', '21-day myth'],
@@ -335,9 +319,9 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
   // ==========================================================================
 
   {
-    text: "Dopamine didn't wait for you to finish — it started releasing when you decided to start. That's the mechanical reason beginning is the worst part and everything after it runs downhill.",
+    text: "The hardest moment of any habit is the one just before you start — all of the cost in view, none of the momentum yet. A few minutes in, it's a different situation. You got past that moment today.",
     extended_text:
-      "Contrary to its reputation, dopamine is not primarily about pleasure. It's a motivation and anticipation signal, and it begins releasing in expectation of a reward rather than on receipt of it. The decision to begin is itself the trigger.\n\nThat has a practical consequence worth internalising. The hardest moment in any session is the one immediately before it starts, because it's the only moment where you have all of the cost in view and none of the neurochemistry yet working in your favour. A few minutes in, the situation is materially different.\n\nWhich is why almost every technique that reliably helps — two minutes of it, just the setup, only the first set — is a way of getting past that specific moment rather than a way of doing less. Cross it and the system starts helping.",
+      "Contrary to its reputation, dopamine is not primarily about pleasure. It's a motivation and anticipation signal that responds to expected reward, not just to reward received — part of why getting going changes how a task feels.\n\nThat has a practical consequence worth internalising. The hardest moment in any session is the one immediately before it starts, because it's the only moment where you have all of the cost in view and none of the neurochemistry yet working in your favour. A few minutes in, the situation is materially different.\n\nWhich is why almost every technique that reliably helps — two minutes of it, just the setup, only the first set — is a way of getting past that specific moment rather than a way of doing less. Cross it and the system starts helping.",
     context_type: 'habit',
     context_value: 'generic',
     tags: ['dopamine', 'anticipation', 'starting'],
@@ -351,9 +335,9 @@ export const TIDBIT_SEED_DATA: SeedTidbit[] = [
     tags: ['task bracketing', 'completion', 'self-signalling'],
   },
   {
-    text: "Tonight, while you sleep, your brain replays today and decides what to keep. The work isn't finished when you finish — you did your part, and the filing happens in the dark. Protect your sleep and you protect what you just earned.",
+    text: "Part of today's work happens tonight. Sleep is when the brain consolidates what you did, so going to bed on time protects what you just earned.",
     extended_text:
-      "Memory consolidation during sleep is among the most robust findings in neuroscience. The brain doesn't store the day passively; during deep non-REM sleep it actively replays the neural patterns from waking hours and transfers them into more durable form.\n\nThis applies to self-regulation as much as to facts or movement sequences. The prefrontal and interoceptive circuits you engaged by starting something you didn't feel like starting get rehearsed offline, which is part of how the gain stabilises. Sleep deprivation measurably degrades both emotional regulation and the consolidation of effortful learning.\n\nIt's an unusually actionable piece of neuroscience. The most useful thing you can do for today's effort is now entirely unrelated to the habit itself — it's going to bed.",
+      "Memory consolidation during sleep is among the most robust findings in neuroscience. The brain doesn't store the day passively; during deep non-REM sleep it actively replays the neural patterns from waking hours and transfers them into more durable form.\n\nSleep deprivation measurably degrades both emotional regulation and the consolidation of effortful learning — so a short night makes tomorrow's hard start harder, as well as blurring what today taught you.\n\nIt's an unusually actionable piece of neuroscience. The most useful thing you can do for today's effort is now entirely unrelated to the habit itself — it's going to bed.",
     context_type: 'habit',
     context_value: 'generic',
     tags: ['sleep', 'memory consolidation', 'recovery'],

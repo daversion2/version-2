@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../common/Card';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { MetricFamilyReport } from '../../services/metricFamilies';
 
 interface MetricFamiliesSectionProps {
@@ -27,11 +29,12 @@ export const MetricFamiliesSection: React.FC<MetricFamiliesSectionProps> = ({
   if (reports.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={styles.title}>Totals by Type</Text>
-        <Text style={styles.empty}>
-          Log a habit that tracks something — minutes, miles, reps — and every habit
-          measuring the same thing will roll up here.
-        </Text>
+        <Copy id="progress.metrics.title" style={styles.title}>
+          Totals by Type
+        </Copy>
+        <Copy id="progress.metrics.empty" style={styles.empty}>
+          {'Log a habit that tracks something — minutes, miles, push-ups — and every habit measuring the same thing will roll up here.'}
+        </Copy>
       </View>
     );
   }
@@ -42,10 +45,12 @@ export const MetricFamiliesSection: React.FC<MetricFamiliesSectionProps> = ({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>Totals by Type</Text>
-      <Text style={styles.note}>
+      <Copy id="progress.metrics.title" style={styles.title}>
+        Totals by Type
+      </Copy>
+      <Copy id="progress.metrics.note" style={styles.note}>
         Every habit that measures the same thing, added up together.
-      </Text>
+      </Copy>
 
       <ScrollView
         horizontal
@@ -86,8 +91,21 @@ const FamilyDetail: React.FC<{
   report: MetricFamilyReport;
   onHabitPress: (habitId: string) => void;
 }> = ({ report, onHabitPress }) => {
-  const habitWord = report.habits.length === 1 ? 'habit' : 'habits';
-  const repWord = report.logged === 1 ? 'rep' : 'reps';
+  const t = useCopy();
+  const habitWord =
+    report.habits.length === 1
+      ? t('progress.metrics.word.habit.one', 'habit')
+      : t('progress.metrics.word.habit.other', 'habits');
+  const logWord =
+    report.logged === 1
+      ? t('progress.metrics.word.checkin.one', 'check-in')
+      : t('progress.metrics.word.checkin.other', 'check-ins');
+  const captionVars = {
+    habitCount: report.habits.length,
+    habitWord,
+    logCount: report.logged,
+    logWord,
+  };
   const showChart = report.weekly.filter((w) => w.logged > 0).length >= MIN_CHART_WEEKS;
   const maxHabitValue = Math.max(...report.habits.map((h) => h.value), 0);
 
@@ -96,26 +114,44 @@ const FamilyDetail: React.FC<{
       {report.combinable ? (
         <>
           <Text style={styles.headline}>{report.formattedValue}</Text>
-          <Text style={styles.headlineCaption}>
-            {report.aggregate === 'avg' ? 'average across ' : 'total across '}
-            {report.habits.length} {habitWord} · {report.logged} {repWord}
-            {report.direction === 'down' ? ' · lower is better' : ''}
-          </Text>
+          {report.aggregate === 'avg' ? (
+            report.direction === 'down' ? (
+              <Copy id="progress.metrics.caption.avg.lowerbetter" style={styles.headlineCaption} vars={captionVars}>
+                {'average across {habitCount} {habitWord} · {logCount} {logWord} · lower is better'}
+              </Copy>
+            ) : (
+              <Copy id="progress.metrics.caption.avg" style={styles.headlineCaption} vars={captionVars}>
+                {'average across {habitCount} {habitWord} · {logCount} {logWord}'}
+              </Copy>
+            )
+          ) : report.direction === 'down' ? (
+            <Copy id="progress.metrics.caption.total.lowerbetter" style={styles.headlineCaption} vars={captionVars}>
+              {'total across {habitCount} {habitWord} · {logCount} {logWord} · lower is better'}
+            </Copy>
+          ) : (
+            <Copy id="progress.metrics.caption.total" style={styles.headlineCaption} vars={captionVars}>
+              {'total across {habitCount} {habitWord} · {logCount} {logWord}'}
+            </Copy>
+          )}
         </>
       ) : (
         <>
-          <Text style={styles.headline}>
-            {report.logged} <Text style={styles.headlineUnit}>reps</Text>
-          </Text>
-          <Text style={styles.headlineCaption}>
-            across {report.habits.length} {habitWord}
-          </Text>
+          <Copy
+            id="progress.metrics.mixed.headline"
+            style={styles.headline}
+            boldStyle={styles.headlineUnit}
+            vars={captionVars}
+          >
+            {'{logCount} **{logWord}**'}
+          </Copy>
+          <Copy id="progress.metrics.mixed.caption" style={styles.headlineCaption} vars={captionVars}>
+            {'across {habitCount} {habitWord}'}
+          </Copy>
           {/* Both habits use the Count template, but one counts glasses and the
               other counts pages. Adding them would invent a number. */}
-          <Text style={styles.mixedNote}>
-            These habits measure different things, so they’re kept separate rather
-            than added up.
-          </Text>
+          <Copy id="progress.metrics.mixed.note" style={styles.mixedNote}>
+            {'These habits measure different things, so they’re kept separate rather than added up.'}
+          </Copy>
         </>
       )}
 
@@ -148,9 +184,15 @@ const FamilyDetail: React.FC<{
                   ]}
                 />
               </View>
-              <Text style={styles.habitReps}>
-                {habit.logged} {habit.logged === 1 ? 'rep' : 'reps'}
-              </Text>
+              {habit.logged === 1 ? (
+                <Copy id="progress.metrics.habit.checkins.one" style={styles.habitReps} vars={{ count: habit.logged }}>
+                  {'{count} check-in'}
+                </Copy>
+              ) : (
+                <Copy id="progress.metrics.habit.checkins.other" style={styles.habitReps} vars={{ count: habit.logged }}>
+                  {'{count} check-ins'}
+                </Copy>
+              )}
             </View>
           </TouchableOpacity>
         ))}
@@ -159,10 +201,19 @@ const FamilyDetail: React.FC<{
       {report.best && (
         <View style={styles.bestRow}>
           <Ionicons name="trophy-outline" size={14} color={Colors.secondary} />
-          <Text style={styles.bestText}>
-            Best: {report.best.formatted}
-            {report.best.habitName ? ` · ${report.best.habitName}` : ''}
-          </Text>
+          {report.best.habitName ? (
+            <Copy
+              id="progress.metrics.best.withhabit"
+              style={styles.bestText}
+              vars={{ value: report.best.formatted, habit: report.best.habitName }}
+            >
+              {'Best: {value} · {habit}'}
+            </Copy>
+          ) : (
+            <Copy id="progress.metrics.best" style={styles.bestText} vars={{ value: report.best.formatted }}>
+              {'Best: {value}'}
+            </Copy>
+          )}
         </View>
       )}
     </Card>
@@ -178,7 +229,9 @@ const WeeklyBars: React.FC<{ report: MetricFamilyReport }> = ({ report }) => {
 
   return (
     <View style={styles.chartBlock}>
-      <Text style={styles.chartLabel}>Per week</Text>
+      <Copy id="progress.metrics.chart.label" style={styles.chartLabel}>
+        Per week
+      </Copy>
       <View style={styles.chartArea}>
         {report.weekly.map((week) => (
           <View key={week.weekStart} style={styles.barWrapper}>

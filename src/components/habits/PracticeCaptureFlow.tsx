@@ -159,7 +159,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
       submittedRef.current = false;
       console.warn('Practice log failed:', err);
       showAlert(
-        "Couldn't save your practice",
+        "Couldn't save your habit",
         'Check your connection and tap "Log it" to try again.'
       );
     }

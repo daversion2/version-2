@@ -85,7 +85,7 @@ export const ARENAS: Arena[] = [
     name: 'Social Discomfort',
     stopSignal: "They'll judge me. This will be awkward.",
     neuroscience:
-      'Saying the uncomfortable thing fires the same amygdala threat response as physical danger. Doing it anyway recalibrates that response — the brain learns rejection is not lethal — and the social fear that ran the show gets quieter every rep.',
+      'Saying the uncomfortable thing fires the same amygdala threat response as physical danger. Doing it anyway recalibrates that response — the brain learns rejection is not lethal — and the social fear that ran the show gets quieter every time.',
     baselineMetric: 'Completion, plus a difficulty rating',
     baselineUnit: 'completion',
     color: '#E85D75', // coral
