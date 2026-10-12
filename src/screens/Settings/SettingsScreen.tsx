@@ -12,6 +12,7 @@ import { resetOnboarding, getUser, clearUserAccount, deleteAccountPermanently, c
 import { registerForPushNotifications } from '../../services/notifications';
 import { cancelAllHabitReminders } from '../../services/habitReminders';
 import { showAlert, showConfirm } from '../../utils/alert';
+import { PRIVACY_POLICY_URL } from '../../constants/links';
 
 export const SettingsScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
@@ -221,6 +222,17 @@ export const SettingsScreen: React.FC = () => {
           <View>
             <Text style={styles.label}>Send Feedback</Text>
             <Text style={styles.desc}>Share your thoughts and suggestions</Text>
+          </View>
+          <Ionicons name="open-outline" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
+      {/* Privacy Policy */}
+      <Card style={styles.card} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+        <View style={styles.navRow}>
+          <View>
+            <Text style={styles.label}>Privacy Policy</Text>
+            <Text style={styles.desc}>What we collect and how to delete it</Text>
           </View>
           <Ionicons name="open-outline" size={20} color={Colors.gray} />
         </View>

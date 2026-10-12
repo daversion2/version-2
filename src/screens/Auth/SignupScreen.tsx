@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { InputField } from '../../components/common/InputField';
@@ -13,6 +14,7 @@ import { Button } from '../../components/common/Button';
 import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
 import { signUp, signInWithGoogle } from '../../services/auth';
 import { AuthScreenProps } from '../../types/navigation';
+import { PRIVACY_POLICY_URL } from '../../constants/links';
 
 type Props = AuthScreenProps<'Signup'>;
 
@@ -117,6 +119,18 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
             variant="outline"
             style={{ marginTop: Spacing.sm }}
           />
+
+          <Text style={styles.legal}>
+            By creating an account, you agree to our{' '}
+            <Text
+              style={styles.legalLink}
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+              accessibilityRole="link"
+            >
+              Privacy Policy
+            </Text>
+            .
+          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -161,6 +175,18 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     backgroundColor: Colors.border,
+  },
+  legal: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    lineHeight: 18,
+  },
+  legalLink: {
+    color: Colors.primary,
+    textDecorationLine: 'underline',
   },
   dividerText: {
     fontFamily: Fonts.secondary,
