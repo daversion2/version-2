@@ -159,11 +159,7 @@ export const setDoc = jest.fn(async (docRef: any, data: Record<string, any>, opt
   }
 
   if (options?.merge && mockDB[collectionPath][docId]) {
-    const current = mockDB[collectionPath][docId].data;
-    const { resolved, deleted } = applyFieldValues(current, data);
-    const next = { ...current, ...resolved };
-    for (const key of deleted) delete next[key];
-    mockDB[collectionPath][docId].data = next;
+    mockDB[collectionPath][docId].data = mergeDeep(mockDB[collectionPath][docId].data, data);
   } else {
     mockDB[collectionPath][docId] = {
       id: docId,
@@ -213,6 +209,28 @@ const applyFieldValues = (
     resolved[key] = isIncrement(value) ? (current[key] || 0) + value.by : value;
   }
   return { resolved, deleted };
+};
+
+const isPlainMap = (v: any): v is Record<string, any> =>
+  !!v && typeof v === 'object' && Object.getPrototypeOf(v) === Object.prototype
+  && !isIncrement(v) && !isDeleteField(v);
+
+/**
+ * setDoc(..., { merge: true }) DEEP-merges nested maps in real Firestore:
+ * writing { seen_intros: { today: true } } adds one key and keeps the rest.
+ * A shallow spread here would replace the whole map, so a test of "this write
+ * leaves the other keys alone" would fail against correct code. updateDoc does
+ * replace a nested map, so it keeps the shallow applyFieldValues path.
+ */
+const mergeDeep = (current: Record<string, any>, data: Record<string, any>): Record<string, any> => {
+  const next = { ...current };
+  for (const [key, value] of Object.entries(data)) {
+    if (isDeleteField(value)) delete next[key];
+    else if (isIncrement(value)) next[key] = (current[key] || 0) + value.by;
+    else if (isPlainMap(value)) next[key] = mergeDeep(isPlainMap(current[key]) ? current[key] : {}, value);
+    else next[key] = value;
+  }
+  return next;
 };
 
 export const updateDoc = jest.fn(async (docRef: any, data: Record<string, any>) => {

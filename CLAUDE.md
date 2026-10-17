@@ -275,6 +275,25 @@ unless the user asks for one.
   services, they don't reach into Firestore directly.
 - Match the copy voice of surrounding screens — see the docs below.
 
+## Experiments go in the Lab
+
+Admin → Lab holds experiments only `is_admin` accounts can see. When the user
+wants to "try" or "play with" something, build it there, not straight into a
+production screen. `src/screens/Lab/experiments.ts` explains how to add one:
+- **Switch** — changes an existing screen; branch on `useLab('id')`
+  (`src/hooks/useLab.ts`), which is always false for non-admins.
+- **Screen** — standalone, opened from the Lab; load it with `require()` inside
+  the registry entry so it never runs at app start.
+- **Route** — something with its own route, like a full-screen mini-app
+  registered in `RootNavigator` with `getComponent`. The entry's `open`
+  dispatches to it. **Workouts** works this way. See `docs/mini-app-contract.md`
+  ("What got built") for how a mini-app hands a finished session back to Today.
+
+The Lab screens load lazily via `getComponent` in `AdminStack.tsx`. Don't import
+from `screens/Lab` at the top of any file that loads at startup. Experiments
+write to their own `users/{uid}/lab_*` subcollections, never global collections.
+They ship over the air like any other change.
+
 ## Docs — what's current vs. historical
 
 **Current, safe to build from:**

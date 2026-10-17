@@ -197,6 +197,18 @@ export const AdminDashboardScreen: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
     >
+      {/* Lab — experiments only admin accounts see (screens/Lab/experiments.ts) */}
+      <Card style={styles.linkCard} onPress={() => navigation.navigate('Lab')}>
+        <View style={styles.linkRow}>
+          <Ionicons name="flask" size={24} color={Colors.secondary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.linkText}>Lab</Text>
+            <Text style={styles.demoStateText}>Experiments only you can see</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
       {/* User Stats */}
       <Text style={styles.sectionTitle}>Users</Text>
       <View style={styles.statsRow}>

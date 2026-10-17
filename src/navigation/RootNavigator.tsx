@@ -115,7 +115,16 @@ export const RootNavigator: React.FC = () => {
         ) : needsOnboarding ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            {/* Mini-apps sit above the tabs. Loaded on first open via require,
+                never at app start — the gate inside decides who may see it. */}
+            <Stack.Screen
+              name="WorkoutsApp"
+              getComponent={() => require('../screens/Lab/experiments/workouts/WorkoutsApp').WorkoutsApp}
+              options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+            />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

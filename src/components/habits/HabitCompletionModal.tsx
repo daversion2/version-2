@@ -35,6 +35,8 @@ interface Props {
   initialDate?: string;
   /** File the rep under `initialDate` with no day selector. */
   lockDate?: boolean;
+  /** Numbers a mini-app already measured — e.g. a workout's duration. */
+  initialMetrics?: Record<string, number | string>;
   onSubmit: (input: PracticeCompletionInput) => void | Promise<void>;
   onCancel: () => void;
 }
@@ -68,6 +70,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
   logOnly = false,
   initialDate,
   lockDate = false,
+  initialMetrics,
   onSubmit,
   onCancel,
 }) => {
@@ -110,6 +113,7 @@ export const HabitCompletionModal: React.FC<Props> = ({
         compact={logOnly}
         initialDate={initialDate}
         lockDate={lockDate}
+        initialMetrics={initialMetrics}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />

@@ -26,3 +26,13 @@ export const triggerMilestoneHaptic = async (): Promise<void> => {
     console.warn('Haptic feedback failed:', e);
   }
 };
+
+/** A small confirmation tap — logging a set, a timer ending. No-op on web. */
+export const triggerTapHaptic = async (): Promise<void> => {
+  if (Platform.OS === 'web') return;
+  try {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  } catch (e) {
+    console.warn('Haptic feedback failed:', e);
+  }
+};

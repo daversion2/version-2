@@ -6,6 +6,7 @@ import { HabitPace, sectionFor } from '../../services/habitPace';
 import { RESISTANCE_LEVELS } from '../../constants/resistance';
 import { Copy } from '../common/Copy';
 import { useCopy } from '../../context/CopyContext';
+import { MiniAppStartButton } from './MiniAppStartButton';
 
 interface Props {
   name: string;
@@ -34,6 +35,11 @@ interface Props {
   onAbout: () => void;
   /** History, adherence, schedule, archive. */
   onDetails: () => void;
+  /**
+   * A mini-app is behind this habit (Lab): show its Start under the row. The
+   * chips stay — the mini-app is never the only way to check a habit off.
+   */
+  start?: { label: string; icon: string; onPress: () => void };
 }
 
 /** Monday-first initials, matching weekDatesFor's ordering. */
@@ -110,6 +116,7 @@ export const TodayHabitRow: React.FC<Props> = ({
   onLogDay,
   onAbout,
   onDetails,
+  start,
 }) => {
   const t = useCopy();
   const { doneToday } = pace;
@@ -175,6 +182,19 @@ export const TodayHabitRow: React.FC<Props> = ({
           </View>
         )}
       </View>
+
+      {/* Outside the body's touchable on purpose: nested inside it, VoiceOver
+          would fold this button into the row's own label and never reach it. */}
+      {!!start && !isDone && (
+        <View style={styles.startRow}>
+          <MiniAppStartButton
+            label={start.label}
+            icon={start.icon}
+            accentColor={accentColor}
+            onPress={start.onPress}
+          />
+        </View>
+      )}
 
       {expanded && (
         <View style={styles.panel}>
@@ -362,6 +382,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: Spacing.sm,
   },
+
+  startRow: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md, marginTop: -Spacing.xs },
 
   panel: {
     borderTopWidth: 1,

@@ -1,0 +1,103 @@
+import { CategoryColors } from '../constants/theme';
+import type { TrackingField } from '../data/practices';
+import type { PracticeInstance, User } from '../types';
+
+// =============================================================================
+// MINI-APPS — the shell side of docs/mini-app-contract.md.
+//
+// A mini-app owns its own screens and data. What it shares with the rest of
+// Neuro-Nudge goes through here, so the next one doesn't re-solve it:
+//   - the manifest (which habits it attaches to),
+//   - the one access gate,
+//   - the finish handoff: a mini-app never awards XP or shows its own "done"
+//     moment. It hands a habit id back; Today asks "How hard was it?" and runs
+//     the same celebration a plain check-in gets.
+// =============================================================================
+
+export type MiniAppId = 'workouts';
+
+export interface MiniAppManifest {
+  id: MiniAppId;
+  title: string;
+  /** Ionicons name. */
+  icon: string;
+  /** The one colour a mini-app may override. */
+  accent: string;
+  /** Library habit ids (PracticeInstance.practice_id) linked without asking. */
+  habitIds: string[];
+  /** 'lab' = admin accounts only; 'live' = everyone. */
+  release: 'lab' | 'live';
+}
+
+export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
+  workouts: {
+    id: 'workouts',
+    title: 'Workouts',
+    icon: 'barbell-outline',
+    accent: CategoryColors.move,
+    habitIds: ['workout', 'trad-exercise'],
+    release: 'lab',
+  },
+};
+
+/**
+ * The only place visibility is decided. A paywall, if one ever comes, goes
+ * here too — mini-apps call this and never check is_admin themselves.
+ */
+export const canOpenMiniApp = (
+  appId: MiniAppId,
+  profile: Pick<User, 'is_admin'> | null | undefined
+): boolean => MINI_APPS[appId].release === 'live' || profile?.is_admin === true;
+
+/** Library habits link automatically; anything else (a custom "Leg day") by the user's choice. */
+export const isHabitLinkedToMiniApp = (
+  appId: MiniAppId,
+  habit: Pick<PracticeInstance, 'id' | 'practice_id'>,
+  linkedHabitIds: string[] = []
+): boolean =>
+  (!!habit.practice_id && MINI_APPS[appId].habitIds.includes(habit.practice_id)) ||
+  linkedHabitIds.includes(habit.id);
+
+// --- The finish handoff ------------------------------------------------------
+
+export interface SessionHandoff {
+  appId: MiniAppId;
+  habitId: string;
+  /** How long the session ran, so the check-in can prefill a duration field. */
+  durationSec?: number;
+}
+
+// In memory on purpose: the handoff lives for one navigation — the mini-app
+// closes and Today picks it up on focus. A crash in between loses only the
+// prompt; the session itself is already saved, and the habit's chips still work.
+let pendingFinish: SessionHandoff | null = null;
+
+export const finishSession = (handoff: SessionHandoff): void => {
+  pendingFinish = handoff;
+};
+
+/** Read and clear. Today calls this on focus. */
+export const takePendingFinish = (): SessionHandoff | null => {
+  const handoff = pendingFinish;
+  pendingFinish = null;
+  return handoff;
+};
+
+/**
+ * Turns a session into the check-in's starting numbers — today, just its
+ * duration, into the habit's own duration field ("How long?" on Workout),
+ * snapped to that field's step and bounds so the slider opens on a real stop.
+ */
+export const checkinMetricsFor = (
+  tracking: TrackingField[] | undefined,
+  handoff: Pick<SessionHandoff, 'durationSec'>
+): Record<string, number> | undefined => {
+  const field = tracking?.find((f) => f.type === 'duration');
+  if (!field || !handoff.durationSec) return undefined;
+  const minutes = handoff.durationSec / 60;
+  const step = field.step ?? 1;
+  const snapped = Math.round(minutes / step) * step;
+  const min = field.min ?? 0;
+  const max = field.max ?? Number.POSITIVE_INFINITY;
+  return { [field.key]: Math.min(max, Math.max(min, snapped)) };
+};

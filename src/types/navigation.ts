@@ -22,6 +22,11 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Onboarding: undefined;
   Main: NavigatorScreenParams<MainTabParamList>;
+  /**
+   * The Workouts mini-app (Lab), full screen over the tabs. `habitId` = opened
+   * from that habit's Start on Today, so finishing checks it off.
+   */
+  WorkoutsApp: { habitId?: string } | undefined;
 };
 
 // ============================================================================
@@ -251,6 +256,8 @@ export type AdminStackParamList = {
   AdminPractices: undefined;
   AdminCopy: undefined;
   AdminPracticeEdit: { mode: 'create' | 'edit'; practiceId?: string };
+  Lab: undefined;
+  LabExperiment: { experimentId: string };
 };
 
 // ============================================================================

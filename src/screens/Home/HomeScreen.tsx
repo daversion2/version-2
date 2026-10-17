@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
-import { useFocusEffect } from '@react-navigation/native';
+import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { PracticeInstance } from '../../types';
@@ -61,6 +61,17 @@ import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 import { Copy } from '../../components/common/Copy';
 import { useCopy } from '../../context/CopyContext';
+import { useLab } from '../../hooks/useLab';
+import {
+  canOpenMiniApp,
+  checkinMetricsFor,
+  isHabitLinkedToMiniApp,
+  MINI_APPS,
+  SessionHandoff,
+  takePendingFinish,
+} from '../../services/miniApps';
+import { getWorkoutPrefs } from '../../services/labWorkouts';
+import { resolveTemplateFields } from '../../data/habitTemplates';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
@@ -88,6 +99,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [completingLogOnly, setCompletingLogOnly] = useState(false);
   // Day the capture modal opens on (YYYY-MM-DD). undefined = today.
   const [completingDate, setCompletingDate] = useState<string | undefined>(undefined);
+  // A mini-app handed back a finished session: the capture opens locked to
+  // today, with what the session measured (its duration) already filled in.
+  const [completingLockDate, setCompletingLockDate] = useState(false);
+  const [completingMetrics, setCompletingMetrics] = useState<Record<string, number> | undefined>();
+  const [pendingFinish, setPendingFinish] = useState<SessionHandoff | null>(null);
+  // Lab: Workout habits get a Start button. Library ones link automatically;
+  // these are the ones linked by hand inside Workouts.
+  const workoutsOnToday = useLab('workoutsStart') && canOpenMiniApp('workouts', userProfile);
+  const [workoutLinkedIds, setWorkoutLinkedIds] = useState<string[]>([]);
   // Practice whose briefing is open on its own (no forward flow committed to).
   const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
   // The one expanded card. Single-valued on purpose: several open panels turns
@@ -304,6 +324,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // rendered since the zoned layout was archived.
       const habitList = await getActiveHabits(user.uid);
       setHabits(habitList);
+      if (workoutsOnToday) {
+        getWorkoutPrefs(user.uid)
+          .then((p) => setWorkoutLinkedIds(p.linked_habit_ids))
+          .catch((err) => console.warn('Workouts links failed to load:', err));
+      }
       // Once per session: schedule any enabled reminders that aren't scheduled yet
       // (e.g. saved before reminders shipped, or while permission was denied).
       if (!remindersReconciledRef.current && user) {
@@ -375,13 +400,38 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [user, refreshProfile, userProfile?.starting_practice_id]);
+  }, [user, refreshProfile, userProfile?.starting_practice_id, workoutsOnToday]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
+      // Back from a mini-app with a finished session? See services/miniApps.ts.
+      const handoff = takePendingFinish();
+      if (handoff) setPendingFinish(handoff);
     }, [loadData])
   );
+
+  // The finished session's check-in: the same capture sheet and the same
+  // handleHabitComplete as any rep — "How hard was it?", then the celebration.
+  // Waits for the habit list, and for the mini-app's full-screen dismissal: iOS
+  // drops a modal presented while another is still animating away.
+  useEffect(() => {
+    if (!pendingFinish) return;
+    const habit = habits.find((h) => h.id === pendingFinish.habitId);
+    if (!habit) return;
+    const tracking =
+      getPractice(habit.practice_id)?.tracking ?? resolveTemplateFields({ template_id: habit.template_id });
+    const metrics = checkinMetricsFor(tracking, pendingFinish);
+    const timer = setTimeout(() => {
+      setPendingFinish(null);
+      setCompletingLogOnly(true);
+      setCompletingDate(undefined);
+      setCompletingLockDate(true);
+      setCompletingMetrics(metrics);
+      setCompletingHabit(habit);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [pendingFinish, habits]);
 
   // Track app opens (once per session)
   useEffect(() => {
@@ -410,6 +460,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleHabitLogIt = useCallback((habit: PracticeInstance, date?: string) => {
     setCompletingLogOnly(true);
     setCompletingDate(date);
+    setCompletingLockDate(false);
+    setCompletingMetrics(undefined);
     setCompletingHabit(habit);
   }, []);
 
@@ -705,6 +757,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   onLogDay={(date) => handleHabitLogIt(habit, date)}
                   onAbout={() => setBriefingHabit(habit)}
                   onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
+                  start={
+                    workoutsOnToday && isHabitLinkedToMiniApp('workouts', habit, workoutLinkedIds)
+                      ? {
+                          label: 'Start workout',
+                          icon: MINI_APPS.workouts.icon,
+                          // A root route, above the tabs — dispatch bubbles up to it.
+                          onPress: () =>
+                            navigation.dispatch(
+                              CommonActions.navigate({ name: 'WorkoutsApp', params: { habitId: habit.id } })
+                            ),
+                        }
+                      : undefined
+                  }
                 />
               );
             })}
@@ -864,6 +929,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         metricGoals={completingHabit?.metric_goals}
         logOnly={completingLogOnly}
         initialDate={completingDate}
+        lockDate={completingLockDate}
+        initialMetrics={completingMetrics}
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
       />

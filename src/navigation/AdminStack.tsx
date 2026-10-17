@@ -136,6 +136,19 @@ export const AdminStack: React.FC = () => (
       component={AdminCopyScreen}
       options={{ title: 'All Wording' }}
     />
+    {/* The Lab loads on first open (getComponent + require), not with the rest
+        of this stack at app start — keep it that way, and never import from
+        screens/Lab at the top of this file. Lab code then never runs for a
+        real user, so a broken experiment can't crash their launch. */}
+    <Stack.Screen
+      name="Lab"
+      getComponent={() => require('../screens/Lab/LabScreen').LabScreen}
+      options={{ title: 'Lab' }}
+    />
+    <Stack.Screen
+      name="LabExperiment"
+      getComponent={() => require('../screens/Lab/LabExperimentScreen').LabExperimentScreen}
+    />
   </Stack.Navigator>
 );
 

@@ -48,6 +48,9 @@ export interface User {
   lastActivityDate?: string; // YYYY-MM-DD format for streak tracking
   // Admin
   is_admin?: boolean;
+  // Lab switches (admin-only), keyed by experiment id. Has no effect without
+  // is_admin — see services/lab.ts and screens/Lab/experiments.ts.
+  lab_flags?: Record<string, boolean>;
   // Demo mode (admin-only): present while seeded demo data is on the account.
   // Records the exact counter deltas so disableDemoData can reverse them.
   // See src/utils/seedDemoData.ts
