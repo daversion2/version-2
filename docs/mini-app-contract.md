@@ -155,7 +155,7 @@ disagree, the code wins:
 | 2. Finish | `finishSession` / `takePendingFinish` in `miniApps.ts` | The app saves its own session, sets the handoff and closes. Today picks it up on focus and opens the existing `HabitCompletionModal`, locked to today, with the session length prefilled into the habit's duration field (`checkinMetricsFor`). XP, streak and celebration are untouched. |
 | 3. Highlight | **not built** | No habit-detail card or Progress drill-in yet. |
 | 4. Drafts | `src/services/miniAppDrafts.ts` | AsyncStorage, per app and per user, written after every change. No upload queue: the session is saved to Firestore only at Finish, with a timeout and a retry message if offline. |
-| 5. Gate | `canOpenMiniApp` in `miniApps.ts` | `release: 'lab'` means admins only. Today's Start button also needs the `workoutsStart` Lab switch. |
+| 5. Gate | `canOpenMiniApp` in `miniApps.ts` | `release: 'lab'` means admins only. Workouts, Meditate and Meals are `live` since 2026-10-18; their habits open them from Today (docs/three-sections-today.md). |
 
 Linking: library habits listed in the manifest's `habitIds` link automatically.
 Any other habit links from Workouts → Settings, stored in

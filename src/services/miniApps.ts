@@ -36,7 +36,7 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     icon: 'barbell-outline',
     accent: CategoryColors.move,
     habitIds: ['workout', 'trad-exercise'],
-    release: 'lab',
+    release: 'live',
   },
   meditate: {
     id: 'meditate',
@@ -45,7 +45,7 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     // The meditation habit's own teal.
     accent: Colors.primary,
     habitIds: ['meditation', 'morning-meditation', 'trad-meditate', 'breathwork', 'breathing-break', 'nsdr'],
-    release: 'lab',
+    release: 'live',
   },
   compose: {
     id: 'compose',
@@ -61,11 +61,10 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     title: 'Meals',
     icon: 'nutrition-outline',
     accent: CategoryColors.fuel,
-    // None automatically: the food habits it replaces (vegetables, protein,
-    // sugar, cooking) come out of the library when Meals goes live, rather than
-    // each one opening it. Until then you link a habit inside Meals.
-    habitIds: [],
-    release: 'lab',
+    // The Meals library habit. The food habits it replaced (vegetables,
+    // protein, sugar, cooking) are removed — data/removedHabits.ts.
+    habitIds: ['meals'],
+    release: 'live',
   },
 };
 

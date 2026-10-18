@@ -52,7 +52,9 @@ It is not built for beginners who need hand-holding or for a broad
   There is no separate "practice" concept anywhere the user can see. The word
   survives only in code identifiers (`PracticeInstance`, `practice_id`, …).
 
-- **Categories:** Move · Fuel · Sleep · Mind · Focus · Money.
+- **Sections:** Mind · Movement · Meals (Sleep and Focus habits sit under Mind;
+  Money was removed 2026-10-18). Stored categories are grouped into these — see
+  `data/habitSections.ts` and `docs/three-sections-today.md`.
 
 - **Schedule.** Each habit has either named days (Mon / Wed / Fri) or a weekly
   count ("4× a week, any days").
@@ -98,15 +100,20 @@ An interactive flow that teaches the premise before asking for anything:
 
 ## Journey 2 — Today (the daily loop)
 
-- **Habits grouped by what they need from you:** *Due today · Behind this week ·
-  This week · Done.* Habits move between groups as they're logged.
-- **Log in one tap:** 1 / 2 / 3 records the habit and its resistance together.
-- **Tap a habit's name** to see its week, fill in a forgotten day, read about it,
-  or log with full detail (tracked amounts, notes).
-- **After logging:** a celebration with XP and any streak tier crossed, then
-  sometimes a short neuroscience tidbit. After a **Med or Hard** rating there's
-  an optional reflection ("What helped you get started?") that builds a personal
-  pattern of what works.
+- **Three sections — Mind, Movement, Meals** — each one card showing only what
+  needs you today: app habits first, then due today, then behind this week.
+  Habits with nothing owed today fold into "N more this week"; done ones into
+  "N done". A section with nothing in it isn't shown.
+- **Tap to log:** a sheet opens with the habit's numbers already set to last
+  time; 1 / 2 / 3 (how hard it was to start) logs it. **Press and hold** opens the
+  full check-in (notes, every number, a day you forgot). The **›** on the right
+  opens the habit's page. The ⓘ in the header explains all three.
+- **Apps:** a habit with a coloured tile opens its app — Workouts, Meditate or
+  Meals — and finishing a session there is the check-in.
+- **After logging:** a "+N XP" message. The full celebration (streak tier,
+  tidbit) is kept for milestones. After a **Med or Hard** rating the message
+  offers "Add a note" — the reflection ("What helped you get started?") that
+  builds a personal pattern of what works.
 - **Guided habits** run a three-beat session: **Ready** (what you'll do, when the
   urge to quit hits, what to hold onto) → **Go** (timer, breath pacer, or "set
   your phone down") → **Capture** (rating plus tracked amounts).

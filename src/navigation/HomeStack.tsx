@@ -58,7 +58,7 @@ export const HomeStack: React.FC = () => (
       name="HomeScreen"
       component={HomeScreen}
       options={{
-        title: 'Home',
+        title: 'Today',
         // Render the logo in the header's background layer, pinned to the
         // bottom-left corner. This keeps it out of the headerLeft bar-button
         // slot, which iOS 26 "Liquid Glass" wraps in a circular background.

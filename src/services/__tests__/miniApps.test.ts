@@ -18,10 +18,19 @@ const AsyncStorage = require('@react-native-async-storage/async-storage').defaul
 
 describe('canOpenMiniApp', () => {
   it('opens a Lab mini-app for admins only', () => {
-    expect(canOpenMiniApp('workouts', { is_admin: true })).toBe(true);
-    expect(canOpenMiniApp('workouts', { is_admin: false })).toBe(false);
-    expect(canOpenMiniApp('workouts', {})).toBe(false);
-    expect(canOpenMiniApp('workouts', null)).toBe(false);
+    // Compose is still in the Lab.
+    expect(canOpenMiniApp('compose', { is_admin: true })).toBe(true);
+    expect(canOpenMiniApp('compose', { is_admin: false })).toBe(false);
+    expect(canOpenMiniApp('compose', {})).toBe(false);
+    expect(canOpenMiniApp('compose', null)).toBe(false);
+  });
+
+  it('opens the live mini-apps for everyone', () => {
+    // Workouts, Meditate and Meals went live on 2026-10-18.
+    for (const id of ['workouts', 'meditate', 'meals'] as const) {
+      expect(canOpenMiniApp(id, { is_admin: false })).toBe(true);
+      expect(canOpenMiniApp(id, null)).toBe(true);
+    }
   });
 });
 
@@ -43,7 +52,11 @@ describe('isHabitLinkedToMiniApp', () => {
       expect(isHabitLinkedToMiniApp('meditate', { id: 'h', practice_id: id })).toBe(true);
     }
     expect(isHabitLinkedToMiniApp('meditate', { id: 'h', practice_id: 'workout' })).toBe(false);
-    expect(canOpenMiniApp('meditate', { is_admin: false })).toBe(false);
+  });
+
+  it('links the Meals habit to Meals automatically', () => {
+    expect(isHabitLinkedToMiniApp('meals', { id: 'h', practice_id: 'meals' })).toBe(true);
+    expect(isHabitLinkedToMiniApp('meals', { id: 'h', practice_id: 'alcohol-free-day' })).toBe(false);
   });
 });
 

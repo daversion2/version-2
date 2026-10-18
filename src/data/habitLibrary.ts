@@ -12,10 +12,9 @@ export const HABIT_CATEGORIES: HabitCategory[] = [
   { id: 'Sleep', name: 'Sleep', icon: 'moon-outline', color: CategoryColors.sleep },
   { id: 'Mind', name: 'Mind', icon: 'leaf-outline', color: CategoryColors.mind },
   { id: 'Focus', name: 'Focus', icon: 'flash-outline', color: CategoryColors.focus },
-  { id: 'Money', name: 'Money', icon: 'wallet-outline', color: CategoryColors.money },
 ];
 
-// False for retired ids ('Body', 'Connection'), which Firestore catalog docs
+// False for retired ids ('Body', 'Connection', 'Money'), which Firestore catalog docs
 // saved before the 2026-10 split may still carry.
 export const isHabitCategoryId = (id: string): boolean =>
   HABIT_CATEGORIES.some((c) => c.id === id);
@@ -180,6 +179,25 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
       accountability_person: '',
     },
     identity: "I'm someone who protects tonight's sleep with today's choices.",
+  },
+  {
+    // The Meals app's habit: finishing a day in Meals on target is its check-in
+    // (services/miniApps.ts links it automatically). It replaced the separate
+    // food habits — vegetables, protein, sugar, cooking — see data/removedHabits.ts.
+    id: 'meals',
+    name: 'Meals',
+    category_id: 'Fuel',
+    arena_id: 'impulse_control',
+    description: 'Log each meal by tapping what was on the plate. A meal passes on whole food; the day counts when you hit the goal you set.',
+    suggested_target_per_week: 7,
+    action_plan: {
+      anchor: 'finish a meal',
+      environment_change: 'Keep whole-food staples within reach and the processed snacks out of sight',
+      obstacle_plan: "If a meal doesn't pass, I make the next one count rather than write the day off",
+      minimum_version: 'Log the meals I ate today, honestly',
+      accountability_person: '',
+    },
+    identity: "I'm someone who knows what I'm eating.",
   },
   {
     id: 'alcohol-free-day',

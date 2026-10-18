@@ -1,4 +1,5 @@
 import { HabitDefinition, getHabitDefinitionsByCategory } from './practices';
+import { HabitSectionId, getHabitSection } from './habitSections';
 
 // =============================================================================
 // ONBOARDING ORDER — which habits a new user sees first in the "pick one" beat.
@@ -20,28 +21,22 @@ import { HabitDefinition, getHabitDefinitionsByCategory } from './practices';
 /** Shown first, in this order. Keyed by HabitCategory id. */
 export const ONBOARDING_LEAD_HABITS: Record<string, string[]> = {
   Move: ['workout', 'cold_exposure', 'morning-daylight'],
-  Fuel: ['alcohol-free-day'],
+  // Meals is the one food check-in now (it replaced the separate food habits).
+  Fuel: ['meals', 'alcohol-free-day'],
   Sleep: ['no-snooze', 'caffeine-cutoff'],
   Focus: ['dreaded-task-first', 'deep-focus-session', 'trad-read', 'plan-tomorrow'],
   Mind: ['protect-attention', 'meditation', 'breathwork', 'nsdr'],
-  Money: ['no-spend-day', 'check-the-numbers'],
 };
 
 /** Shown last, in this order — still pickable, just not what a new user meets first. */
 export const ONBOARDING_TRAILING_HABITS: Record<string, string[]> = {
-  Fuel: ['trad-eat-vegetables', 'cook-real-meal', 'eat_healthy_unenjoyable'],
   Sleep: ['trad-floss'],
   Focus: ['trad-make-bed', 'trad-tidy'],
   Mind: ['trad-limit-screens'],
-  // A rule you only get to practise when you want to buy something — weak as a
-  // first habit, since most days there is nothing to check in on.
-  Money: ['pay-myself-first', 'wait-24-hours'],
 };
 
-/** The onboarding picker's habits for one category: leads, the rest, then trailing. */
-export const getOnboardingHabitsByCategory = (categoryId: string): HabitDefinition[] => {
-  const lead = ONBOARDING_LEAD_HABITS[categoryId] ?? [];
-  const trailing = ONBOARDING_TRAILING_HABITS[categoryId] ?? [];
+/** Leads first in listed order, trailing last, everything else between in catalog order. */
+const orderHabits = (defs: HabitDefinition[], lead: string[], trailing: string[]): HabitDefinition[] => {
   // Leads get negative ranks, trailing ranks past everything; the rest share 0,
   // and the stable sort keeps them in catalog order.
   const rank = (id: string): number => {
@@ -50,5 +45,27 @@ export const getOnboardingHabitsByCategory = (categoryId: string): HabitDefiniti
     const t = trailing.indexOf(id);
     return t !== -1 ? 1 + t : 0;
   };
-  return [...getHabitDefinitionsByCategory(categoryId)].sort((a, b) => rank(a.id) - rank(b.id));
+  return [...defs].sort((a, b) => rank(a.id) - rank(b.id));
+};
+
+/** The onboarding picker's habits for one category: leads, the rest, then trailing. */
+export const getOnboardingHabitsByCategory = (categoryId: string): HabitDefinition[] =>
+  orderHabits(
+    getHabitDefinitionsByCategory(categoryId),
+    ONBOARDING_LEAD_HABITS[categoryId] ?? [],
+    ONBOARDING_TRAILING_HABITS[categoryId] ?? []
+  );
+
+/**
+ * The picker's habits for one section (Mind / Movement / Meals). A section
+ * holds several categories — Mind is Mind, Sleep and Focus — so every
+ * category's leads come first, in section order, then the rest, then trailing.
+ */
+export const getOnboardingHabitsBySection = (sectionId: HabitSectionId): HabitDefinition[] => {
+  const ids = getHabitSection(sectionId).categoryIds;
+  return orderHabits(
+    ids.flatMap((c) => getHabitDefinitionsByCategory(c)),
+    ids.flatMap((c) => ONBOARDING_LEAD_HABITS[c] ?? []),
+    ids.flatMap((c) => ONBOARDING_TRAILING_HABITS[c] ?? [])
+  );
 };

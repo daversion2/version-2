@@ -23,6 +23,12 @@ interface Props {
   /** Optional content rendered above the list (e.g. an entry banner). */
   listHeader?: React.ReactElement | null;
   searchPlaceholder?: string;
+  /**
+   * Does a habit with this category belong under this chip? Defaults to an
+   * exact match; the curated library passes the Mind / Movement / Meals
+   * grouping (data/habitSections.ts), where one chip holds several categories.
+   */
+  chipMatches?: (chipId: string, habitCategoryId: string) => boolean;
 }
 
 /**
@@ -35,6 +41,7 @@ export const HabitLibraryList: React.FC<Props> = ({
   onSelectHabit,
   listHeader,
   searchPlaceholder = 'Search habits',
+  chipMatches = (chipId, categoryId) => chipId === categoryId,
 }) => {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(ALL);
@@ -42,7 +49,7 @@ export const HabitLibraryList: React.FC<Props> = ({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return habits.filter((h) => {
-      const matchesCategory = activeCategory === ALL || h.category_id === activeCategory;
+      const matchesCategory = activeCategory === ALL || chipMatches(activeCategory, h.category_id);
       if (!matchesCategory) return false;
       if (!q) return true;
       return (
@@ -50,7 +57,7 @@ export const HabitLibraryList: React.FC<Props> = ({
         h.description.toLowerCase().includes(q)
       );
     });
-  }, [habits, query, activeCategory]);
+  }, [habits, query, activeCategory, chipMatches]);
 
   const renderHabit = ({ item }: { item: LibraryHabit }) => {
     const category = getHabitCategory(item.category_id);

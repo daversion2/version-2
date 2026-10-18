@@ -60,7 +60,7 @@ export const CHIP_CAPTIONS = ['Easy', 'Med', 'Hard'];
  * habit. This returns only the part the heading cannot: how short the week is,
  * or which specific days were missed.
  */
-const detailFor = (pace: HabitPace, t: ReturnType<typeof useCopy>): string | null => {
+export const detailFor = (pace: HabitPace, t: ReturnType<typeof useCopy>): string | null => {
   const vars = {
     count: pace.missed,
     completed: pace.completed,

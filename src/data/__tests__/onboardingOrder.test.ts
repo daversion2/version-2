@@ -2,7 +2,9 @@ import {
   ONBOARDING_LEAD_HABITS,
   ONBOARDING_TRAILING_HABITS,
   getOnboardingHabitsByCategory,
+  getOnboardingHabitsBySection,
 } from '../onboardingOrder';
+import { HABIT_SECTIONS } from '../habitSections';
 import { getHabitDefinitionsByCategory } from '../practices';
 import { HABIT_CATEGORIES } from '../habitLibrary';
 
@@ -50,10 +52,21 @@ describe('onboarding order', () => {
   });
 
   it('keeps catalog order for everything in between', () => {
-    const listed = new Set([...ONBOARDING_LEAD_HABITS.Fuel, ...ONBOARDING_TRAILING_HABITS.Fuel]);
+    const listed = new Set([...ONBOARDING_LEAD_HABITS.Fuel, ...(ONBOARDING_TRAILING_HABITS.Fuel ?? [])]);
     const middle = getOnboardingHabitsByCategory('Fuel').map((d) => d.id).filter((id) => !listed.has(id));
     const catalog = getHabitDefinitionsByCategory('Fuel').map((d) => d.id).filter((id) => !listed.has(id));
     expect(middle).toEqual(catalog);
+  });
+
+  it('lists each section as its categories combined, leads first', () => {
+    for (const section of HABIT_SECTIONS) {
+      const ids = getOnboardingHabitsBySection(section.id).map((d) => d.id);
+      const catalog = section.categoryIds.flatMap((c) => getHabitDefinitionsByCategory(c).map((d) => d.id));
+      expect([...ids].sort()).toEqual([...catalog].sort());
+      const lead = section.categoryIds.flatMap((c) => ONBOARDING_LEAD_HABITS[c] ?? []);
+      expect(ids.slice(0, lead.length)).toEqual(lead);
+    }
+    expect(getOnboardingHabitsBySection('meals')[0].id).toBe('meals');
   });
 
   it('is a plain catalog listing for a category with no lists', () => {

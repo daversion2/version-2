@@ -53,6 +53,7 @@ import {
 import { PracticeInstance, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
+import { requestDetailedLog } from '../../services/todayRequests';
 
 type Props = HomeScreenProps<'HabitDetail'>;
 
@@ -340,6 +341,16 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     );
   }
 
+  // Reached by press-and-hold on Today. The check-in itself runs on Today, so
+  // its XP, streak and toast are the same as any other: hand the habit back
+  // and return there. From Progress, switch to the Today tab.
+  const handleLogWithDetails = () => {
+    requestDetailedLog({ habitId: habit.id });
+    const inHomeStack = navigation.getState().routes.some((r) => r.name === 'HomeScreen');
+    if (inHomeStack) navigation.popTo('HomeScreen');
+    else (navigation.getParent() as any)?.navigate('Home', { screen: 'HomeScreen' });
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
@@ -352,6 +363,35 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
           </TouchableOpacity>
         )}
       </View>
+
+      {/* The briefing and the science, for library habits. Today's tap logs
+          quickly, so this is where "what is this and why" lives now. Only in
+          the Today stack — Progress doesn't register PracticeDetail. */}
+      {!!habit.practice_id &&
+        !!getPractice(habit.practice_id) &&
+        navigation.getState().routeNames.includes('PracticeDetail') && (
+          <TouchableOpacity
+            style={styles.aboutRow}
+            onPress={() =>
+              navigation.navigate('PracticeDetail', { practiceId: habit.practice_id!, readOnly: true })
+            }
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Ionicons name="book-outline" size={16} color={Colors.primary} />
+            <Text style={styles.aboutText}>About this habit</Text>
+            <Ionicons name="chevron-forward" size={16} color={Colors.gray} />
+          </TouchableOpacity>
+        )}
+
+      {habit.is_active && (
+        <Button
+          title="Log with details"
+          variant="outline"
+          onPress={handleLogWithDetails}
+          style={styles.logDetailsBtn}
+        />
+      )}
 
       {/* An archived practice is read-only until it's back. Restoring is the
           only action offered, so nothing here quietly edits a habit that isn't
@@ -679,6 +719,15 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
 };
 
 const styles = StyleSheet.create({
+  logDetailsBtn: { marginBottom: Spacing.md },
+  aboutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 44,
+    marginBottom: Spacing.sm,
+  },
+  aboutText: { flex: 1, fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.primary },
   raiseCard: { marginBottom: Spacing.md, gap: Spacing.sm },
   raiseTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
   raiseBody: {

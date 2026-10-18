@@ -22,7 +22,7 @@ import {
   isScheduleValid,
   scheduleFields,
 } from '../../services/habitSchedule';
-import { HABIT_CATEGORIES } from '../../data/habitLibrary';
+import { HABIT_SECTIONS } from '../../data/habitSections';
 import { HABIT_TEMPLATE_PRESETS } from '../../data/habitTemplates';
 import { showAlert } from '../../utils/alert';
 
@@ -41,7 +41,9 @@ export const CreateHabitScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
 
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<string>(HABIT_CATEGORIES[0]?.id ?? 'Move');
+  // Picked by section (Mind / Movement / Meals) and stored as that section's
+  // category — see data/habitSections.ts.
+  const [categoryId, setCategoryId] = useState<string>(HABIT_SECTIONS[0].defaultCategoryId);
   // Opens on named days, same as onboarding and the library — see
   // defaultScheduleForTarget for why days rather than a count.
   const [schedule, setSchedule] = useState<HabitSchedule>(() => defaultScheduleForTarget());
@@ -97,10 +99,10 @@ export const CreateHabitScreen: React.FC<Props> = ({ navigation }) => {
           maxLength={60}
         />
 
-        <Text style={styles.label}>Category</Text>
+        <Text style={styles.label}>Section</Text>
         <View style={styles.chipWrap}>
-          {HABIT_CATEGORIES.map((category) => {
-            const active = category.id === categoryId;
+          {HABIT_SECTIONS.map((category) => {
+            const active = category.defaultCategoryId === categoryId;
             return (
               <TouchableOpacity
                 key={category.id}
@@ -108,7 +110,7 @@ export const CreateHabitScreen: React.FC<Props> = ({ navigation }) => {
                   styles.chip,
                   active && { backgroundColor: category.color, borderColor: category.color },
                 ]}
-                onPress={() => setCategoryId(category.id)}
+                onPress={() => setCategoryId(category.defaultCategoryId)}
                 activeOpacity={0.8}
               >
                 <Ionicons

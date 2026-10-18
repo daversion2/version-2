@@ -6,6 +6,7 @@ import {
   BUNDLED_HABIT_DEFINITIONS,
   SUPERSEDED_HABIT_IDS,
   setPracticeCatalog,
+  withRemovals,
 } from '../data/practices';
 import { isHabitCategoryId } from '../data/habitLibrary';
 
@@ -150,7 +151,9 @@ export const fetchPracticeCatalog = async (): Promise<Practice[]> => {
     // habit — browsable again, and shadowing the redirect to its survivor.
     if (!seen.has(p.id) && !SUPERSEDED_HABIT_IDS[p.id]) merged.push(p);
   }
-  return merged;
+  // A Firestore doc for a removed habit (a Money one, say) may still say
+  // active: true; removal is decided in code, not by the doc.
+  return merged.map(withRemovals);
 };
 
 /**

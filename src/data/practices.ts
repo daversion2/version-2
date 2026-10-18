@@ -27,6 +27,7 @@ import { HABIT_LIBRARY } from './habitLibrary';
 import { TRADITIONAL_HABIT_LIBRARY } from './traditionalHabits';
 import { withScience } from './habitScience';
 import { withCommitment } from './habitCommitments';
+import { isRemovedDefinition } from './removedHabits';
 
 /** @deprecated Retired by D1 in favor of HabitCategory. Kept for legacy call sites. */
 export type PracticeGroup = 'activate' | 'calm' | 'restrain' | 'custom';
@@ -1067,6 +1068,14 @@ export const SUPERSEDED_HABIT_IDS: Record<string, string> = {
 };
 
 /**
+ * Money and the food habits Meals replaced are removed outright
+ * (data/removedHabits.ts). They stay in the catalog, inactive, only so an
+ * adopted copy can still be recognised long enough to be cleaned up.
+ */
+export const withRemovals = <T extends HabitDefinition>(def: T): T =>
+  isRemovedDefinition(def) ? { ...def, active: false } : def;
+
+/**
  * Every bundled habit definition: the 9 rich ones above plus the 50-habit library,
  * minus the superseded duplicates. This is the single catalog — there is no longer
  * a separate "practices" list and "habits" list.
@@ -1080,7 +1089,7 @@ export const BUNDLED_HABIT_DEFINITIONS: HabitDefinition[] = [
     .filter((h) => !SUPERSEDED_HABIT_IDS[h.id])
     .map(withScience)
     .map(withCommitment),
-];
+].map(withRemovals);
 
 const indexById = (list: HabitDefinition[]): Record<string, HabitDefinition> =>
   list.reduce((acc, p) => {

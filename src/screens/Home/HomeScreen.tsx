@@ -22,7 +22,6 @@ import { HabitStreakInfo } from '../../types';
 import { PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
-import { PracticeBriefingModal } from '../../components/habits/PracticeBriefingModal';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
 import { getPractice, getPracticeColor, formatCommitment } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
@@ -40,11 +39,20 @@ import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
 import { PushOptInModal } from '../../components/common/PushOptInModal';
 import { registerForPushNotifications } from '../../services/notifications';
-import { TodayHero } from '../../components/home/TodayHero';
-import { TodayHabitRow } from '../../components/home/TodayHabitRow';
-import { buildTodayList, buildTodaySections, buildWeekGlance, pickNextAction, weekDatesFor } from '../../services/habitPace';
-import { buildQuickLogInput } from '../../services/quickLog';
+import { detailFor, CHIP_CAPTIONS } from '../../components/home/TodayHabitRow';
+import { TodayRow } from '../../components/home/TodayRow';
+import { TodaySectionCard } from '../../components/home/TodaySectionCard';
+import { QuickLogSheet } from '../../components/home/QuickLogSheet';
+import { LogToast, LogToastContent } from '../../components/home/LogToast';
+import { buildTodayList, sectionFor } from '../../services/habitPace';
+import { buildTodaySectionViews, RowClass, TodayRow as TodayRowModel } from '../../services/todaySections';
+import { buildQuickSheetInput, formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
+import { takeDetailedLogRequest, DetailedLogRequest } from '../../services/todayRequests';
+import { displayStreak } from '../../services/streakDisplay';
+import { purgeRemovedHabits } from '../../services/habitCleanup';
+import { getHabitSection, sectionOfHabit } from '../../data/habitSections';
 import { RESISTANCE_SCALE, TACTIC_GATE_RESISTANCE } from '../../constants/resistance';
+import type { TrackingField } from '../../data/practices';
 import { CompletionLog } from '../../types';
 import { SkipReviewSheet } from '../../components/habits/SkipReviewSheet';
 import {
@@ -61,12 +69,12 @@ import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 import { Copy } from '../../components/common/Copy';
 import { useCopy } from '../../context/CopyContext';
-import { useLab } from '../../hooks/useLab';
 import {
   canOpenMiniApp,
   checkinMetricsFor,
   isHabitLinkedToMiniApp,
   MINI_APPS,
+  MiniAppId,
   SessionHandoff,
   takePendingFinish,
 } from '../../services/miniApps';
@@ -76,6 +84,28 @@ import { getMealsPrefs } from '../../services/labMeals';
 import { resolveTemplateFields } from '../../data/habitTemplates';
 
 type Props = HomeScreenProps<'HomeScreen'>;
+
+/** The mini-apps a Today row can open, in the order a habit is matched against them. */
+const TODAY_APPS: { id: MiniAppId; route: 'WorkoutsApp' | 'MeditateApp' | 'MealsApp' }[] = [
+  { id: 'workouts', route: 'WorkoutsApp' },
+  { id: 'meditate', route: 'MeditateApp' },
+  { id: 'meals', route: 'MealsApp' },
+];
+
+/** What the quick sheet is open on. */
+interface QuickLogTarget {
+  habit: PracticeInstance;
+  fields: TrackingField[];
+  initialValues: Record<string, number>;
+  /** Filled in when a mini-app handed back a finished session. */
+  note?: string;
+  /** Non-numeric answers a session already gave (Meditate's technique), saved with the rating. */
+  extraMetrics?: Record<string, number | string>;
+}
+
+/** The habit's tracking fields: from the catalog, or a custom habit's template. */
+const trackingFor = (habit: PracticeInstance): TrackingField[] =>
+  getPractice(habit.practice_id)?.tracking ?? resolveTemplateFields({ template_id: habit.template_id }) ?? [];
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // First visit explains the screen; the ⓘ in the header brings it back.
@@ -106,21 +136,24 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [completingLockDate, setCompletingLockDate] = useState(false);
   const [completingMetrics, setCompletingMetrics] = useState<Record<string, number | string> | undefined>();
   const [pendingFinish, setPendingFinish] = useState<SessionHandoff | null>(null);
-  // Lab: Workout habits get a Start button. Library ones link automatically;
-  // these are the ones linked by hand inside Workouts.
-  const workoutsOnToday = useLab('workoutsStart') && canOpenMiniApp('workouts', userProfile);
+  // Habits with a mini-app behind them open it from their row. Library habits
+  // link automatically (MINI_APPS.habitIds); these are the ones linked by hand
+  // inside each app. Workouts, Meditate and Meals are live for everyone.
+  const workoutsOnToday = canOpenMiniApp('workouts', userProfile);
   const [workoutLinkedIds, setWorkoutLinkedIds] = useState<string[]>([]);
-  // Same for Meditate: meditation, breathwork and NSDR habits, plus hand-linked ones.
-  const meditateOnToday = useLab('meditateStart') && canOpenMiniApp('meditate', userProfile);
+  const meditateOnToday = canOpenMiniApp('meditate', userProfile);
   const [meditateLinkedIds, setMeditateLinkedIds] = useState<string[]>([]);
-  // Meals: no library habit opens it — only the one you link inside Meals.
-  const mealsOnToday = useLab('mealsStart') && canOpenMiniApp('meals', userProfile);
+  const mealsOnToday = canOpenMiniApp('meals', userProfile);
   const [mealsLinkedIds, setMealsLinkedIds] = useState<string[]>([]);
-  // Practice whose briefing is open on its own (no forward flow committed to).
-  const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
-  // The one expanded card. Single-valued on purpose: several open panels turns
-  // the list back into the wall of controls this layout exists to undo.
-  const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
+  // False until the first habit fetch lands, so "No habits yet" never flashes
+  // while the list is still loading.
+  const [habitsLoaded, setHabitsLoaded] = useState(false);
+  // A tap on a plain habit: the quick sheet, amounts filled in from last time.
+  const [quickLog, setQuickLog] = useState<QuickLogTarget | null>(null);
+  // The everyday "+N XP" — the full celebration is kept for milestones.
+  const [toast, setToast] = useState<LogToastContent | null>(null);
+  // The habit page's "Log with details", waiting for the habit list to load.
+  const [pendingDetailedLog, setPendingDetailedLog] = useState<DetailedLogRequest | null>(null);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [celebrationMilestone, setCelebrationMilestone] = useState<string | null>(null);
@@ -192,7 +225,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     reflectVisible ||
     intro.visible ||
     !!skipReview ||
-    !!briefingHabit ||
+    !!quickLog ||
     !!completingHabit;
   const {
     modalRule: ruleModalRule,
@@ -320,6 +353,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           // A retired practice is hidden everywhere, so its daily reminder
           // would otherwise keep firing with no way to turn it off in-app
           for (const h of deactivated) cancelHabitReminder(h).catch(() => {});
+          // Money and the food habits Meals replaced are removed outright:
+          // delete any copies (and their check-ins) still on the account.
+          const purged = await purgeRemovedHabits(user.uid);
+          for (const h of purged) cancelHabitReminder(h).catch(() => {});
         } catch (err) {
           console.warn('Failed to ensure curated practices:', err);
           seedAttemptedRef.current = false; // allow a retry on the next load
@@ -332,6 +369,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // rendered since the zoned layout was archived.
       const habitList = await getActiveHabits(user.uid);
       setHabits(habitList);
+      setHabitsLoaded(true);
       if (workoutsOnToday) {
         getWorkoutPrefs(user.uid)
           .then((p) => setWorkoutLinkedIds(p.linked_habit_ids))
@@ -426,30 +464,56 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // Back from a mini-app with a finished session? See services/miniApps.ts.
       const handoff = takePendingFinish();
       if (handoff) setPendingFinish(handoff);
+      // Back from a habit's page via "Log with details"? See services/todayRequests.ts.
+      const detailed = takeDetailedLogRequest();
+      if (detailed) setPendingDetailedLog(detailed);
     }, [loadData])
   );
 
-  // The finished session's check-in: the same capture sheet and the same
-  // handleHabitComplete as any rep — "How hard was it?", then the celebration.
+  // The finished session's check-in: the quick sheet, with what the session
+  // measured filled in, then the same handleHabitComplete as any check-in.
   // Waits for the habit list, and for the mini-app's full-screen dismissal: iOS
   // drops a modal presented while another is still animating away.
   useEffect(() => {
     if (!pendingFinish) return;
     const habit = habits.find((h) => h.id === pendingFinish.habitId);
     if (!habit) return;
-    const tracking =
-      getPractice(habit.practice_id)?.tracking ?? resolveTemplateFields({ template_id: habit.template_id });
-    const metrics = checkinMetricsFor(tracking, pendingFinish);
+    const tracking = trackingFor(habit);
+    const measured = checkinMetricsFor(tracking, pendingFinish) ?? {};
+    const numeric = tracking.filter(isNumericField);
+    const fromSession: Record<string, number> = {};
+    const extra: Record<string, number | string> = {};
+    for (const [key, value] of Object.entries(measured)) {
+      if (typeof value === 'number' && numeric.some((f) => f.key === key)) fromSession[key] = value;
+      else extra[key] = value;
+    }
     const timer = setTimeout(() => {
       setPendingFinish(null);
-      setCompletingLogOnly(true);
-      setCompletingDate(undefined);
-      setCompletingLockDate(true);
-      setCompletingMetrics(metrics);
-      setCompletingHabit(habit);
+      setQuickLog({
+        habit,
+        fields: numeric,
+        initialValues: { ...prefillMetrics(numeric, habit, nudgeLogs), ...fromSession },
+        note: t('today.quick.fromApp', 'From {app}.', { app: MINI_APPS[pendingFinish.appId].title }),
+        extraMetrics: Object.keys(extra).length ? extra : undefined,
+      });
     }, 500);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingFinish, habits]);
+
+  // "Log with details" from the habit's page: the full capture, after the
+  // page's pop has finished animating.
+  useEffect(() => {
+    if (!pendingDetailedLog) return;
+    const habit = habits.find((h) => h.id === pendingDetailedLog.habitId);
+    if (!habit) return;
+    const timer = setTimeout(() => {
+      setPendingDetailedLog(null);
+      handleHabitLogIt(habit);
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDetailedLog, habits]);
 
   // Track app opens (once per session)
   useEffect(() => {
@@ -475,23 +539,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // and session beat skipped. Which flow you get is now the user's choice
   // rather than a function of whether the catalog carries briefing content.
   // `date` preselects a past day; the capture flow still lets them change it.
-  const handleHabitLogIt = useCallback((habit: PracticeInstance, date?: string) => {
-    setCompletingLogOnly(true);
-    setCompletingDate(date);
-    setCompletingLockDate(false);
-    setCompletingMetrics(undefined);
-    setCompletingHabit(habit);
-  }, []);
+  const handleHabitLogIt = useCallback(
+    (habit: PracticeInstance, date?: string) => {
+      setCompletingLogOnly(true);
+      setCompletingDate(date);
+      setCompletingLockDate(false);
+      // Amounts start at last time's, like the quick sheet.
+      const filled = prefillMetrics(trackingFor(habit), habit, nudgeLogs);
+      setCompletingMetrics(Object.keys(filled).length ? filled : undefined);
+      setCompletingHabit(habit);
+    },
+    [nudgeLogs]
+  );
 
-  // NOTE: the old handleHabitTap is gone. It routed a card tap to either the
-  // briefing or the capture sheet depending on whether the catalog happened to
-  // carry `ready` content — the same gesture doing two different things, with
-  // nothing on the card to say which. The card now expands, and "About" is a
-  // labelled route inside it for the habits that have something to show.
-
-  const handleHabitBriefing = useCallback((habit: PracticeInstance) => {
-    setBriefingHabit(habit);
-  }, []);
+  // A row's tap is always the quick route (or the app it opens) — never the
+  // briefing. Briefings and science live on the habit's page, behind the ›.
 
   /**
    * The one completion path. The capture sheet passes no `forHabit` and the
@@ -540,11 +602,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           difficulty: difficulty === 'easy' ? 1 : 2,
           resistance: input.resistance,
           resistance_scale: RESISTANCE_SCALE,
+          // So the next quick sheet fills in what was just logged.
+          metrics: input.metrics,
+          completed_at: new Date().toISOString(),
           date,
         } as CompletionLog,
       ]);
 
       setCompletingHabit(null);
+      setQuickLog(null);
+      // XP and the streak in the header live on the profile.
+      refreshProfile().catch(() => {});
 
       // Arm the post-reward reflection against the log we just wrote, and warm
       // its "Your pattern" context in the background.
@@ -597,6 +665,26 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             })
           : null;
 
+      // Everyday check-ins get the toast; the full celebration (and its
+      // tidbit) is kept for milestones — a streak tier, or the first ever
+      // check-in, which the points intro leads into.
+      if (!needsPointsIntro && !milestoneLabel) {
+        const level = typeof input.resistance === 'number' ? CHIP_CAPTIONS[input.resistance - 1] : undefined;
+        const amounts = trackingFor(habit)
+          .filter((f) => isNumericField(f) && typeof input.metrics?.[f.key] === 'number')
+          .map((f) => formatMetricValue(f, input.metrics![f.key] as number));
+        setToast({
+          key: Date.now(),
+          points: pointsEarned,
+          text: [habit.name, ...amounts, level].filter(Boolean).join(' · '),
+          context: backdated
+            ? t('today.celebration.loggedFor', 'Logged for {day}', { day: formatRelativeDay(date) })
+            : null,
+          canAddNote: wasHard,
+        });
+        return;
+      }
+
       // Fetch habit tidbit — staged now, shown after the celebration
       let tidbit: NeuroscienceTidbit | null = null;
       try {
@@ -647,54 +735,104 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // hero — so a render that straddles midnight can't disagree with itself.
   const todayStr = getTodayString();
 
-  /**
-   * One tap on a resistance chip. The chip IS the rating, so nothing is
-   * inferred except the amount the habit already committed to — see
-   * services/quickLog.ts.
-   */
-  const handleQuickLog = useCallback(
-    async (habit: PracticeInstance, resistance: number) => {
-      try {
-        await handleHabitComplete(
-          buildQuickLogInput(habit, getPractice(habit.practice_id), resistance),
-          habit
-        );
-      } catch (err: any) {
-        console.warn('Quick log failed:', err);
-        showAlert(
-          t('today.alert.quickLogFailed.title', "Couldn't log that"),
-          t('today.alert.quickLogFailed.message', 'Check your connection and try again.')
-        );
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, completingHabit, userProfile, t]
-  );
-
   // The Today list: every active habit, ordered by what needs attention. Derived
   // rather than stored, so an optimistic habit update reorders immediately.
   const todayList = useMemo(
     () => buildTodayList(habits, nudgeLogs, todayStr),
     [habits, nudgeLogs, todayStr]
   );
-  const weekGlance = useMemo(() => buildWeekGlance(todayList), [todayList]);
-  // Grouped by what each habit is asking. The heading carries the status, so
-  // the cards do not repeat it once per row.
-  const todaySections = useMemo(() => buildTodaySections(todayList), [todayList]);
-  const weekDates = useMemo(() => weekDatesFor(todayStr), [todayStr]);
   const habitsById = useMemo(
     () => Object.fromEntries(habits.map((h) => [h.id, h])) as Record<string, PracticeInstance>,
     [habits]
   );
 
-  // The one habit worth naming in the hero, resolved to a display name. Falls
-  // back to null when the habit has vanished from under us mid-render.
-  const nextAction = useMemo(() => {
-    const action = pickNextAction(todayList);
-    const habit = action && habitsById[action.habitId];
-    if (!action || !habit) return null;
-    return { habitName: habit.name, reps: action.reps, recovers: action.recovers };
-  }, [todayList, habitsById]);
+  // Which mini-app (if any) a habit opens: library habits link automatically,
+  // others by the user's choice inside the app.
+  const appFor = useCallback(
+    (habit: PracticeInstance): MiniAppId | undefined => {
+      const linked: Record<string, { on: boolean; ids: string[] }> = {
+        workouts: { on: workoutsOnToday, ids: workoutLinkedIds },
+        meditate: { on: meditateOnToday, ids: meditateLinkedIds },
+        meals: { on: mealsOnToday, ids: mealsLinkedIds },
+      };
+      return TODAY_APPS.find(
+        (a) => linked[a.id].on && isHabitLinkedToMiniApp(a.id, habit, linked[a.id].ids)
+      )?.id;
+    },
+    [workoutsOnToday, meditateOnToday, mealsOnToday, workoutLinkedIds, meditateLinkedIds, mealsLinkedIds]
+  );
+
+  // Mind, Movement, Meals — see services/todaySections.ts.
+  const sectionViews = useMemo(
+    () =>
+      buildTodaySectionViews(todayList, (habitId): RowClass | null => {
+        const habit = habitsById[habitId];
+        if (!habit) return null;
+        const appId = appFor(habit);
+        return { section: sectionOfHabit(habit), kind: appId ? 'app' : 'plain', appId };
+      }),
+    [todayList, habitsById, appFor]
+  );
+
+  const xp = userProfile?.totalWillpowerPoints ?? 0;
+  const streak = displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
+
+  // Today's rating on a done row, e.g. "Med"; "This week" when the week's
+  // target was met on another day.
+  const doneLabelFor = (pace: TodayRowModel['pace']): string => {
+    if (!pace.doneToday) return t('today.row.weekDone', 'This week');
+    const todays = nudgeLogs.filter((l) => l.reference_id === pace.habitId && l.date === todayStr);
+    const r = todays[todays.length - 1]?.resistance;
+    return typeof r === 'number' && r >= 1 && r <= 3 ? CHIP_CAPTIONS[r - 1] : t('today.row.loggedToday', 'Logged today');
+  };
+
+  const openQuickLog = (habit: PracticeInstance) => {
+    const fields = trackingFor(habit).filter(isNumericField);
+    setQuickLog({ habit, fields, initialValues: prefillMetrics(fields, habit, nudgeLogs) });
+  };
+
+  const renderRow = (row: TodayRowModel, index: number, sectionColor: string) => {
+    const habit = habitsById[row.habitId];
+    if (!habit) return null;
+    const def = getPractice(habit.practice_id);
+    const status = sectionFor(row.pace);
+    const app = row.appId ? MINI_APPS[row.appId] : undefined;
+    // The status line ("1 of 3 · do 1 today"), else the amount committed to,
+    // else for an app habit named differently from its app, which app it opens.
+    const caption =
+      detailFor(row.pace, t) ??
+      formatCommitment(def, habit.metric_goals) ??
+      (app && app.title !== habit.name ? app.title : null);
+    const done = status === 'done';
+    const onPress = () => {
+      if (row.kind === 'app' && row.appId) {
+        const route = TODAY_APPS.find((a) => a.id === row.appId)!.route;
+        // A root route, above the tabs — dispatch bubbles up to it.
+        navigation.dispatch(CommonActions.navigate({ name: route, params: { habitId: habit.id } }));
+      } else {
+        // Every other habit, briefing or not, logs quickly. Its briefing and
+        // science are on its page ("About this habit"), one tap on the ›.
+        openQuickLog(habit);
+      }
+    };
+    return (
+      <TodayRow
+        key={row.habitId}
+        first={index === 0}
+        name={habit.name}
+        caption={done ? null : caption}
+        captionAlert={status === 'behind' || (status === 'due_today' && row.pace.missed > 0)}
+        accentColor={sectionColor}
+        appIcon={app?.icon}
+        done={done}
+        doneLabel={done ? doneLabelFor(row.pace) : undefined}
+        onPress={onPress}
+        // The full check-in: day, notes, every field, amounts from last time.
+        onLongPress={() => handleHabitLogIt(habit)}
+        onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
+      />
+    );
+  };
 
   return (
     <View style={styles.screen}>
@@ -717,11 +855,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       >
         <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
 
-        <TodayHero
-          glance={weekGlance}
-          name={userProfile?.username}
-          nextAction={nextAction}
-        />
+        {/* XP and the day streak, quietly. The ⓘ in the header explains the screen. */}
+        <Text style={styles.stats}>
+          {t('today.stats.xp', '{xp} XP', { xp: xp.toLocaleString() })}
+          {streak >= 2 ? ` · ${t('today.stats.streak', '{days}-day streak', { days: streak })}` : ''}
+        </Text>
 
         {/* Last night's if-then, shown until the habit it names is logged. The
             plan only works if it's in front of you when the cue arrives. */}
@@ -736,83 +874,28 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {/*
-          Grouped by what each habit is asking of you. The heading says it once
-          for the group — "Due today", "Behind this week" — which is what let the
-          cards shrink to a name and a way to log. Habits move between groups as
-          they are logged, so the list reorders under the thumb by design.
+          Mind, Movement, Meals. Each section is one card: what needs you today
+          on top (app habits first), with what isn't owed today and what's done
+          folded into two links at the foot. A tap logs; press and hold opens
+          the full check-in; the › opens the habit's page. See
+          services/todaySections.ts.
         */}
-        {todaySections.map((section) => (
-          <View key={section.id}>
-            <Text style={styles.sectionHeading}>
-              {t(`today.section.${section.id}`, section.title)} · {section.paces.length}
-            </Text>
-            {section.paces.map((pace) => {
-              const habit = habitsById[pace.habitId];
-              if (!habit) return null;
-              const definition = getPractice(habit.practice_id);
-              return (
-                <TodayHabitRow
-                  key={pace.habitId}
-                  // "Drink water · 80 oz". The commitment belongs on the row
-                  // because this is the screen where you decide whether to act,
-                  // and a habit without a threshold is one you can't really
-                  // succeed or fail at.
-                  name={[habit.name, formatCommitment(definition, habit.metric_goals)]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  pace={pace}
-                  accentColor={getPracticeColor(habit)}
-                  weekDates={weekDates}
-                  today={todayStr}
-                  streak={habitStreaks[habit.id]?.currentStreak ?? 0}
-                  expanded={expandedHabitId === habit.id}
-                  hasAbout={!!definition?.ready}
-                  onToggleExpand={() =>
-                    setExpandedHabitId((prev) => (prev === habit.id ? null : habit.id))
-                  }
-                  onQuickLog={(resistance) => handleQuickLog(habit, resistance)}
-                  onOpenSheet={() => handleHabitLogIt(habit)}
-                  onLogDay={(date) => handleHabitLogIt(habit, date)}
-                  onAbout={() => setBriefingHabit(habit)}
-                  onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
-                  start={
-                    workoutsOnToday && isHabitLinkedToMiniApp('workouts', habit, workoutLinkedIds)
-                      ? {
-                          label: 'Start workout',
-                          icon: MINI_APPS.workouts.icon,
-                          // A root route, above the tabs — dispatch bubbles up to it.
-                          onPress: () =>
-                            navigation.dispatch(
-                              CommonActions.navigate({ name: 'WorkoutsApp', params: { habitId: habit.id } })
-                            ),
-                        }
-                      : meditateOnToday && isHabitLinkedToMiniApp('meditate', habit, meditateLinkedIds)
-                        ? {
-                            label: 'Start session',
-                            icon: MINI_APPS.meditate.icon,
-                            onPress: () =>
-                              navigation.dispatch(
-                                CommonActions.navigate({ name: 'MeditateApp', params: { habitId: habit.id } })
-                              ),
-                          }
-                        : mealsOnToday && isHabitLinkedToMiniApp('meals', habit, mealsLinkedIds)
-                          ? {
-                              label: 'Open Meals',
-                              icon: MINI_APPS.meals.icon,
-                              onPress: () =>
-                                navigation.dispatch(
-                                  CommonActions.navigate({ name: 'MealsApp', params: { habitId: habit.id } })
-                                ),
-                            }
-                          : undefined
-                  }
-                />
-              );
-            })}
-          </View>
-        ))}
+        {sectionViews.map((view) => {
+          const section = getHabitSection(view.id);
+          const name = t(`today.section.name.${view.id}`, section.name);
+          return (
+            <TodaySectionCard
+              key={view.id}
+              name={name}
+              color={section.color}
+              rows={view.rows.map((r, i) => renderRow(r, i, section.color))}
+              weekRows={view.weekRows.map((r, i) => renderRow(r, i, section.color))}
+              doneRows={view.doneRows.map((r, i) => renderRow(r, i, section.color))}
+            />
+          );
+        })}
 
-        {todayList.length === 0 && (
+        {habitsLoaded && todayList.length === 0 && (
           <Copy id="today.empty" style={styles.emptyText}>
             {'No habits yet. Browse the library to add your first one.'}
           </Copy>
@@ -970,25 +1053,38 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onSubmit={handleHabitComplete}
         onCancel={() => setCompletingHabit(null)}
       />
-      <PracticeBriefingModal
-        visible={!!briefingHabit}
-        practiceId={briefingHabit?.practice_id}
-        habitId={briefingHabit?.id}
-        userId={user?.uid}
-        // "Log it" — the briefing's button drops into the SAME single-screen
-        // capture the row's tick opens, rather than starting a stepped session.
-        // One capture experience however you got there.
-        onStart={() => {
-          const habit = briefingHabit;
-          setBriefingHabit(null);
-          if (habit) handleHabitLogIt(habit);
+      <QuickLogSheet
+        visible={!!quickLog}
+        habitName={quickLog?.habit.name ?? ''}
+        sectionName={quickLog ? t(`today.section.name.${sectionOfHabit(quickLog.habit)}`, getHabitSection(sectionOfHabit(quickLog.habit)).name) : ''}
+        sectionColor={quickLog ? getHabitSection(sectionOfHabit(quickLog.habit)).color : Colors.primary}
+        fields={quickLog?.fields ?? []}
+        initialValues={quickLog?.initialValues ?? {}}
+        note={quickLog?.note}
+        onRate={async (resistance, values) => {
+          if (!quickLog) return;
+          const input = buildQuickSheetInput(resistance, values, quickLog.initialValues);
+          if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
+          try {
+            await handleHabitComplete(input, quickLog.habit);
+          } catch (err) {
+            console.warn('Quick log failed:', err);
+            showAlert(
+              t('today.alert.quickLogFailed.title', "Couldn't log that"),
+              t('today.alert.quickLogFailed.message', 'Check your connection and try again.')
+            );
+            throw err;
+          }
         }}
-        onLearn={() => {
-          const practiceId = briefingHabit?.practice_id;
-          setBriefingHabit(null);
-          if (practiceId) navigation.navigate('PracticeDetail', { practiceId, readOnly: true });
+        onCancel={() => setQuickLog(null)}
+      />
+      <LogToast
+        toast={toast}
+        onHide={() => setToast(null)}
+        onAddNote={() => {
+          setToast(null);
+          setReflectVisible(true);
         }}
-        onClose={() => setBriefingHabit(null)}
       />
       <HabitCelebrationModal
         visible={celebrationVisible}
@@ -1073,7 +1169,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   scrollView: { flex: 1 },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xxl },
+  content: { padding: Spacing.md, paddingBottom: Spacing.xxl * 2 },
+  stats: { fontFamily: Fonts.secondaryBold, fontSize: 13, color: Colors.gray, marginLeft: Spacing.xs },
   sectionHeading: {
     fontFamily: Fonts.primaryBold,
     fontSize: FontSizes.xs,

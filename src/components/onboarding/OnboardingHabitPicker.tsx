@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
 import { Copy } from '../common/Copy';
-import { HABIT_CATEGORIES } from '../../data/habitLibrary';
+import { HABIT_SECTIONS, HabitSectionId, sectionForCategory, getHabitSection } from '../../data/habitSections';
 import { HabitDefinition, getPracticeIntensity } from '../../data/practices';
-import { getOnboardingHabitsByCategory } from '../../data/onboardingOrder';
+import { getOnboardingHabitsBySection } from '../../data/onboardingOrder';
 import { ob } from './onboardingStyles';
 
 // ============================================================================
@@ -50,10 +50,11 @@ const flameCount = (def: HabitDefinition): number => {
 };
 
 export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect }) => {
-  const [categoryId, setCategoryId] = useState(HABIT_CATEGORIES[0].id);
+  // Mind / Movement / Meals — the same three sections the user lands on.
+  const [categoryId, setCategoryId] = useState<HabitSectionId>(HABIT_SECTIONS[0].id);
 
   // Likeliest first picks on top — see data/onboardingOrder.ts.
-  const habits = useMemo(() => getOnboardingHabitsByCategory(categoryId), [categoryId]);
+  const habits = useMemo(() => getOnboardingHabitsBySection(categoryId), [categoryId]);
   const showCaution = habits.some(needsMedicalCaution);
 
   return (
@@ -69,7 +70,7 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
       </Copy>
 
       <View style={styles.categories}>
-        {HABIT_CATEGORIES.map((category) => {
+        {HABIT_SECTIONS.map((category) => {
           const on = category.id === categoryId;
           return (
             <TouchableOpacity
@@ -90,8 +91,8 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
       </View>
 
       {habits.map((habit, index) => {
-        const category = HABIT_CATEGORIES.find((c) => c.id === habit.category_id);
-        const accent = category?.color ?? Colors.primary;
+        const sectionId = sectionForCategory(habit.category_id);
+        const accent = sectionId ? getHabitSection(sectionId).color : Colors.primary;
         const on = selectedId === habit.id;
         const flames = flameCount(habit);
         return (

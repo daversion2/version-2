@@ -1,3 +1,4 @@
+import { isRemovedDefinition } from '../removedHabits';
 import {
   BUNDLED_HABIT_DEFINITIONS,
   BUNDLED_PRACTICES,
@@ -21,9 +22,9 @@ import { buildPracticePerformance } from '../../services/practicePerformance';
 
 describe('unified habit catalog', () => {
   it('merges the curated practices and the habit library into one catalog', () => {
-    // 9 practices + 50 library habits - 11 superseded duplicates.
+    // 9 practices + 51 library habits (Meals added 2026-10-18) - 11 superseded duplicates.
     expect(BUNDLED_HABIT_DEFINITIONS.length).toBe(
-      BUNDLED_PRACTICES.length + 50 - Object.keys(SUPERSEDED_HABIT_IDS).length
+      BUNDLED_PRACTICES.length + 51 - Object.keys(SUPERSEDED_HABIT_IDS).length
     );
   });
 
@@ -77,10 +78,9 @@ describe('unified habit catalog', () => {
       'dreaded-task-first',
       'caffeine-cutoff',
       'alcohol-free-day',
-      'protein-target',
       'nsdr',
-      'wait-24-hours',
-      'no-spend-day',
+      // protein-target, wait-24-hours and no-spend-day were removed on
+      // 2026-10-18 (Meals and the end of Money) — data/removedHabits.ts.
       // Restored as the better-worded survivors of trad-gratitude / trad-todo-list.
       'note-one-good-thing',
       'plan-tomorrow',
@@ -152,8 +152,9 @@ describe('seeding is scoped', () => {
   // getDefaultSeedPractices() briefly return all ~45 definitions, which would have
   // dumped the entire library onto every new user's home screen.
   it('seeds only the curated session-bearing habits, not the whole library', () => {
-    // Retired practices (active: false) are excluded, exactly as before the merge.
-    const expected = BUNDLED_PRACTICES.filter((p) => p.active !== false).length;
+    // Retired practices (active: false) are excluded, exactly as before the merge —
+    // and so are removed ones (eat_healthy_unenjoyable, replaced by Meals).
+    const expected = BUNDLED_PRACTICES.filter((p) => p.active !== false && !isRemovedDefinition(p)).length;
     const seeded = getDefaultSeedPractices();
     expect(seeded.length).toBe(expected);
     expect(seeded.length).toBeLessThan(BUNDLED_HABIT_DEFINITIONS.length);

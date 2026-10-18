@@ -252,6 +252,16 @@ export const HABIT_SCIENCE: Record<string, HabitScienceEntry> = {
       'Falling asleep fine is not proof it is harmless. The damage is to sleep depth, which you cannot feel.',
     ],
   },
+  meals: {
+    whyItWorks:
+      'Most eating is automatic. Naming what is on the plate puts a decision back where a default used to be.',
+    science:
+      'Food choices are among the most cue-driven behaviours there are: the time of day, what is in reach, and what you ate yesterday decide more than intention does. Highly processed food adds to that pull, because it is built to be eaten fast and to reward quickly. Logging each meal against a simple rule — whole food in, processed food out — interrupts the default at the one moment it can be changed, and over weeks it shows which meal slips most, which is the one worth planning for.',
+    tips: [
+      'Log while the plate is still in front of you; memory turns a mixed meal into a good one.',
+      'Plan the meal that fails most often, not the one that already passes.',
+    ],
+  },
   'alcohol-free-day': {
     whyItWorks:
       'Alcohol helps you fall asleep, then takes back more than it gave in the second half of the night.',

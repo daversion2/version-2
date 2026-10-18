@@ -33,24 +33,23 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     id: 'today',
     icon: 'today-outline',
     title: 'Today',
-    intro:
-      'Everything you are working on, grouped by what it is asking of you right now.',
+    intro: 'What needs you today, in three sections: Mind, Movement and Meals.',
     points: [
       {
-        label: 'Tap 1, 2 or 3 to log it',
-        text: 'The number is how hard it was to start — easy, had to push, or nearly didn’t. That single tap records the habit and how hard it was, together.',
+        label: 'Tap to log',
+        text: 'A tap opens the check-in with your numbers already set to last time. Pick 1, 2 or 3 for how hard it was to start, and it’s logged.',
       },
       {
-        label: 'Rate it honestly, not generously',
-        text: 'An easy day logged as hard tells you nothing later. The number only earns its keep if it is true.',
+        label: 'Press and hold for the details',
+        text: 'Hold a habit to log it in full: notes, every number, or a day you forgot. The arrow on the right opens its page and history.',
       },
       {
-        label: 'Tap the name for more',
-        text: 'The card opens to show your week, where you can fill in a day you forgot, read about the habit, or log with the full detail.',
+        label: 'Apps open with a tap',
+        text: 'A coloured tile means an app — Workouts, Meditate, Meals. Finishing a session there is the check-in.',
       },
       {
-        label: 'The headings tell you where you stand',
-        text: 'Due today, behind this week, done. Habits move between them as you log, so the top of the list is always what needs you.',
+        label: 'Only today is showing',
+        text: 'Habits with nothing owed today wait under “more this week”, and finished ones under “done”. Rate honestly: the number only earns its keep if it is true.',
       },
     ],
     science: [

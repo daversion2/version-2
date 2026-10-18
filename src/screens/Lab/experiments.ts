@@ -51,17 +51,15 @@ export const LAB_EXPERIMENTS = [
   //   description: 'A guided 4-7-8 breathing screen.',
   //   screen: () => require('./experiments/BreathPacerScreen').BreathPacerScreen,
   // },
+  // Workouts, Meditate and Meals went live for everyone on 2026-10-18 (their
+  // habits open them from Today). These rows stay so an admin can open one
+  // without a linked habit; the "Start on Today" switches are retired.
   {
     id: 'workouts',
     title: 'Workouts',
     description: 'The workouts mini-app: build workouts and circuits, log sets with a rest timer, records.',
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'WorkoutsApp' })),
-  },
-  {
-    id: 'workoutsStart',
-    title: 'Workouts: Start on Today',
-    description: 'Adds a Start button to Workout habits (and any you link in Workouts) on Today.',
   },
   {
     id: 'meditate',
@@ -79,22 +77,12 @@ export const LAB_EXPERIMENTS = [
       navigation.dispatch(CommonActions.navigate({ name: 'ComposeApp' })),
   },
   {
-    id: 'meditateStart',
-    title: 'Meditate: Start on Today',
-    description: 'Adds a Start button to meditation, breathwork and NSDR habits (and any you link in Meditate) on Today.',
-  },
-  {
     id: 'meals',
     title: 'Meals',
     description:
       'Rate each meal by tapping the food groups on the plate; it works out pass or fail against your own daily goal.',
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
-  },
-  {
-    id: 'mealsStart',
-    title: 'Meals: Open on Today',
-    description: 'Adds an Open Meals button to the habit you link in Meals.',
   },
 ] as const satisfies readonly LabExperiment[];
 

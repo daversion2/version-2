@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { HabitLibraryList } from '../../components/habits/HabitLibraryList';
-import { HABIT_CATEGORIES } from '../../data/habitLibrary';
+import { HABIT_SECTIONS, sectionForCategory } from '../../data/habitSections';
 import { getBrowsableHabits } from '../../data/practices';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
@@ -57,7 +57,9 @@ export const HabitLibraryScreen: React.FC<Props> = ({ navigation }) => {
     <>
       <HabitLibraryList
         habits={getBrowsableHabits()}
-        categories={HABIT_CATEGORIES}
+        // Mind / Movement / Meals; Sleep and Focus habits show under Mind.
+        categories={HABIT_SECTIONS}
+        chipMatches={(sectionId, categoryId) => sectionForCategory(categoryId) === sectionId}
         listHeader={createOwn}
         onSelectHabit={(habitId) => navigation.navigate('HabitLibraryDetail', { habitId })}
       />

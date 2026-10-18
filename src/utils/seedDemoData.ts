@@ -113,7 +113,8 @@ export const DEMO_TARGET_HABITS = 5;
  * curated practices: ensureCuratedPractices manages those and a second
  * instance would confuse it.
  */
-export const DEMO_HABIT_IDS = ['workout', 'trad-10k-steps', 'protein-target', 'deep-focus-session', 'trad-read'];
+// 'water-only' replaced 'protein-target', removed with the food habits Meals replaced.
+export const DEMO_HABIT_IDS = ['workout', 'trad-10k-steps', 'water-only', 'deep-focus-session', 'trad-read'];
 /** Days ago each habit starts, by position — two from the start, then one added every couple of weeks. */
 const STARTS = [DAYS - 1, DAYS - 1, 41, 27, 13];
 /** Starting rating by position: mostly Hard, a couple of Meds. */

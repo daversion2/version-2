@@ -51,8 +51,10 @@ Firestore collection, shippable over the air. If anything is added, update the
 hosting.
 
 **4. Small leftovers.**
-- The Today tab's header title says "Home" (`src/navigation/HomeStack.tsx`), and
-  the user still wants to decide what to do with the header logo there.
+- The user still wants to decide what to do with the header logo on Today
+  (`src/navigation/HomeStack.tsx`). The title now says "Today".
+- The Mind / Movement / Meals Today (built 2026-10-18, `docs/three-sections-today.md`)
+  was verified by jest + `tsc` + `expo export` only — not yet run on screen.
 - Copy stored in Firestore — push rules (Admin → Rules) and global reward
   messages — may still say "practice" or "rep". The code is clean.
 - `docs/go-live-checklist.md` is stale: it still has Challenges and Programs
@@ -332,6 +334,8 @@ They ship over the air like any other change.
 ## Docs — what's current vs. historical
 
 **Current, safe to build from:**
+- `docs/three-sections-today.md` — Today as Mind / Movement / Meals, the quick
+  sheet and press-and-hold, removed Money and food habits, live mini-apps
 - `docs/habit-template-unification.md` — the active direction (practices merging
   into habits with tracking templates)
 - `docs/habit-library-audit.md`, `docs/challenge-library.md`, `docs/tidbit-audit.md` — content inventories
