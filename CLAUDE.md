@@ -70,6 +70,18 @@ a functions deploy — and only THEN flipping the setting in the Expo dashboard,
 or every push fails. Defence in depth only: push tokens stopped being readable
 by other users when profiles went owner-only.
 
+**6. Compose needs a store build before it leaves the Lab.** Compose (Admin →
+Lab) shipped OTA on 2026-10-18 and works on the 2.2.0 binary only while the
+app is open: that binary has no background audio, so for now
+`KEEP_SCREEN_ON_WHILE_PLAYING` in
+`src/screens/Lab/experiments/compose/components/SessionPlayer.tsx` keeps the
+screen on during playback (a stopgap). In the next store build: bump
+`version` in app.json (runtimeVersion is `appVersion`), which brings
+UIBackgroundModes audio and `patches/expo-audio+1.1.1.patch`; then set that
+flag to false. Before non-admins get Compose: add Anthropic and ElevenLabs to
+`hosting/privacy.html` (and the App Store privacy details), and revisit the
+model (Haiku), the 30/day limit, and declines counting against it.
+
 ## Verifying a Change
 
 Run these before saying a change is done. There is **no `lint` or `typecheck` npm

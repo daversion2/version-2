@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent, GestureRes
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
 import { formatClock } from '../../../../../services/labCompose';
 import { COMPOSE_ACCENT, COMPOSE_TINT } from './composeStyle';
@@ -17,6 +18,16 @@ interface Props {
 const SKIP_SEC = 15;
 /** How long "Loading…" shows before saying something's wrong. */
 const SLOW_LOAD_MS = 15_000;
+
+/**
+ * STOPGAP — keeps the screen on while a session plays. The 2.2.0 store build
+ * has no background audio (UIBackgroundModes audio arrived in app.json after
+ * it), so there auto-lock would cut a session off mid-way. Turn this off in
+ * the first store build that includes background audio: playing with the
+ * screen off is the intended experience.
+ */
+const KEEP_SCREEN_ON_WHILE_PLAYING = true;
+const KEEP_AWAKE_TAG = 'compose-session';
 
 /**
  * setAudioModeAsync replaces the whole mode — anything left out goes back to
@@ -89,6 +100,14 @@ export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec }) => {
     },
     [player],
   );
+
+  useEffect(() => {
+    if (!KEEP_SCREEN_ON_WHILE_PLAYING || !status.playing) return undefined;
+    activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
+    return () => {
+      deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => undefined);
+    };
+  }, [status.playing]);
 
   useEffect(() => {
     if (loaded) {
