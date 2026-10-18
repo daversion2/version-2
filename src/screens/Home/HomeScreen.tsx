@@ -23,6 +23,7 @@ import { PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
+import { PracticeBriefingModal } from '../../components/habits/PracticeBriefingModal';
 import { getPractice, getPracticeColor, formatCommitment } from '../../data/practices';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
@@ -41,10 +42,11 @@ import { PushOptInModal } from '../../components/common/PushOptInModal';
 import { registerForPushNotifications } from '../../services/notifications';
 import { detailFor, CHIP_CAPTIONS } from '../../components/home/TodayHabitRow';
 import { TodayRow } from '../../components/home/TodayRow';
+import { TodayRowPanel } from '../../components/home/TodayRowPanel';
 import { TodaySectionCard } from '../../components/home/TodaySectionCard';
 import { QuickLogSheet } from '../../components/home/QuickLogSheet';
 import { LogToast, LogToastContent } from '../../components/home/LogToast';
-import { buildTodayList, sectionFor } from '../../services/habitPace';
+import { buildTodayList, sectionFor, weekDatesFor } from '../../services/habitPace';
 import { buildTodaySectionViews, RowClass, TodayRow as TodayRowModel } from '../../services/todaySections';
 import { buildQuickSheetInput, formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
 import { takeDetailedLogRequest, DetailedLogRequest } from '../../services/todayRequests';
@@ -145,6 +147,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [meditateLinkedIds, setMeditateLinkedIds] = useState<string[]>([]);
   const mealsOnToday = canOpenMiniApp('meals', userProfile);
   const [mealsLinkedIds, setMealsLinkedIds] = useState<string[]>([]);
+  // The habit whose briefing ("About" in a row's panel) is open.
+  const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
+  // The one row whose panel is open. Single-valued on purpose: several open
+  // panels turns the list back into a wall of controls.
+  const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
   // False until the first habit fetch lands, so "No habits yet" never flashes
   // while the list is still loading.
   const [habitsLoaded, setHabitsLoaded] = useState(false);
@@ -226,6 +233,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     intro.visible ||
     !!skipReview ||
     !!quickLog ||
+    !!briefingHabit ||
     !!completingHabit;
   const {
     modalRule: ruleModalRule,
@@ -553,7 +561,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   // A row's tap is always the quick route (or the app it opens) — never the
-  // briefing. Briefings and science live on the habit's page, behind the ›.
+  // briefing. The briefing is "About" in the row's panel, behind the ›.
 
   /**
    * The one completion path. The capture sheet passes no `forHabit` and the
@@ -774,6 +782,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     [todayList, habitsById, appFor]
   );
 
+  const weekDates = useMemo(() => weekDatesFor(todayStr), [todayStr]);
   const xp = userProfile?.totalWillpowerPoints ?? 0;
   const streak = displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
 
@@ -810,8 +819,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // A root route, above the tabs — dispatch bubbles up to it.
         navigation.dispatch(CommonActions.navigate({ name: route, params: { habitId: habit.id } }));
       } else {
-        // Every other habit, briefing or not, logs quickly. Its briefing and
-        // science are on its page ("About this habit"), one tap on the ›.
+        // Every other habit, briefing or not, logs quickly. Its briefing is
+        // "About" in the row's panel, behind the ›.
         openQuickLog(habit);
       }
     };
@@ -829,7 +838,22 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onPress={onPress}
         // The full check-in: day, notes, every field, amounts from last time.
         onLongPress={() => handleHabitLogIt(habit)}
-        onDetails={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
+        expanded={expandedHabitId === habit.id}
+        onToggleExpand={() => setExpandedHabitId((prev) => (prev === habit.id ? null : habit.id))}
+        panel={
+          <TodayRowPanel
+            name={habit.name}
+            pace={row.pace}
+            accentColor={sectionColor}
+            weekDates={weekDates}
+            today={todayStr}
+            hasAbout={!!def?.ready}
+            onLogDay={(date) => handleHabitLogIt(habit, date)}
+            onAbout={() => setBriefingHabit(habit)}
+            onLogDetails={() => handleHabitLogIt(habit)}
+            onHistory={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
+          />
+        }
       />
     );
   };
@@ -877,7 +901,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           Mind, Movement, Meals. Each section is one card: what needs you today
           on top (app habits first), with what isn't owed today and what's done
           folded into two links at the foot. A tap logs; press and hold opens
-          the full check-in; the › opens the habit's page. See
+          the full check-in; the › opens the row's panel (week, About, Log
+          details, History). See
           services/todaySections.ts.
         */}
         {sectionViews.map((view) => {
@@ -1085,6 +1110,24 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           setToast(null);
           setReflectVisible(true);
         }}
+      />
+      <PracticeBriefingModal
+        visible={!!briefingHabit}
+        practiceId={briefingHabit?.practice_id}
+        habitId={briefingHabit?.id}
+        userId={user?.uid}
+        // "Log it" drops into the same full capture a press and hold opens.
+        onStart={() => {
+          const habit = briefingHabit;
+          setBriefingHabit(null);
+          if (habit) handleHabitLogIt(habit);
+        }}
+        onLearn={() => {
+          const practiceId = briefingHabit?.practice_id;
+          setBriefingHabit(null);
+          if (practiceId) navigation.navigate('PracticeDetail', { practiceId, readOnly: true });
+        }}
+        onClose={() => setBriefingHabit(null)}
       />
       <HabitCelebrationModal
         visible={celebrationVisible}

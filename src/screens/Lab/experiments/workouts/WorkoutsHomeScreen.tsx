@@ -102,7 +102,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={ws.body}>• Pick a workout — or build one from exercises and circuits.</Text>
           <Text style={ws.body}>• Log each set as you go; the rest timer starts on its own.</Text>
           <Text style={ws.body}>
-            • Finish, and it hands back to Today: “How hard was it?”, then the habit’s checked off.
+            • Finish, and it hands back to Today: “How hard was it to start?”, then the habit’s checked off.
           </Text>
           <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
             <Text style={styles.introBtnText}>Got it</Text>

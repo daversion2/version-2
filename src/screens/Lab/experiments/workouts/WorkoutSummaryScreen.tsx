@@ -301,7 +301,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
         {chosenHabit && (
           <Text style={[ws.muted, styles.footerNote]}>
-            Next: “How hard was it?” on Today, then it’s checked off.
+            Next: “How hard was it to start?” on Today, then it’s checked off.
           </Text>
         )}
         <TouchableOpacity onPress={backToSession} disabled={saving} style={styles.back}>

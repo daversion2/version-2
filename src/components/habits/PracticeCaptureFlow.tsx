@@ -370,7 +370,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
           >
             {showDatePicker ? renderDatePicker() : !isToday(date) ? renderLockedDate() : null}
 
-            <AppMessage message="How hard was it?" color={accentColor} delay={0} />
+            <AppMessage message="How hard was it to start?" color={accentColor} delay={0} />
 
             {renderResistance()}
 
@@ -387,7 +387,7 @@ export const PracticeCaptureFlow: React.FC<Props> = ({
     }
 
     const message =
-      current.kind === 'difficulty' ? 'How hard was it?' : current.field.label;
+      current.kind === 'difficulty' ? 'How hard was it to start?' : current.field.label;
 
     return (
       <KeyboardAvoidingView

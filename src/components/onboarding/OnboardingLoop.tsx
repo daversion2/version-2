@@ -268,7 +268,7 @@ export const OnboardingLoopRating: React.FC = () => {
           </View>
           <View style={styles.bubble}>
             <Copy id="onboarding.loop.rating.mockHowHard" style={styles.bubbleText}>
-              {'How hard was it?'}
+              {'How hard was it to start?'}
             </Copy>
           </View>
           <View style={styles.levels}>

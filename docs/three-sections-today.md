@@ -14,9 +14,11 @@ only when they hold something. Inside a section:
 | Habit linked to a mini-app (Workout → Workouts, Meditation → Meditate, Meals → Meals) | coloured app tile | opens the **app's own home screen**; finishing a session there is the check-in | full capture |
 | Any other habit (Cold exposure and Unplugged Cardio included) | circle | **quick sheet**: tracked amounts filled in from last time, then 1 / 2 / 3 logs it | full capture |
 
-Every row has a **›** on the right: the habit's page (history, schedule, plan,
-and "About this habit" — the briefing and science, which used to open on a
-tap for guided habits; the founder found that slowed logging, 2026-10-18).
+Every row has a **›** on the right: it opens a panel under the row — the
+week (tap a day to log it for that date) and About (the briefing), Log details
+(the full capture) and History (the habit page, which also has "About this
+habit" and "Log with details"). Briefings used to open on a tap for guided
+habits; the founder found that slowed logging, 2026-10-18.
 The full capture is the existing "Log it" screen (day picker, notes, every
 field), opened with amounts from last time. *Changed 2026-10-18 after the first
 build, at the founder's request: hold was the habit page, now it's the capture.*

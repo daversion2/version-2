@@ -107,7 +107,8 @@ An interactive flow that teaches the premise before asking for anything:
 - **Tap to log:** a sheet opens with the habit's numbers already set to last
   time; 1 / 2 / 3 (how hard it was to start) logs it. **Press and hold** opens the
   full check-in (notes, every number, a day you forgot). The **›** on the right
-  opens the habit's page. The ⓘ in the header explains all three.
+  opens a panel under the row: the week (tap a day to fill it in), About, Log
+  details and History. The ⓘ in the header explains all three.
 - **Apps:** a habit with a coloured tile opens its app — Workouts, Meditate or
   Meals — and finishing a session there is the check-in.
 - **After logging:** a "+N XP" message. The full celebration (streak tier,

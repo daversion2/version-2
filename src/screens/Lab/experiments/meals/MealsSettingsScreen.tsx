@@ -238,7 +238,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 
       <Text style={mls.sectionLabel}>The habit Meals checks off</Text>
       <Text style={mls.muted}>
-        An on-target day checks off the habit you link here, with the usual “How hard was it?”. A custom habit like
+        An on-target day checks off the habit you link here, with the usual “How hard was it to start?”. A custom habit like
         “Eat real food” works well. With the Lab switch on, it also gets an Open Meals button on Today.
       </Text>
       {habits.length === 0 && <Text style={mls.muted}>No active habits yet.</Text>}

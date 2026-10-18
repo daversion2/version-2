@@ -23,7 +23,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
 /**
  * Close out today. First catch up any meal not logged yet, then the result:
  *   - On target: pick the habit it checks off and hand it back to Today, which
- *     asks "How hard was it?" and runs the celebration. Meals never awards XP.
+ *     asks "How hard was it to start?" and runs the celebration. Meals never awards XP.
  *   - Off target: one optional "what got in the way?" — then it's closed. No
  *     check-in is written; the meals still count toward the week.
  */

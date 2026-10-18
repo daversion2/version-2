@@ -22,15 +22,19 @@ interface Props {
   onPress?: () => void;
   /** Press and hold: the full check-in (day, notes, every field). */
   onLongPress?: () => void;
-  /** The › on the right: the habit's page. */
-  onDetails: () => void;
+  /** The › on the right: opens or closes `panel` under the row. */
+  onToggleExpand: () => void;
+  expanded: boolean;
+  /** Rendered under the row while expanded — see TodayRowPanel. */
+  panel?: React.ReactNode;
   first?: boolean;
 }
 
 /**
  * One row on Today. The row's gesture decides how you log — a tap is the quick
  * route, a press and hold opens the full check-in. The › on the right is the
- * one separate target: the habit's page. The ⓘ in Today's header explains it.
+ * one separate target: it opens the panel under the row (the week, About, Log
+ * details, History). The ⓘ in Today's header explains it.
  *
  * Left of the name: an app's tile (a tap opens the app) or a circle (a tap
  * opens the quick sheet).
@@ -45,64 +49,70 @@ export const TodayRow: React.FC<Props> = ({
   doneLabel,
   onPress,
   onLongPress,
-  onDetails,
+  onToggleExpand,
+  expanded,
+  panel,
   first,
 }) => (
-  <View style={[styles.row, !first && styles.divider]}>
-    <Pressable
-      onPress={done ? undefined : onPress}
-      onLongPress={
-        onLongPress
-          ? () => {
-              triggerTapHaptic().catch(() => {});
-              onLongPress();
-            }
-          : undefined
-      }
-      delayLongPress={400}
-      style={({ pressed }) => [styles.main, pressed && styles.pressed]}
-      accessibilityRole="button"
-      accessibilityState={{ checked: !!done }}
-      accessibilityLabel={`${name}${caption ? `. ${caption}` : ''}${done ? '. Done today' : ''}`}
-      accessibilityHint={done ? 'Press and hold to log with details.' : 'Tap to log. Press and hold to log with details.'}
-      accessibilityActions={onLongPress ? [{ name: 'longpress', label: 'Log with details' }] : undefined}
-      onAccessibilityAction={(e) => {
-        if (e.nativeEvent.actionName === 'longpress') onLongPress?.();
-      }}
-    >
-      <View style={styles.glyph}>
-        {appIcon ? (
-          <View style={[styles.tile, { backgroundColor: accentColor }, done && styles.tileDone]}>
-            <Ionicons name={appIcon as any} size={17} color={Colors.white} />
-          </View>
-        ) : done ? (
-          <View style={[styles.check, { backgroundColor: accentColor }]}>
-            <Ionicons name="checkmark" size={14} color={Colors.white} />
-          </View>
-        ) : (
-          <View style={styles.circle} />
-        )}
-      </View>
-      <View style={styles.body}>
-        <Text style={[styles.name, done && styles.nameDone]} numberOfLines={2}>
-          {name}
-        </Text>
-        {!!caption && !done && (
-          <Text style={[styles.caption, captionAlert && styles.captionAlert]} numberOfLines={1}>
-            {caption}
+  <View style={!first && styles.divider}>
+    <View style={styles.row}>
+      <Pressable
+        onPress={done ? undefined : onPress}
+        onLongPress={
+          onLongPress
+            ? () => {
+                triggerTapHaptic().catch(() => {});
+                onLongPress();
+              }
+            : undefined
+        }
+        delayLongPress={400}
+        style={({ pressed }) => [styles.main, pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityState={{ checked: !!done }}
+        accessibilityLabel={`${name}${caption ? `. ${caption}` : ''}${done ? '. Done today' : ''}`}
+        accessibilityHint={done ? 'Press and hold to log with details.' : 'Tap to log. Press and hold to log with details.'}
+        accessibilityActions={onLongPress ? [{ name: 'longpress', label: 'Log with details' }] : undefined}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'longpress') onLongPress?.();
+        }}
+      >
+        <View style={styles.glyph}>
+          {appIcon ? (
+            <View style={[styles.tile, { backgroundColor: accentColor }, done && styles.tileDone]}>
+              <Ionicons name={appIcon as any} size={17} color={Colors.white} />
+            </View>
+          ) : done ? (
+            <View style={[styles.check, { backgroundColor: accentColor }]}>
+              <Ionicons name="checkmark" size={14} color={Colors.white} />
+            </View>
+          ) : (
+            <View style={styles.circle} />
+          )}
+        </View>
+        <View style={styles.body}>
+          <Text style={[styles.name, done && styles.nameDone]} numberOfLines={2}>
+            {name}
           </Text>
-        )}
-      </View>
-      {done && !!doneLabel && <Text style={styles.doneLabel}>{doneLabel}</Text>}
-    </Pressable>
-    <TouchableOpacity
-      onPress={onDetails}
-      style={styles.details}
-      accessibilityRole="button"
-      accessibilityLabel={`${name}: its page`}
-    >
-      <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
-    </TouchableOpacity>
+          {!!caption && !done && (
+            <Text style={[styles.caption, captionAlert && styles.captionAlert]} numberOfLines={1}>
+              {caption}
+            </Text>
+          )}
+        </View>
+        {done && !!doneLabel && <Text style={styles.doneLabel}>{doneLabel}</Text>}
+      </Pressable>
+      <TouchableOpacity
+        onPress={onToggleExpand}
+        style={styles.details}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        accessibilityLabel={`${name}: more`}
+      >
+        <Ionicons name={expanded ? 'chevron-down' : 'chevron-forward'} size={18} color={Colors.gray} />
+      </TouchableOpacity>
+    </View>
+  {expanded && panel}
   </View>
 );
 

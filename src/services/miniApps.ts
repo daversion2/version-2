@@ -10,7 +10,7 @@ import type { PracticeInstance, User } from '../types';
 //   - the manifest (which habits it attaches to),
 //   - the one access gate,
 //   - the finish handoff: a mini-app never awards XP or shows its own "done"
-//     moment. It hands a habit id back; Today asks "How hard was it?" and runs
+//     moment. It hands a habit id back; Today asks "How hard was it to start?" and runs
 //     the same celebration a plain check-in gets.
 // =============================================================================
 

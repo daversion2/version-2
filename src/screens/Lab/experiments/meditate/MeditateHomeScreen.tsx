@@ -182,7 +182,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
               • Tap Begin and lock your phone. A bell rings at the end — no screen glowing at you while you sit.
             </Text>
             <Text style={ms.body}>
-              • Finish, and it hands back to Today: “How hard was it?”, then the habit’s checked off.
+              • Finish, and it hands back to Today: “How hard was it to start?”, then the habit’s checked off.
             </Text>
             <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
               <Text style={styles.introBtnText}>Got it</Text>

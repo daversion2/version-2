@@ -41,7 +41,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Press and hold for the details',
-        text: 'Hold a habit to log it in full: notes, every number, or a day you forgot. The arrow on the right opens its page and history.',
+        text: 'Hold a habit to log it in full: notes, every number, or a day you forgot. The arrow on the right opens its week, About and History.',
       },
       {
         label: 'Apps open with a tap',
