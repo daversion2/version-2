@@ -12,6 +12,7 @@ import {
   KG_PER_LB,
   lastSetsFor,
   prefillFor,
+  rebuildRecords,
   sessionVolumeKg,
   stepWeight,
   toDisplayWeight,
@@ -221,6 +222,21 @@ describe('computeSessionRecords', () => {
     });
     expect(Object.keys(records).sort()).toEqual(['bench', 'pushup']);
     expect(prs.map((p) => p.type).sort()).toEqual(['heaviest', 'max_reps']);
+  });
+});
+
+describe('rebuildRecords', () => {
+  it('replays sessions oldest first, so PRs land on the session that set them', () => {
+    const later = session('b', '2026-10-14T10:00:00Z', [set('bench', { reps: 5, weightKg: 70 })]);
+    const first = session('a', '2026-10-10T10:00:00Z', [set('bench', { reps: 8, weightKg: 60 })]);
+    const { records, prsBySession } = rebuildRecords([later, first], EXERCISES);
+    expect(records.bench.heaviestKg).toBe(70);
+    expect(prsBySession.a).toEqual([]);
+    expect(prsBySession.b.map((p) => p.type)).toEqual(['heaviest']);
+  });
+
+  it('is empty with no sessions', () => {
+    expect(rebuildRecords([], EXERCISES).records).toEqual({});
   });
 });
 

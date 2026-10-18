@@ -145,8 +145,8 @@ export const AdminDashboardScreen: React.FC = () => {
     Alert.alert(
       demoEnabled ? 'Remove Demo Data' : 'Enable Demo Data',
       demoEnabled
-        ? 'This deletes all seeded demo habits, habit logs and challenges from YOUR account and restores your real stats. Your real history is untouched. Continue?'
-        : 'This seeds ~8 weeks of realistic habit logs, challenges, and stats into YOUR account for demos. If you have fewer than 5 active habits, demo habits are added to Today to fill the set. Everything is tagged and fully removable. Your real data is untouched. Continue?',
+        ? 'This deletes all seeded demo habits, habit logs, challenges and Workouts / Meditate sessions from YOUR account and restores your real stats and records. Your real history is untouched. Continue?'
+        : 'This seeds ~8 weeks of realistic habit logs, challenges, stats, and Workouts and Meditate sessions into YOUR account for demos. If you have fewer than 5 active habits, demo habits are added to Today to fill the set. Everything is tagged and fully removable. Your real data is untouched. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -156,16 +156,16 @@ export const AdminDashboardScreen: React.FC = () => {
             setTogglingDemo(true);
             try {
               if (demoEnabled) {
-                const { deletedLogs, deletedChallenges } = await disableDemoData(user.uid);
+                const { deletedLogs, deletedChallenges, deletedSessions } = await disableDemoData(user.uid);
                 Alert.alert(
                   'Demo Data Removed',
-                  `Deleted ${deletedLogs} demo habit logs and ${deletedChallenges} demo challenges. Your real stats are restored.`
+                  `Deleted ${deletedLogs} demo habit logs, ${deletedChallenges} demo challenges and ${deletedSessions} demo Workouts / Meditate sessions. Your real stats are restored.`
                 );
               } else {
-                const { habitLogs, challenges, xp } = await enableDemoData(user.uid);
+                const { habitLogs, challenges, xp, workoutSessions, meditateSessions } = await enableDemoData(user.uid);
                 Alert.alert(
                   'Demo Data Enabled',
-                  `Seeded ${habitLogs} habit logs, ${challenges} challenges, and +${xp} XP. Toggle off here when the demo is done.`
+                  `Seeded ${habitLogs} habit logs, ${challenges} challenges, +${xp} XP, ${workoutSessions} workouts and ${meditateSessions} meditation sessions. Toggle off here when the demo is done.`
                 );
               }
               await refreshProfile();

@@ -144,6 +144,8 @@ export interface CompletedWorkoutSession {
   total_volume_kg: number;
   blocks: SessionBlock[];
   prs: PersonalRecord[];
+  /** Seeded by Admin → demo data; removed when demo mode is turned off. */
+  is_demo?: boolean;
 }
 
 export interface WorkoutPrefs {

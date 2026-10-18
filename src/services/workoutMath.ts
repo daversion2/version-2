@@ -229,7 +229,7 @@ export const applySetsToRecord = (
 
 /** Every record a finished session touches, and the PRs it set. */
 export const computeSessionRecords = (
-  session: WorkoutSession,
+  session: Pick<WorkoutSession, 'blocks'>,
   exercisesById: Record<string, Exercise>,
   existing: Record<string, ExerciseRecord>
 ): { records: Record<string, ExerciseRecord>; prs: PersonalRecord[] } => {
@@ -247,6 +247,26 @@ export const computeSessionRecords = (
     prs.push(...result.prs);
   }
   return { records, prs };
+};
+
+/**
+ * Records from scratch: every session replayed oldest first. Records are
+ * maxima, so this is exactly what saving them one at a time produced — which
+ * is what lets demo sessions be removed without leaving their numbers behind.
+ */
+export const rebuildRecords = (
+  sessions: CompletedWorkoutSession[],
+  exercisesById: Record<string, Exercise>,
+  start: Record<string, ExerciseRecord> = {}
+): { records: Record<string, ExerciseRecord>; prsBySession: Record<string, PersonalRecord[]> } => {
+  let records = { ...start };
+  const prsBySession: Record<string, PersonalRecord[]> = {};
+  for (const session of [...sessions].sort((a, b) => a.finished_at.localeCompare(b.finished_at))) {
+    const result = computeSessionRecords(session, exercisesById, records);
+    records = { ...records, ...result.records };
+    prsBySession[session.id] = result.prs;
+  }
+  return { records, prsBySession };
 };
 
 export const describeRecord = (

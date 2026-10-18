@@ -63,6 +63,8 @@ export interface CompletedMeditateSession {
   /** Local YYYY-MM-DD the session started on — what weeks and months count by. */
   date: string;
   habit_id?: string;
+  /** Seeded by Admin → demo data; removed when demo mode is turned off. */
+  is_demo?: boolean;
 }
 
 export interface MeditatePrefs {

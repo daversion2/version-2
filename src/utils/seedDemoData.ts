@@ -44,6 +44,16 @@ import { resolveHabitTrackingFields } from '../data/habitTemplates';
 import { RESISTANCE_SCALE } from '../constants/resistance';
 import { PracticeInstance } from '../types';
 import { toLocalDateString, getTodayString } from './date';
+import { isHabitLinkedToMiniApp } from '../services/miniApps';
+import { getWorkoutPrefs } from '../services/labWorkouts';
+import { getMeditatePrefs } from '../services/labMeditate';
+import { modeForHabit } from '../services/meditateMath';
+import {
+  DemoDay,
+  miniAppDemoDeleteOps,
+  miniAppDemoOps,
+  restoreWorkoutsAfterDemoOps,
+} from './seedMiniAppDemo';
 
 const logsRef = (userId: string) => collection(db, 'users', userId, 'completionLogs');
 const challengesRef = (userId: string) => collection(db, 'users', userId, 'challenges');
@@ -57,6 +67,9 @@ export interface DemoDataState {
   habit_logs_added: number;
   challenges_completed_added: number;
   habits_added?: number;
+  /** Lab mini-apps — informational; disable sweeps by is_demo regardless. */
+  workout_sessions_added?: number;
+  meditate_sessions_added?: number;
 }
 
 // Firestore batches cap at 500 ops; stay well under.
@@ -246,7 +259,7 @@ export const isDemoDataEnabled = async (userId: string): Promise<boolean> => {
  */
 export const enableDemoData = async (
   userId: string
-): Promise<{ habitLogs: number; challenges: number; xp: number }> => {
+): Promise<{ habitLogs: number; challenges: number; xp: number; workoutSessions: number; meditateSessions: number }> => {
   const userRef = doc(db, 'users', userId);
   const userSnap = await getDoc(userRef);
   if (userSnap.exists() && userSnap.data().demo_data?.enabled === true) {
@@ -292,7 +305,14 @@ export const enableDemoData = async (
     habitsAdded++;
   }
 
+  // Mini-app sessions go on the days their linked habits are checked off.
+  const [workoutPrefs, meditatePrefs] = await Promise.all([getWorkoutPrefs(userId), getMeditatePrefs(userId)]);
+  const workoutDays: DemoDay[] = [];
+  const meditateDays: DemoDay[] = [];
+
   habits.forEach((habit, idx) => {
+    const forWorkouts = isHabitLinkedToMiniApp('workouts', habit, workoutPrefs.linked_habit_ids);
+    const forMeditate = isHabitLinkedToMiniApp('meditate', habit, meditatePrefs.linked_habit_ids);
     const start = STARTS[Math.min(idx, STARTS.length - 1)];
     const baseline = BASELINES[idx % BASELINES.length];
     const days = scheduledDays(habit) ?? defaultDaysForTarget(weeklyTarget(habit) || 3);
@@ -325,6 +345,12 @@ export const enableDemoData = async (
         is_demo: true,
       };
       if (Object.keys(metrics).length) logDoc.metrics = metrics;
+      const durationKey = fields.find((f) => f.type === 'duration')?.key;
+      const durationMin = durationKey ? (metrics[durationKey] as number | undefined) : undefined;
+      if (forWorkouts) workoutDays.push({ offset, habitId: habit.id, durationMin });
+      if (forMeditate) {
+        meditateDays.push({ offset, habitId: habit.id, durationMin, mode: modeForHabit(habit.practice_id) ?? 'sit' });
+      }
       if (rating >= 2) logDoc.tactics = DEMO_TACTICS[seed % DEMO_TACTICS.length];
       ops.push((batch) => batch.set(doc(logsRef(userId)), logDoc));
       habitLogs++;
@@ -429,6 +455,9 @@ export const enableDemoData = async (
     challengesCompleted++;
   }
 
+  const miniApps = await miniAppDemoOps(userId, { workoutDays, meditateDays, windowDays: DAYS });
+  ops.push(...miniApps.ops);
+
   await commitInChunks(ops);
 
   // Streak from the seeded logs: consecutive days ending today. Never lower
@@ -443,6 +472,8 @@ export const enableDemoData = async (
     habit_logs_added: habitLogs,
     challenges_completed_added: challengesCompleted,
     habits_added: habitsAdded,
+    workout_sessions_added: miniApps.workoutSessions,
+    meditate_sessions_added: miniApps.meditateSessions,
   };
   await updateDoc(userRef, {
     demo_data: demoState,
@@ -454,7 +485,13 @@ export const enableDemoData = async (
   });
 
   console.log(`Demo data enabled: ${habitLogs} logs, ${challengesCompleted + 1} challenges, +${xp} XP`);
-  return { habitLogs, challenges: challengesCompleted + 1, xp };
+  return {
+    habitLogs,
+    challenges: challengesCompleted + 1,
+    xp,
+    workoutSessions: miniApps.workoutSessions,
+    meditateSessions: miniApps.meditateSessions,
+  };
 };
 
 /**
@@ -463,7 +500,7 @@ export const enableDemoData = async (
  */
 export const disableDemoData = async (
   userId: string
-): Promise<{ deletedLogs: number; deletedChallenges: number }> => {
+): Promise<{ deletedLogs: number; deletedChallenges: number; deletedSessions: number }> => {
   const userRef = doc(db, 'users', userId);
   const userSnap = await getDoc(userRef);
   const demoState: DemoDataState | undefined = userSnap.exists()
@@ -476,12 +513,17 @@ export const disableDemoData = async (
     getDocs(query(habitsRef(userId), where('is_demo', '==', true))),
   ]);
 
+  const sessionDeletes = await miniAppDemoDeleteOps(userId);
   const ops: ((batch: ReturnType<typeof writeBatch>) => void)[] = [
+    ...sessionDeletes,
     ...logsSnap.docs.map((d) => (batch: ReturnType<typeof writeBatch>) => batch.delete(d.ref)),
     ...challengesSnap.docs.map((d) => (batch: ReturnType<typeof writeBatch>) => batch.delete(d.ref)),
     ...habitsSnap.docs.map((d) => (batch: ReturnType<typeof writeBatch>) => batch.delete(d.ref)),
   ];
   await commitInChunks(ops);
+  // With the demo sessions gone, Workouts' records and last-done dates go
+  // back to what the real sessions say.
+  await commitInChunks(await restoreWorkoutsAfterDemoOps(userId));
 
   // Reverse the exact deltas we added (clamped at 0 so a partial/legacy state
   // can never drive a counter negative).
@@ -502,5 +544,5 @@ export const disableDemoData = async (
   console.log(
     `Demo data disabled: removed ${logsSnap.size} logs, ${challengesSnap.size} challenges`
   );
-  return { deletedLogs: logsSnap.size, deletedChallenges: challengesSnap.size };
+  return { deletedLogs: logsSnap.size, deletedChallenges: challengesSnap.size, deletedSessions: sessionDeletes.length };
 };

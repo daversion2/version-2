@@ -106,6 +106,75 @@ describe('disableDemoData', () => {
   });
 });
 
+describe('demo data for the Lab mini-apps', () => {
+  const sessionsPath = `users/${userId}/lab_workout_sessions`;
+  const recordsPath = `users/${userId}/lab_workout_records`;
+  const workoutsPath = `users/${userId}/lab_workouts`;
+  const meditatePath = `users/${userId}/lab_meditate_sessions`;
+
+  it('puts a workout on every Workout check-in day and a sit on every meditation one', async () => {
+    addMockDocument(habitsPath, 'med', { name: 'Meditation', practice_id: 'meditation', is_active: true, target_count_per_week: 5 });
+    const result = await enableDemoData(userId);
+
+    const logs = habitLogs();
+    const workoutHabit = (docs(habitsPath) as any[]).find((h) => h.practice_id === 'workout');
+    const workoutLogDates = new Set(logs.filter((l) => l.reference_id === workoutHabit.id).map((l) => l.date));
+    const sessions = docs(sessionsPath) as any[];
+    expect(sessions.length).toBe(workoutLogDates.size);
+    expect(result.workoutSessions).toBe(sessions.length);
+    expect(sessions.every((s) => s.is_demo && s.habit_id === workoutHabit.id)).toBe(true);
+    for (const s of sessions) expect(workoutLogDates.has(toLocalDateString(new Date(s.started_at)))).toBe(true);
+
+    const meditate = docs(meditatePath) as any[];
+    expect(meditate.length).toBe(logs.filter((l) => l.reference_id === 'med').length);
+    expect(meditate.every((s) => s.mode === 'sit' && s.habit_id === 'med')).toBe(true);
+  });
+
+  it('fills both apps on a fallback schedule when nothing is linked', async () => {
+    for (let i = 0; i < DEMO_TARGET_HABITS; i++) {
+      addMockDocument(habitsPath, `h${i}`, { name: `Habit ${i}`, is_active: true, target_count_per_week: 4 });
+    }
+    const result = await enableDemoData(userId);
+    expect(result.workoutSessions).toBeGreaterThan(20);
+    expect(result.meditateSessions).toBeGreaterThan(30);
+    expect(Object.keys(getMockDB()[recordsPath] ?? {}).length).toBeGreaterThan(5);
+    // Starters exist and show as done.
+    expect((docs(workoutsPath) as any[]).every((w) => !!w.last_done_at)).toBe(true);
+  });
+
+  it('on disable, keeps real sessions and rebuilds records and last-done from them alone', async () => {
+    const realFinished = '2026-09-01T18:00:00.000Z';
+    addMockDocument(sessionsPath, 'real1', {
+      id: 'real1',
+      workout_id: 'starter_push',
+      workout_name: 'Push Day',
+      started_at: realFinished,
+      finished_at: realFinished,
+      duration_sec: 1800,
+      total_sets: 1,
+      total_volume_kg: 400,
+      prs: [],
+      blocks: [{ id: 'b', type: 'single', items: [], rounds: 1, restSec: 0, plannedRounds: 1, skipped: false, added: false,
+        sets: [{ exerciseId: 'bench-press', round: 0, reps: 8, weightKg: 50, at: realFinished }] }],
+    });
+    addMockDocument(meditatePath, 'realm', { id: 'realm', mode: 'sit', duration_sec: 600, started_at: realFinished });
+
+    await enableDemoData(userId);
+    expect((getMockDB()[recordsPath] as any)['bench-press'].data.heaviestKg).toBeGreaterThan(50);
+
+    const removed = await disableDemoData(userId);
+    expect(removed.deletedSessions).toBeGreaterThan(0);
+    expect(Object.keys(getMockDB()[sessionsPath])).toEqual(['real1']);
+    expect(Object.keys(getMockDB()[meditatePath])).toEqual(['realm']);
+    const records = getMockDB()[recordsPath] as any;
+    expect(Object.keys(records)).toEqual(['bench-press']);
+    expect(records['bench-press'].data.heaviestKg).toBe(50);
+    const workouts = docs(workoutsPath) as any[];
+    expect(workouts.find((w) => w.id === 'starter_push').last_done_at).toBe(realFinished);
+    expect(workouts.find((w) => w.id === 'starter_legs').last_done_at).toBeUndefined();
+  });
+});
+
 describe('demoRating', () => {
   it('holds the first three check-ins at the baseline, then eases off over time', () => {
     expect([0, 1, 2].map((k) => demoRating(3, k, 50, k))).toEqual([3, 3, 3]);
