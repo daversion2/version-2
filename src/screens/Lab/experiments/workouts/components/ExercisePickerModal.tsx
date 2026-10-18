@@ -1,28 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  SectionList,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity, SectionList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
-import { Exercise, ExerciseKind, MuscleGroup } from '../../../../../types/workouts';
-import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '../../../../../data/workoutExercises';
-import { showAlert } from '../../../../../utils/alert';
+import { Exercise } from '../../../../../types/workouts';
+import { KIND_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '../../../../../data/workoutExercises';
+import { exerciseSubtitle, searchExercises } from '../../../../../services/exerciseLibrary';
 import { useWorkouts } from '../WorkoutsContext';
+import { ExerciseEditorModal } from './ExerciseEditorModal';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './workoutsStyle';
-
-export const KIND_LABELS: Record<ExerciseKind, string> = {
-  weight: 'Weight',
-  reps: 'Bodyweight',
-  time: 'Timed',
-};
 
 interface Props {
   visible: boolean;
@@ -45,13 +31,10 @@ export const ExercisePickerModal: React.FC<Props> = ({
   onConfirm,
 }) => {
   const insets = useSafeAreaInsets();
-  const { exercises, addCustomExercise } = useWorkouts();
+  const { exercises, notes } = useWorkouts();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Exercise[]>([]);
   const [creating, setCreating] = useState(false);
-  const [newKind, setNewKind] = useState<ExerciseKind>('weight');
-  const [newMuscle, setNewMuscle] = useState<MuscleGroup>('full_body');
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -63,11 +46,16 @@ export const ExercisePickerModal: React.FC<Props> = ({
 
   const term = search.trim().toLowerCase();
   const sections = useMemo(() => {
-    const matching = term ? exercises.filter((e) => e.name.toLowerCase().includes(term)) : exercises;
-    return MUSCLE_GROUP_ORDER.map((muscle) => ({
-      title: MUSCLE_GROUP_LABELS[muscle],
-      data: matching.filter((e) => e.muscle === muscle),
-    })).filter((s) => s.data.length > 0);
+    const matching = searchExercises(exercises, term);
+    // Yours first — the ones you made are the ones you're most likely after.
+    const mine = matching.filter((e) => e.custom);
+    return [
+      { title: 'Yours', data: mine },
+      ...MUSCLE_GROUP_ORDER.map((muscle) => ({
+        title: MUSCLE_GROUP_LABELS[muscle],
+        data: matching.filter((e) => !e.custom && e.muscle === muscle),
+      })),
+    ].filter((s) => s.data.length > 0);
   }, [exercises, term]);
   const exactMatch = exercises.some((e) => e.name.toLowerCase() === term);
 
@@ -79,20 +67,6 @@ export const ExercisePickerModal: React.FC<Props> = ({
     setSelected((list) =>
       list.some((e) => e.id === exercise.id) ? list.filter((e) => e.id !== exercise.id) : [...list, exercise]
     );
-  };
-
-  const createExercise = async () => {
-    setSaving(true);
-    try {
-      const saved = await addCustomExercise({ name: search, kind: newKind, muscle: newMuscle });
-      setCreating(false);
-      setSearch('');
-      toggle(saved);
-    } catch (e) {
-      showAlert("Couldn't add that exercise", e instanceof Error ? e.message : 'Try again.');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const order = (id: string) => selected.findIndex((e) => e.id === id);
@@ -113,10 +87,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
           <TextInput
             style={styles.search}
             value={search}
-            onChangeText={(t) => {
-              setSearch(t);
-              setCreating(false);
-            }}
+            onChangeText={setSearch}
             placeholder="Search exercises"
             placeholderTextColor={Colors.gray}
             autoCorrect={false}
@@ -124,53 +95,13 @@ export const ExercisePickerModal: React.FC<Props> = ({
           />
         </View>
 
-        {!!term && !exactMatch && (
-          <View style={styles.createBox}>
-            {!creating ? (
-              <TouchableOpacity style={styles.createRow} onPress={() => setCreating(true)}>
-                <Ionicons name="add-circle-outline" size={20} color={WORKOUTS_ACCENT} />
-                <Text style={styles.createText}>Create “{search.trim()}”</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={{ gap: Spacing.sm }}>
-                <Text style={ws.title}>New exercise: {search.trim()}</Text>
-                <Text style={ws.muted}>How is it logged?</Text>
-                <View style={styles.chips}>
-                  {(Object.keys(KIND_LABELS) as ExerciseKind[]).map((k) => (
-                    <TouchableOpacity
-                      key={k}
-                      style={[ws.chip, newKind === k && ws.chipActive]}
-                      onPress={() => setNewKind(k)}
-                    >
-                      <Text style={[ws.chipText, newKind === k && ws.chipTextActive]}>{KIND_LABELS[k]}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <Text style={ws.muted}>Body part</Text>
-                <View style={styles.chips}>
-                  {MUSCLE_GROUP_ORDER.map((m) => (
-                    <TouchableOpacity
-                      key={m}
-                      style={[ws.chip, newMuscle === m && ws.chipActive]}
-                      onPress={() => setNewMuscle(m)}
-                    >
-                      <Text style={[ws.chipText, newMuscle === m && ws.chipTextActive]}>
-                        {MUSCLE_GROUP_LABELS[m]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TouchableOpacity style={[ws.primaryBtn, saving && ws.disabled]} onPress={createExercise} disabled={saving}>
-                  {saving ? (
-                    <ActivityIndicator color={Colors.white} />
-                  ) : (
-                    <Text style={ws.primaryBtnText}>Add exercise</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
+        {/* Always here, not only when a search comes up empty. */}
+        <TouchableOpacity style={styles.newRow} onPress={() => setCreating(true)} accessibilityRole="button">
+          <Ionicons name="add-circle" size={22} color={WORKOUTS_ACCENT} />
+          <Text style={styles.newText}>
+            {term && !exactMatch ? `New exercise “${search.trim()}”` : 'New exercise'}
+          </Text>
+        </TouchableOpacity>
 
         <SectionList
           sections={sections}
@@ -191,11 +122,11 @@ export const ExercisePickerModal: React.FC<Props> = ({
               >
                 <View style={{ flex: 1 }}>
                   <Text style={ws.title}>{item.name}</Text>
-                  <Text style={ws.muted}>
-                    {KIND_LABELS[item.kind]}
-                    {item.custom ? ' · yours' : ''}
-                  </Text>
+                  <Text style={ws.muted}>{exerciseSubtitle(item, KIND_LABELS[item.kind])}</Text>
                 </View>
+                {!!notes[item.id] && (
+                  <Ionicons name="document-text-outline" size={16} color={Colors.gray} style={styles.noteIcon} />
+                )}
                 {mode === 'multi' &&
                   (isSelected ? (
                     <View style={styles.badge}>
@@ -209,7 +140,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
           }}
           ListEmptyComponent={
             <Text style={[ws.muted, { textAlign: 'center', marginTop: Spacing.xl }]}>
-              No exercises match. Create it above.
+              Nothing matches. Tap “New exercise” to make it.
             </Text>
           }
         />
@@ -237,6 +168,22 @@ export const ExercisePickerModal: React.FC<Props> = ({
           </View>
         )}
       </View>
+
+      <ExerciseEditorModal
+        visible={creating}
+        initialName={term && !exactMatch ? search : undefined}
+        onClose={() => setCreating(false)}
+        onSaved={(saved) => {
+          setSearch('');
+          if (mode === 'multi') {
+            toggle(saved);
+            return;
+          }
+          // Picking closes this sheet too. Let the editor finish sliding away
+          // first — iOS drops a modal dismissed mid-animation.
+          setTimeout(() => onConfirm([saved]), 450);
+        }}
+      />
     </Modal>
   );
 };
@@ -265,16 +212,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightGray,
   },
   search: { flex: 1, paddingVertical: 10, fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.dark },
-  createBox: {
+  newRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    padding: Spacing.md,
+    marginBottom: Spacing.xs,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
     backgroundColor: WORKOUTS_TINT,
   },
-  createRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  createText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: WORKOUTS_ACCENT },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  newText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: WORKOUTS_ACCENT, flexShrink: 1 },
+  noteIcon: { marginRight: Spacing.sm },
   sectionHeader: {
     fontFamily: Fonts.secondaryBold,
     fontSize: 11,

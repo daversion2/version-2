@@ -2,23 +2,16 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
-import { ExerciseRecord } from '../../../../types/workouts';
-import { formatSeconds, formatSetValues, formatWeight } from '../../../../services/workoutMath';
+import { formatSeconds, formatSetValues, formatVolume } from '../../../../services/workoutMath';
+import { recordLines } from './components/StatsParts';
+import { WorkoutStatsPanel } from './components/WorkoutStatsPanel';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
-const recordLines = (r: ExerciseRecord, unit: 'lb' | 'kg'): string[] => {
-  const lines: string[] = [];
-  if (r.heaviestKg) lines.push(`Heaviest ${formatWeight(r.heaviestKg, unit)}`);
-  if (r.maxReps) lines.push(`Most reps ${r.maxReps}`);
-  if (r.longestSec) lines.push(`Longest hold ${formatSeconds(r.longestSec)}`);
-  return lines;
-};
-
 export const WorkoutHistoryScreen: React.FC = () => {
   const { sessions, records, exercise, prefs } = useWorkouts();
-  const [tab, setTab] = useState<'sessions' | 'records'>('sessions');
+  const [tab, setTab] = useState<'sessions' | 'stats' | 'records'>('sessions');
   const [open, setOpen] = useState<string | null>(null);
   const unit = prefs.unit;
 
@@ -34,7 +27,7 @@ export const WorkoutHistoryScreen: React.FC = () => {
   return (
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
       <View style={styles.tabs}>
-        {(['sessions', 'records'] as const).map((t) => (
+        {(['sessions', 'stats', 'records'] as const).map((t) => (
           <TouchableOpacity
             key={t}
             style={[styles.tab, tab === t && styles.tabOn]}
@@ -43,13 +36,15 @@ export const WorkoutHistoryScreen: React.FC = () => {
             accessibilityState={{ selected: tab === t }}
           >
             <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>
-              {t === 'sessions' ? 'Sessions' : 'Records'}
+              {t === 'sessions' ? 'Sessions' : t === 'stats' ? 'Stats' : 'Records'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {tab === 'sessions' ? (
+      {tab === 'stats' ? (
+        <WorkoutStatsPanel />
+      ) : tab === 'sessions' ? (
         sessions.length === 0 ? (
           <Text style={ws.muted}>No workouts finished yet. They’ll show up here.</Text>
         ) : (
@@ -63,7 +58,7 @@ export const WorkoutHistoryScreen: React.FC = () => {
                     <Text style={ws.muted}>
                       {formatDayHeader(toLocalDateString(new Date(s.finished_at)))} · {formatSeconds(s.duration_sec)} ·{' '}
                       {s.total_sets} sets
-                      {s.total_volume_kg > 0 ? ` · ${formatWeight(s.total_volume_kg, unit)}` : ''}
+                      {s.total_volume_kg > 0 ? ` · ${formatVolume(s.total_volume_kg, unit)}` : ''}
                     </Text>
                   </View>
                   {s.prs.length > 0 && (

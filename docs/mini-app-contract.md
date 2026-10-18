@@ -161,8 +161,10 @@ Linking: library habits listed in the manifest's `habitIds` link automatically.
 Any other habit links from Workouts → Settings, stored in
 `lab_workout_prefs/main.linked_habit_ids` (`isHabitLinkedToMiniApp`).
 
-Workouts' own data lives in `users/{uid}/lab_workout_*` (workouts, sessions,
-records, custom exercises, prefs). The logic lives in `services/workoutSession.ts`
+Workouts' own data lives in `users/{uid}/lab_workout_*`: workouts, sessions,
+records, prefs, the user's own exercises (deleting one sets `archived_at` so
+history still resolves it, and its logging type locks once it's been logged),
+and form cues (`lab_workout_notes`, keyed by exercise id, built-ins included). The logic lives in `services/workoutSession.ts`
 (the session engine) and `services/workoutMath.ts` (units, prefill, records),
 both tested. The screens are in `screens/Lab/experiments/workouts/`.
 

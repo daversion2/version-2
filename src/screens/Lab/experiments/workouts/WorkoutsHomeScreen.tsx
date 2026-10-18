@@ -49,7 +49,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             onPress={() => navigation.navigate('WorkoutHistory')}
             style={ws.headerIconBtn}
-            accessibilityLabel="History and records"
+            accessibilityLabel="History, stats and records"
           >
             <Ionicons name="time-outline" size={22} color={Colors.dark} />
           </TouchableOpacity>

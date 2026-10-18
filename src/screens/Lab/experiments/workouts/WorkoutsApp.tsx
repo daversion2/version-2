@@ -14,6 +14,8 @@ import { WorkoutSessionScreen } from './WorkoutSessionScreen';
 import { WorkoutSummaryScreen } from './WorkoutSummaryScreen';
 import { WorkoutHistoryScreen } from './WorkoutHistoryScreen';
 import { WorkoutSettingsScreen } from './WorkoutSettingsScreen';
+import { WorkoutExercisesScreen } from './WorkoutExercisesScreen';
+import { WorkoutStatsDetailScreen } from './WorkoutStatsDetailScreen';
 import { WORKOUTS_ACCENT } from './components/workoutsStyle';
 
 const Stack = createNativeStackNavigator<WorkoutsStackParamList>();
@@ -69,6 +71,8 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
         />
         <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'History' }} />
         <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: 'Settings' }} />
+        <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: 'My exercises' }} />
+        <Stack.Screen name="WorkoutStatsDetail" component={WorkoutStatsDetailScreen} options={{ title: '' }} />
       </Stack.Navigator>
     </WorkoutsProvider>
   );

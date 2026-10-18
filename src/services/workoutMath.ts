@@ -45,6 +45,18 @@ export const formatNumber = (n: number): string =>
 export const formatWeight = (kg: number, unit: WeightUnit): string =>
   `${formatNumber(toDisplayWeight(kg, unit))} ${unit}`;
 
+const withCommas = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+/** Totals in the thousands: "12,340 lb", then "124k lb" past 100,000. No decimals. */
+export const formatVolume = (kg: number, unit: WeightUnit): string => {
+  const value = unit === 'kg' ? kg : kg / KG_PER_LB;
+  if (value >= 100000) return `${withCommas(Math.round(value / 1000))}k ${unit}`;
+  return `${withCommas(Math.round(value))} ${unit}`;
+};
+
+/** A count with thousands separators: 1,204 reps. */
+export const formatCount = (n: number): string => withCommas(Math.round(n));
+
 /** 45 → "45s", 90 → "1:30", 3725 → "1:02:05". */
 export const formatSeconds = (total: number): string => {
   const s = Math.max(0, Math.round(total));

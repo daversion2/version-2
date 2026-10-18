@@ -14,13 +14,12 @@ import { db } from './firebase';
 import {
   CompletedWorkoutSession,
   Exercise,
-  ExerciseKind,
   ExerciseRecord,
-  MuscleGroup,
   Workout,
   WorkoutPrefs,
 } from '../types/workouts';
 import { BUILT_IN_EXERCISES, STARTER_WORKOUTS } from '../data/workoutExercises';
+import type { ExerciseDraft } from './exerciseLibrary';
 
 // =============================================================================
 // Workouts (Lab) storage. Everything lives in the user's own
@@ -34,6 +33,7 @@ const COL = {
   sessions: 'lab_workout_sessions',
   records: 'lab_workout_records',
   exercises: 'lab_workout_exercises',
+  notes: 'lab_workout_notes',
   prefs: 'lab_workout_prefs',
 } as const;
 
@@ -135,20 +135,64 @@ export const listCustomExercises = async (userId: string): Promise<Exercise[]> =
   return snap.docs.map((d) => ({ ...(d.data() as Exercise), id: d.id, custom: true }));
 };
 
-/** Built-ins plus the user's own, alphabetical. */
+/**
+ * Every exercise a session can name — built-ins plus the user's own, deleted
+ * ones included, since history still shows them. Pickers narrow this with
+ * activeExercises (services/exerciseLibrary.ts).
+ */
 export const mergeExerciseLibrary = (custom: Exercise[]): Exercise[] =>
   [...BUILT_IN_EXERCISES, ...custom].sort((a, b) => a.name.localeCompare(b.name));
 
+/**
+ * Creates one of the user's own exercises, or — with `id` — updates it. Only
+ * the fields the user edits are written; `custom` is implied by the collection.
+ */
 export const saveCustomExercise = async (
   userId: string,
-  input: { name: string; kind: ExerciseKind; muscle: MuscleGroup }
+  input: ExerciseDraft & { id?: string }
 ): Promise<Exercise> => {
   const name = input.name.trim();
   if (!name) throw new Error('An exercise needs a name.');
-  const id = `custom_${doc(col(userId, COL.exercises)).id}`;
-  const exercise: Exercise = { id, name, kind: input.kind, muscle: input.muscle, custom: true };
-  await setDoc(ref(userId, COL.exercises, id), exercise);
-  return exercise;
+  const id = input.id ?? `custom_${doc(col(userId, COL.exercises)).id}`;
+  const stored = stripUndefined({ id, name, kind: input.kind, muscle: input.muscle, equipment: input.equipment });
+  await setDoc(ref(userId, COL.exercises, id), stored);
+  return { ...stored, custom: true };
+};
+
+/** "Delete": hidden from the picker; history, records and workouts still resolve it. */
+export const archiveCustomExercise = async (
+  userId: string,
+  exerciseId: string,
+  now: Date = new Date()
+): Promise<void> => {
+  await setDoc(ref(userId, COL.exercises, exerciseId), { archived_at: now.toISOString() }, { merge: true });
+};
+
+// --- Notes (form cues) — on any exercise, built-in or the user's own ---------
+
+export const listExerciseNotes = async (userId: string): Promise<Record<string, string>> => {
+  const snap = await getDocs(col(userId, COL.notes));
+  const out: Record<string, string> = {};
+  snap.docs.forEach((d) => {
+    const text = (d.data() as { text?: string }).text;
+    if (text) out[d.id] = text;
+  });
+  return out;
+};
+
+/** Blank clears the note rather than storing an empty one. */
+export const saveExerciseNote = async (
+  userId: string,
+  exerciseId: string,
+  text: string,
+  now: Date = new Date()
+): Promise<void> => {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    await deleteDoc(ref(userId, COL.notes, exerciseId));
+    return;
+  }
+  await setDoc(ref(userId, COL.notes, exerciseId), { text: trimmed, updated_at: now.toISOString() });
 };
 
 // --- Sessions & records --------------------------------------------------------

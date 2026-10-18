@@ -3,7 +3,9 @@ import {
   computeSessionRecords,
   describeRecord,
   formatClock,
+  formatCount,
   formatSeconds,
+  formatVolume,
   formatSetValues,
   formatTarget,
   fromDisplayWeight,
@@ -101,6 +103,16 @@ describe('formatting', () => {
     expect(formatTarget({ reps: 8 }, 'weight', 'lb')).toBe('8 reps');
     expect(formatTarget({ reps: 8, weightKg: lb(135) }, 'weight', 'lb')).toBe('135 lb × 8');
     expect(formatTarget({ seconds: 45 }, 'time', 'lb')).toBe('45s');
+  });
+});
+
+describe('formatVolume', () => {
+  it('rounds, separates thousands and shortens past 100k', () => {
+    expect(formatVolume(lb(12340.4), 'lb')).toBe('12,340 lb');
+    expect(formatVolume(lb(124400), 'lb')).toBe('124k lb');
+    expect(formatVolume(980.6, 'kg')).toBe('981 kg');
+    expect(formatVolume(0, 'lb')).toBe('0 lb');
+    expect(formatCount(1204)).toBe('1,204');
   });
 });
 

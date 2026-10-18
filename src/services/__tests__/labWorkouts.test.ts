@@ -1,6 +1,9 @@
 import {
+  archiveCustomExercise,
   deleteWorkout,
   ensureStarterWorkouts,
+  listExerciseNotes,
+  saveExerciseNote,
   getRecords,
   getWorkoutPrefs,
   listCustomExercises,
@@ -96,6 +99,34 @@ describe('custom exercises', () => {
 
   it('refuses an unnamed exercise', async () => {
     await expect(saveCustomExercise('u1', { name: '  ', kind: 'reps', muscle: 'core' })).rejects.toThrow();
+  });
+
+  it('updates in place when given an id, keeping equipment optional', async () => {
+    const saved = await saveCustomExercise('u1', { name: 'Sled push', kind: 'time', muscle: 'legs' });
+    expect(getMockDB()[`${base}/lab_workout_exercises`][saved.id].data).not.toHaveProperty('equipment');
+    await saveCustomExercise('u1', { id: saved.id, name: 'Sled drag', kind: 'time', muscle: 'legs', equipment: 'other' });
+    const list = await listCustomExercises('u1');
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ id: saved.id, name: 'Sled drag', equipment: 'other', custom: true });
+  });
+
+  it('deletes by hiding, so history still resolves it', async () => {
+    const saved = await saveCustomExercise('u1', { name: 'Sled push', kind: 'time', muscle: 'legs' });
+    await archiveCustomExercise('u1', saved.id, NOW);
+    const [stored] = await listCustomExercises('u1');
+    expect(stored).toMatchObject({ id: saved.id, name: 'Sled push', archived_at: NOW.toISOString() });
+    expect(mergeExerciseLibrary([stored]).some((e) => e.id === saved.id)).toBe(true);
+  });
+});
+
+describe('exercise notes', () => {
+  it('saves, edits and clears a note on any exercise', async () => {
+    await saveExerciseNote('u1', 'bench-press', '  Pause at the chest ', NOW);
+    await saveExerciseNote('u1', 'custom_9', 'Seat on 4', NOW);
+    expect(await listExerciseNotes('u1')).toEqual({ 'bench-press': 'Pause at the chest', custom_9: 'Seat on 4' });
+
+    await saveExerciseNote('u1', 'bench-press', '   ', NOW);
+    expect(await listExerciseNotes('u1')).toEqual({ custom_9: 'Seat on 4' });
   });
 });
 

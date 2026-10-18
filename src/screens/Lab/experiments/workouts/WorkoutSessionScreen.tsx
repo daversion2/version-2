@@ -46,6 +46,7 @@ import { NumberStepper } from './components/NumberStepper';
 import { HoldTimer } from './components/HoldTimer';
 import { RestSheet, REST_SHEET_HEIGHT } from './components/RestSheet';
 import { ExercisePickerModal } from './components/ExercisePickerModal';
+import { ExerciseEditorModal } from './components/ExerciseEditorModal';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutSession'>;
@@ -66,13 +67,14 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const now = useNow();
-  const { session, updateSession, discardSession, exercise, prefs, sessions, records, closeApp } = useWorkouts();
+  const { session, updateSession, discardSession, exercise, prefs, sessions, records, closeApp, notes } = useWorkouts();
   const unit = prefs.unit;
 
   const [values, setValues] = useState<SetValues>({});
   const [picking, setPicking] = useState(false);
   const [holdRunning, setHoldRunning] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [editingCues, setEditingCues] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Discarded from somewhere else — nothing to show here.
@@ -102,7 +104,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (prefill) setValues(prefill.values);
     setHoldRunning(false);
-  }, [positionKey, lastSets.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [positionKey, lastSets.length, ex?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rest ran out: close the sheet with a tap so you feel it from across the gym.
   const remaining = session ? restRemainingSec(session, now) : 0;
@@ -258,6 +260,20 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             <Text style={styles.exerciseName}>{ex.name}</Text>
+
+            {/* Your form cues, where you'll actually read them. Tap to edit —
+                "seat on 4" gets written down mid-set, not later. */}
+            {notes[ex.id] ? (
+              <TouchableOpacity style={styles.cues} onPress={() => setEditingCues(true)} accessibilityRole="button" accessibilityHint="Edit form cues">
+                <Ionicons name="document-text-outline" size={16} color={WORKOUTS_ACCENT} />
+                <Text style={styles.cuesText}>{notes[ex.id]}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.addCues} onPress={() => setEditingCues(true)} accessibilityRole="button">
+                <Ionicons name="add" size={14} color={Colors.gray} />
+                <Text style={styles.addCuesText}>Add form cues</Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.pills}>
               {Array.from({ length: pos.block.rounds }).map((_, i) => {
@@ -442,6 +458,12 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
         />
       )}
 
+      <ExerciseEditorModal
+        visible={editingCues && !!ex}
+        exercise={ex ?? undefined}
+        onClose={() => setEditingCues(false)}
+      />
+
       <ExercisePickerModal
         visible={picking}
         title="Add to this workout"
@@ -500,6 +522,18 @@ const styles = StyleSheet.create({
   circuitNameActive: { fontFamily: Fonts.secondaryBold, color: Colors.dark },
   circuitNameDone: { textDecorationLine: 'line-through' },
   exerciseName: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xxl, color: Colors.dark },
+  cues: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: WORKOUTS_TINT,
+    marginTop: -Spacing.xs,
+  },
+  cuesText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 19 },
+  addCues: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: -Spacing.sm },
+  addCuesText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   pill: {
     width: 32,

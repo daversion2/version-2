@@ -7,13 +7,29 @@ export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'co
 
 export type WeightUnit = 'lb' | 'kg';
 
+export type Equipment =
+  | 'barbell'
+  | 'dumbbell'
+  | 'kettlebell'
+  | 'machine'
+  | 'cable'
+  | 'bodyweight'
+  | 'band'
+  | 'other';
+
 export interface Exercise {
   id: string;
   name: string;
-  /** weight × reps, reps only (bodyweight), or a timed hold. */
+  /** weight × reps, reps only (bodyweight), or a timed hold. Locks once logged. */
   kind: ExerciseKind;
   muscle: MuscleGroup;
+  equipment?: Equipment;
   custom?: boolean;
+  /**
+   * Set when the user deletes one of their own. It leaves the picker, but past
+   * sessions, records and saved workouts still resolve it by id.
+   */
+  archived_at?: string;
 }
 
 /** Planned or logged numbers for one set. Weight is always kilograms underneath. */
@@ -139,6 +155,9 @@ export interface WorkoutPrefs {
   intro_seen?: boolean;
 }
 
+/** A reporting span. Weeks start Monday. */
+export type StatsRange = 'week' | 'month' | 'year' | 'all';
+
 export type WorkoutsStackParamList = {
   WorkoutsHome: undefined;
   WorkoutPreview: { workoutId: string };
@@ -147,4 +166,7 @@ export type WorkoutsStackParamList = {
   WorkoutSummary: undefined;
   WorkoutHistory: undefined;
   WorkoutSettings: undefined;
+  WorkoutExercises: undefined;
+  /** One exercise's or one body part's stats. `id` is an exercise id or a MuscleGroup. */
+  WorkoutStatsDetail: { kind: 'exercise' | 'muscle'; id: string; range: StatsRange };
 };

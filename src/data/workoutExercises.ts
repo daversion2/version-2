@@ -1,62 +1,62 @@
-import { Exercise, MuscleGroup, Workout, WorkoutBlock } from '../types/workouts';
+import { Equipment, Exercise, ExerciseKind, MuscleGroup, Workout, WorkoutBlock } from '../types/workouts';
 
 // Ids are stored in workouts, sessions and records — never rename one.
 export const BUILT_IN_EXERCISES: Exercise[] = [
   // Chest
-  { id: 'bench-press', name: 'Bench Press', kind: 'weight', muscle: 'chest' },
-  { id: 'incline-db-press', name: 'Incline Dumbbell Press', kind: 'weight', muscle: 'chest' },
-  { id: 'db-fly', name: 'Dumbbell Fly', kind: 'weight', muscle: 'chest' },
-  { id: 'cable-crossover', name: 'Cable Crossover', kind: 'weight', muscle: 'chest' },
-  { id: 'push-up', name: 'Push-up', kind: 'reps', muscle: 'chest' },
-  { id: 'dip', name: 'Dips', kind: 'reps', muscle: 'chest' },
+  { id: 'bench-press', name: 'Bench Press', kind: 'weight', muscle: 'chest', equipment: 'barbell' },
+  { id: 'incline-db-press', name: 'Incline Dumbbell Press', kind: 'weight', muscle: 'chest', equipment: 'dumbbell' },
+  { id: 'db-fly', name: 'Dumbbell Fly', kind: 'weight', muscle: 'chest', equipment: 'dumbbell' },
+  { id: 'cable-crossover', name: 'Cable Crossover', kind: 'weight', muscle: 'chest', equipment: 'cable' },
+  { id: 'push-up', name: 'Push-up', kind: 'reps', muscle: 'chest', equipment: 'bodyweight' },
+  { id: 'dip', name: 'Dips', kind: 'reps', muscle: 'chest', equipment: 'bodyweight' },
   // Back
-  { id: 'deadlift', name: 'Deadlift', kind: 'weight', muscle: 'back' },
-  { id: 'barbell-row', name: 'Barbell Row', kind: 'weight', muscle: 'back' },
-  { id: 'db-row', name: 'Dumbbell Row', kind: 'weight', muscle: 'back' },
-  { id: 'lat-pulldown', name: 'Lat Pulldown', kind: 'weight', muscle: 'back' },
-  { id: 'seated-cable-row', name: 'Seated Cable Row', kind: 'weight', muscle: 'back' },
-  { id: 'face-pull', name: 'Face Pull', kind: 'weight', muscle: 'back' },
-  { id: 'pull-up', name: 'Pull-up', kind: 'reps', muscle: 'back' },
-  { id: 'chin-up', name: 'Chin-up', kind: 'reps', muscle: 'back' },
+  { id: 'deadlift', name: 'Deadlift', kind: 'weight', muscle: 'back', equipment: 'barbell' },
+  { id: 'barbell-row', name: 'Barbell Row', kind: 'weight', muscle: 'back', equipment: 'barbell' },
+  { id: 'db-row', name: 'Dumbbell Row', kind: 'weight', muscle: 'back', equipment: 'dumbbell' },
+  { id: 'lat-pulldown', name: 'Lat Pulldown', kind: 'weight', muscle: 'back', equipment: 'cable' },
+  { id: 'seated-cable-row', name: 'Seated Cable Row', kind: 'weight', muscle: 'back', equipment: 'cable' },
+  { id: 'face-pull', name: 'Face Pull', kind: 'weight', muscle: 'back', equipment: 'cable' },
+  { id: 'pull-up', name: 'Pull-up', kind: 'reps', muscle: 'back', equipment: 'bodyweight' },
+  { id: 'chin-up', name: 'Chin-up', kind: 'reps', muscle: 'back', equipment: 'bodyweight' },
   // Shoulders
-  { id: 'overhead-press', name: 'Overhead Press', kind: 'weight', muscle: 'shoulders' },
-  { id: 'db-shoulder-press', name: 'Dumbbell Shoulder Press', kind: 'weight', muscle: 'shoulders' },
-  { id: 'lateral-raise', name: 'Lateral Raise', kind: 'weight', muscle: 'shoulders' },
-  { id: 'rear-delt-fly', name: 'Rear Delt Fly', kind: 'weight', muscle: 'shoulders' },
+  { id: 'overhead-press', name: 'Overhead Press', kind: 'weight', muscle: 'shoulders', equipment: 'barbell' },
+  { id: 'db-shoulder-press', name: 'Dumbbell Shoulder Press', kind: 'weight', muscle: 'shoulders', equipment: 'dumbbell' },
+  { id: 'lateral-raise', name: 'Lateral Raise', kind: 'weight', muscle: 'shoulders', equipment: 'dumbbell' },
+  { id: 'rear-delt-fly', name: 'Rear Delt Fly', kind: 'weight', muscle: 'shoulders', equipment: 'dumbbell' },
   // Legs
-  { id: 'back-squat', name: 'Back Squat', kind: 'weight', muscle: 'legs' },
-  { id: 'front-squat', name: 'Front Squat', kind: 'weight', muscle: 'legs' },
-  { id: 'goblet-squat', name: 'Goblet Squat', kind: 'weight', muscle: 'legs' },
-  { id: 'romanian-deadlift', name: 'Romanian Deadlift', kind: 'weight', muscle: 'legs' },
-  { id: 'leg-press', name: 'Leg Press', kind: 'weight', muscle: 'legs' },
-  { id: 'walking-lunge', name: 'Walking Lunge', kind: 'weight', muscle: 'legs' },
-  { id: 'bulgarian-split-squat', name: 'Bulgarian Split Squat', kind: 'weight', muscle: 'legs' },
-  { id: 'hip-thrust', name: 'Hip Thrust', kind: 'weight', muscle: 'legs' },
-  { id: 'leg-curl', name: 'Leg Curl', kind: 'weight', muscle: 'legs' },
-  { id: 'leg-extension', name: 'Leg Extension', kind: 'weight', muscle: 'legs' },
-  { id: 'calf-raise', name: 'Calf Raise', kind: 'weight', muscle: 'legs' },
-  { id: 'bodyweight-squat', name: 'Bodyweight Squat', kind: 'reps', muscle: 'legs' },
-  { id: 'box-jump', name: 'Box Jump', kind: 'reps', muscle: 'legs' },
-  { id: 'wall-sit', name: 'Wall Sit', kind: 'time', muscle: 'legs' },
+  { id: 'back-squat', name: 'Back Squat', kind: 'weight', muscle: 'legs', equipment: 'barbell' },
+  { id: 'front-squat', name: 'Front Squat', kind: 'weight', muscle: 'legs', equipment: 'barbell' },
+  { id: 'goblet-squat', name: 'Goblet Squat', kind: 'weight', muscle: 'legs', equipment: 'dumbbell' },
+  { id: 'romanian-deadlift', name: 'Romanian Deadlift', kind: 'weight', muscle: 'legs', equipment: 'barbell' },
+  { id: 'leg-press', name: 'Leg Press', kind: 'weight', muscle: 'legs', equipment: 'machine' },
+  { id: 'walking-lunge', name: 'Walking Lunge', kind: 'weight', muscle: 'legs', equipment: 'dumbbell' },
+  { id: 'bulgarian-split-squat', name: 'Bulgarian Split Squat', kind: 'weight', muscle: 'legs', equipment: 'dumbbell' },
+  { id: 'hip-thrust', name: 'Hip Thrust', kind: 'weight', muscle: 'legs', equipment: 'barbell' },
+  { id: 'leg-curl', name: 'Leg Curl', kind: 'weight', muscle: 'legs', equipment: 'machine' },
+  { id: 'leg-extension', name: 'Leg Extension', kind: 'weight', muscle: 'legs', equipment: 'machine' },
+  { id: 'calf-raise', name: 'Calf Raise', kind: 'weight', muscle: 'legs', equipment: 'machine' },
+  { id: 'bodyweight-squat', name: 'Bodyweight Squat', kind: 'reps', muscle: 'legs', equipment: 'bodyweight' },
+  { id: 'box-jump', name: 'Box Jump', kind: 'reps', muscle: 'legs', equipment: 'bodyweight' },
+  { id: 'wall-sit', name: 'Wall Sit', kind: 'time', muscle: 'legs', equipment: 'bodyweight' },
   // Arms
-  { id: 'barbell-curl', name: 'Barbell Curl', kind: 'weight', muscle: 'arms' },
-  { id: 'db-curl', name: 'Dumbbell Curl', kind: 'weight', muscle: 'arms' },
-  { id: 'hammer-curl', name: 'Hammer Curl', kind: 'weight', muscle: 'arms' },
-  { id: 'tricep-pushdown', name: 'Tricep Pushdown', kind: 'weight', muscle: 'arms' },
-  { id: 'skull-crusher', name: 'Skull Crusher', kind: 'weight', muscle: 'arms' },
+  { id: 'barbell-curl', name: 'Barbell Curl', kind: 'weight', muscle: 'arms', equipment: 'barbell' },
+  { id: 'db-curl', name: 'Dumbbell Curl', kind: 'weight', muscle: 'arms', equipment: 'dumbbell' },
+  { id: 'hammer-curl', name: 'Hammer Curl', kind: 'weight', muscle: 'arms', equipment: 'dumbbell' },
+  { id: 'tricep-pushdown', name: 'Tricep Pushdown', kind: 'weight', muscle: 'arms', equipment: 'cable' },
+  { id: 'skull-crusher', name: 'Skull Crusher', kind: 'weight', muscle: 'arms', equipment: 'barbell' },
   // Core
-  { id: 'plank', name: 'Plank', kind: 'time', muscle: 'core' },
-  { id: 'side-plank', name: 'Side Plank', kind: 'time', muscle: 'core' },
-  { id: 'hanging-leg-raise', name: 'Hanging Leg Raise', kind: 'reps', muscle: 'core' },
-  { id: 'ab-wheel', name: 'Ab Wheel Rollout', kind: 'reps', muscle: 'core' },
-  { id: 'russian-twist', name: 'Russian Twist', kind: 'reps', muscle: 'core' },
-  { id: 'dead-bug', name: 'Dead Bug', kind: 'reps', muscle: 'core' },
+  { id: 'plank', name: 'Plank', kind: 'time', muscle: 'core', equipment: 'bodyweight' },
+  { id: 'side-plank', name: 'Side Plank', kind: 'time', muscle: 'core', equipment: 'bodyweight' },
+  { id: 'hanging-leg-raise', name: 'Hanging Leg Raise', kind: 'reps', muscle: 'core', equipment: 'bodyweight' },
+  { id: 'ab-wheel', name: 'Ab Wheel Rollout', kind: 'reps', muscle: 'core', equipment: 'other' },
+  { id: 'russian-twist', name: 'Russian Twist', kind: 'reps', muscle: 'core', equipment: 'bodyweight' },
+  { id: 'dead-bug', name: 'Dead Bug', kind: 'reps', muscle: 'core', equipment: 'bodyweight' },
   // Full body
-  { id: 'kettlebell-swing', name: 'Kettlebell Swing', kind: 'weight', muscle: 'full_body' },
-  { id: 'burpee', name: 'Burpee', kind: 'reps', muscle: 'full_body' },
-  { id: 'mountain-climber', name: 'Mountain Climbers', kind: 'time', muscle: 'full_body' },
-  { id: 'jump-rope', name: 'Jump Rope', kind: 'time', muscle: 'full_body' },
-  { id: 'farmers-carry', name: "Farmer's Carry", kind: 'time', muscle: 'full_body' },
+  { id: 'kettlebell-swing', name: 'Kettlebell Swing', kind: 'weight', muscle: 'full_body', equipment: 'kettlebell' },
+  { id: 'burpee', name: 'Burpee', kind: 'reps', muscle: 'full_body', equipment: 'bodyweight' },
+  { id: 'mountain-climber', name: 'Mountain Climbers', kind: 'time', muscle: 'full_body', equipment: 'bodyweight' },
+  { id: 'jump-rope', name: 'Jump Rope', kind: 'time', muscle: 'full_body', equipment: 'other' },
+  { id: 'farmers-carry', name: "Farmer's Carry", kind: 'time', muscle: 'full_body', equipment: 'dumbbell' },
 ];
 
 export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
@@ -77,6 +77,41 @@ export const MUSCLE_GROUP_ORDER: MuscleGroup[] = [
   'arms',
   'core',
   'full_body',
+];
+
+/** How an exercise is logged, in the words the screens use. */
+export const KIND_LABELS: Record<ExerciseKind, string> = {
+  weight: 'Weight',
+  reps: 'Bodyweight',
+  time: 'Timed',
+};
+
+export const KIND_HINTS: Record<ExerciseKind, string> = {
+  weight: 'Weight × reps',
+  reps: 'Reps only',
+  time: 'A hold, in seconds',
+};
+
+export const EQUIPMENT_LABELS: Record<Equipment, string> = {
+  barbell: 'Barbell',
+  dumbbell: 'Dumbbell',
+  kettlebell: 'Kettlebell',
+  machine: 'Machine',
+  cable: 'Cable',
+  bodyweight: 'Bodyweight',
+  band: 'Band',
+  other: 'Other',
+};
+
+export const EQUIPMENT_ORDER: Equipment[] = [
+  'barbell',
+  'dumbbell',
+  'kettlebell',
+  'machine',
+  'cable',
+  'bodyweight',
+  'band',
+  'other',
 ];
 
 export const DEFAULT_REST_SEC = 90;
