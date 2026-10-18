@@ -37,6 +37,14 @@ describe('isHabitLinkedToMiniApp', () => {
     expect(isHabitLinkedToMiniApp('workouts', legDay, ['custom-1'])).toBe(true);
     expect(isHabitLinkedToMiniApp('workouts', { id: 'h3', practice_id: 'meditation' }, [])).toBe(false);
   });
+
+  it('links all six calm habits to Meditate, aliases included', () => {
+    for (const id of ['meditation', 'morning-meditation', 'trad-meditate', 'breathwork', 'breathing-break', 'nsdr']) {
+      expect(isHabitLinkedToMiniApp('meditate', { id: 'h', practice_id: id })).toBe(true);
+    }
+    expect(isHabitLinkedToMiniApp('meditate', { id: 'h', practice_id: 'workout' })).toBe(false);
+    expect(canOpenMiniApp('meditate', { is_admin: false })).toBe(false);
+  });
 });
 
 describe('the finish handoff', () => {
@@ -78,6 +86,33 @@ describe('checkinMetricsFor', () => {
     expect(checkinMetricsFor([], { durationSec: 1800 })).toBeUndefined();
     expect(checkinMetricsFor(undefined, { durationSec: 1800 })).toBeUndefined();
     expect(checkinMetricsFor([duration], {})).toBeUndefined();
+  });
+
+  const technique: TrackingField = {
+    key: 'technique',
+    label: 'Technique',
+    type: 'choice',
+    options: [
+      { value: 'breath', label: 'Breath focus' },
+      { value: 'body_scan', label: 'Body scan' },
+    ],
+  };
+
+  it('prefills a choice the habit’s field offers, alongside the duration', () => {
+    expect(
+      checkinMetricsFor([duration, technique], { durationSec: 20 * 60, choices: { technique: 'body_scan' } })
+    ).toEqual({ duration_min: 20, technique: 'body_scan' });
+    expect(checkinMetricsFor([technique], { choices: { technique: 'breath' } })).toEqual({ technique: 'breath' });
+  });
+
+  it('drops a choice the habit doesn’t offer, or a field it doesn’t have', () => {
+    // A breathwork pattern handed to a meditation habit.
+    expect(checkinMetricsFor([technique], { choices: { technique: '478' } })).toBeUndefined();
+    expect(checkinMetricsFor([duration], { durationSec: 1200, choices: { technique: 'breath' } })).toEqual({
+      duration_min: 20,
+    });
+    // A duration field with the same key is not a choice field.
+    expect(checkinMetricsFor([duration], { choices: { duration_min: '5' } })).toBeUndefined();
   });
 });
 

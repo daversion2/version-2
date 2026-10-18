@@ -27,6 +27,8 @@ export type RootStackParamList = {
    * from that habit's Start on Today, so finishing checks it off.
    */
   WorkoutsApp: { habitId?: string } | undefined;
+  /** The Meditate mini-app (Lab) — same shape as WorkoutsApp. */
+  MeditateApp: { habitId?: string } | undefined;
 };
 
 // ============================================================================

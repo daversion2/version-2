@@ -71,6 +71,7 @@ import {
   takePendingFinish,
 } from '../../services/miniApps';
 import { getWorkoutPrefs } from '../../services/labWorkouts';
+import { getMeditatePrefs } from '../../services/labMeditate';
 import { resolveTemplateFields } from '../../data/habitTemplates';
 
 type Props = HomeScreenProps<'HomeScreen'>;
@@ -100,14 +101,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Day the capture modal opens on (YYYY-MM-DD). undefined = today.
   const [completingDate, setCompletingDate] = useState<string | undefined>(undefined);
   // A mini-app handed back a finished session: the capture opens locked to
-  // today, with what the session measured (its duration) already filled in.
+  // today, with what the session measured (its duration, a technique) filled in.
   const [completingLockDate, setCompletingLockDate] = useState(false);
-  const [completingMetrics, setCompletingMetrics] = useState<Record<string, number> | undefined>();
+  const [completingMetrics, setCompletingMetrics] = useState<Record<string, number | string> | undefined>();
   const [pendingFinish, setPendingFinish] = useState<SessionHandoff | null>(null);
   // Lab: Workout habits get a Start button. Library ones link automatically;
   // these are the ones linked by hand inside Workouts.
   const workoutsOnToday = useLab('workoutsStart') && canOpenMiniApp('workouts', userProfile);
   const [workoutLinkedIds, setWorkoutLinkedIds] = useState<string[]>([]);
+  // Same for Meditate: meditation, breathwork and NSDR habits, plus hand-linked ones.
+  const meditateOnToday = useLab('meditateStart') && canOpenMiniApp('meditate', userProfile);
+  const [meditateLinkedIds, setMeditateLinkedIds] = useState<string[]>([]);
   // Practice whose briefing is open on its own (no forward flow committed to).
   const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
   // The one expanded card. Single-valued on purpose: several open panels turns
@@ -329,6 +333,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           .then((p) => setWorkoutLinkedIds(p.linked_habit_ids))
           .catch((err) => console.warn('Workouts links failed to load:', err));
       }
+      if (meditateOnToday) {
+        getMeditatePrefs(user.uid)
+          .then((p) => setMeditateLinkedIds(p.linked_habit_ids))
+          .catch((err) => console.warn('Meditate links failed to load:', err));
+      }
       // Once per session: schedule any enabled reminders that aren't scheduled yet
       // (e.g. saved before reminders shipped, or while permission was denied).
       if (!remindersReconciledRef.current && user) {
@@ -400,7 +409,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [user, refreshProfile, userProfile?.starting_practice_id, workoutsOnToday]);
+  }, [user, refreshProfile, userProfile?.starting_practice_id, workoutsOnToday, meditateOnToday]);
 
   useFocusEffect(
     useCallback(() => {
@@ -768,7 +777,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                               CommonActions.navigate({ name: 'WorkoutsApp', params: { habitId: habit.id } })
                             ),
                         }
-                      : undefined
+                      : meditateOnToday && isHabitLinkedToMiniApp('meditate', habit, meditateLinkedIds)
+                        ? {
+                            label: 'Start session',
+                            icon: MINI_APPS.meditate.icon,
+                            onPress: () =>
+                              navigation.dispatch(
+                                CommonActions.navigate({ name: 'MeditateApp', params: { habitId: habit.id } })
+                              ),
+                          }
+                        : undefined
                   }
                 />
               );

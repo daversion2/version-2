@@ -12,84 +12,14 @@ import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Slider } from '../common/Slider';
+import { BREATH_FULL, BREATH_PATTERNS, BreathPattern } from '../../data/breathPatterns';
 
-// ---------------------------------------------------------------------------
-// Breathing patterns. Each is a sequence of phases the circle animates through,
-// looping until the session length is reached. `from`/`to` are the circle's
-// scale at the start/end of the phase (1 = contracted, FULL = fully inhaled),
-// so re-entering a phase (e.g. after a pause) is deterministic and jump-free.
-// The pattern keys match the breathwork practice's `technique` tracking values,
-// so the chosen pattern can seed the capture form.
-// ---------------------------------------------------------------------------
-const FULL = 2; // fully-inhaled scale of the base circle
-
-type PhaseKind = 'inhale' | 'hold' | 'exhale' | 'rest';
-interface Phase {
-  kind: PhaseKind;
-  label: string;
-  sec: number;
-  from: number;
-  to: number;
-}
-interface Pattern {
-  key: 'box' | '478' | 'sigh' | 'coherent' | 'extended';
-  label: string;
-  blurb: string;
-  phases: Phase[];
-}
-
-const PATTERNS: Pattern[] = [
-  {
-    key: 'box',
-    label: 'Box',
-    blurb: 'Inhale 4 · hold 4 · exhale 4 · hold 4',
-    phases: [
-      { kind: 'inhale', label: 'Breathe in', sec: 4, from: 1, to: FULL },
-      { kind: 'hold', label: 'Hold', sec: 4, from: FULL, to: FULL },
-      { kind: 'exhale', label: 'Breathe out', sec: 4, from: FULL, to: 1 },
-      { kind: 'hold', label: 'Hold', sec: 4, from: 1, to: 1 },
-    ],
-  },
-  {
-    key: '478',
-    label: '4-7-8',
-    blurb: 'Inhale 4 · hold 7 · exhale 8',
-    phases: [
-      { kind: 'inhale', label: 'Breathe in', sec: 4, from: 1, to: FULL },
-      { kind: 'hold', label: 'Hold', sec: 7, from: FULL, to: FULL },
-      { kind: 'exhale', label: 'Breathe out', sec: 8, from: FULL, to: 1 },
-    ],
-  },
-  {
-    key: 'sigh',
-    label: 'Physiological sigh',
-    blurb: 'Two inhales · one long exhale',
-    phases: [
-      { kind: 'inhale', label: 'Breathe in', sec: 2, from: 1, to: 1.7 },
-      { kind: 'inhale', label: 'Top up', sec: 1, from: 1.7, to: FULL },
-      { kind: 'exhale', label: 'Long exhale', sec: 6, from: FULL, to: 1 },
-      { kind: 'rest', label: 'Rest', sec: 1, from: 1, to: 1 },
-    ],
-  },
-  {
-    key: 'coherent',
-    label: 'Coherent',
-    blurb: 'Inhale 6 · exhale 6',
-    phases: [
-      { kind: 'inhale', label: 'Breathe in', sec: 6, from: 1, to: FULL },
-      { kind: 'exhale', label: 'Breathe out', sec: 6, from: FULL, to: 1 },
-    ],
-  },
-  {
-    key: 'extended',
-    label: 'Extended exhale',
-    blurb: 'Inhale 4 · exhale 8',
-    phases: [
-      { kind: 'inhale', label: 'Breathe in', sec: 4, from: 1, to: FULL },
-      { kind: 'exhale', label: 'Long exhale', sec: 8, from: FULL, to: 1 },
-    ],
-  },
-];
+// Breathing patterns live in data/breathPatterns.ts, shared with the Meditate
+// mini-app. Their keys match the breathwork practice's `technique` tracking
+// values, so the chosen pattern can seed the capture form.
+const FULL = BREATH_FULL;
+type Pattern = BreathPattern;
+const PATTERNS = BREATH_PATTERNS;
 
 const MIN_MINUTES = 1;
 const MAX_MINUTES = 20;

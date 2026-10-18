@@ -1,4 +1,4 @@
-import { CategoryColors } from '../constants/theme';
+import { CategoryColors, Colors } from '../constants/theme';
 import type { TrackingField } from '../data/practices';
 import type { PracticeInstance, User } from '../types';
 
@@ -14,7 +14,7 @@ import type { PracticeInstance, User } from '../types';
 //     the same celebration a plain check-in gets.
 // =============================================================================
 
-export type MiniAppId = 'workouts';
+export type MiniAppId = 'workouts' | 'meditate';
 
 export interface MiniAppManifest {
   id: MiniAppId;
@@ -36,6 +36,15 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     icon: 'barbell-outline',
     accent: CategoryColors.move,
     habitIds: ['workout', 'trad-exercise'],
+    release: 'lab',
+  },
+  meditate: {
+    id: 'meditate',
+    title: 'Meditate',
+    icon: 'flower-outline',
+    // The meditation habit's own teal.
+    accent: Colors.primary,
+    habitIds: ['meditation', 'morning-meditation', 'trad-meditate', 'breathwork', 'breathing-break', 'nsdr'],
     release: 'lab',
   },
 };
@@ -65,6 +74,12 @@ export interface SessionHandoff {
   habitId: string;
   /** How long the session ran, so the check-in can prefill a duration field. */
   durationSec?: number;
+  /**
+   * Answers to the habit's choice fields, by key — Meditate's technique or
+   * breathing pattern. Only an answer that's one of that field's options is
+   * used, so a mini-app serving several habits can't prefill nonsense.
+   */
+  choices?: Record<string, string>;
 }
 
 // In memory on purpose: the handoff lives for one navigation — the mini-app
@@ -84,20 +99,28 @@ export const takePendingFinish = (): SessionHandoff | null => {
 };
 
 /**
- * Turns a session into the check-in's starting numbers — today, just its
- * duration, into the habit's own duration field ("How long?" on Workout),
- * snapped to that field's step and bounds so the slider opens on a real stop.
+ * Turns a session into the check-in's starting answers: its duration, into the
+ * habit's own duration field ("How long?" on Workout), snapped to that field's
+ * step and bounds so the slider opens on a real stop; and any choices the
+ * habit's choice fields accept.
  */
 export const checkinMetricsFor = (
   tracking: TrackingField[] | undefined,
-  handoff: Pick<SessionHandoff, 'durationSec'>
-): Record<string, number> | undefined => {
+  handoff: Pick<SessionHandoff, 'durationSec' | 'choices'>
+): Record<string, number | string> | undefined => {
+  const out: Record<string, number | string> = {};
   const field = tracking?.find((f) => f.type === 'duration');
-  if (!field || !handoff.durationSec) return undefined;
-  const minutes = handoff.durationSec / 60;
-  const step = field.step ?? 1;
-  const snapped = Math.round(minutes / step) * step;
-  const min = field.min ?? 0;
-  const max = field.max ?? Number.POSITIVE_INFINITY;
-  return { [field.key]: Math.min(max, Math.max(min, snapped)) };
+  if (field && handoff.durationSec) {
+    const minutes = handoff.durationSec / 60;
+    const step = field.step ?? 1;
+    const snapped = Math.round(minutes / step) * step;
+    const min = field.min ?? 0;
+    const max = field.max ?? Number.POSITIVE_INFINITY;
+    out[field.key] = Math.min(max, Math.max(min, snapped));
+  }
+  for (const [key, value] of Object.entries(handoff.choices ?? {})) {
+    const choice = tracking?.find((f) => f.key === key && f.type === 'choice');
+    if (choice?.options?.some((o) => o.value === value)) out[key] = value;
+  }
+  return Object.keys(out).length ? out : undefined;
 };

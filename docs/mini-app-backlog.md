@@ -66,7 +66,19 @@ see **Cold** and **Focus** below.
 - **Effort:** small once Breathe's Timer engine exists — same countdown
   component, different copy and accent
 
-### Breathe
+### Breathe → built as **Meditate** (Lab, 2026-10-17)
+
+Decided in a 2026-10-17 interview and built in the Lab: one app named
+"Meditate" (light theme, teal) for all six habits below. Sit, NSDR and
+Breathe's "just time it" lock the phone and ring a bell (a scheduled local
+notification, `services/sessionTimer.ts` + `services/sessionBell.ts`, built
+to be reused by Cold and Focus). Breathe can instead follow the on-screen
+pacer. NSDR opens a recording link the user saved. No clock when you peek
+mid-sit. Records: longest sit / breathwork / NSDR, most minutes in a week.
+History counts only sessions done in the app. Code:
+`screens/Lab/experiments/meditate/`, `services/meditateMath.ts`,
+`services/labMeditate.ts`. The original brainstorm entry follows.
+
 - **Habits:** `meditation` (aliases: `morning-meditation`, `trad-meditate`),
   `breathwork` (alias: `breathing-break`), `nsdr`
 - **Engine:** Timer

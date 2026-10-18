@@ -63,6 +63,18 @@ export const LAB_EXPERIMENTS = [
     title: 'Workouts: Start on Today',
     description: 'Adds a Start button to Workout habits (and any you link in Workouts) on Today.',
   },
+  {
+    id: 'meditate',
+    title: 'Meditate',
+    description: 'The calm mini-app: sit, breathe or NSDR — lock your phone, a bell rings at the end. History and records.',
+    open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
+      navigation.dispatch(CommonActions.navigate({ name: 'MeditateApp' })),
+  },
+  {
+    id: 'meditateStart',
+    title: 'Meditate: Start on Today',
+    description: 'Adds a Start button to meditation, breathwork and NSDR habits (and any you link in Meditate) on Today.',
+  },
 ] as const satisfies readonly LabExperiment[];
 
 /** Typed against the registry, so useLab('typo') fails tsc. */
