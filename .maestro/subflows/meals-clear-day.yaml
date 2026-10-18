@@ -1,0 +1,29 @@
+# Meals: clear today's three meals and any extras, back to "Tap to log".
+# Needs the day view open, unlocked (not closed out).
+appId: com.neuronudge.neuronudge
+---
+- runFlow:
+    when:
+      notVisible: "Breakfast: Tap to log"
+    commands:
+      - tapOn: "Breakfast: .*"
+      - tapOn: "Clear"
+- runFlow:
+    when:
+      notVisible: "Lunch: Tap to log"
+    commands:
+      - tapOn: "Lunch: .*"
+      - tapOn: "Clear"
+- runFlow:
+    when:
+      notVisible: "Dinner: Tap to log"
+    commands:
+      - tapOn: "Dinner: .*"
+      - tapOn: "Clear"
+- repeat:
+    times: 5
+    while:
+      visible: "Donut: .*"
+    commands:
+      - tapOn: "Donut: .*"
+      - tapOn: "Delete"

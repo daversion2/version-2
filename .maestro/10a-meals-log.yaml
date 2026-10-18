@@ -1,0 +1,84 @@
+# Meals (Lab): log three meals with food-group chips and watch pass/fail and
+# the day's status follow. Starts with Meals already open on Today's day view
+# (Admin → Lab → Meals), goal "pass 3 of 3". Writes to the signed-in account's
+# users/{uid}/lab_meals_* only.
+appId: com.neuronudge.neuronudge
+---
+# A picker left open by an earlier run.
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 20000
+# Start from an empty day, so the chip taps below select rather than deselect.
+- runFlow:
+    file: subflows/meals-clear-day.yaml
+- runFlow:
+    when:
+      visible: "Got it"
+    commands:
+      - tapOn: "Got it"
+
+# Breakfast: eggs and fruit → pass.
+- tapOn: "Breakfast: .*"
+- extendedWaitUntil:
+    visible:
+      id: "meal-chip-eggs"
+    timeout: 10000
+- tapOn:
+    id: "meal-chip-eggs"
+- tapOn:
+    id: "meal-chip-fruit"
+- assertVisible: "Pass"
+- assertVisible: "All whole food."
+- takeScreenshot: 10a-1-breakfast-picker
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "Breakfast: Eggs · Fruit"
+    timeout: 10000
+
+# Lunch: chicken, veggies and a jarred sauce → still a pass.
+- tapOn: "Lunch: .*"
+- tapOn:
+    id: "meal-chip-chicken"
+- tapOn:
+    id: "meal-chip-veggies"
+- tapOn:
+    id: "meal-chip-semi"
+- assertVisible: "Pass"
+- assertVisible: "Real food, with a little semi-processed."
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "Lunch: Chicken & turkey · Veggies · Semi-processed"
+    timeout: 10000
+
+# Dinner: fast food → fail, and with every meal required to pass, the day is off.
+- tapOn: "Dinner: .*"
+- tapOn:
+    id: "meal-chip-processed"
+- assertVisible: "Fail"
+- assertVisible: "Something Processed was on the plate."
+- takeScreenshot: 10a-2-dinner-fail-picker
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "Off target"
+    timeout: 10000
+- takeScreenshot: 10a-3-day-off
+
+# Change dinner to salmon and rice → the day turns on target.
+- tapOn: "Dinner: .*"
+- tapOn:
+    id: "meal-chip-processed"
+- tapOn:
+    id: "meal-chip-fish"
+- tapOn:
+    id: "meal-chip-grains"
+- assertVisible: "Pass"
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "On target"
+    timeout: 10000
+- takeScreenshot: 10a-4-day-on

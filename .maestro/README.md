@@ -29,6 +29,7 @@ Screenshots land in `~/.maestro/tests/<timestamp>/<flow>/takeScreenshot/`.
 | `03-time-filter` | Totals and chips follow the 7/30/all-time window |
 | `04-tap-through-and-volume` | Habit rows navigate to detail; Volume + Records render |
 | `05-custom-habit-metric-lines` | Custom habits show metric lines; singular/plural captions |
+| `10a`–`10d` (Meals, Lab) | Run in order with Meals open (Admin → Lab → Meals). Chips work out pass/fail; a Processed snack is a miss; the goal and a daily food-group goal decide the day; the week adds up; closing out with no habit linked writes no check-in and reopens. `10d` puts the account back (goal 3 of 3, no group goals, today cleared). Chips are targeted by `id: meal-chip-<group>` — the "Processed" heading shares the chip's text. |
 
 ## Two gotchas worth knowing before editing these
 

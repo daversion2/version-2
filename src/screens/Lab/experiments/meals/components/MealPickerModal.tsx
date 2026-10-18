@@ -62,6 +62,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
     return (
       <TouchableOpacity
         key={group.id}
+        testID={`meal-chip-${group.id}`}
         style={[styles.chip, on && { borderColor: color, backgroundColor: color + '14' }]}
         onPress={() => toggle(group.id)}
         accessibilityRole="checkbox"
@@ -88,7 +89,15 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
           <Text style={styles.headerTitle} numberOfLines={1}>
             {target?.title}
           </Text>
-          <View style={styles.headerSpacer} />
+          {/* Top right, not at the bottom of the list: with the name field on an
+              extra, a button down there sits below the fold. */}
+          {target?.existing && onRemove ? (
+            <TouchableOpacity onPress={onRemove} hitSlop={8} style={styles.headerSpacer}>
+              <Text style={styles.remove}>{isExtra ? 'Delete' : 'Clear'}</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerSpacer} />
+          )}
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -131,11 +140,6 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
             </View>
           )}
 
-          {target?.existing && onRemove && (
-            <TouchableOpacity onPress={onRemove} style={mls.textBtn}>
-              <Text style={mls.textBtnText}>{isExtra ? 'Delete this' : 'Clear this meal'}</Text>
-            </TouchableOpacity>
-          )}
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
@@ -195,7 +199,8 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     color: Colors.dark,
   },
-  headerSpacer: { minWidth: 60 },
+  headerSpacer: { minWidth: 60, alignItems: 'flex-end' },
+  remove: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray },
   body: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: {

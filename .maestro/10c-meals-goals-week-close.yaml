@@ -1,0 +1,93 @@
+# Meals (Lab): settings change the day's result; the week view adds it up;
+# closing out a day with no habit linked writes no check-in, and reopens.
+# Continues from 10b: Meals settings open; today = three passing meals (lunch
+# has Veggies) plus a Processed "Donut", goal "pass 3 of 3".
+appId: com.neuronudge.neuronudge
+---
+- extendedWaitUntil:
+    visible: "MY MEALS"
+    timeout: 10000
+
+# Pass 2 of 3: the day can now hold the donut.
+- runFlow:
+    when:
+      visible: "Every meal has to pass.*"
+    commands:
+      - tapOn: "Fewer meals to pass"
+- extendedWaitUntil:
+    visible: "The day can hold 1 miss.*"
+    timeout: 10000
+
+# A daily goal of veggies at 2 meals.
+- scrollUntilVisible:
+    element:
+      text: ".*Add a food-group goal|Veggies at .*"
+    direction: DOWN
+    timeout: 20000
+- runFlow:
+    when:
+      notVisible: "Veggies at .*"
+    commands:
+      - tapOn: ".*Add a food-group goal"
+- scrollUntilVisible:
+    element: "More times"
+    direction: DOWN
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Veggies at 1 meal a day"
+    commands:
+      - tapOn: "More times"
+- extendedWaitUntil:
+    visible: "Veggies at 2 meals a day"
+    timeout: 10000
+- takeScreenshot: 10c-1-settings
+
+# Back on the day: one miss is fine now, but only lunch had veggies → off target.
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Off target"
+    timeout: 10000
+- assertVisible: "A food-group goal wasn’t met"
+- takeScreenshot: 10c-2-goal-unmet
+
+# Add veggies to dinner → on target, with the donut as the one miss.
+- tapOn: "Dinner: .*"
+- tapOn:
+    id: "meal-chip-veggies"
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "On target"
+    timeout: 10000
+- assertVisible: "Goal met · 1 of 1 miss used"
+- takeScreenshot: 10c-3-goal-met
+
+# The week: 3 of 4 plates passed today (the donut didn't), nothing slipping yet.
+- tapOn: "This week"
+- extendedWaitUntil:
+    visible: "3 of 4"
+    timeout: 10000
+- assertVisible: "No meal is slipping more than the others this week."
+- takeScreenshot: 10c-4-week
+- tapOn: "Meals"
+
+# Close out with no habit linked: shows the result, writes no check-in.
+- tapOn: ".*Close out the day"
+- extendedWaitUntil:
+    visible: "On target"
+    timeout: 10000
+- assertVisible: "No habit is linked to Meals.*"
+- takeScreenshot: 10c-5-close
+- tapOn: ".*Close the day"
+- extendedWaitUntil:
+    visible: "Closed.*"
+    timeout: 15000
+- assertNotVisible: ".*Close out the day"
+- takeScreenshot: 10c-6-closed
+
+# Reopen it.
+- tapOn: "Reopen today"
+- tapOn: "Reopen"
+- extendedWaitUntil:
+    visible: ".*Close out the day"
+    timeout: 10000

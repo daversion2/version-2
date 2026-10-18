@@ -1,0 +1,45 @@
+# Meals (Lab): undo what 10a–10c changed — goal back to "pass 3 of 3", no
+# food-group goals, today's meals and extras cleared. Starts on the day view.
+appId: com.neuronudge.neuronudge
+---
+# A picker left open by an earlier run.
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Meals settings"
+    timeout: 10000
+- tapOn: "Meals settings"
+- extendedWaitUntil:
+    visible: "MY MEALS"
+    timeout: 10000
+- repeat:
+    times: 3
+    while:
+      notVisible: "Every meal has to pass.*"
+    commands:
+      - tapOn: "More meals to pass"
+- repeat:
+    times: 3
+    while:
+      notVisible: ".*Add a food-group goal"
+    commands:
+      - scrollUntilVisible:
+          element: "Remove this goal"
+          direction: DOWN
+          timeout: 10000
+      - tapOn: "Remove this goal"
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- runFlow:
+    file: subflows/meals-clear-day.yaml
+- assertVisible: "Breakfast: Tap to log"
+- assertVisible: "Lunch: Tap to log"
+- assertVisible: "Dinner: Tap to log"
+- assertNotVisible: "Donut: .*"
+- assertVisible: "In progress"
+- takeScreenshot: 10d-reset
