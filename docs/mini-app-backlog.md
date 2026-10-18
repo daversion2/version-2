@@ -50,6 +50,45 @@ see **Cold** and **Focus** below.
   a plain habit card has nowhere to put
 - **Effort:** scoped in `mini-apps-behind-habits` — strength only, no GPS/cardio, ships OTA
 
+#### Workouts follow-up: a picture next to each exercise (on hold, 2026-10-17)
+
+**Action item, not scheduled.** The founder wants a visual for each exercise
+(a pull-up shows someone doing a pull-up) and is leaning toward **AI-generated
+images**. They chose to hold off for now.
+
+Ten options were compared side by side, with real art from each source, on a
+private page: https://claude.ai/artifact/AAo93AAvFCHm3wafREr2j8 (the AI option
+is F). The other options there: icons already in the app, exercise pictograms,
+emoji, a muscle map, wger, free-exercise-db photos, everkinetic drawings,
+ExerciseDB animations, and a custom animated figure.
+
+The plan, when picked up:
+1. **Lock one style by hand** in a chat app (ChatGPT or Gemini). Iterate on
+   the pull-up until it looks like Neuro-Nudge; that image is the style
+   reference for every other one.
+2. **Write a pose line for each of the 48 built-ins** in
+   `src/data/workoutExercises.ts`: grip, side view, which phase of the lift.
+   Names alone are ambiguous (pull-up vs chin-up, deadlift vs RDL).
+3. **Generate with two references each:** the style image plus a pose photo.
+   Use free-exercise-db photos for pose (public domain, covers ~46 of 48).
+   Don't feed in everkinetic (CC BY-SA carries over to derivatives) or
+   ExerciseDB (copyrighted).
+4. **The founder approves every image**, like the meditation recordings:
+   correct grip and equipment, neutral back on deadlifts and rows, consistent
+   look. Mirror `scripts/approveMeditation.ts`: candidates in
+   `content/exercise-art/`, approvals by file fingerprint, only approved
+   images copied into `assets/`.
+5. **Bundle the images keyed by exercise id** (ids never change), behind a
+   util that falls back to an equipment icon for exercises users create.
+   Never generated live. Ships OTA. Add a jest test that every built-in has
+   approved art.
+
+Still to decide: the look (e.g. teal figure on white), one still image or
+start/end frames, by hand or scripted, and which image provider. There's no
+image-generation API key in `.env.local` yet. Rough cost: $10–40 for 48
+exercises × ~4 candidates. Iterate at low quality; ask before using premium
+models.
+
 ---
 
 ## Next
