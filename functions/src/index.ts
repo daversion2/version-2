@@ -766,6 +766,17 @@ export const deleteAccount = onCall(
       // challenges, completionLogs, reflections, worksheets, and any added
       // later — no hardcoded list to fall out of date).
       await db.recursiveDelete(db.collection("users").doc(uid));
+      await db.doc(`composeUsage/${uid}`).delete();
+
+      // Their Storage files (composed sessions). Never let a Storage problem
+      // block the deletion itself — log it and carry on.
+      try {
+        // force: keep going past a file that's already gone (cleanupComposeSession
+        // may be deleting the same ones as recursiveDelete fires it).
+        await admin.storage().bucket().deleteFiles({ prefix: `users/${uid}/`, force: true });
+      } catch (storageError) {
+        console.error(`deleteAccount: Storage cleanup failed for ${uid}:`, storageError);
+      }
 
       let legacyDeleted = 0;
       for (const { name, ownerField } of USER_OWNED_COLLECTIONS) {
@@ -819,3 +830,6 @@ export const checkUsernameAvailable = onCall(async (request) => {
 
   return { available: snap.docs.every((d) => d.id === uid) };
 });
+
+// Compose (Lab): guided sessions written and voiced on request.
+export { composeSession, cleanupComposeSession } from "./compose";

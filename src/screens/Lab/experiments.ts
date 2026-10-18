@@ -71,6 +71,14 @@ export const LAB_EXPERIMENTS = [
       navigation.dispatch(CommonActions.navigate({ name: 'MeditateApp' })),
   },
   {
+    id: 'compose',
+    title: 'Compose',
+    description:
+      'Describe a meditation or guided-imagery session; it gets written, voiced and mixed for you. Save the ones you like.',
+    open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
+      navigation.dispatch(CommonActions.navigate({ name: 'ComposeApp' })),
+  },
+  {
     id: 'meditateStart',
     title: 'Meditate: Start on Today',
     description: 'Adds a Start button to meditation, breathwork and NSDR habits (and any you link in Meditate) on Today.',

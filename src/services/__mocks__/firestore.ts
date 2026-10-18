@@ -335,3 +335,12 @@ export const Timestamp = {
   now: () => ({ seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 }),
   fromDate: (date: Date) => ({ seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0 }),
 };
+
+// onSnapshot: delivers one snapshot of the current mock data (a doc snapshot
+// for a doc ref, a query snapshot otherwise) on the next tick, then stays
+// quiet. Returns an unsubscribe. Enough to test what a watcher does with data.
+export const onSnapshot = jest.fn((ref: any, onNext: (snap: any) => void, onError?: (e: unknown) => void) => {
+  const load = ref?.id ? getDoc(ref) : getDocs(ref);
+  load.then(onNext).catch((e: unknown) => onError?.(e));
+  return jest.fn();
+});

@@ -1,0 +1,40 @@
+diff --git a/node_modules/expo-audio/ios/MediaController.swift b/node_modules/expo-audio/ios/MediaController.swift
+index 2dd3fb2..d186de8 100644
+--- a/node_modules/expo-audio/ios/MediaController.swift
++++ b/node_modules/expo-audio/ios/MediaController.swift
+@@ -130,6 +130,11 @@ class MediaController {
+   }
+ 
+   private func enableRemoteCommands(options: LockScreenOptions?) {
++    // Patched (neuro-nudge): addTarget(handler:) adds a block target every
++    // time a player becomes active, and removeTarget(self) below never removed
++    // them — so after two sessions a headphone play/pause ran twice and did
++    // nothing. Clear every target first. See expo/expo#50071.
++    removeAllRemoteTargets()
+     remoteCommandCenter.playCommand.addTarget { [weak self] _ in
+       guard let player = self?.activePlayer else {
+         return .commandFailed
+@@ -217,12 +222,16 @@ class MediaController {
+     remoteCommandCenter.skipForwardCommand.isEnabled = false
+     remoteCommandCenter.skipBackwardCommand.isEnabled = false
+     
+-    // Remove event targets
+-    remoteCommandCenter.playCommand.removeTarget(self);
+-    remoteCommandCenter.pauseCommand.removeTarget(self);
+-    remoteCommandCenter.togglePlayPauseCommand.removeTarget(self);
+-    remoteCommandCenter.changePlaybackPositionCommand.removeTarget(self);
+-    remoteCommandCenter.skipForwardCommand.removeTarget(self);
+-    remoteCommandCenter.skipBackwardCommand.removeTarget(self);
++    removeAllRemoteTargets()
++  }
++
++  // removeTarget(nil) removes every target, including the block-based ones.
++  private func removeAllRemoteTargets() {
++    remoteCommandCenter.playCommand.removeTarget(nil)
++    remoteCommandCenter.pauseCommand.removeTarget(nil)
++    remoteCommandCenter.togglePlayPauseCommand.removeTarget(nil)
++    remoteCommandCenter.changePlaybackPositionCommand.removeTarget(nil)
++    remoteCommandCenter.skipForwardCommand.removeTarget(nil)
++    remoteCommandCenter.skipBackwardCommand.removeTarget(nil)
+   }
+ }

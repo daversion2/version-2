@@ -192,10 +192,22 @@ firebase deploy --only firestore:indexes
 firebase deploy --only firestore:rules
 ```
 
+**Deploy Storage rules:**
+```bash
+firebase deploy --only storage
+```
+
 **Deploy several at once:**
 ```bash
 firebase deploy --only functions,firestore:indexes,firestore:rules
 ```
+
+Functions deploys first run `npm --prefix functions run sync-core`
+(firebase.json predeploy), which copies `src/utils/meditation/` into
+`functions/src/meditation-core/` and the voices, backgrounds and chime into
+`functions/meditation-assets/`. Edit the originals, never the copies; a jest
+test fails if the committed copies drift. `composeSession` needs the
+`ANTHROPIC_API_KEY` and `ELEVENLABS_API_KEY` Firebase secrets.
 
 Firebase project ID: `version-2-4afa1`
 
@@ -213,6 +225,14 @@ If not authenticated: `firebase login`
 **Global, mostly read-only** top-level collections:
 `challengeLibrary`, `neuroscienceTidbits`, `rules`, `programs`,
 `rewardMessages`, `funFacts`.
+
+**Server-only** (no rule opens them; Cloud Functions write them):
+`composeUsage/{uid}` — Compose's daily per-user limit. It lives outside
+`users/{uid}` on purpose: the user's own subcollections are client-writable.
+
+**Storage** (`storage.rules`, deny-all for clients): `users/{uid}/compose/{id}.mp3`,
+written by the `composeSession` function and played through the tokened URL
+on the owner's `lab_compose` doc. `deleteAccount` clears `users/{uid}/`.
 
 **The rules footgun:** `firestore.rules` wildcards
 `users/{userId}/{subcollection}/{docId}`, so a **new user subcollection needs no

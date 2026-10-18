@@ -91,6 +91,59 @@ History counts only sessions done in the app. Code:
 - **Effort:** first build of the Timer engine, so it carries that cost;
   Cold and Focus ride on it afterward
 
+#### Meditate, phase 1: guided recordings (in progress, 2026-10-17)
+
+Pre-recorded guided sessions, written with Claude and voiced with
+ElevenLabs. **The founder listens to and approves every one before any user
+can hear it. Nothing is generated live.** The pipeline is built and runs on
+the founder's machine: see `content/meditations/README.md`. Optional
+background sounds are mixed into the approved file. Not built yet:
+publishing to Firebase Storage and playback in the app. Playback with the
+phone locked needs iOS background audio, which means a native build and a
+store release.
+
+#### Meditate, phase 2: Compose (building in the Lab, 2026-10-17)
+
+The founder decided to build this now, in the Lab, tested on the simulator
+before a store release. Built: a Lab mini-app "Compose" (screens in
+`screens/Lab/experiments/compose/`, data in `services/labCompose.ts`); the
+`composeSession` Cloud Function (`functions/src/compose.ts`) that writes with
+Claude Haiku, voices and mixes with the shared engine in
+`src/utils/meditation/`, and stores the MP3 privately in Storage; a private
+"My recordings" library (save, rename, remove, delete); voice and background
+pickers with bundled samples; background playback with lock-screen controls
+(UIBackgroundModes audio, so the store release needs a native build).
+Personal sessions are screened by Claude, not reviewed by the founder. The
+original idea entry follows.
+
+#### Meditate, phase 2 idea: compose your own (original write-up)
+
+A composable guided **meditation and guided-imagery** maker. Guided imagery
+here means the mental rehearsal athletes and high performers use: walking
+through the race, the pitch or the hard conversation before it happens. Not
+animated visuals on screen. The user describes what they want, picks length,
+voice and background, and the app generates a recording they keep. Later,
+they could share recordings to a user-generated library.
+
+- **Conflicts with phase 1's rule.** A user's own generation is heard by no
+  one before them. Suggested way to keep both: personal recordings get
+  automated screening of the request and the script; anything shared to the
+  library waits in a review queue for the founder's approval before others
+  can see it. Not decided.
+- **Rough size:** ~3–5 weeks for the personal generator (Claude writes the
+  script in the phase 1 format, safety screening, rendering moved from the
+  laptop to a cloud job, voice and background picker, per-user cost limits,
+  composer, library and player screens). ~3–4 more weeks for the shared
+  library (browse and search, report and block as the app stores require
+  for user content, a founder review queue, cleanup on account deletion).
+- **Reuses** phase 1's script format and parser, background library, mixing
+  settings and voice setup. Phase 1's approved recordings become the
+  library's starter shelf. Shares phase 1's native-build blocker for
+  background playback.
+- **Cost:** every generation costs real money, mostly the voice. A natural
+  premium feature; access checks already route through one place
+  (decision 12).
+
 ### Focus
 - **Habits:** `deep-focus-session`, `dreaded-task-first`, `inbox-after-focus`,
   `phone-free-first-hour`

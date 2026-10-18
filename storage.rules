@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Nothing in the app reads or writes Storage directly.
+//
+// Composed guided sessions (users/{uid}/compose/{id}.mp3) are written only by
+// the composeSession Cloud Function (Admin SDK, which bypasses these rules).
+// The app plays one through the tokened download URL the function stores on
+// the owner's own Firestore doc — readable by that owner alone — so a
+// recording is never listable or guessable by anyone else.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

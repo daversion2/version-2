@@ -29,6 +29,8 @@ export type RootStackParamList = {
   WorkoutsApp: { habitId?: string } | undefined;
   /** The Meditate mini-app (Lab) — same shape as WorkoutsApp. */
   MeditateApp: { habitId?: string } | undefined;
+  /** Compose (Lab): guided sessions written and voiced on request. */
+  ComposeApp: undefined;
 };
 
 // ============================================================================

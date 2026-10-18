@@ -14,7 +14,7 @@ import type { PracticeInstance, User } from '../types';
 //     the same celebration a plain check-in gets.
 // =============================================================================
 
-export type MiniAppId = 'workouts' | 'meditate';
+export type MiniAppId = 'workouts' | 'meditate' | 'compose';
 
 export interface MiniAppManifest {
   id: MiniAppId;
@@ -45,6 +45,15 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     // The meditation habit's own teal.
     accent: Colors.primary,
     habitIds: ['meditation', 'morning-meditation', 'trad-meditate', 'breathwork', 'breathing-break', 'nsdr'],
+    release: 'lab',
+  },
+  compose: {
+    id: 'compose',
+    title: 'Compose',
+    icon: 'sparkles-outline',
+    accent: CategoryColors.sleep,
+    // Not tied to a habit (yet): it's opened from the Lab.
+    habitIds: [],
     release: 'lab',
   },
 };

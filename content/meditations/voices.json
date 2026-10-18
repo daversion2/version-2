@@ -1,0 +1,32 @@
+[
+  {
+    "key": "daisy",
+    "name": "Daisy",
+    "blurb": "Calm, kind and natural. Canadian.",
+    "voice_id": "7Do71uvUQ1TAym3P21nB"
+  },
+  {
+    "key": "regina",
+    "name": "Regina",
+    "blurb": "Smooth and meditative. British.",
+    "voice_id": "M7wzTk2Y1hGQyRzr9sbS"
+  },
+  {
+    "key": "friend",
+    "name": "Best Female Friend",
+    "blurb": "Warm and conversational. British.",
+    "voice_id": "aj0fZfXTBc7E3By4X8L2"
+  },
+  {
+    "key": "steffy",
+    "name": "Steffy",
+    "blurb": "Clear and professional. British.",
+    "voice_id": "bm3QvaZ3fUSCRBC3UV1f"
+  },
+  {
+    "key": "tessa",
+    "name": "Tessa",
+    "blurb": "Deep and wise. British.",
+    "voice_id": "USEQXnsXRJlw2k9LUzG4"
+  }
+]

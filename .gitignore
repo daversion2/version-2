@@ -50,3 +50,11 @@ coverage/
 
 # Personal scratchpad — the user's own running notes, not shared state
 docs/todo.md
+
+# guided meditation renders — scripts and approvals are committed, audio isn't
+content/meditations/out/
+content/meditations/.cache/
+content/meditations/composed/
+
+# copied into the functions build by `npm --prefix functions run sync-core` (predeploy)
+functions/meditation-assets/

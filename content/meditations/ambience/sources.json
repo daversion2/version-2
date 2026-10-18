@@ -1,0 +1,42 @@
+{
+  "brown-noise": {
+    "made_with": "ffmpeg-noise",
+    "detail": "brown noise",
+    "created_at": "2026-10-18T00:57:38.343Z"
+  },
+  "pink-noise": {
+    "made_with": "ffmpeg-noise",
+    "detail": "pink noise",
+    "created_at": "2026-10-18T00:57:39.488Z"
+  },
+  "rain": {
+    "made_with": "elevenlabs",
+    "detail": "Gentle steady rain falling on leaves and a roof, soft and even, no thunder, no wind gusts, calm ambient background",
+    "created_at": "2026-10-18T01:18:06.826Z"
+  },
+  "ocean": {
+    "made_with": "elevenlabs",
+    "detail": "Soft distant ocean waves slowly rolling onto a sandy beach, calm and even, no seagulls, no wind gusts",
+    "created_at": "2026-10-18T01:18:16.220Z"
+  },
+  "creek": {
+    "made_with": "elevenlabs",
+    "detail": "Quiet forest creek gently trickling over smooth stones, calm and steady, no birds",
+    "created_at": "2026-10-18T01:18:22.820Z"
+  },
+  "forest": {
+    "made_with": "elevenlabs",
+    "detail": "Calm forest ambience, soft breeze through leaves, very occasional distant birdsong, peaceful",
+    "created_at": "2026-10-18T01:18:29.307Z"
+  },
+  "drone": {
+    "made_with": "elevenlabs",
+    "detail": "Warm soft ambient drone pad, low and slowly evolving, meditative, no melody, no percussion",
+    "created_at": "2026-10-18T01:18:35.581Z"
+  },
+  "fire": {
+    "made_with": "elevenlabs",
+    "detail": "Gentle crackling campfire, soft and steady, quiet night, no voices",
+    "created_at": "2026-10-18T01:18:42.321Z"
+  }
+}
