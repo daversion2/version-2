@@ -16,6 +16,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { AMBIENCE_DIR, ROOT, VOICES_FILE, readJson, type VoiceEntry } from './meditationFiles';
+import { COMPOSE_TTS_MODEL } from '../src/utils/meditation/compose';
 import { loadEnv, renderScript } from './meditationRender';
 
 const OUT = join(ROOT, 'assets', 'compose');
@@ -34,7 +35,8 @@ async function main() {
   for (const voice of readJson<VoiceEntry[]>(VOICES_FILE)) {
     const source = ['---', `id: sample-${voice.key}`, `title: ${voice.name}`, `voice: ${voice.key}`, '---', '', SAMPLE_LINE, ''].join('\n');
     const full = join(OUT, `voice-${voice.key}.full.mp3`);
-    const r = await renderScript({ source, outPath: full, log: false });
+    // Voiced the way Compose voices sessions, so the preview is what you get.
+    const r = await renderScript({ source, outPath: full, log: false, modelId: COMPOSE_TTS_MODEL });
     // A phone-speaker preview: mono, small.
     ffmpeg(['-i', full, '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '64k', join(OUT, `voice-${voice.key}.mp3`)]);
     rmSync(full);

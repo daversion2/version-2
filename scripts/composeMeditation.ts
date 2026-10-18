@@ -24,7 +24,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { slugify, toScriptSource, validateComposeRequest, type ComposeKind, type ComposeRequest } from '../src/utils/meditation/compose';
+import { COMPOSE_TTS_MODEL, slugify, toScriptSource, validateComposeRequest, type ComposeKind, type ComposeRequest } from '../src/utils/meditation/compose';
 import { COMPOSE_CLIENT_OPTIONS, writeComposedScript } from '../src/utils/meditation/claude';
 import { AMBIENCE_DIR, CONTENT_DIR, OUT_DIR, ROOT, VOICES_FILE, formatDuration, readJson, writeJson, type VoiceEntry } from './meditationFiles';
 import { loadEnv, renderScript } from './meditationRender';
@@ -60,7 +60,12 @@ async function main() {
     const source = readFileSync(values.script, 'utf8');
     const minutes = Number(/^length_min:\s*([\d.]+)/m.exec(source)?.[1]);
     const out = join(COMPOSED_OUT_DIR, `${basename(values.script, '.md')}.mp3`);
-    const r = await renderScript({ source, outPath: out, targetSec: minutes ? minutes * 60 : undefined });
+    const r = await renderScript({
+      source,
+      outPath: out,
+      targetSec: minutes ? minutes * 60 : undefined,
+      modelId: COMPOSE_TTS_MODEL,
+    });
     console.log(`\n✓ ${r.meta.title} → ${out.replace(`${ROOT}/`, '')} (${formatDuration(r.durationSec)})`);
     return;
   }
@@ -111,7 +116,7 @@ async function main() {
 
   console.log(`Recording with ${voice.name}${req.ambience ? ` over ${req.ambience}` : ''}…`);
   const out = join(COMPOSED_OUT_DIR, `${id}.mp3`);
-  const r = await renderScript({ source, outPath: out, targetSec: req.minutes * 60, log: false });
+  const r = await renderScript({ source, outPath: out, targetSec: req.minutes * 60, log: false, modelId: COMPOSE_TTS_MODEL });
   writeJson(join(COMPOSED_DIR, `${id}.json`), {
     ...log,
     title: script.title,

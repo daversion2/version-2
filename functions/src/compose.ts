@@ -26,6 +26,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
+  COMPOSE_TTS_MODEL,
   cleanSpokenLine,
   toScriptSource,
   validateComposeRequest,
@@ -68,7 +69,8 @@ function renderDeps(workDir: string): RenderDeps {
   return {
     ffmpegPath,
     elevenLabsApiKey: elevenLabsKey.value(),
-    settings: readAsset<RenderSettings>("voice.json"),
+    // Same mixing settings as the curated recordings, cheaper voice model.
+    settings: { ...readAsset<RenderSettings>("voice.json"), model_id: COMPOSE_TTS_MODEL },
     voices: readAsset<VoiceEntry[]>("voices.json"),
     pronunciations: readAsset<Record<string, string>>("pronunciations.json"),
     bellPath: join(ASSETS, "chime.wav"),

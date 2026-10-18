@@ -15,6 +15,14 @@ export const COMPOSE_KINDS: { key: ComposeKind; label: string; blurb: string }[]
   { key: 'imagery', label: 'Guided imagery', blurb: 'Rehearse a big moment in your mind before it happens.' },
 ];
 
+/**
+ * The ElevenLabs model Compose voices with: Flash costs half the credits of
+ * the Multilingual v2 the curated recordings use (content/meditations/
+ * voice.json), and the founder judged it sounds fine side by side
+ * (2026-10-18). The picker samples are voiced with it too.
+ */
+export const COMPOSE_TTS_MODEL = 'eleven_flash_v2_5';
+
 export const COMPOSE_MIN_MINUTES = 2;
 export const COMPOSE_MAX_MINUTES = 10;
 export const COMPOSE_DEFAULT_MINUTES = 5;

@@ -49,5 +49,9 @@ export function localRenderDeps(log = true): RenderDeps {
   };
 }
 
-export const renderScript = (input: RenderInput & { log?: boolean }): Promise<RenderResult> =>
-  runRender(input, localRenderDeps(input.log ?? true));
+/** `modelId` overrides voice.json's ElevenLabs model (Compose uses its own). */
+export const renderScript = (input: RenderInput & { log?: boolean; modelId?: string }): Promise<RenderResult> => {
+  const deps = localRenderDeps(input.log ?? true);
+  if (input.modelId) deps.settings = { ...deps.settings, model_id: input.modelId };
+  return runRender(input, deps);
+};
