@@ -80,7 +80,8 @@ screen on during playback (a stopgap). In the next store build: bump
 UIBackgroundModes audio and `patches/expo-audio+1.1.1.patch`; then set that
 flag to false. Before non-admins get Compose: add Anthropic and ElevenLabs to
 `hosting/privacy.html` (and the App Store privacy details), and revisit the
-model (Haiku), the 30/day limit, and declines counting against it.
+model (Haiku) and the monthly allowance (`COMPOSE_MONTHLY_MINUTES`, 30 minutes,
+one number for everyone).
 
 ## Verifying a Change
 
@@ -238,9 +239,11 @@ If not authenticated: `firebase login`
 `challengeLibrary`, `neuroscienceTidbits`, `rules`, `programs`,
 `rewardMessages`, `funFacts`.
 
-**Server-only** (no rule opens them; Cloud Functions write them):
-`composeUsage/{uid}` — Compose's daily per-user limit. It lives outside
-`users/{uid}` on purpose: the user's own subcollections are client-writable.
+**Server-written** (only Cloud Functions write them):
+`composeUsage/{uid}` — Compose's monthly minutes allowance (`{ month, minutes }`;
+held when a session starts, given back on a decline or failure). The owner
+may read it; only the function writes it. It lives outside `users/{uid}` on
+purpose: the user's own subcollections are client-writable.
 
 **Storage** (`storage.rules`, deny-all for clients): `users/{uid}/compose/{id}.mp3`,
 written by the `composeSession` function and played through the tokened URL

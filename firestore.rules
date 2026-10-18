@@ -277,5 +277,14 @@ service cloud.firestore {
       allow delete: if request.auth != null
                     && request.auth.uid == resource.data.user_id;
     }
+
+    // ========================================================================
+    // COMPOSE ALLOWANCE — composeUsage/{userId}
+    // The owner can read their own (to show minutes left). Only the
+    // composeSession Cloud Function writes it, so nobody can reset it.
+    // ========================================================================
+    match /composeUsage/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

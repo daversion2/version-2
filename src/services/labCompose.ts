@@ -6,6 +6,7 @@ import {
   type ComposeRequest,
   type ComposeSession,
   type ComposeStatus,
+  type ComposeUsage,
 } from '../utils/meditation/compose';
 import { COMPOSE_BACKGROUNDS, COMPOSE_VOICES } from '../data/composeCatalog';
 
@@ -85,6 +86,22 @@ export function watchComposeSession(
   return onSnapshot(
     ref(userId, id),
     (snap) => onChange(snap.exists() ? { ...(snap.data() as Omit<ComposeSession, 'id'>), id: snap.id } : null),
+    onError,
+  );
+}
+
+/**
+ * Live monthly allowance (composeUsage/{uid}, written only by the Cloud
+ * Function), or null before the first session. Pass it to minutesLeft().
+ */
+export function watchComposeUsage(
+  userId: string,
+  onChange: (usage: ComposeUsage | null) => void,
+  onError?: (error: unknown) => void,
+): () => void {
+  return onSnapshot(
+    doc(db, 'composeUsage', userId),
+    (snap) => onChange(snap.exists() ? (snap.data() as ComposeUsage) : null),
     onError,
   );
 }

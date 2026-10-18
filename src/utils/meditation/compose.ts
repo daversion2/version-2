@@ -86,6 +86,84 @@ export function validateComposeRequest(
   return null;
 }
 
+// --- Monthly allowance ---------------------------------------------------------
+
+/**
+ * Minutes of finished sessions each account gets per calendar month. Minutes,
+ * not sessions, because the voice is billed by length. One allowance for
+ * everyone for now; a premium tier would get its own number here.
+ */
+export const COMPOSE_MONTHLY_MINUTES = 30;
+
+/**
+ * composeUsage/{uid} — written only by the composeSession function (the owner
+ * may read it, to show what's left). Minutes are held when a session starts
+ * and given back if it's declined or fails, so only finished sessions count.
+ */
+export interface ComposeUsage {
+  /** UTC "YYYY-MM" the minutes belong to; a different month means none used. */
+  month: string;
+  minutes: number;
+}
+
+/** The allowance month, in UTC — the server's clock decides, wherever the user is. */
+export const usageMonth = (now: Date): string => now.toISOString().slice(0, 7);
+
+export function minutesUsed(usage: Partial<ComposeUsage> | null | undefined, now: Date): number {
+  if (!usage || usage.month !== usageMonth(now)) return 0;
+  return Math.max(0, Number(usage.minutes) || 0);
+}
+
+export function minutesLeft(
+  usage: Partial<ComposeUsage> | null | undefined,
+  now: Date,
+  limit: number = COMPOSE_MONTHLY_MINUTES,
+): number {
+  return Math.max(0, limit - minutesUsed(usage, now));
+}
+
+/** Hold `minutes` against this month's allowance, or say how many are left. */
+export function reserveMinutes(
+  usage: Partial<ComposeUsage> | null | undefined,
+  minutes: number,
+  now: Date,
+  limit: number = COMPOSE_MONTHLY_MINUTES,
+): { ok: true; next: ComposeUsage } | { ok: false; left: number } {
+  const used = minutesUsed(usage, now);
+  if (used + minutes > limit) return { ok: false, left: Math.max(0, limit - used) };
+  return { ok: true, next: { month: usageMonth(now), minutes: used + minutes } };
+}
+
+/**
+ * Give held minutes back (a decline or a failure). A hold from an earlier
+ * month is simply dropped — that month's allowance is gone anyway.
+ */
+export function refundMinutes(
+  usage: Partial<ComposeUsage> | null | undefined,
+  minutes: number,
+  heldMonth: string,
+  now: Date,
+): ComposeUsage | null {
+  if (heldMonth !== usageMonth(now)) return null;
+  return { month: heldMonth, minutes: Math.max(0, minutesUsed(usage, now) - minutes) };
+}
+
+/** "November 1" — when the allowance resets (the 1st, UTC). */
+export function allowanceResetLabel(now: Date): string {
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const month = next.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
+  return `${month} 1`;
+}
+
+/** Why a session of `minutes` can't start with `left` minutes remaining, or null if it can. */
+export function allowanceProblem(minutes: number, left: number, now: Date): string | null {
+  if (left < COMPOSE_MIN_MINUTES) {
+    return `You've used this month's ${COMPOSE_MONTHLY_MINUTES} minutes. More on ${allowanceResetLabel(now)}.`;
+  }
+  if (minutes > left) return `You have ${left} minutes left this month. Pick ${left} or fewer.`;
+  return null;
+}
+
 // --- What Claude is told ---------------------------------------------------------
 
 /** The narrators' measured pace is about 2.25–2.7 spoken words a second; aim a touch under. */

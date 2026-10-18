@@ -26,8 +26,14 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
+  COMPOSE_MONTHLY_MINUTES,
   COMPOSE_TTS_MODEL,
+  allowanceResetLabel,
   cleanSpokenLine,
+  refundMinutes,
+  reserveMinutes,
+  usageMonth,
+  type ComposeUsage,
   toScriptSource,
   validateComposeRequest,
   type ComposeRequest,
@@ -49,12 +55,6 @@ const elevenLabsKey = defineSecret("ELEVENLABS_API_KEY");
 
 const ASSETS = join(__dirname, "..", "meditation-assets");
 const COMPOSE_DOC = "users/{uid}/lab_compose/{sessionId}";
-
-/**
- * Sessions per account per day (UTC). Every one costs real money, mostly the
- * voice; this stops a stuck retry loop or a bad actor from running up a bill.
- */
-const DAILY_LIMIT = 30;
 
 const readAsset = <T>(name: string): T =>
   JSON.parse(readFileSync(join(ASSETS, name), "utf8")) as T;
@@ -84,19 +84,35 @@ function renderDeps(workDir: string): RenderDeps {
 }
 
 /**
- * Count one more session against today's limit. Kept in a top-level
- * collection that no security rule opens, so a client can't reset it — the
- * user's own subcollections are client-writable.
+ * The monthly allowance lives in a top-level collection that only this
+ * function writes (firestore.rules lets the owner read it) — the user's own
+ * subcollections are client-writable, so a counter there could be reset.
  */
-async function takeQuota(db: admin.firestore.Firestore, uid: string): Promise<boolean> {
-  const ref = db.doc(`composeUsage/${uid}`);
-  const today = new Date().toISOString().slice(0, 10);
+const usageRef = (db: admin.firestore.Firestore, uid: string) => db.doc(`composeUsage/${uid}`);
+
+/** Hold this session's minutes. Resolves to how many are left if they don't fit. */
+async function holdMinutes(
+  db: admin.firestore.Firestore,
+  uid: string,
+  minutes: number
+): Promise<{ ok: true } | { ok: false; left: number }> {
+  const ref = usageRef(db, uid);
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const count = snap.get("day") === today ? Number(snap.get("count") ?? 0) : 0;
-    if (count >= DAILY_LIMIT) return false;
-    tx.set(ref, { day: today, count: count + 1 });
-    return true;
+    const result = reserveMinutes(snap.data() as Partial<ComposeUsage> | undefined, minutes, new Date());
+    if (!result.ok) return result;
+    tx.set(ref, result.next);
+    return { ok: true as const };
+  });
+}
+
+/** Give held minutes back after a decline or a failure: only finished sessions count. */
+async function releaseMinutes(db: admin.firestore.Firestore, uid: string, minutes: number, heldMonth: string) {
+  const ref = usageRef(db, uid);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const next = refundMinutes(snap.data() as Partial<ComposeUsage> | undefined, minutes, heldMonth, new Date());
+    if (next) tx.set(ref, next);
   });
 }
 
@@ -131,6 +147,8 @@ export const composeSession = onDocumentCreated(
     if (!claimed) return;
 
     const work = mkdtempSync(join(tmpdir(), "compose-"));
+    // Minutes held against the allowance, until the session is ready.
+    let held: { minutes: number; month: string } | null = null;
     try {
       // Lab-only for now: the same gate the app uses (services/miniApps.ts).
       const profile = await db.doc(`users/${uid}`).get();
@@ -156,13 +174,18 @@ export const composeSession = onDocumentCreated(
         await update({ status: "failed", error: problem });
         return;
       }
-      if (!(await takeQuota(db, uid))) {
+      const hold = await holdMinutes(db, uid, req.minutes);
+      if (!hold.ok) {
         await update({
           status: "failed",
-          error: `That's ${DAILY_LIMIT} sessions today, the daily limit. Try again tomorrow.`,
+          error:
+            hold.left > 0
+              ? `You have ${hold.left} of this month's ${COMPOSE_MONTHLY_MINUTES} minutes left. Try a shorter session.`
+              : `You've used this month's ${COMPOSE_MONTHLY_MINUTES} minutes. More on ${allowanceResetLabel(new Date())}.`,
         });
         return;
       }
+      held = { minutes: req.minutes, month: usageMonth(new Date()) };
 
       const written = await writeComposedScript(
         new Anthropic({ apiKey: anthropicKey.value(), ...COMPOSE_CLIENT_OPTIONS }),
@@ -173,6 +196,8 @@ export const composeSession = onDocumentCreated(
           `${written.usage.input_tokens} in / ${written.usage.output_tokens} out tokens`
       );
       if (written.kind === "declined") {
+        await releaseMinutes(db, uid, held.minutes, held.month);
+        held = null;
         await update({ status: "declined", decline_message: written.message });
         return;
       }
@@ -225,6 +250,11 @@ export const composeSession = onDocumentCreated(
       console.log(`compose ${uid}/${sessionId}: ready, ${Math.round(result.durationSec)}s`);
     } catch (error) {
       console.error(`compose ${uid}/${sessionId} failed:`, error);
+      if (held) {
+        await releaseMinutes(db, uid, held.minutes, held.month).catch((e) =>
+          console.error(`compose ${uid}/${sessionId}: couldn't give back ${held?.minutes} minutes:`, e)
+        );
+      }
       // The doc may have been deleted mid-way; nothing more to report then.
       await update({ status: "failed", error: "Something went wrong making this session. Try again." }).catch(
         () => undefined

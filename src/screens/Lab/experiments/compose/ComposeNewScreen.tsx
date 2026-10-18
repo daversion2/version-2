@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../con
 import { Slider } from '../../../../components/common/Slider';
 import { ComposeStackParamList } from '../../../../types/compose';
 import { useAuth } from '../../../../context/AuthContext';
-import { createComposeSession } from '../../../../services/labCompose';
+import { createComposeSession, watchComposeUsage } from '../../../../services/labCompose';
 import { showAlert } from '../../../../utils/alert';
 import {
   COMPOSE_DEFAULT_MINUTES,
@@ -24,9 +24,13 @@ import {
   COMPOSE_MAX_MINUTES,
   COMPOSE_MAX_REQUEST_CHARS,
   COMPOSE_MIN_MINUTES,
+  COMPOSE_MONTHLY_MINUTES,
+  allowanceProblem,
+  minutesLeft,
   validateComposeRequest,
   type ComposeKind,
   type ComposeRequest,
+  type ComposeUsage,
 } from '../../../../utils/meditation/compose';
 import { COMPOSE_BACKGROUNDS, COMPOSE_KNOWN, COMPOSE_VOICES } from '../../../../data/composeCatalog';
 import { BACKGROUND_SAMPLES, VOICE_SAMPLES } from './components/sampleAssets';
@@ -64,9 +68,26 @@ export const ComposeNewScreen: React.FC<Props> = ({ navigation, route }) => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const samples = useSamplePlayer();
+  // undefined = still loading; null = no sessions yet this month (or ever).
+  const [usage, setUsage] = useState<ComposeUsage | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    // If it can't be read, don't block: the server still enforces the allowance.
+    return watchComposeUsage(user.uid, setUsage, () => setUsage(null));
+  }, [user]);
+
+  // The length slider only offers what's left this month.
+  const now = new Date();
+  const left = usage === undefined ? COMPOSE_MAX_MINUTES : minutesLeft(usage, now);
+  const sliderMax = Math.max(COMPOSE_MIN_MINUTES, Math.min(COMPOSE_MAX_MINUTES, left));
+  useEffect(() => {
+    if (minutes > sliderMax) setMinutes(sliderMax);
+  }, [minutes, sliderMax]);
 
   const req: ComposeRequest = { request, kind, minutes, voice, ambience };
-  const problem = validateComposeRequest(req, COMPOSE_KNOWN);
+  const allowance = usage === undefined ? null : allowanceProblem(minutes, left, now);
+  const problem = validateComposeRequest(req, COMPOSE_KNOWN) ?? allowance;
 
   // Choosing a background plays its preview; tapping it again while it plays stops it.
   const pickBackground = (key: string | null) => {
@@ -145,7 +166,12 @@ export const ComposeNewScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={cs.sectionLabel}>Length</Text>
           <Text style={styles.lengthValue}>{minutes} min</Text>
         </View>
-        <Slider value={minutes} min={COMPOSE_MIN_MINUTES} max={COMPOSE_MAX_MINUTES} step={1} onChange={setMinutes} color={COMPOSE_ACCENT} />
+        <Slider value={minutes} min={COMPOSE_MIN_MINUTES} max={sliderMax} step={1} onChange={setMinutes} color={COMPOSE_ACCENT} />
+        {usage !== undefined && (
+          <Text style={[cs.muted, allowance && styles.allowanceOut]}>
+            {allowance ?? `${left} of ${COMPOSE_MONTHLY_MINUTES} minutes left this month.`}
+          </Text>
+        )}
 
         <Text style={cs.sectionLabel}>Voice</Text>
         {COMPOSE_VOICES.map((v) => {
@@ -214,7 +240,9 @@ export const ComposeNewScreen: React.FC<Props> = ({ navigation, route }) => {
         >
           {sending ? <ActivityIndicator color={Colors.white} /> : <Text style={cs.primaryBtnText}>Create session</Text>}
         </TouchableOpacity>
-        {problem && request.trim().length > 0 && <Text style={[cs.muted, styles.center]}>{problem}</Text>}
+        {problem && (request.trim().length > 0 || allowance) && (
+          <Text style={[cs.muted, styles.center]}>{problem}</Text>
+        )}
         <Text style={[cs.muted, styles.center]}>Takes a minute or two. You can leave while it’s made.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -228,6 +256,7 @@ const styles = StyleSheet.create({
   requestFoot: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm, marginTop: -4 },
   lengthHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   lengthValue: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: COMPOSE_ACCENT },
+  allowanceOut: { color: Colors.dark, fontFamily: Fonts.secondaryBold },
   voiceRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   voiceText: { flex: 1, gap: 2 },
   sampleBtn: { borderRadius: BorderRadius.full },

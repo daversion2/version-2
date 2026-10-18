@@ -12,6 +12,7 @@ import {
   unsaveComposeSession,
   watchComposeSession,
   watchComposeSessions,
+  watchComposeUsage,
 } from '../labCompose';
 import { addMockDocument, getMockDB } from '../__mocks__/firestore';
 import type { ComposeRequest, ComposeSession } from '../../utils/meditation/compose';
@@ -106,6 +107,16 @@ describe('watching', () => {
     expect(one?.id).toBe('s1');
     const gone = await new Promise<ComposeSession | null>((resolve) => watchComposeSession('u1', 'nope', resolve));
     expect(gone).toBeNull();
+  });
+});
+
+describe('watchComposeUsage', () => {
+  it('delivers the allowance, or null before any session', async () => {
+    const none = await new Promise((resolve) => watchComposeUsage('u1', resolve));
+    expect(none).toBeNull();
+    addMockDocument('composeUsage', 'u1', { month: '2026-10', minutes: 12 });
+    const usage = await new Promise((resolve) => watchComposeUsage('u1', resolve));
+    expect(usage).toEqual({ month: '2026-10', minutes: 12 });
   });
 });
 

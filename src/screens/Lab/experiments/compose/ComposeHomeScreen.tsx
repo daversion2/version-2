@@ -13,8 +13,16 @@ import {
   isComposeWorking,
   splitComposeSessions,
   watchComposeSessions,
+  watchComposeUsage,
 } from '../../../../services/labCompose';
-import type { ComposeSession } from '../../../../utils/meditation/compose';
+import {
+  COMPOSE_MIN_MINUTES,
+  COMPOSE_MONTHLY_MINUTES,
+  allowanceResetLabel,
+  minutesLeft,
+  type ComposeSession,
+  type ComposeUsage,
+} from '../../../../utils/meditation/compose';
 import { COMPOSE_ACCENT, COMPOSE_TINT, cs } from './components/composeStyle';
 
 type Props = NativeStackScreenProps<ComposeStackParamList, 'ComposeHome'>;
@@ -34,6 +42,12 @@ export const ComposeHomeScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (!user) return undefined;
     return watchComposeSessions(user.uid, setSessions, () => setLoadError(true));
+  }, [user]);
+
+  const [usage, setUsage] = useState<ComposeUsage | null | undefined>(undefined);
+  useEffect(() => {
+    if (!user) return undefined;
+    return watchComposeUsage(user.uid, setUsage, () => setUsage(undefined));
   }, [user]);
 
   // Re-check every so often, so a session that stalled on the server stops
@@ -111,6 +125,13 @@ export const ComposeHomeScreen: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity style={cs.primaryBtn} onPress={startNew} accessibilityRole="button">
         <Text style={cs.primaryBtnText}>{sessions.length === 0 ? 'Make your first session' : 'New session'}</Text>
       </TouchableOpacity>
+      {usage !== undefined && (
+        <Text style={[cs.muted, styles.allowance]}>
+          {minutesLeft(usage, new Date()) >= COMPOSE_MIN_MINUTES
+            ? `${minutesLeft(usage, new Date())} of ${COMPOSE_MONTHLY_MINUTES} minutes left this month`
+            : `This month's ${COMPOSE_MONTHLY_MINUTES} minutes are used. More on ${allowanceResetLabel(new Date())}.`}
+        </Text>
+      )}
 
       {saved.length > 0 && (
         <>
@@ -181,4 +202,5 @@ const styles = StyleSheet.create({
   },
   rowIconProblem: { backgroundColor: Colors.lightGray },
   rowText: { flex: 1, gap: 2 },
+  allowance: { textAlign: 'center', marginTop: -4 },
 });

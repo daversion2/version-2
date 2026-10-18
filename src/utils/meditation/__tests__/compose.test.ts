@@ -2,8 +2,15 @@ import { mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import {
+  COMPOSE_MONTHLY_MINUTES,
+  allowanceProblem,
+  allowanceResetLabel,
   cleanSpokenLine,
   composeUserMessage,
+  minutesLeft,
+  minutesUsed,
+  refundMinutes,
+  reserveMinutes,
   slugify,
   toScriptSource,
   validateComposeRequest,
@@ -143,5 +150,48 @@ describe('wavDurationSec', () => {
     const path = join(mkdtempSync(join(tmpdir(), 'wav-')), 'one.wav');
     writeFileSync(path, Buffer.concat([header, data]));
     expect(wavDurationSec(path)).toBe(1);
+  });
+});
+
+describe('monthly allowance', () => {
+  const OCT = new Date('2026-10-18T12:00:00Z');
+  const NOV = new Date('2026-11-01T00:00:01Z');
+
+  it('counts only this month', () => {
+    expect(minutesUsed({ month: '2026-10', minutes: 12 }, OCT)).toBe(12);
+    expect(minutesUsed({ month: '2026-09', minutes: 12 }, OCT)).toBe(0);
+    expect(minutesUsed(null, OCT)).toBe(0);
+    // The old daily-limit doc shape reads as nothing used.
+    expect(minutesUsed({ day: '2026-10-18', count: 3 } as never, OCT)).toBe(0);
+    expect(minutesLeft({ month: '2026-10', minutes: 12 }, OCT)).toBe(COMPOSE_MONTHLY_MINUTES - 12);
+    expect(minutesLeft({ month: '2026-10', minutes: 50 }, OCT)).toBe(0);
+  });
+
+  it('holds minutes up to the limit, and no further', () => {
+    expect(reserveMinutes({ month: '2026-10', minutes: 20 }, 10, OCT, 30)).toEqual({
+      ok: true,
+      next: { month: '2026-10', minutes: 30 },
+    });
+    expect(reserveMinutes({ month: '2026-10', minutes: 25 }, 10, OCT, 30)).toEqual({ ok: false, left: 5 });
+    // A new month starts from zero.
+    expect(reserveMinutes({ month: '2026-10', minutes: 30 }, 10, NOV, 30)).toEqual({
+      ok: true,
+      next: { month: '2026-11', minutes: 10 },
+    });
+  });
+
+  it('gives minutes back within the month, never below zero', () => {
+    expect(refundMinutes({ month: '2026-10', minutes: 30 }, 10, '2026-10', OCT)).toEqual({ month: '2026-10', minutes: 20 });
+    expect(refundMinutes({ month: '2026-10', minutes: 4 }, 10, '2026-10', OCT)).toEqual({ month: '2026-10', minutes: 0 });
+    // Held in October, failed in November: nothing to give back.
+    expect(refundMinutes({ month: '2026-11', minutes: 6 }, 10, '2026-10', NOV)).toBeNull();
+  });
+
+  it('says when it resets and what fits', () => {
+    expect(allowanceResetLabel(OCT)).toBe('November 1');
+    expect(allowanceResetLabel(new Date('2026-12-31T23:00:00Z'))).toBe('January 1');
+    expect(allowanceProblem(5, 30, OCT)).toBeNull();
+    expect(allowanceProblem(10, 6, OCT)).toMatch(/6 minutes left/);
+    expect(allowanceProblem(2, 1, OCT)).toMatch(/November 1/);
   });
 });
