@@ -31,6 +31,8 @@ export type RootStackParamList = {
   MeditateApp: { habitId?: string } | undefined;
   /** Compose (Lab): guided sessions written and voiced on request. */
   ComposeApp: undefined;
+  /** The Meals mini-app (Lab). `habitId` = opened from that habit on Today. */
+  MealsApp: { habitId?: string } | undefined;
 };
 
 // ============================================================================

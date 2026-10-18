@@ -134,6 +134,11 @@ export const RootNavigator: React.FC = () => {
               getComponent={() => require('../screens/Lab/experiments/compose/ComposeApp').ComposeApp}
               options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
             />
+            <Stack.Screen
+              name="MealsApp"
+              getComponent={() => require('../screens/Lab/experiments/meals/MealsApp').MealsApp}
+              options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+            />
           </>
         )}
       </Stack.Navigator>

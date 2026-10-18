@@ -183,6 +183,45 @@ they could share recordings to a user-generated library.
   premium feature; access checks already route through one place
   (decision 12).
 
+### Meals (built in the Lab, 2026-10-18)
+
+Decided over several rounds on 2026-10-17 (a clickable mockup was approved
+first: https://claude.ai/artifact/ComioQX7dhGJeJjf1c4FLp). Weight Watchers'
+simplicity without its points: no calories, no food database, no nutrients.
+
+- **Logging:** each of the user's own meals (how many and what they're called
+  is theirs) is rated by tapping the food groups on the plate. Whole food:
+  Veggies, Fruit, Chicken & turkey, Beef, Pork, Eggs, Fish & seafood, Legumes,
+  Nuts & seeds, Grains & starches. Processed: Semi-processed (dairy, bread,
+  pasta, jarred sauce) and Processed. The user never decides what counts —
+  the app works out pass or fail. Snacks and drinks are "something
+  additional", on top of the meals, rated the same way.
+- **Pass:** at least one whole-food group and nothing Processed. Strict mode
+  (a setting): whole food only.
+- **The day:** the user's goal is "pass N of my M meals"; M − N is how many
+  misses the day can hold, and a failed extra is one miss. A meal marked
+  "didn't eat" never counts against the day. Up to 3 food-group goals, daily
+  (decide the day) or weekly (a progress bar). **No flex or cheat meals** —
+  the founder rejected any allowance: the day is on target or it isn't.
+- **XP:** an on-target day, closed out in Meals, hands the linked habit back
+  to Today for the usual "How hard was it?" and celebration. An off-target day
+  asks one optional "what got in the way?" (It was me / It was the day) and
+  writes no check-in. Meals never awards XP itself.
+- **Code:** rules in `services/mealsMath.ts` (tested), storage in
+  `services/labMeals.ts` (`users/{uid}/lab_meals_days`, `lab_meals_prefs`),
+  food groups and reasons in `data/mealGroups.ts`, screens in
+  `screens/Lab/experiments/meals/`. Each day saves the rules it was scored
+  under, so changing settings never rescores the past.
+- **Not built yet:** a library habit of its own (link one in Meals settings
+  for now — a custom "Eat real food" works); closing out from the app-wide
+  nightly close (it's inside Meals for now); past weeks; a habit-detail
+  highlight card (handoff #3, same as the others).
+- **When it goes live:** remove Eat your vegetables, Hit my protein, Cut the
+  sugar, Eat Healthy Food I Don't Enjoy and Cook one real meal from the
+  library in the same release, archiving testers' copies with history kept,
+  and point onboarding's Fuel picks at Meals. Alcohol-free day, Fasting and the
+  water habits stay.
+
 ### Focus
 - **Habits:** `deep-focus-session`, `dreaded-task-first`, `inbox-after-focus`,
   `phone-free-first-hour`

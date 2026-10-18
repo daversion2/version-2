@@ -14,7 +14,7 @@ import type { PracticeInstance, User } from '../types';
 //     the same celebration a plain check-in gets.
 // =============================================================================
 
-export type MiniAppId = 'workouts' | 'meditate' | 'compose';
+export type MiniAppId = 'workouts' | 'meditate' | 'compose' | 'meals';
 
 export interface MiniAppManifest {
   id: MiniAppId;
@@ -53,6 +53,17 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     icon: 'sparkles-outline',
     accent: CategoryColors.sleep,
     // Not tied to a habit (yet): it's opened from the Lab.
+    habitIds: [],
+    release: 'lab',
+  },
+  meals: {
+    id: 'meals',
+    title: 'Meals',
+    icon: 'nutrition-outline',
+    accent: CategoryColors.fuel,
+    // None automatically: the food habits it replaces (vegetables, protein,
+    // sugar, cooking) come out of the library when Meals goes live, rather than
+    // each one opening it. Until then you link a habit inside Meals.
     habitIds: [],
     release: 'lab',
   },

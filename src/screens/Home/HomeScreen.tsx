@@ -72,6 +72,7 @@ import {
 } from '../../services/miniApps';
 import { getWorkoutPrefs } from '../../services/labWorkouts';
 import { getMeditatePrefs } from '../../services/labMeditate';
+import { getMealsPrefs } from '../../services/labMeals';
 import { resolveTemplateFields } from '../../data/habitTemplates';
 
 type Props = HomeScreenProps<'HomeScreen'>;
@@ -112,6 +113,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Same for Meditate: meditation, breathwork and NSDR habits, plus hand-linked ones.
   const meditateOnToday = useLab('meditateStart') && canOpenMiniApp('meditate', userProfile);
   const [meditateLinkedIds, setMeditateLinkedIds] = useState<string[]>([]);
+  // Meals: no library habit opens it — only the one you link inside Meals.
+  const mealsOnToday = useLab('mealsStart') && canOpenMiniApp('meals', userProfile);
+  const [mealsLinkedIds, setMealsLinkedIds] = useState<string[]>([]);
   // Practice whose briefing is open on its own (no forward flow committed to).
   const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
   // The one expanded card. Single-valued on purpose: several open panels turns
@@ -338,6 +342,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           .then((p) => setMeditateLinkedIds(p.linked_habit_ids))
           .catch((err) => console.warn('Meditate links failed to load:', err));
       }
+      if (mealsOnToday) {
+        getMealsPrefs(user.uid)
+          .then((p) => setMealsLinkedIds(p.linked_habit_ids))
+          .catch((err) => console.warn('Meals links failed to load:', err));
+      }
       // Once per session: schedule any enabled reminders that aren't scheduled yet
       // (e.g. saved before reminders shipped, or while permission was denied).
       if (!remindersReconciledRef.current && user) {
@@ -409,7 +418,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [user, refreshProfile, userProfile?.starting_practice_id, workoutsOnToday, meditateOnToday]);
+  }, [user, refreshProfile, userProfile?.starting_practice_id, workoutsOnToday, meditateOnToday, mealsOnToday]);
 
   useFocusEffect(
     useCallback(() => {
@@ -786,7 +795,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                                 CommonActions.navigate({ name: 'MeditateApp', params: { habitId: habit.id } })
                               ),
                           }
-                        : undefined
+                        : mealsOnToday && isHabitLinkedToMiniApp('meals', habit, mealsLinkedIds)
+                          ? {
+                              label: 'Open Meals',
+                              icon: MINI_APPS.meals.icon,
+                              onPress: () =>
+                                navigation.dispatch(
+                                  CommonActions.navigate({ name: 'MealsApp', params: { habitId: habit.id } })
+                                ),
+                            }
+                          : undefined
                   }
                 />
               );
