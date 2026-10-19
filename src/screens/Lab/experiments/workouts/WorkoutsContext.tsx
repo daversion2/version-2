@@ -29,7 +29,7 @@ import {
   sortWorkouts,
 } from '../../../../services/labWorkouts';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../../services/miniAppDrafts';
-import { finishSession, isHabitLinkedToMiniApp } from '../../../../services/miniApps';
+import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
 import { makeId, startSession } from '../../../../services/workoutSession';
 import { activeExercises, ExerciseDraft, isExerciseUsed } from '../../../../services/exerciseLibrary';
@@ -71,9 +71,8 @@ interface WorkoutsContextValue {
   sessions: CompletedWorkoutSession[];
   records: Record<string, ExerciseRecord>;
 
-  /** Active habits, for linking and for the summary's "check off" choice. */
+  /** Active habits on the account. */
   habits: PracticeInstance[];
-  linkedHabits: PracticeInstance[];
   /** The habit whose Start button opened the app, if one did. */
   launchHabitId?: string;
 
@@ -89,8 +88,11 @@ interface WorkoutsContextValue {
   }) => void;
 
   closeApp: () => void;
-  /** Close the app and hand the habit back to Today to rate and celebrate. */
-  closeAndCheckOff: (habitId: string, durationSec: number) => void;
+  /**
+   * Close the app and hand the session back to Today, which rates it as the
+   * Workouts check-in (services/appCheckins.ts). `date` for a past session.
+   */
+  closeAndCheckOff: (durationSec: number, date?: string) => void;
 }
 
 const WorkoutsContext = createContext<WorkoutsContextValue | null>(null);
@@ -177,11 +179,6 @@ export const WorkoutsProvider: React.FC<{
   const exercise = useCallback(
     (id: string) => exercisesById[id] ?? { ...UNKNOWN_EXERCISE, id },
     [exercisesById]
-  );
-
-  const linkedHabits = useMemo(
-    () => habits.filter((h) => isHabitLinkedToMiniApp(APP, h, prefs.linked_habit_ids)),
-    [habits, prefs.linked_habit_ids]
   );
 
   const updatePrefs = useCallback(
@@ -296,17 +293,13 @@ export const WorkoutsProvider: React.FC<{
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
-    (habitId: string, durationSec: number) => {
-      finishSession({ appId: APP, habitId, durationSec });
-      if (launchHabitId) {
-        rootNavigation.goBack();
-      } else {
-        // Opened from the Lab, not Today: land on Today, where the rating and
-        // the celebration live. One action, so nothing runs from a closed screen.
-        rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });
-      }
+    (durationSec: number, date?: string) => {
+      finishSession({ appId: APP, durationSec, ...(date ? { date } : {}) });
+      // Land on Today, where the rating and the celebration live — from its
+      // card or from the Lab alike. One action, so nothing runs from a closed screen.
+      rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });
     },
-    [rootNavigation, launchHabitId]
+    [rootNavigation]
   );
 
   const value: WorkoutsContextValue = {
@@ -330,7 +323,6 @@ export const WorkoutsProvider: React.FC<{
     sessions,
     records,
     habits,
-    linkedHabits,
     launchHabitId,
     session,
     updateSession,

@@ -30,42 +30,54 @@ const pace = (habitId: string, p: Partial<HabitPace> = {}): HabitPace =>
 
 describe('buildTodaySectionViews', () => {
   const classes: Record<string, RowClass> = {
-    meditate: { section: 'mind', kind: 'app', appId: 'meditate' },
+    'app:meditate': { section: 'mind', kind: 'app', appId: 'meditate' },
     bedtime: { section: 'mind', kind: 'plain' },
     focus: { section: 'mind', kind: 'plain' },
     nophone: { section: 'mind', kind: 'plain' },
-    workout: { section: 'movement', kind: 'app', appId: 'workouts' },
+    'app:workouts': { section: 'movement', kind: 'app', appId: 'workouts' },
+    workout: { section: 'movement', kind: 'plain' },
     cold: { section: 'movement', kind: 'plain' },
   };
   const classify = (id: string) => classes[id] ?? null;
 
-  it('puts what needs you today on top, app first, and folds the rest away', () => {
+  it('puts the app on top, then what needs you today, and folds the rest away', () => {
     const views = buildTodaySectionViews(
       [
         // Pace order: the most pressing first.
         pace('bedtime', { dueToday: true, dayScheduled: true }),
         pace('cold', { status: 'behind' }),
         pace('focus'), // open: nothing owed today
-        pace('meditate'), // open, but an app — stays on top
+        pace('app:meditate'), // open, but an app — stays on top
         pace('nophone', { doneToday: true }),
         pace('workout', { doneToday: true }),
+        pace('app:workouts', { doneToday: true }), // done, and still on top
       ],
       classify
     );
 
     expect(views.map((v) => v.id)).toEqual(['mind', 'movement']);
     const [mind, movement] = views;
-    expect(mind.rows.map((r) => r.habitId)).toEqual(['meditate', 'bedtime']);
+    expect(mind.apps.map((r) => r.habitId)).toEqual(['app:meditate']);
+    expect(mind.rows.map((r) => r.habitId)).toEqual(['bedtime']);
     expect(mind.weekRows.map((r) => r.habitId)).toEqual(['focus']);
     expect(mind.doneRows.map((r) => r.habitId)).toEqual(['nophone']);
     expect(mind.allDone).toBe(false);
 
+    expect(movement.apps.map((r) => r.habitId)).toEqual(['app:workouts']);
     expect(movement.rows.map((r) => r.habitId)).toEqual(['cold']);
     expect(movement.rows[0].kind).toBe('plain');
     expect(movement.doneRows.map((r) => r.habitId)).toEqual(['workout']);
+    expect(movement.noHabits).toBe(false);
   });
 
-  it('drops empty sections and marks a finished one done', () => {
+  it('keeps a section with only its app, marked as having no habits', () => {
+    const views = buildTodaySectionViews([pace('app:workouts')], classify);
+    expect(views).toHaveLength(1);
+    expect(views[0]).toMatchObject({ id: 'movement', noHabits: true, allDone: true, rows: [] });
+    expect(views[0].apps).toHaveLength(1);
+  });
+
+  it('drops a section with neither an app nor habits, and marks a finished one done', () => {
     const views = buildTodaySectionViews([pace('workout', { doneToday: true })], classify);
     expect(views).toHaveLength(1);
     expect(views[0]).toMatchObject({ id: 'movement', allDone: true, rows: [] });
@@ -87,7 +99,7 @@ describe('habit sections', () => {
 
   it('places a library habit by its catalog category and a custom one by its own', () => {
     expect(sectionOfHabit({ practice_id: 'workout' })).toBe('movement');
-    expect(sectionOfHabit({ practice_id: 'meals' })).toBe('meals');
+    expect(sectionOfHabit({ practice_id: 'alcohol-free-day' })).toBe('meals');
     expect(sectionOfHabit({ category_id: 'Fuel' })).toBe('meals');
     // Unplaceable: lands in Mind rather than vanishing off Today.
     expect(sectionOfHabit({ category_id: 'Connection' })).toBe('mind');

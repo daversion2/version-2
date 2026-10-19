@@ -27,13 +27,7 @@ const DONE_TITLE: Record<string, string> = { sit: 'Sit done', breathe: 'Breathin
  */
 export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { userId, session, sessions, habits, linkedHabits, recordFinished, closeAndCheckOff, discardSession } =
-    useMeditate();
-  // A session started from a habit's Start button checks that habit off.
-  // Otherwise you choose — preselected when there's only one option.
-  const [habitId, setHabitId] = useState<string | undefined>(
-    session?.habitId ?? (linkedHabits.length === 1 ? linkedHabits[0].id : undefined)
-  );
+  const { userId, session, sessions, recordFinished, closeAndCheckOff, discardSession } = useMeditate();
   const [saving, setSaving] = useState(false);
 
   // finished_at is stamped again at save; this is only for what's shown.
@@ -42,18 +36,11 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
 
   if (!session || !preview) return <View style={ms.screen} />;
 
-  // Only a habit that's actually on this account counts — the button's wording
-  // and what gets checked off must never disagree.
-  const knownHabit = (id?: string) => (id ? habits.find((h) => h.id === id) : undefined);
-  const fixedHabit = knownHabit(session.habitId);
-  const chosenHabit = fixedHabit ?? knownHabit(habitId);
-
   const finish = async () => {
     setSaving(true);
-    const completed = toCompletedSession(
-      { ...session, ...(chosenHabit ? { habitId: chosenHabit.id } : { habitId: undefined }) },
-      new Date()
-    );
+    // Every finished session is the Meditate check-in on Today; no habit is
+    // chosen here (services/appCheckins.ts ticks a matching Meditation habit).
+    const completed = toCompletedSession({ ...session, habitId: undefined }, new Date());
     try {
       await withTimeout(saveMeditateSession(userId, completed), 15000);
     } catch (e) {
@@ -63,8 +50,7 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     recordFinished(completed);
-    if (chosenHabit) closeAndCheckOff(chosenHabit.id, completed);
-    else navigation.popToTop();
+    closeAndCheckOff(completed);
   };
 
   const discard = () =>
@@ -105,49 +91,6 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <Text style={ms.sectionLabel}>Check off a habit</Text>
-        {fixedHabit ? (
-          <View style={[ms.card, styles.habitRow]}>
-            <Ionicons name="checkmark-circle" size={20} color={MEDITATE_ACCENT} />
-            <Text style={[ms.title, { flex: 1 }]}>{fixedHabit.name}</Text>
-          </View>
-        ) : linkedHabits.length === 0 ? (
-          <Text style={ms.muted}>
-            No habit is linked to Meditate. Link one in Meditate settings and finishing will check it off.
-          </Text>
-        ) : (
-          <>
-            {linkedHabits.map((h) => (
-              <TouchableOpacity
-                key={h.id}
-                style={[ms.card, styles.habitRow, habitId === h.id && styles.habitRowOn]}
-                onPress={() => setHabitId(h.id)}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: habitId === h.id }}
-              >
-                <Ionicons
-                  name={habitId === h.id ? 'radio-button-on' : 'radio-button-off'}
-                  size={20}
-                  color={habitId === h.id ? MEDITATE_ACCENT : Colors.gray}
-                />
-                <Text style={[ms.title, { flex: 1 }]}>{h.name}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[ms.card, styles.habitRow, !habitId && styles.habitRowOn]}
-              onPress={() => setHabitId(undefined)}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: !habitId }}
-            >
-              <Ionicons
-                name={!habitId ? 'radio-button-on' : 'radio-button-off'}
-                size={20}
-                color={!habitId ? MEDITATE_ACCENT : Colors.gray}
-              />
-              <Text style={[ms.body, { flex: 1 }]}>Just save the session</Text>
-            </TouchableOpacity>
-          </>
-        )}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
@@ -160,7 +103,7 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={ms.primaryBtnText}>{chosenHabit ? 'Finish & rate it' : 'Save session'}</Text>
+            <Text style={ms.primaryBtnText}>Finish & rate it</Text>
           )}
         </TouchableOpacity>
         <TouchableOpacity onPress={discard} disabled={saving} style={ms.textBtn}>

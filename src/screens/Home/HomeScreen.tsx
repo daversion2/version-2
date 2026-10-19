@@ -15,7 +15,7 @@ import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { PracticeInstance } from '../../types';
 import { activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, completePractice, fetchAllNudgeLogs, getHabitsStreaksFromLogs, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
+import { getActiveHabits, completePractice, logMirrorCompletion, fetchAllNudgeLogs, getHabitsStreaksFromLogs, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
 import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
 import { reconcileHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
@@ -25,6 +25,16 @@ import { HabitCompletionModal } from '../../components/habits/HabitCompletionMod
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
 import { PracticeBriefingModal } from '../../components/habits/PracticeBriefingModal';
 import { getPractice, getPracticeColor, formatCommitment } from '../../data/practices';
+import {
+  APP_TRACKING,
+  TODAY_APPS,
+  TodayAppId,
+  appCheckinHabit,
+  appIdFromCheckinId,
+  habitTickedBy,
+  lastAppCheckin,
+} from '../../services/appCheckins';
+import { TodayAppCard } from '../../components/home/TodayAppCard';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { ComebackModal } from '../../components/home/ComebackModal';
@@ -74,25 +84,15 @@ import { useCopy } from '../../context/CopyContext';
 import {
   canOpenMiniApp,
   checkinMetricsFor,
-  isHabitLinkedToMiniApp,
   MINI_APPS,
-  MiniAppId,
   SessionHandoff,
   takePendingFinish,
 } from '../../services/miniApps';
 import { getWorkoutPrefs } from '../../services/labWorkouts';
 import { getMeditatePrefs } from '../../services/labMeditate';
-import { getMealsPrefs } from '../../services/labMeals';
 import { resolveTemplateFields } from '../../data/habitTemplates';
 
 type Props = HomeScreenProps<'HomeScreen'>;
-
-/** The mini-apps a Today row can open, in the order a habit is matched against them. */
-const TODAY_APPS: { id: MiniAppId; route: 'WorkoutsApp' | 'MeditateApp' | 'MealsApp' }[] = [
-  { id: 'workouts', route: 'WorkoutsApp' },
-  { id: 'meditate', route: 'MeditateApp' },
-  { id: 'meals', route: 'MealsApp' },
-];
 
 /** What the quick sheet is open on. */
 interface QuickLogTarget {
@@ -103,11 +103,22 @@ interface QuickLogTarget {
   note?: string;
   /** Non-numeric answers a session already gave (Meditate's technique), saved with the rating. */
   extraMetrics?: Record<string, number | string>;
+  /** A past session logged in an app: the day it happened. */
+  date?: string;
+  /** Meditate's mode, for which habit the session ticks. */
+  mode?: string;
 }
 
-/** The habit's tracking fields: from the catalog, or a custom habit's template. */
-const trackingFor = (habit: PracticeInstance): TrackingField[] =>
-  getPractice(habit.practice_id)?.tracking ?? resolveTemplateFields({ template_id: habit.template_id }) ?? [];
+/** The habit's tracking fields: an app's own, the catalog's, or a custom habit's template. */
+const trackingFor = (habit: PracticeInstance): TrackingField[] => {
+  const appId = appIdFromCheckinId(habit.id);
+  if (appId) return APP_TRACKING[appId];
+  return getPractice(habit.practice_id)?.tracking ?? resolveTemplateFields({ template_id: habit.template_id }) ?? [];
+};
+
+/** Which section a habit — or an app's check-in habit — sits in. */
+const sectionOf = (habit: PracticeInstance) =>
+  TODAY_APPS.find((a) => appIdFromCheckinId(habit.id) === a.id)?.section ?? sectionOfHabit(habit);
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // First visit explains the screen; the ⓘ in the header brings it back.
@@ -138,23 +149,22 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [completingLockDate, setCompletingLockDate] = useState(false);
   const [completingMetrics, setCompletingMetrics] = useState<Record<string, number | string> | undefined>();
   const [pendingFinish, setPendingFinish] = useState<SessionHandoff | null>(null);
-  // Habits with a mini-app behind them open it from their row. Library habits
-  // link automatically (MINI_APPS.habitIds); these are the ones linked by hand
-  // inside each app. Workouts, Meditate and Meals are live for everyone.
-  const workoutsOnToday = canOpenMiniApp('workouts', userProfile);
-  const [workoutLinkedIds, setWorkoutLinkedIds] = useState<string[]>([]);
-  const meditateOnToday = canOpenMiniApp('meditate', userProfile);
-  const [meditateLinkedIds, setMeditateLinkedIds] = useState<string[]>([]);
-  const mealsOnToday = canOpenMiniApp('meals', userProfile);
-  const [mealsLinkedIds, setMealsLinkedIds] = useState<string[]>([]);
+  // The apps are the main thing (services/appCheckins.ts): always on Today,
+  // each as a check-in habit of its own with the weekly goal set in the app.
+  const [appGoals, setAppGoals] = useState<Partial<Record<TodayAppId, number>>>({});
+  const appHabits = useMemo(
+    () =>
+      TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile)).map((a) => appCheckinHabit(a.id, appGoals[a.id])),
+    [appGoals, userProfile]
+  );
+  // False until the first habit fetch lands: the app cards draw at once, and
+  // "Add a habit" must not flash under them while habits are still loading.
+  const [habitsLoaded, setHabitsLoaded] = useState(false);
   // The habit whose briefing ("About" in a row's panel) is open.
   const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
   // The one row whose panel is open. Single-valued on purpose: several open
   // panels turns the list back into a wall of controls.
   const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
-  // False until the first habit fetch lands, so "No habits yet" never flashes
-  // while the list is still loading.
-  const [habitsLoaded, setHabitsLoaded] = useState(false);
   // A tap on a plain habit: the quick sheet, amounts filled in from last time.
   const [quickLog, setQuickLog] = useState<QuickLogTarget | null>(null);
   // The everyday "+N XP" — the full celebration is kept for milestones.
@@ -378,21 +388,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const habitList = await getActiveHabits(user.uid);
       setHabits(habitList);
       setHabitsLoaded(true);
-      if (workoutsOnToday) {
-        getWorkoutPrefs(user.uid)
-          .then((p) => setWorkoutLinkedIds(p.linked_habit_ids))
-          .catch((err) => console.warn('Workouts links failed to load:', err));
-      }
-      if (meditateOnToday) {
-        getMeditatePrefs(user.uid)
-          .then((p) => setMeditateLinkedIds(p.linked_habit_ids))
-          .catch((err) => console.warn('Meditate links failed to load:', err));
-      }
-      if (mealsOnToday) {
-        getMealsPrefs(user.uid)
-          .then((p) => setMealsLinkedIds(p.linked_habit_ids))
-          .catch((err) => console.warn('Meals links failed to load:', err));
-      }
+      // The apps' weekly goals, set inside each app. Defaults if unreadable.
+      const [workoutPrefs, meditatePrefs] = await Promise.all([
+        getWorkoutPrefs(user.uid).catch(() => null),
+        getMeditatePrefs(user.uid).catch(() => null),
+      ]);
+      const goals = { workouts: workoutPrefs?.weekly_goal, meditate: meditatePrefs?.weekly_goal };
+      setAppGoals(goals);
+      const appHabitList = TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile)).map((a) =>
+        appCheckinHabit(a.id, goals[a.id as keyof typeof goals])
+      );
       // Once per session: schedule any enabled reminders that aren't scheduled yet
       // (e.g. saved before reminders shipped, or while permission was denied).
       if (!remindersReconciledRef.current && user) {
@@ -422,7 +427,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // nothing is short, so the common case costs nothing.
         try {
           setSkipReview(
-            await getPendingSkipReview(user.uid, habitList, cachedNudgeLogs, todayStr)
+            // Apps' weekly goals are reviewed like any habit's.
+            await getPendingSkipReview(user.uid, [...habitList, ...appHabitList], cachedNudgeLogs, todayStr)
           );
         } catch (err) {
           console.warn('Skip review check failed:', err);
@@ -464,7 +470,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [user, refreshProfile, userProfile?.starting_practice_id, workoutsOnToday, meditateOnToday, mealsOnToday]);
+  }, [user, refreshProfile, userProfile?.starting_practice_id, userProfile?.is_admin]);
 
   useFocusEffect(
     useCallback(() => {
@@ -479,12 +485,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 
   // The finished session's check-in: the quick sheet, with what the session
-  // measured filled in, then the same handleHabitComplete as any check-in.
-  // Waits for the habit list, and for the mini-app's full-screen dismissal: iOS
-  // drops a modal presented while another is still animating away.
+  // measured filled in, then the same handleHabitComplete as any check-in —
+  // filed under the app itself (services/appCheckins.ts). Waits for the
+  // mini-app's full-screen dismissal: iOS drops a modal presented while
+  // another is still animating away.
   useEffect(() => {
     if (!pendingFinish) return;
-    const habit = habits.find((h) => h.id === pendingFinish.habitId);
+    const habit = appHabits.find((h) => appIdFromCheckinId(h.id) === pendingFinish.appId);
     if (!habit) return;
     const tracking = trackingFor(habit);
     const measured = checkinMetricsFor(tracking, pendingFinish) ?? {};
@@ -501,13 +508,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         habit,
         fields: numeric,
         initialValues: { ...prefillMetrics(numeric, habit, nudgeLogs), ...fromSession },
-        note: t('today.quick.fromApp', 'From {app}.', { app: MINI_APPS[pendingFinish.appId].title }),
+        note: pendingFinish.date
+          ? t('today.quick.forDay', 'Logging for {day}.', { day: formatRelativeDay(pendingFinish.date) })
+          : t('today.quick.fromApp', 'From {app}.', { app: MINI_APPS[pendingFinish.appId].title }),
         extraMetrics: Object.keys(extra).length ? extra : undefined,
+        date: pendingFinish.date,
+        mode: pendingFinish.mode,
       });
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingFinish, habits]);
+  }, [pendingFinish, appHabits]);
 
   // "Log with details" from the habit's page: the full capture, after the
   // page's pop has finished animating.
@@ -574,7 +585,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
    */
   const handleHabitComplete = async (
     input: PracticeCompletionInput,
-    forHabit?: PracticeInstance
+    forHabit?: PracticeInstance,
+    opts?: { mode?: string }
   ) => {
     const habit = forHabit ?? completingHabit;
     if (!user || !habit) return;
@@ -616,6 +628,32 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           date,
         } as CompletionLog,
       ]);
+
+      // An app session also ticks its matching habit (Workout, Meditation…):
+      // a mirror log with no rating or XP, so the effort counts once, under the
+      // app. Skipped if that habit is already logged for the day.
+      const appId = appIdFromCheckinId(habit.id);
+      const tickId = appId ? habitTickedBy(appId, habits, opts?.mode) : undefined;
+      if (tickId && !nudgeLogs.some((l) => l.reference_id === tickId && l.date === date)) {
+        logMirrorCompletion(user.uid, tickId, date, logId)
+          .then((mirrorId) =>
+            setNudgeLogs((prev) => [
+              ...prev,
+              {
+                id: mirrorId,
+                user_id: user.uid,
+                type: 'nudge',
+                reference_id: tickId,
+                points: 0,
+                difficulty: 0,
+                date,
+                mirror_of: logId,
+                completed_at: new Date().toISOString(),
+              } as CompletionLog,
+            ])
+          )
+          .catch((err) => console.warn('Ticking the matching habit failed:', err));
+      }
 
       setCompletingHabit(null);
       setQuickLog(null);
@@ -745,29 +783,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // The Today list: every active habit, ordered by what needs attention. Derived
   // rather than stored, so an optimistic habit update reorders immediately.
+  // The apps' check-in habits go through the same pace rule as habits.
   const todayList = useMemo(
-    () => buildTodayList(habits, nudgeLogs, todayStr),
-    [habits, nudgeLogs, todayStr]
+    () => buildTodayList([...habits, ...appHabits], nudgeLogs, todayStr),
+    [habits, appHabits, nudgeLogs, todayStr]
   );
   const habitsById = useMemo(
-    () => Object.fromEntries(habits.map((h) => [h.id, h])) as Record<string, PracticeInstance>,
-    [habits]
-  );
-
-  // Which mini-app (if any) a habit opens: library habits link automatically,
-  // others by the user's choice inside the app.
-  const appFor = useCallback(
-    (habit: PracticeInstance): MiniAppId | undefined => {
-      const linked: Record<string, { on: boolean; ids: string[] }> = {
-        workouts: { on: workoutsOnToday, ids: workoutLinkedIds },
-        meditate: { on: meditateOnToday, ids: meditateLinkedIds },
-        meals: { on: mealsOnToday, ids: mealsLinkedIds },
-      };
-      return TODAY_APPS.find(
-        (a) => linked[a.id].on && isHabitLinkedToMiniApp(a.id, habit, linked[a.id].ids)
-      )?.id;
-    },
-    [workoutsOnToday, meditateOnToday, mealsOnToday, workoutLinkedIds, meditateLinkedIds, mealsLinkedIds]
+    () =>
+      Object.fromEntries([...habits, ...appHabits].map((h) => [h.id, h])) as Record<string, PracticeInstance>,
+    [habits, appHabits]
   );
 
   // Mind, Movement, Meals — see services/todaySections.ts.
@@ -776,10 +800,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       buildTodaySectionViews(todayList, (habitId): RowClass | null => {
         const habit = habitsById[habitId];
         if (!habit) return null;
-        const appId = appFor(habit);
-        return { section: sectionOfHabit(habit), kind: appId ? 'app' : 'plain', appId };
+        const appId = appIdFromCheckinId(habitId);
+        return { section: sectionOf(habit), kind: appId ? 'app' : 'plain', appId };
       }),
-    [todayList, habitsById, appFor]
+    [todayList, habitsById]
   );
 
   const weekDates = useMemo(() => weekDatesFor(todayStr), [todayStr]);
@@ -800,30 +824,60 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setQuickLog({ habit, fields, initialValues: prefillMetrics(fields, habit, nudgeLogs) });
   };
 
+  // An app at the head of its section: its weekly goal, what you did last
+  // time, and the way in. The whole card opens the app's own home screen.
+  const renderApp = (row: TodayRowModel, sectionColor: string) => {
+    const appId = row.appId as TodayAppId;
+    const app = MINI_APPS[appId];
+    const route = TODAY_APPS.find((a) => a.id === appId)!.route;
+    const { pace } = row;
+    const status = sectionFor(pace);
+    const week = t('today.app.week', '{completed} of {target} this week', {
+      completed: pace.completed,
+      target: pace.target,
+    });
+    const goalLine = pace.doneToday ? t('today.app.doneToday', 'Done today · {week}', { week }) : week;
+    const last = lastAppCheckin(appId, nudgeLogs);
+    const lastMinutes = typeof last?.metrics?.duration_min === 'number' ? last.metrics.duration_min : undefined;
+    const lastLine = last
+      ? appId === 'meals'
+        ? t('today.app.lastMeals', 'Last on-target day: {day}', { day: formatRelativeDay(last.date) })
+        : lastMinutes
+          ? t('today.app.lastWithMinutes', 'Last: {day} · {minutes} min', {
+              day: formatRelativeDay(last.date),
+              minutes: lastMinutes,
+            })
+          : t('today.app.last', 'Last: {day}', { day: formatRelativeDay(last.date) })
+      : appId === 'meals'
+        ? t('today.app.firstMeals', 'Log what was on your plate today.')
+        : t('today.app.first', 'Nothing logged yet. Start your first session.');
+    return (
+      <TodayAppCard
+        key={row.habitId}
+        name={app.title}
+        icon={app.icon}
+        color={sectionColor}
+        goalLine={goalLine}
+        goalAlert={status === 'behind'}
+        lastLine={lastLine}
+        cta={appId === 'meals' ? t('today.app.open', 'Open') : t('today.app.start', 'Start')}
+        // A root route, above the tabs — dispatch bubbles up to it.
+        onOpen={() => navigation.dispatch(CommonActions.navigate({ name: route }))}
+      />
+    );
+  };
+
   const renderRow = (row: TodayRowModel, index: number, sectionColor: string) => {
     const habit = habitsById[row.habitId];
     if (!habit) return null;
     const def = getPractice(habit.practice_id);
     const status = sectionFor(row.pace);
-    const app = row.appId ? MINI_APPS[row.appId] : undefined;
-    // The status line ("1 of 3 · do 1 today"), else the amount committed to,
-    // else for an app habit named differently from its app, which app it opens.
-    const caption =
-      detailFor(row.pace, t) ??
-      formatCommitment(def, habit.metric_goals) ??
-      (app && app.title !== habit.name ? app.title : null);
+    // The status line ("1 of 3 · do 1 today"), else the amount committed to.
+    const caption = detailFor(row.pace, t) ?? formatCommitment(def, habit.metric_goals);
     const done = status === 'done';
-    const onPress = () => {
-      if (row.kind === 'app' && row.appId) {
-        const route = TODAY_APPS.find((a) => a.id === row.appId)!.route;
-        // A root route, above the tabs — dispatch bubbles up to it.
-        navigation.dispatch(CommonActions.navigate({ name: route, params: { habitId: habit.id } }));
-      } else {
-        // Every other habit, briefing or not, logs quickly. Its briefing is
-        // "About" in the row's panel, behind the ›.
-        openQuickLog(habit);
-      }
-    };
+    // Habits never open an app: every row logs quickly. A briefing is "About"
+    // in the row's panel, behind the ›.
+    const onPress = () => openQuickLog(habit);
     return (
       <TodayRow
         key={row.habitId}
@@ -832,7 +886,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         caption={done ? null : caption}
         captionAlert={status === 'behind' || (status === 'due_today' && row.pace.missed > 0)}
         accentColor={sectionColor}
-        appIcon={app?.icon}
         done={done}
         doneLabel={done ? doneLabelFor(row.pace) : undefined}
         onPress={onPress}
@@ -898,8 +951,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {/*
-          Mind, Movement, Meals. Each section is one card: what needs you today
-          on top (app habits first), with what isn't owed today and what's done
+          Mind, Movement, Meals. Each section is one card: its app on top
+          (always there), then the habits that need you today, with what isn't owed today and what's done
           folded into two links at the foot. A tap logs; press and hold opens
           the full check-in; the › opens the row's panel (week, About, Log
           details, History). See
@@ -913,6 +966,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               key={view.id}
               name={name}
               color={section.color}
+              apps={view.apps.map((r) => renderApp(r, section.color))}
+              onAddHabit={habitsLoaded ? () => navigation.getParent()?.navigate('Library') : undefined}
               rows={view.rows.map((r, i) => renderRow(r, i, section.color))}
               weekRows={view.weekRows.map((r, i) => renderRow(r, i, section.color))}
               doneRows={view.doneRows.map((r, i) => renderRow(r, i, section.color))}
@@ -920,11 +975,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           );
         })}
 
-        {habitsLoaded && todayList.length === 0 && (
-          <Copy id="today.empty" style={styles.emptyText}>
-            {'No habits yet. Browse the library to add your first one.'}
-          </Copy>
-        )}
+        {/* No "No habits yet" message: the apps are always here, and each
+            section without habits has its own "Add a habit" link. */}
 
         {/*
           Close out the day. Answers a different question from the habit rows:
@@ -1081,17 +1133,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       <QuickLogSheet
         visible={!!quickLog}
         habitName={quickLog?.habit.name ?? ''}
-        sectionName={quickLog ? t(`today.section.name.${sectionOfHabit(quickLog.habit)}`, getHabitSection(sectionOfHabit(quickLog.habit)).name) : ''}
-        sectionColor={quickLog ? getHabitSection(sectionOfHabit(quickLog.habit)).color : Colors.primary}
+        sectionName={quickLog ? t(`today.section.name.${sectionOf(quickLog.habit)}`, getHabitSection(sectionOf(quickLog.habit)).name) : ''}
+        sectionColor={quickLog ? getHabitSection(sectionOf(quickLog.habit)).color : Colors.primary}
         fields={quickLog?.fields ?? []}
         initialValues={quickLog?.initialValues ?? {}}
         note={quickLog?.note}
         onRate={async (resistance, values) => {
           if (!quickLog) return;
-          const input = buildQuickSheetInput(resistance, values, quickLog.initialValues);
+          const input = buildQuickSheetInput(resistance, values, quickLog.initialValues, quickLog.date);
           if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
           try {
-            await handleHabitComplete(input, quickLog.habit);
+            await handleHabitComplete(input, quickLog.habit, { mode: quickLog.mode });
           } catch (err) {
             console.warn('Quick log failed:', err);
             showAlert(

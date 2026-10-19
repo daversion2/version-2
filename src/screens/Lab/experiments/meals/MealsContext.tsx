@@ -7,7 +7,7 @@ import type { MealsDay, MealsPrefs, MealsRules } from '../../../../types/meals';
 import { DEFAULT_MEALS_PREFS } from '../../../../data/mealGroups';
 import { getMealsPrefs, listMealsDays, newMealsId, saveMealsDay, saveMealsPrefs } from '../../../../services/labMeals';
 import { emptyDay, rulesOf, weekDates } from '../../../../services/mealsMath';
-import { finishSession, isHabitLinkedToMiniApp } from '../../../../services/miniApps';
+import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
@@ -39,13 +39,15 @@ interface MealsContextValue {
   newId: () => string;
 
   habits: PracticeInstance[];
-  linkedHabits: PracticeInstance[];
   /** The habit whose button on Today opened the app, if one did. */
   launchHabitId?: string;
 
   closeApp: () => void;
-  /** Close the app and hand the habit back to Today to rate and celebrate. */
-  closeAndCheckOff: (habitId: string) => void;
+  /**
+   * Close the app and hand the on-target day back to Today, which rates it as
+   * the Meals check-in (services/appCheckins.ts).
+   */
+  closeAndCheckOff: () => void;
 }
 
 const MealsContext = createContext<MealsContextValue | null>(null);
@@ -108,10 +110,6 @@ export const MealsProvider: React.FC<{
 
   const rules = useMemo(() => rulesOf(prefs), [prefs]);
 
-  const linkedHabits = useMemo(
-    () => habits.filter((h) => isHabitLinkedToMiniApp(APP, h, prefs.linked_habit_ids)),
-    [habits, prefs.linked_habit_ids]
-  );
 
   const updatePrefs = useCallback(
     async (changes: Partial<MealsPrefs>) => {
@@ -161,17 +159,13 @@ export const MealsProvider: React.FC<{
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
-    (habitId: string) => {
-      finishSession({ appId: APP, habitId });
-      if (launchHabitId) {
-        rootNavigation.goBack();
-      } else {
-        // Opened from the Lab, not Today: land on Today, where the rating and
-        // the celebration live. One action, so nothing runs from a closed screen.
-        rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });
-      }
+    () => {
+      finishSession({ appId: APP });
+      // Land on Today, where the rating and the celebration live — from its
+      // card or from the Lab alike. One action, so nothing runs from a closed screen.
+      rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });
     },
-    [rootNavigation, launchHabitId]
+    [rootNavigation]
   );
 
   const value: MealsContextValue = {
@@ -188,7 +182,6 @@ export const MealsProvider: React.FC<{
     saveDay,
     newId,
     habits,
-    linkedHabits,
     launchHabitId,
     closeApp,
     closeAndCheckOff,

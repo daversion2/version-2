@@ -44,9 +44,7 @@ import { resolveHabitTrackingFields } from '../data/habitTemplates';
 import { RESISTANCE_SCALE } from '../constants/resistance';
 import { PracticeInstance } from '../types';
 import { toLocalDateString, getTodayString } from './date';
-import { isHabitLinkedToMiniApp } from '../services/miniApps';
-import { getWorkoutPrefs } from '../services/labWorkouts';
-import { getMeditatePrefs } from '../services/labMeditate';
+import { habitMatchesApp } from '../services/appCheckins';
 import { modeForHabit } from '../services/meditateMath';
 import {
   DemoDay,
@@ -306,14 +304,13 @@ export const enableDemoData = async (
     habitsAdded++;
   }
 
-  // Mini-app sessions go on the days their linked habits are checked off.
-  const [workoutPrefs, meditatePrefs] = await Promise.all([getWorkoutPrefs(userId), getMeditatePrefs(userId)]);
+  // Mini-app sessions go on the days their matching habits are checked off.
   const workoutDays: DemoDay[] = [];
   const meditateDays: DemoDay[] = [];
 
   habits.forEach((habit, idx) => {
-    const forWorkouts = isHabitLinkedToMiniApp('workouts', habit, workoutPrefs.linked_habit_ids);
-    const forMeditate = isHabitLinkedToMiniApp('meditate', habit, meditatePrefs.linked_habit_ids);
+    const forWorkouts = habitMatchesApp('workouts', habit);
+    const forMeditate = habitMatchesApp('meditate', habit);
     const start = STARTS[Math.min(idx, STARTS.length - 1)];
     const baseline = BASELINES[idx % BASELINES.length];
     const days = scheduledDays(habit) ?? defaultDaysForTarget(weeklyTarget(habit) || 3);

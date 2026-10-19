@@ -25,9 +25,17 @@ export const MEALS_REPLACED_HABIT_IDS = [
   'cook-real-meal',
 ];
 
+/**
+ * Removed one-offs. 'meals' was added the morning of 2026-10-18 so the Meals
+ * app could sit behind a habit, and removed that evening once the apps became
+ * first-class on Today (services/appCheckins.ts) and needed no habit.
+ */
+export const OTHER_REMOVED_HABIT_IDS = ['meals'];
+
 /** Whole categories removed from the taxonomy. */
 export const REMOVED_CATEGORY_IDS = ['Money'];
 
 export const isRemovedDefinition = (def: { id: string; category_id?: string }): boolean =>
   MEALS_REPLACED_HABIT_IDS.includes(def.id) ||
+  OTHER_REMOVED_HABIT_IDS.includes(def.id) ||
   (!!def.category_id && REMOVED_CATEGORY_IDS.includes(def.category_id));

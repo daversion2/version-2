@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import { formatRelativeDay, toLocalDateString } from '../../../../utils/date';
 import { showChoice, showConfirm } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
+import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
@@ -32,10 +33,12 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
     beginSession,
     discardSession,
     closeApp,
-    habits,
-    launchHabitId,
+    closeAndCheckOff,
     updatePrefs,
   } = useWorkouts();
+  // A workout done without the app, or forgotten: credit only comes through
+  // the app, so it's entered here and rated on Today.
+  const [loggingPast, setLoggingPast] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -88,8 +91,6 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate('WorkoutSession');
     });
 
-  const launchHabit = habits.find((h) => h.id === launchHabitId);
-
   return (
     <ScrollView
       style={ws.screen}
@@ -102,16 +103,12 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={ws.body}>• Pick a workout — or build one from exercises and circuits.</Text>
           <Text style={ws.body}>• Log each set as you go; the rest timer starts on its own.</Text>
           <Text style={ws.body}>
-            • Finish, and it hands back to Today: “How hard was it to start?”, then the habit’s checked off.
+            • Finish, and it hands back to Today: “How hard was it to start?”, and it counts toward your week.
           </Text>
           <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
             <Text style={styles.introBtnText}>Got it</Text>
           </TouchableOpacity>
         </View>
-      )}
-
-      {!!launchHabit && (
-        <Text style={ws.muted}>Finishing a workout checks off “{launchHabit.name}”.</Text>
       )}
 
       {session && (
@@ -154,6 +151,15 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity
+        style={styles.pastLink}
+        onPress={() => setLoggingPast(true)}
+        accessibilityRole="button"
+      >
+        <Ionicons name="time-outline" size={16} color={WORKOUTS_ACCENT} />
+        <Text style={styles.pastLinkText}>Log a past workout</Text>
+      </TouchableOpacity>
+
       <Text style={ws.sectionLabel}>Your workouts</Text>
 
       {loading && workouts.length === 0 && <ActivityIndicator color={WORKOUTS_ACCENT} style={{ marginTop: Spacing.lg }} />}
@@ -195,11 +201,24 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </TouchableOpacity>
       ))}
+      <PastSessionSheet
+        visible={loggingPast}
+        accent={WORKOUTS_ACCENT}
+        title="Log a past workout"
+        minutes={{ min: 5, max: 180, step: 5, initial: 45 }}
+        onCancel={() => setLoggingPast(false)}
+        onSave={({ date, minutes }) => {
+          setLoggingPast(false);
+          closeAndCheckOff(minutes * 60, date);
+        }}
+      />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  pastLink: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, minHeight: 44, alignSelf: 'flex-start' },
+  pastLinkText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   intro: { gap: 6, borderColor: WORKOUTS_ACCENT + '55' },
   introBtn: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: Spacing.sm },

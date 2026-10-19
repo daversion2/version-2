@@ -13,7 +13,8 @@ import {
   saveMeditatePrefs,
 } from '../../../../services/labMeditate';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../../services/miniAppDrafts';
-import { finishSession, isHabitLinkedToMiniApp } from '../../../../services/miniApps';
+import { finishSession } from '../../../../services/miniApps';
+import { toLocalDateString } from '../../../../utils/date';
 import { getActiveHabits } from '../../../../services/practices';
 import { checkinChoices, endSession, startSession } from '../../../../services/meditateMath';
 import {
@@ -45,7 +46,6 @@ interface MeditateContextValue {
   guided: GuidedRecording[];
 
   habits: PracticeInstance[];
-  linkedHabits: PracticeInstance[];
   /** The habit whose Start button opened the app, if one did. */
   launchHabit?: PracticeInstance;
   launchHabitId?: string;
@@ -64,8 +64,12 @@ interface MeditateContextValue {
   recordFinished: (completed: CompletedMeditateSession) => void;
 
   closeApp: () => void;
-  /** Close the app and hand the habit back to Today to rate and celebrate. */
-  closeAndCheckOff: (habitId: string, completed: CompletedMeditateSession) => void;
+  /**
+   * Close the app and hand the session back to Today, which rates it as the
+   * Meditate check-in (services/appCheckins.ts). The session's own date is
+   * used, so a past session lands on the day it happened.
+   */
+  closeAndCheckOff: (completed: CompletedMeditateSession) => void;
 }
 
 const MeditateContext = createContext<MeditateContextValue | null>(null);
@@ -154,10 +158,6 @@ export const MeditateProvider: React.FC<{
       .catch((e) => console.warn('Meditate: guided recordings not loaded:', e));
   }, []);
 
-  const linkedHabits = useMemo(
-    () => habits.filter((h) => isHabitLinkedToMiniApp(APP, h, prefs.linked_habit_ids)),
-    [habits, prefs.linked_habit_ids]
-  );
   const launchHabit = habits.find((h) => h.id === launchHabitId);
 
   const updatePrefs = useCallback(
@@ -236,22 +236,19 @@ export const MeditateProvider: React.FC<{
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
-    (habitId: string, completed: CompletedMeditateSession) => {
+    (completed: CompletedMeditateSession) => {
       finishSession({
         appId: APP,
-        habitId,
         durationSec: completed.duration_sec,
         choices: checkinChoices(completed),
+        mode: completed.mode,
+        ...(completed.date !== toLocalDateString(new Date()) ? { date: completed.date } : {}),
       });
-      if (launchHabitId) {
-        rootNavigation.goBack();
-      } else {
-        // Opened from the Lab, not Today: land on Today, where the rating and
-        // the celebration live. One action, so nothing runs from a closed screen.
-        rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });
-      }
+      // Land on Today, where the rating and the celebration live — from its
+      // card or from the Lab alike. One action, so nothing runs from a closed screen.
+      rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });
     },
-    [rootNavigation, launchHabitId]
+    [rootNavigation]
   );
 
   const value: MeditateContextValue = {
@@ -264,7 +261,6 @@ export const MeditateProvider: React.FC<{
     sessions,
     guided,
     habits,
-    linkedHabits,
     launchHabit,
     launchHabitId,
     bellPermission,

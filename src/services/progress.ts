@@ -14,6 +14,8 @@ import { getTodayString, getYesterdayString, toLocalDateString } from '../utils/
 import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './practices';
 import { db } from './firebase';
 import { CompletionLog, Challenge, PracticeInstance } from '../types';
+import { appIdFromCheckinId } from './appCheckins';
+import { MINI_APPS } from './miniApps';
 
 export interface EnrichedCompletionLog extends CompletionLog {
   name: string;
@@ -56,10 +58,16 @@ export const getCompletionLogsWithNames = async (
           : habitMap.get(log.reference_id);
       return {
         ...log,
-        name: ref?.name || 'Unknown',
+        // An app session is filed under `app:<id>` — no habit doc to name it.
+        name: ref?.name || appNameFor(log.reference_id) || 'Unknown',
       };
     })
     .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
+};
+
+const appNameFor = (referenceId: string): string | undefined => {
+  const appId = appIdFromCheckinId(referenceId);
+  return appId ? MINI_APPS[appId].title : undefined;
 };
 
 const logsRef = (userId: string) =>

@@ -66,7 +66,7 @@ describe('onboarding order', () => {
       const lead = section.categoryIds.flatMap((c) => ONBOARDING_LEAD_HABITS[c] ?? []);
       expect(ids.slice(0, lead.length)).toEqual(lead);
     }
-    expect(getOnboardingHabitsBySection('meals')[0].id).toBe('meals');
+    expect(getOnboardingHabitsBySection('meals')[0].id).toBe('alcohol-free-day');
   });
 
   it('is a plain catalog listing for a category with no lists', () => {

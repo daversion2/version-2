@@ -29,8 +29,9 @@ describe('removed habits in the catalog', () => {
     const browsable = getBrowsableHabits();
     expect(browsable.some((d) => d.category_id === 'Money')).toBe(false);
     expect(browsable.some((d) => MEALS_REPLACED_HABIT_IDS.includes(d.id))).toBe(false);
-    // What stays: the Meals habit and the food habits it didn't replace.
-    for (const kept of ['meals', 'alcohol-free-day', 'water-only']) {
+    // What stays: the food habits Meals didn't replace.
+    expect(browsable.some((d) => d.id === 'meals')).toBe(false);
+    for (const kept of ['alcohol-free-day', 'water-only']) {
       expect(browsable.some((d) => d.id === kept)).toBe(true);
     }
   });
@@ -47,8 +48,10 @@ describe('selectHabitsToPurge', () => {
       habit('e', { practice_id: 'alcohol-free-day' }),
       habit('f', { category_id: 'Move', created_by_user: true }),
       habit('g', { practice_id: 'workout' }),
+      // The short-lived Meals habit.
+      habit('h', { practice_id: 'meals' }),
     ]).map((h) => h.id);
-    expect(picked).toEqual(['a', 'b', 'c', 'd']);
+    expect(picked).toEqual(['a', 'b', 'c', 'd', 'h']);
   });
 });
 

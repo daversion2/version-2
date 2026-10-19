@@ -53,12 +53,15 @@ hosting.
 **4. Small leftovers.**
 - The user still wants to decide what to do with the header logo on Today
   (`src/navigation/HomeStack.tsx`). The title now says "Today".
-- The Mind / Movement / Meals Today (`docs/three-sections-today.md`) shipped OTA
-  2026-10-18 (update group 03adcdf4). Maestro checked tap → quick sheet, hold →
-  full check-in, › → panel (About / Log details / History) and app row →
-  Workouts, without saving anything. Not yet tried on screen: saving a check-in
-  and the +XP toast, "Add a note", the milestone celebration, a mini-app finish
-  landing on the quick sheet, and adding the new Meals habit.
+- Today is apps-first (`docs/apps-first-today.md`, shipped OTA 2026-10-18 on top
+  of `docs/three-sections-today.md`): Meditate / Workouts / Meals always lead
+  their sections and a session is its own check-in (`services/appCheckins.ts`).
+  Maestro checked the cards, the apps opening and both "Log a past session"
+  sheets without saving anything. **Not yet tried on screen:** a finished or
+  past session → quick sheet → +XP toast → the matching habit ticked; the
+  weekly-goal settings; "Add a note"; the milestone celebration.
+- The founder's simulator account has two "Unplugged Cardio" habits (found
+  2026-10-18, cause unknown, left alone) — ask before archiving one.
 - Copy stored in Firestore — push rules (Admin → Rules) and global reward
   messages — may still say "practice" or "rep". The code is clean.
 - `docs/go-live-checklist.md` is stale: it still has Challenges and Programs

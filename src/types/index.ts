@@ -390,7 +390,14 @@ export interface CompletionLog {
    * whether they rate differently is a question worth being able to ask later.
    * Cannot be reconstructed after the fact, so it is written from the start.
    */
-  logged_via?: 'quick' | 'capture';
+  logged_via?: 'quick' | 'capture' | 'app';
+  /**
+   * Set on a habit's log that an app session wrote for it (services/
+   * appCheckins.ts): the id of the app's own check-in. Carries no rating and no
+   * XP — the effort is counted once, under the app — but ticks the habit for
+   * its week and streak.
+   */
+  mirror_of?: string;
   /**
    * True when `metrics` was filled from the habit's committed amount rather than
    * entered. Lets a trend separate "measured 80 oz" from "said yes to the 80 oz

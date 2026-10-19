@@ -50,8 +50,6 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
     prefs,
     records,
     workouts,
-    habits,
-    linkedHabits,
     recordFinished,
     closeAndCheckOff,
   } = useWorkouts();
@@ -61,11 +59,6 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const [saveChanges, setSaveChanges] = useState(false);
   const [saveAsNew, setSaveAsNew] = useState(false);
   const [newName, setNewName] = useState('');
-  // A session started from a habit's Start button checks that habit off.
-  // Started from the Lab, you choose — preselected when there's only one option.
-  const [habitId, setHabitId] = useState<string | undefined>(
-    session?.habitId ?? (linkedHabits.length === 1 ? linkedHabits[0].id : undefined)
-  );
   const [saving, setSaving] = useState(false);
 
   const computed = useMemo(
@@ -80,20 +73,16 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const volume = sessionVolumeKg(session, exercisesById);
   const changes = planChanges(session);
   const baselines = Object.keys(touched).filter((id) => !records[id]).length;
-  // Only a habit that's actually on this account counts — the button's wording
-  // and what gets checked off must never disagree.
-  const knownHabit = (id?: string) => (id ? habits.find((h) => h.id === id) : undefined);
-  const fixedHabit = knownHabit(session.habitId);
-  const chosenHabit = fixedHabit ?? knownHabit(habitId);
   const doneBlocks = session.blocks.filter((b) => b.sets.length > 0);
 
   const finish = async () => {
     setSaving(true);
     const now = new Date();
-    const checkOffId = chosenHabit?.id;
     let toWrite: Workout | undefined;
-    let final = { ...session, ...(checkOffId ? { habitId: checkOffId } : {}) };
-    if (!checkOffId) delete final.habitId;
+    // Every finished workout is the Workouts check-in on Today; no habit is
+    // chosen here (services/appCheckins.ts ticks a matching Workout habit).
+    let final = { ...session };
+    delete final.habitId;
     if (workout) {
       toWrite = saveChanges ? applySessionToWorkout(workout, session, now) : workout;
     } else if (saveAsNew && doneBlocks.length) {
@@ -117,8 +106,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     recordFinished({ completed, records: touched, workout: toWrite });
-    if (checkOffId) closeAndCheckOff(checkOffId, completed.duration_sec);
-    else navigation.popToTop();
+    closeAndCheckOff(completed.duration_sec);
   };
 
   const backToSession = () => {
@@ -244,49 +232,6 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <Text style={ws.sectionLabel}>Check off a habit</Text>
-        {fixedHabit ? (
-          <View style={[ws.card, styles.habitRow]}>
-            <Ionicons name="checkmark-circle" size={20} color={WORKOUTS_ACCENT} />
-            <Text style={[ws.title, { flex: 1 }]}>{fixedHabit.name}</Text>
-          </View>
-        ) : linkedHabits.length === 0 ? (
-          <Text style={ws.muted}>
-            No habit is linked to Workouts. Link one in Workouts settings and finishing will check it off.
-          </Text>
-        ) : (
-          <>
-            {linkedHabits.map((h) => (
-              <TouchableOpacity
-                key={h.id}
-                style={[ws.card, styles.habitRow, habitId === h.id && styles.habitRowOn]}
-                onPress={() => setHabitId(h.id)}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: habitId === h.id }}
-              >
-                <Ionicons
-                  name={habitId === h.id ? 'radio-button-on' : 'radio-button-off'}
-                  size={20}
-                  color={habitId === h.id ? WORKOUTS_ACCENT : Colors.gray}
-                />
-                <Text style={[ws.title, { flex: 1 }]}>{h.name}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[ws.card, styles.habitRow, !habitId && styles.habitRowOn]}
-              onPress={() => setHabitId(undefined)}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: !habitId }}
-            >
-              <Ionicons
-                name={!habitId ? 'radio-button-on' : 'radio-button-off'}
-                size={20}
-                color={!habitId ? WORKOUTS_ACCENT : Colors.gray}
-              />
-              <Text style={[ws.body, { flex: 1 }]}>Just save the workout</Text>
-            </TouchableOpacity>
-          </>
-        )}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
@@ -294,16 +239,12 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={ws.primaryBtnText}>
-              {chosenHabit ? 'Finish & rate it' : 'Save workout'}
-            </Text>
+            <Text style={ws.primaryBtnText}>Finish & rate it</Text>
           )}
         </TouchableOpacity>
-        {chosenHabit && (
-          <Text style={[ws.muted, styles.footerNote]}>
-            Next: “How hard was it to start?” on Today, then it’s checked off.
-          </Text>
-        )}
+        <Text style={[ws.muted, styles.footerNote]}>
+          Next: “How hard was it to start?” on Today, and it counts toward your week.
+        </Text>
         <TouchableOpacity onPress={backToSession} disabled={saving} style={styles.back}>
           <Text style={styles.backText}>Back to workout</Text>
         </TouchableOpacity>
@@ -345,8 +286,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     color: Colors.dark,
   },
-  habitRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  habitRowOn: { borderColor: WORKOUTS_ACCENT, backgroundColor: WORKOUTS_TINT },
   footer: {
     position: 'absolute',
     left: 0,

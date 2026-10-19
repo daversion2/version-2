@@ -21,6 +21,7 @@ import {
   guidedOptions,
   MODE_ORDER,
   MODES,
+  pastSession,
   SIT_TECHNIQUES,
   StartChoices,
   startDefaults,
@@ -30,6 +31,8 @@ import { showAlert, showChoice, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { NsdrLinkForm } from './components/NsdrLinkForm';
 import { MEDITATE_ACCENT, MEDITATE_TINT, ms } from './components/meditateStyle';
+import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
+import { newMeditateId, saveMeditateSession } from '../../../../services/labMeditate';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateHome'>;
 
@@ -54,7 +57,32 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     begin,
     discardSession,
     closeApp,
+    userId,
+    recordFinished,
+    closeAndCheckOff,
   } = useMeditate();
+  // A sit done without the app, or forgotten: credit only comes through the
+  // app, so it's entered here — saved to history, then rated on Today.
+  const [loggingPast, setLoggingPast] = useState(false);
+  const logPast = async (input: { date: string; minutes: number; mode?: string }) => {
+    setLoggingPast(false);
+    const completed = pastSession({
+      id: newMeditateId(userId),
+      mode: (input.mode as MeditateMode) ?? 'sit',
+      date: input.date,
+      minutes: input.minutes,
+      now: new Date(),
+    });
+    try {
+      await saveMeditateSession(userId, completed);
+    } catch (e) {
+      console.warn('Meditate: past session not saved:', e);
+      showAlert("Couldn't save that session", 'Check your connection and try again.');
+      return;
+    }
+    recordFinished(completed);
+    closeAndCheckOff(completed);
+  };
 
   const [choices, setChoices] = useState<StartChoices | null>(null);
   const [showSteps, setShowSteps] = useState(false);
@@ -206,7 +234,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
               • Tap Begin and lock your phone. A bell rings at the end — no screen glowing at you while you sit.
             </Text>
             <Text style={ms.body}>
-              • Finish, and it hands back to Today: “How hard was it to start?”, then the habit’s checked off.
+              • Finish, and it hands back to Today: “How hard was it to start?”, and it counts toward your week.
             </Text>
             <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
               <Text style={styles.introBtnText}>Got it</Text>
@@ -214,7 +242,10 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        {!!launchHabit && <Text style={ms.muted}>Finishing checks off “{launchHabit.name}”.</Text>}
+        <TouchableOpacity style={styles.pastLink} onPress={() => setLoggingPast(true)} accessibilityRole="button">
+          <Ionicons name="time-outline" size={16} color={MEDITATE_ACCENT} />
+          <Text style={styles.pastLinkText}>Log a past session</Text>
+        </TouchableOpacity>
 
         {session && (
           <TouchableOpacity style={styles.resume} onPress={resume} accessibilityRole="button">
@@ -494,6 +525,15 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
+      <PastSessionSheet
+        visible={loggingPast}
+        accent={MEDITATE_ACCENT}
+        title="Log a past session"
+        minutes={{ min: 1, max: 90, step: 1, initial: 10 }}
+        modes={MODE_ORDER.map((m) => ({ value: m, label: MODES[m].label }))}
+        onCancel={() => setLoggingPast(false)}
+        onSave={logPast}
+      />
 
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
@@ -524,6 +564,8 @@ const timedDetail = (mode: MeditateMode): string =>
   mode === 'breathe' ? 'The pacer, or just a timer' : mode === 'nsdr' ? 'Your saved recording, timed' : 'Lock your phone, bell at the end';
 
 const styles = StyleSheet.create({
+  pastLink: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, minHeight: 44, alignSelf: 'flex-start' },
+  pastLinkText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
   center: { alignItems: 'center', justifyContent: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   intro: { gap: 6, borderColor: MEDITATE_ACCENT + '55' },

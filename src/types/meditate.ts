@@ -91,7 +91,10 @@ export interface CompletedMeditateSession {
 }
 
 export interface MeditatePrefs {
+  /** @deprecated No longer read: sessions are their own check-ins (services/appCheckins.ts). */
   linked_habit_ids: string[];
+  /** Sessions a week, the card's "2 of 5". Absent = DEFAULT_APP_WEEKLY_GOALS. */
+  weekly_goal?: number;
   nsdr_links: NsdrLink[];
   intro_seen?: boolean;
 }

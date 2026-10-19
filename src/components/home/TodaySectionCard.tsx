@@ -7,6 +7,10 @@ import { useCopy } from '../../context/CopyContext';
 interface Props {
   name: string;
   color: string;
+  /** The section's app card(s), always first. */
+  apps?: React.ReactNode[];
+  /** No habits under the app: show a quiet "Add a habit" link. */
+  onAddHabit?: () => void;
   /** Rows that need you today — rendered as given. */
   rows: React.ReactNode[];
   /** Habits with nothing owed today, behind "N more this week". */
@@ -21,12 +25,22 @@ interface Props {
  * is already done fold into two links at the foot, so the card shows only what
  * needs you.
  */
-export const TodaySectionCard: React.FC<Props> = ({ name, color, rows, weekRows, doneRows }) => {
+export const TodaySectionCard: React.FC<Props> = ({
+  name,
+  color,
+  apps = [],
+  onAddHabit,
+  rows,
+  weekRows,
+  doneRows,
+}) => {
   const t = useCopy();
   const [showWeek, setShowWeek] = useState(false);
   const [showDone, setShowDone] = useState(false);
-  const allDone = rows.length === 0;
   const total = rows.length + doneRows.length;
+  const hasHabits = total + weekRows.length > 0;
+  // "Done for today" is about the habits; the app card says its own state.
+  const allDone = rows.length === 0 && hasHabits;
 
   return (
     <View style={styles.section}>
@@ -35,15 +49,29 @@ export const TodaySectionCard: React.FC<Props> = ({ name, color, rows, weekRows,
         <Text style={styles.name} accessibilityRole="header">
           {name}
         </Text>
-        <Text style={[styles.count, allDone && { color }]}>
-          {allDone
-            ? t('today.section.allDone', 'Done')
-            : t('today.section.count', '{done} of {total}', { done: doneRows.length, total })}
-        </Text>
+        {total > 0 && (
+          <Text style={[styles.count, allDone && { color }]}>
+            {allDone
+              ? t('today.section.allDone', 'Done')
+              : t('today.section.count', '{done} of {total}', { done: doneRows.length, total })}
+          </Text>
+        )}
       </View>
 
       <View style={styles.card}>
+        {apps}
+        {apps.length > 0 && (rows.length > 0 || allDone) && <View style={styles.folded} />}
         {rows}
+        {!hasHabits && !!onAddHabit && (
+          <TouchableOpacity
+            onPress={onAddHabit}
+            style={[styles.addHabit, apps.length > 0 && styles.folded]}
+            accessibilityRole="button"
+          >
+            <Ionicons name="add" size={16} color={Colors.gray} />
+            <Text style={styles.footerText}>{t('today.section.addHabit', 'Add a habit')}</Text>
+          </TouchableOpacity>
+        )}
         {allDone && (
           <View style={styles.doneForToday}>
             <Ionicons name="checkmark" size={18} color={color} />
@@ -127,6 +155,13 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
     paddingHorizontal: Spacing.xs,
+  },
+  addHabit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md - 2,
   },
   footerBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm + 2 },
   footerText: { fontFamily: Fonts.secondaryBold, fontSize: 13, color: Colors.gray },

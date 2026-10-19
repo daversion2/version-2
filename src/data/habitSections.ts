@@ -1,4 +1,4 @@
-import { CategoryColors } from '../constants/theme';
+import { Colors } from '../constants/theme';
 import { getHabitDefinition } from './practices';
 
 // =============================================================================
@@ -10,6 +10,10 @@ import { getHabitDefinition } from './practices';
 //
 // Order here is the display order everywhere: Today, the Library chips,
 // Create habit and onboarding.
+//
+// Colour: every section is the brand teal (Neuro-Nudge brand guidelines —
+// teal #217180 leads, orange #FF5B02 is for action). Sections are told apart
+// by name and icon; the purple and amber they launched with aren't brand colours.
 // =============================================================================
 
 export type HabitSectionId = 'mind' | 'movement' | 'meals';
@@ -31,7 +35,7 @@ export const HABIT_SECTIONS: HabitSection[] = [
     id: 'mind',
     name: 'Mind',
     icon: 'leaf-outline',
-    color: CategoryColors.mind,
+    color: Colors.primary,
     categoryIds: ['Mind', 'Sleep', 'Focus'],
     defaultCategoryId: 'Mind',
   },
@@ -39,7 +43,7 @@ export const HABIT_SECTIONS: HabitSection[] = [
     id: 'movement',
     name: 'Movement',
     icon: 'barbell-outline',
-    color: CategoryColors.move,
+    color: Colors.primary,
     categoryIds: ['Move'],
     defaultCategoryId: 'Move',
   },
@@ -47,7 +51,7 @@ export const HABIT_SECTIONS: HabitSection[] = [
     id: 'meals',
     name: 'Meals',
     icon: 'nutrition-outline',
-    color: CategoryColors.fuel,
+    color: Colors.primary,
     categoryIds: ['Fuel'],
     defaultCategoryId: 'Fuel',
   },

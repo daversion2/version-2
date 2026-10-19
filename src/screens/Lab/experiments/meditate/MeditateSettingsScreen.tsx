@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Switch, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import { NsdrLink } from '../../../../types/meditate';
-import { isHabitLinkedToMiniApp } from '../../../../services/miniApps';
+import { clampWeeklyGoal } from '../../../../services/appCheckins';
+import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { NsdrLinkForm } from './components/NsdrLinkForm';
@@ -16,18 +17,11 @@ const BELL_STATUS = {
 } as const;
 
 export const MeditateSettingsScreen: React.FC = () => {
-  const { prefs, updatePrefs, habits, bellPermission } = useMeditate();
+  const { prefs, updatePrefs, bellPermission } = useMeditate();
   const [adding, setAdding] = useState(false);
 
   const save = (changes: Parameters<typeof updatePrefs>[0]) =>
     updatePrefs(changes).catch(() => showAlert("Couldn't save that", 'Check your connection and try again.'));
-
-  const toggleLink = (habitId: string, on: boolean) => {
-    const ids = new Set(prefs.linked_habit_ids);
-    if (on) ids.add(habitId);
-    else ids.delete(habitId);
-    save({ linked_habit_ids: [...ids] });
-  };
 
   const addRecording = (link: NsdrLink) => {
     save({ nsdr_links: [...prefs.nsdr_links, link] });
@@ -41,6 +35,17 @@ export const MeditateSettingsScreen: React.FC = () => {
 
   return (
     <ScrollView style={ms.screen} contentContainerStyle={ms.scroll} keyboardShouldPersistTaps="handled">
+      <Text style={ms.sectionLabel}>Weekly goal</Text>
+      <WeeklyGoalPicker
+        noun="sessions"
+        value={clampWeeklyGoal(prefs.weekly_goal, 'meditate')}
+        accent={MEDITATE_ACCENT}
+        onChange={(n) => save({ weekly_goal: n })}
+      />
+      <Text style={ms.muted}>
+        Shown on Today as “2 of 5 this week”. A week that falls short gets the usual one-tap “what got in the way?”.
+      </Text>
+
       <Text style={ms.sectionLabel}>The bell</Text>
       <View style={[ms.card, styles.bell]}>
         <Ionicons
@@ -87,29 +92,6 @@ export const MeditateSettingsScreen: React.FC = () => {
         </TouchableOpacity>
       )}
 
-      <Text style={ms.sectionLabel}>Habits that open Meditate</Text>
-      <Text style={ms.muted}>
-        A linked habit gets a Start button on Today (with the Lab switch on), and finishing a session checks it off.
-      </Text>
-      {habits.length === 0 && <Text style={ms.muted}>No active habits yet.</Text>}
-      {habits.map((h) => {
-        const automatic = isHabitLinkedToMiniApp('meditate', h);
-        const linked = automatic || prefs.linked_habit_ids.includes(h.id);
-        return (
-          <View key={h.id} style={[ms.card, styles.row]}>
-            <View style={{ flex: 1 }}>
-              <Text style={ms.title}>{h.name}</Text>
-              {automatic && <Text style={ms.muted}>Linked automatically</Text>}
-            </View>
-            <Switch
-              value={linked}
-              disabled={automatic}
-              onValueChange={(on) => toggleLink(h.id, on)}
-              trackColor={{ true: MEDITATE_ACCENT }}
-            />
-          </View>
-        );
-      })}
     </ScrollView>
   );
 };

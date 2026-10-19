@@ -268,6 +268,33 @@ export const toCompletedSession = (session: MeditateSession, now: Date): Complet
 };
 
 /**
+ * A session entered after the fact ("Log a past session"): no timer ran, so
+ * planned and logged are the minutes given, filed on the day chosen (started
+ * at noon local, so the day can't slip across midnight in any timezone math).
+ */
+export const pastSession = (input: {
+  id: string;
+  mode: MeditateMode;
+  date: string;
+  minutes: number;
+  now: Date;
+}): CompletedMeditateSession => {
+  const [y, m, d] = input.date.split('-').map(Number);
+  const sec = Math.max(1, Math.round(input.minutes)) * 60;
+  return {
+    id: input.id,
+    mode: input.mode,
+    style: 'timer',
+    planned_sec: sec,
+    duration_sec: sec,
+    ended_early: false,
+    started_at: new Date(y, m - 1, d, 12).toISOString(),
+    finished_at: input.now.toISOString(),
+    date: input.date,
+  };
+};
+
+/**
  * What the check-in gets besides the minutes: the technique sat, or the
  * pattern breathed, for the habit's own `technique` field. The shell checks it
  * against that field's options, so a breathwork pattern never lands on a

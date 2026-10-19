@@ -427,6 +427,34 @@ export const logHabitCompletion = async (
 };
 
 /**
+ * Tick a habit because an app session did it (services/appCheckins.ts).
+ *
+ * No rating and no XP: `difficulty: 0` reads as unrated everywhere
+ * (logResistance), so "Friction you can handle" counts the effort once, under
+ * the app's own check-in. The habit still counts as done for the day — pace,
+ * its streak and the skip review all count logs by day.
+ */
+export const logMirrorCompletion = async (
+  userId: string,
+  habitId: string,
+  date: string,
+  mirrorOf: string
+): Promise<string> => {
+  const docRef = await addDoc(logsRef(userId), {
+    user_id: userId,
+    type: 'nudge',
+    reference_id: habitId,
+    points: 0,
+    difficulty: 0,
+    date,
+    completed_at: new Date().toISOString(),
+    mirror_of: mirrorOf,
+    logged_via: 'app',
+  });
+  return docRef.id;
+};
+
+/**
  * Attach a post-rep reflection to an ALREADY-LOGGED completion.
  *
  * The reflection used to be the last step before the "Log it" button, which put

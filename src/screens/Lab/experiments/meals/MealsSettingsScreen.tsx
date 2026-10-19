@@ -108,13 +108,6 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
     if (goal) setGoals([...prefs.group_goals, goal]);
   };
 
-  const toggleLink = (habitId: string, on: boolean) => {
-    const ids = new Set(prefs.linked_habit_ids);
-    if (on) ids.add(habitId);
-    else ids.delete(habitId);
-    updatePrefs({ linked_habit_ids: [...ids] });
-  };
-
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll} keyboardShouldPersistTaps="handled">
       <Text style={mls.sectionLabel}>My meals</Text>
@@ -235,23 +228,6 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={mls.link}>Add a food-group goal</Text>
         </TouchableOpacity>
       )}
-
-      <Text style={mls.sectionLabel}>The habit Meals checks off</Text>
-      <Text style={mls.muted}>
-        An on-target day checks off the habit you link here, with the usual “How hard was it to start?”. A custom habit like
-        “Eat real food” works well. With the Lab switch on, it also gets an Open Meals button on Today.
-      </Text>
-      {habits.length === 0 && <Text style={mls.muted}>No active habits yet.</Text>}
-      {habits.map((h) => (
-        <View key={h.id} style={[mls.card, styles.row]}>
-          <Text style={[mls.title, { flex: 1 }]}>{h.name}</Text>
-          <Switch
-            value={prefs.linked_habit_ids.includes(h.id)}
-            onValueChange={(on) => toggleLink(h.id, on)}
-            trackColor={{ true: MEALS_ACCENT }}
-          />
-        </View>
-      ))}
 
       <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')} style={styles.add}>
         <Ionicons name="information-circle-outline" size={16} color={MEALS_ACCENT} />

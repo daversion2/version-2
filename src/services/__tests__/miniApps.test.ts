@@ -8,7 +8,6 @@ import {
   canOpenMiniApp,
   checkinMetricsFor,
   finishSession,
-  isHabitLinkedToMiniApp,
   takePendingFinish,
 } from '../miniApps';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../miniAppDrafts';
@@ -34,43 +33,17 @@ describe('canOpenMiniApp', () => {
   });
 });
 
-describe('isHabitLinkedToMiniApp', () => {
-  it('links library Workout habits automatically', () => {
-    expect(isHabitLinkedToMiniApp('workouts', { id: 'h1', practice_id: 'workout' })).toBe(true);
-    expect(isHabitLinkedToMiniApp('workouts', { id: 'h2', practice_id: 'trad-exercise' })).toBe(true);
-  });
-
-  it('links any other habit only when the user chose to', () => {
-    const legDay = { id: 'custom-1' };
-    expect(isHabitLinkedToMiniApp('workouts', legDay)).toBe(false);
-    expect(isHabitLinkedToMiniApp('workouts', legDay, ['custom-1'])).toBe(true);
-    expect(isHabitLinkedToMiniApp('workouts', { id: 'h3', practice_id: 'meditation' }, [])).toBe(false);
-  });
-
-  it('links all six calm habits to Meditate, aliases included', () => {
-    for (const id of ['meditation', 'morning-meditation', 'trad-meditate', 'breathwork', 'breathing-break', 'nsdr']) {
-      expect(isHabitLinkedToMiniApp('meditate', { id: 'h', practice_id: id })).toBe(true);
-    }
-    expect(isHabitLinkedToMiniApp('meditate', { id: 'h', practice_id: 'workout' })).toBe(false);
-  });
-
-  it('links the Meals habit to Meals automatically', () => {
-    expect(isHabitLinkedToMiniApp('meals', { id: 'h', practice_id: 'meals' })).toBe(true);
-    expect(isHabitLinkedToMiniApp('meals', { id: 'h', practice_id: 'alcohol-free-day' })).toBe(false);
-  });
-});
-
 describe('the finish handoff', () => {
   it('is read once', () => {
-    finishSession({ appId: 'workouts', habitId: 'h1', durationSec: 1800 });
-    expect(takePendingFinish()).toEqual({ appId: 'workouts', habitId: 'h1', durationSec: 1800 });
+    finishSession({ appId: 'workouts', durationSec: 1800, date: '2026-10-17' });
+    expect(takePendingFinish()).toEqual({ appId: 'workouts', durationSec: 1800, date: '2026-10-17' });
     expect(takePendingFinish()).toBeNull();
   });
 
   it('keeps only the latest finish', () => {
-    finishSession({ appId: 'workouts', habitId: 'a' });
-    finishSession({ appId: 'workouts', habitId: 'b' });
-    expect(takePendingFinish()?.habitId).toBe('b');
+    finishSession({ appId: 'workouts' });
+    finishSession({ appId: 'meditate', mode: 'nsdr' });
+    expect(takePendingFinish()).toEqual({ appId: 'meditate', mode: 'nsdr' });
   });
 });
 

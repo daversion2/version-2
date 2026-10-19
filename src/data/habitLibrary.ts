@@ -181,9 +181,8 @@ export const HABIT_LIBRARY: LibraryHabit[] = [
     identity: "I'm someone who protects tonight's sleep with today's choices.",
   },
   {
-    // The Meals app's habit: finishing a day in Meals on target is its check-in
-    // (services/miniApps.ts links it automatically). It replaced the separate
-    // food habits — vegetables, protein, sugar, cooking — see data/removedHabits.ts.
+    // REMOVED (data/removedHabits.ts): briefly the Meals app's habit, before the
+    // apps became first-class on Today. Kept resolvable so copies can be cleaned up.
     id: 'meals',
     name: 'Meals',
     category_id: 'Fuel',

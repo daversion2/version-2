@@ -21,8 +21,8 @@ import { HabitSectionId, getHabitSection } from './habitSections';
 /** Shown first, in this order. Keyed by HabitCategory id. */
 export const ONBOARDING_LEAD_HABITS: Record<string, string[]> = {
   Move: ['workout', 'cold_exposure', 'morning-daylight'],
-  // Meals is the one food check-in now (it replaced the separate food habits).
-  Fuel: ['meals', 'alcohol-free-day'],
+  // Meals itself is an app, always on Today — not a habit to pick here.
+  Fuel: ['alcohol-free-day'],
   Sleep: ['no-snooze', 'caffeine-cutoff'],
   Focus: ['dreaded-task-first', 'deep-focus-session', 'trad-read', 'plan-tomorrow'],
   Mind: ['protect-attention', 'meditation', 'breathwork', 'nsdr'],

@@ -9,17 +9,19 @@ import type { MiniAppId } from './miniApps';
 // Today used (habitPace.buildTodayList), so "due", "behind" and "done" mean
 // exactly what they meant before. What changed is what is shown:
 //
-//   rows      what needs you today: app habits first, then due today, then
-//             behind this week
+//   apps      the section's app (Meditate, Workouts, Meals) — always shown,
+//             whatever its status: the apps are the main thing, habits
+//             support underneath (services/appCheckins.ts)
+//   rows      habits that need you today: due today, then behind this week
 //   weekRows  habits with nothing owed today ("N more this week")
 //   doneRows  logged today, or the week's target already met ("N done")
 //
-// A section with no habits at all is dropped — no empty headings.
+// A section with no app and no habits is dropped — no empty headings.
 // Pure: the screen passes in how to classify a habit.
 // =============================================================================
 
 /**
- * app     — linked to a mini-app; the row opens the app
+ * app     — the section's app (an `app:<id>` check-in habit); its card opens the app
  * plain   — the row opens the quick sheet
  *
  * There was a third, 'guided' (a habit with a briefing opened the briefing,
@@ -37,11 +39,15 @@ export interface TodayRow {
 
 export interface TodaySectionView {
   id: HabitSectionId;
+  /** The section's app card(s), always first. */
+  apps: TodayRow[];
   rows: TodayRow[];
   weekRows: TodayRow[];
   doneRows: TodayRow[];
-  /** Nothing left to do today (rows is empty). */
+  /** No habit left to do today (rows is empty). Apps say their own state. */
   allDone: boolean;
+  /** No habits at all under the app — the card shows an "Add a habit" link. */
+  noHabits: boolean;
 }
 
 export interface RowClass {
@@ -54,10 +60,19 @@ export const buildTodaySectionViews = (
   paces: HabitPace[],
   classify: (habitId: string) => RowClass | null
 ): TodaySectionView[] => {
+  const empty = (id: HabitSectionId): TodaySectionView => ({
+    id,
+    apps: [],
+    rows: [],
+    weekRows: [],
+    doneRows: [],
+    allDone: true,
+    noHabits: true,
+  });
   const views: Record<HabitSectionId, TodaySectionView> = {
-    mind: { id: 'mind', rows: [], weekRows: [], doneRows: [], allDone: true },
-    movement: { id: 'movement', rows: [], weekRows: [], doneRows: [], allDone: true },
-    meals: { id: 'meals', rows: [], weekRows: [], doneRows: [], allDone: true },
+    mind: empty('mind'),
+    movement: empty('movement'),
+    meals: empty('meals'),
   };
   const appRows: Record<HabitSectionId, TodayRow[]> = { mind: [], movement: [], meals: [] };
 
@@ -68,16 +83,16 @@ export const buildTodaySectionViews = (
     const row: TodayRow = { habitId: pace.habitId, kind: c.kind, appId: c.appId, pace };
     const view = views[c.section];
     const status = sectionFor(pace);
-    if (status === 'done') view.doneRows.push(row);
-    // An app is the section's anchor: it stays on top even on a day it isn't owed.
-    else if (c.kind === 'app') appRows[c.section].push(row);
+    // An app is the section's anchor: always on top, whatever its status.
+    if (c.kind === 'app') appRows[c.section].push(row);
+    else if (status === 'done') view.doneRows.push(row);
     else if (status === 'open') view.weekRows.push(row);
     else view.rows.push(row);
   }
 
   return HABIT_SECTIONS.map((s) => {
     const v = views[s.id];
-    const rows = [...appRows[s.id], ...v.rows];
-    return { ...v, rows, allDone: rows.length === 0 };
-  }).filter((v) => v.rows.length + v.weekRows.length + v.doneRows.length > 0);
+    const habitCount = v.rows.length + v.weekRows.length + v.doneRows.length;
+    return { ...v, apps: appRows[s.id], allDone: v.rows.length === 0, noHabits: habitCount === 0 };
+  }).filter((v) => v.apps.length + v.rows.length + v.weekRows.length + v.doneRows.length > 0);
 };

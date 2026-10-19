@@ -7,11 +7,11 @@ import type { PracticeInstance, User } from '../types';
 //
 // A mini-app owns its own screens and data. What it shares with the rest of
 // Neuro-Nudge goes through here, so the next one doesn't re-solve it:
-//   - the manifest (which habits it attaches to),
+//   - the manifest (title, icon, accent, release),
 //   - the one access gate,
 //   - the finish handoff: a mini-app never awards XP or shows its own "done"
-//     moment. It hands a habit id back; Today asks "How hard was it to start?" and runs
-//     the same celebration a plain check-in gets.
+//     moment. It hands the finished session back; Today asks "How hard was it
+//     to start?" and files it as the app's own check-in (services/appCheckins.ts).
 // =============================================================================
 
 export type MiniAppId = 'workouts' | 'meditate' | 'compose' | 'meals';
@@ -23,8 +23,6 @@ export interface MiniAppManifest {
   icon: string;
   /** The one colour a mini-app may override. */
   accent: string;
-  /** Library habit ids (PracticeInstance.practice_id) linked without asking. */
-  habitIds: string[];
   /** 'lab' = admin accounts only; 'live' = everyone. */
   release: 'lab' | 'live';
 }
@@ -35,7 +33,6 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     title: 'Workouts',
     icon: 'barbell-outline',
     accent: CategoryColors.move,
-    habitIds: ['workout', 'trad-exercise'],
     release: 'live',
   },
   meditate: {
@@ -44,7 +41,6 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     icon: 'flower-outline',
     // The meditation habit's own teal.
     accent: Colors.primary,
-    habitIds: ['meditation', 'morning-meditation', 'trad-meditate', 'breathwork', 'breathing-break', 'nsdr'],
     release: 'live',
   },
   compose: {
@@ -52,8 +48,6 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     title: 'Compose',
     icon: 'sparkles-outline',
     accent: CategoryColors.sleep,
-    // Not tied to a habit (yet): it's opened from the Lab.
-    habitIds: [],
     release: 'lab',
   },
   meals: {
@@ -61,9 +55,6 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     title: 'Meals',
     icon: 'nutrition-outline',
     accent: CategoryColors.fuel,
-    // The Meals library habit. The food habits it replaced (vegetables,
-    // protein, sugar, cooking) are removed — data/removedHabits.ts.
-    habitIds: ['meals'],
     release: 'live',
   },
 };
@@ -77,20 +68,18 @@ export const canOpenMiniApp = (
   profile: Pick<User, 'is_admin'> | null | undefined
 ): boolean => MINI_APPS[appId].release === 'live' || profile?.is_admin === true;
 
-/** Library habits link automatically; anything else (a custom "Leg day") by the user's choice. */
-export const isHabitLinkedToMiniApp = (
-  appId: MiniAppId,
-  habit: Pick<PracticeInstance, 'id' | 'practice_id'>,
-  linkedHabitIds: string[] = []
-): boolean =>
-  (!!habit.practice_id && MINI_APPS[appId].habitIds.includes(habit.practice_id)) ||
-  linkedHabitIds.includes(habit.id);
+// Which habit a session ticks lives in services/appCheckins.ts (habitTickedBy).
+// There is no linking any more: apps open from their own card on Today, and a
+// habit never opens an app.
 
 // --- The finish handoff ------------------------------------------------------
 
 export interface SessionHandoff {
   appId: MiniAppId;
-  habitId: string;
+  /** The day it happened (YYYY-MM-DD), for a past session logged in the app. Absent = today. */
+  date?: string;
+  /** Meditate's mode (sit / breathe / nsdr) — decides which habit the session ticks. */
+  mode?: string;
   /** How long the session ran, so the check-in can prefill a duration field. */
   durationSec?: number;
   /**

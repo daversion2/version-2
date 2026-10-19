@@ -29,20 +29,15 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
  */
 export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { userId, today, rules, dayFor, saveDay, habits, linkedHabits, launchHabitId, closeAndCheckOff } = useMeals();
+  const { userId, today, rules, dayFor, saveDay, closeAndCheckOff } = useMeals();
   const day = dayFor(today);
   const score = useMemo(() => scoreDay(day, rules), [day, rules]);
 
   const [editing, setEditing] = useState<(PickerTarget & { slotId: string }) | null>(null);
   const [reasonId, setReasonId] = useState<string | undefined>();
-  // Opened from a habit on Today: that's the one. Otherwise preselect when there's only one option.
-  const [habitId, setHabitId] = useState<string | undefined>(
-    launchHabitId ?? (linkedHabits.length === 1 ? linkedHabits[0].id : undefined)
-  );
   const [saving, setSaving] = useState(false);
 
   const pendingMeals = score.items.filter((i) => i.kind === 'meal' && i.state === 'pending');
-  const chosenHabit = habits.find((h) => h.id === habitId);
   const on = score.status === 'on';
 
   const logMeal = (groups: FoodGroupId[]) => {
@@ -59,7 +54,8 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
     const closed = closeDay(day, rules, {
       now: new Date(),
       reasonId,
-      habitId: on ? chosenHabit?.id : undefined,
+      // An on-target day is the Meals check-in itself — no habit to name.
+      habitId: undefined,
     });
     try {
       // Straight to storage, not through saveDay: the handoff must only happen
@@ -72,7 +68,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     saveDay(closed);
-    if (on && chosenHabit) closeAndCheckOff(chosenHabit.id);
+    if (on) closeAndCheckOff();
     else navigation.goBack();
   };
 
@@ -153,47 +149,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {on ? (
-          <>
-            <Text style={mls.sectionLabel}>Check off a habit</Text>
-            {linkedHabits.length === 0 ? (
-              <Text style={mls.muted}>
-                No habit is linked to Meals, so there’s nothing to check off. Link one in Meals settings — a custom
-                habit like “Eat real food” works well.
-              </Text>
-            ) : (
-              <>
-                {linkedHabits.map((h) => (
-                  <TouchableOpacity
-                    key={h.id}
-                    style={[mls.card, styles.habitRow, habitId === h.id && styles.habitRowOn]}
-                    onPress={() => setHabitId(h.id)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: habitId === h.id }}
-                  >
-                    <Ionicons
-                      name={habitId === h.id ? 'radio-button-on' : 'radio-button-off'}
-                      size={20}
-                      color={habitId === h.id ? MEALS_ACCENT : Colors.gray}
-                    />
-                    <Text style={[mls.title, { flex: 1 }]}>{h.name}</Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  style={[mls.card, styles.habitRow, !habitId && styles.habitRowOn]}
-                  onPress={() => setHabitId(undefined)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: !habitId }}
-                >
-                  <Ionicons
-                    name={!habitId ? 'radio-button-on' : 'radio-button-off'}
-                    size={20}
-                    color={!habitId ? MEALS_ACCENT : Colors.gray}
-                  />
-                  <Text style={[mls.body, { flex: 1 }]}>Just close the day</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </>
+          <Text style={mls.muted}>On target. Close the day and rate it on Today: “How hard was it to start?”.</Text>
         ) : (
           <>
             <Text style={mls.sectionLabel}>What got in the way? (optional)</Text>
@@ -232,7 +188,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={mls.primaryBtnText}>{on && chosenHabit ? 'Close & rate it' : 'Close the day'}</Text>
+            <Text style={mls.primaryBtnText}>{on ? 'Close & rate it' : 'Close the day'}</Text>
           )}
         </TouchableOpacity>
       </View>

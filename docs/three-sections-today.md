@@ -1,5 +1,9 @@
 # Three sections on Today — build plan
 
+> **Superseded in part:** the apps no longer sit behind habits — they are always
+> on Today and their sessions are check-ins of their own. See
+> `docs/apps-first-today.md`. The app rows below describe the first release.
+
 *Written 2026-10-18 from the founder interview. Mockup: the "Today · simplified"
 board on https://claude.ai/artifact/GtfsKd2yQXzvuWWsATP2rW. When this doc and the
 code disagree, the code wins.*

@@ -150,8 +150,10 @@ export interface CompletedWorkoutSession {
 
 export interface WorkoutPrefs {
   unit: WeightUnit;
-  /** Habits linked by hand. Library Workout habits are linked automatically. */
+  /** @deprecated No longer read: sessions are their own check-ins (services/appCheckins.ts). */
   linked_habit_ids: string[];
+  /** Workouts a week, the card's "1 of 3". Absent = DEFAULT_APP_WEEKLY_GOALS. */
+  weekly_goal?: number;
   starters_seeded: boolean;
   /** The first-open "how this works" card has been dismissed. */
   intro_seen?: boolean;

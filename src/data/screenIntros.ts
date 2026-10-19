@@ -33,7 +33,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     id: 'today',
     icon: 'today-outline',
     title: 'Today',
-    intro: 'What needs you today, in three sections: Mind, Movement and Meals.',
+    intro: 'Three sections: Mind, Movement and Meals. Each opens with its app, with your habits underneath.',
     points: [
       {
         label: 'Tap to log',
@@ -44,8 +44,8 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
         text: 'Hold a habit to log it in full: notes, every number, or a day you forgot. The arrow on the right opens its week, About and History.',
       },
       {
-        label: 'Apps open with a tap',
-        text: 'A coloured tile means an app — Workouts, Meditate, Meals. Finishing a session there is the check-in.',
+        label: 'The apps lead',
+        text: 'Meditate, Workouts and Meals sit at the top of their sections. Finishing a session there is a check-in of its own, and ticks a matching habit.',
       },
       {
         label: 'Only today is showing',
