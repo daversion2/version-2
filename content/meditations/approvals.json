@@ -1,1 +1,8 @@
-{}
+{
+  "focus-10": {
+    "audio_sha256": "812f6b2e7baff85c0e7e058df87e80631336c7641b778fb6311f93edaaa691fd",
+    "script_sha256": "13be99977763293470a85760e94a008810c14b30240935fdef78a68fb1b449cc",
+    "duration_sec": 600,
+    "approved_at": "2026-10-19T02:34:34.523Z"
+  }
+}
