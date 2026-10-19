@@ -12,6 +12,8 @@ import { findVoice as findIn, type RenderSettings, type VoiceEntry } from '../sr
 export const ROOT = join(__dirname, '..');
 export const CONTENT_DIR = join(ROOT, 'content', 'meditations');
 export const SCRIPTS_DIR = join(CONTENT_DIR, 'scripts');
+/** Uploaded recordings: one recipe each (see src/utils/meditation/extend.ts). */
+export const RECORDINGS_DIR = join(CONTENT_DIR, 'recordings');
 /** Finished recordings for review — git-ignored. */
 export const OUT_DIR = join(CONTENT_DIR, 'out');
 /** One clip per spoken line, keyed by what was sent to the voice — git-ignored. */
@@ -59,6 +61,31 @@ export const ambiencePath = (name: string) => join(AMBIENCE_DIR, `${name}.mp3`);
 
 export const findVoice = (key: string | undefined): VoiceEntry => findIn(readJson<VoiceEntry[]>(VOICES_FILE), key);
 
+export const recipePath = (id: string) => join(RECORDINGS_DIR, `${id}.json`);
+
+export const listRecordingIds = () =>
+  existsSync(RECORDINGS_DIR)
+    ? readdirSync(RECORDINGS_DIR)
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => f.slice(0, -5))
+        .sort()
+    : [];
+
+/** Every curated recording: written scripts and uploaded recordings. */
+export const listAllIds = () => [...listScriptIds(), ...listRecordingIds()].sort();
+
+/**
+ * What a recording is made from, as one fingerprint: a script's text, or an
+ * uploaded recording's recipe plus its source audio. Changing any of it
+ * means the recording has to be made, and approved, again.
+ */
+export function sourceSha(id: string): string {
+  if (existsSync(scriptPath(id))) return sha256(readFileSync(scriptPath(id), 'utf8'));
+  const recipe = readFileSync(recipePath(id), 'utf8');
+  const { source } = JSON.parse(recipe) as { source: string };
+  return sha256(`${recipe}\n${sha256(readFileSync(join(CONTENT_DIR, source)))}`);
+}
+
 export const listScriptIds = () =>
   readdirSync(SCRIPTS_DIR)
     .filter((f) => f.endsWith('.md'))
@@ -73,4 +100,7 @@ export const fileSha = (path: string) => (existsSync(path) ? sha256(readFileSync
 export const readRecord = (id: string): RenderRecord | null =>
   existsSync(recordPath(id)) ? readJson<RenderRecord>(recordPath(id)) : null;
 
-export const formatDuration = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+export const formatDuration = (sec: number) => {
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};

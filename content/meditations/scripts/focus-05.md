@@ -1,14 +1,20 @@
 ---
-id: first-sit-5
-title: First sit
+id: focus-05
+title: Focus on the breath
 mode: sit
 technique: breath
 length_min: 5
 ---
 
-# Opening — settle in. Short sentences: each paragraph is voiced as one piece.
+# The focus series: focus-05, focus-10, focus-15, focus-20.
+# Every length shares the OPENING and the CLOSE word for word, so they're
+# voiced once and sound identical across the series. Longer versions add
+# more PRACTICE cues spread over longer silences. No line says how long the
+# session is. Pauses are relative: length_min fits the total to 5:00.
 
-Welcome. This is a five-minute sit, and there's nothing to get right.
+# --- OPENING: settle, find the anchor, the one idea --------------------------
+
+Welcome. There's nothing to get right here. You're just going to practice paying attention.
 
 Find a way of sitting that's steady, but not stiff. Feet on the floor if you're in a chair. Hands wherever they rest easily.
 
@@ -38,15 +44,13 @@ Rest your attention there.
 
 [pause 12s]
 
-# The whole skill in one idea: wandering isn't failure, noticing is the point.
-
 Before long, your mind will wander. A plan, a memory, an itch, the urge to check the time. That isn't a mistake. It's what minds do.
 
 The moment you notice you've drifted is the moment that counts. Notice where you went, and bring your attention back to the breath. No need to scold yourself. Just come back.
 
 [pause 20s]
 
-# FOR REVIEW — the one science-flavoured line. Keep it, soften it, or cut it?
+# --- PRACTICE: silence, with a cue now and then -------------------------------
 
 Each time you come back, you're training the part of your brain that chooses where attention goes. It's the same skill you use to stay with something hard, instead of reaching for an escape.
 
@@ -64,7 +68,7 @@ Back to the breath, wherever you feel it.
 
 [pause 20s]
 
-# Closing
+# --- CLOSE ----------------------------------------------------------------------
 
 We're coming to the end.
 

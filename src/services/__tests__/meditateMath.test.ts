@@ -6,6 +6,7 @@ import {
   computeRecords,
   describeSession,
   endSession,
+  guidedOptions,
   modeForHabit,
   newRecords,
   normalizeLink,
@@ -17,7 +18,7 @@ import {
   weekOf,
   weeklyTotals,
 } from '../meditateMath';
-import { CompletedMeditateSession } from '../../types/meditate';
+import { CompletedMeditateSession, GuidedRecording } from '../../types/meditate';
 
 // Local times throughout: weeks and months are counted by the user's own calendar.
 const local = (y: number, m: number, d: number, h = 9, min = 0, s = 0) => new Date(y, m - 1, d, h, min, s);
@@ -283,5 +284,56 @@ describe('normalizeLink', () => {
     expect(normalizeLink('')).toBeNull();
     expect(normalizeLink('yoga nidra')).toBeNull();
     expect(normalizeLink('nsdr')).toBeNull();
+  });
+});
+
+describe('guided sessions', () => {
+  const rec = (id: string, extra: Partial<GuidedRecording> = {}): GuidedRecording => ({
+    id,
+    title: 'Focus on the breath',
+    mode: 'sit',
+    technique: 'breath',
+    length_min: 10,
+    duration_sec: 600,
+    voice: 'Regina',
+    audio_url: 'https://example.com/x.mp3',
+    ...extra,
+  });
+
+  it('plans the recording\'s own length, with no bell to schedule', () => {
+    const s = startSession({ id: 'g1', mode: 'sit', minutes: 5, now: NOW, technique: 'breath', guided: rec('focus-10') });
+    expect(s).toMatchObject({ style: 'guided', plannedSec: 600, guidedId: 'focus-10', guidedTitle: 'Focus on the breath' });
+  });
+
+  it('counts the full length only when it plays to the end', () => {
+    const s = startSession({ id: 'g1', mode: 'sit', minutes: 10, now: NOW, guided: rec('focus-10') });
+    const later = new Date(NOW.getTime() + 3 * 60_000);
+    expect(endSession(s, later, false)).toMatchObject({ loggedSec: 600, endedEarly: false });
+    expect(endSession(s, later, true)).toMatchObject({ loggedSec: 0, endedEarly: true });
+  });
+
+  it('keeps the recording on the saved session, and says Guided', () => {
+    const s = startSession({ id: 'g1', mode: 'sit', minutes: 10, now: NOW, technique: 'breath', guided: rec('focus-10') });
+    const completed = toCompletedSession(s, new Date(NOW.getTime() + 600_000));
+    expect(completed).toMatchObject({ style: 'guided', duration_sec: 600, guided_id: 'focus-10', guided_title: 'Focus on the breath' });
+    expect(describeSession(completed)).toBe('Sit · Focused · Guided');
+  });
+
+  it('offers recordings for this mode and technique, shortest first', () => {
+    const all = [
+      rec('focus-20', { length_min: 20 }),
+      rec('focus-10'),
+      rec('body-10', { technique: 'body_scan' }),
+      rec('nsdr-10', { mode: 'nsdr', technique: null }),
+    ];
+    expect(guidedOptions(all, 'sit', 'breath').map((r) => r.id)).toEqual(['focus-10', 'focus-20']);
+    expect(guidedOptions(all, 'sit', 'open')).toEqual([]);
+    expect(guidedOptions(all, 'nsdr').map((r) => r.id)).toEqual(['nsdr-10']);
+    expect(guidedOptions(all, 'breathe')).toEqual([]);
+  });
+
+  it('a guided breathing session doesn\'t change pacer-or-timer next time', () => {
+    const d = startDefaults({ sessions: [done('2026-10-16', 10, { mode: 'breathe', style: 'guided' })], nsdrLinks: [] });
+    expect(d.breatheStyle).toBe('pacer');
   });
 });

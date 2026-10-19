@@ -16,7 +16,6 @@
  */
 
 import { createInterface } from 'node:readline/promises';
-import { readFileSync } from 'node:fs';
 import { approvalStatus, type ApprovalStatus } from '../src/utils/meditation/script';
 import {
   APPROVALS_FILE,
@@ -24,24 +23,23 @@ import {
   audioPath,
   fileSha,
   formatDuration,
-  listScriptIds,
+  listAllIds,
   readApprovals,
   readRecord,
-  scriptPath,
-  sha256,
+  sourceSha,
   writeJson,
 } from './meditationFiles';
 
 const LABEL: Record<ApprovalStatus, string> = {
   'not-rendered': 'not rendered yet',
-  'stale-render': 'script edited since render — re-render, then listen',
+  'stale-render': 'changed since it was made — make it again, then listen',
   'not-approved': 'rendered, waiting for you to listen',
   'audio-changed': 'changed since you approved it — listen again',
   approved: '✓ approved',
 };
 
 function statusOf(id: string) {
-  const scriptSha = sha256(readFileSync(scriptPath(id), 'utf8'));
+  const scriptSha = sourceSha(id);
   const record = readRecord(id);
   return approvalStatus({
     scriptSha,
@@ -52,7 +50,7 @@ function statusOf(id: string) {
 }
 
 function showAll() {
-  const ids = listScriptIds();
+  const ids = listAllIds();
   const width = Math.max(...ids.map((id) => id.length));
   for (const id of ids) console.log(`  ${id.padEnd(width)}  ${LABEL[statusOf(id)]}`);
 }

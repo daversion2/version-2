@@ -41,14 +41,46 @@ a blank line starts the next piece.
 [bell]
 ```
 
-- `id` must match the file name. `length_min` is optional; the render report
-  compares the real length against it.
+- `id` must match the file name. `length_min` is optional. When it's set, the
+  recording comes out exactly that long: the first 2 seconds of every pause
+  stay as written, and the longer silences stretch or shrink to fit. Write
+  the pauses in the proportions you want; the total takes care of itself.
 - `voice: regina` picks the narrator from `voices.json`; without it, the first
   voice there (Daisy) reads it.
 - `[pause 20s]` is exact silence (also `[pause 1m30s]`). `[bell]` is the app's
   chime (`assets/sounds/chime.wav`). Each goes on its own line.
 - Two pieces of speech with nothing between them get a 1.5s gap
   (`default_gap_sec` in `voice.json`).
+
+## Uploaded recordings (made elsewhere, e.g. ElevenLabs)
+
+A recording you made yourself can be lengthened to an exact length without
+re-voicing it. Put the file in `sources/` and write a recipe in
+`recordings/<id>.json` (see `recordings/focus-10.json`): title, mode,
+technique, `length_min`, the voice's name, and the pauses to lengthen as
+`[start, end]` seconds. Then:
+
+```
+npx tsx scripts/extendRecording.ts focus-10
+```
+
+The chosen pauses are lengthened with the recording's own background
+ambience, so it never drops out; the voice and wording are untouched. The
+result goes to `out/<id>.mp3` and is approved like any other recording. Its
+fingerprint covers the recipe and the source file, so changing either needs a
+fresh approval.
+
+## Putting recordings in the app
+
+```
+npx tsx scripts/publishMeditations.ts            # preview
+npx tsx scripts/publishMeditations.ts --publish  # do it (production)
+```
+
+Uploads every **approved** recording to Storage and lists it in the
+`guidedRecordings` catalog, which Meditate reads: a mode shows a Guided
+option once it has a recording. Anything no longer approved is taken down.
+Needs `firebase login`.
 
 ## Background sounds
 
@@ -106,6 +138,8 @@ here reaches users, and none of it goes through the approval step.
 | `approvals.json` | What's been approved, with each file's fingerprint | yes |
 | `ambience/*.mp3` | Background loops | yes |
 | `ambience/sources.json` | Where each background came from, and its licence | yes |
+| `recordings/*.json` | Recipes for uploaded recordings | yes |
+| `sources/*.mp3` | The uploaded recordings themselves | yes |
 | `out/` | Rendered MP3s + a render record each; `out/composed/` for the prototype | no |
 | `composed/` | Prototype scripts and logs | no |
 | `.cache/clips/` | One voiced clip per spoken piece, reused across renders | no |

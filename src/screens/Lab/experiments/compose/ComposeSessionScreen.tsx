@@ -21,7 +21,7 @@ import {
 import type { ComposeRequest, ComposeSession } from '../../../../utils/meditation/compose';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { triggerTapHaptic } from '../../../../utils/haptics';
-import { SessionPlayer } from './components/SessionPlayer';
+import { SessionPlayer } from '../../../../components/audio/SessionPlayer';
 import { COMPOSE_ACCENT, COMPOSE_TINT, cs } from './components/composeStyle';
 
 type Props = NativeStackScreenProps<ComposeStackParamList, 'ComposeSession'>;
@@ -199,7 +199,12 @@ export const ComposeSessionScreen: React.FC<Props> = ({ navigation, route }) => 
       <Text style={cs.muted}>{composeSessionMeta(session)}</Text>
 
       <View style={[cs.card, styles.playerCard]}>
-        <SessionPlayer url={session.audio_url} title={composeDisplayTitle(session)} durationSec={session.duration_sec} />
+        <SessionPlayer
+          url={session.audio_url}
+          title={composeDisplayTitle(session)}
+          durationSec={session.duration_sec}
+          accent={COMPOSE_ACCENT}
+        />
       </View>
 
       {session.saved ? (

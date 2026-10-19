@@ -2,6 +2,7 @@ import { getPractice } from '../data/practices';
 import { BreathPatternKey, getBreathPattern } from '../data/breathPatterns';
 import {
   CompletedMeditateSession,
+  GuidedRecording,
   MeditateMode,
   MeditateSession,
   MeditateStyle,
@@ -167,7 +168,8 @@ export const startDefaults = (input: {
     mode,
     technique: lastSit?.technique ?? 'breath',
     pattern: lastBreathe?.pattern ?? 'box',
-    breatheStyle: lastBreathe?.style ?? 'pacer',
+    // A guided breathing session doesn't decide pacer-or-timer for next time.
+    breatheStyle: lastBreathe?.style === 'timer' ? 'timer' : 'pacer',
     nsdrLinkId,
     minutes,
   };
@@ -185,16 +187,22 @@ export const startSession = (input: {
   /** Breathe only — Sit and NSDR always lock and bell. */
   breatheStyle?: MeditateStyle;
   nsdrLink?: NsdrLink;
+  /** A guided recording to play instead of the timer or pacer. Its own length is the plan. */
+  guided?: Pick<GuidedRecording, 'id' | 'title' | 'duration_sec'>;
   habitId?: string;
 }): MeditateSession => {
-  const { id, mode, minutes, now, habitId } = input;
+  const { id, mode, minutes, now, habitId, guided } = input;
   const session: MeditateSession = {
     id,
     mode,
-    style: mode === 'breathe' ? input.breatheStyle ?? 'pacer' : 'timer',
-    plannedSec: clampMinutes(mode, minutes) * 60,
+    style: guided ? 'guided' : mode === 'breathe' ? input.breatheStyle ?? 'pacer' : 'timer',
+    plannedSec: guided ? Math.round(guided.duration_sec) : clampMinutes(mode, minutes) * 60,
     startedAt: now.toISOString(),
   };
+  if (guided) {
+    session.guidedId = guided.id;
+    session.guidedTitle = guided.title;
+  }
   if (mode === 'sit') session.technique = input.technique ?? 'breath';
   if (mode === 'breathe') session.pattern = input.pattern ?? 'box';
   if (mode === 'nsdr' && input.nsdrLink) {
@@ -210,14 +218,19 @@ export const isEnded = (session: MeditateSession): boolean => !!session.endedAt;
 /**
  * Ends a session and fixes what it logs. A timed one counts by the clock
  * (capped at the plan — see sessionTimer.loggedSec); a paced one by the
- * seconds actually breathed, so pauses don't count.
+ * seconds actually breathed, so pauses don't count; a guided one counts only
+ * if it played to the end — its full length then, nothing before.
  */
 export const endSession = (session: MeditateSession, now: Date, early: boolean): MeditateSession => {
   if (session.endedAt) return session;
   const logged =
-    session.style === 'pacer'
-      ? Math.min(session.plannedSec, session.pacedSec ?? 0)
-      : loggedSec(session, now);
+    session.style === 'guided'
+      ? early
+        ? 0
+        : session.plannedSec
+      : session.style === 'pacer'
+        ? Math.min(session.plannedSec, session.pacedSec ?? 0)
+        : loggedSec(session, now);
   return {
     ...session,
     endedAt: now.toISOString(),
@@ -248,6 +261,8 @@ export const toCompletedSession = (session: MeditateSession, now: Date): Complet
   if (ended.technique) completed.technique = ended.technique;
   if (ended.pattern) completed.pattern = ended.pattern;
   if (ended.nsdrTitle) completed.nsdr_title = ended.nsdrTitle;
+  if (ended.guidedId) completed.guided_id = ended.guidedId;
+  if (ended.guidedTitle) completed.guided_title = ended.guidedTitle;
   if (ended.habitId) completed.habit_id = ended.habitId;
   return completed;
 };
@@ -273,8 +288,23 @@ export const describeSession = (
   if (s.mode === 'sit') parts.push(getSitTechnique(s.technique).label);
   if (s.mode === 'breathe') parts.push(getBreathPattern(s.pattern).label);
   if (s.mode === 'nsdr' && s.nsdr_title) parts.push(s.nsdr_title);
+  if (s.style === 'guided') parts.push('Guided');
   return parts.join(' · ');
 };
+
+/**
+ * The published recordings that fit what's picked on the start screen: this
+ * mode and, for Sit, this technique — shortest first. Empty means no Guided
+ * option is shown.
+ */
+export const guidedOptions = (
+  recordings: GuidedRecording[],
+  mode: MeditateMode,
+  technique?: SitTechnique,
+): GuidedRecording[] =>
+  recordings
+    .filter((r) => r.mode === mode && (mode !== 'sit' || r.technique === (technique ?? 'breath')))
+    .sort((a, b) => a.length_min - b.length_min || a.title.localeCompare(b.title));
 
 // --- Stats -------------------------------------------------------------------
 

@@ -12,12 +12,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
-import { MeditateMode, MeditateStackParamList, NsdrLink } from '../../../../types/meditate';
+import { GuidedRecording, MeditateMode, MeditateStackParamList, NsdrLink } from '../../../../types/meditate';
 import { BREATH_PATTERNS, getBreathPattern } from '../../../../data/breathPatterns';
 import {
   clampMinutes,
   describeSession,
   getSitTechnique,
+  guidedOptions,
   MODE_ORDER,
   MODES,
   SIT_TECHNIQUES,
@@ -46,6 +47,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     prefs,
     updatePrefs,
     sessions,
+    guided,
     launchHabit,
     bellPermission,
     session,
@@ -58,6 +60,9 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showSteps, setShowSteps] = useState(false);
   const [addingLink, setAddingLink] = useState(false);
   const [starting, setStarting] = useState(false);
+  /** Per mode: play a guided recording instead of timing it yourself. Opens on last time's choice. */
+  const [guidedOn, setGuidedOn] = useState<Record<MeditateMode, boolean>>({ sit: false, breathe: false, nsdr: false });
+  const [guidedPick, setGuidedPick] = useState<string | undefined>(undefined);
   const seeded = useRef(false);
 
   useLayoutEffect(() => {
@@ -92,6 +97,9 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (loading || seeded.current) return;
     seeded.current = true;
+    const lastStyle = (m: MeditateMode) => sessions.find((x) => x.mode === m)?.style;
+    setGuidedOn({ sit: lastStyle('sit') === 'guided', breathe: lastStyle('breathe') === 'guided', nsdr: lastStyle('nsdr') === 'guided' });
+    setGuidedPick(sessions.find((x) => x.style === 'guided')?.guided_id);
     setChoices(
       startDefaults({
         sessions,
@@ -115,8 +123,16 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   const minutes = choices.minutes[mode];
   const config = MODES[mode];
   const nsdrLink = prefs.nsdr_links.find((l) => l.id === choices.nsdrLinkId) ?? prefs.nsdr_links[0];
-  const timed = mode !== 'breathe' || choices.breatheStyle === 'timer';
   const technique = getSitTechnique(choices.technique);
+  // Guided is offered only where an approved recording exists for this mode
+  // (and, for Sit, this technique).
+  const options = guidedOptions(guided, mode, choices.technique);
+  const useGuided = guidedOn[mode] && options.length > 0;
+  const recording: GuidedRecording | undefined = useGuided
+    ? (options.find((r) => r.id === guidedPick) ?? options[0])
+    : undefined;
+  const timed = !useGuided && (mode !== 'breathe' || choices.breatheStyle === 'timer');
+  const needsLink = mode === 'nsdr' && !useGuided && !nsdrLink;
 
   const setMinutes = (next: number) => set({ minutes: { ...choices.minutes, [mode]: clampMinutes(mode, next) } });
 
@@ -128,20 +144,28 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     setAddingLink(false);
   };
 
-  const resume = () => navigation.navigate(session?.endedAt ? 'MeditateDone' : 'MeditateSession');
+  const resume = () =>
+    navigation.navigate(
+      session?.endedAt ? 'MeditateDone' : session?.style === 'guided' ? 'MeditateGuided' : 'MeditateSession',
+    );
 
   const start = async () => {
-    if (mode === 'nsdr' && !nsdrLink) return;
+    if (needsLink) return;
     setStarting(true);
     try {
       await begin({
         mode,
-        minutes,
+        minutes: recording ? recording.length_min : minutes,
         technique: choices.technique,
         pattern: choices.pattern,
         breatheStyle: choices.breatheStyle,
-        nsdrLink: mode === 'nsdr' ? nsdrLink : undefined,
+        nsdrLink: mode === 'nsdr' && !recording ? nsdrLink : undefined,
+        guided: recording,
       });
+      if (recording) {
+        navigation.navigate('MeditateGuided');
+        return;
+      }
       navigation.navigate('MeditateSession');
       if (mode === 'nsdr' && nsdrLink) {
         Linking.openURL(nsdrLink.url).catch(() =>
@@ -305,8 +329,8 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <Text style={ms.muted}>{getBreathPattern(choices.pattern).blurb}</Text>
 
-            <Text style={ms.sectionLabel}>How</Text>
-            <View style={styles.styleRow}>
+            {!useGuided && <Text style={ms.sectionLabel}>How</Text>}
+            {!useGuided && <View style={styles.styleRow}>
               {(
                 [
                   { key: 'pacer', title: 'Follow the pacer', detail: 'A circle on screen sets the rhythm' },
@@ -327,11 +351,11 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </View>}
           </>
         )}
 
-        {mode === 'nsdr' && (
+        {mode === 'nsdr' && !useGuided && (
           <>
             <Text style={ms.sectionLabel}>Recording</Text>
             {prefs.nsdr_links.length === 0 && !addingLink && (
@@ -378,8 +402,58 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
           </>
         )}
 
+        {/* Timer or guided — only where a recording exists */}
+        {options.length > 0 && (
+          <>
+            <Text style={ms.sectionLabel}>Guidance</Text>
+            <View style={styles.styleRow}>
+              {(
+                [
+                  { on: false, title: 'On my own', detail: timedDetail(mode) },
+                  { on: true, title: 'Guided', detail: 'A voice leads you through it' },
+                ] as const
+              ).map((o) => {
+                const on = useGuided === o.on;
+                return (
+                  <TouchableOpacity
+                    key={o.title}
+                    style={[ms.card, styles.styleCard, on && styles.styleCardOn]}
+                    onPress={() => setGuidedOn((g) => ({ ...g, [mode]: o.on }))}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                  >
+                    <Text style={[ms.title, { fontSize: FontSizes.sm }]}>{o.title}</Text>
+                    <Text style={ms.muted}>{o.detail}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
+
         {/* How long */}
         <Text style={ms.sectionLabel}>How long</Text>
+        {recording ? (
+          <View style={ms.chipRow}>
+            {options.map((r) => {
+              const on = r.id === recording.id;
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  style={[ms.chip, on && ms.chipActive]}
+                  onPress={() => setGuidedPick(r.id)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: on }}
+                  accessibilityLabel={`${r.length_min} minutes, read by ${r.voice}`}
+                >
+                  <Text style={[ms.chipText, on && ms.chipTextActive]}>
+                    {r.length_min} min · {r.voice}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : (
         <View style={[ms.card, styles.stepper]}>
           <TouchableOpacity
             onPress={() => setMinutes(minutes - config.stepMin)}
@@ -402,6 +476,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="add" size={22} color={MEDITATE_ACCENT} />
           </TouchableOpacity>
         </View>
+        )}
 
         {timed && bellPermission === 'denied' && (
           <View style={[ms.card, styles.warn]}>
@@ -422,16 +497,20 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
-          style={[ms.primaryBtn, (starting || (mode === 'nsdr' && !nsdrLink)) && ms.disabled]}
+          style={[ms.primaryBtn, (starting || needsLink) && ms.disabled]}
           onPress={onBegin}
-          disabled={starting || (mode === 'nsdr' && !nsdrLink)}
+          disabled={starting || needsLink}
           accessibilityRole="button"
         >
           {starting ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
             <Text style={ms.primaryBtnText}>
-              {mode === 'nsdr' ? 'Begin · open recording' : `Begin · ${minutes} min`}
+              {recording
+                ? `Begin · ${recording.length_min} min guided`
+                : mode === 'nsdr'
+                  ? 'Begin · open recording'
+                  : `Begin · ${minutes} min`}
             </Text>
           )}
         </TouchableOpacity>
@@ -439,6 +518,10 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 };
+
+/** What "On my own" means in each mode. */
+const timedDetail = (mode: MeditateMode): string =>
+  mode === 'breathe' ? 'The pacer, or just a timer' : mode === 'nsdr' ? 'Your saved recording, timed' : 'Lock your phone, bell at the end';
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },

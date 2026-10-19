@@ -3,10 +3,11 @@ import { AppState } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../../types/navigation';
 import type { PracticeInstance } from '../../../../types';
-import { CompletedMeditateSession, MeditatePrefs, MeditateSession } from '../../../../types/meditate';
+import { CompletedMeditateSession, GuidedRecording, MeditatePrefs, MeditateSession } from '../../../../types/meditate';
 import {
   DEFAULT_MEDITATE_PREFS,
   getMeditatePrefs,
+  listGuidedRecordings,
   listMeditateSessions,
   newMeditateId,
   saveMeditatePrefs,
@@ -39,6 +40,9 @@ interface MeditateContextValue {
 
   /** Newest first. */
   sessions: CompletedMeditateSession[];
+
+  /** Published guided recordings; empty if none (or they couldn't load). */
+  guided: GuidedRecording[];
 
   habits: PracticeInstance[];
   linkedHabits: PracticeInstance[];
@@ -91,6 +95,7 @@ export const MeditateProvider: React.FC<{
   const [prefs, setPrefs] = useState<MeditatePrefs>(DEFAULT_MEDITATE_PREFS);
   const [sessions, setSessions] = useState<CompletedMeditateSession[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
+  const [guided, setGuided] = useState<GuidedRecording[]>([]);
   const [bellPermission, setBellPermission] = useState<BellPermission>('undetermined');
   const [session, setSession] = useState<MeditateSession | null>(null);
   const sessionRef = useRef<MeditateSession | null>(null);
@@ -142,6 +147,13 @@ export const MeditateProvider: React.FC<{
     reload();
   }, [reload]);
 
+  // The guided catalog on its own: if it can't load, Meditate works as before.
+  useEffect(() => {
+    listGuidedRecordings()
+      .then(setGuided)
+      .catch((e) => console.warn('Meditate: guided recordings not loaded:', e));
+  }, []);
+
   const linkedHabits = useMemo(
     () => habits.filter((h) => isHabitLinkedToMiniApp(APP, h, prefs.linked_habit_ids)),
     [habits, prefs.linked_habit_ids]
@@ -169,7 +181,7 @@ export const MeditateProvider: React.FC<{
 
   const begin = useCallback(
     async (input: StartInput) => {
-      const timed = input.mode !== 'breathe' || input.breatheStyle === 'timer';
+      const timed = !input.guided && (input.mode !== 'breathe' || input.breatheStyle === 'timer');
       // Asks only if never answered; a "no" just means no bell. Before the
       // clock starts, so time spent on the prompt isn't counted.
       if (timed && (await getBellPermission()) === 'undetermined') {
@@ -250,6 +262,7 @@ export const MeditateProvider: React.FC<{
     prefs,
     updatePrefs,
     sessions,
+    guided,
     habits,
     linkedHabits,
     launchHabit,

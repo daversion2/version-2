@@ -1,0 +1,19 @@
+{
+  "id": "focus-10",
+  "title": "Focus on the breath",
+  "mode": "sit",
+  "technique": "breath",
+  "length_min": 10,
+  "voice": "Regina",
+  "source": "sources/focus-regina-elevenlabs.mp3",
+  "notes": "Recorded in ElevenLabs with its own nature ambience. The seven long pauses in the practice stretch are lengthened with that same ambience; the opening and the close play as recorded.",
+  "extend_pauses": [
+    [93.15, 102.57],
+    [104.28, 113.73],
+    [118.95, 126.0],
+    [136.13, 145.62],
+    [146.77, 156.21],
+    [159.98, 172.42],
+    [174.85, 187.2]
+  ]
+}

@@ -59,6 +59,13 @@ export const MeditateApp: React.FC<NativeStackScreenProps<RootStackParamList, 'M
           component={MeditateSessionScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        {/* Guided: loaded on first use, so expo-audio is only touched when a
+            guided session starts. No swipe-back, same as a timed sit. */}
+        <Stack.Screen
+          name="MeditateGuided"
+          getComponent={() => require('./MeditateGuidedScreen').MeditateGuidedScreen}
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
         <Stack.Screen
           name="MeditateDone"
           component={MeditateDoneScreen}

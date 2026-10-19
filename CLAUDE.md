@@ -80,7 +80,7 @@ by other users when profiles went owner-only.
 Lab) shipped OTA on 2026-10-18 and works on the 2.2.0 binary only while the
 app is open: that binary has no background audio, so for now
 `KEEP_SCREEN_ON_WHILE_PLAYING` in
-`src/screens/Lab/experiments/compose/components/SessionPlayer.tsx` keeps the
+`src/components/audio/SessionPlayer.tsx` keeps the
 screen on during playback (a stopgap). In the next store build: bump
 `version` in app.json (runtimeVersion is `appVersion`), which brings
 UIBackgroundModes audio and `patches/expo-audio+1.1.1.patch`; then set that

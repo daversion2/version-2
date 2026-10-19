@@ -286,5 +286,15 @@ service cloud.firestore {
     match /composeUsage/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
     }
+
+    // ========================================================================
+    // GUIDED RECORDINGS — guidedRecordings/{id}
+    // Meditate's catalog of approved guided recordings. Any signed-in user can
+    // read it; nobody writes it from the app — only scripts/publishMeditations.ts,
+    // which publishes nothing the founder hasn't approved.
+    // ========================================================================
+    match /guidedRecordings/{id} {
+      allow read: if request.auth != null;
+    }
   }
 }

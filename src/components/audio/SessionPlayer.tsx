@@ -4,15 +4,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
-import { formatClock } from '../../../../../services/labCompose';
-import { COMPOSE_ACCENT, COMPOSE_TINT } from './composeStyle';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { formatClock } from '../../services/labCompose';
 
 interface Props {
   url: string;
   title: string;
-  /** From the server — shown before the file has loaded. */
+  /** Known up front (a catalog or a session doc) — shown before the file has loaded. */
   durationSec?: number;
+  /** The host app's one colour. */
+  accent: string;
+  /** Called once, when the recording plays through to its end. */
+  onFinish?: () => void;
 }
 
 const SKIP_SEC = 15;
@@ -27,7 +30,7 @@ const SLOW_LOAD_MS = 15_000;
  * screen off is the intended experience.
  */
 const KEEP_SCREEN_ON_WHILE_PLAYING = true;
-const KEEP_AWAKE_TAG = 'compose-session';
+const KEEP_AWAKE_TAG = 'guided-session';
 
 /**
  * setAudioModeAsync replaces the whole mode — anything left out goes back to
@@ -42,12 +45,13 @@ const SESSION_AUDIO_MODE = {
 } as const;
 
 /**
- * Plays a composed session. Keeps playing with the screen locked or the app in
+ * Plays a guided recording — a Compose session or a Meditate guided sit. Keeps playing with the screen locked or the app in
  * the background (UIBackgroundModes audio, app.json), with play/pause and a
  * scrubber on the lock screen. Pauses when its screen loses focus, so a
  * session never plays on under another screen.
  */
-export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec }) => {
+export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec, accent, onFinish }) => {
+  const tint = accent + '14';
   const player = useAudioPlayer({ uri: url }, { updateInterval: 500 });
   const status = useAudioPlayerStatus(player);
   const [barWidth, setBarWidth] = useState(0);
@@ -109,6 +113,15 @@ export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec }) => {
     };
   }, [status.playing]);
 
+  // Tell the host once, when it plays through (not on a seek to the end).
+  const finishedOnce = useRef(false);
+  useEffect(() => {
+    if (status.didJustFinish && !finishedOnce.current) {
+      finishedOnce.current = true;
+      onFinish?.();
+    }
+  }, [status.didJustFinish, onFinish]);
+
   useEffect(() => {
     if (loaded) {
       setSlow(false);
@@ -162,8 +175,8 @@ export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec }) => {
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) => seek(position + (e.nativeEvent.actionName === 'increment' ? SKIP_SEC : -SKIP_SEC))}
       >
-        <View style={styles.bar}>
-          <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+        <View style={[styles.bar, { backgroundColor: tint }]}>
+          <View style={[styles.fill, { backgroundColor: accent, width: `${progress * 100}%` }]} />
         </View>
       </TouchableOpacity>
       <View style={styles.times}>
@@ -183,7 +196,7 @@ export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec }) => {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={togglePlay}
-          style={[styles.play, !loaded && styles.off]}
+          style={[styles.play, { backgroundColor: accent }, !loaded && styles.off]}
           disabled={!loaded}
           accessibilityLabel={status.playing ? 'Pause' : finished ? 'Play again' : 'Play'}
         >
@@ -216,8 +229,8 @@ export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec }) => {
 const styles = StyleSheet.create({
   wrap: { gap: Spacing.sm },
   barHit: { paddingVertical: 10 },
-  bar: { height: 6, borderRadius: BorderRadius.full, backgroundColor: COMPOSE_TINT, overflow: 'hidden' },
-  fill: { height: 6, backgroundColor: COMPOSE_ACCENT },
+  bar: { height: 6, borderRadius: BorderRadius.full, overflow: 'hidden' },
+  fill: { height: 6 },
   times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -4 },
   time: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xl, marginTop: Spacing.sm },
@@ -225,7 +238,6 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: COMPOSE_ACCENT,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,6 +1,6 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { CompletedMeditateSession, MeditatePrefs } from '../types/meditate';
+import { CompletedMeditateSession, GuidedRecording, MeditatePrefs } from '../types/meditate';
 import { stripUndefined } from './labWorkouts';
 
 // =============================================================================
@@ -50,3 +50,15 @@ export const saveMeditateSession = async (userId: string, session: CompletedMedi
 };
 
 export const newMeditateId = (userId: string): string => doc(col(userId, COL.sessions)).id;
+
+/**
+ * The published guided recordings (guidedRecordings — read-only to the app;
+ * scripts/publishMeditations.ts writes it, and only with recordings the
+ * founder approved).
+ */
+export const listGuidedRecordings = async (): Promise<GuidedRecording[]> => {
+  const snap = await getDocs(collection(db, 'guidedRecordings'));
+  return snap.docs
+    .map((d) => ({ ...(d.data() as GuidedRecording), id: d.id }))
+    .filter((r) => !!r.audio_url && r.duration_sec > 0);
+};

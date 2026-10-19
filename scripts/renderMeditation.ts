@@ -40,7 +40,11 @@ async function render(id: string, ambienceOverride: string | null) {
   if (meta.id !== id) throw new Error(`${id}.md says its id is "${meta.id}" — they must match`);
 
   const out = ambienceOverride ? previewPath(id, ambienceOverride) : audioPath(id);
-  const result = await renderScript({ source, outPath: out, ambienceOverride });
+  // `length_min` makes it exactly that long: the first 2s of every pause stay
+  // as written, and the longer silences stretch or shrink to fit.
+  const lengthMin = Number(meta.length_min);
+  const targetSec = lengthMin > 0 ? lengthMin * 60 : undefined;
+  const result = await renderScript({ source, outPath: out, ambienceOverride, targetSec });
   const label = result.ambience ? ` with ${result.ambience}` : '';
 
   if (ambienceOverride) {
@@ -64,12 +68,12 @@ async function render(id: string, ambienceOverride: string | null) {
   };
   writeJson(recordPath(id), record);
 
-  const targetMin = Number(meta.length_min);
   console.log(`\n✓ ${meta.title}${label}, read by ${result.voice.name} → ${out.replace(`${ROOT}/`, '')}`);
   console.log(
     `  ${formatDuration(result.durationSec)} long` +
-      (targetMin ? ` (aiming for ${targetMin}:00)` : '') +
-      ` — speech ${formatDuration(result.speechSec)}, written pauses ${formatDuration(totalPauseSec(segments))}`,
+      (targetSec ? ' (fitted to its length_min)' : '') +
+      ` — speech ${formatDuration(result.speechSec)}, silence ${formatDuration(result.pauseSec)}` +
+      (targetSec ? ` (written ${formatDuration(totalPauseSec(segments))})` : ''),
   );
   console.log(`  characters voiced: ${result.charsNew} new, ${result.charsCached} reused from cache`);
   console.log(`  Not approved. Listen to all of it, then: npx tsx scripts/approveMeditation.ts ${id}`);

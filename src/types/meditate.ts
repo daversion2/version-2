@@ -12,9 +12,26 @@ export type SitTechnique = 'breath' | 'open' | 'body_scan';
 
 /**
  * How the session runs. 'timer' = lock the phone, a notification rings the
- * bell. 'pacer' = breathwork's follow-along circle, screen on.
+ * bell. 'pacer' = breathwork's follow-along circle, screen on. 'guided' = a
+ * published guided recording plays; it only counts if it plays to the end.
  */
-export type MeditateStyle = 'timer' | 'pacer';
+export type MeditateStyle = 'timer' | 'pacer' | 'guided';
+
+/**
+ * A guided recording in the guidedRecordings catalog — published only by
+ * scripts/publishMeditations.ts, and only once the founder has approved it.
+ */
+export interface GuidedRecording {
+  id: string;
+  title: string;
+  mode: MeditateMode;
+  /** Sit recordings: which technique (the SitTechnique key). */
+  technique: string | null;
+  length_min: number;
+  duration_sec: number;
+  voice: string;
+  audio_url: string;
+}
 
 export interface NsdrLink {
   id: string;
@@ -32,6 +49,9 @@ export interface MeditateSession {
   nsdrLinkId?: string;
   /** Kept on the session so a link deleted mid-sit still names the recording. */
   nsdrTitle?: string;
+  /** Guided only: the recording playing, and its title (kept if it's later taken down). */
+  guidedId?: string;
+  guidedTitle?: string;
   plannedSec: number;
   startedAt: string;
   /** Pacer only: seconds actually breathed, pauses excluded. */
@@ -55,6 +75,9 @@ export interface CompletedMeditateSession {
   technique?: SitTechnique;
   pattern?: BreathPatternKey;
   nsdr_title?: string;
+  /** Guided sessions: which recording. */
+  guided_id?: string;
+  guided_title?: string;
   planned_sec: number;
   duration_sec: number;
   ended_early: boolean;
@@ -76,6 +99,7 @@ export interface MeditatePrefs {
 export type MeditateStackParamList = {
   MeditateHome: undefined;
   MeditateSession: undefined;
+  MeditateGuided: undefined;
   MeditateDone: undefined;
   MeditateHistory: undefined;
   MeditateSettings: undefined;
