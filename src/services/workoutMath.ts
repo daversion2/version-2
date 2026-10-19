@@ -124,6 +124,28 @@ export const lastSetsFor = (
 };
 
 /**
+ * Like lastSetsFor, but for one slot of one block — the 5th exercise of a
+ * circuit that has pull-ups 1st and 5th gets the 5th's numbers, not the 1st's.
+ * Finds the most recent session that ran the same block (block ids carry over
+ * from the saved workout) with that exercise in that slot. Empty if none did.
+ */
+export const lastSlotSetsFor = (
+  sessions: CompletedWorkoutSession[],
+  slot: { blockId: string; itemIndex: number; exerciseId: string },
+  excludeSessionId?: string
+): LoggedSet[] => {
+  const newestFirst = [...sessions].sort((a, b) => b.finished_at.localeCompare(a.finished_at));
+  for (const session of newestFirst) {
+    if (session.id === excludeSessionId) continue;
+    const block = session.blocks.find((b) => b.id === slot.blockId);
+    if (block?.items[slot.itemIndex]?.exerciseId !== slot.exerciseId) continue;
+    const sets = block.sets.filter((_, k) => k % block.items.length === slot.itemIndex);
+    if (sets.length) return sets;
+  }
+  return [];
+};
+
+/**
  * Last time, then the plan, then a default.
  *
  * Reps and seconds come from the same set last session — that's the number to

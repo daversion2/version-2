@@ -20,10 +20,12 @@ import {
   logSet,
   makeId,
   Position,
+  repeatsInBlock,
   restRemainingSec,
   roundsDone,
   setsTodayFor,
   skipBlock,
+  slotSets,
   totalSetsLogged,
   undoLastSet,
 } from '../../../../services/workoutSession';
@@ -35,6 +37,7 @@ import {
   formatSetValues,
   fromDisplayWeight,
   lastSetsFor,
+  lastSlotSetsFor,
   prefillFor,
   stepWeight,
   toDisplayWeight,
@@ -90,12 +93,23 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const ex = pos ? exercise(pos.item.exerciseId) : null;
   const positionKey = pos ? `${pos.block.id}:${pos.block.sets.length}` : 'none';
 
+  // An exercise that's in this circuit twice (pull-ups 1st and 5th) goes by
+  // its own slot — last time's 5th, today's 5th — or each would prefill the
+  // other's numbers. Otherwise, by exercise, as ever.
+  const repeated = !!pos && repeatsInBlock(pos.block, pos.itemIndex);
   const lastSets = useMemo(
-    () => (ex ? lastSetsFor(sessions, ex.id, session?.id) : []),
-    [sessions, ex?.id, session?.id] // eslint-disable-line react-hooks/exhaustive-deps
+    () =>
+      !ex || !pos
+        ? []
+        : repeated
+          ? lastSlotSetsFor(sessions, { blockId: pos.block.id, itemIndex: pos.itemIndex, exerciseId: ex.id }, session?.id)
+          : lastSetsFor(sessions, ex.id, session?.id),
+    [sessions, ex?.id, session?.id, pos?.block.id, pos?.itemIndex, repeated] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const todays = session && ex ? setsTodayFor(session, ex.id) : [];
-  const prefill = pos && ex ? prefillFor(ex.kind, pos.item.target, lastSets, todays.length, todays) : null;
+  const todaysInSlot = pos && repeated ? slotSets(pos.block, pos.itemIndex) : todays;
+  const prefill =
+    pos && ex ? prefillFor(ex.kind, pos.item.target, lastSets, todaysInSlot.length, todaysInSlot) : null;
 
   // New set → fresh numbers from last time / the plan. Keyed on position, so
   // typing a weight isn't overwritten by the clock re-rendering the screen —

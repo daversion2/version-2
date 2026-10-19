@@ -35,6 +35,16 @@ export const searchExercises = (exercises: Exercise[], term: string): Exercise[]
 };
 
 /**
+ * One body part's exercises, as its tile opens them: yours first (the ones
+ * you made are the ones you're most likely after), then the built-ins. Keeps
+ * the incoming order within each, so an A–Z library stays A–Z.
+ */
+export const exercisesInGroup = (exercises: Exercise[], muscle: MuscleGroup): Exercise[] => {
+  const inGroup = exercises.filter((e) => e.muscle === muscle);
+  return [...inGroup.filter((e) => e.custom), ...inGroup.filter((e) => !e.custom)];
+};
+
+/**
  * Has this exercise ever been logged? Then its kind is locked: a set stored as
  * weight × reps can't be re-read as a timed hold. Records cover every finished
  * session (one is written for each exercise logged), so this holds even past

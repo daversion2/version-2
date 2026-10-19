@@ -1,6 +1,7 @@
 import {
   activeExercises,
   exerciseSubtitle,
+  exercisesInGroup,
   isExerciseUsed,
   searchExercises,
   validateExerciseName,
@@ -61,6 +62,21 @@ describe('searchExercises', () => {
 
   it('returns everything for a blank search', () => {
     expect(searchExercises(library, '  ')).toHaveLength(library.length);
+  });
+});
+
+describe('exercisesInGroup', () => {
+  it('keeps one body part, yours first, order otherwise kept', () => {
+    const legs = exercisesInGroup(activeExercises(library), 'legs');
+    expect(legs[0].id).toBe('custom_1');
+    expect(legs.every((e) => e.muscle === 'legs')).toBe(true);
+    const builtIns = legs.slice(1).map((e) => e.name);
+    expect(builtIns).toEqual([...builtIns].sort((a, b) => a.localeCompare(b)));
+    expect(legs).toHaveLength(BUILT_IN_EXERCISES.filter((e) => e.muscle === 'legs').length + 1);
+  });
+
+  it('is empty for a body part with nothing in it', () => {
+    expect(exercisesInGroup([], 'chest')).toEqual([]);
   });
 });
 

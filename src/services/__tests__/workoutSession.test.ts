@@ -13,10 +13,12 @@ import {
   jumpTo,
   logSet,
   planChanges,
+  repeatsInBlock,
   restRemainingSec,
   roundsDone,
   setsTodayFor,
   skipBlock,
+  slotSets,
   startSession,
   toCompletedSession,
   undoLastSet,
@@ -264,6 +266,57 @@ describe('saving changes back', () => {
     expect(w.name).toBe('Heavy day');
     expect(w.blocks).toHaveLength(1);
     expect(w.blocks[0]).toMatchObject({ rounds: 2, items: [{ exerciseId: 'bench', target: { reps: 5, weightKg: 100 } }] });
+  });
+});
+
+describe('an exercise twice in one circuit', () => {
+  // Pull-ups 1st and 3rd with different reps — two slots, not one.
+  const twice = (): WorkoutSession => {
+    const s = startSession({ id: 's', name: 'Empty workout', now: T0 });
+    return addBlock(
+      s,
+      [
+        { exerciseId: 'pullup', target: { reps: 10 } },
+        { exerciseId: 'pushup', target: { reps: 20 } },
+        { exerciseId: 'pullup', target: { reps: 5 } },
+      ],
+      { id: 'c', rounds: 2 }
+    );
+  };
+
+  it('knows which items repeat', () => {
+    const block = twice().blocks[0];
+    expect([0, 1, 2].map((i) => repeatsInBlock(block, i))).toEqual([true, false, true]);
+  });
+
+  it('walks every slot in order, the repeat included', () => {
+    let s = twice();
+    const seen: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      seen.push(`${currentPosition(s)!.itemIndex}:${currentPosition(s)!.item.target.reps}`);
+      s = logSet(s, { reps: 1 }, at(i)).session;
+    }
+    expect(seen).toEqual(['0:10', '1:20', '2:5', '0:10', '1:20', '2:5']);
+    expect(isSessionComplete(s)).toBe(true);
+  });
+
+  it('keeps each slot\'s sets apart', () => {
+    let s = twice();
+    [10, 20, 5, 9, 18, 4].forEach((reps, i) => (s = logSet(s, { reps }, at(i)).session));
+    const block = s.blocks[0];
+    expect(slotSets(block, 0).map((x) => x.reps)).toEqual([10, 9]);
+    expect(slotSets(block, 2).map((x) => x.reps)).toEqual([5, 4]);
+  });
+
+  it('saves each slot with its own numbers', () => {
+    let s = twice();
+    [10, 20, 5].forEach((reps, i) => (s = logSet(s, { reps }, at(i)).session));
+    const w = workoutFromSession(s, { id: 'new', name: 'Pull circuit', now: at(100) });
+    expect(w.blocks[0].items).toEqual([
+      { exerciseId: 'pullup', target: { reps: 10 } },
+      { exerciseId: 'pushup', target: { reps: 20 } },
+      { exerciseId: 'pullup', target: { reps: 5 } },
+    ]);
   });
 });
 

@@ -11,6 +11,7 @@ import {
   fromDisplayWeight,
   KG_PER_LB,
   lastSetsFor,
+  lastSlotSetsFor,
   prefillFor,
   rebuildRecords,
   sessionVolumeKg,
@@ -128,6 +129,47 @@ describe('lastSetsFor', () => {
   it('can skip the session in progress', () => {
     const s = session('now', '2026-10-17T10:00:00Z', [set('bench', { reps: 5 })]);
     expect(lastSetsFor([s], 'bench', 'now')).toEqual([]);
+  });
+});
+
+describe('lastSlotSetsFor', () => {
+  // Pull-ups 1st and 3rd, push-ups between, two rounds.
+  const circuit = (id: string, finished_at: string, sets: LoggedSet[]): CompletedWorkoutSession => ({
+    ...session(id, finished_at, []),
+    blocks: [
+      {
+        ...block(sets),
+        id: 'c',
+        type: 'circuit',
+        items: [
+          { exerciseId: 'pullup', target: {} },
+          { exerciseId: 'pushup', target: {} },
+          { exerciseId: 'pullup', target: {} },
+        ],
+        sets,
+      },
+    ],
+  });
+  const done = circuit('s1', '2026-10-14T10:00:00Z', [
+    set('pullup', { reps: 10 }, 0),
+    set('pushup', { reps: 20 }, 0),
+    set('pullup', { reps: 5 }, 0),
+    set('pullup', { reps: 9 }, 1),
+    set('pushup', { reps: 18 }, 1),
+    set('pullup', { reps: 4 }, 1),
+  ]);
+
+  it("gives each slot its own sets, not the exercise's", () => {
+    const first = lastSlotSetsFor([done], { blockId: 'c', itemIndex: 0, exerciseId: 'pullup' });
+    const third = lastSlotSetsFor([done], { blockId: 'c', itemIndex: 2, exerciseId: 'pullup' });
+    expect(first.map((s) => s.reps)).toEqual([10, 9]);
+    expect(third.map((s) => s.reps)).toEqual([5, 4]);
+  });
+
+  it('is empty when the slot held something else, or for the session in progress', () => {
+    expect(lastSlotSetsFor([done], { blockId: 'c', itemIndex: 1, exerciseId: 'pullup' })).toEqual([]);
+    expect(lastSlotSetsFor([done], { blockId: 'other', itemIndex: 0, exerciseId: 'pullup' })).toEqual([]);
+    expect(lastSlotSetsFor([done], { blockId: 'c', itemIndex: 0, exerciseId: 'pullup' }, 's1')).toEqual([]);
   });
 });
 

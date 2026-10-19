@@ -4,8 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import { WorkoutsStackParamList } from '../../../../types/workouts';
-import { blockTitle } from '../../../../services/workoutSession';
-import { formatSeconds, formatSetValues, formatTarget, lastSetsFor } from '../../../../services/workoutMath';
+import { blockTitle, repeatsInBlock } from '../../../../services/workoutSession';
+import {
+  formatSeconds,
+  formatSetValues,
+  formatTarget,
+  lastSetsFor,
+  lastSlotSetsFor,
+} from '../../../../services/workoutMath';
 import { showChoice } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
 import { lastDoneLabel } from './WorkoutsHomeScreen';
@@ -85,7 +91,10 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
               <View style={styles.items}>
                 {block.items.map((item, j) => {
                   const ex = exercise(item.exerciseId);
-                  const last = lastSetsFor(sessions, item.exerciseId);
+                  // In twice? Each slot shows its own last time, not the first one's.
+                  const last = repeatsInBlock(block, j)
+                    ? lastSlotSetsFor(sessions, { blockId: block.id, itemIndex: j, exerciseId: item.exerciseId })
+                    : lastSetsFor(sessions, item.exerciseId);
                   return (
                     <View key={`${item.exerciseId}_${j}`} style={styles.itemRow}>
                       <Text style={[ws.body, { flex: 1 }]}>

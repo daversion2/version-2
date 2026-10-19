@@ -112,6 +112,20 @@ export const isSessionComplete = (session: WorkoutSession): boolean =>
 export const setsTodayFor = (session: WorkoutSession, exerciseId: string): LoggedSet[] =>
   session.blocks.flatMap((b) => b.sets).filter((s) => s.exerciseId === exerciseId);
 
+/**
+ * One slot of a block — item `itemIndex` — across its rounds. Sets are logged
+ * strictly in item order, so set k belongs to item k % items. Matching on the
+ * exercise instead would mix up a circuit that has pull-ups 1st and 5th.
+ */
+export const slotSets = (block: SessionBlock, itemIndex: number): LoggedSet[] =>
+  block.sets.filter((_, k) => k % block.items.length === itemIndex);
+
+/** Does this item's exercise show up more than once in its block? */
+export const repeatsInBlock = (block: WorkoutBlock, itemIndex: number): boolean => {
+  const id = block.items[itemIndex]?.exerciseId;
+  return block.items.filter((i) => i.exerciseId === id).length > 1;
+};
+
 export const totalSetsLogged = (session: WorkoutSession): number =>
   session.blocks.reduce((n, b) => n + b.sets.length, 0);
 
@@ -303,8 +317,8 @@ export const planChanges = (session: WorkoutSession): PlanChanges => {
 
 /** The last values logged for each item — the plan for next time. */
 const itemsFromLogged = (block: SessionBlock): BlockItem[] =>
-  block.items.map((item) => {
-    const mine = block.sets.filter((s) => s.exerciseId === item.exerciseId);
+  block.items.map((item, index) => {
+    const mine = slotSets(block, index);
     const last = mine[mine.length - 1];
     if (!last) return { exerciseId: item.exerciseId, target: cleanValues(item.target) };
     const { exerciseId: _e, round: _r, at: _a, ...values } = last;

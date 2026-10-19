@@ -33,6 +33,8 @@ interface Props {
   exercise?: Exercise;
   /** Prefills a new exercise's name — what was typed in the picker's search. */
   initialName?: string;
+  /** Prefills a new exercise's body part — the tile the picker had open. */
+  initialMuscle?: MuscleGroup;
   onClose: () => void;
   /** After a save — the picker uses it to select what was just made. */
   onSaved?: (exercise: Exercise) => void;
@@ -77,7 +79,14 @@ const ChipRow = <T extends string>({
  * logged locks after its first logged set. Built-in: just your form cues — its
  * name and type are shared with everyone and stay fixed.
  */
-export const ExerciseEditorModal: React.FC<Props> = ({ visible, exercise, initialName, onClose, onSaved }) => {
+export const ExerciseEditorModal: React.FC<Props> = ({
+  visible,
+  exercise,
+  initialName,
+  initialMuscle,
+  onClose,
+  onSaved,
+}) => {
   const { exercisesById, saveExercise, archiveExercise, isExerciseUsed, notes, saveNote } = useWorkouts();
   const isNew = !exercise;
   const isBuiltIn = !!exercise && !exercise.custom;
@@ -95,7 +104,7 @@ export const ExerciseEditorModal: React.FC<Props> = ({ visible, exercise, initia
     if (!visible) return;
     setName(exercise?.name ?? initialName?.trim() ?? '');
     setKind(exercise?.kind ?? 'weight');
-    setMuscle(exercise?.muscle ?? 'full_body');
+    setMuscle(exercise?.muscle ?? initialMuscle ?? 'full_body');
     setEquipment(exercise?.equipment);
     setNote(exercise ? notes[exercise.id] ?? '' : '');
     setNameError(null);
