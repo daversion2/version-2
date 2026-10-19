@@ -6,8 +6,9 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../../data/mealGroups';
 import type { FoodGroupId } from '../../../../../types/meals';
-import { plateVerdict } from '../../../../../services/mealsMath';
-import { FAIL_COLOR, MEALS_ACCENT, PASS_COLOR, mls } from './mealsStyle';
+import { plateNutrients, plateVerdict } from '../../../../../services/mealsMath';
+import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, mls } from './mealsStyle';
+import { NutrientTags } from './MealsParts';
 
 export interface PickerTarget {
   kind: 'meal' | 'extra';
@@ -75,6 +76,12 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
         <Text style={styles.chipText} numberOfLines={2}>
           {group.label}
         </Text>
+        {/* What this group adds — the same colours as the tags below. */}
+        <View style={styles.chipDots}>
+          {group.nutrients.map((n) => (
+            <View key={n} style={[styles.chipDot, { backgroundColor: NUTRIENT_COLOR[n] }]} />
+          ))}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -123,7 +130,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
           <Text style={mls.sectionLabel}>Processed</Text>
           <View style={styles.grid}>{PROCESSED_GROUPS.map((g) => renderChip(g, true))}</View>
           <Text style={mls.muted}>
-            Semi-processed: {PROCESSED_GROUPS[0].examples}. Processed: {PROCESSED_GROUPS[1].examples}.
+            {PROCESSED_GROUPS.map((g) => `${g.label}: ${g.examples}.`).join(' ')}
           </Text>
 
           <TouchableOpacity onPress={() => setShowRules((v) => !v)} style={styles.rulesToggle}>
@@ -159,6 +166,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
               {verdict.result === 'pass' ? 'Pass' : verdict.result === 'fail' ? 'Fail' : 'Nothing picked yet'}
             </Text>
             <Text style={mls.muted}>{verdict.why}</Text>
+            {groups.length > 0 && <NutrientTags have={plateNutrients(groups)} showMissing />}
           </View>
           <View style={styles.footerRow}>
             {!isExtra && onSkip && (
@@ -225,6 +233,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipText: { flex: 1, fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  chipDots: { flexDirection: 'row', gap: 3 },
+  chipDot: { width: 7, height: 7, borderRadius: 4 },
   rulesToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: Spacing.sm },
   rules: { gap: Spacing.sm },
   footer: {
@@ -239,7 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     backgroundColor: Colors.white,
-    gap: 2,
+    gap: 4,
   },
   verdictTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md },
   footerRow: { flexDirection: 'row', gap: Spacing.sm },

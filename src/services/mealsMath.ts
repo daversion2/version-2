@@ -7,16 +7,26 @@ import type {
   MealsPrefs,
   MealsRules,
   MealSlot,
+  NutrientId,
   WholeGroupId,
 } from '../types/meals';
-import { groupLabel, isWholeGroup, MAX_GROUP_GOALS, MAX_SLOTS, WHOLE_GROUPS } from '../data/mealGroups';
+import {
+  groupLabel,
+  groupNutrients,
+  isWholeGroup,
+  MAX_GROUP_GOALS,
+  MAX_SLOTS,
+  NUTRIENTS,
+  WHOLE_GROUPS,
+} from '../data/mealGroups';
 import { toLocalDateString } from '../utils/date';
 
 // =============================================================================
 // MEALS — the rules. Pure functions, no I/O (storage is services/labMeals.ts).
 //
 // A plate PASSES with at least one whole-food group and nothing Processed;
-// Semi-processed is fine alongside real food. Strict mode: whole food only.
+// Dairy and Semi-processed are fine alongside real food. Strict mode: whole
+// food only.
 //
 // A day is scored against the user's goal, "pass N of my M meals":
 //   - M - N is how many misses the day can hold. A failed extra (a snack or a
@@ -36,7 +46,7 @@ export const evaluatePlate = (groups: FoodGroupId[] | undefined, strict: boolean
   if (!groups || groups.length === 0) return null;
   const hasWhole = groups.some(isWholeGroup);
   if (!hasWhole || groups.includes('processed')) return 'fail';
-  if (strict && groups.includes('semi')) return 'fail';
+  if (strict && groups.some((g) => !isWholeGroup(g))) return 'fail';
   return 'pass';
 };
 
@@ -49,8 +59,11 @@ export const plateVerdict = (
   if (!result) return { result, why: 'Tap what was on the plate.' };
   if (groups.includes('processed')) return { result, why: 'Something Processed was on the plate.' };
   if (!groups.some(isWholeGroup)) return { result, why: 'No whole food on the plate.' };
-  if (strict && groups.includes('semi')) return { result, why: 'Strict mode: whole food only.' };
-  return { result, why: groups.includes('semi') ? 'Real food, with a little semi-processed.' : 'All whole food.' };
+  if (strict && groups.some((g) => !isWholeGroup(g))) return { result, why: 'Strict mode: whole food only.' };
+  return {
+    result,
+    why: groups.some((g) => !isWholeGroup(g)) ? 'Real food, with a little semi-processed.' : 'All whole food.',
+  };
 };
 
 /** "Eggs · Fruit". */
@@ -88,6 +101,32 @@ export interface GroupGoalProgress {
 
 export type DayStatus = 'on' | 'off' | 'pending';
 
+// --- Nutrients -----------------------------------------------------------------
+// Inferred from the groups on a plate (data/mealGroups.ts): a plate "had
+// protein" if any of its groups is tagged Protein. Coverage counts PLATES —
+// meals and snacks alike (founder, 2026-10-19) — never amounts.
+
+/** The nutrients one plate carries, in display order. */
+export const plateNutrients = (groups: FoodGroupId[]): NutrientId[] =>
+  NUTRIENTS.map((n) => n.id).filter((id) => groups.some((g) => groupNutrients(g).includes(id)));
+
+export interface NutrientCoverage {
+  nutrient: NutrientId;
+  /** Plates that had it. */
+  have: number;
+  /** Plates logged — skipped and unlogged meals aren't plates. */
+  of: number;
+}
+
+export const nutrientCoverage = (items: Pick<ScoredItem, 'state' | 'groups'>[]): NutrientCoverage[] => {
+  const plates = items.filter((i) => i.state === 'pass' || i.state === 'fail');
+  return NUTRIENTS.map((n) => ({
+    nutrient: n.id,
+    have: plates.filter((p) => plateNutrients(p.groups).includes(n.id)).length,
+    of: plates.length,
+  }));
+};
+
 export interface DayScore {
   items: ScoredItem[];
   passes: number;
@@ -99,6 +138,8 @@ export interface DayScore {
   complete: boolean;
   /** Daily goals only. */
   groupGoals: GroupGoalProgress[];
+  /** How many of the day's plates had each nutrient. Never decides the day. */
+  nutrients: NutrientCoverage[];
   /**
    * 'off' as soon as the misses run out — even mid-day, because the next meal
    * can't change it and saying "in progress" would be a lie. Otherwise 'on'
@@ -146,7 +187,7 @@ export const scoreDay = (day: Pick<MealsDay, 'meals' | 'extras'> | undefined, ru
   if (fails > allowed) status = 'off';
   else if (complete) status = groupGoals.every((g) => g.met) ? 'on' : 'off';
 
-  return { items, passes, fails, allowed, pending, complete, groupGoals, status };
+  return { items, passes, fails, allowed, pending, complete, groupGoals, nutrients: nutrientCoverage(items), status };
 };
 
 /** Today is scored by the current settings; a past day by the ones it was saved under. */
@@ -190,6 +231,8 @@ export interface WeekSummary {
   slipping: { slotId: string; name: string; fails: number; logged: number } | null;
   /** Weekly goals, counted across the week so far. */
   weeklyGoals: { goal: GroupGoal; have: number }[];
+  /** Nutrient coverage across every plate so far this week. */
+  nutrients: NutrientCoverage[];
 }
 
 export const summarizeWeek = (
@@ -239,7 +282,9 @@ export const summarizeWeek = (
       have: week.reduce((sum, d) => sum + (d.score ? countGroup(d.score.items, goal.group) : 0), 0),
     }));
 
-  return { days: week, passed, scored, slipping, weeklyGoals };
+  const nutrients = nutrientCoverage(week.flatMap((d) => d.score?.items ?? []));
+
+  return { days: week, passed, scored, slipping, weeklyGoals, nutrients };
 };
 
 /** Did a past day meet a daily goal? Read from that day's own score. */

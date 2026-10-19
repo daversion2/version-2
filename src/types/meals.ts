@@ -16,9 +16,16 @@ export type WholeGroupId =
   | 'nuts'
   | 'grains';
 
-export type ProcessedGroupId = 'semi' | 'processed';
+/**
+ * Dairy is its own chip so its protein can be told apart from bread and pasta,
+ * but for pass/fail it is semi-processed (founder, 2026-10-19).
+ */
+export type ProcessedGroupId = 'dairy' | 'semi' | 'processed';
 
 export type FoodGroupId = WholeGroupId | ProcessedGroupId;
+
+/** What a plate can be tagged with, inferred from its food groups — never grams. */
+export type NutrientId = 'protein' | 'fiber' | 'fats';
 
 /** One of the user's own meals ("Breakfast", "Pre-workout"). The id never changes. */
 export interface MealSlot {

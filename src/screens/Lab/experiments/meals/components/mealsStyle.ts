@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
+import { CategoryColors, Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
 import { MINI_APPS } from '../../../../../services/miniApps';
 import type { ItemState, DayStatus } from '../../../../../services/mealsMath';
+import type { NutrientId } from '../../../../../types/meals';
 
 /** The one colour the Meals app overrides (its manifest accent: the Fuel category's). */
 export const MEALS_ACCENT = MINI_APPS.meals.accent;
@@ -9,6 +10,16 @@ export const MEALS_TINT = MEALS_ACCENT + '14';
 
 export const PASS_COLOR = Colors.success;
 export const FAIL_COLOR = Colors.fail;
+
+/**
+ * Nutrient tags borrow category colours (Sleep, Money, Mind) so they can never
+ * be read as pass (teal) or fail (orange).
+ */
+export const NUTRIENT_COLOR: Record<NutrientId, string> = {
+  protein: CategoryColors.sleep,
+  fiber: CategoryColors.money,
+  fats: CategoryColors.mind,
+};
 
 /** Fill for a plate's dot. */
 export const itemColor = (state: ItemState): string =>

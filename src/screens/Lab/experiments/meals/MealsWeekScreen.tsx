@@ -4,8 +4,18 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import type { MealsStackParamList } from '../../../../types/meals';
 import { ItemState, dailyGoalOnDay, describeGroupGoal, summarizeWeek, WeekDay } from '../../../../services/mealsMath';
+import { NUTRIENTS } from '../../../../data/mealGroups';
 import { useMeals } from './MealsContext';
-import { FAIL_COLOR, MEALS_ACCENT, MEALS_TINT, PASS_COLOR, itemColor, itemGlyph, mls } from './components/mealsStyle';
+import {
+  FAIL_COLOR,
+  MEALS_ACCENT,
+  MEALS_TINT,
+  NUTRIENT_COLOR,
+  PASS_COLOR,
+  itemColor,
+  itemGlyph,
+  mls,
+} from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsWeek'>;
 
@@ -128,6 +138,76 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
         </Text>
       </View>
 
+      {week.nutrients[0]?.of > 0 && (
+        <>
+          <Text style={mls.sectionLabel}>What your plates gave you</Text>
+          <View style={[mls.card, styles.nutrientCard]}>
+            <View style={styles.gridRow}>
+              <View style={styles.rowLabel} />
+              {week.days.map((d, i) => (
+                <Text key={d.date} style={[styles.colHeadText, styles.colHead, styles.center, d.date === today && { color: MEALS_ACCENT }]}>
+                  {DAY_LETTERS[i]}
+                </Text>
+              ))}
+            </View>
+            {NUTRIENTS.map((n) => (
+              <View key={n.id} style={styles.gridRow}>
+                <Text style={styles.rowLabel} numberOfLines={1}>
+                  {n.label}
+                </Text>
+                {week.days.map((d) => {
+                  const c = d.score?.nutrients.find((x) => x.nutrient === n.id);
+                  const isToday = d.date === today;
+                  if (!c || c.have === 0) {
+                    return (
+                      <View key={d.date} style={styles.cellWrap}>
+                        <View style={[styles.cell, styles.cellEmpty, isToday && styles.cellToday]} />
+                      </View>
+                    );
+                  }
+                  // Darker when more of that day's plates had it.
+                  const alpha = Math.round((0.25 + 0.75 * (c.have / c.of)) * 255)
+                    .toString(16)
+                    .padStart(2, '0');
+                  return (
+                    <View key={d.date} style={styles.cellWrap}>
+                      <View
+                        style={[styles.cell, { backgroundColor: NUTRIENT_COLOR[n.id] + alpha }, isToday && styles.cellToday]}
+                        accessibilityLabel={`${n.label}: ${c.have} of ${c.of} plates`}
+                      >
+                        <Text style={styles.cellText}>{c.have}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+            <Text style={mls.muted}>Number = plates that day with it. Darker = more of that day’s plates.</Text>
+            {week.nutrients.map((c) => {
+              const label = NUTRIENTS.find((x) => x.id === c.nutrient)?.label;
+              return (
+                <View key={c.nutrient} style={styles.nutrientTotal}>
+                  <View style={styles.weeklyTop}>
+                    <Text style={mls.body}>{label}</Text>
+                    <Text style={styles.weeklyCount}>
+                      {c.have} of {c.of} plates
+                    </Text>
+                  </View>
+                  <View style={styles.track}>
+                    <View
+                      style={[
+                        styles.fill,
+                        { width: `${(c.have / c.of) * 100}%`, backgroundColor: NUTRIENT_COLOR[c.nutrient] },
+                      ]}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      )}
+
       {(daily.length > 0 || week.weeklyGoals.length > 0) && <Text style={mls.sectionLabel}>Food-group goals</Text>}
 
       {daily.map((goal) => (
@@ -205,4 +285,7 @@ const styles = StyleSheet.create({
   weeklyCount: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.gray },
   track: { height: 8, borderRadius: 4, backgroundColor: Colors.lightGray, marginTop: Spacing.sm, overflow: 'hidden' },
   fill: { height: '100%', backgroundColor: PASS_COLOR, borderRadius: 4 },
+  nutrientCard: { gap: 2 },
+  center: { textAlign: 'center' },
+  nutrientTotal: { marginTop: Spacing.sm },
 });

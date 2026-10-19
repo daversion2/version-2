@@ -15,6 +15,8 @@ import {
   describeMealGoal,
   evaluatePlate,
   newGroupGoal,
+  nutrientCoverage,
+  plateNutrients,
   removeSlot,
   rulesForDay,
   scoreDay,
@@ -367,5 +369,67 @@ describe('editing a day', () => {
     expect(reopened.closed_at).toBeUndefined();
     expect(reopened.result).toBeUndefined();
     expect(reopened.meals).toEqual(full.meals);
+  });
+});
+
+describe('dairy', () => {
+  it('is semi-processed for pass/fail: fine beside real food, a fail on its own', () => {
+    expect(evaluatePlate(['fruit', 'dairy'], false)).toBe('pass');
+    expect(evaluatePlate(['dairy'], false)).toBe('fail');
+  });
+
+  it('fails strict mode like semi-processed does', () => {
+    expect(evaluatePlate(['fruit', 'dairy'], true)).toBe('fail');
+    expect(plateVerdict(['eggs', 'dairy'], true).why).toBe('Strict mode: whole food only.');
+    expect(plateVerdict(['eggs', 'dairy'], false).why).toBe('Real food, with a little semi-processed.');
+  });
+});
+
+describe('nutrient tags', () => {
+  it('tags a plate from its groups, in display order', () => {
+    expect(plateNutrients(['chicken', 'veggies'])).toEqual(['protein', 'fiber']);
+    expect(plateNutrients(['fish'])).toEqual(['protein', 'fats']);
+    expect(plateNutrients(['legumes'])).toEqual(['protein', 'fiber']);
+    expect(plateNutrients(['nuts'])).toEqual(['fiber', 'fats']);
+    expect(plateNutrients(['grains'])).toEqual(['fiber']);
+    expect(plateNutrients(['dairy'])).toEqual(['protein']);
+  });
+
+  it('gives processed food nothing', () => {
+    expect(plateNutrients(['semi'])).toEqual([]);
+    expect(plateNutrients(['processed'])).toEqual([]);
+  });
+
+  it('counts plates — meals and snacks alike — and skips meals not eaten or not logged', () => {
+    const s = scoreDay(
+      day('d', { breakfast: plate('eggs', 'fruit'), lunch: skipped }, [extra('x', 'nuts')]),
+      rules()
+    );
+    // Plates: breakfast and the snack. Dinner isn't logged; lunch was skipped.
+    expect(s.nutrients).toEqual([
+      { nutrient: 'protein', have: 1, of: 2 },
+      { nutrient: 'fiber', have: 2, of: 2 },
+      { nutrient: 'fats', have: 1, of: 2 },
+    ]);
+  });
+
+  it('counts a failed plate too — it still had what it had', () => {
+    expect(nutrientCoverage([{ state: 'fail', groups: ['processed', 'veggies'] }])[1]).toEqual({
+      nutrient: 'fiber',
+      have: 1,
+      of: 1,
+    });
+  });
+
+  it('adds up across the week', () => {
+    const w = summarizeWeek(
+      '2026-10-13',
+      {
+        '2026-10-12': day('2026-10-12', { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('veggies') }),
+        '2026-10-13': day('2026-10-13', { breakfast: plate('dairy', 'fruit') }),
+      },
+      rules()
+    );
+    expect(w.nutrients.find((n) => n.nutrient === 'protein')).toEqual({ nutrient: 'protein', have: 3, of: 4 });
   });
 });

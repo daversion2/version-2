@@ -192,10 +192,16 @@ simplicity without its points: no calories, no food database, no nutrients.
 - **Logging:** each of the user's own meals (how many and what they're called
   is theirs) is rated by tapping the food groups on the plate. Whole food:
   Veggies, Fruit, Chicken & turkey, Beef, Pork, Eggs, Fish & seafood, Legumes,
-  Nuts & seeds, Grains & starches. Processed: Semi-processed (dairy, bread,
-  pasta, jarred sauce) and Processed. The user never decides what counts —
-  the app works out pass or fail. Snacks and drinks are "something
-  additional", on top of the meals, rated the same way.
+  Nuts, seeds & avocado, Grains & starches. Processed: Dairy (its own chip,
+  semi-processed for pass/fail), Semi-processed (bread, pasta, jarred sauce)
+  and Processed. The user never decides what counts — the app works out pass
+  or fail. Snacks and drinks are "something additional", on top of the meals,
+  rated the same way.
+- **Nutrient tags (2026-10-19):** Protein, Fiber and Healthy fats, inferred
+  from the groups (table in `data/mealGroups.ts`) — a plate *had* protein,
+  never how much. Shown on the plate in the picker (missing ones struck
+  through), as coverage on the day card ("Protein 2/4" — every plate counts,
+  snacks included), and per day across the week. No nutrient goals yet.
 - **Pass:** at least one whole-food group and nothing Processed. Strict mode
   (a setting): whole food only.
 - **The day:** the user's goal is "pass N of my M meals"; M − N is how many

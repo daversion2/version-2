@@ -2,9 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
-import { DayScore, ScoredItem, describeGroups } from '../../../../../services/mealsMath';
-import { groupLabel } from '../../../../../data/mealGroups';
-import { FAIL_COLOR, PASS_COLOR, STATUS_TITLE, itemColor, itemGlyph, mls } from './mealsStyle';
+import { DayScore, NutrientCoverage, ScoredItem, describeGroups } from '../../../../../services/mealsMath';
+import { NUTRIENTS, groupLabel } from '../../../../../data/mealGroups';
+import type { NutrientId } from '../../../../../types/meals';
+import { FAIL_COLOR, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, itemColor, itemGlyph, mls } from './mealsStyle';
 
 /** "2 of 3 meals logged · the day can hold 1 miss". */
 const statusLine = (score: DayScore): string => {
@@ -23,6 +24,66 @@ const statusLine = (score: DayScore): string => {
       : 'More misses than the day can hold. Every meal still counts toward your week.';
   }
   return 'A food-group goal wasn’t met';
+};
+
+/**
+ * Protein · Fiber · Healthy fats for one plate. With `showMissing`, the ones it
+ * lacks are struck through, so the gap is as visible as what's there.
+ */
+export const NutrientTags: React.FC<{ have: NutrientId[]; showMissing?: boolean }> = ({ have, showMissing }) => {
+  const shown = NUTRIENTS.filter((n) => showMissing || have.includes(n.id));
+  if (shown.length === 0) return null;
+  return (
+    <View style={styles.tagRow}>
+      {shown.map((n) => {
+        const on = have.includes(n.id);
+        const color = NUTRIENT_COLOR[n.id];
+        return (
+          <View key={n.id} style={[styles.tag, on ? { backgroundColor: color + '18' } : styles.tagOff]}>
+            <Text style={[styles.tagText, on ? { color } : styles.tagTextOff]}>{n.label}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
+/** "Protein 2/4" with a segment per plate — the day's coverage, on the status card. */
+const CoverageRow: React.FC<{ coverage: NutrientCoverage[]; onTone: boolean }> = ({ coverage, onTone }) => {
+  if (!coverage.length || coverage[0].of === 0) return null;
+  return (
+    <View style={styles.coverage}>
+      {coverage.map((c) => {
+        const label = NUTRIENTS.find((n) => n.id === c.nutrient)?.label ?? c.nutrient;
+        const color = onTone ? Colors.white : NUTRIENT_COLOR[c.nutrient];
+        return (
+          <View
+            key={c.nutrient}
+            style={[styles.covCell, onTone ? styles.covCellOnTone : { backgroundColor: NUTRIENT_COLOR[c.nutrient] + '12' }]}
+            accessibilityLabel={`${label}: ${c.have} of ${c.of} plates`}
+          >
+            <Text style={[styles.covLabel, { color }]} numberOfLines={1}>
+              {label}
+            </Text>
+            <Text style={[styles.covValue, { color }]}>
+              {c.have}/{c.of}
+            </Text>
+            <View style={styles.segs}>
+              {Array.from({ length: c.of }, (_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.seg,
+                    { backgroundColor: color + (i < c.have ? 'FF' : '40') },
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
 };
 
 /** The day at a glance: on target, off target or in progress, plus the daily goals. */
@@ -50,6 +111,7 @@ export const DayStatusCard: React.FC<{ score: DayScore; dateLabel: string }> = (
           ))}
         </View>
       )}
+      <CoverageRow coverage={score.nutrients} onTone={!!tone} />
     </View>
   );
 };
@@ -142,4 +204,16 @@ const styles = StyleSheet.create({
   dotSmall: { width: 22, height: 22, borderRadius: 11 },
   dotTextSmall: { fontSize: FontSizes.xs },
   compactName: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tag: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: 'transparent' },
+  tagOff: { backgroundColor: Colors.white, borderColor: Colors.border },
+  tagText: { fontFamily: Fonts.secondaryBold, fontSize: 11 },
+  tagTextOff: { color: Colors.border, textDecorationLine: 'line-through' },
+  coverage: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  covCell: { flex: 1, borderRadius: BorderRadius.sm, paddingHorizontal: 8, paddingVertical: 7, gap: 3 },
+  covCellOnTone: { backgroundColor: Colors.white + '26' },
+  covLabel: { fontFamily: Fonts.secondaryBold, fontSize: 10.5 },
+  covValue: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md },
+  segs: { flexDirection: 'row', gap: 3 },
+  seg: { flex: 1, height: 5, borderRadius: 3 },
 });
