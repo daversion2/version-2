@@ -99,7 +99,8 @@ export const ExercisePickerModal: React.FC<Props> = ({
               accessibilityLabel="Back to body parts"
             >
               <Ionicons name="chevron-back" size={20} color={WORKOUTS_ACCENT} />
-              <Text style={styles.backText}>Back</Text>
+              {/* Not "Back": beside the Back body part's title it read as a typo. */}
+              <Text style={styles.backText}>All</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={onCancel} hitSlop={8}>
@@ -134,6 +135,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
         {showTiles ? (
           <ScrollView
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             contentContainerStyle={{ paddingBottom: Spacing.xxl + insets.bottom + (mode === 'multi' ? 150 : 0) }}
           >
             <BodyPartTiles exercises={exercises} onOpen={setGroup} selectedIds={selected.map((e) => e.id)} />
@@ -143,6 +145,8 @@ export const ExercisePickerModal: React.FC<Props> = ({
             sections={sections}
             keyExtractor={(e) => e.id}
             keyboardShouldPersistTaps="handled"
+            // The keyboard covers the picked strip and the confirm button.
+            keyboardDismissMode="on-drag"
             contentContainerStyle={{ paddingBottom: Spacing.xxl + insets.bottom + (mode === 'multi' ? 150 : 0) }}
             stickySectionHeadersEnabled={false}
             renderSectionHeader={({ section }) =>

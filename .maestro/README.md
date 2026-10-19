@@ -30,6 +30,7 @@ Screenshots land in `~/.maestro/tests/<timestamp>/<flow>/takeScreenshot/`.
 | `04-tap-through-and-volume` | Habit rows navigate to detail; Volume + Records render |
 | `05-custom-habit-metric-lines` | Custom habits show metric lines; singular/plural captions |
 | `10a`–`10d` (Meals, Lab) | Run in order with Meals open (Admin → Lab → Meals). Chips work out pass/fail; a Processed snack is a miss; the goal and a daily food-group goal decide the day; the week adds up; closing out with no habit linked writes no check-in and reopens. `10d` puts the account back (goal 3 of 3, no group goals, today cleared). Chips are targeted by `id: meal-chip-<group>` — the "Processed" heading shares the chip's text. |
+| `11-workouts-picker` (Workouts) | Writes nothing. Opens Workouts from the Today "Workout" row; the picker opens on body-part tiles; Pull-up, Push-up, Pull-up picked across tiles shows "1, 3" and a removable order strip; search spans every body part; the circuit saves into the builder with each Pull-up keeping its own reps; single mode picks and closes; leaving asks "Discard changes?" with no native-stack warning. Dev builds raise a startup-warning toast over the confirm button — the flow closes it by position. |
 
 ## Two gotchas worth knowing before editing these
 

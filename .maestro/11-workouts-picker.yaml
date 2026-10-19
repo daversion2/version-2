@@ -1,0 +1,132 @@
+# The Workouts exercise picker: body-part tiles, and one exercise twice in a
+# circuit (pull-ups 1st and 3rd, each with its own reps).
+#
+# Writes nothing: it builds a workout and discards it. Needs a "Workout" habit
+# on Today (the Workouts app row) — the account's, not created here.
+#
+# Two things that cost runs to find:
+# - hideKeyboard taps the screen to dismiss and can land on a row, picking it.
+#   Press Enter instead.
+# - The "Back" body part's tile and title both read "Back"; select the tile by
+#   its full label ("Back, 8 exercises") and the header button by its
+#   accessibility label ("Back to body parts").
+# - The confirm button slides as the keyboard closes; its tap is retried.
+# - In a dev build, startup warnings raise a toast over the bottom of the
+#   screen. Its close button is tapped first, by position: tapping the toast
+#   itself opens React Native DevTools on the Mac.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Workout\\. .*"
+- extendedWaitUntil:
+    visible: "YOUR WORKOUTS"
+    timeout: 20000
+- tapOn: ".*New workout.*"
+- tapOn: "\\+ Circuit"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Tiles first, one per body part.
+- assertVisible: "Chest, \\d+ exercises"
+- assertVisible: "Back, \\d+ exercises"
+- assertVisible: "Shoulders, \\d+ exercises"
+- assertVisible: "Legs, \\d+ exercises"
+- assertVisible: "Arms, \\d+ exercises"
+- assertVisible: "Core, \\d+ exercises"
+- assertVisible: "Full body, \\d+ exercises"
+- takeScreenshot: 11a-tiles
+
+# Pull-up, Push-up, Pull-up — across two tiles.
+- tapOn: "Back, \\d+ exercises"
+- assertVisible: "Back to body parts"
+- tapOn: "Pull-up, .*"
+- tapOn: "Back to body parts"
+- assertVisible: "Back, \\d+ exercises, 1 picked"
+- tapOn: "Chest, \\d+ exercises"
+- tapOn: "Push-up, .*"
+- tapOn: "Back to body parts"
+- tapOn: "Back, \\d+ exercises, 1 picked"
+- tapOn: "Pull-up, .*"
+- assertVisible: "Pull-up, .*, 1, 3"
+- assertVisible: "Remove Pull-up, number 1"
+- assertVisible: "Remove Push-up, number 2"
+- assertVisible: "Remove Pull-up, number 3"
+- takeScreenshot: 11b-pullup-twice
+
+# Removing from the strip renumbers; search reaches every body part.
+- tapOn: "Remove Push-up, number 2"
+- assertVisible: "Pull-up, .*, 1, 2"
+- assertNotVisible: "Remove Push-up.*"
+- tapOn: "Search exercises"
+- inputText: "push"
+- assertVisible: "Tricep Pushdown, .*"
+- tapOn: "Push-up, .*"
+- tapOn: "Clear text"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Remove Push-up, number 3"
+# A dev build's warning toast (startup warnings) sits on top of this button.
+- runFlow:
+    when:
+      visible: "!, Open debugger.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+# The button slides down as the keyboard closes; a tap mid-slide misses.
+- retry:
+    maxRetries: 2
+    commands:
+      - tapOn: "Add circuit of 3"
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - assertVisible: "CIRCUIT, .*Pull-up, Pull-up, Push-up.*"
+
+# Each Pull-up keeps its own reps.
+- tapOn: "CIRCUIT, .*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          text: "Decrease Reps"
+          index: 1
+- tapOn: "Done"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "CIRCUIT, .*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 11c-own-reps
+- tapOn: "Cancel"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Single mode: one tap picks and closes.
+- tapOn: "\\+ Exercise"
+- tapOn: "Legs, \\d+ exercises"
+- tapOn: "Goblet Squat, .*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Goblet Squat, 3 sets.*"
+
+# Leave without saving: the prompt, then nothing saved and no navigation warning.
+- tapOn:
+    point: "6%,9%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- assertVisible: "Discard changes?"
+- tapOn: "Discard"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "YOUR WORKOUTS"
+- assertNotVisible: ".*removed natively.*"
+- takeScreenshot: 11d-discarded
+- tapOn: "Close Workouts"

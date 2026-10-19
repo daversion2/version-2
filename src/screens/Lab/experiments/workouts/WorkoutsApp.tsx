@@ -57,7 +57,12 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
       >
         <Stack.Screen name="WorkoutsHome" component={WorkoutsHomeScreen} options={{ title: 'Workouts' }} />
         <Stack.Screen name="WorkoutPreview" component={WorkoutPreviewScreen} options={{ title: '' }} />
-        <Stack.Screen name="WorkoutBuilder" component={WorkoutBuilderScreen} options={{ title: 'New workout' }} />
+        {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
+        <Stack.Screen
+          name="WorkoutBuilder"
+          component={WorkoutBuilderScreen}
+          options={{ title: 'New workout', headerBackButtonMenuEnabled: false }}
+        />
         {/* No header, no swipe-back: a stray gesture mid-set would leave the workout. */}
         <Stack.Screen
           name="WorkoutSession"

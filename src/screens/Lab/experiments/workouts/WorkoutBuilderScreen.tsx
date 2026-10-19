@@ -1,6 +1,7 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { usePreventRemove } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import { Exercise, Workout, WorkoutBlock, WorkoutsStackParamList } from '../../../../types/workouts';
@@ -34,27 +35,31 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
   const [picker, setPicker] = useState<'exercise' | 'circuit' | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const dirty = useRef(false);
-  const leaving = useRef(false);
+  const [dirty, setDirty] = useState(false);
+  // Where to go once a save or delete has landed. Set as state so the render
+  // that lifts the guard below happens before the navigation, not after.
+  const [exit, setExit] = useState<(() => void) | null>(null);
 
   const change = (next: WorkoutBlock[]) => {
-    dirty.current = true;
+    setDirty(true);
     setBlocks(next);
   };
 
-  // Backing out of unsaved edits asks first.
-  useEffect(
-    () =>
-      navigation.addListener('beforeRemove', (e) => {
-        if (!dirty.current || leaving.current) return;
-        e.preventDefault();
-        showConfirm('Discard changes?', 'Your edits to this workout will be lost.', () => {
-          leaving.current = true;
-          navigation.dispatch(e.data.action);
-        }, 'Discard');
-      }),
-    [navigation]
+  // Backing out of unsaved edits asks first. usePreventRemove, not a
+  // beforeRemove listener: native-stack only honours this one, so the back
+  // button and the swipe are held natively too.
+  usePreventRemove(dirty && !exit, ({ data }) =>
+    showConfirm(
+      'Discard changes?',
+      'Your edits to this workout will be lost.',
+      () => navigation.dispatch(data.action),
+      'Discard'
+    )
   );
+
+  useEffect(() => {
+    exit?.();
+  }, [exit]);
 
   const save = async () => {
     const trimmed = name.trim();
@@ -67,9 +72,9 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
       : { id: newWorkoutId(userId), name: trimmed, blocks, created_at: now, updated_at: now };
     try {
       await upsertWorkout(workout);
-      leaving.current = true;
-      if (existing) navigation.goBack();
-      else navigation.replace('WorkoutPreview', { workoutId: workout.id });
+      setExit(() =>
+        existing ? () => navigation.goBack() : () => navigation.replace('WorkoutPreview', { workoutId: workout.id })
+      );
     } catch (e) {
       showAlert("Couldn't save the workout", 'Check your connection and try again.');
       setSaving(false);
@@ -103,8 +108,7 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
       if (!existing) return;
       try {
         await removeWorkout(existing.id);
-        leaving.current = true;
-        navigation.popToTop();
+        setExit(() => () => navigation.popToTop());
       } catch {
         showAlert("Couldn't delete it", 'Check your connection and try again.');
       }
@@ -118,7 +122,7 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
           style={styles.nameInput}
           value={name}
           onChangeText={(t) => {
-            dirty.current = true;
+            setDirty(true);
             setName(t);
           }}
           placeholder="e.g. Push Day"
