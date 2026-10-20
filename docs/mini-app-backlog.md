@@ -50,6 +50,41 @@ see **Cold** and **Focus** below.
   a plain habit card has nowhere to put
 - **Effort:** scoped in `mini-apps-behind-habits` — strength only, no GPS/cardio, ships OTA
 
+#### Workouts: training phases (built in the Lab, 2026-10-19, not committed)
+
+Test → train for 4, 6 or 8 weeks → retest → change one thing → train again.
+Decided in a three-round interview (memory `workouts-phases-retests`); the
+clickable mockup is https://claude.ai/artifact/Cug9oFC5GMPrxrYT44kPyR.
+
+- **Logic:** `services/trainingPhases.ts`, all pure and tested
+  (`__tests__/trainingPhases.test.ts`). It covers:
+  - test types: an exercise's kind sets its test (weight → reps at a fixed
+    weight, reps → max reps, time → longest, distance → fastest);
+  - "about the same" thresholds (±1 rep, ±5 s, ±2% on a run);
+  - the next-change rules;
+  - step-ups (double progression, phase sessions only);
+  - the optional lighter last week (about 40% fewer sets);
+  - history across phases, and the Progress highlight.
+- **Storage:** `users/{uid}/lab_workout_phases`. Sessions carry `phase_id`;
+  only program workouts started while the phase is training count.
+- **Programs:** `data/phaseTemplates.ts`: Full body, Bodyweight only, and Push
+  / Pull / Legs (the starters), or the user's own saved workouts. Template
+  workouts have fixed ids and are only written if missing.
+- **Screens:** `PhaseSetupScreen`, `PhaseTestScreen` (baseline and retest),
+  `PhaseScreen`, `PhaseResultsScreen`, `PhaseNextScreen`, a card on Workouts
+  home, and `components/progress/PhaseHighlightCard` on Progress (Workouts
+  users only, after a retest improved something).
+- **New exercise kind, `distance`:** a time for a fixed distance, lower is
+  better, with "fastest yet" records. Built-ins: 400 m Run, Mile Run, 5K Run,
+  2,000 m Row. Users can make their own at any distance.
+
+Defaults chosen where the mockup's questions weren't answered:
+- test day doesn't earn XP or count as a session;
+- step-ups only appear in phase sessions;
+- the phase doesn't change the Workouts weekly goal;
+- the Today card doesn't show the phase yet;
+- workouts done outside the program don't count toward "X of Y sessions".
+
 #### Workouts follow-up: a picture next to each exercise (on hold, 2026-10-17)
 
 **Action item, not scheduled.** The founder wants a visual for each exercise
@@ -66,7 +101,7 @@ The plan, when picked up:
 1. **Lock one style by hand** in a chat app (ChatGPT or Gemini). Iterate on
    the pull-up until it looks like Neuro-Nudge; that image is the style
    reference for every other one.
-2. **Write a pose line for each of the 48 built-ins** in
+2. **Write a pose line for each of the built-ins** (52 since the runs were added) in
    `src/data/workoutExercises.ts`: grip, side view, which phase of the lift.
    Names alone are ambiguous (pull-up vs chin-up, deadlift vs RDL).
 3. **Generate with two references each:** the style image plus a pose photo.

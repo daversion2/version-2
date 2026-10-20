@@ -4,6 +4,7 @@ import {
   describeRecord,
   formatClock,
   formatCount,
+  formatDistance,
   formatSeconds,
   formatVolume,
   formatSetValues,
@@ -299,5 +300,45 @@ describe('describeRecord', () => {
       'lb'
     );
     expect(text).toEqual({ title: 'Bench Press — heaviest yet', detail: '145 lb (was 140 lb)' });
+  });
+});
+
+describe('distance efforts (time for a distance)', () => {
+  it('formats distances the way runners say them', () => {
+    expect(formatDistance(1609.344)).toBe('1 mi');
+    expect(formatDistance(3218.688)).toBe('2 mi');
+    expect(formatDistance(400)).toBe('400 m');
+    expect(formatDistance(5000)).toBe('5 km');
+    expect(formatDistance(2500)).toBe('2.5 km');
+  });
+
+  it('shows a time, and prefills last time or the plan', () => {
+    expect(formatSetValues({ seconds: 545 }, 'distance', 'lb')).toBe('9:05');
+    expect(formatTarget({}, 'distance', 'lb')).toBe('10:00');
+    expect(prefillFor('distance', { seconds: 600 }, [set('run', { seconds: 545 })], 0).values).toEqual({ seconds: 545 });
+    expect(prefillFor('distance', { seconds: 600 }, [], 0).values).toEqual({ seconds: 600 });
+  });
+
+  it('records the fastest time, and a PR only when it beats one', () => {
+    const first = applySetsToRecord('run', 'distance', [set('run', { seconds: 552 })]);
+    expect(first).toEqual({ record: { exerciseId: 'run', fastestSec: 552 }, prs: [] });
+    const slower = applySetsToRecord('run', 'distance', [set('run', { seconds: 560 })], first.record);
+    expect(slower.prs).toEqual([]);
+    expect(slower.record.fastestSec).toBe(552);
+    const faster = applySetsToRecord('run', 'distance', [set('run', { seconds: 540 }), set('run', { seconds: 548 })], first.record);
+    expect(faster.prs).toEqual([{ exerciseId: 'run', type: 'fastest', value: 540, previous: 552 }]);
+    expect(faster.record.fastestSec).toBe(540);
+  });
+
+  it('describes a fastest-yet record', () => {
+    expect(describeRecord({ exerciseId: 'run', type: 'fastest', value: 540, previous: 552 }, 'Mile Run', 'lb')).toEqual({
+      title: 'Mile Run — fastest yet',
+      detail: '9:00 (was 9:12)',
+    });
+  });
+
+  it('adds nothing to volume', () => {
+    const run: Exercise = { id: 'run', name: 'Mile Run', kind: 'distance', muscle: 'full_body', distanceM: 1609.344 };
+    expect(sessionVolumeKg({ blocks: [block([set('run', { seconds: 545 })])] }, { run })).toBe(0);
   });
 });

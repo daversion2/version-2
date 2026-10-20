@@ -13,7 +13,8 @@ import { getWeekStart } from '../utils/date';
 //
 //   volume = weight × reps, added up over every set (so "× sets" is built in).
 //   Bodyweight sets add to sets and reps, not volume. Timed holds add to sets
-//   and to time held, never to reps. Circuits need no special case: every set
+//   and to time held, never to reps. Distance efforts (a mile run) add to sets
+//   only — their seconds are a time to beat, not time held. Circuits need no special case: every set
 //   already names its exercise, and an exercise names its body part.
 //
 // A session in progress is not here — it joins when it's finished.

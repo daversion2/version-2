@@ -11,6 +11,8 @@ import { showChoice, showConfirm } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
+import { isRetestDue, nextProgramWorkout, phaseSessions } from '../../../../services/trainingPhases';
+import { PhaseStatusCard } from './components/PhaseParts';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
@@ -35,7 +37,13 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
     closeApp,
     closeAndCheckOff,
     updatePrefs,
+    phases,
+    currentPhase,
+    sessions,
   } = useWorkouts();
+  const today = toLocalDateString(new Date());
+  const latestPhase = phases[0];
+  const nextInPhase = currentPhase ? nextProgramWorkout(currentPhase, workouts, sessions) : undefined;
   // A workout done without the app, or forgotten: credit only comes through
   // the app, so it's entered here and rated on Today.
   const [loggingPast, setLoggingPast] = useState(false);
@@ -132,6 +140,57 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      )}
+
+      {!loading && currentPhase && (
+        <PhaseStatusCard
+          phase={currentPhase}
+          sessionsDone={phaseSessions(currentPhase, sessions).length}
+          today={today}
+          nextWorkoutName={nextInPhase?.name}
+          onOpen={() => navigation.navigate('Phase', { phaseId: currentPhase.id })}
+          onTest={() =>
+            navigation.navigate('PhaseTest', {
+              phaseId: currentPhase.id,
+              mode: currentPhase.status === 'baseline' || !isRetestDue(currentPhase, today) ? 'baseline' : 'retest',
+            })
+          }
+          onStartNext={nextInPhase ? () => navigation.navigate('WorkoutPreview', { workoutId: nextInPhase.id }) : undefined}
+        />
+      )}
+
+      {!loading && !loadError && !currentPhase && (
+        <View style={[ws.card, styles.phaseIntro]}>
+          {latestPhase?.status === 'complete' ? (
+            <>
+              <Text style={styles.phaseEyebrow}>Phase {latestPhase.number} done</Text>
+              <Text style={ws.title}>{latestPhase.program_name}</Text>
+              <Text style={ws.body}>See what changed, then plan the next phase — or take a break.</Text>
+              <TouchableOpacity
+                style={ws.primaryBtn}
+                onPress={() => navigation.navigate('PhaseResults', { phaseId: latestPhase.id })}
+              >
+                <Text style={ws.primaryBtnText}>See results</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.phaseEyebrow}>New</Text>
+              <Text style={ws.title}>Train in phases</Text>
+              <Text style={ws.body}>
+                Test yourself, follow a program for a few weeks, then retest. You’ll see exactly what changed.
+              </Text>
+              <TouchableOpacity style={ws.primaryBtn} onPress={() => navigation.navigate('PhaseSetup')}>
+                <Text style={ws.primaryBtnText}>Start a phase</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {phases.length > 0 && (
+            <TouchableOpacity onPress={() => navigation.navigate('Phase', { phaseId: latestPhase.id })} style={styles.pastLink}>
+              <Text style={styles.pastLinkText}>Your phases</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
 
       <View style={styles.quickRow}>
@@ -245,6 +304,14 @@ const styles = StyleSheet.create({
   resumeCta: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
   resumeDiscard: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.white, opacity: 0.8 },
   quickRow: { flexDirection: 'row', gap: Spacing.sm },
+  phaseIntro: { gap: Spacing.sm, backgroundColor: WORKOUTS_TINT, borderColor: 'transparent' },
+  phaseEyebrow: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: WORKOUTS_ACCENT,
+  },
   quick: { flex: 1, gap: 4 },
   workoutHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 2 },
   blockList: { marginTop: Spacing.sm, gap: 3, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: WORKOUTS_TINT },

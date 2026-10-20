@@ -13,6 +13,7 @@ import {
 import { showConfirm } from '../../../../../utils/alert';
 import { useWorkouts } from '../WorkoutsContext';
 import { NumberStepper } from './NumberStepper';
+import { TimeEntry } from './TimeEntry';
 import { ExercisePickerModal } from './ExercisePickerModal';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
@@ -26,7 +27,7 @@ interface Props {
   onDelete: () => void;
 }
 
-/** One planned item's numbers: reps (+ optional weight), or seconds. */
+/** One planned item's numbers: reps (+ optional weight), seconds, or a target time. */
 const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) => void }> = ({
   item,
   onChange,
@@ -35,6 +36,16 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
   const kind = exercise(item.exerciseId).kind;
   const t = { ...DEFAULT_TARGET[kind], ...item.target };
 
+  if (kind === 'distance') {
+    return (
+      <TimeEntry
+        size="small"
+        labelPrefix="Target"
+        seconds={t.seconds ?? DEFAULT_TARGET.distance.seconds!}
+        onChange={(seconds) => onChange({ ...t, seconds })}
+      />
+    );
+  }
   if (kind === 'time') {
     return (
       <NumberStepper

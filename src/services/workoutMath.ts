@@ -76,6 +76,14 @@ export const formatClock = (total: number): string => {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`;
 };
 
+/** 400 → "400 m", 1609.344 → "1 mi", 5000 → "5 km", 2000 → "2 km", 2500 → "2.5 km". */
+export const formatDistance = (metres: number): string => {
+  const miles = metres / 1609.344;
+  if (Math.abs(miles - Math.round(miles)) < 0.001 && Math.round(miles) >= 1) return `${Math.round(miles)} mi`;
+  if (metres < 1000) return `${Math.round(metres)} m`;
+  return `${formatNumber(Math.round(metres / 100) / 10)} km`;
+};
+
 export const formatSetValues = (values: SetValues, kind: ExerciseKind, unit: WeightUnit): string => {
   switch (kind) {
     case 'weight':
@@ -85,13 +93,14 @@ export const formatSetValues = (values: SetValues, kind: ExerciseKind, unit: Wei
     case 'reps':
       return `${values.reps ?? 0} reps`;
     case 'time':
+    case 'distance':
       return formatSeconds(values.seconds ?? 0);
   }
 };
 
 /** A planned item: "8 reps", "135 lb × 8", "45s". */
 export const formatTarget = (target: SetValues, kind: ExerciseKind, unit: WeightUnit): string => {
-  if (kind === 'time') return formatSeconds(target.seconds ?? DEFAULT_TARGET.time.seconds!);
+  if (kind === 'time' || kind === 'distance') return formatSeconds(target.seconds ?? DEFAULT_TARGET[kind].seconds!);
   const reps = target.reps ?? DEFAULT_TARGET[kind].reps;
   return kind === 'weight' && target.weightKg
     ? `${formatWeight(target.weightKg, unit)} × ${reps}`
@@ -106,6 +115,7 @@ export const DEFAULT_TARGET: Record<ExerciseKind, SetValues> = {
   weight: { reps: 10, weightKg: 0 },
   reps: { reps: 10 },
   time: { seconds: 30 },
+  distance: { seconds: 600 },
 };
 
 /** The sets of one exercise from the most recent session that included it, in log order. */
@@ -175,6 +185,7 @@ export const prefillFor = (
     case 'reps':
       return { last, values: { reps: last?.reps ?? target.reps ?? fallback.reps } };
     case 'time':
+    case 'distance':
       return { last, values: { seconds: last?.seconds ?? target.seconds ?? fallback.seconds } };
   }
 };
@@ -236,6 +247,17 @@ export const applySetsToRecord = (
       prs.push({ exerciseId, type: 'max_reps', value: most, previous: existing.maxReps });
     }
     record.maxReps = Math.max(existing?.maxReps ?? 0, most);
+    return { record, prs };
+  }
+
+  if (kind === 'distance') {
+    const times = sets.map((s) => s.seconds ?? 0).filter((sec) => sec > 0);
+    if (!times.length) return { record, prs };
+    const fastest = Math.min(...times);
+    if (existing?.fastestSec !== undefined && fastest < existing.fastestSec) {
+      prs.push({ exerciseId, type: 'fastest', value: fastest, previous: existing.fastestSec });
+    }
+    record.fastestSec = existing?.fastestSec !== undefined ? Math.min(existing.fastestSec, fastest) : fastest;
     return { record, prs };
   }
 
@@ -312,6 +334,11 @@ export const describeRecord = (
     case 'longest_hold':
       return {
         title: `${exerciseName} — longest hold`,
+        detail: `${formatSeconds(pr.value)} (was ${formatSeconds(pr.previous)})`,
+      };
+    case 'fastest':
+      return {
+        title: `${exerciseName} — fastest yet`,
         detail: `${formatSeconds(pr.value)} (was ${formatSeconds(pr.previous)})`,
       };
   }

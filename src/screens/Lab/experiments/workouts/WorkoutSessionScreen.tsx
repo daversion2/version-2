@@ -34,6 +34,7 @@ import {
   DEFAULT_TARGET,
   describeRecord,
   formatClock,
+  formatDistance,
   formatSetValues,
   fromDisplayWeight,
   lastSetsFor,
@@ -42,11 +43,13 @@ import {
   stepWeight,
   toDisplayWeight,
 } from '../../../../services/workoutMath';
+import { answerStepUp, applyStepUp, stepUpKey, suggestStepUp } from '../../../../services/trainingPhases';
 import { showChoice, showConfirm } from '../../../../utils/alert';
 import { triggerRewardHaptic, triggerTapHaptic } from '../../../../utils/haptics';
 import { useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { HoldTimer } from './components/HoldTimer';
+import { TimeEntry } from './components/TimeEntry';
 import { RestSheet, REST_SHEET_HEIGHT } from './components/RestSheet';
 import { ExercisePickerModal } from './components/ExercisePickerModal';
 import { ExerciseEditorModal } from './components/ExerciseEditorModal';
@@ -111,14 +114,26 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const prefill =
     pos && ex ? prefillFor(ex.kind, pos.item.target, lastSets, todaysInSlot.length, todaysInSlot) : null;
 
+  // In a phase, a little more than last time once you've earned it. An
+  // accepted weight applies from the first set; after that, today's own
+  // weight carries on as usual. Added reps or seconds apply to every set.
+  const slotKey = pos ? stepUpKey(pos.block.id, pos.itemIndex) : '';
+  const answered = session?.stepUps?.[slotKey];
+  const stepUpNow =
+    answered?.weightKg !== undefined && todaysInSlot.length > 0 ? { ...answered, weightKg: undefined } : answered;
+  const stepUpOffer =
+    session?.phaseId && pos && ex && !answered && todaysInSlot.length === 0
+      ? suggestStepUp(ex.kind, pos.item.target, lastSets, unit)
+      : null;
+
   // New set → fresh numbers from last time / the plan. Keyed on position, so
   // typing a weight isn't overwritten by the clock re-rendering the screen —
   // and on history arriving, so a slow load can't leave the plan's numbers
   // under a "Last time" line that says otherwise.
   useEffect(() => {
-    if (prefill) setValues(prefill.values);
+    if (prefill) setValues(applyStepUp(prefill.values, stepUpNow));
     setHoldRunning(false);
-  }, [positionKey, lastSets.length, ex?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [positionKey, lastSets.length, ex?.kind, JSON.stringify(answered ?? null)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Rest ran out: close the sheet with a tap so you feel it from across the gym.
   const remaining = session ? restRemainingSec(session, now) : 0;
@@ -241,6 +256,14 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
         ]}
         keyboardShouldPersistTaps="handled"
       >
+        {session.lighter && (
+          <View style={styles.lightWeek}>
+            <Ionicons name="leaf-outline" size={16} color={WORKOUTS_ACCENT} />
+            <Text style={styles.lightWeekText}>
+              Light week: fewer sets, so your retest shows your fitness, not your tiredness.
+            </Text>
+          </View>
+        )}
         {pos && ex ? (
           <View style={[ws.card, styles.current]}>
             {isCircuit ? (
@@ -274,6 +297,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             <Text style={styles.exerciseName}>{ex.name}</Text>
+            {ex.kind === 'distance' && !!ex.distanceM && (
+              <Text style={styles.lastTime}>{formatDistance(ex.distanceM)} · lower is better</Text>
+            )}
 
             {/* Your form cues, where you'll actually read them. Tap to edit —
                 "seat on 4" gets written down mid-set, not later. */}
@@ -311,12 +337,40 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 : 'First time — today sets your baseline'}
             </Text>
 
+            {stepUpOffer && (
+              <View style={styles.stepUp}>
+                <Text style={styles.stepUpTitle}>{stepUpOffer.title}</Text>
+                <Text style={ws.muted}>{stepUpOffer.why}</Text>
+                <View style={styles.stepUpRow}>
+                  <TouchableOpacity
+                    style={[styles.stepUpBtn, styles.stepUpBtnFill]}
+                    onPress={() => updateSession(answerStepUp(session, slotKey, stepUpOffer.stepUp))}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.stepUpBtnText, { color: Colors.white }]}>Use it</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.stepUpBtn}
+                    onPress={() => updateSession(answerStepUp(session, slotKey, { declined: true }))}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.stepUpBtnText}>Not today</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
             {ex.kind === 'time' ? (
               <HoldTimer
                 seconds={values.seconds ?? DEFAULT_TARGET.time.seconds!}
                 targetSec={pos.item.target.seconds ?? prefill?.values.seconds ?? 30}
                 onChange={(seconds) => setValues({ ...values, seconds })}
                 onRunningChange={setHoldRunning}
+              />
+            ) : ex.kind === 'distance' ? (
+              <TimeEntry
+                seconds={values.seconds ?? DEFAULT_TARGET.distance.seconds!}
+                onChange={(seconds) => setValues({ ...values, seconds })}
               />
             ) : (
               <View style={styles.inputs}>
@@ -563,6 +617,36 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xs, color: Colors.gray },
   pillTextActive: { color: WORKOUTS_ACCENT },
   lastTime: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
+  stepUp: {
+    gap: 4,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.secondary + '14',
+    borderWidth: 1,
+    borderColor: Colors.secondary + '40',
+  },
+  stepUpTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
+  stepUpRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
+  stepUpBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    borderColor: WORKOUTS_ACCENT,
+    backgroundColor: Colors.white,
+  },
+  stepUpBtnFill: { backgroundColor: WORKOUTS_ACCENT },
+  stepUpBtnText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  lightWeek: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: WORKOUTS_TINT,
+  },
+  lightWeekText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark },
   inputs: { flexDirection: 'row', gap: Spacing.sm },
   actions: { flexDirection: 'row', justifyContent: 'space-around' },
   action: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: Spacing.sm },

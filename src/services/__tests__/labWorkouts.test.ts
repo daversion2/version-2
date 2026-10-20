@@ -7,6 +7,10 @@ import {
   getRecords,
   getWorkoutPrefs,
   listCustomExercises,
+  listPhases,
+  ensureWorkouts,
+  savePhase,
+  newPhaseId,
   listSessions,
   listWorkouts,
   mergeExerciseLibrary,
@@ -18,7 +22,7 @@ import {
 } from '../labWorkouts';
 import { addMockDocument, getMockDB } from '../__mocks__/firestore';
 import { STARTER_WORKOUTS } from '../../data/workoutExercises';
-import { CompletedWorkoutSession, Workout } from '../../types/workouts';
+import { CompletedWorkoutSession, TrainingPhase, Workout } from '../../types/workouts';
 
 const base = 'users/u1';
 const NOW = new Date('2026-10-17T10:00:00.000Z');
@@ -172,5 +176,58 @@ describe('listSessions', () => {
     addMockDocument(`${base}/lab_workout_sessions`, 'old', s('old', '2026-10-01T00:00:00Z'));
     addMockDocument(`${base}/lab_workout_sessions`, 'new', s('new', '2026-10-16T00:00:00Z'));
     expect((await listSessions('u1')).map((x) => x.id)).toEqual(['new', 'old']);
+  });
+});
+
+describe('distance exercises', () => {
+  it('stores the distance for a distance exercise, and drops it for any other kind', async () => {
+    const run = await saveCustomExercise('u1', { name: 'Hill Run', kind: 'distance', muscle: 'full_body', distanceM: 1200 });
+    expect(run).toMatchObject({ kind: 'distance', distanceM: 1200, custom: true });
+    const plank = await saveCustomExercise('u1', { name: 'Hollow Hold', kind: 'time', muscle: 'core', distanceM: 1200 });
+    expect(plank.distanceM).toBeUndefined();
+    expect(getMockDB()[`${base}/lab_workout_exercises`][plank.id].data).not.toHaveProperty('distanceM');
+  });
+});
+
+describe('training phases', () => {
+  const phase = (id: string, start_date: string, number = 1): TrainingPhase => ({
+    id,
+    number,
+    program_name: 'Full body, 3 days',
+    workout_ids: ['tpl_fullbody_a'],
+    days_per_week: 3,
+    weeks: 6,
+    lighter_last_week: false,
+    tests: [{ exerciseId: 'pull-up' }],
+    start_date,
+    retest_date: '2026-12-01',
+    baseline: { 'pull-up': 6 },
+    status: 'training',
+    created_at: NOW.toISOString(),
+    updated_at: NOW.toISOString(),
+  });
+
+  it('saves phases and lists them newest first', async () => {
+    await savePhase('u1', phase('a', '2026-05-04'));
+    await savePhase('u1', phase('b', '2026-10-19', 2));
+    expect((await listPhases('u1')).map((p) => p.id)).toEqual(['b', 'a']);
+  });
+
+  it('makes a fresh phase id each time', () => {
+    expect(newPhaseId('u1')).not.toEqual(newPhaseId('u1'));
+  });
+
+  it('writes only the template workouts the user does not have yet', async () => {
+    addMockDocument(`${base}/lab_workouts`, 'tpl_fullbody_a', workout('tpl_fullbody_a', 'My edited A'));
+    const written = await ensureWorkouts(
+      'u1',
+      [workout('tpl_fullbody_a', 'Full Body A'), workout('tpl_fullbody_b', 'Full Body B')],
+      new Set(['tpl_fullbody_a'])
+    );
+    expect(written.map((w) => w.id)).toEqual(['tpl_fullbody_b']);
+    const stored = getMockDB()[`${base}/lab_workouts`];
+    expect(stored.tpl_fullbody_a.data.name).toBe('My edited A');
+    expect(stored.tpl_fullbody_b.data.name).toBe('Full Body B');
+    expect(await ensureWorkouts('u1', [workout('tpl_fullbody_a', 'A')], new Set(['tpl_fullbody_a']))).toEqual([]);
   });
 });

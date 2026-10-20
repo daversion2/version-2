@@ -67,7 +67,17 @@ export interface ExerciseDraft {
   kind: ExerciseKind;
   muscle: MuscleGroup;
   equipment?: Equipment;
+  /** Required for `distance`, ignored for every other kind. */
+  distanceM?: number;
 }
+
+/** Null when fine. A distance exercise is meaningless without its distance. */
+export const validateExerciseDistance = (kind: ExerciseKind, distanceM?: number): string | null => {
+  if (kind !== 'distance') return null;
+  if (!distanceM || !Number.isFinite(distanceM) || distanceM <= 0) return 'Pick the distance.';
+  if (distanceM > 100000) return 'Keep it under 100 km.';
+  return null;
+};
 
 /** Null when fine; otherwise the sentence to show under the name field. */
 export const validateExerciseName = (

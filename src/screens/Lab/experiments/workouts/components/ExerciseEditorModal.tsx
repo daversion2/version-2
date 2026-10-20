@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../../constants/theme';
 import { Equipment, Exercise, ExerciseKind, MuscleGroup } from '../../../../../types/workouts';
 import {
+  DISTANCE_PRESETS,
   EQUIPMENT_LABELS,
   EQUIPMENT_ORDER,
   KIND_HINTS,
@@ -21,7 +22,9 @@ import {
   MUSCLE_GROUP_LABELS,
   MUSCLE_GROUP_ORDER,
 } from '../../../../../data/workoutExercises';
-import { validateExerciseName } from '../../../../../services/exerciseLibrary';
+import { validateExerciseDistance, validateExerciseName } from '../../../../../services/exerciseLibrary';
+import { formatDistance } from '../../../../../services/workoutMath';
+import { NumberStepper } from './NumberStepper';
 import { InputField } from '../../../../../components/common/InputField';
 import { showAlert, showConfirm } from '../../../../../utils/alert';
 import { useWorkouts } from '../WorkoutsContext';
@@ -96,6 +99,8 @@ export const ExerciseEditorModal: React.FC<Props> = ({
   const [kind, setKind] = useState<ExerciseKind>('weight');
   const [muscle, setMuscle] = useState<MuscleGroup>('full_body');
   const [equipment, setEquipment] = useState<Equipment | undefined>();
+  const [distanceM, setDistanceM] = useState<number | undefined>();
+  const [distanceError, setDistanceError] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -106,6 +111,8 @@ export const ExerciseEditorModal: React.FC<Props> = ({
     setKind(exercise?.kind ?? 'weight');
     setMuscle(exercise?.muscle ?? initialMuscle ?? 'full_body');
     setEquipment(exercise?.equipment);
+    setDistanceM(exercise?.distanceM);
+    setDistanceError(null);
     setNote(exercise ? notes[exercise.id] ?? '' : '');
     setNameError(null);
     setSaving(false);
@@ -117,12 +124,14 @@ export const ExerciseEditorModal: React.FC<Props> = ({
     if (!isBuiltIn) {
       const error = validateExerciseName(name, Object.values(exercisesById), exercise?.id);
       if (error) return setNameError(error);
+      const distanceProblem = validateExerciseDistance(kind, distanceM);
+      if (distanceProblem) return setDistanceError(distanceProblem);
     }
     setSaving(true);
     try {
       let saved = exercise as Exercise;
       if (!isBuiltIn) {
-        saved = await saveExercise({ id: exercise?.id, name, kind, muscle, equipment });
+        saved = await saveExercise({ id: exercise?.id, name, kind, muscle, equipment, distanceM });
       }
       if (note.trim() !== (notes[saved.id] ?? '')) await saveNote(saved.id, note);
       onSaved?.(saved);
@@ -176,6 +185,7 @@ export const ExerciseEditorModal: React.FC<Props> = ({
               <Text style={[ws.muted, { flex: 1 }]}>
                 {KIND_LABELS[exercise!.kind]} · {MUSCLE_GROUP_LABELS[exercise!.muscle]}
                 {exercise!.equipment ? ` · ${EQUIPMENT_LABELS[exercise!.equipment]}` : ''}
+                {exercise!.distanceM ? ` · ${formatDistance(exercise!.distanceM)}` : ''}
                 {'\n'}A built-in exercise — the cues below are yours alone.
               </Text>
             </View>
@@ -197,7 +207,7 @@ export const ExerciseEditorModal: React.FC<Props> = ({
 
               <Text style={ws.sectionLabel}>How it’s logged</Text>
               <ChipRow
-                options={['weight', 'reps', 'time'] as ExerciseKind[]}
+                options={['weight', 'reps', 'time', 'distance'] as ExerciseKind[]}
                 labels={KIND_LABELS}
                 value={kind}
                 onChange={(v) => v && setKind(v)}
@@ -208,6 +218,48 @@ export const ExerciseEditorModal: React.FC<Props> = ({
                   ? 'Locked — it has logged sets, which would read wrong as anything else. Make a new exercise to log it differently.'
                   : KIND_HINTS[kind]}
               </Text>
+
+              {kind === 'distance' && (
+                <>
+                  <Text style={ws.sectionLabel}>Distance</Text>
+                  <View style={styles.chips}>
+                    {DISTANCE_PRESETS.map((p) => {
+                      const on = !!distanceM && Math.abs(distanceM - p.metres) < 0.5;
+                      return (
+                        <TouchableOpacity
+                          key={p.label}
+                          style={[ws.chip, on && ws.chipActive, kindLocked && !on && ws.disabled]}
+                          disabled={kindLocked}
+                          onPress={() => {
+                            setDistanceM(p.metres);
+                            setDistanceError(null);
+                          }}
+                          accessibilityRole="radio"
+                          accessibilityState={{ checked: on, disabled: kindLocked }}
+                        >
+                          <Text style={[ws.chipText, on && ws.chipTextActive]}>{p.label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {!kindLocked && (
+                    <View style={styles.distanceRow}>
+                      <NumberStepper
+                        size="small"
+                        label="Or metres"
+                        value={Math.round(distanceM ?? 0)}
+                        onDecrement={() => setDistanceM(Math.max(100, Math.round((distanceM ?? 0) - 100)))}
+                        onIncrement={() => setDistanceM(Math.round((distanceM ?? 0) + 100))}
+                        onSubmitValue={(v) => {
+                          setDistanceM(v > 0 ? v : undefined);
+                          setDistanceError(null);
+                        }}
+                      />
+                    </View>
+                  )}
+                  {!!distanceError && <Text style={styles.error}>{distanceError}</Text>}
+                </>
+              )}
 
               <Text style={ws.sectionLabel}>Body part</Text>
               <ChipRow
@@ -271,6 +323,8 @@ const styles = StyleSheet.create({
   content: { padding: Spacing.lg, gap: Spacing.sm, paddingBottom: Spacing.xxl },
   builtIn: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, backgroundColor: WORKOUTS_TINT },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  distanceRow: { flexDirection: 'row' },
+  error: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.danger },
   notes: { marginTop: Spacing.md, gap: 4 },
   delete: {
     flexDirection: 'row',

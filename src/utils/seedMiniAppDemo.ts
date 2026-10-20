@@ -140,7 +140,7 @@ export const buildWorkoutDemo = (
           } else {
             const [start, every] = START_BODY[item.exerciseId] ?? [10, 2];
             const value = start + Math.floor(n / every) + wobble;
-            if (kind === 'time') base.seconds = Math.max(10, value);
+            if (kind === 'time' || kind === 'distance') base.seconds = Math.max(10, value);
             else base.reps = Math.max(1, value);
           }
           sets.push(base);

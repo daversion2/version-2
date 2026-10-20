@@ -58,12 +58,15 @@ export const startSession = (opts: {
   workout?: Workout;
   name?: string;
   habitId?: string;
+  /** The training phase this session counts toward. */
+  phaseId?: string;
   now: Date;
 }): WorkoutSession => ({
   id: opts.id,
   ...(opts.workout ? { workoutId: opts.workout.id } : {}),
   workoutName: opts.workout?.name ?? opts.name ?? 'Workout',
   ...(opts.habitId ? { habitId: opts.habitId } : {}),
+  ...(opts.phaseId ? { phaseId: opts.phaseId } : {}),
   startedAt: opts.now.toISOString(),
   blocks: (opts.workout?.blocks ?? []).map((b) => toSessionBlock(b)),
   cursor: 0,
@@ -417,6 +420,7 @@ export const toCompletedSession = (
   ...(session.workoutId ? { workout_id: session.workoutId } : {}),
   workout_name: session.workoutName,
   ...(session.habitId ? { habit_id: session.habitId } : {}),
+  ...(session.phaseId ? { phase_id: session.phaseId } : {}),
   started_at: session.startedAt,
   finished_at: opts.now.toISOString(),
   duration_sec: durationSec(session, opts.now),

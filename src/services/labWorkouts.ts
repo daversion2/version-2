@@ -15,6 +15,7 @@ import {
   CompletedWorkoutSession,
   Exercise,
   ExerciseRecord,
+  TrainingPhase,
   Workout,
   WorkoutPrefs,
 } from '../types/workouts';
@@ -35,6 +36,7 @@ const COL = {
   exercises: 'lab_workout_exercises',
   notes: 'lab_workout_notes',
   prefs: 'lab_workout_prefs',
+  phases: 'lab_workout_phases',
 } as const;
 
 const PREFS_DOC = 'main';
@@ -154,7 +156,14 @@ export const saveCustomExercise = async (
   const name = input.name.trim();
   if (!name) throw new Error('An exercise needs a name.');
   const id = input.id ?? `custom_${doc(col(userId, COL.exercises)).id}`;
-  const stored = stripUndefined({ id, name, kind: input.kind, muscle: input.muscle, equipment: input.equipment });
+  const stored = stripUndefined({
+    id,
+    name,
+    kind: input.kind,
+    muscle: input.muscle,
+    equipment: input.equipment,
+    distanceM: input.kind === 'distance' ? input.distanceM : undefined,
+  });
   await setDoc(ref(userId, COL.exercises, id), stored);
   return { ...stored, custom: true };
 };
@@ -244,4 +253,38 @@ export const saveFinishedSession = async (
     );
   }
   await batch.commit();
+};
+
+// --- Training phases -----------------------------------------------------------
+
+/** Newest first: by phase start, then by number for two started the same day. */
+export const listPhases = async (userId: string): Promise<TrainingPhase[]> => {
+  const snap = await getDocs(col(userId, COL.phases));
+  return snap.docs
+    .map((d) => ({ ...(d.data() as TrainingPhase), id: d.id }))
+    .sort((a, b) => b.start_date.localeCompare(a.start_date) || b.number - a.number || b.created_at.localeCompare(a.created_at));
+};
+
+export const newPhaseId = (userId: string): string => doc(col(userId, COL.phases)).id;
+
+export const savePhase = async (userId: string, phase: TrainingPhase): Promise<void> => {
+  await setDoc(ref(userId, COL.phases, phase.id), stripUndefined(phase));
+};
+
+/**
+ * Starting a phase from a template writes its workouts — but a workout the
+ * user already has under that id (a starter, or a template workout from an
+ * earlier phase, edits and all) is kept as it is. Returns what was written.
+ */
+export const ensureWorkouts = async (
+  userId: string,
+  workouts: Workout[],
+  existingIds: Set<string>
+): Promise<Workout[]> => {
+  const missing = workouts.filter((w) => !existingIds.has(w.id));
+  if (!missing.length) return [];
+  const batch = writeBatch(db);
+  for (const w of missing) batch.set(ref(userId, COL.workouts, w.id), stripUndefined(w));
+  await batch.commit();
+  return missing;
 };

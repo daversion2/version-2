@@ -28,6 +28,7 @@ import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilte
 import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
 import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
 import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
+import { PhaseHighlightCard } from '../../components/progress/PhaseHighlightCard';
 import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
 import { MetricFamiliesSection } from '../../components/progress/MetricFamiliesSection';
 import { ProgressNavigation } from '../../types/navigation';
@@ -158,6 +159,9 @@ export const ProgressScreen: React.FC = () => {
               behind it — the user getting stronger, not just one habit getting
               easier. Streaks measure attendance; this measures growth. */}
           {friction && <FrictionCard overview={friction} />}
+
+          {/* Workouts' training phases: a retest is hard proof of capacity. */}
+          <PhaseHighlightCard refreshKey={completions} />
 
           {/* By Metric — the same reps as Training Volume below, sliced by what
               they measured instead of which habit logged them. Leads because

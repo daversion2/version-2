@@ -188,13 +188,14 @@ export const BreakdownRow: React.FC<{
   );
 };
 
-/** "Heaviest 145 lb", "Most reps 25", "Longest hold 1:30". */
+/** "Heaviest 145 lb", "Most reps 25", "Longest hold 1:30", "Fastest 7:42". */
 export const recordLines = (r: ExerciseRecord | undefined, unit: WeightUnit): string[] => {
   if (!r) return [];
   const lines: string[] = [];
   if (r.heaviestKg) lines.push(`Heaviest ${formatWeight(r.heaviestKg, unit)}`);
   if (r.maxReps) lines.push(`Most reps ${r.maxReps}`);
   if (r.longestSec) lines.push(`Longest hold ${formatSeconds(r.longestSec)}`);
+  if (r.fastestSec) lines.push(`Fastest ${formatSeconds(r.fastestSec)}`);
   return lines;
 };
 

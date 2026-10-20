@@ -5,6 +5,7 @@ import {
   isExerciseUsed,
   searchExercises,
   validateExerciseName,
+  validateExerciseDistance,
 } from '../exerciseLibrary';
 import { BUILT_IN_EXERCISES } from '../../data/workoutExercises';
 import { CompletedWorkoutSession, Exercise, WorkoutSession } from '../../types/workouts';
@@ -120,5 +121,15 @@ describe('exerciseSubtitle', () => {
   it('reads kind, equipment, and whose it is', () => {
     expect(exerciseSubtitle(sled, 'Timed')).toBe('Timed · Other · yours');
     expect(exerciseSubtitle(BUILT_IN_EXERCISES[0], 'Weight')).toBe('Weight · Barbell');
+  });
+});
+
+describe('validateExerciseDistance', () => {
+  it('needs a distance only for distance exercises', () => {
+    expect(validateExerciseDistance('reps')).toBeNull();
+    expect(validateExerciseDistance('distance')).toBe('Pick the distance.');
+    expect(validateExerciseDistance('distance', 0)).toBe('Pick the distance.');
+    expect(validateExerciseDistance('distance', 1609.344)).toBeNull();
+    expect(validateExerciseDistance('distance', 200000)).toBe('Keep it under 100 km.');
   });
 });

@@ -16,6 +16,11 @@ import { WorkoutHistoryScreen } from './WorkoutHistoryScreen';
 import { WorkoutSettingsScreen } from './WorkoutSettingsScreen';
 import { WorkoutExercisesScreen } from './WorkoutExercisesScreen';
 import { WorkoutStatsDetailScreen } from './WorkoutStatsDetailScreen';
+import { PhaseSetupScreen } from './PhaseSetupScreen';
+import { PhaseScreen } from './PhaseScreen';
+import { PhaseTestScreen } from './PhaseTestScreen';
+import { PhaseResultsScreen } from './PhaseResultsScreen';
+import { PhaseNextScreen } from './PhaseNextScreen';
 import { WORKOUTS_ACCENT } from './components/workoutsStyle';
 
 const Stack = createNativeStackNavigator<WorkoutsStackParamList>();
@@ -78,6 +83,12 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
         <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: 'Settings' }} />
         <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: 'My exercises' }} />
         <Stack.Screen name="WorkoutStatsDetail" component={WorkoutStatsDetailScreen} options={{ title: '' }} />
+        <Stack.Screen name="PhaseSetup" component={PhaseSetupScreen} options={{ title: 'New phase' }} />
+        <Stack.Screen name="Phase" component={PhaseScreen} options={{ title: '' }} />
+        {/* No swipe-back mid-test: a stray gesture would lose what's been entered. */}
+        <Stack.Screen name="PhaseTest" component={PhaseTestScreen} options={{ title: '', gestureEnabled: false }} />
+        <Stack.Screen name="PhaseResults" component={PhaseResultsScreen} options={{ title: '' }} />
+        <Stack.Screen name="PhaseNext" component={PhaseNextScreen} options={{ title: '' }} />
       </Stack.Navigator>
     </WorkoutsProvider>
   );

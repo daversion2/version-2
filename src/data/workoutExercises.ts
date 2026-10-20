@@ -1,5 +1,7 @@
 import { Equipment, Exercise, ExerciseKind, MuscleGroup, Workout, WorkoutBlock } from '../types/workouts';
 
+export const METRES_PER_MILE = 1609.344;
+
 // Ids are stored in workouts, sessions and records — never rename one.
 export const BUILT_IN_EXERCISES: Exercise[] = [
   // Chest
@@ -57,6 +59,11 @@ export const BUILT_IN_EXERCISES: Exercise[] = [
   { id: 'mountain-climber', name: 'Mountain Climbers', kind: 'time', muscle: 'full_body', equipment: 'bodyweight' },
   { id: 'jump-rope', name: 'Jump Rope', kind: 'time', muscle: 'full_body', equipment: 'other' },
   { id: 'farmers-carry', name: "Farmer's Carry", kind: 'time', muscle: 'full_body', equipment: 'dumbbell' },
+  // Time for a distance — lower is better
+  { id: 'run-400m', name: '400 m Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: 400 },
+  { id: 'run-mile', name: 'Mile Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: METRES_PER_MILE },
+  { id: 'run-5k', name: '5K Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: 5000 },
+  { id: 'row-2000m', name: '2,000 m Row', kind: 'distance', muscle: 'full_body', equipment: 'machine', distanceM: 2000 },
 ];
 
 export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
@@ -84,13 +91,25 @@ export const KIND_LABELS: Record<ExerciseKind, string> = {
   weight: 'Weight',
   reps: 'Bodyweight',
   time: 'Timed',
+  distance: 'Distance',
 };
 
 export const KIND_HINTS: Record<ExerciseKind, string> = {
   weight: 'Weight × reps',
   reps: 'Reps only',
   time: 'A hold, in seconds',
+  distance: 'Your time for a set distance — lower is better',
 };
+
+/** The distances offered when making a distance exercise. */
+export const DISTANCE_PRESETS: { label: string; metres: number }[] = [
+  { label: '400 m', metres: 400 },
+  { label: '800 m', metres: 800 },
+  { label: '1 mile', metres: METRES_PER_MILE },
+  { label: '2 km', metres: 2000 },
+  { label: '5 km', metres: 5000 },
+  { label: '10 km', metres: 10000 },
+];
 
 export const EQUIPMENT_LABELS: Record<Equipment, string> = {
   barbell: 'Barbell',

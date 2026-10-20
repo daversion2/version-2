@@ -1,7 +1,8 @@
 // Workouts mini-app (Lab). Kept out of types/index.ts so retiring the
 // experiment is a file delete. Stored under users/{uid}/lab_workout_* only.
 
-export type ExerciseKind = 'weight' | 'reps' | 'time';
+/** `distance` is a time for a fixed distance (a mile run): lower is better. */
+export type ExerciseKind = 'weight' | 'reps' | 'time' | 'distance';
 
 export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'core' | 'full_body';
 
@@ -24,6 +25,8 @@ export interface Exercise {
   kind: ExerciseKind;
   muscle: MuscleGroup;
   equipment?: Equipment;
+  /** `distance` exercises only: the fixed distance, in metres. */
+  distanceM?: number;
   custom?: boolean;
   /**
    * Set when the user deletes one of their own. It leaves the picker, but past
@@ -108,6 +111,12 @@ export interface WorkoutSession {
   history: number[];
   rest?: RestState;
   phase: 'active' | 'summary';
+  /** The training phase this session counts toward (services/trainingPhases.ts). */
+  phaseId?: string;
+  /** Ran with the phase's lighter last week applied. */
+  lighter?: boolean;
+  /** Step-up suggestions answered this session, keyed by stepUpKey(). */
+  stepUps?: Record<string, StepUp>;
   /** When Finish was tapped — the duration stops here even if the summary sits for hours. */
   endedAt?: string;
 }
@@ -119,9 +128,11 @@ export interface ExerciseRecord {
   repsAtWeight?: Record<string, number>;
   maxReps?: number;
   longestSec?: number;
+  /** `distance` exercises: the best (lowest) time. */
+  fastestSec?: number;
 }
 
-export type RecordType = 'heaviest' | 'reps_at_weight' | 'max_reps' | 'longest_hold';
+export type RecordType = 'heaviest' | 'reps_at_weight' | 'max_reps' | 'longest_hold' | 'fastest';
 
 export interface PersonalRecord {
   exerciseId: string;
@@ -144,6 +155,7 @@ export interface CompletedWorkoutSession {
   total_volume_kg: number;
   blocks: SessionBlock[];
   prs: PersonalRecord[];
+  phase_id?: string;
   /** Seeded by Admin → demo data; removed when demo mode is turned off. */
   is_demo?: boolean;
 }
@@ -157,6 +169,68 @@ export interface WorkoutPrefs {
   starters_seeded: boolean;
   /** The first-open "how this works" card has been dismissed. */
   intro_seen?: boolean;
+}
+
+/**
+ * The answer to "try a bit more today?" for one slot. Accepted: the new
+ * weight, or reps / seconds added to every set. Declined: the banner goes.
+ */
+export interface StepUp {
+  declined?: boolean;
+  weightKg?: number;
+  addReps?: number;
+  addSeconds?: number;
+}
+
+// --- Training phases: test → train for a few weeks → retest → change one thing ---
+
+/** How a test is scored — set by the exercise's kind. */
+export type TestType = 'max_reps' | 'reps_at_weight' | 'longest' | 'fastest';
+
+export interface PhaseTest {
+  exerciseId: string;
+  /** reps_at_weight only: the weight every test of this exercise uses. */
+  weightKg?: number;
+}
+
+/** The single thing a phase changed from the one before it. */
+export type PhaseChangeKey = 'sets' | 'reps' | 'weight' | 'days' | 'rest' | 'swap' | 'none' | 'consistency';
+
+export interface PhaseChange {
+  key: PhaseChangeKey;
+  /** In the user's words: "Add one set to each exercise". */
+  label: string;
+  /** Set when the change is about one exercise. */
+  exerciseId?: string;
+}
+
+export type PhaseStatus = 'baseline' | 'training' | 'complete' | 'ended';
+
+export interface TrainingPhase {
+  id: string;
+  /** 1 for the first phase in a run of them, then 2, 3… */
+  number: number;
+  program_name: string;
+  template_id?: string;
+  /** The workouts the program rotates through. Sessions of these count. */
+  workout_ids: string[];
+  days_per_week: number;
+  weeks: number;
+  lighter_last_week: boolean;
+  tests: PhaseTest[];
+  /** Local dates, YYYY-MM-DD. */
+  start_date: string;
+  retest_date: string;
+  /** Test results by exercise id: reps, or seconds for longest / fastest. */
+  baseline: Record<string, number>;
+  baseline_at?: string;
+  retest?: Record<string, number>;
+  retest_at?: string;
+  change?: PhaseChange;
+  previous_phase_id?: string;
+  status: PhaseStatus;
+  created_at: string;
+  updated_at: string;
 }
 
 /** A reporting span. Weeks start Monday. */
@@ -173,4 +247,10 @@ export type WorkoutsStackParamList = {
   WorkoutExercises: undefined;
   /** One exercise's or one body part's stats. `id` is an exercise id or a MuscleGroup. */
   WorkoutStatsDetail: { kind: 'exercise' | 'muscle'; id: string; range: StatsRange };
+  PhaseSetup: undefined;
+  /** The current phase, or a past one by id. */
+  Phase: { phaseId?: string } | undefined;
+  PhaseTest: { phaseId: string; mode: 'baseline' | 'retest' };
+  PhaseResults: { phaseId: string };
+  PhaseNext: { phaseId: string };
 };

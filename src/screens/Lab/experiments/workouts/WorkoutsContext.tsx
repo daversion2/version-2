@@ -6,6 +6,7 @@ import {
   CompletedWorkoutSession,
   Exercise,
   ExerciseRecord,
+  TrainingPhase,
   Workout,
   WorkoutPrefs,
   WorkoutSession,
@@ -19,11 +20,13 @@ import {
   listCustomExercises,
   archiveCustomExercise,
   listExerciseNotes,
+  listPhases,
   listSessions,
   listWorkouts,
   mergeExerciseLibrary,
   saveCustomExercise,
   saveExerciseNote,
+  savePhase,
   saveWorkout,
   saveWorkoutPrefs,
   sortWorkouts,
@@ -33,6 +36,8 @@ import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
 import { makeId, startSession } from '../../../../services/workoutSession';
 import { activeExercises, ExerciseDraft, isExerciseUsed } from '../../../../services/exerciseLibrary';
+import { currentPhase as findCurrentPhase, isLighterWeek, lightenSession } from '../../../../services/trainingPhases';
+import { toLocalDateString } from '../../../../utils/date';
 
 const APP = 'workouts' as const;
 /** A ceiling, not a page size — years of training for one person. */
@@ -70,6 +75,14 @@ interface WorkoutsContextValue {
 
   sessions: CompletedWorkoutSession[];
   records: Record<string, ExerciseRecord>;
+
+  /** Every training phase, newest first. */
+  phases: TrainingPhase[];
+  /** The phase waiting on its baseline or in training, if there is one. */
+  currentPhase?: TrainingPhase;
+  upsertPhase: (phase: TrainingPhase) => Promise<void>;
+  /** Workouts written outside upsertWorkout (a template's), folded into state. */
+  addWorkoutsLocally: (workouts: Workout[]) => void;
 
   /** Active habits on the account. */
   habits: PracticeInstance[];
@@ -119,6 +132,7 @@ export const WorkoutsProvider: React.FC<{
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [sessions, setSessions] = useState<CompletedWorkoutSession[]>([]);
   const [records, setRecords] = useState<Record<string, ExerciseRecord>>({});
+  const [phases, setPhases] = useState<TrainingPhase[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const sessionRef = useRef<WorkoutSession | null>(null);
@@ -142,7 +156,7 @@ export const WorkoutsProvider: React.FC<{
     setLoadError(null);
     try {
       const seeded = await ensureStarterWorkouts(userId, await getWorkoutPrefs(userId));
-      const [w, custom, s, r, h, n] = await Promise.all([
+      const [w, custom, s, r, h, n, ph] = await Promise.all([
         listWorkouts(userId),
         listCustomExercises(userId),
         // All of them: Stats' "All" span means all, not the last 100.
@@ -150,6 +164,7 @@ export const WorkoutsProvider: React.FC<{
         getRecords(userId),
         getActiveHabits(userId),
         listExerciseNotes(userId),
+        listPhases(userId),
       ]);
       setPrefs(seeded);
       setWorkouts(w);
@@ -158,6 +173,7 @@ export const WorkoutsProvider: React.FC<{
       setRecords(r);
       setHabits(h.filter((habit) => !habit.archived_at));
       setNotes(n);
+      setPhases(ph);
     } catch (e) {
       console.warn('Workouts: load failed:', e);
       setLoadError(errorText(e));
@@ -238,6 +254,25 @@ export const WorkoutsProvider: React.FC<{
     [userId]
   );
 
+  const currentPhase = useMemo(() => findCurrentPhase(phases), [phases]);
+
+  const upsertPhase = useCallback(
+    async (phase: TrainingPhase) => {
+      await savePhase(userId, phase);
+      setPhases((list) =>
+        [phase, ...list.filter((p) => p.id !== phase.id)].sort(
+          (a, b) => b.start_date.localeCompare(a.start_date) || b.number - a.number || b.created_at.localeCompare(a.created_at)
+        )
+      );
+    },
+    [userId]
+  );
+
+  const addWorkoutsLocally = useCallback((added: Workout[]) => {
+    if (!added.length) return;
+    setWorkouts((list) => sortWorkouts([...list.filter((w) => !added.some((a) => a.id === w.id)), ...added]));
+  }, []);
+
   const exerciseUsed = useCallback(
     (exerciseId: string) => isExerciseUsed(exerciseId, { records, sessions, session }),
     [records, sessions, session]
@@ -254,19 +289,28 @@ export const WorkoutsProvider: React.FC<{
     [userId]
   );
 
+  // A program workout started while its phase is training counts toward
+  // that phase, from wherever it was started — and runs light in a light week.
   const beginSession = useCallback(
     (workout?: Workout) => {
-      const next = startSession({
+      const now = new Date();
+      const phase =
+        workout && currentPhase?.status === 'training' && currentPhase.workout_ids.includes(workout.id)
+          ? currentPhase
+          : undefined;
+      let next = startSession({
         id: makeId('session'),
         workout,
         name: 'Empty workout',
         habitId: launchHabitId,
-        now: new Date(),
+        phaseId: phase?.id,
+        now,
       });
+      if (phase && isLighterWeek(phase, toLocalDateString(now))) next = lightenSession(next);
       updateSession(next);
       return next;
     },
-    [launchHabitId, updateSession]
+    [launchHabitId, updateSession, currentPhase]
   );
 
   const discardSession = useCallback(async () => {
@@ -322,6 +366,10 @@ export const WorkoutsProvider: React.FC<{
     removeWorkout,
     sessions,
     records,
+    phases,
+    currentPhase,
+    upsertPhase,
+    addWorkoutsLocally,
     habits,
     launchHabitId,
     session,

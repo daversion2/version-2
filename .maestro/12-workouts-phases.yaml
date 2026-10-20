@@ -1,0 +1,187 @@
+# Training phases in Workouts: set up a phase (with a Mile Run test from the
+# picker), save a baseline, retest early, read the results, plan phase 2, then
+# end it so the account isn't left mid-phase.
+#
+# WRITES to the signed-in account: two phase docs (phase 1 complete, phase 2
+# ended) and, the first time, the Full Body A / B template workouts.
+# Needs the Workouts card on Today and the "Train in phases" card on Workouts
+# home: no phase under way, and the latest one not "done" (ended is fine).
+#
+# Steppers are tapped `below:` their exercise's name. A bare index once hit a
+# stepper hidden under the footer, and the tap landed on "See results".
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Workouts\\. .*"
+- extendedWaitUntil:
+    visible: "YOUR WORKOUTS"
+    timeout: 20000
+# A dev build's warning toast covers the bottom of the screen; close it by position.
+- runFlow:
+    when:
+      visible: "!, Open debugger.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+- assertVisible: "Train in phases"
+- takeScreenshot: 12a-home-card
+- tapOn: ".*Start a phase.*"
+
+# Step 1 — program
+- extendedWaitUntil:
+    visible: "Pick a program"
+    timeout: 10000
+- tapOn: ".*Full body, 3 days.*"
+- takeScreenshot: 12b-program
+- tapOn: "Next"
+
+# Step 2 — tests, plus a run from the picker
+- extendedWaitUntil:
+    visible: "Your tests"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: ".*Add any exercise as a test.*"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- tapOn: ".*Add any exercise as a test.*"
+- tapOn: "Search exercises"
+- inputText: "mile"
+- tapOn: "Mile Run, .*"
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      text: "Time for 1 mi"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- assertVisible: "Not in your program.*"
+- takeScreenshot: 12c-tests
+- tapOn: "Next"
+
+# Step 3 — length and the lighter week
+- extendedWaitUntil:
+    visible: "How long?"
+    timeout: 10000
+- tapOn: ".*8 weeks.*"
+- tapOn: ".*6 weeks.*"
+- takeScreenshot: 12d-length
+- tapOn: "Start with the test"
+
+# Baseline
+- extendedWaitUntil:
+    visible: "Where you’re starting from"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Increase Test weight \\(lb\\)"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- repeat:
+    times: 10
+    commands:
+      - tapOn: "Increase Test weight \\(lb\\)"
+- takeScreenshot: 12e-baseline
+- scrollUntilVisible:
+    element:
+      text: "Increase Min"
+    direction: DOWN
+    centerElement: true
+    timeout: 15000
+- tapOn: "Decrease Min"
+- takeScreenshot: 12f-baseline-run
+- tapOn: "Save baseline and start"
+
+# Phase 1 in training
+- extendedWaitUntil:
+    visible: "Phase 1 · week 1 of 6"
+    timeout: 15000
+- takeScreenshot: 12g-phase
+- scrollUntilVisible:
+    element:
+      text: "TEST HISTORY"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- takeScreenshot: 12h-phase-lower
+- scrollUntilVisible:
+    element:
+      text: "Retest early"
+    direction: UP
+    centerElement: true
+    timeout: 10000
+- tapOn: "Retest early"
+- tapOn: "Retest now"
+
+# Retest: better pull-ups and push-ups, the rest as they were
+- extendedWaitUntil:
+    visible: "Same tests, same way"
+    timeout: 15000
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          text: "Increase Reps"
+          below: "Pull-up"
+- scrollUntilVisible:
+    element:
+      text: "Push-up"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          text: "Increase Reps"
+          below: "Push-up"
+- takeScreenshot: 12i-retest
+- tapOn: "See results"
+
+# Results
+- extendedWaitUntil:
+    visible: "Phase 1 results"
+    timeout: 15000
+- takeScreenshot: 12j-results
+- scrollUntilVisible:
+    element:
+      text: "Mile Run"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- takeScreenshot: 12k-results-lower
+- tapOn: "Plan phase 2"
+
+# One change
+- extendedWaitUntil:
+    visible: "Change one thing"
+    timeout: 10000
+- takeScreenshot: 12l-next
+- tapOn: "Start phase 2"
+- extendedWaitUntil:
+    visible: "Phase 2 · week 1 of 6"
+    timeout: 15000
+- takeScreenshot: 12m-phase2
+
+# End phase 2 so nothing is left under way
+- scrollUntilVisible:
+    element:
+      text: "End this phase"
+    direction: DOWN
+    centerElement: true
+    timeout: 15000
+- tapOn: "End this phase"
+- tapOn: "End phase"
+- extendedWaitUntil:
+    visible: "YOUR WORKOUTS"
+    timeout: 15000
+- takeScreenshot: 12n-home-after
