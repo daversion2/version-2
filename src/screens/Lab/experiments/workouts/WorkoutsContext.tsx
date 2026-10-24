@@ -6,6 +6,7 @@ import {
   CompletedWorkoutSession,
   Exercise,
   ExerciseRecord,
+  ExerciseTest,
   TrainingPhase,
   Workout,
   WorkoutPrefs,
@@ -20,12 +21,14 @@ import {
   listCustomExercises,
   archiveCustomExercise,
   listExerciseNotes,
+  listExerciseTests,
   listPhases,
   listSessions,
   listWorkouts,
   mergeExerciseLibrary,
   saveCustomExercise,
   saveExerciseNote,
+  saveExerciseTest,
   savePhase,
   saveWorkout,
   saveWorkoutPrefs,
@@ -81,6 +84,10 @@ interface WorkoutsContextValue {
   /** The phase waiting on its baseline or in training, if there is one. */
   currentPhase?: TrainingPhase;
   upsertPhase: (phase: TrainingPhase) => Promise<void>;
+
+  /** Standalone tests (services/exerciseTests.ts), newest first. */
+  tests: ExerciseTest[];
+  addTest: (test: ExerciseTest) => Promise<void>;
   /** Workouts written outside upsertWorkout (a template's), folded into state. */
   addWorkoutsLocally: (workouts: Workout[]) => void;
 
@@ -133,6 +140,7 @@ export const WorkoutsProvider: React.FC<{
   const [sessions, setSessions] = useState<CompletedWorkoutSession[]>([]);
   const [records, setRecords] = useState<Record<string, ExerciseRecord>>({});
   const [phases, setPhases] = useState<TrainingPhase[]>([]);
+  const [tests, setTests] = useState<ExerciseTest[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const sessionRef = useRef<WorkoutSession | null>(null);
@@ -156,7 +164,7 @@ export const WorkoutsProvider: React.FC<{
     setLoadError(null);
     try {
       const seeded = await ensureStarterWorkouts(userId, await getWorkoutPrefs(userId));
-      const [w, custom, s, r, h, n, ph] = await Promise.all([
+      const [w, custom, s, r, h, n, ph, t] = await Promise.all([
         listWorkouts(userId),
         listCustomExercises(userId),
         // All of them: Stats' "All" span means all, not the last 100.
@@ -165,6 +173,7 @@ export const WorkoutsProvider: React.FC<{
         getActiveHabits(userId),
         listExerciseNotes(userId),
         listPhases(userId),
+        listExerciseTests(userId),
       ]);
       setPrefs(seeded);
       setWorkouts(w);
@@ -174,6 +183,7 @@ export const WorkoutsProvider: React.FC<{
       setHabits(h.filter((habit) => !habit.archived_at));
       setNotes(n);
       setPhases(ph);
+      setTests(t);
     } catch (e) {
       console.warn('Workouts: load failed:', e);
       setLoadError(errorText(e));
@@ -264,6 +274,14 @@ export const WorkoutsProvider: React.FC<{
           (a, b) => b.start_date.localeCompare(a.start_date) || b.number - a.number || b.created_at.localeCompare(a.created_at)
         )
       );
+    },
+    [userId]
+  );
+
+  const addTest = useCallback(
+    async (test: ExerciseTest) => {
+      await saveExerciseTest(userId, test);
+      setTests((list) => [test, ...list.filter((t) => t.id !== test.id)]);
     },
     [userId]
   );
@@ -369,6 +387,8 @@ export const WorkoutsProvider: React.FC<{
     phases,
     currentPhase,
     upsertPhase,
+    tests,
+    addTest,
     addWorkoutsLocally,
     habits,
     launchHabitId,

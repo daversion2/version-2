@@ -233,6 +233,23 @@ export interface TrainingPhase {
   updated_at: string;
 }
 
+/**
+ * A test done on its own, outside a training phase — "am I getting better?"
+ * without running a program. Tested exactly like a phase test (the
+ * exercise's kind decides how; services/trainingPhases.ts testTypeFor).
+ */
+export interface ExerciseTest {
+  id: string;
+  exercise_id: string;
+  /** Reps, or seconds for longest / fastest. */
+  value: number;
+  /** reps_at_weight only: the weight it was done at. */
+  weight_kg?: number;
+  tested_at: string;
+  /** Local YYYY-MM-DD. */
+  date: string;
+}
+
 /** A reporting span. Weeks start Monday. */
 export type StatsRange = 'week' | 'month' | 'year' | 'all';
 
@@ -253,4 +270,6 @@ export type WorkoutsStackParamList = {
   PhaseTest: { phaseId: string; mode: 'baseline' | 'retest' };
   PhaseResults: { phaseId: string };
   PhaseNext: { phaseId: string };
+  /** A standalone test. No exercise = pick one first. */
+  ExerciseTest: { exerciseId?: string } | undefined;
 };

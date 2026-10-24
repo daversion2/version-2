@@ -15,6 +15,7 @@ import {
   CompletedWorkoutSession,
   Exercise,
   ExerciseRecord,
+  ExerciseTest,
   TrainingPhase,
   Workout,
   WorkoutPrefs,
@@ -37,6 +38,7 @@ const COL = {
   notes: 'lab_workout_notes',
   prefs: 'lab_workout_prefs',
   phases: 'lab_workout_phases',
+  tests: 'lab_workout_tests',
 } as const;
 
 const PREFS_DOC = 'main';
@@ -253,6 +255,22 @@ export const saveFinishedSession = async (
     );
   }
   await batch.commit();
+};
+
+// --- Standalone tests ------------------------------------------------------------
+
+/** Newest first. */
+export const listExerciseTests = async (userId: string): Promise<ExerciseTest[]> => {
+  const snap = await getDocs(col(userId, COL.tests));
+  return snap.docs
+    .map((d) => ({ ...(d.data() as ExerciseTest), id: d.id }))
+    .sort((a, b) => b.tested_at.localeCompare(a.tested_at));
+};
+
+export const newExerciseTestId = (userId: string): string => doc(col(userId, COL.tests)).id;
+
+export const saveExerciseTest = async (userId: string, test: ExerciseTest): Promise<void> => {
+  await setDoc(ref(userId, COL.tests, test.id), stripUndefined(test));
 };
 
 // --- Training phases -----------------------------------------------------------

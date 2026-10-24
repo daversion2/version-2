@@ -190,6 +190,8 @@ export const startSession = (input: {
   /** A guided recording to play instead of the timer or pacer. Its own length is the plan. */
   guided?: Pick<GuidedRecording, 'id' | 'title' | 'duration_sec'>;
   habitId?: string;
+  /** The start screen's optional "How calm do you feel?" (1–5). */
+  calmBefore?: number;
 }): MeditateSession => {
   const { id, mode, minutes, now, habitId, guided } = input;
   const session: MeditateSession = {
@@ -210,6 +212,7 @@ export const startSession = (input: {
     session.nsdrTitle = input.nsdrLink.title;
   }
   if (habitId) session.habitId = habitId;
+  if (isCalm(input.calmBefore)) session.calmBefore = input.calmBefore;
   return session;
 };
 
@@ -245,7 +248,15 @@ export const addPacedSeconds = (session: MeditateSession, sec: number): Meditate
   pacedSec: Math.min(session.plannedSec, (session.pacedSec ?? 0) + sec),
 });
 
-export const toCompletedSession = (session: MeditateSession, now: Date): CompletedMeditateSession => {
+/**
+ * Finished and saved. `calmAfter` is the Done screen's optional answer; it
+ * lives on the screen, not the draft, so it's passed in here.
+ */
+export const toCompletedSession = (
+  session: MeditateSession,
+  now: Date,
+  calmAfter?: number
+): CompletedMeditateSession => {
   const ended = endSession(session, now, false);
   const completed: CompletedMeditateSession = {
     id: ended.id,
@@ -264,7 +275,52 @@ export const toCompletedSession = (session: MeditateSession, now: Date): Complet
   if (ended.guidedId) completed.guided_id = ended.guidedId;
   if (ended.guidedTitle) completed.guided_title = ended.guidedTitle;
   if (ended.habitId) completed.habit_id = ended.habitId;
+  if (isCalm(ended.calmBefore)) completed.calm_before = ended.calmBefore;
+  if (isCalm(calmAfter)) completed.calm_after = calmAfter;
   return completed;
+};
+
+// --- Calm, before and after ---------------------------------------------------
+
+/** 1 = tense, 5 = calm. */
+export const CALM_LEVELS = [1, 2, 3, 4, 5] as const;
+
+export const isCalm = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 5;
+
+/** Sessions with both answers before the "usually" line shows — fewer is noise. */
+export const CALM_MIN_SESSIONS = 3;
+
+export interface CalmInsight {
+  /** Sessions answered before and after. */
+  sessions: number;
+  /** Average after − before, to one decimal. */
+  change: number;
+}
+
+/** How a session usually moves you, from every session answered both times. Null until there are enough. */
+export const calmInsight = (sessions: Pick<CompletedMeditateSession, 'calm_before' | 'calm_after'>[]): CalmInsight | null => {
+  const pairs = sessions.filter((s) => isCalm(s.calm_before) && isCalm(s.calm_after));
+  if (pairs.length < CALM_MIN_SESSIONS) return null;
+  const total = pairs.reduce((sum, s) => sum + (s.calm_after! - s.calm_before!), 0);
+  return { sessions: pairs.length, change: Math.round((total / pairs.length) * 10) / 10 };
+};
+
+/** "You usually finish 1.5 points calmer", or about as calm, or less calm — never dressed up. */
+export const describeCalmInsight = (i: CalmInsight): string => {
+  const n = Math.abs(i.change);
+  if (n < 0.3) return 'You usually finish about as calm as you started.';
+  const points = `${n} ${n === 1 ? 'point' : 'points'}`;
+  return i.change > 0 ? `You usually finish ${points} calmer.` : `You usually finish ${points} less calm.`;
+};
+
+/** "Calm 2 → 4", "Calm before: 3", "Calm after: 4", or null. */
+export const describeCalm = (s: Pick<CompletedMeditateSession, 'calm_before' | 'calm_after'>): string | null => {
+  const before = isCalm(s.calm_before) ? s.calm_before : undefined;
+  const after = isCalm(s.calm_after) ? s.calm_after : undefined;
+  if (before && after) return `Calm ${before} → ${after}`;
+  if (before) return `Calm before: ${before}`;
+  if (after) return `Calm after: ${after}`;
+  return null;
 };
 
 /**

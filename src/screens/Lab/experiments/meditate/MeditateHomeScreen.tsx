@@ -30,6 +30,7 @@ import {
 import { showAlert, showChoice, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { NsdrLinkForm } from './components/NsdrLinkForm';
+import { CalmScale } from './components/CalmScale';
 import { MEDITATE_ACCENT, MEDITATE_TINT, ms } from './components/meditateStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { newMeditateId, saveMeditateSession } from '../../../../services/labMeditate';
@@ -88,6 +89,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showSteps, setShowSteps] = useState(false);
   const [addingLink, setAddingLink] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [calmBefore, setCalmBefore] = useState<number | undefined>(undefined);
   /** Per mode: play a guided recording instead of timing it yourself. Opens on last time's choice. */
   const [guidedOn, setGuidedOn] = useState<Record<MeditateMode, boolean>>({ sit: false, breathe: false, nsdr: false });
   const [guidedPick, setGuidedPick] = useState<string | undefined>(undefined);
@@ -189,7 +191,9 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         breatheStyle: choices.breatheStyle,
         nsdrLink: mode === 'nsdr' && !recording ? nsdrLink : undefined,
         guided: recording,
+        calmBefore,
       });
+      setCalmBefore(undefined);
       if (recording) {
         navigation.navigate('MeditateGuided');
         return;
@@ -225,7 +229,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={ms.screen}>
-      <ScrollView contentContainerStyle={[ms.scroll, { paddingBottom: 140 + insets.bottom }]}>
+      <ScrollView contentContainerStyle={[ms.scroll, { paddingBottom: 220 + insets.bottom }]}>
         {!prefs.intro_seen && !loading && (
           <View style={[ms.card, styles.intro]}>
             <Text style={ms.title}>How Meditate works</Text>
@@ -536,6 +540,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+        <CalmScale question="How calm do you feel?" value={calmBefore} onChange={setCalmBefore} />
         <TouchableOpacity
           style={[ms.primaryBtn, (starting || needsLink) && ms.disabled]}
           onPress={onBegin}
@@ -636,6 +641,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
+    gap: Spacing.md,
     backgroundColor: Colors.lightGray,
     borderTopWidth: 1,
     borderTopColor: Colors.border,

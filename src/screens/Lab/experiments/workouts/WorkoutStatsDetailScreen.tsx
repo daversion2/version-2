@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import { MuscleGroup, StatsRange, WorkoutsStackParamList } from '../../../../types/workouts';
@@ -27,6 +27,9 @@ import {
   VolumeChart,
 } from './components/StatsParts';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
+import { TestHistoryRows } from './components/TestHistory';
+import { testHistory } from '../../../../services/exerciseTests';
+import { testTypeFor } from '../../../../services/trainingPhases';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutStatsDetail'>;
 
@@ -36,7 +39,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutStatsDetail'
  */
 export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { kind, id } = route.params;
-  const { sessions, exercisesById, exercise, prefs, records } = useWorkouts();
+  const { sessions, exercisesById, exercise, prefs, records, tests, phases } = useWorkouts();
   const [range, setRange] = useState<StatsRange>(route.params.range);
   const unit = prefs.unit;
   const isExercise = kind === 'exercise';
@@ -62,6 +65,7 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
   const records_ = isExercise ? recordLines(records[id], unit) : [];
   // The last 12 sessions whatever the range above: a week holds one or two,
   // too few to show a direction.
+  const testsOf = useMemo(() => (ex ? testHistory(ex, tests, phases) : []), [ex, tests, phases]);
   const trend = useMemo(() => (ex ? bestSetTrend(sessions, id, ex.kind) : []), [sessions, id, ex?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -85,6 +89,22 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
                 ))}
               </View>
             </>
+          )}
+
+          <View style={styles.testsHead}>
+            <Text style={ws.sectionLabel}>Tests</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ExerciseTest', { exerciseId: id })}
+              accessibilityRole="button"
+              hitSlop={8}
+            >
+              <Text style={styles.testLink}>Test this</Text>
+            </TouchableOpacity>
+          </View>
+          {ex && testsOf.length > 0 ? (
+            <TestHistoryRows entries={testsOf} type={testTypeFor(ex.kind)} unit={unit} />
+          ) : (
+            <Text style={ws.muted}>Not tested yet. A test shows whether you’re getting better, even without a program.</Text>
           )}
 
           <Text style={ws.sectionLabel}>Recent sessions</Text>
@@ -127,6 +147,8 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
 
 const styles = StyleSheet.create({
   records: { gap: 4 },
+  testsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  testLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
   record: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
   sets: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: Spacing.xs, lineHeight: 20 },
 });

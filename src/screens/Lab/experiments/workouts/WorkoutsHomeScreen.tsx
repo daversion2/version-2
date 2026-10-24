@@ -211,6 +211,19 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <TouchableOpacity
+        style={[ws.card, styles.testCard]}
+        onPress={() => navigation.navigate('ExerciseTest')}
+        accessibilityRole="button"
+      >
+        <Ionicons name="speedometer-outline" size={20} color={WORKOUTS_ACCENT} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={ws.title}>Test an exercise</Text>
+          <Text style={ws.muted}>See if you’re getting better — no program needed</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={styles.pastLink}
         onPress={() => setLoggingPast(true)}
         accessibilityRole="button"
@@ -313,6 +326,7 @@ const styles = StyleSheet.create({
     color: WORKOUTS_ACCENT,
   },
   quick: { flex: 1, gap: 4 },
+  testCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   workoutHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 2 },
   blockList: { marginTop: Spacing.sm, gap: 3, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: WORKOUTS_TINT },
   blockLine: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.dark },

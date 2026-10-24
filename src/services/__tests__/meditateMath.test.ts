@@ -1,5 +1,8 @@
 import {
   addPacedSeconds,
+  calmInsight,
+  describeCalm,
+  describeCalmInsight,
   breakdown,
   checkinChoices,
   clampMinutes,
@@ -335,5 +338,51 @@ describe('guided sessions', () => {
   it('a guided breathing session doesn\'t change pacer-or-timer next time', () => {
     const d = startDefaults({ sessions: [done('2026-10-16', 10, { mode: 'breathe', style: 'guided' })], nsdrLinks: [] });
     expect(d.breatheStyle).toBe('pacer');
+  });
+});
+
+describe('calm, before and after', () => {
+  const start = local(2026, 10, 17, 7);
+
+  it('carries the start screen\u2019s answer through to the saved session, with the Done screen\u2019s', () => {
+    const s = startSession({ id: 'x', mode: 'sit', minutes: 10, now: start, calmBefore: 2 });
+    expect(s.calmBefore).toBe(2);
+    const done_ = toCompletedSession(s, new Date(start.getTime() + 600_000), 4);
+    expect(done_).toMatchObject({ calm_before: 2, calm_after: 4 });
+  });
+
+  it('leaves both off when unanswered or out of range — Firestore never sees undefined', () => {
+    const s = startSession({ id: 'x', mode: 'sit', minutes: 10, now: start, calmBefore: 9 });
+    expect('calmBefore' in s).toBe(false);
+    const done_ = toCompletedSession(s, new Date(start.getTime() + 600_000));
+    expect('calm_before' in done_).toBe(false);
+    expect('calm_after' in done_).toBe(false);
+  });
+
+  it('needs three sessions answered both times before saying anything', () => {
+    const two = [done('2026-10-15', 10, { calm_before: 2, calm_after: 4 }), done('2026-10-16', 10, { calm_before: 3, calm_after: 4 })];
+    expect(calmInsight(two)).toBeNull();
+    expect(calmInsight([...two, done('2026-10-17', 10, { calm_before: 3 })])).toBeNull();
+  });
+
+  it('averages the change and says it plainly', () => {
+    const i = calmInsight([
+      done('2026-10-14', 10, { calm_before: 2, calm_after: 4 }),
+      done('2026-10-15', 10, { calm_before: 3, calm_after: 4 }),
+      done('2026-10-16', 10, { calm_before: 2, calm_after: 4 }),
+      done('2026-10-17', 10),
+    ]);
+    expect(i).toEqual({ sessions: 3, change: 1.7 });
+    expect(describeCalmInsight(i!)).toBe('You usually finish 1.7 points calmer.');
+    expect(describeCalmInsight({ sessions: 3, change: 1 })).toBe('You usually finish 1 point calmer.');
+    expect(describeCalmInsight({ sessions: 3, change: 0.2 })).toBe('You usually finish about as calm as you started.');
+    expect(describeCalmInsight({ sessions: 3, change: -0.7 })).toBe('You usually finish 0.7 points less calm.');
+  });
+
+  it('describes one session', () => {
+    expect(describeCalm({ calm_before: 2, calm_after: 4 })).toBe('Calm 2 → 4');
+    expect(describeCalm({ calm_before: 3 })).toBe('Calm before: 3');
+    expect(describeCalm({ calm_after: 5 })).toBe('Calm after: 5');
+    expect(describeCalm({})).toBeNull();
   });
 });

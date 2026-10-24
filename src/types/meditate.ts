@@ -65,6 +65,8 @@ export interface MeditateSession {
   bellId?: string;
   /** The habit whose Start button opened the app, if one did. */
   habitId?: string;
+  /** "How calm do you feel?" 1 (tense) to 5 (calm), asked on the start screen. Optional. */
+  calmBefore?: number;
 }
 
 /** A finished session, as saved. */
@@ -86,6 +88,9 @@ export interface CompletedMeditateSession {
   /** Local YYYY-MM-DD the session started on — what weeks and months count by. */
   date: string;
   habit_id?: string;
+  /** 1 (tense) to 5 (calm), before and after. Either can be missing — both are optional taps. */
+  calm_before?: number;
+  calm_after?: number;
   /** Seeded by Admin → demo data; removed when demo mode is turned off. */
   is_demo?: boolean;
 }

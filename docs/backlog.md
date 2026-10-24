@@ -162,9 +162,6 @@ bigger, not yet scoped — discuss before building either.
   (rain, drone, etc.), reusing Compose's background-sound library.
   **Blocked on the next store build:** Sit and NSDR expect a locked phone,
   and the 2.2.0 binary can't play audio locked (same as Compose, see Next).
-- **Pre/post mood check-in.** An optional mood tap before and after a
-  session, surfaced later as an insight over time (e.g. "you usually feel
-  calmer after Breathe").
 
 Considered and declined: multi-day guided courses as a Meditate-only feature
 (see the cross-app program idea above instead), a post-session text note, and
@@ -178,11 +175,6 @@ build is already happening for another reason).
   counted from logged sets (`services/workoutSession.ts`), so warm-ups also
   have to be skipped by round counting, the "last time" prefill, records,
   volume and step-ups.
-- **Standalone ad-hoc exercise test.** Today, testing a baseline only happens
-  as part of starting a training phase/program
-  (`PhaseTestScreen`/`PhaseSetupScreen`). Add a way to test a single exercise
-  any time, outside a phase, for people who track workouts without running a
-  structured program but still want to see if they're making progress.
 
 Considered and declined: a plate-math/bodyweight calculator, attaching
 photo/video to a set for form checks, and sharing a workout or PR as an image.
@@ -247,6 +239,25 @@ Each shows days on target, a dot per day, plates passed and nutrient
 coverage. Each day is scored under the rules it was saved with. Not tappable
 yet: the day screen only knows this week. `pastWeeks` in
 `services/mealsMath.ts` (tested).
+
+**Meditate: calm before and after** *(2026-10-24, not live yet)*
+An optional "How calm do you feel?" row (1 tense to 5 calm) above Begin, and
+"How calm do you feel now?" on the Done screen. Saved on the session as
+`calm_before` / `calm_after`. After 3 sessions answered both times, Done and
+History say "You usually finish 1.5 points calmer". History rows show
+"Calm 2 → 4". Logic in `services/meditateMath.ts` (tested); the scale is
+`meditate/components/CalmScale.tsx`. Past sessions logged after the fact
+don't ask.
+
+**Workouts: test an exercise any time** *(2026-10-24, not live yet)*
+A "Test an exercise" card on Workouts home (opens a picker), and a "Test
+this" link plus a Tests history on each exercise's stats screen. It's tested
+the same way as a phase test, and the result is compared with the last test
+done the same way. A weighted test only compares at the same weight, and it
+starts at the weight you last tested at. One history combines standalone
+tests with phase baselines and retests. Stored in
+`users/{uid}/lab_workout_tests`. Logic in `services/exerciseTests.ts`
+(tested); the screen is `ExerciseTestScreen.tsx`.
 
 **Already built (found 2026-10-24):** supersets/circuits. A Workouts block
 holds several exercises, with rest after each round, not between them.

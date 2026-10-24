@@ -19,6 +19,7 @@ import { WorkoutStatsDetailScreen } from './WorkoutStatsDetailScreen';
 import { PhaseSetupScreen } from './PhaseSetupScreen';
 import { PhaseScreen } from './PhaseScreen';
 import { PhaseTestScreen } from './PhaseTestScreen';
+import { ExerciseTestScreen } from './ExerciseTestScreen';
 import { PhaseResultsScreen } from './PhaseResultsScreen';
 import { PhaseNextScreen } from './PhaseNextScreen';
 import { WORKOUTS_ACCENT } from './components/workoutsStyle';
@@ -89,6 +90,7 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
         <Stack.Screen name="PhaseTest" component={PhaseTestScreen} options={{ title: '', gestureEnabled: false }} />
         <Stack.Screen name="PhaseResults" component={PhaseResultsScreen} options={{ title: '' }} />
         <Stack.Screen name="PhaseNext" component={PhaseNextScreen} options={{ title: '' }} />
+        <Stack.Screen name="ExerciseTest" component={ExerciseTestScreen} options={{ title: 'Test' }} />
       </Stack.Navigator>
     </WorkoutsProvider>
   );
