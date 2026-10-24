@@ -13,6 +13,11 @@ How to use it:
   only holds the next action and a link.
 - `docs/todo.md` is the founder's personal, git-ignored notes. It is separate
   from this file.
+- **Now / Next / Later** are the pre-launch punch list — fixes, polish, and
+  things that must be true before launch. **Features** (below) is a separate
+  list of new capabilities to build, not required for launch. Keep an item in
+  whichever list actually describes it; a feature that becomes launch-blocking
+  moves up into Now/Next/Later instead of staying in Features.
 
 ---
 
@@ -114,6 +119,17 @@ in this order:
 
 This is defence in depth only: push tokens stopped being readable by other
 users when profiles went owner-only.
+
+---
+
+## Features
+
+New capabilities, not required for launch. The founder adds items here as
+they come up in conversation; Claude can add one too when an idea surfaces
+mid-task, instead of letting it evaporate. Same format as above: bold title,
+date added, a sentence or two of context, link to a design doc if one exists.
+No priority ordering implied — flag with a note if something's more wanted
+than the rest.
 
 ### Mini-apps
 
