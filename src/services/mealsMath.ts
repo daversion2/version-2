@@ -17,6 +17,7 @@ import {
   MAX_GROUP_GOALS,
   MAX_SLOTS,
   NUTRIENTS,
+  PROCESSED_GROUPS,
   WHOLE_GROUPS,
 } from '../data/mealGroups';
 import { toLocalDateString } from '../utils/date';
@@ -338,6 +339,62 @@ export const describeMealGoal = (rules: Pick<MealsRules, 'slots' | 'pass_goal'>)
   const misses = allowedMisses(rules);
   if (misses === 0) return 'Every meal has to pass. A snack or drink that doesn’t pass is a miss too.';
   return `The day can hold ${misses} ${misses === 1 ? 'miss' : 'misses'} — a meal, snack or drink that doesn’t pass.`;
+};
+
+// --- Recent plates ------------------------------------------------------------
+
+/** A plate logged before, offered as a one-tap fill in the picker. */
+export interface RecentPlate {
+  /** In the picker's order, so the same plate always reads the same way. */
+  groups: FoodGroupId[];
+  /** Extras: the most recent name it was logged under, if it had one. */
+  name?: string;
+}
+
+const GROUP_ORDER: FoodGroupId[] = [...WHOLE_GROUPS, ...PROCESSED_GROUPS].map((g) => g.id);
+
+const canonical = (groups: FoodGroupId[]): FoodGroupId[] =>
+  [...new Set(groups)].sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
+
+/**
+ * Distinct plates from past days, newest first, for the picker's "Recent" row.
+ * Plates logged in the same place come first: your usual lunch when you tap
+ * Lunch, your usual snacks when you add something additional. Then everything
+ * else. "Didn't eat" and empty plates are never offered.
+ */
+export const recentPlates = (
+  days: MealsDay[],
+  target: { kind: 'meal'; slotId: string } | { kind: 'extra' },
+  max = 4
+): RecentPlate[] => {
+  interface Seen {
+    plate: RecentPlate;
+    at: string;
+    here: boolean;
+  }
+  const seen = new Map<string, Seen>();
+  const note = (groups: FoodGroupId[] | undefined, at: string, here: boolean, name?: string) => {
+    if (!groups || groups.length === 0) return;
+    const ordered = canonical(groups);
+    const key = ordered.join('|');
+    const prev = seen.get(key);
+    const newer = !prev || at > prev.at;
+    seen.set(key, {
+      plate: { groups: ordered, name: newer ? name ?? prev?.plate.name : prev.plate.name ?? name },
+      at: newer ? at : prev.at,
+      here: here || !!prev?.here,
+    });
+  };
+  for (const day of days) {
+    for (const [slotId, entry] of Object.entries(day.meals)) {
+      note(entry.groups, entry.logged_at, target.kind === 'meal' && slotId === target.slotId);
+    }
+    for (const extra of day.extras) note(extra.groups, extra.logged_at, target.kind === 'extra', extra.name);
+  }
+  return [...seen.values()]
+    .sort((a, b) => Number(b.here) - Number(a.here) || b.at.localeCompare(a.at))
+    .slice(0, max)
+    .map(({ plate }) => (target.kind === 'extra' && plate.name ? plate : { groups: plate.groups }));
 };
 
 // --- Editing a day -------------------------------------------------------------

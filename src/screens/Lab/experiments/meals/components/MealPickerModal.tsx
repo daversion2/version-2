@@ -6,7 +6,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../../data/mealGroups';
 import type { FoodGroupId } from '../../../../../types/meals';
-import { plateNutrients, plateVerdict } from '../../../../../services/mealsMath';
+import type { RecentPlate } from '../../../../../services/mealsMath';
+import { describeGroups, plateNutrients, plateVerdict } from '../../../../../services/mealsMath';
 import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, mls } from './mealsStyle';
 import { NutrientTags } from './MealsParts';
 
@@ -24,6 +25,8 @@ export interface PickerTarget {
 interface Props {
   target: PickerTarget | null;
   strict: boolean;
+  /** Plates logged before (services/mealsMath recentPlates): a tap fills the chips. */
+  recent?: RecentPlate[];
   onCancel: () => void;
   onSave: (groups: FoodGroupId[], name?: string) => void;
   /** Meals only: "Didn't eat" — never counts against the day. */
@@ -37,7 +40,7 @@ interface Props {
  * as you go, so you see pass or fail before saving. The user never chooses the
  * result — only the groups.
  */
-export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onSave, onSkip, onRemove }) => {
+export const MealPickerModal: React.FC<Props> = ({ target, strict, recent = [], onCancel, onSave, onSkip, onRemove }) => {
   const insets = useSafeAreaInsets();
   const [groups, setGroups] = useState<FoodGroupId[]>([]);
   const [name, setName] = useState('');
@@ -53,6 +56,14 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
 
   const toggle = (id: FoodGroupId) =>
     setGroups((list) => (list.includes(id) ? list.filter((g) => g !== id) : [...list, id]));
+
+  // Fills the chips rather than saving, so the verdict below shows before Save.
+  const pickRecent = (plate: RecentPlate) => {
+    setGroups(plate.groups);
+    if (plate.name && !name.trim()) setName(plate.name);
+  };
+  const sameAs = (plate: RecentPlate) =>
+    plate.groups.length === groups.length && plate.groups.every((g) => groups.includes(g));
 
   const verdict = plateVerdict(groups, strict);
   const isExtra = target?.kind === 'extra';
@@ -111,6 +122,42 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, onCancel, onS
           <Text style={mls.body}>
             {isExtra ? 'A snack or drink on top of your meals. What was in it?' : 'What was on the plate? Tap all that apply.'}
           </Text>
+
+          {recent.length > 0 && (
+            <>
+              <Text style={mls.sectionLabel}>Recent</Text>
+              <View style={styles.recentList}>
+                {recent.map((plate) => {
+                  const on = sameAs(plate);
+                  const result = plateVerdict(plate.groups, strict).result;
+                  const label = describeGroups(plate.groups);
+                  return (
+                    <TouchableOpacity
+                      key={plate.groups.join('|')}
+                      style={[styles.recent, on && { borderColor: MEALS_ACCENT, backgroundColor: MEALS_ACCENT + '14' }]}
+                      onPress={() => pickRecent(plate)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use ${plate.name ? `${plate.name}, ` : ''}${label}`}
+                    >
+                      <View
+                        style={[styles.recentDot, { backgroundColor: result === 'pass' ? PASS_COLOR : FAIL_COLOR }]}
+                      />
+                      <View style={styles.recentText}>
+                        {plate.name && (
+                          <Text style={styles.chipText} numberOfLines={1}>
+                            {plate.name}
+                          </Text>
+                        )}
+                        <Text style={plate.name ? mls.muted : styles.chipText} numberOfLines={2}>
+                          {label}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
 
           {isExtra && (
             <TextInput
@@ -235,6 +282,20 @@ const styles = StyleSheet.create({
   chipText: { flex: 1, fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
   chipDots: { flexDirection: 'row', gap: 3 },
   chipDot: { width: 7, height: 7, borderRadius: 4 },
+  recentList: { gap: Spacing.sm },
+  recent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.white,
+  },
+  recentDot: { width: 8, height: 8, borderRadius: 4 },
+  recentText: { flex: 1, gap: 2 },
   rulesToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: Spacing.sm },
   rules: { gap: Spacing.sm },
   footer: {

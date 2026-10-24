@@ -153,8 +153,10 @@ bigger, not yet scoped — discuss before building either.
 
 ### Meditate *(added 2026-10-24)*
 
-- **Favorites/recents.** Star a guided recording or breathing pattern; show
-  favorites and recently used above the full list on `MeditateHomeScreen`.
+- **Favorites.** Star a guided recording or breathing pattern. Low value
+  until the guided library grows. "Recents" already exists: the start screen
+  opens on the last mode, technique, pattern, length and NSDR link
+  (`startDefaults` in `services/meditateMath.ts`).
 - **Ambient background sound during unguided sits.** Sit/NSDR/Breathe
   currently stay silent until the end bell. Add an optional ambient layer
   (rain, drone, etc.), reusing Compose's background-sound library.
@@ -169,12 +171,11 @@ build is already happening for another reason).
 
 ### Workouts *(added 2026-10-24)*
 
-- **Rest timer alert.** Sound/haptic (and a local notification if the app is
-  backgrounded) when the `RestSheet` countdown hits zero.
-- **Supersets/circuits.** Let `WorkoutBuilderScreen` group 2+ exercises
-  back-to-back with no rest between them, then rest after the group.
 - **Warm-up sets.** A per-set toggle; warm-ups log but don't count toward PRs
-  or weekly volume.
+  or weekly volume. Bigger than it looks: a set's position in the workout is
+  counted from logged sets (`services/workoutSession.ts`), so warm-ups also
+  have to be skipped by round counting, the "last time" prefill, records,
+  volume and step-ups.
 - **Per-exercise history chart.** A simple trend line (weight/reps/time) for
   one exercise over time, beyond the existing PR callout.
 - **Standalone ad-hoc exercise test.** Today, testing a baseline only happens
@@ -188,9 +189,9 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
 
 ### Meals *(added 2026-10-24)*
 
-- **Meal templates/favorites.** Save a tapped food-group combination as a
-  named template (e.g. "my usual lunch"); one tap re-logs it instead of
-  re-tapping every group.
+- **Named meal templates.** Save a plate under a name ("my usual lunch").
+  Only if the Recent plates row (shipped, see Done) turns out not to be
+  enough.
 - **Plate photo.** An optional photo per meal, stored privately, shown
   alongside the day in meal history — a visual record, not AI analysis.
 - **Hydration tracking inside Meals.** A glass-count or oz tally living in
@@ -218,4 +219,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-*(Nothing yet. Move shipped items here with the date and commit.)*
+**Workouts: rest alert when the phone is locked** *(2026-10-24)*
+A notification ("Rest's up · Up next: …") when rest ends while the app is in
+the background. It's scheduled only on going to the background and called off
+on return, so there's no banner on top of the in-app countdown. Asks for
+notification permission once, at the first rest. Reuses Meditate's bell.
+`screens/Lab/experiments/workouts/useRestBell.ts`. Not yet tried on a phone.
+
+**Meals: Recent plates in the picker** *(2026-10-24)*
+Up to 4 plates logged in the last 4 weeks, shown above the chips. Plates from
+the same meal come first (your usual lunch when you tap Lunch); for
+"something additional", past snacks come first, with their names. A tap fills
+the chips and you still press Save, so pass or fail shows first.
+`recentPlates` in `services/mealsMath.ts` (tested). Not yet tried on screen.
+
+**Already built (found 2026-10-24):** supersets/circuits. A Workouts block
+holds several exercises, with rest after each round, not between them.

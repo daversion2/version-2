@@ -6,6 +6,7 @@ import type { PracticeInstance } from '../../../../types';
 import type { MealsDay, MealsPrefs, MealsRules } from '../../../../types/meals';
 import { DEFAULT_MEALS_PREFS } from '../../../../data/mealGroups';
 import { getMealsPrefs, listMealsDays, newMealsId, saveMealsDay, saveMealsPrefs } from '../../../../services/labMeals';
+import { addDays } from '../../../../services/habitSchedule';
 import { emptyDay, rulesOf, weekDates } from '../../../../services/mealsMath';
 import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
@@ -13,6 +14,8 @@ import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
 
 const APP = 'meals' as const;
+/** How far back the picker looks for plates you've logged before. */
+const RECENT_WEEKS = 4;
 
 interface MealsContextValue {
   userId: string;
@@ -30,6 +33,8 @@ interface MealsContextValue {
   /** This week's days, keyed by date. A day nobody has touched is absent. */
   days: Record<string, MealsDay>;
   dayFor: (date: string) => MealsDay;
+  /** The last four weeks plus this one, for the picker's recent plates. */
+  recentDays: MealsDay[];
   /**
    * Save a day. Shown at once, written in the background; a failed write puts
    * the day back and says so. Today's day always carries today's rules; a past
@@ -71,6 +76,8 @@ export const MealsProvider: React.FC<{
   const [today, setToday] = useState(() => toLocalDateString(new Date()));
   const [prefs, setPrefs] = useState<MealsPrefs>(DEFAULT_MEALS_PREFS);
   const [days, setDays] = useState<Record<string, MealsDay>>({});
+  // Before this week: read once per load, never edited here.
+  const [pastDays, setPastDays] = useState<Record<string, MealsDay>>({});
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const daysRef = useRef(days);
   daysRef.current = days;
@@ -88,13 +95,18 @@ export const MealsProvider: React.FC<{
     setLoadError(null);
     try {
       const week = weekDates(today);
-      const [p, d, h] = await Promise.all([
+      const [p, d, h, past] = await Promise.all([
         getMealsPrefs(userId),
         listMealsDays(userId, week[0], week[6]),
         getActiveHabits(userId),
+        // Only feeds the recent plates, so a failure here mustn't block the app.
+        listMealsDays(userId, addDays(week[0], -RECENT_WEEKS * 7), addDays(week[0], -1)).catch(
+          () => ({}) as Record<string, MealsDay>
+        ),
       ]);
       setPrefs(p);
       setDays(d);
+      setPastDays(past);
       setHabits(h.filter((habit) => !habit.archived_at));
     } catch (e) {
       console.warn('Meals: load failed:', e);
@@ -127,6 +139,7 @@ export const MealsProvider: React.FC<{
   );
 
   const dayFor = useCallback((date: string) => days[date] ?? emptyDay(date), [days]);
+  const recentDays = useMemo(() => [...Object.values(pastDays), ...Object.values(days)], [pastDays, days]);
 
   const saveDay = useCallback(
     async (next: MealsDay) => {
@@ -179,6 +192,7 @@ export const MealsProvider: React.FC<{
     updatePrefs,
     days,
     dayFor,
+    recentDays,
     saveDay,
     newId,
     habits,

@@ -51,6 +51,7 @@ import { NumberStepper } from './components/NumberStepper';
 import { HoldTimer } from './components/HoldTimer';
 import { TimeEntry } from './components/TimeEntry';
 import { RestSheet, REST_SHEET_HEIGHT } from './components/RestSheet';
+import { useRestBell } from './useRestBell';
 import { ExercisePickerModal } from './components/ExercisePickerModal';
 import { ExerciseEditorModal } from './components/ExerciseEditorModal';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
@@ -144,6 +145,16 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [remaining, session, updateSession]);
 
+  const describePosition = (p: Position): string => {
+    const name = exercise(p.item.exerciseId).name;
+    return p.block.items.length > 1
+      ? `${name} · round ${p.round + 1} of ${p.block.rounds}`
+      : `${name} · set ${p.round + 1} of ${p.block.rounds}`;
+  };
+
+  // Locked phone or another app open: a notification says rest's up.
+  useRestBell(session?.rest, pos ? describePosition(pos) : 'Finish');
+
   if (!session) return <View style={ws.screen} />;
 
   const showToast = (text: string) => {
@@ -152,12 +163,6 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
     toastTimer.current = setTimeout(() => setToast(null), 2800);
   };
 
-  const describePosition = (p: Position): string => {
-    const name = exercise(p.item.exerciseId).name;
-    return p.block.items.length > 1
-      ? `${name} · round ${p.round + 1} of ${p.block.rounds}`
-      : `${name} · set ${p.round + 1} of ${p.block.rounds}`;
-  };
 
   const onLog = () => {
     if (!pos || !ex) return;

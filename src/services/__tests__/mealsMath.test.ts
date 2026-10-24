@@ -5,6 +5,7 @@ import {
   closeDay,
   emptyDay,
   plateVerdict,
+  recentPlates,
   reopenDay,
   withExtra,
   withMeal,
@@ -431,5 +432,59 @@ describe('nutrient tags', () => {
       rules()
     );
     expect(w.nutrients.find((n) => n.nutrient === 'protein')).toEqual({ nutrient: 'protein', have: 3, of: 4 });
+  });
+});
+
+describe('recentPlates', () => {
+  const t = (d: number) => `2026-10-${String(d).padStart(2, '0')}T12:00:00.000Z`;
+  const p = (d: number, ...groups: FoodGroupId[]) => ({ groups, logged_at: t(d) });
+
+  it('offers distinct plates, newest first, with the same plate in either order counted once', () => {
+    const days = [
+      day('2026-10-12', { breakfast: p(12, 'eggs', 'fruit') }),
+      day('2026-10-13', { breakfast: p(13, 'fruit', 'eggs'), dinner: p(13, 'fish', 'veggies') }),
+    ];
+    expect(recentPlates(days, { kind: 'meal', slotId: 'lunch' })).toEqual([
+      { groups: ['fruit', 'eggs'] },
+      { groups: ['veggies', 'fish'] },
+    ]);
+  });
+
+  it('puts plates from the same meal first — your usual lunch when you tap Lunch', () => {
+    const days = [
+      day('2026-10-12', { lunch: p(12, 'chicken', 'grains') }),
+      day('2026-10-14', { dinner: p(14, 'beef', 'veggies') }),
+    ];
+    expect(recentPlates(days, { kind: 'meal', slotId: 'lunch' })[0]).toEqual({ groups: ['chicken', 'grains'] });
+    expect(recentPlates(days, { kind: 'meal', slotId: 'dinner' })[0]).toEqual({ groups: ['veggies', 'beef'] });
+  });
+
+  it('never offers a skipped meal, and stops at the limit', () => {
+    const days = [
+      day('2026-10-12', { breakfast: skipped }),
+      day('2026-10-13', { breakfast: p(13, 'eggs'), lunch: p(13, 'fish'), dinner: p(13, 'beef') }),
+      day('2026-10-14', { breakfast: p(14, 'fruit'), lunch: p(14, 'legumes') }),
+    ];
+    const out = recentPlates(days, { kind: 'meal', slotId: 'breakfast' }, 3);
+    expect(out).toHaveLength(3);
+    expect(out.every((r) => r.groups.length > 0)).toBe(true);
+  });
+
+  it('extras come first for something additional, and keep their latest name', () => {
+    const days = [
+      day('2026-10-12', { breakfast: p(12, 'eggs') }, [
+        { id: 'a', groups: ['fruit', 'nuts'], logged_at: t(12), name: 'Trail mix' },
+      ]),
+      day('2026-10-13', {}, [{ id: 'b', groups: ['nuts', 'fruit'], logged_at: t(13), name: 'Apple + almonds' }]),
+    ];
+    expect(recentPlates(days, { kind: 'extra' })).toEqual([
+      { groups: ['fruit', 'nuts'], name: 'Apple + almonds' },
+      { groups: ['eggs'] },
+    ]);
+  });
+
+  it('a meal never carries a snack name', () => {
+    const days = [day('2026-10-12', {}, [{ id: 'a', groups: ['fruit'], logged_at: t(12), name: 'Apple' }])];
+    expect(recentPlates(days, { kind: 'meal', slotId: 'lunch' })).toEqual([{ groups: ['fruit'] }]);
   });
 });
