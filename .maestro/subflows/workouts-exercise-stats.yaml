@@ -1,0 +1,42 @@
+# From Workouts → History → Stats (range "All"), open ${EXERCISE}'s stats
+# screen and screenshot its top and its "Best set" card. Read-only.
+appId: com.neuronudge.neuronudge
+---
+- scrollUntilVisible:
+    element:
+      text: "${EXERCISE}, .*"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn: "${EXERCISE}, .*"
+- extendedWaitUntil:
+    visible: "Best set"
+    timeout: 10000
+- takeScreenshot: 14a-${SHOT}-top
+- scrollUntilVisible:
+    element:
+      text: "Best set"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- takeScreenshot: 14a-${SHOT}-best-set
+# Tap the first (oldest) dot: the readout moves to that session. With range
+# "All" the Volume bars are labelled by month ("Sep: …"), so the first
+# "Mon D: …" element is the trend's first dot.
+- tapOn: "[A-Z][a-z]{2} \\d+: .*"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: 14a-${SHOT}-first-dot
+- scrollUntilVisible:
+    element:
+      text: "RECENT SESSIONS"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- takeScreenshot: 14a-${SHOT}-records-recent
+# Back to History → Stats.
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "History"
+    timeout: 10000

@@ -1,0 +1,44 @@
+# Meals (Lab): the week view's "Past weeks" cards. Writes nothing — opens the
+# week view, scrolls, looks, goes back. Starts on Today with the Meals card
+# visible, or already inside Meals.
+appId: com.neuronudge.neuronudge
+---
+- runFlow:
+    when:
+      notVisible: "Close Meals"
+    commands:
+      - tapOn: "Meals\\. .*"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Got it"
+    commands:
+      - tapOn: "Got it"
+- tapOn: "This week"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 14b-1-week-top
+- scrollUntilVisible:
+    element:
+      text: "PAST WEEKS|Past weeks"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: 14b-2-past-weeks-label
+- scroll
+- scroll
+- scroll
+- takeScreenshot: 14b-3-past-weeks-bottom
+# Back to the day, then out of Meals to Today.
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- tapOn: "Close Meals"
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 20000

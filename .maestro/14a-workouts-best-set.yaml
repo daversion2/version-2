@@ -1,0 +1,67 @@
+# Workouts (Lab): each exercise's "Best set" trend on its stats screen — a
+# weighted lift, a bodyweight (reps) exercise and a timed hold. Writes nothing:
+# opens History → Stats → an exercise, taps a chart dot (on-screen selection
+# only), goes back, and closes Workouts. Starts and ends on Today.
+#
+# The exercises are the founder account's (each needs 2+ sessions for the card
+# to show). The account has no run/distance exercise, so that kind is untested.
+appId: com.neuronudge.neuronudge
+---
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Workouts?\\. .*"
+- extendedWaitUntil:
+    visible: "YOUR WORKOUTS"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "!, Open debugger.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+- tapOn: "History, stats and records"
+- tapOn: "Stats"
+- tapOn: "All"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# Weighted: Back Squat.
+- runFlow:
+    file: subflows/workouts-exercise-stats.yaml
+    env:
+      EXERCISE: "Back Squat"
+      SHOT: "1-squat"
+
+# Bodyweight, reps only: Pull-up.
+- runFlow:
+    file: subflows/workouts-exercise-stats.yaml
+    env:
+      EXERCISE: "Pull-up"
+      SHOT: "2-pullup"
+
+# Timed hold: Plank.
+- runFlow:
+    file: subflows/workouts-exercise-stats.yaml
+    env:
+      EXERCISE: "Plank"
+      SHOT: "3-plank"
+
+# Out to Today.
+- repeat:
+    times: 3
+    while:
+      notVisible: "Close Workouts"
+    commands:
+      - tapOn:
+          point: "9%,9%"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- tapOn: "Close Workouts"
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 20000

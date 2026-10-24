@@ -299,9 +299,9 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
                   })}
                 </View>
                 <Text style={mls.muted}>
-                  {w.passed} of {w.scored} plates passed
+                  {w.passed} of {w.scored} {w.scored === 1 ? 'plate' : 'plates'} passed
                   {w.scored > 0
-                    ? ' · ' +
+                    ? '\n' +
                       w.nutrients
                         .map((c) => `${NUTRIENTS.find((x) => x.id === c.nutrient)?.label} ${c.have}/${c.of}`)
                         .join(' · ')
