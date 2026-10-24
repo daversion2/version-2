@@ -219,19 +219,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: rest alert when the phone is locked** *(2026-10-24)*
+**Workouts: rest alert when the phone is locked** *(2026-10-24, 0886ce1, live OTA)*
 A notification ("Rest's up · Up next: …") when rest ends while the app is in
 the background. It's scheduled only on going to the background and called off
 on return, so there's no banner on top of the in-app countdown. Asks for
 notification permission once, at the first rest. Reuses Meditate's bell.
 `screens/Lab/experiments/workouts/useRestBell.ts`. Not yet tried on a phone.
 
-**Meals: Recent plates in the picker** *(2026-10-24)*
+**Meals: Recent plates in the picker** *(2026-10-24, 0886ce1, live OTA)*
 Up to 4 plates logged in the last 4 weeks, shown above the chips. Plates from
 the same meal come first (your usual lunch when you tap Lunch); for
 "something additional", past snacks come first, with their names. A tap fills
 the chips and you still press Save, so pass or fail shows first.
-`recentPlates` in `services/mealsMath.ts` (tested). Not yet tried on screen.
+`recentPlates` in `services/mealsMath.ts` (tested). Checked in the simulator (`.maestro/13a`–`13d`).
 
 **Already built (found 2026-10-24):** supersets/circuits. A Workouts block
 holds several exercises, with rest after each round, not between them.
