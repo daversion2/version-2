@@ -388,6 +388,19 @@ describe('dairy', () => {
   });
 });
 
+describe('supplements', () => {
+  it('is semi-processed for pass/fail: fine beside real food, a fail on its own', () => {
+    expect(evaluatePlate(['fruit', 'supplements'], false)).toBe('pass');
+    expect(evaluatePlate(['supplements'], false)).toBe('fail');
+  });
+
+  it('fails strict mode like semi-processed does', () => {
+    expect(evaluatePlate(['fruit', 'supplements'], true)).toBe('fail');
+    expect(plateVerdict(['eggs', 'supplements'], true).why).toBe('Strict mode: whole food only.');
+    expect(plateVerdict(['eggs', 'supplements'], false).why).toBe('Real food, with a little semi-processed.');
+  });
+});
+
 describe('nutrient tags', () => {
   it('tags a plate from its groups, in display order', () => {
     expect(plateNutrients(['chicken', 'veggies'])).toEqual(['protein', 'fiber']);
@@ -396,6 +409,7 @@ describe('nutrient tags', () => {
     expect(plateNutrients(['nuts'])).toEqual(['fiber', 'fats']);
     expect(plateNutrients(['grains'])).toEqual(['fiber']);
     expect(plateNutrients(['dairy'])).toEqual(['protein']);
+    expect(plateNutrients(['supplements'])).toEqual(['protein']);
   });
 
   it('gives processed food nothing', () => {

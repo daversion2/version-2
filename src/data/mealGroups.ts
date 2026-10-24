@@ -15,6 +15,9 @@ import type { FoodGroupId, MealsPrefs, NutrientId, ProcessedGroupId, WholeGroupI
 // the NOVA research, where plain milk and yogurt count as minimally processed.
 // Say so if the guide ever cites NOVA. It has its own chip (2026-10-19) so its
 // protein isn't lost among the bread and pasta.
+// Supplements (protein bars, shakes, powder) are semi-processed too, same
+// reasoning and same chip treatment (founder, 2026-10-24) — not whole food,
+// but not lumped in with chips and soda either.
 //
 // Each group also carries the nutrients it's tagged with (NUTRIENTS below).
 // Tags say a plate HAD protein, not how much — the honest reading of a chip.
@@ -55,6 +58,12 @@ export const PROCESSED_GROUPS: FoodGroup<ProcessedGroupId>[] = [
     nutrients: ['protein'],
   },
   {
+    id: 'supplements',
+    label: 'Supplements',
+    examples: 'protein bars, protein shakes, protein powder — counts as semi-processed',
+    nutrients: ['protein'],
+  },
+  {
     id: 'semi',
     label: 'Semi-processed',
     examples: 'bread, pasta, tortillas, jarred sauce',
@@ -63,7 +72,7 @@ export const PROCESSED_GROUPS: FoodGroup<ProcessedGroupId>[] = [
   {
     id: 'processed',
     label: 'Processed',
-    examples: 'chips, soda, candy, fast food, frozen meals, cereal, protein bars, bacon, deli meat',
+    examples: 'chips, soda, candy, fast food, frozen meals, cereal, bacon, deli meat',
     // Nothing, even when the packet says "high protein".
     nutrients: [],
   },

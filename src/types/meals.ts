@@ -17,10 +17,11 @@ export type WholeGroupId =
   | 'grains';
 
 /**
- * Dairy is its own chip so its protein can be told apart from bread and pasta,
- * but for pass/fail it is semi-processed (founder, 2026-10-19).
+ * Dairy and Supplements are their own chips so their protein can be told apart
+ * from bread and pasta, but for pass/fail they are semi-processed (founder,
+ * 2026-10-19 for dairy; 2026-10-24 for supplements).
  */
-export type ProcessedGroupId = 'dairy' | 'semi' | 'processed';
+export type ProcessedGroupId = 'dairy' | 'supplements' | 'semi' | 'processed';
 
 export type FoodGroupId = WholeGroupId | ProcessedGroupId;
 
