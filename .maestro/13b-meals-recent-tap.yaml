@@ -1,0 +1,26 @@
+# Meals (Lab): tapping a Recent plate fills the chips and the verdict, without
+# saving. Continues from 13a with the Lunch picker open. Writes nothing:
+# every picker is closed with Cancel.
+appId: com.neuronudge.neuronudge
+---
+- extendedWaitUntil:
+    visible: "Nothing picked yet"
+    timeout: 10000
+- tapOn: "Use .*"
+- assertNotVisible: "Nothing picked yet"
+- takeScreenshot: 13b-1-first-recent-tapped
+- tapOn:
+    text: "Use .*"
+    index: 1
+- assertNotVisible: "Nothing picked yet"
+- takeScreenshot: 13b-2-second-recent-tapped
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- tapOn: ".*Add something"
+- extendedWaitUntil:
+    visible:
+      id: "meal-chip-processed"
+    timeout: 10000
+- takeScreenshot: 13b-3-extra-picker

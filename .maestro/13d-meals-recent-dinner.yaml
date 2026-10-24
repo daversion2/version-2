@@ -1,0 +1,17 @@
+# Meals (Lab): Recent rows in the Dinner picker, to compare ordering with
+# Lunch (same slot is listed first). Writes nothing: closes with Cancel.
+appId: com.neuronudge.neuronudge
+---
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- tapOn: "Dinner: .*"
+- extendedWaitUntil:
+    visible:
+      id: "meal-chip-veggies"
+    timeout: 10000
+- takeScreenshot: 13d-1-dinner-picker
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000

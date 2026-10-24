@@ -1,0 +1,30 @@
+# Meals (Lab): a Recent plate in the "Something additional" picker fills the
+# Processed-section chips too. Continues from 13b (picker open) or from the
+# Meals day view. Writes nothing: closes with Cancel.
+appId: com.neuronudge.neuronudge
+---
+# The day view's "SOMETHING ADDITIONAL" heading also matches the picker title,
+# so key off "Close Meals", which the open picker hides.
+- runFlow:
+    when:
+      visible: "Close Meals"
+    commands:
+      - tapOn: ".*Add something"
+- extendedWaitUntil:
+    visible: "A snack or drink.*"
+    timeout: 10000
+- tapOn:
+    text: "Use .*"
+    index: 1
+- assertVisible: "Pass"
+# scrollUntilVisible counts the Processed chips as visible behind the footer,
+# so swipe the list itself.
+- swipe:
+    start: 50%, 60%
+    end: 50%, 25%
+- takeScreenshot: 13c-1-extra-filled-scrolled
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- takeScreenshot: 13c-2-day-view-after

@@ -1,0 +1,29 @@
+# Meals (Lab): the picker's "Recent" plates. Writes nothing — opens pickers,
+# looks, and Cancels. Starts on Today with the Meals card visible.
+appId: com.neuronudge.neuronudge
+---
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- runFlow:
+    when:
+      notVisible: "Close Meals"
+    commands:
+      - tapOn: "Meals\\. .*"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Got it"
+    commands:
+      - tapOn: "Got it"
+- takeScreenshot: 13a-1-day-view
+- tapOn: "Lunch: .*"
+- extendedWaitUntil:
+    visible:
+      id: "meal-chip-veggies"
+    timeout: 10000
+- takeScreenshot: 13a-2-lunch-picker
