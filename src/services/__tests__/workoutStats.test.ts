@@ -1,5 +1,8 @@
 import {
+  bestSetTrend,
   byExercise,
+  describeTrend,
+  formatTrendPoint,
   byMuscle,
   filterRows,
   flattenSets,
@@ -169,5 +172,63 @@ describe('recentSessionsFor', () => {
     expect(lines.map((l) => l.sessionId)).toEqual(['s1', 's2']);
     expect(lines[0].sets).toHaveLength(3);
     expect(recentSessionsFor(SESSIONS, 'squat', 2).map((l) => l.sessionId)).toEqual(['s2', 's3']);
+  });
+});
+
+describe('bestSetTrend', () => {
+  it('takes the top weight per session, oldest first, with the most reps done at it', () => {
+    const pts = bestSetTrend(SESSIONS, 'bench', 'weight');
+    expect(pts.map((p) => p.sessionId)).toEqual(['s2', 's1']);
+    expect(pts[1]).toMatchObject({ value: 70, reps: 5 });
+  });
+
+  it('keeps only the latest sessions', () => {
+    expect(bestSetTrend(SESSIONS, 'squat', 'weight', 2).map((p) => p.sessionId)).toEqual(['s3', 's2']);
+  });
+
+  it('uses most reps, longest hold, and fastest time by kind', () => {
+    const s = [
+      session('a', local(2026, 10, 1), [set('x', { reps: 10 }), set('x', { reps: 12 })]),
+      session('b', local(2026, 10, 2), [set('x', { seconds: 40 }), set('x', { seconds: 30 })]),
+    ];
+    expect(bestSetTrend(s, 'x', 'reps').map((p) => p.value)).toEqual([12]);
+    expect(bestSetTrend(s, 'x', 'time').map((p) => p.value)).toEqual([40]);
+    expect(bestSetTrend(s, 'x', 'distance').map((p) => p.value)).toEqual([30]);
+  });
+
+  it('skips a session with nothing usable logged', () => {
+    const s = [session('a', local(2026, 10, 1), [set('bench', { reps: 8 })])];
+    expect(bestSetTrend(s, 'bench', 'weight')).toEqual([]);
+  });
+});
+
+describe('describeTrend', () => {
+  const pt = (value: number, reps?: number) => ({ sessionId: String(value), finishedAt: '', value, reps });
+
+  it('needs two sessions', () => {
+    expect(describeTrend([pt(60)], 'weight', 'kg')).toBeNull();
+  });
+
+  it('says up or down in the user’s unit', () => {
+    expect(describeTrend([pt(60), pt(65), pt(70)], 'weight', 'kg')).toBe('Up 10 kg over 3 sessions');
+    expect(describeTrend([pt(20), pt(18)], 'reps', 'kg')).toBe('Down 2 reps over 2 sessions');
+  });
+
+  it('reads lower as better for a distance time', () => {
+    expect(describeTrend([pt(540), pt(502)], 'distance', 'kg')).toBe('38s faster over 2 sessions');
+    expect(describeTrend([pt(45), pt(90)], 'time', 'kg')).toBe('45s longer over 2 sessions');
+  });
+
+  it('calls float noise the same', () => {
+    expect(describeTrend([pt(61.235), pt(61.24)], 'weight', 'lb')).toBe('Same as 1 session ago');
+  });
+});
+
+describe('formatTrendPoint', () => {
+  it('formats by kind', () => {
+    const p = { sessionId: 'a', finishedAt: '', value: 100, reps: 5 };
+    expect(formatTrendPoint(p, 'weight', 'kg')).toBe('100 kg × 5');
+    expect(formatTrendPoint({ ...p, value: 1 }, 'reps', 'kg')).toBe('1 rep');
+    expect(formatTrendPoint({ ...p, value: 90 }, 'time', 'kg')).toBe('1:30');
   });
 });

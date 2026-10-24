@@ -160,6 +160,8 @@ bigger, not yet scoped — discuss before building either.
 - **Ambient background sound during unguided sits.** Sit/NSDR/Breathe
   currently stay silent until the end bell. Add an optional ambient layer
   (rain, drone, etc.), reusing Compose's background-sound library.
+  **Blocked on the next store build:** Sit and NSDR expect a locked phone,
+  and the 2.2.0 binary can't play audio locked (same as Compose, see Next).
 - **Pre/post mood check-in.** An optional mood tap before and after a
   session, surfaced later as an insight over time (e.g. "you usually feel
   calmer after Breathe").
@@ -176,8 +178,6 @@ build is already happening for another reason).
   counted from logged sets (`services/workoutSession.ts`), so warm-ups also
   have to be skipped by round counting, the "last time" prefill, records,
   volume and step-ups.
-- **Per-exercise history chart.** A simple trend line (weight/reps/time) for
-  one exercise over time, beyond the existing PR callout.
 - **Standalone ad-hoc exercise test.** Today, testing a baseline only happens
   as part of starting a training phase/program
   (`PhaseTestScreen`/`PhaseSetupScreen`). Add a way to test a single exercise
@@ -198,8 +198,9 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
   the Meals app itself. Open question: how this relates to the existing
   water habits in the library (replace them, or coexist as a separate axis)
   — decide before building.
-- **Longer-range trend view.** A month (or longer) view of on-target days and
-  nutrient-tag coverage, beyond the current single-week bar.
+- **Longer-range trend view, beyond 4 weeks.** Past weeks (shipped, see Done)
+  covers the last 4. A month-or-more view would need more history loaded
+  and probably a chart rather than a list.
 
 Considered and declined: AI photo recognition of plate contents, and a
 lighter "eating out" logging mode.
@@ -232,6 +233,20 @@ the same meal come first (your usual lunch when you tap Lunch); for
 "something additional", past snacks come first, with their names. A tap fills
 the chips and you still press Save, so pass or fail shows first.
 `recentPlates` in `services/mealsMath.ts` (tested). Checked in the simulator (`.maestro/13a`–`13d`).
+
+**Workouts: best-set trend per exercise** *(2026-10-24, not live yet)*
+On an exercise's stats screen, above Records: one dot per session (last 12)
+for the best set: top weight (× reps), most reps, longest hold or fastest
+time. Higher is always better, so a run's time is drawn flipped, and a line
+reads "Up 10 lb over 6 sessions". `bestSetTrend` / `describeTrend` in
+`services/workoutStats.ts` (tested), `TrendChart` in `StatsParts.tsx`.
+
+**Meals: Past weeks** *(2026-10-24, not live yet)*
+At the bottom of the week view: the 4 weeks before this one, newest first.
+Each shows days on target, a dot per day, plates passed and nutrient
+coverage. Each day is scored under the rules it was saved with. Not tappable
+yet: the day screen only knows this week. `pastWeeks` in
+`services/mealsMath.ts` (tested).
 
 **Already built (found 2026-10-24):** supersets/circuits. A Workouts block
 holds several exercises, with rest after each round, not between them.

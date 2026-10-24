@@ -4,6 +4,8 @@ import {
   canReopen,
   closeDay,
   emptyDay,
+  pastWeeks,
+  daysOnTarget,
   plateVerdict,
   recentPlates,
   reopenDay,
@@ -486,5 +488,38 @@ describe('recentPlates', () => {
   it('a meal never carries a snack name', () => {
     const days = [day('2026-10-12', {}, [{ id: 'a', groups: ['fruit'], logged_at: t(12), name: 'Apple' }])];
     expect(recentPlates(days, { kind: 'meal', slotId: 'lunch' })).toEqual([{ groups: ['fruit'] }]);
+  });
+});
+
+describe('pastWeeks', () => {
+  // Thursday 15 Oct 2026; this week began Monday 12 Oct.
+  const today = '2026-10-15';
+  const full = (date: string) => day(date, { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('veggies') });
+
+  it('scores the weeks before this one, newest first, and skips empty ones', () => {
+    const days = {
+      '2026-10-13': full('2026-10-13'), // this week — not a past week
+      '2026-10-06': full('2026-10-06'),
+      '2026-10-07': day('2026-10-07', { breakfast: plate('processed') }),
+      '2026-09-22': full('2026-09-22'),
+    };
+    const weeks = pastWeeks(today, days, rules());
+    expect(weeks.map((w) => w.days[0].date)).toEqual(['2026-10-05', '2026-09-21']);
+    expect(daysOnTarget(weeks[0])).toBe(1);
+    expect(weeks[0]).toMatchObject({ passed: 3, scored: 4 });
+    expect(weeks[0].days.every((d) => !d.future)).toBe(true);
+  });
+
+  it('scores a past day by the rules it was saved under', () => {
+    const lenient = rules({ pass_goal: 1 });
+    const days = {
+      '2026-10-06': { ...day('2026-10-06', { breakfast: plate('eggs'), lunch: skipped, dinner: plate('processed') }), rules: lenient },
+    };
+    expect(daysOnTarget(pastWeeks(today, days, rules())[0])).toBe(1);
+  });
+
+  it('counts a week where only "didn\u2019t eat" was logged', () => {
+    const days = { '2026-10-06': day('2026-10-06', { breakfast: skipped }) };
+    expect(pastWeeks(today, days, rules())).toHaveLength(1);
   });
 });

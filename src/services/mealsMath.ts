@@ -239,9 +239,11 @@ export interface WeekSummary {
 export const summarizeWeek = (
   today: string,
   days: Record<string, MealsDay | undefined>,
-  current: MealsRules
+  current: MealsRules,
+  /** Any date in the week to summarize. Defaults to this week. */
+  weekOf: string = today
 ): WeekSummary => {
-  const week: WeekDay[] = weekDates(today).map((date) => {
+  const week: WeekDay[] = weekDates(weekOf).map((date) => {
     const rules = rulesForDay(date, today, days[date], current);
     const future = date > today;
     return { date, future, rules, score: future ? null : scoreDay(days[date], rules) };
@@ -287,6 +289,27 @@ export const summarizeWeek = (
 
   return { days: week, passed, scored, slipping, weeklyGoals, nutrients };
 };
+
+/** Something was logged that week: a plate, or a meal marked "didn't eat". */
+const anythingLogged = (w: WeekSummary): boolean =>
+  w.days.some((d) => d.score?.items.some((i) => i.state !== 'pending'));
+
+/**
+ * The `count` weeks before this one, newest first, each scored under the
+ * rules its days were saved with. Weeks with nothing logged are left out.
+ */
+export const pastWeeks = (
+  today: string,
+  days: Record<string, MealsDay | undefined>,
+  current: MealsRules,
+  count = 4
+): WeekSummary[] =>
+  Array.from({ length: count }, (_, i) => summarizeWeek(today, days, current, addDays(today, -7 * (i + 1)))).filter(
+    anythingLogged
+  );
+
+/** Days that ended on target. */
+export const daysOnTarget = (w: WeekSummary): number => w.days.filter((d) => d.score?.status === 'on').length;
 
 /** Did a past day meet a daily goal? Read from that day's own score. */
 export const dailyGoalOnDay = (day: WeekDay, group: WholeGroupId, count: number): 'hit' | 'miss' | 'none' => {

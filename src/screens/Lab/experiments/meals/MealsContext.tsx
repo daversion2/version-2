@@ -14,7 +14,7 @@ import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
 
 const APP = 'meals' as const;
-/** How far back the picker looks for plates you've logged before. */
+/** How far back Past weeks and the picker's recent plates look. */
 const RECENT_WEEKS = 4;
 
 interface MealsContextValue {
@@ -33,6 +33,8 @@ interface MealsContextValue {
   /** This week's days, keyed by date. A day nobody has touched is absent. */
   days: Record<string, MealsDay>;
   dayFor: (date: string) => MealsDay;
+  /** The four weeks before this one, keyed by date. Read-only: for past weeks and recent plates. */
+  pastDays: Record<string, MealsDay>;
   /** The last four weeks plus this one, for the picker's recent plates. */
   recentDays: MealsDay[];
   /**
@@ -192,6 +194,7 @@ export const MealsProvider: React.FC<{
     updatePrefs,
     days,
     dayFor,
+    pastDays,
     recentDays,
     saveDay,
     newId,

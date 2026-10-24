@@ -5,8 +5,10 @@ import {
   LoggedSet,
   MuscleGroup,
   StatsRange,
+  WeightUnit,
 } from '../types/workouts';
 import { getWeekStart } from '../utils/date';
+import { formatSeconds, formatWeight, toDisplayWeight } from './workoutMath';
 
 // =============================================================================
 // Workouts reporting — pure sums over finished sessions.
@@ -212,3 +214,101 @@ export const recentSessionsFor = (
     }))
     .filter((line) => line.sets.length > 0)
     .slice(0, max);
+
+// --- One exercise's best set, session by session ------------------------------
+
+export interface TrendPoint {
+  sessionId: string;
+  finishedAt: string;
+  /** Weight: kg of the top set. Reps: most reps. Time: longest hold. Distance: fastest time. */
+  value: number;
+  /** Weight only: the reps done at that top weight (the most, if several sets tied). */
+  reps?: number;
+}
+
+/** The number that says "better" for each kind of exercise. */
+const bestOf = (sets: LoggedSet[], kind: ExerciseKind): Omit<TrendPoint, 'sessionId' | 'finishedAt'> | null => {
+  switch (kind) {
+    case 'weight': {
+      const weighted = sets.filter((x) => (x.weightKg ?? 0) > 0);
+      if (weighted.length === 0) return null;
+      const top = Math.max(...weighted.map((x) => x.weightKg!));
+      return { value: top, reps: Math.max(0, ...weighted.filter((x) => x.weightKg === top).map((x) => x.reps ?? 0)) };
+    }
+    case 'reps': {
+      const reps = sets.map((x) => x.reps ?? 0).filter((n) => n > 0);
+      return reps.length ? { value: Math.max(...reps) } : null;
+    }
+    case 'time': {
+      const secs = sets.map((x) => x.seconds ?? 0).filter((n) => n > 0);
+      return secs.length ? { value: Math.max(...secs) } : null;
+    }
+    case 'distance': {
+      const secs = sets.map((x) => x.seconds ?? 0).filter((n) => n > 0);
+      return secs.length ? { value: Math.min(...secs) } : null;
+    }
+  }
+};
+
+/**
+ * The best set of each of the last `max` sessions with this exercise, oldest
+ * first — "am I getting stronger?", where the volume chart answers "how much
+ * did I do?". Sessions where nothing usable was logged are left out.
+ */
+export const bestSetTrend = (
+  sessions: CompletedWorkoutSession[],
+  exerciseId: string,
+  kind: ExerciseKind,
+  max = 12
+): TrendPoint[] =>
+  recentSessionsFor(sessions, exerciseId, Number.MAX_SAFE_INTEGER)
+    .map((line) => {
+      const best = bestOf(line.sets, kind);
+      return best ? { sessionId: line.sessionId, finishedAt: line.finishedAt, ...best } : null;
+    })
+    .filter((p): p is TrendPoint => p !== null)
+    .slice(0, max)
+    .reverse();
+
+/** Distance is a time to beat: lower is better. Everything else, higher. */
+export const lowerIsBetter = (kind: ExerciseKind): boolean => kind === 'distance';
+
+/** "135 lb × 8", "25 reps", "1:30". */
+export const formatTrendPoint = (p: TrendPoint, kind: ExerciseKind, unit: WeightUnit): string => {
+  switch (kind) {
+    case 'weight':
+      return p.reps ? `${formatWeight(p.value, unit)} × ${p.reps}` : formatWeight(p.value, unit);
+    case 'reps':
+      return `${p.value} ${p.value === 1 ? 'rep' : 'reps'}`;
+    default:
+      return formatSeconds(p.value);
+  }
+};
+
+/**
+ * First vs latest, in words: "Up 20 lb over 6 sessions", "38s faster over 4
+ * sessions", "Same as 5 sessions ago". Null with fewer than two points.
+ * Weights compare as shown (rounded to the unit), so 0.1 kg of float noise
+ * never reads as progress.
+ */
+export const describeTrend = (points: TrendPoint[], kind: ExerciseKind, unit: WeightUnit): string | null => {
+  if (points.length < 2) return null;
+  const first = points[0].value;
+  const last = points[points.length - 1].value;
+  const over = `over ${points.length} sessions`;
+  const shown = (v: number) => (kind === 'weight' ? toDisplayWeight(v, unit) : Math.round(v));
+  const diff = shown(last) - shown(first);
+  if (diff === 0) return `Same as ${points.length - 1} ${points.length - 1 === 1 ? 'session' : 'sessions'} ago`;
+  const better = lowerIsBetter(kind) ? diff < 0 : diff > 0;
+  const size = Math.abs(diff);
+  switch (kind) {
+    case 'weight':
+      return `${better ? 'Up' : 'Down'} ${size % 1 === 0 ? size : size.toFixed(1)} ${unit} ${over}`;
+    case 'reps':
+      return `${better ? 'Up' : 'Down'} ${size} ${size === 1 ? 'rep' : 'reps'} ${over}`;
+    case 'time':
+      return `${formatSeconds(size)} ${better ? 'longer' : 'shorter'} ${over}`;
+    case 'distance':
+      return `${formatSeconds(size)} ${better ? 'faster' : 'slower'} ${over}`;
+  }
+};

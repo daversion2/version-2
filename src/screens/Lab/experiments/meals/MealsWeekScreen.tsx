@@ -3,7 +3,16 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import type { MealsStackParamList } from '../../../../types/meals';
-import { ItemState, dailyGoalOnDay, describeGroupGoal, summarizeWeek, WeekDay } from '../../../../services/mealsMath';
+import {
+  ItemState,
+  dailyGoalOnDay,
+  daysOnTarget,
+  describeGroupGoal,
+  pastWeeks,
+  summarizeWeek,
+  WeekDay,
+  WeekSummary,
+} from '../../../../services/mealsMath';
 import { NUTRIENTS } from '../../../../data/mealGroups';
 import { useMeals } from './MealsContext';
 import {
@@ -28,13 +37,21 @@ const extrasState = (day: WeekDay): ItemState | null => {
   return extras.some((i) => i.state === 'fail') ? 'fail' : 'pass';
 };
 
+/** "Oct 5 – 11". */
+const weekRange = (w: WeekSummary): string => {
+  const fmt = (date: string) =>
+    new Date(date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `${fmt(w.days[0].date)} – ${fmt(w.days[6].date)}`;
+};
+
 /**
  * This week, Monday to today: one cell per meal per day, the meal that slips
  * most, and the food-group goals. Tap a day to open it.
  */
 export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
-  const { today, days, rules } = useMeals();
+  const { today, days, pastDays, rules } = useMeals();
   const week = useMemo(() => summarizeWeek(today, days, rules), [today, days, rules]);
+  const past = useMemo(() => pastWeeks(today, pastDays, rules), [today, pastDays, rules]);
 
   const openDay = (day: WeekDay) => {
     if (day.future) return;
@@ -246,6 +263,55 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       ))}
+
+      {past.length > 0 && (
+        <>
+          <Text style={mls.sectionLabel}>Past weeks</Text>
+          {past.map((w) => {
+            const on = daysOnTarget(w);
+            return (
+              <View key={w.days[0].date} style={[mls.card, styles.pastWeek]}>
+                <View style={styles.weeklyTop}>
+                  <Text style={mls.title}>{weekRange(w)}</Text>
+                  <Text style={styles.weeklyCount}>
+                    {on} {on === 1 ? 'day' : 'days'} on target
+                  </Text>
+                </View>
+                <View style={styles.pastDots}>
+                  {w.days.map((d, i) => {
+                    const status = d.score?.status;
+                    return (
+                      <View key={d.date} style={styles.barCol}>
+                        <View
+                          style={[
+                            styles.dayDot,
+                            status === 'on'
+                              ? { backgroundColor: PASS_COLOR }
+                              : status === 'off'
+                                ? { backgroundColor: FAIL_COLOR }
+                                : styles.dayDotEmpty,
+                          ]}
+                          accessibilityLabel={`${d.date}: ${status === 'on' ? 'on target' : status === 'off' ? 'off target' : 'not finished'}`}
+                        />
+                        <Text style={styles.barLabel}>{DAY_LETTERS[i]}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+                <Text style={mls.muted}>
+                  {w.passed} of {w.scored} plates passed
+                  {w.scored > 0
+                    ? ' · ' +
+                      w.nutrients
+                        .map((c) => `${NUTRIENTS.find((x) => x.id === c.nutrient)?.label} ${c.have}/${c.of}`)
+                        .join(' · ')
+                    : ''}
+                </Text>
+              </View>
+            );
+          })}
+        </>
+      )}
     </ScrollView>
   );
 };
@@ -288,4 +354,6 @@ const styles = StyleSheet.create({
   nutrientCard: { gap: 2 },
   center: { textAlign: 'center' },
   nutrientTotal: { marginTop: Spacing.sm },
+  pastWeek: { gap: Spacing.sm },
+  pastDots: { flexDirection: 'row', gap: 6 },
 });

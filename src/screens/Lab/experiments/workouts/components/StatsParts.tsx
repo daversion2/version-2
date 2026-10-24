@@ -2,8 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
-import { ExerciseRecord, WeightUnit } from '../../../../../types/workouts';
-import { StatsRange, StatTotals, VolumeBar } from '../../../../../services/workoutStats';
+import { ExerciseKind, ExerciseRecord, WeightUnit } from '../../../../../types/workouts';
+import {
+  describeTrend,
+  formatTrendPoint,
+  lowerIsBetter,
+  StatsRange,
+  StatTotals,
+  TrendPoint,
+  VolumeBar,
+} from '../../../../../services/workoutStats';
 import {
   formatCount,
   formatSeconds,
@@ -157,6 +165,91 @@ export const VolumeChart: React.FC<{
   );
 };
 
+const DOT = 10;
+const FLOOR_ROOM = 16;
+
+/**
+ * The best set of each recent session, one dot per session, oldest on the
+ * left. Higher is always better — a run's time is drawn flipped, so a faster
+ * mile sits higher — and the axis says the real numbers. No zero line: what
+ * matters is 60 → 70 kg, which bars from zero would flatten.
+ */
+export const TrendChart: React.FC<{ points: TrendPoint[]; kind: ExerciseKind; unit: WeightUnit }> = ({
+  points,
+  kind,
+  unit,
+}) => {
+  const last = points.length - 1;
+  const [selected, setSelected] = useState(last);
+  useEffect(() => setSelected(last), [last]);
+
+  const values = points.map((p) => p.value);
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const flip = lowerIsBetter(kind);
+  const best = flip ? lo : hi;
+  const worst = flip ? hi : lo;
+  const plotH = CHART_HEIGHT - 18;
+  const heightOf = (v: number) => {
+    const t = hi === lo ? 0.5 : (v - lo) / (hi - lo);
+    return (flip ? 1 - t : t) * (plotH - DOT);
+  };
+  const fmt = (v: number) => formatTrendPoint({ sessionId: '', finishedAt: '', value: v }, kind, unit);
+  const dateOf = (p: TrendPoint) =>
+    new Date(p.finishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const summary = describeTrend(points, kind, unit);
+  const every = points.length > 8 ? 3 : points.length > 5 ? 2 : 1;
+  const sel = points[selected];
+
+  return (
+    <View style={[ws.card, styles.chartCard]}>
+      <View style={styles.chartHead}>
+        <Text style={ws.title}>Best set</Text>
+        {sel && (
+          <Text style={styles.readout}>
+            {dateOf(sel)} · {formatTrendPoint(sel, kind, unit)}
+          </Text>
+        )}
+      </View>
+      {summary && <Text style={styles.trendSummary}>{summary}</Text>}
+
+      <View style={[styles.plot, styles.trendPlot]}>
+        <Text style={styles.peakLabel}>{fmt(best)}</Text>
+        {hi !== lo && <Text style={[styles.peakLabel, styles.floorLabel]}>{fmt(worst)}</Text>}
+        <View style={[styles.dots, { height: plotH }]}>
+          {points.map((p, i) => (
+            <TouchableOpacity
+              key={p.sessionId}
+              style={styles.barSlot}
+              onPress={() => setSelected(i)}
+              accessibilityRole="button"
+              accessibilityLabel={`${dateOf(p)}: ${formatTrendPoint(p, kind, unit)}`}
+              hitSlop={{ top: 8, bottom: 8 }}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  { bottom: heightOf(p.value) },
+                  i === last && styles.dotLatest,
+                  i === selected && styles.dotSelected,
+                ]}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.axis}>
+        {points.map((p, i) => (
+          <Text key={p.sessionId} style={[styles.axisLabel, i === selected && styles.axisLabelOn]} numberOfLines={1}>
+            {(last - i) % every === 0 ? dateOf(p) : ''}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 /** A body part or exercise in a ranked list, with its share of the top one's volume. */
 export const BreakdownRow: React.FC<{
   title: string;
@@ -245,6 +338,22 @@ const styles = StyleSheet.create({
   bar: { borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   barActive: { borderWidth: 2, borderColor: Colors.dark, borderBottomWidth: 0 },
   axis: { flexDirection: 'row', gap: 2 },
+  trendSummary: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  // The plot gets room below the dots for the worst value's label, as it has above for the best.
+  trendPlot: { height: CHART_HEIGHT + FLOOR_ROOM },
+  floorLabel: { top: undefined, bottom: 0 },
+  dots: { flexDirection: 'row', gap: 2, marginBottom: FLOOR_ROOM },
+  dot: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -DOT / 2,
+    width: DOT,
+    height: DOT,
+    borderRadius: DOT / 2,
+    backgroundColor: WORKOUTS_ACCENT + '66',
+  },
+  dotLatest: { backgroundColor: WORKOUTS_ACCENT },
+  dotSelected: { borderWidth: 2, borderColor: Colors.dark },
   axisLabel: { flex: 1, textAlign: 'center', fontFamily: Fonts.secondary, fontSize: 9, color: Colors.gray },
   axisLabelOn: { fontFamily: Fonts.secondaryBold, color: Colors.dark },
 

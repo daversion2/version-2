@@ -5,6 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import { MuscleGroup, StatsRange, WorkoutsStackParamList } from '../../../../types/workouts';
 import { MUSCLE_GROUP_LABELS } from '../../../../data/workoutExercises';
 import {
+  bestSetTrend,
   byExercise,
   filterRows,
   flattenSets,
@@ -16,7 +17,15 @@ import {
 import { formatSetValues } from '../../../../services/workoutMath';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
 import { useWorkouts } from './WorkoutsContext';
-import { BreakdownRow, RANGE_PHRASE, RangePicker, recordLines, StatTiles, VolumeChart } from './components/StatsParts';
+import {
+  BreakdownRow,
+  RANGE_PHRASE,
+  RangePicker,
+  recordLines,
+  StatTiles,
+  TrendChart,
+  VolumeChart,
+} from './components/StatsParts';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutStatsDetail'>;
@@ -51,6 +60,9 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
   const metric = scoped.some((r) => r.weightKg > 0 && r.reps > 0) ? 'volume' : 'sets';
   const recent = useMemo(() => (isExercise ? recentSessionsFor(sessions, id, 8) : []), [sessions, id, isExercise]);
   const records_ = isExercise ? recordLines(records[id], unit) : [];
+  // The last 12 sessions whatever the range above: a week holds one or two,
+  // too few to show a direction.
+  const trend = useMemo(() => (ex ? bestSetTrend(sessions, id, ex.kind) : []), [sessions, id, ex?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
@@ -60,6 +72,8 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
 
       {isExercise ? (
         <>
+          {ex && trend.length >= 2 && <TrendChart points={trend} kind={ex.kind} unit={unit} />}
+
           {records_.length > 0 && (
             <>
               <Text style={ws.sectionLabel}>Records</Text>
