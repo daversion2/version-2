@@ -131,6 +131,78 @@ date added, a sentence or two of context, link to a design doc if one exists.
 No priority ordering implied — flag with a note if something's more wanted
 than the rest.
 
+### Across mini-apps *(added 2026-10-24)*
+
+Came up while reviewing Meditate/Workouts/Meals feature-by-feature. Both are
+bigger, not yet scoped — discuss before building either.
+
+- **Surface streaks more clearly on Progress.** Streaks stay owned by
+  Progress, not duplicated inside each mini-app (decided when discussing a
+  per-app streak counter for Meditate) — but Progress itself likely needs a
+  rework to make them easy to notice, now that it has to represent Meditate,
+  Workouts and Meals, not just plain habits. Scope as its own project.
+- **A "program" that spans multiple mini-apps** — one day-by-day plan that
+  weaves together Meditate + Workouts + Meals sessions (and potentially
+  others), rather than each app's own notion of a program (Workouts already
+  has phases/retests; see `mini-app-backlog.md`). Needs a different name —
+  "Programs" is already an old, archived top-level collection/feature in this
+  codebase (see CLAUDE.md's docs section) — and real thinking on how it
+  relates to Workouts' phases, who authors a program (founder-curated vs.
+  user-built), and the data model. Raised while discussing Meditate's
+  multi-day-course idea.
+
+### Meditate *(added 2026-10-24)*
+
+- **Favorites/recents.** Star a guided recording or breathing pattern; show
+  favorites and recently used above the full list on `MeditateHomeScreen`.
+- **Ambient background sound during unguided sits.** Sit/NSDR/Breathe
+  currently stay silent until the end bell. Add an optional ambient layer
+  (rain, drone, etc.), reusing Compose's background-sound library.
+- **Pre/post mood check-in.** An optional mood tap before and after a
+  session, surfaced later as an insight over time (e.g. "you usually feel
+  calmer after Breathe").
+
+Considered and declined: multi-day guided courses as a Meditate-only feature
+(see the cross-app program idea above instead), a post-session text note, and
+Apple Health sync for mindful minutes (native work; revisit only if a store
+build is already happening for another reason).
+
+### Workouts *(added 2026-10-24)*
+
+- **Rest timer alert.** Sound/haptic (and a local notification if the app is
+  backgrounded) when the `RestSheet` countdown hits zero.
+- **Supersets/circuits.** Let `WorkoutBuilderScreen` group 2+ exercises
+  back-to-back with no rest between them, then rest after the group.
+- **Warm-up sets.** A per-set toggle; warm-ups log but don't count toward PRs
+  or weekly volume.
+- **Per-exercise history chart.** A simple trend line (weight/reps/time) for
+  one exercise over time, beyond the existing PR callout.
+- **Standalone ad-hoc exercise test.** Today, testing a baseline only happens
+  as part of starting a training phase/program
+  (`PhaseTestScreen`/`PhaseSetupScreen`). Add a way to test a single exercise
+  any time, outside a phase, for people who track workouts without running a
+  structured program but still want to see if they're making progress.
+
+Considered and declined: a plate-math/bodyweight calculator, attaching
+photo/video to a set for form checks, and sharing a workout or PR as an image.
+
+### Meals *(added 2026-10-24)*
+
+- **Meal templates/favorites.** Save a tapped food-group combination as a
+  named template (e.g. "my usual lunch"); one tap re-logs it instead of
+  re-tapping every group.
+- **Plate photo.** An optional photo per meal, stored privately, shown
+  alongside the day in meal history — a visual record, not AI analysis.
+- **Hydration tracking inside Meals.** A glass-count or oz tally living in
+  the Meals app itself. Open question: how this relates to the existing
+  water habits in the library (replace them, or coexist as a separate axis)
+  — decide before building.
+- **Longer-range trend view.** A month (or longer) view of on-target days and
+  nutrient-tag coverage, beyond the current single-week bar.
+
+Considered and declined: AI photo recognition of plate contents, and a
+lighter "eating out" logging mode.
+
 ### Mini-apps
 
 Design and status live in `docs/mini-app-backlog.md`. Open actions:
