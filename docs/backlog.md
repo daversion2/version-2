@@ -234,14 +234,14 @@ the same meal come first (your usual lunch when you tap Lunch); for
 the chips and you still press Save, so pass or fail shows first.
 `recentPlates` in `services/mealsMath.ts` (tested). Checked in the simulator (`.maestro/13a`–`13d`).
 
-**Workouts: best-set trend per exercise** *(2026-10-24, not live yet)*
+**Workouts: best-set trend per exercise** *(2026-10-24, bebf7b8, live OTA)*
 On an exercise's stats screen, above Records: one dot per session (last 12)
 for the best set: top weight (× reps), most reps, longest hold or fastest
 time. Higher is always better, so a run's time is drawn flipped, and a line
 reads "Up 10 lb over 6 sessions". `bestSetTrend` / `describeTrend` in
 `services/workoutStats.ts` (tested), `TrendChart` in `StatsParts.tsx`.
 
-**Meals: Past weeks** *(2026-10-24, not live yet)*
+**Meals: Past weeks** *(2026-10-24, bebf7b8 + 293a0de, live OTA)*
 At the bottom of the week view: the 4 weeks before this one, newest first.
 Each shows days on target, a dot per day, plates passed and nutrient
 coverage. Each day is scored under the rules it was saved with. Not tappable
