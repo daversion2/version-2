@@ -1,96 +1,11 @@
 # Neuro-Nudge — Claude Code Context
 
-## ⚠️ Unfinished work — read before starting anything else
+## Open work — read `docs/backlog.md` first
 
-*Added 2026-09-05. **Delete each item once it's done, and this whole section once
-all are** — it describes work left mid-flight, not standing policy. If it has
-been here a long time, ask the user whether it is still true rather than acting
-on it.*
-
-*Updated 2026-10-11 at the end of a long session that shipped (all committed,
-pushed, deployed and live): "Friction you can handle" on Progress, unmultiplied
-XP, the rebuilt nightly close, Move/Fuel/Sleep categories, "habit" wording
-everywhere, live copy editing (Admin → Edit wording on screen), the tidbit
-re-audit + Admin → Sync Tidbits, owner-only profile reads, Node 22 functions,
-and the privacy policy. Items 2–5 are the remaining pre-launch list; item 2 was
-recommended as the next one to do.*
-
-**1. Device checks never done on a real phone.** Named-day
-scheduling, schedule-aware streaks, adherence and the archive screen are live to
-all users, verified by jest + `tsc` + a clean `expo export` only. Two paths
-cannot be proven from the test suite and were never exercised:
-
-- **A reminder actually firing.** Day-scheduled habits now schedule one weekly
-  notification per chosen weekday. The JS→Expo weekday conversion is pinned by
-  `toExpoWeekday` in `src/services/habitSchedule.ts` and tested, but nothing
-  proves the OS delivers. Set a reminder 2–3 minutes out on a scheduled day,
-  background the app, and confirm it arrives.
-- **Archive surviving a relaunch.** Archive a curated practice, force-quit,
-  reopen. It must stay off Home — `ensureCuratedPractices` reactivates inactive
-  curated instances and is meant to skip ones carrying `archived_at`.
-
-The 2026-10-11 releases were also only checked in the simulator (Maestro): worth
-a look on a phone at Progress, the nightly close and the wording editor.
-
-If those check out, delete this item.
-
-**2. Fresh-account walkthrough + account deletion — NEXT UP.** Nobody has gone
-through a brand-new account since the 2026-10-11 changes (onboarding now renders
-through `<Copy>`, new nightly close, Today's plan card, friction card empty
-state). Run it in the simulator with a throwaway signup: onboarding → first
-check-in → celebration → close out the day → next day's plan on Today. Then
-Settings → Delete Account end to end (calls the `deleteAccount` Cloud Function;
-both app stores require it to work). **This writes to production — ask before
-running, per the Maestro rule below.**
-
-**3. No crash reporting.** Nothing tells you when the app crashes for a user.
-Sentry (`@sentry/react-native`) has native code, so it needs an EAS build and a
-store release; a JS-only alternative is an error boundary that logs to a
-Firestore collection, shippable over the air. If anything is added, update the
-"no analytics or advertising SDKs" line in `hosting/privacy.html` and redeploy
-hosting.
-
-**4. Small leftovers.**
-- The user still wants to decide what to do with the header logo on Today
-  (`src/navigation/HomeStack.tsx`). The title now says "Today".
-- Today is apps-first (`docs/apps-first-today.md`, shipped OTA 2026-10-18 on top
-  of `docs/three-sections-today.md`): Meditate / Workouts / Meals always lead
-  their sections and a session is its own check-in (`services/appCheckins.ts`).
-  Maestro checked the cards, the apps opening and both "Log a past session"
-  sheets without saving anything. **Not yet tried on screen:** a finished or
-  past session → quick sheet → +XP toast → the matching habit ticked; the
-  weekly-goal settings; "Add a note"; the milestone celebration.
-- The founder's simulator account has two "Unplugged Cardio" habits (found
-  2026-10-18, cause unknown, left alone) — ask before archiving one.
-- Copy stored in Firestore — push rules (Admin → Rules) and global reward
-  messages — may still say "practice" or "rep". The code is clean.
-- `docs/go-live-checklist.md` is stale: it still has Challenges and Programs
-  sections and an old baseline; rewrite it against the current app.
-- Only onboarding, Today, the celebration, the nightly close, Progress and the ⓘ
-  intros use live-editable `<Copy>`; other screens can be moved over if the user
-  wants to edit their wording (~1–2 hrs per screen).
-
-**5. Expo push security (deferred by the user — optional).** Enabling Expo's
-"Enhanced Security for Push Notifications" needs: an Expo access token stored as
-the `EXPO_ACCESS_TOKEN` Firebase secret (the user creates it), `new Expo({
-accessToken })` read via `defineSecret`, `secrets: [expoAccessToken]` on
-`onChallengeFailure`, `checkMicroCommitmentFollowUps` and `evaluatePushRules`,
-a functions deploy — and only THEN flipping the setting in the Expo dashboard,
-or every push fails. Defence in depth only: push tokens stopped being readable
-by other users when profiles went owner-only.
-
-**6. Compose needs a store build before it leaves the Lab.** Compose (Admin →
-Lab) shipped OTA on 2026-10-18 and works on the 2.2.0 binary only while the
-app is open: that binary has no background audio, so for now
-`KEEP_SCREEN_ON_WHILE_PLAYING` in
-`src/components/audio/SessionPlayer.tsx` keeps the
-screen on during playback (a stopgap). In the next store build: bump
-`version` in app.json (runtimeVersion is `appVersion`), which brings
-UIBackgroundModes audio and `patches/expo-audio+1.1.1.patch`; then set that
-flag to false. Before non-admins get Compose: add Anthropic and ElevenLabs to
-`hosting/privacy.html` (and the App Store privacy details), and revisit the
-model (Haiku) and the monthly allowance (`COMPOSE_MONTHLY_MINUTES`, 30 minutes,
-one number for everyone).
+All open and unfinished work lives in [`docs/backlog.md`](docs/backlog.md)
+(Now / Next / Later / Done). Read it before starting a session's work. When you
+leave something unfinished, or ship something listed there, update it in the
+same commit. Don't keep task lists in this file.
 
 ## Verifying a Change
 
@@ -346,7 +261,8 @@ They ship over the air like any other change.
 - `docs/habit-template-unification.md` — the active direction (practices merging
   into habits with tracking templates)
 - `docs/habit-library-audit.md`, `docs/challenge-library.md`, `docs/tidbit-audit.md` — content inventories
-- `docs/go-live-checklist.md`
+- `docs/backlog.md` — the open-work list
+- `docs/go-live-checklist.md` (stale — rewrite is on the backlog)
 - `docs/app-overview-user-facing.md` — the product in the user's own words
 - `.maestro/README.md`, `.claude/skills/ui-test/SKILL.md`
 
