@@ -5,25 +5,17 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../
 import { DayScore, NutrientCoverage, ScoredItem, describeGroups } from '../../../../../services/mealsMath';
 import { NUTRIENTS, groupLabel } from '../../../../../data/mealGroups';
 import type { NutrientId } from '../../../../../types/meals';
-import { FAIL_COLOR, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, itemColor, itemGlyph, mls } from './mealsStyle';
+import { FAIL_COLOR, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, itemColor, mls } from './mealsStyle';
 
-/** "2 of 3 meals logged · the day can hold 1 miss". */
-const statusLine = (score: DayScore): string => {
+/** "2 of 3 meals logged · averaging 64 so far". */
+const statusLine = (score: DayScore, threshold: number): string => {
   const meals = score.items.filter((i) => i.kind === 'meal');
   const logged = meals.filter((i) => i.state !== 'pending').length;
-  const missText =
-    score.allowed === 0
-      ? 'every meal has to pass'
-      : `${score.fails} of ${score.allowed} ${score.allowed === 1 ? 'miss' : 'misses'} used`;
-  if (score.status === 'pending') return `${logged} of ${meals.length} meals logged · ${missText}`;
-  if (score.status === 'on') return score.fails > 0 ? `Goal met · ${missText}` : 'Goal met · every plate passed';
-  if (score.fails > score.allowed) {
-    // Said plainly, with the reason to keep going: every meal still counts on its own.
-    return score.complete
-      ? `${score.fails} ${score.fails === 1 ? 'miss' : 'misses'} — more than the day can hold`
-      : 'More misses than the day can hold. Every meal still counts toward your week.';
-  }
-  return 'A food-group goal wasn’t met';
+  if (score.average === null) return `${logged} of ${meals.length} meals logged`;
+  if (score.status === 'pending') return `${logged} of ${meals.length} meals logged · averaging ${score.average} so far`;
+  return score.status === 'on'
+    ? `Averaged ${score.average} · at or above your target of ${threshold}`
+    : `Averaged ${score.average} · below your target of ${threshold}`;
 };
 
 /**
@@ -87,15 +79,22 @@ const CoverageRow: React.FC<{ coverage: NutrientCoverage[]; onTone: boolean }> =
 };
 
 /** The day at a glance: on target, off target or in progress, plus the daily goals. */
-export const DayStatusCard: React.FC<{ score: DayScore; dateLabel: string }> = ({ score, dateLabel }) => {
+export const DayStatusCard: React.FC<{ score: DayScore; dateLabel: string; threshold: number }> = ({
+  score,
+  dateLabel,
+  threshold,
+}) => {
   const tone = score.status === 'on' ? PASS_COLOR : score.status === 'off' ? FAIL_COLOR : null;
   return (
     <View style={[styles.status, tone ? { backgroundColor: tone, borderColor: tone } : null]}>
       <View style={styles.statusTop}>
-        <Text style={[styles.statusTitle, tone && styles.onTone]}>{STATUS_TITLE[score.status]}</Text>
+        <View style={styles.statusTitleRow}>
+          <Text style={[styles.statusScore, tone && styles.onTone]}>{score.average ?? '–'}</Text>
+          <Text style={[styles.statusTitle, tone && styles.onTone]}>{STATUS_TITLE[score.status]}</Text>
+        </View>
         <Text style={[styles.statusDate, tone && styles.onTone]}>{dateLabel}</Text>
       </View>
-      <Text style={[mls.muted, tone && styles.onTone]}>{statusLine(score)}</Text>
+      <Text style={[mls.muted, tone && styles.onTone]}>{statusLine(score, threshold)}</Text>
       {score.groupGoals.length > 0 && (
         <View style={styles.goalRow}>
           {score.groupGoals.map((g) => (
@@ -134,11 +133,13 @@ export const PlateRow: React.FC<{
         style={[
           mls.dot,
           compact && styles.dotSmall,
-          { backgroundColor: itemColor(item.state) },
+          { backgroundColor: itemColor(item.state, item.score) },
           item.state === 'pending' && styles.dotPending,
         ]}
       >
-        <Text style={[mls.dotText, compact && styles.dotTextSmall]}>{itemGlyph(item.state)}</Text>
+        <Text style={[mls.dotText, compact && styles.dotTextSmall]}>
+          {item.state === 'scored' ? item.score : item.state === 'skipped' ? '–' : ''}
+        </Text>
       </View>
       <View style={{ flex: 1 }}>
         <Text style={compact ? styles.compactName : mls.title}>{item.name}</Text>
@@ -169,6 +170,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statusTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  statusTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.sm },
+  statusScore: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.hero, color: Colors.dark },
   statusTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
   statusDate: {
     fontFamily: Fonts.secondaryBold,

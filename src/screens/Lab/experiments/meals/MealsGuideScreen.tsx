@@ -3,9 +3,9 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import type { FoodGroupId } from '../../../../types/meals';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../data/mealGroups';
-import { describeGroups, evaluatePlate } from '../../../../services/mealsMath';
+import { describeGroups, scorePlate } from '../../../../services/mealsMath';
 import { useMeals } from './MealsContext';
-import { FAIL_COLOR, PASS_COLOR, mls } from './components/mealsStyle';
+import { scoreColor, mls } from './components/mealsStyle';
 import { NutrientTags } from './components/MealsParts';
 
 /** Worked examples, scored live by the same rule the app uses — so they can't drift from it. */
@@ -38,16 +38,14 @@ export const MealsGuideScreen: React.FC = () => {
       <Text style={mls.sectionLabel}>Examples{rules.strict ? ' — strict mode is on' : ''}</Text>
       <View style={mls.card}>
         {EXAMPLES.map((ex, i) => {
-          const result = evaluatePlate(ex.groups, rules.strict);
+          const score = scorePlate(ex.groups, rules.strict, rules.scoring);
           return (
             <View key={ex.meal} style={[styles.example, i === EXAMPLES.length - 1 && styles.last]}>
               <View style={{ flex: 1 }}>
                 <Text style={mls.body}>{ex.meal}</Text>
                 <Text style={mls.muted}>{describeGroups(ex.groups)}</Text>
               </View>
-              <Text style={[styles.result, { color: result === 'pass' ? PASS_COLOR : FAIL_COLOR }]}>
-                {result === 'pass' ? 'Pass' : 'Fail'}
-              </Text>
+              <Text style={[styles.result, { color: scoreColor(score) }]}>{score}</Text>
             </View>
           );
         })}

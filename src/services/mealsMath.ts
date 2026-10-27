@@ -6,11 +6,14 @@ import type {
   MealsDay,
   MealsPrefs,
   MealsRules,
+  MealsScoringWeights,
   MealSlot,
   NutrientId,
+  ProcessedGroupId,
   WholeGroupId,
 } from '../types/meals';
 import {
+  DEFAULT_MEALS_SCORING,
   groupLabel,
   groupNutrients,
   isWholeGroup,
@@ -25,46 +28,56 @@ import { toLocalDateString } from '../utils/date';
 // =============================================================================
 // MEALS — the rules. Pure functions, no I/O (storage is services/labMeals.ts).
 //
-// A plate PASSES with at least one whole-food group and nothing Processed;
-// Dairy and Semi-processed are fine alongside real food. Strict mode: whole
-// food only.
+// Each plate scores 0-100 (null if nothing's been tapped yet): mostly whole
+// food scores high; Processed, and (in strict mode) Dairy/Semi-processed/
+// Supplements, cost points on top of what diluting the whole-food ratio
+// already costs. See scorePlate().
 //
-// A day is scored against the user's goal, "pass N of my M meals":
-//   - M - N is how many misses the day can hold. A failed extra (a snack or a
-//     drink) is one miss, exactly like a failed meal (founder, 2026-10-17).
-//   - A meal marked "didn't eat" never counts against the day — it is simply
-//     not part of it.
-//   - Every DAILY food-group goal must be met as well. WEEKLY group goals never
-//     decide a day; they're a progress bar for the week.
-// There are no flex meals and no allowance to spend (founder's call): the day
-// is on target or it isn't.
+// A day's score is the plain average of every scored plate (meals + extras
+// together, unweighted). A meal marked "didn't eat" never counts against the
+// day — it's simply not part of it. Daily and weekly food-group goals are a
+// progress readout only — they don't gate on/off (founder, 2026-10-26). A day
+// is 'on' once every meal is logged/skipped and the average is at or above
+// scoring.on_target_threshold, 'off' if it's below, 'pending' until
+// complete — no early mid-day verdict.
 // =============================================================================
 
-export type PlateResult = 'pass' | 'fail';
+/** Dairy, Semi-processed and Supplements — what strict mode's extra penalty applies to. 'processed' has its own penalty. */
+const SEMI_TIER_GROUPS: ProcessedGroupId[] = ['dairy', 'supplements', 'semi'];
 
-/** Pass or fail for the groups on one plate; null for an empty plate (nothing chosen yet). */
-export const evaluatePlate = (groups: FoodGroupId[] | undefined, strict: boolean): PlateResult | null => {
+/** 0-100, or null for an empty plate (nothing chosen yet). */
+export const scorePlate = (
+  groups: FoodGroupId[] | undefined,
+  strict: boolean,
+  weights: MealsScoringWeights
+): number | null => {
   if (!groups || groups.length === 0) return null;
-  const hasWhole = groups.some(isWholeGroup);
-  if (!hasWhole || groups.includes('processed')) return 'fail';
-  if (strict && groups.some((g) => !isWholeGroup(g))) return 'fail';
-  return 'pass';
+  const wholeFoodRatio = groups.filter(isWholeGroup).length / groups.length;
+  const ratioPoints = wholeFoodRatio * weights.ratio_points;
+  const nutrientBonus = plateNutrients(groups).length * weights.nutrient_bonus;
+  const processedPenalty = groups.includes('processed') ? weights.processed_penalty : 0;
+  const hasSemiTier = groups.some((g) => SEMI_TIER_GROUPS.includes(g as ProcessedGroupId));
+  const strictPenalty = strict && hasSemiTier ? weights.strict_penalty : 0;
+  const raw = ratioPoints + nutrientBonus - processedPenalty - strictPenalty;
+  return Math.max(0, Math.min(100, Math.round(raw)));
 };
 
-/** The result and the one-line reason the picker shows under the chips. */
-export const plateVerdict = (
-  groups: FoodGroupId[],
-  strict: boolean
-): { result: PlateResult | null; why: string } => {
-  const result = evaluatePlate(groups, strict);
-  if (!result) return { result, why: 'Tap what was on the plate.' };
-  if (groups.includes('processed')) return { result, why: 'Something Processed was on the plate.' };
-  if (!groups.some(isWholeGroup)) return { result, why: 'No whole food on the plate.' };
-  if (strict && groups.some((g) => !isWholeGroup(g))) return { result, why: 'Strict mode: whole food only.' };
-  return {
-    result,
-    why: groups.some((g) => !isWholeGroup(g)) ? 'Real food, with a little semi-processed.' : 'All whole food.',
-  };
+export interface PlateScore {
+  score: number | null;
+  why: string;
+}
+
+/** The score and the one-line reason the picker shows under the chips. */
+export const scoreVerdict = (groups: FoodGroupId[], strict: boolean, weights: MealsScoringWeights): PlateScore => {
+  const score = scorePlate(groups, strict, weights);
+  if (score === null) return { score, why: 'Tap what was on the plate.' };
+  const notes: string[] = [];
+  if (groups.includes('processed')) notes.push(`Processed on the plate (−${weights.processed_penalty})`);
+  if (strict && groups.some((g) => SEMI_TIER_GROUPS.includes(g as ProcessedGroupId))) {
+    notes.push(`strict mode (−${weights.strict_penalty})`);
+  }
+  if (notes.length > 0) return { score, why: notes.join(' · ') };
+  return { score, why: groups.every(isWholeGroup) ? 'All whole food.' : 'Real food, with a little semi-processed.' };
 };
 
 /** "Eggs · Fruit". */
@@ -72,18 +85,14 @@ export const describeGroups = (groups: FoodGroupId[]): string => groups.map(grou
 
 export const rulesOf = (prefs: MealsPrefs): MealsRules => ({
   slots: prefs.slots,
-  pass_goal: prefs.pass_goal,
   strict: prefs.strict,
   group_goals: prefs.group_goals,
+  scoring: prefs.scoring,
 });
-
-/** How many misses a day can hold under these rules. */
-export const allowedMisses = (rules: Pick<MealsRules, 'slots' | 'pass_goal'>): number =>
-  Math.max(0, rules.slots.length - Math.min(rules.pass_goal, rules.slots.length));
 
 // --- Scoring a day -------------------------------------------------------------
 
-export type ItemState = PlateResult | 'skipped' | 'pending';
+export type ItemState = 'scored' | 'skipped' | 'pending';
 
 export interface ScoredItem {
   /** Slot id for a meal, extra id for an extra. */
@@ -92,6 +101,8 @@ export interface ScoredItem {
   name: string;
   state: ItemState;
   groups: FoodGroupId[];
+  /** Non-null iff state === 'scored'. */
+  score: number | null;
 }
 
 export interface GroupGoalProgress {
@@ -120,7 +131,7 @@ export interface NutrientCoverage {
 }
 
 export const nutrientCoverage = (items: Pick<ScoredItem, 'state' | 'groups'>[]): NutrientCoverage[] => {
-  const plates = items.filter((i) => i.state === 'pass' || i.state === 'fail');
+  const plates = items.filter((i) => i.state === 'scored');
   return NUTRIENTS.map((n) => ({
     nutrient: n.id,
     have: plates.filter((p) => plateNutrients(p.groups).includes(n.id)).length,
@@ -130,52 +141,50 @@ export const nutrientCoverage = (items: Pick<ScoredItem, 'state' | 'groups'>[]):
 
 export interface DayScore {
   items: ScoredItem[];
-  passes: number;
-  fails: number;
-  allowed: number;
+  /** Plain average of every scored item's score. Null if nothing's scored yet. */
+  average: number | null;
+  scoredCount: number;
   /** Meals not logged yet. */
   pending: number;
   /** Every meal logged or marked "didn't eat". */
   complete: boolean;
-  /** Daily goals only. */
+  /** Daily goals only — a progress readout, never decides status. */
   groupGoals: GroupGoalProgress[];
   /** How many of the day's plates had each nutrient. Never decides the day. */
   nutrients: NutrientCoverage[];
-  /**
-   * 'off' as soon as the misses run out — even mid-day, because the next meal
-   * can't change it and saying "in progress" would be a lie. Otherwise 'on'
-   * once every meal is logged and every daily goal is met, 'pending' before.
-   */
+  /** 'pending' until every meal is logged/skipped, then 'on' or 'off' from the average. */
   status: DayStatus;
 }
 
 /** How many of the scored plates carry this group. A plate counts once however much was on it. */
 const countGroup = (items: ScoredItem[], group: WholeGroupId): number =>
-  items.filter((i) => (i.state === 'pass' || i.state === 'fail') && i.groups.includes(group)).length;
+  items.filter((i) => i.state === 'scored' && i.groups.includes(group)).length;
 
 export const scoreDay = (day: Pick<MealsDay, 'meals' | 'extras'> | undefined, rules: MealsRules): DayScore => {
+  const weights = rules.scoring;
   const items: ScoredItem[] = rules.slots.map((slot) => {
     const entry = day?.meals[slot.id];
-    if (!entry) return { key: slot.id, kind: 'meal', name: slot.name, state: 'pending', groups: [] };
-    if (entry.skipped) return { key: slot.id, kind: 'meal', name: slot.name, state: 'skipped', groups: [] };
+    if (!entry) return { key: slot.id, kind: 'meal', name: slot.name, state: 'pending', groups: [], score: null };
+    if (entry.skipped) return { key: slot.id, kind: 'meal', name: slot.name, state: 'skipped', groups: [], score: null };
+    const score = scorePlate(entry.groups, rules.strict, weights);
     return {
       key: slot.id,
       kind: 'meal',
       name: slot.name,
-      state: evaluatePlate(entry.groups, rules.strict) ?? 'pending',
+      state: score === null ? 'pending' : 'scored',
       groups: entry.groups,
+      score,
     };
   });
   for (const extra of day?.extras ?? []) {
-    const result = evaluatePlate(extra.groups, rules.strict);
-    if (!result) continue;
-    items.push({ key: extra.id, kind: 'extra', name: extra.name || 'Something extra', state: result, groups: extra.groups });
+    const score = scorePlate(extra.groups, rules.strict, weights);
+    if (score === null) continue;
+    items.push({ key: extra.id, kind: 'extra', name: extra.name || 'Something extra', state: 'scored', groups: extra.groups, score });
   }
 
-  const passes = items.filter((i) => i.state === 'pass').length;
-  const fails = items.filter((i) => i.state === 'fail').length;
+  const scored = items.filter((i) => i.state === 'scored');
+  const average = scored.length > 0 ? Math.round(scored.reduce((sum, i) => sum + (i.score ?? 0), 0) / scored.length) : null;
   const pending = items.filter((i) => i.state === 'pending').length;
-  const allowed = allowedMisses(rules);
   const complete = pending === 0;
   const groupGoals = rules.group_goals
     .filter((g) => g.period === 'day')
@@ -185,10 +194,9 @@ export const scoreDay = (day: Pick<MealsDay, 'meals' | 'extras'> | undefined, ru
     });
 
   let status: DayStatus = 'pending';
-  if (fails > allowed) status = 'off';
-  else if (complete) status = groupGoals.every((g) => g.met) ? 'on' : 'off';
+  if (complete && average !== null) status = average >= weights.on_target_threshold ? 'on' : 'off';
 
-  return { items, passes, fails, allowed, pending, complete, groupGoals, nutrients: nutrientCoverage(items), status };
+  return { items, average, scoredCount: scored.length, pending, complete, groupGoals, nutrients: nutrientCoverage(items), status };
 };
 
 /** Today is scored by the current settings; a past day by the ones it was saved under. */
@@ -197,7 +205,14 @@ export const rulesForDay = (
   today: string,
   day: Pick<MealsDay, 'rules'> | undefined,
   current: MealsRules
-): MealsRules => (date === today ? current : (day?.rules ?? current));
+): MealsRules => {
+  if (date === today) return current;
+  const saved = day?.rules;
+  if (!saved) return current;
+  // Every day saved before scoring went 0-100 has no `scoring` field — backfill
+  // it (and any partially-present one) so an old day never crashes scoreDay.
+  return { ...saved, scoring: { ...DEFAULT_MEALS_SCORING, ...(saved.scoring ?? {}) } };
+};
 
 // --- The week ------------------------------------------------------------------
 
@@ -225,11 +240,12 @@ export interface WeekDay {
 
 export interface WeekSummary {
   days: WeekDay[];
-  /** Plates that passed / plates scored, meals and extras, so far this week. */
-  passed: number;
-  scored: number;
-  /** The meal that fails most often this week, if any has failed. */
-  slipping: { slotId: string; name: string; fails: number; logged: number } | null;
+  /** Average score across every scored plate (meals + extras) so far this week. Null if none. */
+  averageScore: number | null;
+  /** How many plates have been scored so far this week. */
+  platesLogged: number;
+  /** The meal slipping furthest below target, if any slot's average is under it. */
+  slipping: { slotId: string; name: string; average: number; logged: number } | null;
   /** Weekly goals, counted across the week so far. */
   weeklyGoals: { goal: GroupGoal; have: number }[];
   /** Nutrient coverage across every plate so far this week. */
@@ -249,33 +265,32 @@ export const summarizeWeek = (
     return { date, future, rules, score: future ? null : scoreDay(days[date], rules) };
   });
 
-  let passed = 0;
-  let scored = 0;
-  const bySlot = new Map<string, { name: string; fails: number; logged: number }>();
+  let sum = 0;
+  let platesLogged = 0;
+  const bySlot = new Map<string, { name: string; sum: number; logged: number }>();
   for (const { score } of week) {
     if (!score) continue;
     for (const item of score.items) {
-      if (item.state !== 'pass' && item.state !== 'fail') continue;
-      scored += 1;
-      if (item.state === 'pass') passed += 1;
+      if (item.state !== 'scored') continue;
+      platesLogged += 1;
+      sum += item.score as number;
       if (item.kind !== 'meal') continue;
       // Grouped by the CURRENT slot's name, so a renamed meal reads as itself.
       const name = current.slots.find((s) => s.id === item.key)?.name ?? item.name;
-      const row = bySlot.get(item.key) ?? { name, fails: 0, logged: 0 };
+      const row = bySlot.get(item.key) ?? { name, sum: 0, logged: 0 };
       row.logged += 1;
-      if (item.state === 'fail') row.fails += 1;
+      row.sum += item.score as number;
       bySlot.set(item.key, row);
     }
   }
+  const averageScore = platesLogged > 0 ? Math.round(sum / platesLogged) : null;
 
   let slipping: WeekSummary['slipping'] = null;
   for (const [slotId, row] of bySlot) {
-    if (row.fails === 0) continue;
-    const better =
-      !slipping ||
-      row.fails / row.logged > slipping.fails / slipping.logged ||
-      (row.fails / row.logged === slipping.fails / slipping.logged && row.fails > slipping.fails);
-    if (better) slipping = { slotId, ...row };
+    const average = Math.round(row.sum / row.logged);
+    if (average >= current.scoring.on_target_threshold) continue;
+    const better = !slipping || average < slipping.average || (average === slipping.average && row.logged > slipping.logged);
+    if (better) slipping = { slotId, name: row.name, average, logged: row.logged };
   }
 
   const weeklyGoals = current.group_goals
@@ -287,7 +302,7 @@ export const summarizeWeek = (
 
   const nutrients = nutrientCoverage(week.flatMap((d) => d.score?.items ?? []));
 
-  return { days: week, passed, scored, slipping, weeklyGoals, nutrients };
+  return { days: week, averageScore, platesLogged, slipping, weeklyGoals, nutrients };
 };
 
 /** Something was logged that week: a plate, or a meal marked "didn't eat". */
@@ -321,25 +336,14 @@ export const dailyGoalOnDay = (day: WeekDay, group: WholeGroupId, count: number)
 
 // --- Settings ------------------------------------------------------------------
 
-/** Keeps "pass N of M" possible: N is never more than M, never below 0. */
-export const clampPassGoal = (passGoal: number, slotCount: number): number =>
-  Math.max(0, Math.min(slotCount, Math.round(passGoal)));
-
-/**
- * Adding a meal raises the goal with it when every meal had to pass — "all of
- * them" should stay "all of them". Otherwise the misses the day can hold grow.
- */
-export const addSlot = (prefs: Pick<MealsPrefs, 'slots' | 'pass_goal'>, slot: MealSlot) => {
+export const addSlot = (prefs: Pick<MealsPrefs, 'slots'>, slot: MealSlot): Pick<MealsPrefs, 'slots'> => {
   if (prefs.slots.length >= MAX_SLOTS) return prefs;
-  const allMustPass = prefs.pass_goal >= prefs.slots.length;
-  const slots = [...prefs.slots, slot];
-  return { slots, pass_goal: allMustPass ? slots.length : prefs.pass_goal };
+  return { slots: [...prefs.slots, slot] };
 };
 
-export const removeSlot = (prefs: Pick<MealsPrefs, 'slots' | 'pass_goal'>, slotId: string) => {
+export const removeSlot = (prefs: Pick<MealsPrefs, 'slots'>, slotId: string): Pick<MealsPrefs, 'slots'> => {
   if (prefs.slots.length <= 1) return prefs;
-  const slots = prefs.slots.filter((s) => s.id !== slotId);
-  return { slots, pass_goal: clampPassGoal(prefs.pass_goal, slots.length) };
+  return { slots: prefs.slots.filter((s) => s.id !== slotId) };
 };
 
 /** A new group goal, on the first whole-food group not already used. Null when the limit is reached. */
@@ -355,13 +359,6 @@ export const describeGroupGoal = (goal: GroupGoal): string => {
   const label = groupLabel(goal.group);
   if (goal.period === 'day') return `${label} at ${goal.count} ${goal.count === 1 ? 'meal' : 'meals'} a day`;
   return `${label} ${goal.count} ${goal.count === 1 ? 'time' : 'times'} a week`;
-};
-
-/** The settings helper line under "Pass N of M". */
-export const describeMealGoal = (rules: Pick<MealsRules, 'slots' | 'pass_goal'>): string => {
-  const misses = allowedMisses(rules);
-  if (misses === 0) return 'Every meal has to pass. A snack or drink that doesn’t pass is a miss too.';
-  return `The day can hold ${misses} ${misses === 1 ? 'miss' : 'misses'} — a meal, snack or drink that doesn’t pass.`;
 };
 
 // --- Recent plates ------------------------------------------------------------

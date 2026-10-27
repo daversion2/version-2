@@ -4,7 +4,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import type { MealsStackParamList } from '../../../../types/meals';
 import {
-  ItemState,
+  ScoredItem,
   dailyGoalOnDay,
   daysOnTarget,
   describeGroupGoal,
@@ -22,7 +22,6 @@ import {
   NUTRIENT_COLOR,
   PASS_COLOR,
   itemColor,
-  itemGlyph,
   mls,
 } from './components/mealsStyle';
 
@@ -30,11 +29,11 @@ type Props = NativeStackScreenProps<MealsStackParamList, 'MealsWeek'>;
 
 const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-/** The worst result among a day's extras, or null when there were none. */
-const extrasState = (day: WeekDay): ItemState | null => {
-  const extras = day.score?.items.filter((i) => i.kind === 'extra') ?? [];
+/** The lowest-scoring extra among a day's extras, or null when there were none scored. */
+const worstExtra = (day: WeekDay): ScoredItem | null => {
+  const extras = day.score?.items.filter((i) => i.kind === 'extra' && i.state === 'scored') ?? [];
   if (extras.length === 0) return null;
-  return extras.some((i) => i.state === 'fail') ? 'fail' : 'pass';
+  return extras.reduce((worst, item) => ((item.score ?? 0) < (worst.score ?? 0) ? item : worst));
 };
 
 /** "Oct 5 – 11". */
@@ -58,21 +57,23 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
     navigation.push('MealsDay', { date: day.date });
   };
 
-  const cell = (day: WeekDay, state: ItemState | null | undefined) => {
+  const cell = (day: WeekDay, item: ScoredItem | null | undefined) => {
     const isToday = day.date === today;
-    if (day.future || state == null || state === 'pending') {
+    if (day.future || item == null || item.state === 'pending') {
       return <View style={[styles.cell, styles.cellEmpty, isToday && styles.cellToday]} />;
     }
     return (
       <View
         style={[
           styles.cell,
-          { backgroundColor: itemColor(state) },
-          state === 'skipped' && styles.cellSkipped,
+          { backgroundColor: itemColor(item.state, item.score) },
+          item.state === 'skipped' && styles.cellSkipped,
           isToday && styles.cellToday,
         ]}
       >
-        <Text style={[styles.cellText, state === 'skipped' && { color: Colors.gray }]}>{itemGlyph(state)}</Text>
+        <Text style={[styles.cellText, item.state === 'skipped' && { color: Colors.gray }]}>
+          {item.state === 'scored' ? item.score : '–'}
+        </Text>
       </View>
     );
   };
@@ -82,10 +83,10 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll}>
       <View>
-        <Text style={styles.big}>
-          {week.passed} of {week.scored}
+        <Text style={styles.big}>{week.averageScore ?? '–'}</Text>
+        <Text style={mls.muted}>
+          average plate score this week · {week.platesLogged} {week.platesLogged === 1 ? 'plate' : 'plates'} logged
         </Text>
-        <Text style={mls.muted}>meals and extras passed this week · the week starts again Monday</Text>
       </View>
 
       <View style={mls.card}>
@@ -128,7 +129,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
             {week.days.map((d) => (
               <TouchableOpacity key={d.date} style={styles.cellWrap} onPress={() => openDay(d)} disabled={d.future}>
-                {cell(d, d.score?.items.find((i) => i.kind === 'meal' && i.key === slot.id)?.state)}
+                {cell(d, d.score?.items.find((i) => i.kind === 'meal' && i.key === slot.id))}
               </TouchableOpacity>
             ))}
           </View>
@@ -138,7 +139,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.rowLabel}>Extras</Text>
           {week.days.map((d) => (
             <TouchableOpacity key={d.date} style={styles.cellWrap} onPress={() => openDay(d)} disabled={d.future}>
-              {cell(d, extrasState(d))}
+              {cell(d, worstExtra(d))}
             </TouchableOpacity>
           ))}
         </View>
@@ -148,9 +149,9 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.insightLabel}>Worth a look</Text>
         <Text style={mls.body}>
           {week.slipping
-            ? `${week.slipping.name} is the one slipping — it failed ${week.slipping.fails} of ${week.slipping.logged} times this week.`
-            : week.scored > 0
-              ? 'No meal is slipping more than the others this week.'
+            ? `${week.slipping.name} is the one slipping — it's averaging ${week.slipping.average}, under your target.`
+            : week.platesLogged > 0
+              ? 'No meal is slipping below target this week.'
               : 'Log a few meals and this is where you’ll see which one slips most.'}
         </Text>
       </View>
@@ -299,8 +300,8 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
                   })}
                 </View>
                 <Text style={mls.muted}>
-                  {w.passed} of {w.scored} {w.scored === 1 ? 'plate' : 'plates'} passed
-                  {w.scored > 0
+                  {w.averageScore ?? '–'} average · {w.platesLogged} {w.platesLogged === 1 ? 'plate' : 'plates'} logged
+                  {w.platesLogged > 0
                     ? '\n' +
                       w.nutrients
                         .map((c) => `${NUTRIENTS.find((x) => x.id === c.nutrient)?.label} ${c.have}/${c.of}`)

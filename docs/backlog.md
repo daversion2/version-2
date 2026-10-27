@@ -212,6 +212,22 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Meals: 0-100 spectrum scoring, replacing pass/fail** *(2026-10-26, not live yet)*
+Each plate scores 0-100 instead of pass/fail: whole-food ratio dominates,
+a small bonus per nutrient tag, a flat penalty for Processed on top of the
+ratio dilution it already causes, and (strict mode only) a penalty for
+Dairy/Semi-processed/Supplements. A day's score is the plain average of its
+plates (meals + extras); on/off is kept for streaks and the habit check-in,
+now `average >= on_target_threshold` instead of a miss-counting pass goal.
+Daily/weekly food-group goals are a progress readout only — they no longer
+gate on/off. No early mid-day verdict: a day stays "pending" until every
+meal is logged/skipped. All five weights are admin-tunable in Meals →
+Settings (the whole app is already admin-only). `scorePlate`/`scoreVerdict`/
+`scoreDay` in `services/mealsMath.ts` (tested); `MealsScoringWeights` in
+`types/meals.ts`; defaults in `data/mealGroups.ts`. Old saved days/prefs
+missing the `scoring` field are backfilled with defaults on read
+(`rulesForDay`, `getMealsPrefs`). Not tried on screen yet.
+
 **Workouts: rest alert when the phone is locked** *(2026-10-24, 0886ce1, live OTA)*
 A notification ("Rest's up · Up next: …") when rest ends while the app is in
 the background. It's scheduled only on going to the background and called off

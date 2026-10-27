@@ -1,0 +1,173 @@
+# Meals (Lab): the 0-100 spectrum scoring. Starts with Meals open or the
+# Today card visible. Writes to the signed-in account's users/{uid}/lab_meals_*
+# (clears and re-logs today, nudges a scoring setting and resets it back).
+appId: com.neuronudge.neuronudge
+---
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- runFlow:
+    when:
+      notVisible: "Close Meals"
+    commands:
+      # The Meals card sits at the very bottom of Today, partly behind the
+      # tab bar — tapping it unscrolled lands on the tab bar instead.
+      - scrollUntilVisible:
+          element:
+            text: "Meals\\. .*"
+          direction: DOWN
+          centerElement: true
+          timeout: 10000
+      - tapOn: "Meals\\. .*"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "Got it"
+    commands:
+      - tapOn: "Got it"
+- runFlow:
+    file: subflows/meals-clear-day.yaml
+- assertVisible: "In progress"
+- takeScreenshot: 16a-1-day-empty
+
+# Breakfast: Eggs + Fruit — a clean whole-food plate, should score high.
+- tapOn: "Breakfast: .*"
+- extendedWaitUntil:
+    visible:
+      id: "meal-chip-eggs"
+    timeout: 10000
+- tapOn:
+    id: "meal-chip-eggs"
+- tapOn:
+    id: "meal-chip-fruit"
+- assertNotVisible: "Pass"
+- assertNotVisible: "Fail"
+- takeScreenshot: 16a-2-breakfast-clean
+# The Processed chip is in a section below the fold, behind the footer —
+# scrollUntilVisible counts it visible anyway (see 13c), so swipe the list
+# itself first (same fix as 13c's own Processed-chip workaround).
+- swipe:
+    start: 50%, 60%
+    end: 50%, 25%
+# Add Processed to see the number drop and the reason line mention it.
+- tapOn:
+    id: "meal-chip-processed"
+- takeScreenshot: 16a-3-breakfast-with-processed
+# Take it back off before saving, so breakfast stays the clean plate.
+- tapOn:
+    id: "meal-chip-processed"
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "Breakfast: Eggs · Fruit"
+    timeout: 10000
+
+# Lunch: chicken, veggies and a jarred sauce — a middling plate.
+- tapOn: "Lunch: .*"
+- tapOn:
+    id: "meal-chip-chicken"
+- tapOn:
+    id: "meal-chip-veggies"
+- swipe:
+    start: 50%, 60%
+    end: 50%, 25%
+- tapOn:
+    id: "meal-chip-semi"
+- takeScreenshot: 16a-4-lunch-picker
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "Lunch: Chicken & turkey · Veggies · Semi-processed"
+    timeout: 10000
+
+# Dinner: fast food only — the lowest plate, pulls the day's average down.
+- tapOn: "Dinner: .*"
+- swipe:
+    start: 50%, 60%
+    end: 50%, 25%
+- tapOn:
+    id: "meal-chip-processed"
+- takeScreenshot: 16a-5-dinner-picker
+- tapOn: ".*Save"
+- extendedWaitUntil:
+    visible: "Off target"
+    timeout: 10000
+# 80 (breakfast) + 57 (lunch) + 0 (dinner), averaged and rounded = 46, below
+# the default on-target threshold of 70.
+- assertVisible: "Averaged 46 · below your target of 70"
+- takeScreenshot: 16a-6-day-status
+
+# Settings: the new Scoring section, and that a nudge persists.
+- tapOn: "Meals settings"
+- extendedWaitUntil:
+    visible: "MY MEALS"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "On target at"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 16a-7-settings-scoring
+- tapOn: "More on-target threshold"
+- takeScreenshot: 16a-8-settings-threshold-bumped
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- tapOn: "Meals settings"
+- extendedWaitUntil:
+    visible: "MY MEALS"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "On target at"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 16a-9-settings-threshold-persisted
+
+# The Guide, from Settings' "What counts as what" (further down the page).
+- scrollUntilVisible:
+    element: ".*What counts as what"
+    direction: DOWN
+    timeout: 10000
+- tapOn: ".*What counts as what"
+- extendedWaitUntil:
+    visible: "Eggs and berries"
+    timeout: 10000
+- takeScreenshot: 16a-10-guide-examples
+
+# Back to Settings (scroll position is preserved — back near the Scoring
+# section, not "MY MEALS" at the top), put the threshold back to default,
+# then back to the day.
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "Processed penalty"
+    timeout: 10000
+- scrollUntilVisible:
+    element: ".*Reset scoring to defaults"
+    direction: DOWN
+    timeout: 10000
+- tapOn: ".*Reset scoring to defaults"
+- takeScreenshot: 16a-11-settings-reset
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+
+# The week view.
+- tapOn: "This week"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 16a-12-week-top
+
+# Put the day back as 10d does: clear today's plates.
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- runFlow:
+    file: subflows/meals-clear-day.yaml
+- assertVisible: "In progress"
+- tapOn: "Close Meals"

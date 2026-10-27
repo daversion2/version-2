@@ -1,31 +1,29 @@
 import {
   addSlot,
-  allowedMisses,
   canReopen,
   closeDay,
   emptyDay,
   pastWeeks,
   daysOnTarget,
-  plateVerdict,
+  nutrientCoverage,
+  plateNutrients,
   recentPlates,
+  removeSlot,
   reopenDay,
+  rulesForDay,
+  scoreDay,
+  scorePlate,
+  scoreVerdict,
+  summarizeWeek,
+  dailyGoalOnDay,
+  describeGroupGoal,
+  newGroupGoal,
+  weekDates,
   withExtra,
   withMeal,
   withoutExtra,
-  clampPassGoal,
-  dailyGoalOnDay,
-  describeGroupGoal,
-  describeMealGoal,
-  evaluatePlate,
-  newGroupGoal,
-  nutrientCoverage,
-  plateNutrients,
-  removeSlot,
-  rulesForDay,
-  scoreDay,
-  summarizeWeek,
-  weekDates,
 } from '../mealsMath';
+import { DEFAULT_MEALS_SCORING } from '../../data/mealGroups';
 import type { FoodGroupId, GroupGoal, MealsDay, MealsRules } from '../../types/meals';
 
 const SLOTS = [
@@ -34,11 +32,13 @@ const SLOTS = [
   { id: 'dinner', name: 'Dinner' },
 ];
 
+const weights = DEFAULT_MEALS_SCORING; // ratio_points 70, nutrient_bonus 5, processed_penalty 30, strict_penalty 10, on_target_threshold 70
+
 const rules = (over: Partial<MealsRules> = {}): MealsRules => ({
   slots: SLOTS,
-  pass_goal: 3,
   strict: false,
   group_goals: [],
+  scoring: weights,
   ...over,
 });
 
@@ -53,98 +53,106 @@ const day = (date: string, meals: MealsDay['meals'], extras: MealsDay['extras'] 
   extras,
 });
 
-describe('evaluatePlate', () => {
-  it('passes real food, and real food with semi-processed alongside', () => {
-    expect(evaluatePlate(['eggs', 'fruit'], false)).toBe('pass');
-    expect(evaluatePlate(['chicken', 'veggies', 'grains', 'semi'], false)).toBe('pass');
-    expect(evaluatePlate(['fruit', 'semi'], false)).toBe('pass'); // yogurt with berries
+describe('scorePlate', () => {
+  it('is dominated by the whole-food ratio', () => {
+    expect(scorePlate(['eggs', 'fruit'], false, weights)).toBe(80); // ratio 1.0 (70) + protein+fiber (10)
+    expect(scorePlate(['chicken', 'veggies', 'grains', 'semi'], false, weights)).toBe(63); // ratio 0.75 (52.5) + protein+fiber (10)
   });
 
-  it('fails anything Processed, even with real food beside it', () => {
-    expect(evaluatePlate(['processed'], false)).toBe('fail');
-    expect(evaluatePlate(['processed', 'veggies'], false)).toBe('fail'); // frozen pizza + side salad
+  it('adds a bonus per nutrient tag the plate hits, equally weighted, up to three', () => {
+    expect(scorePlate(['grains'], false, weights)).toBe(75); // ratio 70 + fiber only (5)
+    expect(scorePlate(['fish'], false, weights)).toBe(80); // ratio 70 + protein+fats (10)
   });
 
-  it('fails semi-processed on its own — there is no real food on the plate', () => {
-    expect(evaluatePlate(['semi'], false)).toBe('fail'); // plain yogurt (dairy is semi-processed)
+  it('costs Processed a flat penalty on top of the ratio dilution it already causes', () => {
+    expect(scorePlate(['processed'], false, weights)).toBe(0); // 0 ratio, 0 nutrients, -30, clamped
+    expect(scorePlate(['processed', 'veggies'], false, weights)).toBe(10); // ratio 0.5 (35) + fiber (5) - 30
   });
 
-  it('strict mode fails semi-processed alongside real food too', () => {
-    expect(evaluatePlate(['chicken', 'veggies', 'semi'], true)).toBe('fail');
-    expect(evaluatePlate(['eggs', 'fruit'], true)).toBe('pass');
+  it('strict mode costs dairy/semi/supplements extra — processed is unaffected, it already has its own penalty', () => {
+    expect(scorePlate(['chicken', 'veggies', 'semi'], false, weights)).toBe(57);
+    expect(scorePlate(['chicken', 'veggies', 'semi'], true, weights)).toBe(47); // 57 - strict_penalty (10)
+    expect(scorePlate(['processed', 'veggies'], true, weights)).toBe(10); // unchanged: 'processed' isn't semi-tier
   });
 
-  it('an empty plate has no result yet', () => {
-    expect(evaluatePlate([], false)).toBeNull();
-    expect(evaluatePlate(undefined, false)).toBeNull();
+  it('is null for an empty plate', () => {
+    expect(scorePlate([], false, weights)).toBeNull();
+    expect(scorePlate(undefined, false, weights)).toBeNull();
+  });
+
+  it('never goes below 0', () => {
+    expect(scorePlate(['supplements'], true, weights)).toBe(0); // 0 ratio + protein (5) - strict_penalty (10), clamped
+    expect(scorePlate(['semi'], true, weights)).toBe(0); // 0 ratio + nothing - strict_penalty (10), clamped
+  });
+
+  it('never goes above 100, even with custom weights pushing the raw total over', () => {
+    const big = { ...weights, ratio_points: 100, nutrient_bonus: 10 };
+    expect(scorePlate(['fish'], false, big)).toBe(100); // 100 ratio + 20 (protein+fats) would be 120
   });
 });
 
-describe('scoreDay — the founder’s worked examples', () => {
-  it('pass 3 of 3, all pass → on target', () => {
-    const s = scoreDay(day('d', { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') }), rules());
-    expect(s.status).toBe('on');
-    expect(s.passes).toBe(3);
+describe('scoreVerdict', () => {
+  it('names the penalty that applied', () => {
+    expect(scoreVerdict(['processed', 'veggies'], false, weights)).toEqual({
+      score: 10,
+      why: 'Processed on the plate (−30)',
+    });
+    expect(scoreVerdict(['eggs', 'semi'], true, weights).why).toBe('strict mode (−10)');
   });
 
-  it('pass 3 of 3, all pass plus a Processed snack → off target: the snack is the one miss', () => {
+  it('describes a clean plate', () => {
+    expect(scoreVerdict(['eggs', 'fruit'], false, weights).why).toBe('All whole food.');
+    expect(scoreVerdict(['eggs', 'semi'], false, weights).why).toBe('Real food, with a little semi-processed.');
+  });
+
+  it('an empty plate has no score yet', () => {
+    expect(scoreVerdict([], false, weights)).toEqual({ score: null, why: 'Tap what was on the plate.' });
+  });
+});
+
+describe('scoreDay — averaging plates into a day score', () => {
+  it('a clean whole-food day averages its three plates', () => {
+    const s = scoreDay(day('d', { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') }), rules());
+    // 75, 80, 75 → 76.67 → 77
+    expect(s.average).toBe(77);
+    expect(s.scoredCount).toBe(3);
+    expect(s.status).toBe('on');
+  });
+
+  it('a Processed extra pulls the average down — it counts the same as a meal', () => {
     const s = scoreDay(
       day('d', { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') }, [extra('x', 'processed')]),
       rules()
     );
-    expect(s.fails).toBe(1);
+    // 75, 80, 75, 0 → 57.5 → 58, under the default threshold of 70
+    expect(s.average).toBe(58);
     expect(s.status).toBe('off');
   });
 
-  it('pass 2 of 3 with one failed meal → on target', () => {
-    const s = scoreDay(
-      day('d', { breakfast: plate('eggs'), lunch: plate('processed'), dinner: plate('beef') }),
-      rules({ pass_goal: 2 })
-    );
-    expect(s.allowed).toBe(1);
-    expect(s.status).toBe('on');
-  });
-
-  it('pass 2 of 3, all pass plus a Processed snack → on target: the snack uses the one miss', () => {
-    const s = scoreDay(
-      day('d', { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') }, [extra('x', 'processed')]),
-      rules({ pass_goal: 2 })
-    );
-    expect(s.status).toBe('on');
-  });
-
-  it('a skipped meal never counts against you: 3 of 3 with breakfast skipped is 2 of 2', () => {
-    const s = scoreDay(day('d', { breakfast: skipped, lunch: plate('fish'), dinner: plate('beef') }), rules());
-    expect(s.status).toBe('on');
-    expect(s.items.find((i) => i.key === 'breakfast')?.state).toBe('skipped');
-  });
-
-  it('a whole-food extra is just recorded — it never costs the day', () => {
+  it('a whole-food extra adds to the average without changing the outcome', () => {
     const s = scoreDay(
       day('d', { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') }, [extra('x', 'fruit')]),
       rules()
     );
+    // 75, 80, 75, 75 → 76.25 → 76
+    expect(s.average).toBe(76);
+    expect(s.scoredCount).toBe(4);
     expect(s.status).toBe('on');
-    expect(s.passes).toBe(4);
-  });
-});
-
-describe('scoreDay — in progress', () => {
-  it('stays pending while a meal is unlogged and the misses hold', () => {
-    const s = scoreDay(day('d', { breakfast: plate('eggs') }), rules());
-    expect(s.status).toBe('pending');
-    expect(s.pending).toBe(2);
-    expect(s.complete).toBe(false);
   });
 
-  it('turns off mid-day once the misses run out — the rest of the day can’t change it', () => {
-    const s = scoreDay(day('d', { breakfast: plate('processed') }), rules());
-    expect(s.status).toBe('off');
-    expect(s.complete).toBe(false);
+  it('a skipped meal never counts against the average: it just isn’t one of the plates', () => {
+    const s = scoreDay(day('d', { breakfast: skipped, lunch: plate('fish'), dinner: plate('beef') }), rules());
+    // 80, 75 → 77.5 → 78
+    expect(s.average).toBe(78);
+    expect(s.status).toBe('on');
+    expect(s.items.find((i) => i.key === 'breakfast')?.state).toBe('skipped');
   });
 
-  it('an untouched day is pending', () => {
-    expect(scoreDay(undefined, rules()).status).toBe('pending');
+  it('the on-target threshold is a settings knob, read from scoring.on_target_threshold', () => {
+    const d = day('d', { breakfast: plate('eggs'), lunch: plate('processed'), dinner: plate('beef') });
+    // 75, 0, 75 → 50 exactly
+    expect(scoreDay(d, rules()).status).toBe('off');
+    expect(scoreDay(d, rules({ scoring: { ...weights, on_target_threshold: 50 } })).status).toBe('on');
   });
 
   it('ignores entries for a meal that was since removed from the settings', () => {
@@ -157,20 +165,45 @@ describe('scoreDay — in progress', () => {
   });
 });
 
-describe('scoreDay — daily group goals', () => {
+describe('scoreDay — in progress', () => {
+  it('stays pending while a meal is unlogged', () => {
+    const s = scoreDay(day('d', { breakfast: plate('eggs') }), rules());
+    expect(s.status).toBe('pending');
+    expect(s.pending).toBe(2);
+    expect(s.complete).toBe(false);
+    expect(s.average).toBe(75);
+  });
+
+  it('stays pending even when what’s logged so far is already too low to recover from — no early verdict', () => {
+    const s = scoreDay(day('d', { breakfast: plate('processed') }), rules());
+    expect(s.status).toBe('pending');
+    expect(s.complete).toBe(false);
+    expect(s.average).toBe(0);
+  });
+
+  it('an untouched day is pending, with no average yet', () => {
+    const s = scoreDay(undefined, rules());
+    expect(s.status).toBe('pending');
+    expect(s.average).toBeNull();
+  });
+});
+
+describe('scoreDay — daily group goals are a readout, not a gate', () => {
   const veggies2: GroupGoal = { id: 'g', group: 'veggies', count: 2, period: 'day' };
   const fishWeekly: GroupGoal = { id: 'w', group: 'fish', count: 2, period: 'week' };
 
-  it('a daily goal must be met for the day to be on target', () => {
+  it('an unmet daily goal no longer forces the day off once the average clears the threshold', () => {
     const r = rules({ group_goals: [veggies2] });
     const short = scoreDay(day('d', { breakfast: plate('eggs'), lunch: plate('veggies'), dinner: plate('beef') }), r);
     expect(short.groupGoals[0]).toMatchObject({ have: 1, met: false });
-    expect(short.status).toBe('off');
+    expect(short.average).toBe(75);
+    expect(short.status).toBe('on'); // would have been 'off' under the old pass-goal rule
 
     const met = scoreDay(
       day('d', { breakfast: plate('eggs'), lunch: plate('veggies'), dinner: plate('beef', 'veggies') }),
       r
     );
+    expect(met.groupGoals[0].met).toBe(true);
     expect(met.status).toBe('on');
   });
 
@@ -182,7 +215,7 @@ describe('scoreDay — daily group goals', () => {
     expect(s.groupGoals[0].have).toBe(2);
   });
 
-  it('weekly goals never decide a day', () => {
+  it('weekly goals never show up as a daily readout', () => {
     const s = scoreDay(
       day('d', { breakfast: plate('eggs'), lunch: plate('beef'), dinner: plate('beef') }),
       rules({ group_goals: [fishWeekly] })
@@ -191,7 +224,7 @@ describe('scoreDay — daily group goals', () => {
     expect(s.status).toBe('on');
   });
 
-  it('an unmet goal leaves an unfinished day pending, not off — dinner can still fix it', () => {
+  it('an unfinished day stays pending regardless of any goal', () => {
     const s = scoreDay(day('d', { breakfast: plate('eggs') }), rules({ group_goals: [veggies2] }));
     expect(s.status).toBe('pending');
   });
@@ -216,16 +249,30 @@ describe('weekDates', () => {
 });
 
 describe('rulesForDay', () => {
-  const current = rules({ pass_goal: 2 });
-  const old = rules({ pass_goal: 3 });
+  const current = rules({ scoring: { ...weights, on_target_threshold: 50 } });
+  // Simulates a day saved before `scoring` existed on MealsRules.
+  const oldRules = { slots: SLOTS, strict: false, group_goals: [] } as unknown as MealsRules;
 
   it('today always uses the current settings', () => {
-    expect(rulesForDay('2026-10-15', '2026-10-15', { rules: old }, current)).toBe(current);
+    expect(rulesForDay('2026-10-15', '2026-10-15', { rules: oldRules }, current)).toBe(current);
   });
 
   it('a past day keeps the rules it was saved under, so editing settings never rescores it', () => {
-    expect(rulesForDay('2026-10-14', '2026-10-15', { rules: old }, current)).toBe(old);
+    const lenient = rules({ scoring: { ...weights, on_target_threshold: 10 } });
+    expect(rulesForDay('2026-10-14', '2026-10-15', { rules: lenient }, current)).toEqual(lenient);
     expect(rulesForDay('2026-10-14', '2026-10-15', undefined, current)).toBe(current);
+  });
+
+  it('backfills a missing scoring field on a day saved before it existed', () => {
+    const r = rulesForDay('2026-10-14', '2026-10-15', { rules: oldRules }, current);
+    expect(r.scoring).toEqual(DEFAULT_MEALS_SCORING);
+    expect(r.slots).toBe(oldRules.slots); // the rest of the saved snapshot is preserved
+  });
+
+  it('backfills only the missing keys of a partially-present scoring object', () => {
+    const partial = { ...oldRules, scoring: { on_target_threshold: 40 } } as unknown as MealsRules;
+    const r = rulesForDay('2026-10-14', '2026-10-15', { rules: partial }, current);
+    expect(r.scoring).toEqual({ ...DEFAULT_MEALS_SCORING, on_target_threshold: 40 });
   });
 });
 
@@ -240,17 +287,18 @@ describe('summarizeWeek', () => {
     '2026-10-15': day('2026-10-15', { breakfast: plate('eggs') }),
   };
 
-  it('counts plates passed so far, meals and extras, skipping skipped meals and the days ahead', () => {
+  it('averages every scored plate so far, meals and extras, skipping skipped meals and the days ahead', () => {
     const w = summarizeWeek(today, days, rules());
-    // Mon 2/3, Tue 2/3, Wed 2/3 (lunch + fruit extra pass, dinner fails), Thu 1/1.
-    expect(w.scored).toBe(10);
-    expect(w.passed).toBe(7);
+    // 75,0,80 + 75,0,80 + 75,0,75 + 75 = 535 over 10 plates
+    expect(w.platesLogged).toBe(10);
+    expect(w.averageScore).toBe(54);
     expect(w.days.filter((d) => d.future)).toHaveLength(3);
   });
 
-  it('names the meal that slips most', () => {
+  it('names the meal slipping furthest below target', () => {
     const w = summarizeWeek(today, days, rules());
-    expect(w.slipping).toMatchObject({ slotId: 'lunch', fails: 2, logged: 3 });
+    // Lunch: processed, processed, beef → 0, 0, 75 → averaging 25, well under the threshold of 70.
+    expect(w.slipping).toMatchObject({ slotId: 'lunch', average: 25, logged: 3 });
   });
 
   it('reports no slipping meal in a clean week', () => {
@@ -279,29 +327,15 @@ describe('summarizeWeek', () => {
 });
 
 describe('settings helpers', () => {
-  it('keeps the pass goal within the meals', () => {
-    expect(clampPassGoal(5, 3)).toBe(3);
-    expect(clampPassGoal(-1, 3)).toBe(0);
+  it('adding a meal is capped at the slot limit', () => {
+    expect(addSlot({ slots: SLOTS }, { id: 'snack', name: 'Snack' }).slots).toHaveLength(4);
+    const full = { slots: Array.from({ length: 8 }, (_, i) => ({ id: `s${i}`, name: `S${i}` })) };
+    expect(addSlot(full, { id: 'x', name: 'X' })).toBe(full);
   });
 
-  it('allowedMisses is meals minus the goal', () => {
-    expect(allowedMisses({ slots: SLOTS, pass_goal: 2 })).toBe(1);
-    expect(allowedMisses({ slots: SLOTS, pass_goal: 3 })).toBe(0);
-  });
-
-  it('adding a meal keeps "all of them" as all of them', () => {
-    const next = addSlot({ slots: SLOTS, pass_goal: 3 }, { id: 'snack', name: 'Snack' });
-    expect(next.slots).toHaveLength(4);
-    expect(next.pass_goal).toBe(4);
-  });
-
-  it('adding a meal to a goal with misses to spare leaves the goal alone', () => {
-    expect(addSlot({ slots: SLOTS, pass_goal: 2 }, { id: 'snack', name: 'Snack' }).pass_goal).toBe(2);
-  });
-
-  it('removing a meal pulls the goal down with it, and never removes the last meal', () => {
-    expect(removeSlot({ slots: SLOTS, pass_goal: 3 }, 'lunch')).toMatchObject({ pass_goal: 2 });
-    const one = { slots: [SLOTS[0]], pass_goal: 1 };
+  it('removing a meal never removes the last one', () => {
+    expect(removeSlot({ slots: SLOTS }, 'lunch').slots).toHaveLength(2);
+    const one = { slots: [SLOTS[0]] };
     expect(removeSlot(one, 'breakfast')).toBe(one);
   });
 
@@ -321,19 +355,6 @@ describe('settings helpers', () => {
     expect(describeGroupGoal({ id: 'g', group: 'fish', count: 1, period: 'week' })).toBe(
       'Fish & seafood 1 time a week'
     );
-    expect(describeMealGoal({ slots: SLOTS, pass_goal: 2 })).toMatch(/hold 1 miss /);
-  });
-});
-
-describe('plateVerdict', () => {
-  it('says why a plate failed', () => {
-    expect(plateVerdict(['processed', 'veggies'], false)).toEqual({
-      result: 'fail',
-      why: 'Something Processed was on the plate.',
-    });
-    expect(plateVerdict(['semi'], false).why).toBe('No whole food on the plate.');
-    expect(plateVerdict(['eggs', 'semi'], true).why).toBe('Strict mode: whole food only.');
-    expect(plateVerdict([], false).result).toBeNull();
   });
 });
 
@@ -376,28 +397,28 @@ describe('editing a day', () => {
 });
 
 describe('dairy', () => {
-  it('is semi-processed for pass/fail: fine beside real food, a fail on its own', () => {
-    expect(evaluatePlate(['fruit', 'dairy'], false)).toBe('pass');
-    expect(evaluatePlate(['dairy'], false)).toBe('fail');
+  it('dilutes the ratio like any non-whole group, but isn’t penalized unless strict', () => {
+    expect(scorePlate(['fruit', 'dairy'], false, weights)).toBe(45); // ratio 0.5 (35) + protein+fiber (10)
+    expect(scorePlate(['dairy'], false, weights)).toBe(5); // 0 ratio + protein (5), no processed penalty
   });
 
-  it('fails strict mode like semi-processed does', () => {
-    expect(evaluatePlate(['fruit', 'dairy'], true)).toBe('fail');
-    expect(plateVerdict(['eggs', 'dairy'], true).why).toBe('Strict mode: whole food only.');
-    expect(plateVerdict(['eggs', 'dairy'], false).why).toBe('Real food, with a little semi-processed.');
+  it('costs the strict penalty like semi-processed does', () => {
+    expect(scorePlate(['fruit', 'dairy'], true, weights)).toBe(35); // 45 - strict_penalty (10)
+    expect(scoreVerdict(['eggs', 'dairy'], true, weights).why).toBe('strict mode (−10)');
+    expect(scoreVerdict(['eggs', 'dairy'], false, weights).why).toBe('Real food, with a little semi-processed.');
   });
 });
 
 describe('supplements', () => {
-  it('is semi-processed for pass/fail: fine beside real food, a fail on its own', () => {
-    expect(evaluatePlate(['fruit', 'supplements'], false)).toBe('pass');
-    expect(evaluatePlate(['supplements'], false)).toBe('fail');
+  it('dilutes the ratio like any non-whole group, but isn’t penalized unless strict', () => {
+    expect(scorePlate(['fruit', 'supplements'], false, weights)).toBe(45);
+    expect(scorePlate(['supplements'], false, weights)).toBe(5);
   });
 
-  it('fails strict mode like semi-processed does', () => {
-    expect(evaluatePlate(['fruit', 'supplements'], true)).toBe('fail');
-    expect(plateVerdict(['eggs', 'supplements'], true).why).toBe('Strict mode: whole food only.');
-    expect(plateVerdict(['eggs', 'supplements'], false).why).toBe('Real food, with a little semi-processed.');
+  it('costs the strict penalty like semi-processed does', () => {
+    expect(scorePlate(['fruit', 'supplements'], true, weights)).toBe(35);
+    expect(scoreVerdict(['eggs', 'supplements'], true, weights).why).toBe('strict mode (−10)');
+    expect(scoreVerdict(['eggs', 'supplements'], false, weights).why).toBe('Real food, with a little semi-processed.');
   });
 });
 
@@ -430,8 +451,8 @@ describe('nutrient tags', () => {
     ]);
   });
 
-  it('counts a failed plate too — it still had what it had', () => {
-    expect(nutrientCoverage([{ state: 'fail', groups: ['processed', 'veggies'] }])[1]).toEqual({
+  it('counts a low-scoring plate too — it still had what it had', () => {
+    expect(nutrientCoverage([{ state: 'scored', groups: ['processed', 'veggies'] }])[1]).toEqual({
       nutrient: 'fiber',
       have: 1,
       of: 1,
@@ -508,7 +529,7 @@ describe('recentPlates', () => {
 describe('pastWeeks', () => {
   // Thursday 15 Oct 2026; this week began Monday 12 Oct.
   const today = '2026-10-15';
-  const full = (date: string) => day(date, { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('veggies') });
+  const full = (date: string) => day(date, { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') });
 
   it('scores the weeks before this one, newest first, and skips empty ones', () => {
     const days = {
@@ -520,19 +541,24 @@ describe('pastWeeks', () => {
     const weeks = pastWeeks(today, days, rules());
     expect(weeks.map((w) => w.days[0].date)).toEqual(['2026-10-05', '2026-09-21']);
     expect(daysOnTarget(weeks[0])).toBe(1);
-    expect(weeks[0]).toMatchObject({ passed: 3, scored: 4 });
+    // full day: 75+80+75=230 over 3; Oct 7: just breakfast, processed, scores 0.
+    expect(weeks[0]).toMatchObject({ averageScore: 58, platesLogged: 4 });
     expect(weeks[0].days.every((d) => !d.future)).toBe(true);
   });
 
   it('scores a past day by the rules it was saved under', () => {
-    const lenient = rules({ pass_goal: 1 });
+    const lenient = rules({ scoring: { ...weights, on_target_threshold: 30 } });
     const days = {
-      '2026-10-06': { ...day('2026-10-06', { breakfast: plate('eggs'), lunch: skipped, dinner: plate('processed') }), rules: lenient },
+      '2026-10-06': {
+        ...day('2026-10-06', { breakfast: plate('eggs'), lunch: skipped, dinner: plate('processed') }),
+        rules: lenient,
+      },
     };
+    // 75 + 0 → 37.5 → 38, below the current threshold of 70 but above the saved lenient one of 30.
     expect(daysOnTarget(pastWeeks(today, days, rules())[0])).toBe(1);
   });
 
-  it('counts a week where only "didn\u2019t eat" was logged', () => {
+  it('counts a week where only "didn’t eat" was logged', () => {
     const days = { '2026-10-06': day('2026-10-06', { breakfast: skipped }) };
     expect(pastWeeks(today, days, rules())).toHaveLength(1);
   });

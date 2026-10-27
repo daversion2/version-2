@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../../data/mealGroups';
-import type { FoodGroupId } from '../../../../../types/meals';
+import type { FoodGroupId, MealsScoringWeights } from '../../../../../types/meals';
 import type { RecentPlate } from '../../../../../services/mealsMath';
-import { describeGroups, plateNutrients, plateVerdict } from '../../../../../services/mealsMath';
-import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, mls } from './mealsStyle';
+import { describeGroups, plateNutrients, scoreVerdict } from '../../../../../services/mealsMath';
+import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, scoreColor, mls } from './mealsStyle';
 import { NutrientTags } from './MealsParts';
 
 export interface PickerTarget {
@@ -25,6 +25,7 @@ export interface PickerTarget {
 interface Props {
   target: PickerTarget | null;
   strict: boolean;
+  weights: MealsScoringWeights;
   /** Plates logged before (services/mealsMath recentPlates): a tap fills the chips. */
   recent?: RecentPlate[];
   onCancel: () => void;
@@ -36,11 +37,11 @@ interface Props {
 }
 
 /**
- * What was on the plate. Tap every group that applies; the result is worked out
- * as you go, so you see pass or fail before saving. The user never chooses the
- * result — only the groups.
+ * What was on the plate. Tap every group that applies; the score is worked out
+ * as you go, so you see it before saving. The user never chooses the score —
+ * only the groups.
  */
-export const MealPickerModal: React.FC<Props> = ({ target, strict, recent = [], onCancel, onSave, onSkip, onRemove }) => {
+export const MealPickerModal: React.FC<Props> = ({ target, strict, weights, recent = [], onCancel, onSave, onSkip, onRemove }) => {
   const insets = useSafeAreaInsets();
   const [groups, setGroups] = useState<FoodGroupId[]>([]);
   const [name, setName] = useState('');
@@ -65,7 +66,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, recent = [], 
   const sameAs = (plate: RecentPlate) =>
     plate.groups.length === groups.length && plate.groups.every((g) => groups.includes(g));
 
-  const verdict = plateVerdict(groups, strict);
+  const verdict = scoreVerdict(groups, strict, weights);
   const isExtra = target?.kind === 'extra';
 
   const renderChip = (group: FoodGroup, processed: boolean) => {
@@ -129,7 +130,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, recent = [], 
               <View style={styles.recentList}>
                 {recent.map((plate) => {
                   const on = sameAs(plate);
-                  const result = plateVerdict(plate.groups, strict).result;
+                  const result = scoreVerdict(plate.groups, strict, weights).score;
                   const label = describeGroups(plate.groups);
                   return (
                     <TouchableOpacity
@@ -139,9 +140,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, recent = [], 
                       accessibilityRole="button"
                       accessibilityLabel={`Use ${plate.name ? `${plate.name}, ` : ''}${label}`}
                     >
-                      <View
-                        style={[styles.recentDot, { backgroundColor: result === 'pass' ? PASS_COLOR : FAIL_COLOR }]}
-                      />
+                      <View style={[styles.recentDot, { backgroundColor: scoreColor(result) }]} />
                       <View style={styles.recentText}>
                         {plate.name && (
                           <Text style={styles.chipText} numberOfLines={1}>
@@ -197,20 +196,9 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, recent = [], 
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
-          <View
-            style={[
-              styles.verdict,
-              verdict.result === 'pass' && { backgroundColor: PASS_COLOR + '14' },
-              verdict.result === 'fail' && { backgroundColor: FAIL_COLOR + '14' },
-            ]}
-          >
-            <Text
-              style={[
-                styles.verdictTitle,
-                { color: verdict.result === 'pass' ? PASS_COLOR : verdict.result === 'fail' ? FAIL_COLOR : Colors.gray },
-              ]}
-            >
-              {verdict.result === 'pass' ? 'Pass' : verdict.result === 'fail' ? 'Fail' : 'Nothing picked yet'}
+          <View style={[styles.verdict, verdict.score !== null && { backgroundColor: scoreColor(verdict.score) + '14' }]}>
+            <Text style={[styles.verdictTitle, { color: verdict.score !== null ? scoreColor(verdict.score) : Colors.gray }]}>
+              {verdict.score !== null ? verdict.score : 'Nothing picked yet'}
             </Text>
             <Text style={mls.muted}>{verdict.why}</Text>
             {groups.length > 0 && <NutrientTags have={plateNutrients(groups)} showMissing />}

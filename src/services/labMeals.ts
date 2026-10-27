@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { MealsDay, MealsPrefs } from '../types/meals';
-import { DEFAULT_MEALS_PREFS } from '../data/mealGroups';
+import { DEFAULT_MEALS_PREFS, DEFAULT_MEALS_SCORING } from '../data/mealGroups';
 import { stripUndefined } from './labWorkouts';
 
 // =============================================================================
@@ -24,7 +24,10 @@ const ref = (userId: string, name: string, id: string) => doc(db, 'users', userI
 
 export const getMealsPrefs = async (userId: string): Promise<MealsPrefs> => {
   const snap = await getDoc(ref(userId, COL.prefs, PREFS_DOC));
-  return { ...DEFAULT_MEALS_PREFS, ...(snap.exists() ? (snap.data() as Partial<MealsPrefs>) : {}) };
+  const data: Partial<MealsPrefs> = snap.exists() ? (snap.data() as Partial<MealsPrefs>) : {};
+  // `scoring` merges one level deep — an old prefs doc predates it entirely,
+  // and a future weight added to the shape shouldn't vanish from an old doc either.
+  return { ...DEFAULT_MEALS_PREFS, ...data, scoring: { ...DEFAULT_MEALS_SCORING, ...(data.scoring ?? {}) } };
 };
 
 /** Merged at the top level; an array field (slots, goals) is replaced whole. */

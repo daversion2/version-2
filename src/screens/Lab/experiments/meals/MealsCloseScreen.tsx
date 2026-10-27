@@ -12,7 +12,7 @@ import { showAlert } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
 import { MealPickerModal, PickerTarget } from './components/MealPickerModal';
 import { PlateRow } from './components/MealsParts';
-import { FAIL_COLOR, MEALS_ACCENT, MEALS_TINT, PASS_COLOR, mls } from './components/mealsStyle';
+import { FAIL_COLOR, MEALS_ACCENT, MEALS_TINT, PASS_COLOR, scoreColor, mls } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsClose'>;
 
@@ -94,6 +94,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
         <MealPickerModal
           target={editing}
           strict={rules.strict}
+          weights={rules.scoring}
           onCancel={() => setEditing(null)}
           onSave={logMeal}
           onSkip={skipMeal}
@@ -112,7 +113,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.heroTitle}>{on ? 'On target' : 'Off target'}</Text>
           <Text style={styles.heroSub}>
             {on
-              ? `Your goal was ${rules.pass_goal} of ${rules.slots.length} meals passing, and you made it.`
+              ? `Your day scored ${score.average}, at or above your target of ${rules.scoring.on_target_threshold}.`
               : 'Not this time. Every meal you logged still counts toward your week.'}
           </Text>
         </View>
@@ -121,14 +122,8 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           {score.items.map((item) => (
             <View key={item.key} style={styles.line}>
               <Text style={mls.body}>{item.name}</Text>
-              <Text
-                style={[
-                  styles.lineValue,
-                  item.state === 'pass' && { color: PASS_COLOR },
-                  item.state === 'fail' && { color: FAIL_COLOR },
-                ]}
-              >
-                {item.state === 'pass' ? 'Pass' : item.state === 'fail' ? 'Fail' : 'Didn’t eat'}
+              <Text style={[styles.lineValue, item.state === 'scored' && { color: scoreColor(item.score) }]}>
+                {item.state === 'scored' ? item.score : 'Didn’t eat'}
               </Text>
             </View>
           ))}
@@ -141,9 +136,9 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
             </View>
           ))}
           <View style={[styles.line, styles.lastLine]}>
-            <Text style={mls.body}>Misses</Text>
-            <Text style={styles.lineValue}>
-              {score.fails} {score.allowed === 0 ? '(none to spare)' : `of ${score.allowed} the day can hold`}
+            <Text style={mls.body}>Day score</Text>
+            <Text style={[styles.lineValue, { color: scoreColor(score.average) }]}>
+              {score.average} · target {rules.scoring.on_target_threshold}+
             </Text>
           </View>
         </View>

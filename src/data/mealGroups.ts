@@ -1,4 +1,4 @@
-import type { FoodGroupId, MealsPrefs, NutrientId, ProcessedGroupId, WholeGroupId } from '../types/meals';
+import type { FoodGroupId, MealsPrefs, MealsScoringWeights, NutrientId, ProcessedGroupId, WholeGroupId } from '../types/meals';
 
 // =============================================================================
 // MEALS — the food groups a plate is described with, and what each one covers.
@@ -103,8 +103,9 @@ export const MEAL_GUIDE_RULES: string[] = [
   'Tap every group that was on the plate. Real servings only — the lettuce on a burger isn’t Veggies.',
   'Ready-made food is one chip. A frozen pizza is Processed, not Grains + Dairy + Veggies.',
   'Cooking basics don’t need a chip: oil, butter, salt, spices.',
-  'A meal passes with at least one whole-food group and nothing Processed. Dairy and Semi-processed are fine alongside real food.',
-  'Protein, Fiber and Healthy fats tags come from the groups on the plate. They say a plate had some, not how much.',
+  'Each plate scores 0 to 100. More whole food and fewer other groups scores higher — that ratio is most of the score.',
+  'Protein, Fiber and Healthy fats tags add a little on top. They say a plate had some, not how much.',
+  'Processed costs points beyond just being on the plate. Strict mode (in settings) makes Dairy, Semi-processed and Supplements cost extra too.',
 ];
 
 // --- Why an off-target day happened -------------------------------------------
@@ -133,14 +134,22 @@ export const MEAL_OFF_REASONS: MealOffReason[] = [
 export const MAX_GROUP_GOALS = 3;
 export const MAX_SLOTS = 8;
 
+export const DEFAULT_MEALS_SCORING: MealsScoringWeights = {
+  ratio_points: 70,
+  nutrient_bonus: 5,
+  processed_penalty: 30,
+  strict_penalty: 10,
+  on_target_threshold: 70,
+};
+
 export const DEFAULT_MEALS_PREFS: MealsPrefs = {
   slots: [
     { id: 'breakfast', name: 'Breakfast' },
     { id: 'lunch', name: 'Lunch' },
     { id: 'dinner', name: 'Dinner' },
   ],
-  pass_goal: 3,
   strict: false,
   group_goals: [],
+  scoring: DEFAULT_MEALS_SCORING,
   linked_habit_ids: [],
 };

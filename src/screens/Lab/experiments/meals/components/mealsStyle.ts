@@ -21,12 +21,24 @@ export const NUTRIENT_COLOR: Record<NutrientId, string> = {
   fats: CategoryColors.mind,
 };
 
-/** Fill for a plate's dot. */
-export const itemColor = (state: ItemState): string =>
-  state === 'pass' ? PASS_COLOR : state === 'fail' ? FAIL_COLOR : Colors.border;
+const hexToRgb = (hex: string): [number, number, number] => {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const toHex = (n: number): string => Math.round(n).toString(16).padStart(2, '0');
 
-export const itemGlyph = (state: ItemState): string =>
-  state === 'pass' ? '✓' : state === 'fail' ? '✕' : state === 'skipped' ? '–' : '';
+/** Linear blend from FAIL_COLOR (0) to PASS_COLOR (100). Colors.border for null (not yet scored). */
+export const scoreColor = (score: number | null): string => {
+  if (score == null) return Colors.border;
+  const t = Math.max(0, Math.min(100, score)) / 100;
+  const [r1, g1, b1] = hexToRgb(FAIL_COLOR);
+  const [r2, g2, b2] = hexToRgb(PASS_COLOR);
+  return `#${toHex(r1 + (r2 - r1) * t)}${toHex(g1 + (g2 - g1) * t)}${toHex(b1 + (b2 - b1) * t)}`;
+};
+
+/** Fill for a plate's dot. */
+export const itemColor = (state: ItemState, score: number | null): string =>
+  state === 'scored' ? scoreColor(score) : state === 'skipped' ? Colors.lightGray : Colors.border;
 
 export const STATUS_TITLE: Record<DayStatus, string> = {
   on: 'On target',

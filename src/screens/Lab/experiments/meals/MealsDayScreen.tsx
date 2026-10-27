@@ -169,11 +169,11 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={[mls.card, styles.intro]}>
             <Text style={mls.title}>How Meals works</Text>
             <Text style={mls.body}>
-              Tap a meal and pick the food groups that were on the plate. Meals works out pass or fail — real
-              food passes, anything Processed doesn’t.
+              Tap a meal and pick the food groups that were on the plate. Each plate scores 0 to 100 — mostly
+              whole food scores high, and anything Processed costs points on top of that.
             </Text>
             <Text style={mls.body}>
-              Your goal is how many meals pass each day. Right now that’s {prefs.pass_goal} of {prefs.slots.length}.
+              Your day is on target once your plates average {prefs.scoring.on_target_threshold} or more.
             </Text>
             <View style={styles.introRow}>
               <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true })}>
@@ -189,7 +189,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
 
-        <DayStatusCard score={score} dateLabel={dayLabel(date, today)} />
+        <DayStatusCard score={score} dateLabel={dayLabel(date, today)} threshold={dayRules.scoring.on_target_threshold} />
 
         {closed && (
           <View style={[mls.card, styles.closed]}>
@@ -248,6 +248,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
       <MealPickerModal
         target={editing}
         strict={dayRules.strict}
+        weights={dayRules.scoring}
         recent={recent}
         onCancel={() => setEditing(null)}
         onSave={save}

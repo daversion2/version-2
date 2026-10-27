@@ -42,14 +42,32 @@ export interface GroupGoal {
   period: 'day' | 'week';
 }
 
+/**
+ * How a plate's 0-100 score is built, and what counts as "on target" for a
+ * day. Admin-tunable from Meals Settings — the whole app is already
+ * admin-only, so these live right alongside the rest of MealsPrefs rather
+ * than behind a separate permission layer.
+ */
+export interface MealsScoringWeights {
+  /** wholeFoodRatio (whole groups ÷ all groups tapped) * this. The dominant term. */
+  ratio_points: number;
+  /** Per nutrient tag the plate hits (protein/fiber/fats, 0-3), added on top. */
+  nutrient_bonus: number;
+  /** Flat deduction when 'processed' is on the plate — on top of the ratio dilution it already causes. */
+  processed_penalty: number;
+  /** Flat deduction, strict mode only, when dairy/semi/supplements are present. */
+  strict_penalty: number;
+  /** A day's average score at or above this counts as "on target". */
+  on_target_threshold: number;
+}
+
 /** What a day is scored against. Snapshotted onto each day so editing settings never rescores the past. */
 export interface MealsRules {
   slots: MealSlot[];
-  /** How many of the slots must pass. The rest are the misses the day can hold. */
-  pass_goal: number;
-  /** Strict: a pass is whole food only — no Semi-processed either. */
+  /** Strict: dairy/semi/supplements cost `scoring.strict_penalty` instead of only diluting the ratio. */
   strict: boolean;
   group_goals: GroupGoal[];
+  scoring: MealsScoringWeights;
 }
 
 export interface MealsPrefs extends MealsRules {
