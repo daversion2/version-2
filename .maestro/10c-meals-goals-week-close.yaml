@@ -1,24 +1,39 @@
-# Meals (Lab): settings change the day's result; the week view adds it up;
-# closing out a day with no habit linked writes no check-in, and reopens.
-# Continues from 10b: Meals settings open; today = three passing meals (lunch
-# has Veggies) plus a Processed "Donut", goal "pass 3 of 3".
+# Meals (Lab): the Scoring settings change the day's result; a food-group goal
+# is a progress readout that never gates it; the week adds the scores up;
+# closing out an off-target day with no habit linked writes no check-in, and
+# reopens. Continues from 10b: today = three plates (80, 57, 85) plus a
+# Processed "Donut" (0), averaging 56, off target at the default threshold 70.
 appId: com.neuronudge.neuronudge
 ---
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 20000
+- tapOn: "Meals settings"
 - extendedWaitUntil:
     visible: "MY MEALS"
     timeout: 10000
 
-# Pass 2 of 3: the day can now hold the donut.
-- runFlow:
-    when:
-      visible: "Every meal has to pass.*"
-    commands:
-      - tapOn: "Fewer meals to pass"
+# Lower the on-target threshold below the day's 56 average: the day can flip
+# from settings alone, with nothing about the meals changing.
+- scrollUntilVisible:
+    element:
+      text: "On target at"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Fewer on-target threshold"
+- tapOn: "Fewer on-target threshold"
+- tapOn: "Fewer on-target threshold"
 - extendedWaitUntil:
-    visible: "The day can hold 1 miss.*"
+    visible: "55"
     timeout: 10000
 
-# A daily goal of veggies at 2 meals.
+# A daily goal of veggies at 2 meals. A progress readout only — it doesn't
+# gate the day (founder, 2026-10-26), unlike the old pass-goal miss allowance.
 - scrollUntilVisible:
     element:
       text: ".*Add a food-group goal|Veggies at .*"
@@ -43,47 +58,90 @@ appId: com.neuronudge.neuronudge
     timeout: 10000
 - takeScreenshot: 10c-1-settings
 
-# Back on the day: one miss is fine now, but only lunch had veggies → off target.
+# Back on the day: the lower threshold alone puts it on target. Only lunch
+# had veggies, so the goal reads unmet — but it doesn't hold the day off.
 - tapOn: "Meals"
 - extendedWaitUntil:
-    visible: "Off target"
+    visible: "On target"
     timeout: 10000
-- assertVisible: "A food-group goal wasn’t met"
-- takeScreenshot: 10c-2-goal-unmet
+- assertVisible: "Averaged 56 · at or above your target of 55"
+- assertVisible: "Veggies 1/2"
+- takeScreenshot: 10c-2-goal-unmet-still-on
 
-# Add veggies to dinner → on target, with the donut as the one miss.
+# Add veggies to dinner too: the goal reads met, but the score and status are
+# unchanged — dinner was already all whole food, so its score doesn't move.
 - tapOn: "Dinner: .*"
+- scrollUntilVisible:
+    element:
+      id: "meal-chip-veggies"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
 - tapOn:
     id: "meal-chip-veggies"
 - tapOn: ".*Save"
 - extendedWaitUntil:
-    visible: "On target"
+    visible: "Dinner: Fish & seafood · Grains & starches · Veggies"
     timeout: 10000
-- assertVisible: "Goal met · 1 of 1 miss used"
-- takeScreenshot: 10c-3-goal-met
+- assertVisible: "On target"
+- assertVisible: "Averaged 56 · at or above your target of 55"
+- assertVisible: "Veggies 2/2 ✓"
+- takeScreenshot: 10c-3-goal-met-no-change
 
-# The week: 3 of 4 plates passed today (the donut didn't), nothing slipping yet.
-- tapOn: "This week"
+# Raise the threshold back to default: the day flips off target again, still
+# from settings alone.
+- tapOn: "Meals settings"
 - extendedWaitUntil:
-    visible: "3 of 4"
+    visible: "MY MEALS"
     timeout: 10000
-- assertVisible: "No meal is slipping more than the others this week."
-- takeScreenshot: 10c-4-week
+- scrollUntilVisible:
+    element:
+      text: "On target at"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "More on-target threshold"
+- tapOn: "More on-target threshold"
+- tapOn: "More on-target threshold"
+- extendedWaitUntil:
+    visible: "70"
+    timeout: 10000
 - tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Off target"
+    timeout: 10000
+- assertVisible: "Averaged 56 · below your target of 70"
+- takeScreenshot: 10c-4-day-off-again
 
-# Close out with no habit linked: shows the result, writes no check-in.
+# The week: this week's four plates (breakfast, lunch, dinner, the donut)
+# average 56; Lunch (57) is the one under target.
+- tapOn: "This week"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "56"
+- assertVisible: "average plate score this week · 4 plates logged"
+- assertVisible: "Lunch is the one slipping — it's averaging 57, under your target."
+- takeScreenshot: 10c-5-week
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+
+# Close out off target with no habit linked: shows the result, writes no
+# check-in.
 - tapOn: ".*Close out the day"
 - extendedWaitUntil:
-    visible: "On target"
+    visible: "Off target"
     timeout: 10000
-- assertVisible: "No habit is linked to Meals.*"
-- takeScreenshot: 10c-5-close
+- assertVisible: "Not this time. Every meal you logged still counts toward your week."
+- assertVisible: "56 · target 70\\+"
+- takeScreenshot: 10c-6-close
 - tapOn: ".*Close the day"
 - extendedWaitUntil:
     visible: "Closed.*"
     timeout: 15000
 - assertNotVisible: ".*Close out the day"
-- takeScreenshot: 10c-6-closed
+- takeScreenshot: 10c-7-closed
 
 # Reopen it.
 - tapOn: "Reopen today"

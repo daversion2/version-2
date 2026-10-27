@@ -1,4 +1,4 @@
-# Meals (Lab): undo what 10a–10c changed — goal back to "pass 3 of 3", no
+# Meals (Lab): undo what 10a–10c changed — scoring back to defaults, no
 # food-group goals, today's meals and extras cleared. Starts on the day view.
 appId: com.neuronudge.neuronudge
 ---
@@ -18,12 +18,6 @@ appId: com.neuronudge.neuronudge
 - repeat:
     times: 3
     while:
-      notVisible: "Every meal has to pass.*"
-    commands:
-      - tapOn: "More meals to pass"
-- repeat:
-    times: 3
-    while:
       notVisible: ".*Add a food-group goal"
     commands:
       - scrollUntilVisible:
@@ -31,6 +25,18 @@ appId: com.neuronudge.neuronudge
           direction: DOWN
           timeout: 10000
       - tapOn: "Remove this goal"
+- scrollUntilVisible:
+    element: ".*Reset scoring to defaults"
+    direction: DOWN
+    timeout: 10000
+- tapOn: ".*Reset scoring to defaults"
+- scrollUntilVisible:
+    element:
+      text: "On target at"
+    direction: UP
+    timeout: 10000
+- assertVisible: "70"
+- takeScreenshot: 10d-1-settings-reset
 - tapOn: "Meals"
 - extendedWaitUntil:
     visible: "Close Meals"
@@ -42,4 +48,4 @@ appId: com.neuronudge.neuronudge
 - assertVisible: "Dinner: Tap to log"
 - assertNotVisible: "Donut: .*"
 - assertVisible: "In progress"
-- takeScreenshot: 10d-reset
+- takeScreenshot: 10d-2-reset

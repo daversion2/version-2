@@ -1,7 +1,7 @@
-# Meals (Lab): log three meals with food-group chips and watch pass/fail and
+# Meals (Lab): log three meals with food-group chips and watch the score and
 # the day's status follow. Starts with Meals already open on Today's day view
-# (Admin → Lab → Meals), goal "pass 3 of 3". Writes to the signed-in account's
-# users/{uid}/lab_meals_* only.
+# (Admin → Lab → Meals, or the Meals card on Today). Writes to the signed-in
+# account's users/{uid}/lab_meals_* only.
 appId: com.neuronudge.neuronudge
 ---
 # A picker left open by an earlier run.
@@ -22,7 +22,7 @@ appId: com.neuronudge.neuronudge
     commands:
       - tapOn: "Got it"
 
-# Breakfast: eggs and fruit → pass.
+# Breakfast: eggs and fruit — a clean whole-food plate, scores high.
 - tapOn: "Breakfast: .*"
 - extendedWaitUntil:
     visible:
@@ -32,7 +32,7 @@ appId: com.neuronudge.neuronudge
     id: "meal-chip-eggs"
 - tapOn:
     id: "meal-chip-fruit"
-- assertVisible: "Pass"
+- assertVisible: "80"
 - assertVisible: "All whole food."
 - takeScreenshot: 10a-1-breakfast-picker
 - tapOn: ".*Save"
@@ -40,27 +40,36 @@ appId: com.neuronudge.neuronudge
     visible: "Breakfast: Eggs · Fruit"
     timeout: 10000
 
-# Lunch: chicken, veggies and a jarred sauce → still a pass.
+# Lunch: chicken, veggies and a jarred sauce — a middling plate.
+# The Processed-section chips sit behind the footer — swipe the list up
+# before tapping them, or the tap lands on "Didn't eat"/"Save" instead.
 - tapOn: "Lunch: .*"
 - tapOn:
     id: "meal-chip-chicken"
 - tapOn:
     id: "meal-chip-veggies"
+- swipe:
+    start: 50%, 60%
+    end: 50%, 25%
 - tapOn:
     id: "meal-chip-semi"
-- assertVisible: "Pass"
+- assertVisible: "57"
 - assertVisible: "Real food, with a little semi-processed."
 - tapOn: ".*Save"
 - extendedWaitUntil:
     visible: "Lunch: Chicken & turkey · Veggies · Semi-processed"
     timeout: 10000
 
-# Dinner: fast food → fail, and with every meal required to pass, the day is off.
+# Dinner: fast food only — the lowest-scoring plate, and with the day's
+# average below target, the day goes off.
 - tapOn: "Dinner: .*"
+- swipe:
+    start: 50%, 60%
+    end: 50%, 25%
 - tapOn:
     id: "meal-chip-processed"
-- assertVisible: "Fail"
-- assertVisible: "Something Processed was on the plate."
+- assertVisible: "0"
+- assertVisible: "Processed on the plate (−30)"
 - takeScreenshot: 10a-2-dinner-fail-picker
 - tapOn: ".*Save"
 - extendedWaitUntil:
@@ -68,17 +77,40 @@ appId: com.neuronudge.neuronudge
     timeout: 10000
 - takeScreenshot: 10a-3-day-off
 
-# Change dinner to salmon and rice → the day turns on target.
+# Change dinner to salmon and rice — the day turns on target. Re-editing an
+# already-logged plate shows a Recent row above the chips (today's own
+# Processed plate), which pushes the Processed chip and the whole-food chips
+# below it further down than a fresh picker — scrollUntilVisible rather than
+# a fixed swipe, so it finds them regardless of how tall Recent is.
 - tapOn: "Dinner: .*"
+- scrollUntilVisible:
+    element:
+      id: "meal-chip-processed"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
 - tapOn:
     id: "meal-chip-processed"
+- scrollUntilVisible:
+    element:
+      id: "meal-chip-fish"
+    direction: UP
+    centerElement: true
+    timeout: 10000
 - tapOn:
     id: "meal-chip-fish"
+- scrollUntilVisible:
+    element:
+      id: "meal-chip-grains"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
 - tapOn:
     id: "meal-chip-grains"
-- assertVisible: "Pass"
+- assertVisible: "85"
 - tapOn: ".*Save"
 - extendedWaitUntil:
     visible: "On target"
     timeout: 10000
+- assertVisible: "Averaged 74 · at or above your target of 70"
 - takeScreenshot: 10a-4-day-on

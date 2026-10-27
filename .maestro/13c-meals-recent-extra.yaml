@@ -1,6 +1,6 @@
 # Meals (Lab): a Recent plate in the "Something additional" picker fills the
-# Processed-section chips too. Continues from 13b (picker open) or from the
-# Meals day view. Writes nothing: closes with Cancel.
+# Processed-section chips too, and scores it. Continues from 13b (picker open)
+# or from the Meals day view. Writes nothing: closes with Cancel.
 appId: com.neuronudge.neuronudge
 ---
 # The day view's "SOMETHING ADDITIONAL" heading also matches the picker title,
@@ -16,7 +16,9 @@ appId: com.neuronudge.neuronudge
 - tapOn:
     text: "Use .*"
     index: 1
-- assertVisible: "Pass"
+# A score renders (not a hardcoded number — this is whatever this account's
+# second-most-recent extra happens to be).
+- assertVisible: "^[0-9]{1,3}$"
 # scrollUntilVisible counts the Processed chips as visible behind the footer,
 # so swipe the list itself.
 - swipe:

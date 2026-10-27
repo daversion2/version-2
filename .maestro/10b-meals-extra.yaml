@@ -1,5 +1,5 @@
-# Meals (Lab): a Processed snack is one miss. Continues from 10a — the day is
-# on target with three passing meals and a "pass 3 of 3" goal.
+# Meals (Lab): a Processed snack pulls the day's average down. Continues from
+# 10a — the day is on target with three plates (80, 57, 85).
 appId: com.neuronudge.neuronudge
 ---
 - runFlow:
@@ -19,13 +19,23 @@ appId: com.neuronudge.neuronudge
 - tapOn: "What was it.*"
 - inputText: "Donut"
 - hideKeyboard
+# The Recent row (today's own plates) plus the text field push the Processed
+# chip well below the fold — scrollUntilVisible rather than a fixed swipe.
+- scrollUntilVisible:
+    element:
+      id: "meal-chip-processed"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
 - tapOn:
     id: "meal-chip-processed"
-- assertVisible: "Fail"
+- assertVisible: "0"
+- assertVisible: "Processed on the plate (−30)"
 - tapOn: ".*Save"
-# With no misses to spare, the snack alone puts the day off target.
+# The snack alone pulls the day's average under target.
 - extendedWaitUntil:
     visible: "Off target"
     timeout: 10000
 - assertVisible: "Donut: Processed"
+- assertVisible: "Averaged 56 · below your target of 70"
 - takeScreenshot: 10b-1-snack-off
