@@ -1,0 +1,77 @@
+# Meditate (Lab): the optional "How calm do you feel?" scale above Begin.
+# Writes nothing: taps calm pills (on-screen state only), scrolls, opens History
+# and closes Meditate. NEVER taps Begin. Starts and ends on Today.
+appId: com.neuronudge.neuronudge
+---
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Meditate\\. .*"
+- extendedWaitUntil:
+    visible: "How calm do you feel?"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "!, Open debugger.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+- assertVisible: "Optional"
+- assertVisible: "Tense"
+- assertVisible: "Calm"
+- assertVisible: "Begin · .*"
+- takeScreenshot: 15a-1-start
+- assertNotVisible:
+    text: "Calm [1-5] of 5.*"
+    selected: true
+
+- tapOn: "Calm 2 of 5"
+- assertVisible:
+    text: "Calm 2 of 5"
+    selected: true
+- takeScreenshot: 15a-2-picked-2
+
+- tapOn: "Calm 4 of 5"
+- assertVisible:
+    text: "Calm 4 of 5"
+    selected: true
+- assertNotVisible:
+    text: "Calm 2 of 5"
+    selected: true
+- takeScreenshot: 15a-3-picked-4
+
+- tapOn: "Calm 4 of 5"
+- assertNotVisible:
+    text: "Calm [1-5] of 5.*"
+    selected: true
+- takeScreenshot: 15a-4-cleared
+
+# Bottom of the scroll: last content clear of the taller footer.
+- scroll
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: 15a-5-scrolled-bottom
+
+# History.
+- tapOn: "History and records"
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: 15a-6-history
+- scroll
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: 15a-7-history-scrolled
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "Close Meditate"
+    timeout: 10000
+- tapOn: "Close Meditate"
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 20000
