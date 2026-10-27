@@ -80,6 +80,21 @@ Before non-admins get Compose:
 
 ## Later
 
+**Home dashboard (Lab): not tried on screen** *(added 2026-10-26)*
+Admin → Lab → Home dashboard. Jest covers the numbers
+(`services/homeDashboard.ts`) and tsc is clean, but nobody has looked at it
+yet. Check these on a real account:
+- swiping between pages and tapping the tabs
+- the rings shrinking and growing back as you scroll
+- the rings drawn with plain Views (no SVG)
+- the heatmap and day dots
+- each Start button opening its app
+
+Known gap: a session started from here gets its "How hard was it?" question
+back on Today, not on the dashboard. Meals' 0-100 score is already on its
+page. Next: moving the rating handoff off Today. See
+`docs/no-generic-habits-micro-apps.md`, "Built in the Lab".
+
 **Apps-first Today: untested on screen** *(added 2026-10-18)*
 See `docs/apps-first-today.md`. Maestro checked the cards, the apps opening and
 both "Log a past session" sheets, without saving anything. These steps haven't
@@ -130,6 +145,19 @@ mid-task, instead of letting it evaporate. Same format as above: bold title,
 date added, a sentence or two of context, link to a design doc if one exists.
 No priority ordering implied — flag with a note if something's more wanted
 than the rest.
+
+### Drop generic habits, unify Home *(added 2026-10-24)*
+
+See `docs/no-generic-habits-micro-apps.md`. Decided, and the Progress-screen
+tracking spec is now nailed down (interview, 2026-10-24, same doc): a combined
+cross-app streak + goal-% comparison up top; each card carries its own streak,
+a friction number+trend, and one headline metric — Meditate's minutes/last
+session, Workouts' total volume + best lift, Meals' new food-group heatmap.
+Still not scoped as a build: `services/appCheckins.ts` currently makes every
+app's streaks, pace, skip review and "Friction you can handle" work by writing
+a mirror log onto a real habit — that foundation disappears with generic
+habits, and now has to power a combined cross-app streak too, not just one
+per app. Needs its own scoping pass before any of this lands.
 
 ### Across mini-apps *(added 2026-10-24)*
 

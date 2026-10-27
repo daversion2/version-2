@@ -256,10 +256,13 @@ They ship over the air like any other change.
 ## Docs — what's current vs. historical
 
 **Current, safe to build from:**
-- `docs/three-sections-today.md` — Today as Mind / Movement / Meals, the quick
-  sheet and press-and-hold, removed Money and food habits, live mini-apps
-- `docs/habit-template-unification.md` — the active direction (practices merging
-  into habits with tracking templates)
+- `docs/no-generic-habits-micro-apps.md` — the active direction (2026-10-24): no
+  generic/custom habits; the micro-apps (Meditate, Workouts, Meals, growing
+  deliberately) plus the friction/resistance rating are the whole product; one
+  unified dashboard on Home
+- `docs/three-sections-today.md` and `docs/apps-first-today.md` — still describe
+  the live Mind / Movement / Meals layout and the apps-first mechanics, but their
+  "habits support underneath" framing is superseded by the doc above
 - `docs/habit-library-audit.md`, `docs/challenge-library.md`, `docs/tidbit-audit.md` — content inventories
 - `docs/backlog.md` — the open-work list
 - `docs/go-live-checklist.md` (stale — rewrite is on the backlog)
@@ -274,6 +277,10 @@ they bring it up. (Older entries in `go-live-checklist.md` still quote it.)
 **Historical — describes earlier structures, do not treat as current intent:**
 - `RESTRUCTURE_PLAN.md`, `APP_OVERVIEW.md`, `TESTING.md` (a hand-run QA
   checklist from an older feature set), `possible_roadmaps/`, `program-drafts/`
+- `docs/habit-template-unification.md` — superseded 2026-10-24 by
+  `docs/no-generic-habits-micro-apps.md`. Its type-merge work
+  (`HabitDefinition`) already landed and is harmless; don't build the rest
+  (template builder, custom-habit creation UI, the merged Library screen).
 
 When a doc and the code disagree, the code wins — say so rather than
 "fixing" the code to match a stale plan.

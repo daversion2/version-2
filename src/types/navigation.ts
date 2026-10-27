@@ -33,6 +33,8 @@ export type RootStackParamList = {
   ComposeApp: undefined;
   /** The Meals mini-app (Lab). `habitId` = opened from that habit on Today. */
   MealsApp: { habitId?: string } | undefined;
+  /** The new Home (Lab): rings across the top, a page per app. */
+  HomeDashboardApp: undefined;
 };
 
 // ============================================================================
