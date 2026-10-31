@@ -31,6 +31,9 @@ appId: com.neuronudge.neuronudge
 - tapOn: "., Overview"
 - waitForAnimationToEnd
 - takeScreenshot: 17c-01-before-overview
+# Read the before-values off 17c-01 / 17c-04: the after-values should be
+# exactly one session and +1 XP above them. (No hard-coded guard here — any
+# fixed number would stop the flow from running on another day.)
 
 # Meditate page. scrollUntilVisible passes here without scrolling, so swipe.
 - tapOn: "., Meditate"
@@ -99,6 +102,12 @@ appId: com.neuronudge.neuronudge
     notVisible: "How hard was it to start?"
     timeout: 30000
 - takeScreenshot: 17c-10-after-sheet-closed
+# ~10 s later, no relaunch: catches a double count or stale XP that settles late.
+- extendedWaitUntil:
+    visible: "__never_present_wait_10s__"
+    timeout: 10000
+    optional: true
+- takeScreenshot: 17c-10b-after-10s
 - tapOn: "., Overview"
 - waitForAnimationToEnd
 - swipe:
@@ -119,6 +128,15 @@ appId: com.neuronudge.neuronudge
     end: "50%,90%"
 - waitForAnimationToEnd
 - takeScreenshot: 17c-12-after-meditate
+# Recent sessions sit lower on the page.
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+- takeScreenshot: 17c-12b-after-meditate-bottom
 
 # Progress (three tabs: 50%) → today's day view. Exactly one Meditate entry,
 # no "Meditation" mirror. The calendar date label is account-date specific:

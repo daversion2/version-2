@@ -13,6 +13,7 @@ import {
   profileActivityPatch,
   progressOf,
   ratingDates,
+  recentDayLabel,
   sessionsByDay,
   standoutLift,
   weekGrid,
@@ -118,6 +119,15 @@ describe('windows', () => {
 
   it('crosses month ends', () => {
     expect(addDays('2026-10-31', 1)).toBe('2026-11-01');
+  });
+});
+
+describe('recentDayLabel', () => {
+  it('never shows last week as a weekday', () => {
+    expect(recentDayLabel('2026-10-24', TODAY)).toBe('Today');
+    expect(recentDayLabel('2026-10-23', TODAY)).toBe('Yesterday');
+    expect(recentDayLabel('2026-10-19', TODAY)).toBe('Mon');
+    expect(recentDayLabel('2026-10-17', TODAY)).toBe('Oct 17'); // a Saturday, a week back
   });
 });
 

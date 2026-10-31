@@ -119,6 +119,18 @@ const countIn = (byDay: Map<string, number>, today: string, offset = 0): number 
   return n;
 };
 
+/**
+ * "Today", "Yesterday", a weekday within the last 6 days, else "Oct 24". A
+ * weekday a full week back would read as this week's ("Sat" on a Saturday).
+ */
+export const recentDayLabel = (date: string, today: string): string => {
+  if (date === today) return 'Today';
+  if (date === addDays(today, -1)) return 'Yesterday';
+  const d = localDate(date);
+  if (date > addDays(today, -7)) return d.toLocaleDateString('en-US', { weekday: 'short' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
 // --- Meditate ------------------------------------------------------------------
 
 export interface MeditateRecent {

@@ -26,6 +26,7 @@ import {
   describeFriction,
   describeVsPrior,
   HomeDashboard,
+  recentDayLabel,
 } from '../../services/homeDashboard';
 import { clampWeeklyGoal, TodayAppId } from '../../services/appCheckins';
 import { getMeditatePrefs, listMeditateSessions } from '../../services/labMeditate';
@@ -41,7 +42,7 @@ import { rulesOf } from '../../services/mealsMath';
 import { currentPhase } from '../../services/trainingPhases';
 import { MODES } from '../../services/meditateMath';
 import { formatVolume } from '../../services/workoutMath';
-import { formatRelativeDay, getTodayString } from '../../utils/date';
+import { getTodayString } from '../../utils/date';
 import {
   APP_ICONS,
   Chip,
@@ -372,7 +373,7 @@ export const HomeDashboardView: React.FC<Props> = ({
             </View>
             {d.meditate.recent.length > 0 && <SectionLabel>Recent sessions</SectionLabel>}
             {d.meditate.recent.map((s, i) => (
-              <ListRow key={i} cells={[formatRelativeDay(s.date), MODES[s.mode].label, `${s.minutes} min`]} />
+              <ListRow key={i} cells={[recentDayLabel(s.date, appData!.today), MODES[s.mode].label, `${s.minutes} min`]} />
             ))}
             <StartButton label="Start a session" onPress={() => onOpenApp('meditate')} />
           </ScrollView>
@@ -404,7 +405,7 @@ export const HomeDashboardView: React.FC<Props> = ({
               <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>
             )}
             {d.workouts.week.map((w, i) => (
-              <ListRow key={i} cells={[formatRelativeDay(w.date), w.name, `${w.sets} sets`]} />
+              <ListRow key={i} cells={[recentDayLabel(w.date, appData!.today), w.name, `${w.sets} sets`]} />
             ))}
             <StartButton label="Start a workout" onPress={() => onOpenApp('workouts')} />
           </ScrollView>

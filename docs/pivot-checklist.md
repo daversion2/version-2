@@ -57,7 +57,9 @@ three stop bad data piling up.
     - the celebration (no milestone was crossed)
     - the toast's text
     - the bell's sound
-    - the double-count and XP fixes, which need another rated session
+  - *Second rated session, 2026-10-31:* the count went to 2 of 5 (not 3),
+    XP went 270 → 271 without a relaunch, the toast read "+1 XP Meditate ·
+    1 min · Easy", and the day view had two Meditate entries and no mirror.
   - `17a`'s `scrollUntilVisible` steps on the Meditate and Meals pages pass
     without scrolling, so they need explicit swipes.
 
