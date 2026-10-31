@@ -57,7 +57,13 @@ Next:
    change everywhere; check nothing reads wrong. Fonts stay the brand's: the
    founder tried the system font and reverted it (2026-10-31).
 2. Phase 2: Today as one scrolling list with `AppRings`, then Progress,
-   Settings, the rating sheet and Close out the day.
+   Settings, the rating sheet and Close out the day. **Today is built**
+   (`components/homeRedesign/TodayView.tsx`; HomeScreen picks it with
+   `isRedesignOn()`), along with the per-app pages it opens
+   (`screens/Home/AppPageScreen.tsx`, route `AppPage`). Both still need an
+   on-screen check. Their charts reuse the old dashboard's pieces (`DotTrend`,
+   `ServingsHeatmap`, `DayDots`), which are still teal-only. Next: Progress,
+   Settings, the rating sheet, then Close out the day.
 3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
 4. Phase 4: sign-in and the two-step onboarding (D4). Sign in with Apple needs
    a native build.

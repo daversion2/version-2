@@ -13,6 +13,7 @@ import type {
   MicroExerciseDefinition,
 } from './microExercise';
 import type { MicroExerciseTrigger } from './worksheets';
+import type { TodayAppId } from '../services/appCheckins';
 
 // ============================================================================
 // ROOT STACK
@@ -104,6 +105,8 @@ export type PracticeSessionParams = {
 
 export type HomeStackParamList = {
   HomeScreen: undefined;
+  // The redesign's page for one app, opened from a row on Today.
+  AppPage: { appId: TodayAppId };
   // Forward practice-session flow, also hosted here so taps from the Home list
   // run the new flow and return to Home (not the Practices tab) when done.
   PracticeSession: PracticeSessionParams;

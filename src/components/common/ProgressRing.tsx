@@ -44,7 +44,7 @@ export const ProgressRing: React.FC<RingProps> = ({ pct, color, size = 62, strok
   const end = ringEndCap(p, size, stroke);
 
   return (
-    <View style={{ width: size, height: size }} importantForAccessibility="no-hide-descendants">
+    <View style={{ width: size, height: size }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <View
         style={{
           position: 'absolute',
@@ -55,12 +55,18 @@ export const ProgressRing: React.FC<RingProps> = ({ pct, color, size = 62, strok
           borderColor: trackColor ?? color + '29',
         }}
       />
-      <View style={{ position: 'absolute', left: half, width: half, height: size, overflow: 'hidden' }}>
-        <View style={[arc, { left: -half, transform: [{ rotate: `${-135 + Math.min(deg, 180)}deg` }] }]} />
-      </View>
-      <View style={{ position: 'absolute', left: 0, width: half, height: size, overflow: 'hidden' }}>
-        <View style={[arc, { transform: [{ rotate: `${45 + Math.max(0, deg - 180)}deg` }] }]} />
-      </View>
+      {/* Each half only when it has something to show: a parked half leaves a
+          hairline where its edge meets the clip. */}
+      {deg > 0 && (
+        <View style={{ position: 'absolute', left: half, width: half, height: size, overflow: 'hidden' }}>
+          <View style={[arc, { left: -half, transform: [{ rotate: `${-135 + Math.min(deg, 180)}deg` }] }]} />
+        </View>
+      )}
+      {deg > 180 && (
+        <View style={{ position: 'absolute', left: 0, width: half, height: size, overflow: 'hidden' }}>
+          <View style={[arc, { transform: [{ rotate: `${45 + (deg - 180)}deg` }] }]} />
+        </View>
+      )}
       {p > 0 && <View style={cap(half, stroke / 2)} />}
       {p > 0 && <View style={cap(end.x, end.y)} />}
     </View>

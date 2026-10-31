@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,8 @@ import {
   appCheckinId,
 } from '../../services/appCheckins';
 import { HomeDashboardView } from '../../components/homeDashboard/HomeDashboardView';
+import { TodayView } from '../../components/homeRedesign/TodayView';
+import { isRedesignOn } from '../../utils/redesign';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { ComebackModal } from '../../components/home/ComebackModal';
@@ -104,11 +106,16 @@ const isTodayApp = (id: string): id is TodayAppId => TODAY_APPS.some((a) => a.id
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // First visit explains the screen; the ⓘ in the header brings it back.
+  // The redesign draws its own header (title + ⓘ) inside TodayView.
+  const redesign = isRedesignOn();
   const intro = useScreenIntro('today', {
-    navigation,
+    navigation: redesign ? undefined : navigation,
     side: 'left',
     renderButton: (onPress) => <ScreenIntroButton onPress={onPress} />,
   });
+  useLayoutEffect(() => {
+    if (redesign) navigation.setOptions({ headerShown: false });
+  }, [navigation, redesign]);
   const { user, userProfile, refreshProfile } = useAuth();
   const t = useCopy();
 
@@ -674,7 +681,38 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         sheet, XP, the celebration, the weekly review, rule modals — still lives
         here, below.
       */}
-      {user && (
+      {user && redesign && (
+        <TodayView
+          userId={user.uid}
+          logs={nudgeLogs}
+          logsReady={logsReady || logsFailed}
+          onDashboard={onDashboard}
+          onRefresh={loadData}
+          onOpenAppPage={(appId) => navigation.navigate('AppPage', { appId })}
+          onInfo={intro.reopen}
+          top={<RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />}
+          xp={xp}
+          plan={todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr) ? formatPlan(todaysPlan) : null}
+          closeOut={{
+            done: reflectedToday,
+            title: reflectedToday
+              ? t('today.close.titleDone', 'Today’s reflection')
+              : t('today.close.title', 'Close out the day'),
+            subtitle: reflectedToday
+              ? todaysGrade
+                ? t('today.close.graded', 'You graded today a {grade}. Tap to review.', { grade: todaysGrade })
+                : t('today.close.saved', 'Saved. Tap to review.')
+              : t('today.close.subtitle', 'Grade the effort, set tomorrow’s plan.'),
+            onPress: () => navigation.navigate('NightlyReflection'),
+          }}
+          craving={{
+            title: t('today.craving.title', 'Craving Crusher'),
+            subtitle: t('today.craving.subtitle', 'Ride out an urge without giving in.'),
+            onPress: () => navigation.navigate('CravingCrusher'),
+          }}
+        />
+      )}
+      {user && !redesign && (
         <HomeDashboardView
           userId={user.uid}
           logs={nudgeLogs}

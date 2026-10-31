@@ -28,6 +28,7 @@ import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
 import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
+import { AppPageScreen } from '../screens/Home/AppPageScreen';
 import { JourneyCheckinScreen } from '../screens/Home/JourneyCheckinScreen';
 import { MantraScreen } from '../screens/Home/MantraScreen';
 import { MicroExerciseFeelingScreen } from '../screens/MicroExercise/MicroExerciseFeelingScreen';
@@ -191,6 +192,7 @@ export const HomeStack: React.FC = () => (
       component={NightlyReflectionScreen}
       options={{ title: 'Nightly Reflection' }}
     />
+    <Stack.Screen name="AppPage" component={AppPageScreen} options={{ headerShown: false }} />
     <Stack.Screen
       name="JourneyCheckin"
       component={JourneyCheckinScreen}

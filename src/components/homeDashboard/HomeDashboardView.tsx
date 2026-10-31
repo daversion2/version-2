@@ -17,32 +17,17 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import type { CompletionLog } from '../../types';
-import type { CompletedMeditateSession } from '../../types/meditate';
-import type { CompletedWorkoutSession, Exercise, TrainingPhase, WeightUnit } from '../../types/workouts';
-import type { MealsDay, MealsRules } from '../../types/meals';
 import {
-  addDays,
   buildHomeDashboard,
   describeFriction,
   describeVsPrior,
   HomeDashboard,
   recentDayLabel,
 } from '../../services/homeDashboard';
-import { clampWeeklyGoal, TodayAppId } from '../../services/appCheckins';
-import { getMeditatePrefs, listMeditateSessions } from '../../services/labMeditate';
-import {
-  getWorkoutPrefs,
-  listCustomExercises,
-  listPhases,
-  listSessions,
-  mergeExerciseLibrary,
-} from '../../services/labWorkouts';
-import { getMealsPrefs, listMealsDays } from '../../services/labMeals';
-import { rulesOf } from '../../services/mealsMath';
-import { currentPhase } from '../../services/trainingPhases';
+import type { TodayAppId } from '../../services/appCheckins';
+import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
 import { MODES } from '../../services/meditateMath';
 import { formatVolume } from '../../services/workoutMath';
-import { getTodayString } from '../../utils/date';
 import {
   APP_ICONS,
   Chip,
@@ -79,46 +64,6 @@ const PAGES: { id: PageId; title: string; icon: string }[] = [
 const COLLAPSE_AT = 40;
 const EXPAND_AT = 8;
 
-/** Everything the dashboard reads apart from the check-in logs. */
-interface AppData {
-  today: string;
-  meditateSessions: CompletedMeditateSession[];
-  meditateGoal: number;
-  workoutSessions: CompletedWorkoutSession[];
-  workoutsGoal: number;
-  exercisesById: Record<string, Exercise>;
-  unit: WeightUnit;
-  phase: TrainingPhase | undefined;
-  mealsDays: Record<string, MealsDay>;
-  mealsRules: MealsRules;
-}
-
-const loadAppData = async (uid: string): Promise<AppData> => {
-  const today = getTodayString();
-  const [medSessions, medPrefs, wSessions, wPrefs, custom, phases, mealsPrefs, mealsDays] = await Promise.all([
-    listMeditateSessions(uid, 1000),
-    getMeditatePrefs(uid),
-    listSessions(uid, 300),
-    getWorkoutPrefs(uid),
-    listCustomExercises(uid),
-    listPhases(uid),
-    getMealsPrefs(uid),
-    listMealsDays(uid, addDays(today, -89), today),
-  ]);
-  return {
-    today,
-    meditateSessions: medSessions,
-    meditateGoal: clampWeeklyGoal(medPrefs.weekly_goal, 'meditate'),
-    workoutSessions: wSessions,
-    workoutsGoal: clampWeeklyGoal(wPrefs.weekly_goal, 'workouts'),
-    exercisesById: Object.fromEntries(mergeExerciseLibrary(custom).map((e) => [e.id, e])),
-    unit: wPrefs.unit,
-    phase: currentPhase(phases),
-    mealsDays,
-    mealsRules: rulesOf(mealsPrefs),
-  };
-};
-
 interface Props {
   userId: string;
   /** The account's nudge logs (at least the last 14 days) — friction comes from these. */
@@ -152,7 +97,7 @@ export const HomeDashboardView: React.FC<Props> = ({
   const pager = useRef<ScrollView>(null);
   const offsets = useRef<Record<PageId, number>>({ overview: 0, meditate: 0, workouts: 0, meals: 0 });
 
-  const [appData, setAppData] = useState<AppData | null>(null);
+  const [appData, setAppData] = useState<HomeAppData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<PageId>('overview');
   const [collapsed, setCollapsed] = useState(false);
@@ -160,7 +105,7 @@ export const HomeDashboardView: React.FC<Props> = ({
 
   const reload = useCallback(
     () =>
-      loadAppData(userId).then(
+      loadHomeAppData(userId).then(
         (data) => (setAppData(data), setError(null)),
         (e) => setError(String(e?.message ?? e))
       ),
