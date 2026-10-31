@@ -359,6 +359,9 @@ export interface CompletionExtras {
   reflection?: Record<string, string>;
   /** Selected mind tag ids (data/mindTags.ts). */
   mindTags?: string[];
+  /** An app session's rating: which app, and the session doc it rates (if it has one). */
+  appId?: string;
+  sessionId?: string;
 }
 
 /**
@@ -420,6 +423,8 @@ export const logHabitCompletion = async (
   if (extras?.mindTags && extras.mindTags.length) {
     logData.mindTags = extras.mindTags;
   }
+  if (extras?.appId) logData.app_id = extras.appId;
+  if (extras?.sessionId) logData.session_id = extras.sessionId;
 
   const docRef = await addDoc(logsRef(userId), logData);
   await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
@@ -520,6 +525,7 @@ export const completePractice = async (
   userId: string,
   practice: { id: string; name: string },
   input: PracticeCompletionInput,
+  link?: Pick<CompletionExtras, 'appId' | 'sessionId'>,
 ): Promise<CompletePracticeResult> => {
   const { difficulty, resistance, notes, metrics, hitHardMoment, tactics, reflection, mindTags } =
     input;
@@ -548,6 +554,7 @@ export const completePractice = async (
     tactics,
     reflection,
     mindTags,
+    ...link,
   });
 
   // XP is friction overcome: the 1–3 rating itself, never multiplied. The

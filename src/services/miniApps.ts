@@ -68,9 +68,8 @@ export const canOpenMiniApp = (
   profile: Pick<User, 'is_admin'> | null | undefined
 ): boolean => MINI_APPS[appId].release === 'live' || profile?.is_admin === true;
 
-// Which habit a session ticks lives in services/appCheckins.ts (habitTickedBy).
-// There is no linking any more: apps open from their own card on Today, and a
-// habit never opens an app.
+// A session's rating is filed by services/appRatings.ts under the app itself.
+// It no longer ticks a habit (2026-10-31).
 
 // --- The finish handoff ------------------------------------------------------
 
@@ -78,8 +77,10 @@ export interface SessionHandoff {
   appId: MiniAppId;
   /** The day it happened (YYYY-MM-DD), for a past session logged in the app. Absent = today. */
   date?: string;
-  /** Meditate's mode (sit / breathe / nsdr) — decides which habit the session ticks. */
+  /** Meditate's mode (sit / breathe / nsdr). */
   mode?: string;
+  /** The saved session doc this rating is for, when there is one. */
+  sessionId?: string;
   /** How long the session ran, so the check-in can prefill a duration field. */
   durationSec?: number;
   /**

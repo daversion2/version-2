@@ -13,21 +13,20 @@ import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { PracticeInstance } from '../../types';
 import { activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, completePractice, logMirrorCompletion, fetchAllNudgeLogs, getHabitsStreaksFromLogs, saveLogReflection } from '../../services/practices';
+import { getActiveHabits, fetchAllNudgeLogs, getHabitsStreaksFromLogs, saveLogReflection } from '../../services/practices';
+import { rateAppSession } from '../../services/appRatings';
 import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
 import { cancelScheduledHabitReminders } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
-import { getPractice, getPracticeColor } from '../../data/practices';
 import {
   APP_TRACKING,
   TODAY_APPS,
   TodayAppId,
   appCheckinHabit,
-  appIdFromCheckinId,
-  habitTickedBy,
+  appCheckinId,
 } from '../../services/appCheckins';
 import { HomeDashboardView } from '../../components/homeDashboard/HomeDashboardView';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
@@ -50,7 +49,7 @@ import { QuickLogSheet } from '../../components/home/QuickLogSheet';
 import { LogToast, LogToastContent } from '../../components/home/LogToast';
 import { buildQuickSheetInput, formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
 import { displayStreak } from '../../services/streakDisplay';
-import { getHabitSection, sectionOfHabit } from '../../data/habitSections';
+import { getHabitSection } from '../../data/habitSections';
 import { RESISTANCE_SCALE, TACTIC_GATE_RESISTANCE } from '../../constants/resistance';
 import type { TrackingField } from '../../data/practices';
 import { CompletionLog } from '../../types';
@@ -78,13 +77,12 @@ import {
 } from '../../services/miniApps';
 import { getWorkoutPrefs } from '../../services/labWorkouts';
 import { getMeditatePrefs } from '../../services/labMeditate';
-import { resolveTemplateFields } from '../../data/habitTemplates';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
 /** What the quick sheet is open on. */
 interface QuickLogTarget {
-  habit: PracticeInstance;
+  appId: TodayAppId;
   fields: TrackingField[];
   initialValues: Record<string, number>;
   /** Filled in when a mini-app handed back a finished session. */
@@ -93,20 +91,14 @@ interface QuickLogTarget {
   extraMetrics?: Record<string, number | string>;
   /** A past session logged in an app: the day it happened. */
   date?: string;
-  /** Meditate's mode, for which habit the session ticks. */
-  mode?: string;
+  /** The saved session this rating is for, when there is one. */
+  sessionId?: string;
 }
 
-/** The habit's tracking fields: an app's own, the catalog's, or a custom habit's template. */
-const trackingFor = (habit: PracticeInstance): TrackingField[] => {
-  const appId = appIdFromCheckinId(habit.id);
-  if (appId) return APP_TRACKING[appId];
-  return getPractice(habit.practice_id)?.tracking ?? resolveTemplateFields({ template_id: habit.template_id }) ?? [];
-};
+/** Mind, Movement or Meals — for the quick sheet's heading and colour. */
+const sectionOfApp = (appId: TodayAppId) => TODAY_APPS.find((a) => a.id === appId)!.section;
 
-/** Which section a habit — or an app's check-in habit — sits in. */
-const sectionOf = (habit: PracticeInstance) =>
-  TODAY_APPS.find((a) => appIdFromCheckinId(habit.id) === a.id)?.section ?? sectionOfHabit(habit);
+const isTodayApp = (id: string): id is TodayAppId => TODAY_APPS.some((a) => a.id === id);
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // First visit explains the screen; the ⓘ in the header brings it back.
@@ -418,16 +410,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }, [loadData])
   );
 
-  // The finished session's check-in: the quick sheet, with what the session
-  // measured filled in, then the same handleHabitComplete as any check-in —
-  // filed under the app itself (services/appCheckins.ts). Waits for the
-  // mini-app's full-screen dismissal: iOS drops a modal presented while
-  // another is still animating away.
+  // The finished session's rating: the quick sheet, with what the session
+  // measured filled in, then handleAppRated (services/appRatings.ts). Waits
+  // for the mini-app's full-screen dismissal: iOS drops a modal presented
+  // while another is still animating away.
   useEffect(() => {
     if (!pendingFinish) return;
-    const habit = appHabits.find((h) => appIdFromCheckinId(h.id) === pendingFinish.appId);
-    if (!habit) return;
-    const tracking = trackingFor(habit);
+    const appId = pendingFinish.appId;
+    if (!isTodayApp(appId) || !canOpenMiniApp(appId, userProfile)) return;
+    const tracking = APP_TRACKING[appId];
     const measured = checkinMetricsFor(tracking, pendingFinish) ?? {};
     const numeric = tracking.filter(isNumericField);
     const fromSession: Record<string, number> = {};
@@ -439,20 +430,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const timer = setTimeout(() => {
       setPendingFinish(null);
       setQuickLog({
-        habit,
+        appId,
         fields: numeric,
-        initialValues: { ...prefillMetrics(numeric, habit, nudgeLogs), ...fromSession },
+        initialValues: { ...prefillMetrics(numeric, { id: appCheckinId(appId) }, nudgeLogs), ...fromSession },
         note: pendingFinish.date
           ? t('today.quick.forDay', 'Logging for {day}.', { day: formatRelativeDay(pendingFinish.date) })
           : t('today.quick.fromApp', 'From {app}.', { app: MINI_APPS[pendingFinish.appId].title }),
         extraMetrics: Object.keys(extra).length ? extra : undefined,
         date: pendingFinish.date,
-        mode: pendingFinish.mode,
+        sessionId: pendingFinish.sessionId,
       });
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingFinish, appHabits]);
+  }, [pendingFinish, userProfile]);
 
   // Track app opens (once per session)
   useEffect(() => {
@@ -469,22 +460,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // are left intact so this can be switched back on.
 
   /**
-   * The one completion path: an app session's rating from the quick sheet.
-   * XP, streak, the celebration, the tidbit and the hard-session reflection
-   * offer all start here.
+   * The one rating path: an app session's "How hard was it to start?" from the
+   * quick sheet. XP, streak, the celebration, the tidbit and the hard-session
+   * reflection offer all start here.
    */
-  const handleHabitComplete = async (
-    input: PracticeCompletionInput,
-    habit: PracticeInstance,
-    opts?: { mode?: string }
-  ) => {
+  const handleAppRated = async (input: PracticeCompletionInput, appId: TodayAppId, sessionId?: string) => {
     if (!user) return;
     const { difficulty } = input;
-    // Log + XP all happen in the shared completePractice path. A failure here
-    // propagates to the capture flow, which re-arms its Log button and shows
-    // the error — the follow-up celebration work below stays best-effort.
+    const refId = appCheckinId(appId);
+    const appName = MINI_APPS[appId].title;
+    // A failure here propagates to the quick sheet, which re-arms its buttons
+    // and shows the error — the follow-up celebration work below stays best-effort.
     const { logId, pointsEarned, streakBefore, firstTry, backdated, date, willpower: updateResult } =
-      await completePractice(user.uid, { id: habit.id, name: habit.name }, input);
+      await rateAppSession(user.uid, appId, { ...input, sessionId });
     try {
       // Neutral confirmation of which day the rep landed on. Not a bonus —
       // it goes in its own muted slot so backdating never looks rewarded.
@@ -494,19 +482,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           : null
       );
 
-      // Optimistically add the rep to the log set the Today list is derived
-      // from, so the week strip fills, the row re-sorts and "done today" flips
-      // immediately. Without this the list would stay stale until the next focus
-      // reload, and logging a habit would appear to do nothing. Backdated reps
-      // included — they still count toward the week they were filed under, and
-      // the strip fills the day they were filed under rather than today.
+      // Optimistically add the rating to the logs the dashboard reads, so its
+      // friction and counts move the moment it's made.
       setNudgeLogs((prev) => [
         ...prev,
         {
           id: logId,
           user_id: user.uid,
           type: 'nudge',
-          reference_id: habit.id,
+          reference_id: refId,
+          app_id: appId,
+          ...(sessionId ? { session_id: sessionId } : {}),
           points: pointsEarned,
           difficulty: difficulty === 'easy' ? 1 : 2,
           resistance: input.resistance,
@@ -517,32 +503,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           date,
         } as CompletionLog,
       ]);
-
-      // An app session also ticks its matching habit (Workout, Meditation…):
-      // a mirror log with no rating or XP, so the effort counts once, under the
-      // app. Skipped if that habit is already logged for the day.
-      const appId = appIdFromCheckinId(habit.id);
-      const tickId = appId ? habitTickedBy(appId, habits, opts?.mode) : undefined;
-      if (tickId && !nudgeLogs.some((l) => l.reference_id === tickId && l.date === date)) {
-        logMirrorCompletion(user.uid, tickId, date, logId)
-          .then((mirrorId) =>
-            setNudgeLogs((prev) => [
-              ...prev,
-              {
-                id: mirrorId,
-                user_id: user.uid,
-                type: 'nudge',
-                reference_id: tickId,
-                points: 0,
-                difficulty: 0,
-                date,
-                mirror_of: logId,
-                completed_at: new Date().toISOString(),
-              } as CompletionLog,
-            ])
-          )
-          .catch((err) => console.warn('Ticking the matching habit failed:', err));
-      }
 
       setQuickLog(null);
       // XP and the streak in the header live on the profile.
@@ -556,16 +516,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         wasHard
           ? {
               logId,
-              habitId: habit.id,
-              name: habit.name,
-              accent: getPracticeColor(habit),
+              habitId: refId,
+              name: appName,
+              accent: getHabitSection(sectionOfApp(appId)).color,
               resistance: input.resistance,
             }
           : null
       );
       setReflectPattern(null);
       if (wasHard) {
-        getTacticPattern(user.uid, habit.id).then(setReflectPattern).catch(() => {});
+        getTacticPattern(user.uid, refId).then(setReflectPattern).catch(() => {});
       }
 
       // One-time points intro on the first completion after onboarding. It no
@@ -604,13 +564,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // check-in, which the points intro leads into.
       if (!needsPointsIntro && !milestoneLabel) {
         const level = typeof input.resistance === 'number' ? CHIP_CAPTIONS[input.resistance - 1] : undefined;
-        const amounts = trackingFor(habit)
+        const amounts = APP_TRACKING[appId]
           .filter((f) => isNumericField(f) && typeof input.metrics?.[f.key] === 'number')
           .map((f) => formatMetricValue(f, input.metrics![f.key] as number));
         setToast({
           key: Date.now(),
           points: pointsEarned,
-          text: [habit.name, ...amounts, level].filter(Boolean).join(' · '),
+          text: [appName, ...amounts, level].filter(Boolean).join(' · '),
           context: backdated
             ? t('today.celebration.loggedFor', 'Logged for {day}', { day: formatRelativeDay(date) })
             : null,
@@ -624,7 +584,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       try {
         tidbit = await selectHabitTidbit(user.uid, {
           streakDays: streakBefore,
-          habitName: habit.name,
+          habitName: appName,
           resistance: input.resistance,
           difficulty,
           // Coming back: the streak was broken, but they've done this habit
@@ -822,9 +782,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       <QuickLogSheet
         visible={!!quickLog}
-        habitName={quickLog?.habit.name ?? ''}
-        sectionName={quickLog ? t(`today.section.name.${sectionOf(quickLog.habit)}`, getHabitSection(sectionOf(quickLog.habit)).name) : ''}
-        sectionColor={quickLog ? getHabitSection(sectionOf(quickLog.habit)).color : Colors.primary}
+        habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
+        sectionName={
+          quickLog
+            ? t(`today.section.name.${sectionOfApp(quickLog.appId)}`, getHabitSection(sectionOfApp(quickLog.appId)).name)
+            : ''
+        }
+        sectionColor={quickLog ? getHabitSection(sectionOfApp(quickLog.appId)).color : Colors.primary}
         fields={quickLog?.fields ?? []}
         initialValues={quickLog?.initialValues ?? {}}
         note={quickLog?.note}
@@ -833,7 +797,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           const input = buildQuickSheetInput(resistance, values, quickLog.initialValues, quickLog.date);
           if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
           try {
-            await handleHabitComplete(input, quickLog.habit, { mode: quickLog.mode });
+            await handleAppRated(input, quickLog.appId, quickLog.sessionId);
           } catch (err) {
             console.warn('Quick log failed:', err);
             showAlert(
@@ -878,7 +842,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={pointsIntroVisible}
         onDismiss={() => {
           setPointsIntroVisible(false);
-          // Hand off to the celebration staged by handleHabitComplete — this is
+          // Hand off to the celebration staged by handleAppRated — this is
           // the first completion, so it's the one that most needs the reflect offer.
           setCelebrationVisible(true);
         }}

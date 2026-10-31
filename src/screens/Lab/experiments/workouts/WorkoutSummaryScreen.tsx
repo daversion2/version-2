@@ -106,7 +106,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     recordFinished({ completed, records: touched, workout: toWrite });
-    closeAndCheckOff(completed.duration_sec);
+    closeAndCheckOff(completed.duration_sec, undefined, completed.id);
   };
 
   const backToSession = () => {

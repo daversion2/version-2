@@ -112,7 +112,8 @@ interface WorkoutsContextValue {
    * Close the app and hand the session back to Today, which rates it as the
    * Workouts check-in (services/appCheckins.ts). `date` for a past session.
    */
-  closeAndCheckOff: (durationSec: number, date?: string) => void;
+  /** `sessionId`: the saved session, for a finished workout; absent for a past session. */
+  closeAndCheckOff: (durationSec: number, date?: string, sessionId?: string) => void;
 }
 
 const WorkoutsContext = createContext<WorkoutsContextValue | null>(null);
@@ -355,8 +356,8 @@ export const WorkoutsProvider: React.FC<{
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
-    (durationSec: number, date?: string) => {
-      finishSession({ appId: APP, durationSec, ...(date ? { date } : {}) });
+    (durationSec: number, date?: string, sessionId?: string) => {
+      finishSession({ appId: APP, durationSec, ...(date ? { date } : {}), ...(sessionId ? { sessionId } : {}) });
       // Land on Today, where the rating and the celebration live — from its
       // card or from the Lab alike. One action, so nothing runs from a closed screen.
       rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });

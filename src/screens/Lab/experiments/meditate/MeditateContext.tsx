@@ -242,6 +242,7 @@ export const MeditateProvider: React.FC<{
         durationSec: completed.duration_sec,
         choices: checkinChoices(completed),
         mode: completed.mode,
+        sessionId: completed.id,
         ...(completed.date !== toLocalDateString(new Date()) ? { date: completed.date } : {}),
       });
       // Land on Today, where the rating and the celebration live — from its

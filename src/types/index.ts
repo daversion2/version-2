@@ -398,6 +398,9 @@ export interface CompletionLog {
    * its week and streak.
    */
   mirror_of?: string;
+  /** An app session's rating: the app, and the session doc it rates when there is one. */
+  app_id?: string;
+  session_id?: string;
   /**
    * True when `metrics` was filled from the habit's committed amount rather than
    * entered. Lets a trend separate "measured 80 oz" from "said yes to the 80 oz

@@ -87,8 +87,9 @@ a real habit.
   *(2026-10-31)* Workouts past sessions and unrated sessions now count
   toward the rings, the grid and the streaks. For Meals, any logged day
   counts as showing up (Q2).
-- [ ] **Step 2. `rateAppSession`:** the handoff carries the `sessionId`, and
-  mirror logs stop.
+- [x] **Step 2. `rateAppSession`:** the handoff carries the `sessionId`, and
+  mirror logs stop. *(2026-10-31)* `services/appRatings.ts` (tested).
+  Ratings now carry `app_id` and `session_id`.
 - [ ] **Step 3. One day streak and the rule counters**, from app sessions.
 - [ ] **XP and the day streak** (`willpower.ts`) come from app check-ins, not
   habits.
@@ -97,8 +98,8 @@ a real habit.
 - [ ] **Rule facts.** Replace `active_habit_count` (`useRuleSurfaces.ts`) and
   the Cloud Function's `practices_tried` / `totalHabitsCompleted`
   (`functions/src/rulesEngine.ts`) with app-session facts. **🔒 D5**
-- [ ] **Stop writing mirror logs** (`practices.logMirrorCompletion`, called
-  from HomeScreen), once nothing reads habit logs. **🔒 D1**
+- [x] **Stop writing mirror logs.** Done in step 2 (D1 allowed it). Old ones
+  are ignored by `withoutMirrors`. `logMirrorCompletion` goes in step 5.
 - [ ] **Move Meditate's technique steps** out of the practice catalog
   (`meditateMath.ts` reads `data/practices`) into Meditate itself.
 - [ ] **Rebuild demo data** around app sessions (`utils/seedDemoData.ts`).
