@@ -83,7 +83,10 @@ a real habit.
 - [x] **Design the replacement** for the pretend-habit check-in:
   `docs/app-checkins-design.md`, approved 2026-10-31. Its five build steps
   are below.
-- [ ] **Step 1. `sessionsByDay`:** one session count, used by the dashboard.
+- [x] **Step 1. `sessionsByDay`:** one session count, used by the dashboard.
+  *(2026-10-31)* Workouts past sessions and unrated sessions now count
+  toward the rings, the grid and the streaks. For Meals, any logged day
+  counts as showing up (Q2).
 - [ ] **Step 2. `rateAppSession`:** the handoff carries the `sessionId`, and
   mirror logs stop.
 - [ ] **Step 3. One day streak and the rule counters**, from app sessions.

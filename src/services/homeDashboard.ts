@@ -83,6 +83,42 @@ export const describeVsPrior = (current: number, prior: number, unit: string): s
   return `${diff > 0 ? '+' : '−'}${size} ${word} vs the 7 days before`;
 };
 
+// --- Counting sessions ------------------------------------------------------------
+
+/**
+ * Sessions per day for one app: on each day, the larger of its saved sessions
+ * and its ratings (docs/app-checkins-design.md §2). One rule covers every case
+ * without a migration:
+ *   - a rated session (1 doc, 1 rating) is 1;
+ *   - a session whose rating was cancelled (1 doc, 0) still counts (Q1);
+ *   - a Workouts past session (0 docs, 1 rating) still counts;
+ *   - old ratings with no session id pair up with their docs by day.
+ */
+export const sessionsByDay = (docDates: string[], ratingDates: string[]): Map<string, number> => {
+  const tally = (dates: string[]) => {
+    const m = new Map<string, number>();
+    for (const d of dates) m.set(d, (m.get(d) ?? 0) + 1);
+    return m;
+  };
+  const docs = tally(docDates);
+  const ratings = tally(ratingDates);
+  const out = new Map<string, number>();
+  for (const d of new Set([...docs.keys(), ...ratings.keys()])) {
+    out.set(d, Math.max(docs.get(d) ?? 0, ratings.get(d) ?? 0));
+  }
+  return out;
+};
+
+/** The days an app's sessions were rated on — one entry per rating. */
+export const ratingDates = (logs: CompletionLog[], appId: TodayAppId): string[] =>
+  logs.filter((l) => l.reference_id === appCheckinId(appId) && !l.mirror_of).map((l) => l.date);
+
+const countIn = (byDay: Map<string, number>, today: string, offset = 0): number => {
+  let n = 0;
+  for (const [d, c] of byDay) if (inWindow(d, today, offset)) n += c;
+  return n;
+};
+
 // --- Meditate ------------------------------------------------------------------
 
 export interface MeditateRecent {
@@ -108,22 +144,28 @@ export interface MeditateDashboard {
 export const meditateDashboard = (
   sessions: CompletedMeditateSession[],
   goal: number,
-  today: string
+  today: string,
+  ratedOn: string[] = []
 ): MeditateDashboard => {
   const sorted = [...sessions].sort((a, b) => b.started_at.localeCompare(a.started_at));
   const current = sorted.filter((s) => inWindow(s.date, today));
   const prior = sorted.filter((s) => inWindow(s.date, today, 1));
+  const byDay = sessionsByDay(
+    sorted.map((s) => s.date),
+    ratedOn
+  );
+  const active = [...byDay.keys()];
   const sum = (list: CompletedMeditateSession[]) => minutes(list.reduce((t, s) => t + s.duration_sec, 0));
   return {
     minutes: sum(current),
     priorMinutes: sum(prior),
-    sessions: current.length,
+    sessions: countIn(byDay, today),
     goal,
     lastSessionMinutes: sorted[0] ? minutes(sorted[0].duration_sec) : null,
     series: sorted.slice(0, 8).reverse().map((s) => minutes(s.duration_sec)),
     recent: sorted.slice(0, 4).map((s) => ({ date: s.date, mode: s.mode, minutes: minutes(s.duration_sec) })),
-    streakDays: dayStreak(new Set(sorted.map((s) => s.date)), today),
-    activeDates: [...new Set(current.map((s) => s.date))],
+    streakDays: dayStreak(new Set(active), today),
+    activeDates: active.filter((d) => inWindow(d, today)),
   };
 };
 
@@ -218,17 +260,22 @@ export const workoutsDashboard = (
   exercisesById: Record<string, Exercise>,
   unit: WeightUnit,
   phase: TrainingPhase | undefined,
-  today: string
+  today: string,
+  ratedOn: string[] = []
 ): WorkoutsDashboard => {
   const sorted = [...sessions].sort((a, b) => b.started_at.localeCompare(a.started_at));
   const current = sorted.filter((s) => inWindow(sessionDate(s), today));
   const prior = sorted.filter((s) => inWindow(sessionDate(s), today, 1));
+  // A past session logged in Workouts is a rating with no session doc: it
+  // counts as a session, though it has no sets or volume.
+  const byDay = sessionsByDay(sorted.map(sessionDate), ratedOn);
+  const active = [...byDay.keys()];
   const volume = (list: CompletedWorkoutSession[]) => list.reduce((t, s) => t + (s.total_volume_kg ?? 0), 0);
   const volumeKg = volume(current);
   const priorVolumeKg = volume(prior);
   return {
-    sessions: current.length,
-    priorSessions: prior.length,
+    sessions: countIn(byDay, today),
+    priorSessions: countIn(byDay, today, 1),
     goal,
     volumeKg,
     priorVolumeKg,
@@ -236,9 +283,13 @@ export const workoutsDashboard = (
     series: sorted.slice(0, 8).reverse().map((s) => s.total_volume_kg ?? 0),
     standout: standoutLift(sorted, exercisesById, unit, today),
     week: current.map((s) => ({ date: sessionDate(s), name: s.workout_name, sets: s.total_sets })),
-    streakWeeks: weekStreak(sorted.map(sessionDate), goal, today),
+    streakWeeks: weekStreak(
+      [...byDay].flatMap(([d, n]) => Array<string>(n).fill(d)),
+      goal,
+      today
+    ),
     phaseLine: describePhase(phase, today),
-    activeDates: [...new Set(current.map(sessionDate))],
+    activeDates: active.filter((d) => inWindow(d, today)),
   };
 };
 
@@ -265,8 +316,11 @@ export interface MealsDashboard {
   goal: number;
   /** Whole-food groups, most servings first. */
   servings: Serving[];
+  /** Days in a row with a meal logged — showing up, not hitting the target (Q2). */
   streakDays: number;
   onDates: string[];
+  /** Days in the window with anything logged. */
+  loggedDates: string[];
 }
 
 const hasAnything = (day: MealsDay | undefined): boolean =>
@@ -340,7 +394,7 @@ export const mealsDashboard = (
   const servings = WHOLE_GROUPS.map((g) => ({ group: g.id, count: counts[g.id] ?? 0 })).sort(
     (a, b) => b.count - a.count
   );
-  const onAll = new Set(streakFrom.filter((d) => mealsDayState(d, daysByDate[d], current, today) === 'on'));
+  const loggedAll = new Set(streakFrom.filter((d) => hasAnything(daysByDate[d])));
   const onDates = days.filter((d) => d.state === 'on').map((d) => d.date);
   return {
     days,
@@ -351,8 +405,9 @@ export const mealsDashboard = (
     priorOnTarget: priorOn.length,
     goal: WINDOW_DAYS,
     servings,
-    streakDays: dayStreak(onAll, today),
+    streakDays: dayStreak(loggedAll, today),
     onDates,
+    loggedDates: dates.filter((d) => hasAnything(daysByDate[d])),
   };
 };
 
@@ -478,14 +533,20 @@ export interface HomeDashboard {
 
 export const buildHomeDashboard = (input: HomeDashboardInput): HomeDashboard => {
   const { today } = input;
-  const meditate = meditateDashboard(input.meditateSessions, input.meditateGoal, today);
+  const meditate = meditateDashboard(
+    input.meditateSessions,
+    input.meditateGoal,
+    today,
+    ratingDates(input.logs, 'meditate')
+  );
   const workouts = workoutsDashboard(
     input.workoutSessions,
     input.workoutsGoal,
     input.exercisesById,
     input.unit,
     input.phase,
-    today
+    today,
+    ratingDates(input.logs, 'workouts')
   );
   const meals = mealsDashboard(input.mealsDays, input.mealsRules, today, Object.keys(input.mealsDays));
   const friction = {
@@ -498,12 +559,12 @@ export const buildHomeDashboard = (input: HomeDashboardInput): HomeDashboard => 
     progressOf('workouts', workouts.sessions, workouts.goal),
     progressOf('meals', meals.onTarget, meals.goal),
   ];
+  // One day streak (design §3): any app session, or any meal logged (Q2).
+  // Craving Crusher doesn't count (Q3).
   const everyDay = new Set([
-    ...input.meditateSessions.map((s) => s.date),
-    ...input.workoutSessions.map(sessionDate),
-    ...Object.keys(input.mealsDays).filter(
-      (d) => mealsDayState(d, input.mealsDays[d], input.mealsRules, today) === 'on'
-    ),
+    ...sessionsByDay(input.meditateSessions.map((s) => s.date), ratingDates(input.logs, 'meditate')).keys(),
+    ...sessionsByDay(input.workoutSessions.map(sessionDate), ratingDates(input.logs, 'workouts')).keys(),
+    ...Object.keys(input.mealsDays).filter((d) => hasAnything(input.mealsDays[d])),
   ]);
   return {
     meditate,
@@ -513,6 +574,6 @@ export const buildHomeDashboard = (input: HomeDashboardInput): HomeDashboard => 
     rings,
     combinedStreak: dayStreak(everyDay, today),
     insight: describeInsight(rings, friction),
-    grid: weekGrid(today, { meditate: meditate.activeDates, workouts: workouts.activeDates, meals: meals.onDates }),
+    grid: weekGrid(today, { meditate: meditate.activeDates, workouts: workouts.activeDates, meals: meals.loggedDates }),
   };
 };

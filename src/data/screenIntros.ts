@@ -49,7 +49,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Your week at a glance',
-        text: 'On Overview, a filled square is a day you showed up for that app: a session for Meditate and Workouts, an on-target day for Meals.',
+        text: 'On Overview, a filled square is a day you showed up for that app: a session for Meditate and Workouts, a meal logged for Meals.',
       },
     ],
     science: [

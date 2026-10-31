@@ -11,6 +11,8 @@ import {
   mealsDayState,
   meditateDashboard,
   progressOf,
+  ratingDates,
+  sessionsByDay,
   standoutLift,
   weekGrid,
   weekStreak,
@@ -130,6 +132,36 @@ describe('describeVsPrior', () => {
   });
 });
 
+describe('sessionsByDay', () => {
+  const day = (docs: string[], ratings: string[], d: string) => sessionsByDay(docs, ratings).get(d) ?? 0;
+
+  it('counts a rated session once', () => {
+    expect(day(['2026-10-24'], ['2026-10-24'], '2026-10-24')).toBe(1);
+  });
+
+  it('counts a session whose rating was cancelled', () => {
+    expect(day(['2026-10-24'], [], '2026-10-24')).toBe(1);
+  });
+
+  it('counts a past session that only has a rating', () => {
+    expect(day([], ['2026-10-24'], '2026-10-24')).toBe(1);
+  });
+
+  it('takes the larger of sessions and ratings on a day', () => {
+    expect(day(['2026-10-24', '2026-10-24'], ['2026-10-24'], '2026-10-24')).toBe(2);
+    expect(day(['2026-10-24'], ['2026-10-24', '2026-10-24'], '2026-10-24')).toBe(2);
+  });
+
+  it('reads ratings for one app and skips mirror logs', () => {
+    const logs = [
+      log('app:workouts', '2026-10-23', 2),
+      log('app:meditate', '2026-10-23', 1),
+      { ...log('habit-workout', '2026-10-23', undefined), mirror_of: 'x' } as CompletionLog,
+    ];
+    expect(ratingDates(logs, 'workouts')).toEqual(['2026-10-23']);
+  });
+});
+
 describe('dayStreak', () => {
   it('counts back from today', () => {
     expect(dayStreak(new Set(['2026-10-22', '2026-10-23', '2026-10-24']), TODAY)).toBe(3);
@@ -222,6 +254,24 @@ describe('workoutsDashboard', () => {
   });
 });
 
+describe('sessions without a saved session', () => {
+  it('counts a Workouts past session toward the goal, the grid and the streak', () => {
+    const d = workoutsDashboard([workout('2026-10-20', 5400)], 3, EXERCISES, 'lb', undefined, TODAY, [
+      '2026-10-20',
+      '2026-10-22',
+    ]);
+    expect(d.sessions).toBe(2);
+    expect(d.activeDates.sort()).toEqual(['2026-10-20', '2026-10-22']);
+    expect(d.volumeKg).toBe(5400); // no sets to add for the past session
+  });
+
+  it('keeps a Meditate streak alive with an unrated session', () => {
+    const d = meditateDashboard([sit('2026-10-23', 10), sit('2026-10-24', 10)], 5, TODAY, ['2026-10-24']);
+    expect(d.sessions).toBe(2);
+    expect(d.streakDays).toBe(2);
+  });
+});
+
 describe('standoutLift', () => {
   it('picks the exercise whose best set moved furthest', () => {
     const sessions = [
@@ -281,6 +331,39 @@ describe('meals', () => {
     expect(d.servings.find((s) => s.group === 'pork')).toEqual({ group: 'pork', count: 0 });
     expect(d.streakDays).toBe(2);
     expect(d.days.map((x) => x.state).slice(4)).toEqual(['empty', 'on', 'on']);
+  });
+});
+
+describe('meals: showing up', () => {
+  // Founder Q2: any meal logged counts as showing up; the ring stays on-target days.
+  const low = (date: string) =>
+    mealsDay(date, { meals: { lunch: plate('veggies', 'chicken'), dinner: plate('veggies', 'processed') } });
+
+  it('counts a logged day that missed the target', () => {
+    const days = { '2026-10-23': low('2026-10-23'), '2026-10-24': mealsDay('2026-10-24') };
+    const d = mealsDashboard(days, RULES, TODAY, Object.keys(days));
+    expect(d.onTarget).toBe(1);
+    expect(d.loggedDates).toEqual(['2026-10-23', '2026-10-24']);
+    expect(d.streakDays).toBe(2);
+  });
+
+  it('fills the week grid and the combined streak from logged days', () => {
+    const d = buildHomeDashboard({
+      today: TODAY,
+      meditateSessions: [],
+      meditateGoal: 5,
+      workoutSessions: [],
+      workoutsGoal: 3,
+      exercisesById: EXERCISES,
+      unit: 'lb',
+      phase: undefined,
+      mealsDays: { '2026-10-23': low('2026-10-23'), '2026-10-24': low('2026-10-24') },
+      mealsRules: RULES,
+      logs: [],
+    });
+    expect(d.grid.rows.meals.slice(5)).toEqual([true, true]);
+    expect(d.combinedStreak).toBe(2);
+    expect(d.rings.find((r) => r.appId === 'meals')?.done).toBe(0);
   });
 });
 
