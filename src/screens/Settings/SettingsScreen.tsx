@@ -178,27 +178,6 @@ export const SettingsScreen: React.FC = () => {
           Explanation lives on the screens themselves, in the "i" info icons
           (FeatureInfoModal / ScreenIntro), which is where it gets read. */}
 
-      {/* Archived habits. The screen itself lives in the Home stack, so this
-          reaches across tabs the same way the reflection shortcut below does.
-          Without an entry point here the archive flow was a one-way door: it
-          promises "you can restore it from Archived at any time", and nothing
-          in the app linked to Archived — a habit with no logged check-ins then
-          appeared in no list at all and could not be got back. */}
-      <Card
-        style={styles.card}
-        onPress={() =>
-          navigation.getParent()?.navigate('Home', { screen: 'ArchivedHabits' })
-        }
-      >
-        <View style={styles.navRow}>
-          <View>
-            <Text style={styles.label}>Archived Habits</Text>
-            <Text style={styles.desc}>Habits you've put away — restore any of them</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
-        </View>
-      </Card>
-
       {/* Admin — only for flagged accounts. Lives here rather than as a fifth
           tab: it is a maintenance destination, not a daily one, and a tab that
           exists for one account crowds the bar for everyone who sees it. */}
@@ -267,9 +246,6 @@ export const SettingsScreen: React.FC = () => {
             trackColor={{ true: Colors.primary }}
           />
         </View>
-        <Text style={styles.footnote}>
-          Reminders for individual habits are set on each habit and aren't affected by this.
-        </Text>
       </Card>
 
       {/* Clear Account (dev tool) — admin only, same gate as the Admin card above.
@@ -360,13 +336,6 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     flex: 1,
-  },
-  footnote: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    marginTop: Spacing.md,
-    lineHeight: 18,
   },
   desc: {
     fontFamily: Fonts.secondary,

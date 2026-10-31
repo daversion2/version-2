@@ -41,7 +41,18 @@ export const Ring: React.FC<{ pct: number; size?: number; stroke?: number; label
   };
   return (
     <View style={{ width: size, height: size }} accessible accessibilityLabel={label}>
-      <View style={[arc, { borderColor: Colors.border }]} />
+      {/* The track: a full grey ring. Its own style, not `arc` — `arc`'s
+          top/right colours would override borderColor and paint a teal half. */}
+      <View
+        style={{
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: half,
+          borderWidth: stroke,
+          borderColor: Colors.border,
+        }}
+      />
       <View style={{ position: 'absolute', left: half, width: half, height: size, overflow: 'hidden' }}>
         <View style={[arc, { left: -half, transform: [{ rotate: `${-135 + Math.min(deg, 180)}deg` }] }]} />
       </View>

@@ -1,0 +1,102 @@
+# Today dashboard (2026-10-31). READ-ONLY: taps tabs, scrolls, screenshots.
+# Never taps a Start/Log button, Close out the day, or anything that writes.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- extendedWaitUntil:
+    visible: "LAST 7 DAYS"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "., Overview"
+- assertVisible: ".*Meditate"
+- assertVisible: ".*Workouts"
+- assertVisible: ".*Meals"
+- assertVisible: ".*streak.*across all three"
+- assertNotVisible: ".*Browse library.*"
+- assertNotVisible: ".*Create your own.*"
+- assertNotVisible: "Library, tab.*"
+- takeScreenshot: 17a-01-overview-top
+# Dev builds raise a "Open debugger to view warnings" toast over the tab bar; close it.
+- runFlow:
+    when:
+      visible: ".*Open debugger to view warnings.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+
+# Scroll Overview: rings collapse to one line.
+- scrollUntilVisible:
+    element: "OPEN AN APP"
+    direction: DOWN
+    timeout: 15000
+- swipe:
+    start: "50%,75%"
+    end: "50%,45%"
+- waitForAnimationToEnd
+- takeScreenshot: 17a-02-overview-scrolled
+- scrollUntilVisible:
+    element: ".*Craving Crusher.*"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 17a-03-overview-bottom
+
+# Back to top: rings expand.
+- swipe:
+    start: "50%,35%"
+    end: "50%,90%"
+- swipe:
+    start: "50%,35%"
+    end: "50%,90%"
+- swipe:
+    start: "50%,35%"
+    end: "50%,90%"
+- waitForAnimationToEnd
+- assertVisible: "LAST 7 DAYS"
+- takeScreenshot: 17a-04-overview-back-top
+
+# Meditate page via tab.
+- tapOn: "., Meditate"
+- waitForAnimationToEnd
+- takeScreenshot: 17a-05-meditate-top
+- scrollUntilVisible:
+    element: ".*Start a session.*"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 17a-06-meditate-bottom
+
+# Workouts page via tab.
+- tapOn: "., Workouts"
+- waitForAnimationToEnd
+- takeScreenshot: 17a-07-workouts-top
+- scrollUntilVisible:
+    element: ".*Start a workout.*"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 17a-08-workouts-bottom
+
+# Meals page via tab.
+- tapOn: "., Meals"
+- waitForAnimationToEnd
+- takeScreenshot: 17a-09-meals-top
+- scrollUntilVisible:
+    element: "DAY BY DAY"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 17a-10-meals-mid
+- scrollUntilVisible:
+    element: ".*Log a meal.*"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 17a-11-meals-bottom
+
+# Swipe back horizontally to Workouts.
+- swipe:
+    start: "15%,60%"
+    end: "90%,60%"
+- waitForAnimationToEnd
+- takeScreenshot: 17a-12-swiped-right

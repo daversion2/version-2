@@ -18,19 +18,12 @@ import {
   WeeklyTrendPoint,
 } from '../../services/progress';
 import { getWillpowerStats } from '../../services/willpower';
-import {
-  getPracticeProgress,
-  PracticeProgress,
-} from '../../services/practiceProgress';
 import { buildFrictionOverview, FrictionOverview } from '../../services/frictionCapacity';
 import { FrictionCard } from '../../components/progress/FrictionCard';
 import { TimeFilterChips, TimeFilter } from '../../components/progress/TimeFilterChips';
 import { HeroStatsRow } from '../../components/progress/HeroStatsRow';
 import { ActivityTrendChart } from '../../components/progress/ActivityTrendChart';
-import { PersonalRecordsCard } from '../../components/progress/PersonalRecordsCard';
 import { PhaseHighlightCard } from '../../components/progress/PhaseHighlightCard';
-import { TrainingVolumeSection } from '../../components/progress/TrainingVolumeSection';
-import { MetricFamiliesSection } from '../../components/progress/MetricFamiliesSection';
 import { ProgressNavigation } from '../../types/navigation';
 import { toLocalDateString, getTodayString } from '../../utils/date';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
@@ -60,7 +53,6 @@ export const ProgressScreen: React.FC = () => {
   const [filter, setFilter] = useState<TimeFilter>('30d');
 
   // Practice-protocol aggregation (volume grid, records)
-  const [progress, setProgress] = useState<PracticeProgress | null>(null);
 
   // Hero stats
   const [completions, setCompletions] = useState(0);
@@ -88,7 +80,6 @@ export const ProgressScreen: React.FC = () => {
         trend,
         willpower,
         allTimeLogs,
-        practiceProgress,
       ] = await Promise.all([
         getTotalActions(user.uid, startDate),
         getTotalPoints(user.uid, startDate),
@@ -99,7 +90,6 @@ export const ProgressScreen: React.FC = () => {
         // time filter. Clipping them made a short filter read as "no ratings"
         // and "didn't show up" for days that simply fell outside the window.
         getCompletionLogs(user.uid),
-        getPracticeProgress(user.uid, startDate),
       ]);
 
       // Built from allTimeLogs, which is already fetched above — no extra read.
@@ -110,7 +100,6 @@ export const ProgressScreen: React.FC = () => {
       setDaysActive(activeDaysResult);
       setTrendData(trend);
       setCurrentStreak(willpower.currentStreak);
-      setProgress(practiceProgress);
 
       // Calendar marks
       const marks: Record<string, any> = {};
@@ -163,26 +152,9 @@ export const ProgressScreen: React.FC = () => {
           {/* Workouts' training phases: a retest is hard proof of capacity. */}
           <PhaseHighlightCard refreshKey={completions} />
 
-          {/* By Metric — the same reps as Training Volume below, sliced by what
-              they measured instead of which habit logged them. Leads because
-              "38 miles this month" is the sentence people want first; the grid
-              underneath answers which habits carried it. */}
-          {progress && (
-            <MetricFamiliesSection
-              reports={progress.metricFamilies}
-              onHabitPress={(habitId) => navigation.navigate('HabitDetail', { habitId })}
-            />
-          )}
-
-          {/* Training Volume (per-practice card grid) */}
-          {progress && (
-            <TrainingVolumeSection
-              practices={progress.practices}
-              onPracticePress={(habitId) =>
-                navigation.navigate('HabitDetail', { habitId })
-              }
-            />
-          )}
+          {/* By Metric and Training Volume came off 2026-10-31: both listed
+              habits, which are no longer on Today. Progress gets rebuilt for
+              the apps (docs/pivot-checklist.md, Phase 4). */}
 
           {/* Activity Trend */}
           <ActivityTrendChart data={trendData} />
@@ -217,9 +189,6 @@ export const ProgressScreen: React.FC = () => {
             }}
             style={styles.calendar}
           />
-
-          {/* Personal Records */}
-          {progress && <PersonalRecordsCard records={progress.records} />}
         </>
       )}
       <ScreenIntro intro={intro} />

@@ -77,7 +77,10 @@ export const describeVsPrior = (current: number, prior: number, unit: string): s
   if (current === 0 && prior === 0) return null;
   const diff = current - prior;
   if (diff === 0) return 'Same as the 7 days before';
-  return `${diff > 0 ? '+' : '−'}${Math.abs(diff)} ${unit} vs the 7 days before`;
+  const size = Math.abs(diff);
+  // "1 day", "1 session" — the units passed are plural.
+  const word = size === 1 && unit.endsWith('s') ? unit.slice(0, -1) : unit;
+  return `${diff > 0 ? '+' : '−'}${size} ${word} vs the 7 days before`;
 };
 
 // --- Meditate ------------------------------------------------------------------
@@ -152,7 +155,7 @@ export interface WorkoutsDashboard {
   standout: StandoutLift | null;
   week: WorkoutWeekRow[];
   streakWeeks: number;
-  /** "Week 3 of 6", while a phase is running. */
+  /** "Week 3 of 6" while a phase trains; "Baseline test to do" before it starts. */
   phaseLine: string | null;
   activeDates: string[];
 }
@@ -199,6 +202,16 @@ export const standoutLift = (
   return best?.lift ?? null;
 };
 
+/** A phase waiting on its baseline hasn't started training, so it has no week yet. */
+export const describePhase = (
+  phase: Pick<TrainingPhase, 'status' | 'start_date' | 'weeks'> | undefined,
+  today: string
+): string | null => {
+  if (!phase) return null;
+  if (phase.status === 'baseline') return 'Baseline test to do';
+  return `Week ${Math.min(phaseWeek(phase, today), phase.weeks)} of ${phase.weeks}`;
+};
+
 export const workoutsDashboard = (
   sessions: CompletedWorkoutSession[],
   goal: number,
@@ -224,7 +237,7 @@ export const workoutsDashboard = (
     standout: standoutLift(sorted, exercisesById, unit, today),
     week: current.map((s) => ({ date: sessionDate(s), name: s.workout_name, sets: s.total_sets })),
     streakWeeks: weekStreak(sorted.map(sessionDate), goal, today),
-    phaseLine: phase ? `Week ${Math.min(phaseWeek(phase, today), phase.weeks)} of ${phase.weeks}` : null,
+    phaseLine: describePhase(phase, today),
     activeDates: [...new Set(current.map(sessionDate))],
   };
 };

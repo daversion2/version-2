@@ -3,9 +3,6 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { PracticePickerModal } from '../../components/habits/PracticePickerModal';
-import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { EditDifficultyModal } from '../../components/challenge/EditDifficultyModal';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -14,10 +11,8 @@ import {
   deleteCompletionLog,
 } from '../../services/progress';
 import { updateChallengeCompletion, getChallengeById } from '../../services/challenges';
-import { getHabitsForDate, completePractice, HabitDayState } from '../../services/practices';
 import { isEditableDate, formatDayHeader, formatRelativeDay } from '../../utils/date';
 import { showConfirm, showAlert } from '../../utils/alert';
-import { PracticeCompletionInput } from '../../types';
 import { ProgressScreenProps, ProgressNavigation } from '../../types/navigation';
 
 type Props = ProgressScreenProps<'DayDetail'>;
@@ -29,13 +24,6 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
   const [logs, setLogs] = useState<EnrichedCompletionLog[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
 
-  // Modal states
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [dayPractices, setDayPractices] = useState<HabitDayState[]>([]);
-  const [loadingHabits, setLoadingHabits] = useState(false);
-  // Practice chosen from the picker — capture opens next, locked to this day.
-  const [capturing, setCapturing] = useState<HabitDayState | null>(null);
-
   const [editDifficultyModalVisible, setEditDifficultyModalVisible] = useState(false);
   const [editingChallenge, setEditingChallenge] = useState<{
     id: string;
@@ -44,8 +32,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     logId: string;
   } | null>(null);
 
-  // Adding and deleting share one window (see isEditableDate) so the screen
-  // never offers to add a rep it wouldn't let you take back.
+  // Past this window a day's entries can't be edited or deleted.
   const isEditable = isEditableDate(date);
   // "Today"/"Yesterday" only — for anything older the heading's full date is
   // already the clearest thing we can say.
@@ -65,37 +52,6 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       refreshData();
     }, [refreshData])
   );
-
-  // Open the "which practice?" picker for this day.
-  const handleOpenPicker = async () => {
-    if (!user) return;
-    setLoadingHabits(true);
-    setPickerVisible(true);
-    try {
-      setDayPractices(await getHabitsForDate(user.uid, date));
-    } catch (error) {
-      showAlert('Error', 'Failed to load habits. Please try again.');
-    } finally {
-      setLoadingHabits(false);
-    }
-  };
-
-  // Picked a practice → hand off to the same capture flow today's reps use,
-  // locked to this day. Going through completePractice (rather than writing the
-  // log here) is what keeps a backfilled rep worth the same as a live one:
-  // the same XP and the practice's tracking fields.
-  const handleAddPractice = async (input: PracticeCompletionInput) => {
-    if (!user || !capturing) return;
-    const { habit } = capturing;
-    const { pointsEarned } = await completePractice(
-      user.uid,
-      { id: habit.id, name: habit.name },
-      { ...input, date }
-    );
-    setCapturing(null);
-    showAlert('Logged', `${habit.name} · +${pointsEarned} XP`);
-    refreshData();
-  };
 
   // Handle deleting a habit log
   const handleDeleteHabitLog = (log: EnrichedCompletionLog) => {
@@ -243,15 +199,6 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         </View>
       </Card>
 
-      {/* Backfill a practice onto this day */}
-      {isEditable && (
-        <Button
-          title="Log a habit for this day"
-          onPress={handleOpenPicker}
-          variant="outline"
-          style={styles.addHabitButton}
-        />
-      )}
     </>
   );
 
@@ -267,30 +214,6 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         ListEmptyComponent={
           <Text style={styles.emptyText}>No activity this day.</Text>
         }
-      />
-
-      {/* Pick a practice, then capture it — same flow as a live rep. */}
-      <PracticePickerModal
-        visible={pickerVisible}
-        date={date}
-        practices={dayPractices}
-        loading={loadingHabits}
-        onSelect={(state) => {
-          setPickerVisible(false);
-          setCapturing(state);
-        }}
-        onCancel={() => setPickerVisible(false)}
-      />
-
-      <HabitCompletionModal
-        visible={!!capturing}
-        habitName={capturing?.habit.name || ''}
-        practiceId={capturing?.habit.practice_id}
-        logOnly
-        initialDate={date}
-        lockDate
-        onSubmit={handleAddPractice}
-        onCancel={() => setCapturing(null)}
       />
 
       {/* Edit Difficulty Modal */}
@@ -342,9 +265,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
-  },
-  addHabitButton: {
-    marginBottom: Spacing.lg,
   },
   logCard: { marginBottom: Spacing.sm },
   logHeader: {

@@ -265,6 +265,7 @@ They ship over the air like any other change.
   "habits support underneath" framing is superseded by the doc above
 - `docs/habit-library-audit.md`, `docs/challenge-library.md`, `docs/tidbit-audit.md` — content inventories
 - `docs/backlog.md` — the open-work list
+- `docs/pivot-checklist.md` — the ordered checklist for finishing the move off habits
 - `docs/go-live-checklist.md` (stale — rewrite is on the backlog)
 - `docs/app-overview-user-facing.md` — the product in the user's own words
 - `.maestro/README.md`, `.claude/skills/ui-test/SKILL.md`

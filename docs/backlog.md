@@ -33,6 +33,15 @@ the `deleteAccount` Cloud Function, and both app stores require it to work.
 **This writes to production. Ask before running (see the Maestro rule in
 CLAUDE.md).**
 
+**Check the new Today on screen** *(added 2026-10-31)*
+The last item in Phase 1 of `docs/pivot-checklist.md`. The rest of Phase 1
+(the habit leaks) is done. Run `ui-verify`, asking first. Check:
+- the rating sheet after a session, and the rating showing on the app's page
+- the celebration
+- pull to refresh on Overview
+- Meditate's end bell still ringing
+- Progress without its habit sections
+
 ## Next (pre-launch)
 
 **Device checks on a real phone** *(added 2026-09-05)*
@@ -79,21 +88,6 @@ Before non-admins get Compose:
   (`COMPOSE_MONTHLY_MINUTES`, 30 minutes, one number for everyone).
 
 ## Later
-
-**New Today: what hiding habits left behind** *(added 2026-10-31)*
-The dashboard replaced Today on 2026-10-31. See
-`docs/no-generic-habits-micro-apps.md`, "Built: the main screen". Habits are
-off the screen, but these still assume them. Habit reminders and the Library
-tab were removed on 2026-10-31. Still open:
-- *Tonight's plan names a habit.* The nightly close builds "Today's plan"
-  from habits (`services/nightlyClose.ts`). A habit can't be logged any
-  more, so the plan card stays up all day.
-- *Progress is still habit-based.* That includes "Friction you can handle"
-  and the per-habit pages.
-- *The ⓘ intro was rewritten for the new screen* (`data/screenIntros.ts`). An
-  edited version saved in the wording editor would still win.
-- *Nobody has run it on screen since the move.* Check the rating sheet after
-  a session, the celebration, and pull to refresh on Overview.
 
 **Apps-first Today: untested on screen** *(added 2026-10-18)*
 See `docs/apps-first-today.md`. Maestro checked the cards, the apps opening and
@@ -148,16 +142,17 @@ than the rest.
 
 ### Drop generic habits, unify Home *(added 2026-10-24)*
 
-See `docs/no-generic-habits-micro-apps.md`. Decided, and the Progress-screen
-tracking spec is now nailed down (interview, 2026-10-24, same doc): a combined
-cross-app streak + goal-% comparison up top; each card carries its own streak,
-a friction number+trend, and one headline metric — Meditate's minutes/last
-session, Workouts' total volume + best lift, Meals' new food-group heatmap.
-Still not scoped as a build: `services/appCheckins.ts` currently makes every
-app's streaks, pace, skip review and "Friction you can handle" work by writing
-a mirror log onto a real habit — that foundation disappears with generic
-habits, and now has to power a combined cross-app streak too, not just one
-per app. Needs its own scoping pass before any of this lands.
+The direction is `docs/no-generic-habits-micro-apps.md`. The work, in
+order, is `docs/pivot-checklist.md`:
+1. Stop the leaks (the **Now** item above).
+2. Founder decisions D1–D7.
+3. Apps stop being habits.
+4. Rebuild Progress, the nightly close and onboarding.
+5. Delete dead code.
+6. Docs and tests.
+
+Done so far (2026-10-31): Today is the dashboard, habit reminders are
+removed, the Library tab is removed.
 
 ### Across mini-apps *(added 2026-10-24)*
 
@@ -178,6 +173,16 @@ bigger, not yet scoped — discuss before building either.
   relates to Workouts' phases, who authors a program (founder-curated vs.
   user-built), and the data model. Raised while discussing Meditate's
   multi-day-course idea.
+
+- **Tap to cycle insights** *(founder idea, 2026-10-31)*. Many screens are
+  cluttered with numbers that are useful but not always wanted. Instead, a
+  small tappable insight chip shows one line at a time, and each tap cycles
+  to the next. On Workouts that might be "Volume is up 8%", then the
+  standout lift, then the streak. It would declutter the dashboard's pages
+  in particular. Open questions:
+  - Which insights belong in each app's rotation.
+  - Whether the order is fixed or the most notable shows first.
+  - Whether the chip remembers where you left it.
 
 ### Meditate *(added 2026-10-24)*
 

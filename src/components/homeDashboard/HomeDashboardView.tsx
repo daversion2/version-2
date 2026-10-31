@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import type { CompletionLog } from '../../types';
@@ -133,6 +134,8 @@ export const HomeDashboardView: React.FC<Props> = ({
   overviewBottom,
 }) => {
   const { width } = useWindowDimensions();
+  // The tab bar sits over the bottom of the pages, so each page ends above it.
+  const tabBarHeight = useBottomTabBarHeight();
   const pager = useRef<ScrollView>(null);
   const offsets = useRef<Record<PageId, number>>({ overview: 0, meditate: 0, workouts: 0, meals: 0 });
 
@@ -211,7 +214,7 @@ export const HomeDashboardView: React.FC<Props> = ({
 
   const pageProps = (id: PageId) => ({
     style: { width },
-    contentContainerStyle: styles.page,
+    contentContainerStyle: [styles.page, { paddingBottom: tabBarHeight + Spacing.lg }],
     onScroll: onPageScroll(id),
     scrollEventThrottle: 16,
   });
@@ -244,7 +247,10 @@ export const HomeDashboardView: React.FC<Props> = ({
             <View style={styles.slim}>
               <View style={styles.slimDot} />
               <Text style={styles.slimText}>
-                <Text style={styles.strong}>{d.combinedStreak}-day streak</Text> · {collapsedLine[page]}
+                <Text style={styles.strong}>
+                  {d.combinedStreak > 0 ? `${d.combinedStreak}-day streak` : 'No streak yet'}
+                </Text>{' '}
+                · {collapsedLine[page]}
               </Text>
             </View>
           ) : (

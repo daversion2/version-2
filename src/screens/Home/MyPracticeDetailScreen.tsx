@@ -53,7 +53,6 @@ import {
 import { PracticeInstance, HabitStats, CompletionLog, HabitActionPlan } from '../../types';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
-import { requestDetailedLog } from '../../services/todayRequests';
 
 type Props = HomeScreenProps<'HabitDetail'>;
 
@@ -341,16 +340,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
     );
   }
 
-  // Reached by press-and-hold on Today. The check-in itself runs on Today, so
-  // its XP, streak and toast are the same as any other: hand the habit back
-  // and return there. From Progress, switch to the Today tab.
-  const handleLogWithDetails = () => {
-    requestDetailedLog({ habitId: habit.id });
-    const inHomeStack = navigation.getState().routes.some((r) => r.name === 'HomeScreen');
-    if (inHomeStack) navigation.popTo('HomeScreen');
-    else (navigation.getParent() as any)?.navigate('Home', { screen: 'HomeScreen' });
-  };
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
@@ -383,15 +372,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
             <Ionicons name="chevron-forward" size={16} color={Colors.gray} />
           </TouchableOpacity>
         )}
-
-      {habit.is_active && (
-        <Button
-          title="Log with details"
-          variant="outline"
-          onPress={handleLogWithDetails}
-          style={styles.logDetailsBtn}
-        />
-      )}
 
       {/* An archived practice is read-only until it's back. Restoring is the
           only action offered, so nothing here quietly edits a habit that isn't
@@ -719,7 +699,6 @@ export const MyPracticeDetailScreen: React.FC<Props> = ({ route, navigation }) =
 };
 
 const styles = StyleSheet.create({
-  logDetailsBtn: { marginBottom: Spacing.md },
   aboutRow: {
     flexDirection: 'row',
     alignItems: 'center',

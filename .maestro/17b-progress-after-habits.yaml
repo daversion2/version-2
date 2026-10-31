@@ -1,0 +1,90 @@
+# Progress + Settings after the habits removal (2026-10-31). READ-ONLY.
+# Three tabs now (Today, Progress, Settings), so Progress sits at 50%, not 62%.
+appId: com.neuronudge.neuronudge
+---
+- runFlow:
+    when:
+      visible: "Close Workouts"
+    commands:
+      - tapOn: "Close Workouts"
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- repeat:
+    times: 6
+    while:
+      notVisible: ".*(friction faced in the last 7 days|how much friction you.re handling).*"
+    commands:
+      - tapOn:
+          point: "50%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- takeScreenshot: 17b-01-progress-top
+- assertNotVisible: "By Metric"
+- swipe:
+    start: "50%,80%"
+    end: "50%,35%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-02-progress-2
+- swipe:
+    start: "50%,80%"
+    end: "50%,35%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-03-progress-3
+- swipe:
+    start: "50%,80%"
+    end: "50%,35%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-04-progress-4
+- swipe:
+    start: "50%,80%"
+    end: "50%,35%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-05-progress-5
+- assertNotVisible: "By Metric"
+- assertNotVisible: "Training Volume"
+- assertNotVisible: "Personal Records"
+
+# Open a past day with activity (the Saturday of last week's row).
+- tapOn: " Saturday 24 October 2026 You have entries for this day "
+- waitForAnimationToEnd
+- takeScreenshot: 17b-06-day-detail
+- assertNotVisible: ".*Log a habit for this day.*"
+- swipe:
+    start: "50%,80%"
+    end: "50%,35%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-07-day-detail-scrolled
+- assertNotVisible: ".*Log a habit for this day.*"
+- back
+- waitForAnimationToEnd
+
+# Settings: no Archived Habits, no per-habit reminders copy.
+- tapOn:
+    point: "83%,94%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-08-settings-top
+- assertNotVisible: ".*Archived Habits.*"
+- assertNotVisible: ".*Reminders for individual habits.*"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-09-settings-2
+- assertNotVisible: ".*Archived Habits.*"
+- assertNotVisible: ".*Reminders for individual habits.*"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-10-settings-3
+- assertNotVisible: ".*Archived Habits.*"
+- assertNotVisible: ".*Reminders for individual habits.*"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+- takeScreenshot: 17b-11-settings-4
+- assertNotVisible: ".*Archived Habits.*"
+- assertNotVisible: ".*Reminders for individual habits.*"

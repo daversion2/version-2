@@ -3,6 +3,7 @@ import {
   updateCompletionLog,
   getCompletionLogById,
   getCompletionLogs,
+  getCompletionLogsWithNames,
 } from '../progress';
 import {
   addMockDocument,
@@ -266,6 +267,40 @@ describe('Progress Service - Delete and Update Logs', () => {
     it('returns null when log does not exist', async () => {
       const result = await getCompletionLogById(userId, 'non-existent');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('mirror logs', () => {
+    // An app session's check-in, plus the copy it leaves on the matching habit.
+    beforeEach(() => {
+      addMockDocument(`users/${userId}/completionLogs`, 'app-log', {
+        user_id: userId,
+        type: 'nudge',
+        reference_id: 'app:meditate',
+        points: 2,
+        date: '2024-01-15',
+        completed_at: '2024-01-15T08:00:00Z',
+      });
+      addMockDocument(`users/${userId}/completionLogs`, 'mirror-log', {
+        user_id: userId,
+        type: 'nudge',
+        reference_id: 'habit-meditation',
+        points: 0,
+        difficulty: 0,
+        date: '2024-01-15',
+        mirror_of: 'app-log',
+        completed_at: '2024-01-15T08:00:01Z',
+      });
+    });
+
+    it('counts an app session once', async () => {
+      const result = await getCompletionLogs(userId);
+      expect(result.map((l) => l.id)).toEqual(['app-log']);
+    });
+
+    it("lists it once on the day's page", async () => {
+      const result = await getCompletionLogsWithNames(userId, '2024-01-15');
+      expect(result.map((l) => l.name)).toEqual(['Meditate']);
     });
   });
 

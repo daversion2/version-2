@@ -13,13 +13,12 @@ import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { PracticeInstance } from '../../types';
 import { activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, completePractice, logMirrorCompletion, fetchAllNudgeLogs, getHabitsStreaksFromLogs, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
+import { getActiveHabits, completePractice, logMirrorCompletion, fetchAllNudgeLogs, getHabitsStreaksFromLogs, saveLogReflection } from '../../services/practices';
 import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
-import { cancelScheduledHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
+import { cancelScheduledHabitReminders } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
-import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
 import { getPractice, getPracticeColor } from '../../data/practices';
 import {
@@ -50,9 +49,7 @@ import { CHIP_CAPTIONS } from '../../components/home/TodayHabitRow';
 import { QuickLogSheet } from '../../components/home/QuickLogSheet';
 import { LogToast, LogToastContent } from '../../components/home/LogToast';
 import { buildQuickSheetInput, formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
-import { takeDetailedLogRequest, DetailedLogRequest } from '../../services/todayRequests';
 import { displayStreak } from '../../services/streakDisplay';
-import { purgeRemovedHabits } from '../../services/habitCleanup';
 import { getHabitSection, sectionOfHabit } from '../../data/habitSections';
 import { RESISTANCE_SCALE, TACTIC_GATE_RESISTANCE } from '../../constants/resistance';
 import type { TrackingField } from '../../data/practices';
@@ -127,16 +124,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // This week's nudge logs, kept in state so the Today list can be derived from
   // them and recompute when a habit is logged without waiting on a full reload.
   const [nudgeLogs, setNudgeLogs] = useState<CompletionLog[]>([]);
-  const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
-  // True when the capture modal was opened by the card's "Log it" action — no
-  // timer, and every question collapsed onto one screen.
-  const [completingLogOnly, setCompletingLogOnly] = useState(false);
-  // Day the capture modal opens on (YYYY-MM-DD). undefined = today.
-  const [completingDate, setCompletingDate] = useState<string | undefined>(undefined);
-  // A mini-app handed back a finished session: the capture opens locked to
-  // today, with what the session measured (its duration, a technique) filled in.
-  const [completingLockDate, setCompletingLockDate] = useState(false);
-  const [completingMetrics, setCompletingMetrics] = useState<Record<string, number | string> | undefined>();
   const [pendingFinish, setPendingFinish] = useState<SessionHandoff | null>(null);
   // The apps are the main thing (services/appCheckins.ts): always on Today,
   // each as a check-in habit of its own with the weekly goal set in the app.
@@ -150,8 +137,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [quickLog, setQuickLog] = useState<QuickLogTarget | null>(null);
   // The everyday "+N XP" — the full celebration is kept for milestones.
   const [toast, setToast] = useState<LogToastContent | null>(null);
-  // The habit page's "Log with details", waiting for the habit list to load.
-  const [pendingDetailedLog, setPendingDetailedLog] = useState<DetailedLogRequest | null>(null);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [celebrationMilestone, setCelebrationMilestone] = useState<string | null>(null);
@@ -205,7 +190,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Track app opens
   const appOpenTrackedRef = useRef(false);
   const remindersReconciledRef = useRef(false);
-  const seedAttemptedRef = useRef(false);
 
   // Rule-driven surfaces (admin-configured modals/banners, evaluated on app open).
   // The modal is held while any bespoke modal is up so they never stack.
@@ -223,8 +207,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     reflectVisible ||
     intro.visible ||
     !!skipReview ||
-    !!quickLog ||
-    !!completingHabit;
+    !!quickLog;
   const {
     modalRule: ruleModalRule,
     modalVisible: ruleModalVisible,
@@ -333,33 +316,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // Runs concurrently with the main fetch.
       refreshProfile().catch(() => {});
 
-      // Once per session, BEFORE fetching habits so they show on the very first
-      // load: ensure the full curated practice protocol is on the home. Creates
-      // missing instances and reactivates removed ones — practices always live
-      // on Home, with no add step.
-      if (!seedAttemptedRef.current) {
-        seedAttemptedRef.current = true;
-        try {
-          // The practice chosen during onboarding is seeded even if it isn't
-          // one of the core three — "pick one, just one" has to mean the app
-          // puts that one on Home.
-          const { changed, deactivated } = await ensureCuratedPractices(
-            user.uid,
-            userProfile?.starting_practice_id ?? null
-          );
-          if (changed > 0) console.log(`[home] provisioned ${changed} curated practices`);
-          // A retired practice is hidden everywhere, so its daily reminder
-          // would otherwise keep firing with no way to turn it off in-app
-          for (const h of deactivated) cancelHabitReminder(h).catch(() => {});
-          // Money and the food habits Meals replaced are removed outright:
-          // delete any copies (and their check-ins) still on the account.
-          const purged = await purgeRemovedHabits(user.uid);
-          for (const h of purged) cancelHabitReminder(h).catch(() => {});
-        } catch (err) {
-          console.warn('Failed to ensure curated practices:', err);
-          seedAttemptedRef.current = false; // allow a retry on the next load
-        }
-      }
+      // No habit seeding: habits were dropped (2026-10-31), and Today used to
+      // add Meditation, Breathwork and Unplugged Cardio on every load.
 
       // Home renders habits and nothing else, so it fetches habits and nothing
       // else. It used to also pull daily challenges, extended challenges and
@@ -457,9 +415,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // Back from a mini-app with a finished session? See services/miniApps.ts.
       const handoff = takePendingFinish();
       if (handoff) setPendingFinish(handoff);
-      // Back from a habit's page via "Log with details"? See services/todayRequests.ts.
-      const detailed = takeDetailedLogRequest();
-      if (detailed) setPendingDetailedLog(detailed);
     }, [loadData])
   );
 
@@ -499,20 +454,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingFinish, appHabits]);
 
-  // "Log with details" from the habit's page: the full capture, after the
-  // page's pop has finished animating.
-  useEffect(() => {
-    if (!pendingDetailedLog) return;
-    const habit = habits.find((h) => h.id === pendingDetailedLog.habitId);
-    if (!habit) return;
-    const timer = setTimeout(() => {
-      setPendingDetailedLog(null);
-      handleHabitLogIt(habit);
-    }, 500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingDetailedLog, habits]);
-
   // Track app opens (once per session)
   useEffect(() => {
     if (appOpenTrackedRef.current || !user) return;
@@ -527,42 +468,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // auto-navigated to nor surfaced by a banner. DebriefScreen and its route
   // are left intact so this can be switched back on.
 
-  // "I already did it" — the same capture modal for every practice, briefing
-  // and session beat skipped. Which flow you get is now the user's choice
-  // rather than a function of whether the catalog carries briefing content.
-  // `date` preselects a past day; the capture flow still lets them change it.
-  const handleHabitLogIt = useCallback(
-    (habit: PracticeInstance, date?: string) => {
-      setCompletingLogOnly(true);
-      setCompletingDate(date);
-      setCompletingLockDate(false);
-      // Amounts start at last time's, like the quick sheet.
-      const filled = prefillMetrics(trackingFor(habit), habit, nudgeLogs);
-      setCompletingMetrics(Object.keys(filled).length ? filled : undefined);
-      setCompletingHabit(habit);
-    },
-    [nudgeLogs]
-  );
-
-  // A row's tap is always the quick route (or the app it opens) — never the
-  // briefing. The briefing is "About" in the row's panel, behind the ›.
-
   /**
-   * The one completion path. The capture sheet passes no `forHabit` and the
-   * habit comes from `completingHabit`; the Today row's chips pass it directly,
-   * because a quick log never opens the sheet and so never sets that state.
-   *
-   * Both routes land here on purpose — XP, streak, the celebration, the tidbit
-   * and the hard-rep reflection offer are the same events whichever surface
-   * produced the rep.
+   * The one completion path: an app session's rating from the quick sheet.
+   * XP, streak, the celebration, the tidbit and the hard-session reflection
+   * offer all start here.
    */
   const handleHabitComplete = async (
     input: PracticeCompletionInput,
-    forHabit?: PracticeInstance,
+    habit: PracticeInstance,
     opts?: { mode?: string }
   ) => {
-    const habit = forHabit ?? completingHabit;
-    if (!user || !habit) return;
+    if (!user) return;
     const { difficulty } = input;
     // Log + XP all happen in the shared completePractice path. A failure here
     // propagates to the capture flow, which re-arms its Log button and shows
@@ -628,7 +544,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           .catch((err) => console.warn('Ticking the matching habit failed:', err));
       }
 
-      setCompletingHabit(null);
       setQuickLog(null);
       // XP and the streak in the header live on the profile.
       refreshProfile().catch(() => {});
@@ -905,22 +820,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }}
       />
 
-      <HabitCompletionModal
-        visible={!!completingHabit}
-        habitName={completingHabit?.name || ''}
-        practiceId={completingHabit?.practice_id}
-        // Custom habits have no catalog entry — their template comes from the
-        // preset chosen at creation. Without this a custom habit would log
-        // resistance and silently never ask for its metric.
-        templateId={completingHabit?.template_id}
-        metricGoals={completingHabit?.metric_goals}
-        logOnly={completingLogOnly}
-        initialDate={completingDate}
-        lockDate={completingLockDate}
-        initialMetrics={completingMetrics}
-        onSubmit={handleHabitComplete}
-        onCancel={() => setCompletingHabit(null)}
-      />
       <QuickLogSheet
         visible={!!quickLog}
         habitName={quickLog?.habit.name ?? ''}

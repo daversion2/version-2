@@ -10,7 +10,7 @@ import { FadeRise } from '../../components/common/FadeRise';
 import { useAuth } from '../../context/AuthContext';
 import { showAlert } from '../../utils/alert';
 import { markOnboardingComplete, setStartingPractice } from '../../services/users';
-import { createHabit, ensureCuratedPractices } from '../../services/practices';
+import { createHabit } from '../../services/practices';
 import { HabitDefinition } from '../../data/practices';
 import {
   ONBOARDING_BEATS,
@@ -83,20 +83,11 @@ export const OnboardingScreen: React.FC = () => {
   // Completion
   // --------------------------------------------------------------------------
 
-  /**
-   * "Just take me to the app." No habit is created, and no starting practice is
-   * recorded — which is exactly what makes ensureCuratedPractices fall back to
-   * seeding the core protocol, so Today still has something on it.
-   */
+  /** "Just take me to the app." Nothing is created: Today is the apps now. */
   const handleSkip = async () => {
     if (!user || saving) return;
     setSaving(true);
     try {
-      try {
-        await ensureCuratedPractices(user.uid);
-      } catch (seedErr) {
-        console.warn('Failed to seed core practices on skip:', seedErr);
-      }
       await markOnboardingComplete(user.uid);
       await refreshProfile();
     } catch (error: any) {

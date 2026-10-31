@@ -121,7 +121,10 @@ describe('windows', () => {
 describe('describeVsPrior', () => {
   it('says which way and by how much', () => {
     expect(describeVsPrior(132, 114, 'min')).toBe('+18 min vs the 7 days before');
-    expect(describeVsPrior(2, 3, 'sessions')).toBe('−1 sessions vs the 7 days before');
+    expect(describeVsPrior(2, 3, 'sessions')).toBe('−1 session vs the 7 days before');
+    expect(describeVsPrior(4, 5, 'days')).toBe('−1 day vs the 7 days before');
+    expect(describeVsPrior(3, 1, 'days')).toBe('+2 days vs the 7 days before');
+    expect(describeVsPrior(46, 47, 'min')).toBe('−1 min vs the 7 days before');
     expect(describeVsPrior(5, 5, 'days')).toBe('Same as the 7 days before');
     expect(describeVsPrior(0, 0, 'min')).toBeNull();
   });
@@ -209,8 +212,13 @@ describe('workoutsDashboard', () => {
   });
 
   it('names the phase week', () => {
-    const phase = { start_date: '2026-10-05', weeks: 6 } as TrainingPhase;
+    const phase = { status: 'training', start_date: '2026-10-05', weeks: 6 } as TrainingPhase;
     expect(workoutsDashboard([], 3, EXERCISES, 'lb', phase, TODAY).phaseLine).toBe('Week 3 of 6');
+  });
+
+  it('has no week before the baseline test is done', () => {
+    const phase = { status: 'baseline', start_date: '2026-10-05', weeks: 6 } as TrainingPhase;
+    expect(workoutsDashboard([], 3, EXERCISES, 'lb', phase, TODAY).phaseLine).toBe('Baseline test to do');
   });
 });
 

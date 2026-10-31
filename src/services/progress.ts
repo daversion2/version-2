@@ -45,8 +45,7 @@ export const getCompletionLogsWithNames = async (
     habitMap.set(d.id, { name: data.name });
   });
 
-  return logSnap.docs
-    .map((d) => ({ id: d.id, ...d.data() } as CompletionLog))
+  return withoutMirrors(logSnap.docs.map((d) => ({ id: d.id, ...d.data() } as CompletionLog)))
     .filter((log) => log.date === date)
     .map((log) => {
       if (log.type === 'craving') {
@@ -65,6 +64,13 @@ export const getCompletionLogsWithNames = async (
     .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
 };
 
+/**
+ * An app session also writes a mirror log onto its matching habit
+ * (practices.logMirrorCompletion). That copy is bookkeeping, not a second
+ * session, so nothing on Progress counts or lists it.
+ */
+export const withoutMirrors = (logs: CompletionLog[]): CompletionLog[] => logs.filter((l) => !l.mirror_of);
+
 const appNameFor = (referenceId: string): string | undefined => {
   const appId = appIdFromCheckinId(referenceId);
   return appId ? MINI_APPS[appId].title : undefined;
@@ -82,7 +88,7 @@ export const getCompletionLogs = async (
   endDate?: string
 ): Promise<CompletionLog[]> => {
   const snap = await getDocs(query(logsRef(userId)));
-  let logs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompletionLog));
+  let logs = withoutMirrors(snap.docs.map((d) => ({ id: d.id, ...d.data() } as CompletionLog)));
 
   if (startDate) {
     logs = logs.filter((l) => l.date >= startDate);
