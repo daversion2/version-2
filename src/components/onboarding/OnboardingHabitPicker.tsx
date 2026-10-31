@@ -128,11 +128,9 @@ export const OnboardingHabitPicker: React.FC<Props> = ({ selectedId, onSelect })
         );
       })}
 
-      {/* Says out loud what gets written without being asked. The reminder in
-          particular: it is scheduled on completion, and a notification nobody
-          agreed to is the kind of surprise that gets an app deleted. */}
+      {/* Says out loud what gets written without being asked. */}
       <Copy id="onboarding.pick.defaultsNote" style={styles.defaultsNote}>
-        {'Amount, days and reminders are already set to something sensible. Change any of it later, or add more from the Library.'}
+        {'Amount and days are already set to something sensible. You can change them later.'}
       </Copy>
 
       {showCaution && (

@@ -149,10 +149,8 @@ export const SettingsScreen: React.FC = () => {
       'Sign Out',
       'Are you sure?',
       async () => {
-        // Reminders are scheduled against the device, not the account, so they
-        // outlive the session — and they carry this user's habit names and their
-        // own cue text. Cancel before dropping the session; Home rebuilds them
-        // via reconcileHabitReminders on the next sign-in.
+        // Local notifications are scheduled against the device, not the account,
+        // so they outlive the session. Cancel before dropping it.
         await cancelAllHabitReminders();
         await logOut();
       },

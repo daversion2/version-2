@@ -3,9 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  RefreshControl,
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,14 +15,13 @@ import { PracticeInstance } from '../../types';
 import { activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
 import { getActiveHabits, completePractice, logMirrorCompletion, fetchAllNudgeLogs, getHabitsStreaksFromLogs, ensureCuratedPractices, saveLogReflection } from '../../services/practices';
 import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
-import { reconcileHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
+import { cancelScheduledHabitReminders, cancelHabitReminder } from '../../services/habitReminders';
 import { HabitStreakInfo } from '../../types';
 import { PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { HabitCompletionModal } from '../../components/habits/HabitCompletionModal';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
-import { PracticeBriefingModal } from '../../components/habits/PracticeBriefingModal';
-import { getPractice, getPracticeColor, formatCommitment } from '../../data/practices';
+import { getPractice, getPracticeColor } from '../../data/practices';
 import {
   APP_TRACKING,
   TODAY_APPS,
@@ -32,9 +29,8 @@ import {
   appCheckinHabit,
   appIdFromCheckinId,
   habitTickedBy,
-  lastAppCheckin,
 } from '../../services/appCheckins';
-import { TodayAppCard } from '../../components/home/TodayAppCard';
+import { HomeDashboardView } from '../../components/homeDashboard/HomeDashboardView';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
 import { ComebackModal } from '../../components/home/ComebackModal';
@@ -50,14 +46,9 @@ import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
 import { PushOptInModal } from '../../components/common/PushOptInModal';
 import { registerForPushNotifications } from '../../services/notifications';
-import { detailFor, CHIP_CAPTIONS } from '../../components/home/TodayHabitRow';
-import { TodayRow } from '../../components/home/TodayRow';
-import { TodayRowPanel } from '../../components/home/TodayRowPanel';
-import { TodaySectionCard } from '../../components/home/TodaySectionCard';
+import { CHIP_CAPTIONS } from '../../components/home/TodayHabitRow';
 import { QuickLogSheet } from '../../components/home/QuickLogSheet';
 import { LogToast, LogToastContent } from '../../components/home/LogToast';
-import { buildTodayList, sectionFor, weekDatesFor } from '../../services/habitPace';
-import { buildTodaySectionViews, RowClass, TodayRow as TodayRowModel } from '../../services/todaySections';
 import { buildQuickSheetInput, formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
 import { takeDetailedLogRequest, DetailedLogRequest } from '../../services/todayRequests';
 import { displayStreak } from '../../services/streakDisplay';
@@ -129,7 +120,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   });
   const { user, userProfile, refreshProfile } = useAuth();
   const t = useCopy();
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   // Last week's shortfalls, if any are still unanswered. See services/skipLogic.ts.
@@ -137,7 +127,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // This week's nudge logs, kept in state so the Today list can be derived from
   // them and recompute when a habit is logged without waiting on a full reload.
   const [nudgeLogs, setNudgeLogs] = useState<CompletionLog[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
   const [completingHabit, setCompletingHabit] = useState<PracticeInstance | null>(null);
   // True when the capture modal was opened by the card's "Log it" action — no
   // timer, and every question collapsed onto one screen.
@@ -157,14 +146,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile)).map((a) => appCheckinHabit(a.id, appGoals[a.id])),
     [appGoals, userProfile]
   );
-  // False until the first habit fetch lands: the app cards draw at once, and
-  // "Add a habit" must not flash under them while habits are still loading.
-  const [habitsLoaded, setHabitsLoaded] = useState(false);
-  // The habit whose briefing ("About" in a row's panel) is open.
-  const [briefingHabit, setBriefingHabit] = useState<PracticeInstance | null>(null);
-  // The one row whose panel is open. Single-valued on purpose: several open
-  // panels turns the list back into a wall of controls.
-  const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
   // A tap on a plain habit: the quick sheet, amounts filled in from last time.
   const [quickLog, setQuickLog] = useState<QuickLogTarget | null>(null);
   // The everyday "+N XP" — the full celebration is kept for milestones.
@@ -243,7 +224,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     intro.visible ||
     !!skipReview ||
     !!quickLog ||
-    !!briefingHabit ||
     !!completingHabit;
   const {
     modalRule: ruleModalRule,
@@ -387,7 +367,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // rendered since the zoned layout was archived.
       const habitList = await getActiveHabits(user.uid);
       setHabits(habitList);
-      setHabitsLoaded(true);
       // The apps' weekly goals, set inside each app. Defaults if unreadable.
       const [workoutPrefs, meditatePrefs] = await Promise.all([
         getWorkoutPrefs(user.uid).catch(() => null),
@@ -398,11 +377,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const appHabitList = TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile)).map((a) =>
         appCheckinHabit(a.id, goals[a.id as keyof typeof goals])
       );
-      // Once per session: schedule any enabled reminders that aren't scheduled yet
-      // (e.g. saved before reminders shipped, or while permission was denied).
-      if (!remindersReconciledRef.current && user) {
+      // Habit reminders were removed (2026-10-31). Once per session, cancel any
+      // still scheduled on this device from before.
+      if (!remindersReconciledRef.current) {
         remindersReconciledRef.current = true;
-        reconcileHabitReminders(user.uid, habitList).catch(() => {});
+        cancelScheduledHabitReminders().catch(() => {});
       }
 
       // Streak-break comeback check-in now fires via the rules engine
@@ -427,8 +406,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // nothing is short, so the common case costs nothing.
         try {
           setSkipReview(
-            // Apps' weekly goals are reviewed like any habit's.
-            await getPendingSkipReview(user.uid, [...habitList, ...appHabitList], cachedNudgeLogs, todayStr)
+            // Only the apps: habits are off the screen, so every one would read as missed.
+            await getPendingSkipReview(user.uid, appHabitList, cachedNudgeLogs, todayStr)
           );
         } catch (err) {
           console.warn('Skip review check failed:', err);
@@ -547,12 +526,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // The post-first-practice Debrief is currently disabled — it is neither
   // auto-navigated to nor surfaced by a banner. DebriefScreen and its route
   // are left intact so this can be switched back on.
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
 
   // "I already did it" — the same capture modal for every practice, briefing
   // and session beat skipped. Which flow you get is now the user's choice
@@ -777,304 +750,122 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // --- Derived view state ---
 
-  // One clock reading per render, shared by the list, the week strips and the
-  // hero — so a render that straddles midnight can't disagree with itself.
   const todayStr = getTodayString();
-
-  // The Today list: every active habit, ordered by what needs attention. Derived
-  // rather than stored, so an optimistic habit update reorders immediately.
-  // The apps' check-in habits go through the same pace rule as habits.
-  const todayList = useMemo(
-    () => buildTodayList([...habits, ...appHabits], nudgeLogs, todayStr),
-    [habits, appHabits, nudgeLogs, todayStr]
-  );
-  const habitsById = useMemo(
-    () =>
-      Object.fromEntries([...habits, ...appHabits].map((h) => [h.id, h])) as Record<string, PracticeInstance>,
-    [habits, appHabits]
-  );
-
-  // Mind, Movement, Meals — see services/todaySections.ts.
-  const sectionViews = useMemo(
-    () =>
-      buildTodaySectionViews(todayList, (habitId): RowClass | null => {
-        const habit = habitsById[habitId];
-        if (!habit) return null;
-        const appId = appIdFromCheckinId(habitId);
-        return { section: sectionOf(habit), kind: appId ? 'app' : 'plain', appId };
-      }),
-    [todayList, habitsById]
-  );
-
-  const weekDates = useMemo(() => weekDatesFor(todayStr), [todayStr]);
   const xp = userProfile?.totalWillpowerPoints ?? 0;
   const streak = displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
 
-  // Today's rating on a done row, e.g. "Med"; "This week" when the week's
-  // target was met on another day.
-  const doneLabelFor = (pace: TodayRowModel['pace']): string => {
-    if (!pace.doneToday) return t('today.row.weekDone', 'This week');
-    const todays = nudgeLogs.filter((l) => l.reference_id === pace.habitId && l.date === todayStr);
-    const r = todays[todays.length - 1]?.resistance;
-    return typeof r === 'number' && r >= 1 && r <= 3 ? CHIP_CAPTIONS[r - 1] : t('today.row.loggedToday', 'Logged today');
-  };
-
-  const openQuickLog = (habit: PracticeInstance) => {
-    const fields = trackingFor(habit).filter(isNumericField);
-    setQuickLog({ habit, fields, initialValues: prefillMetrics(fields, habit, nudgeLogs) });
-  };
-
-  // An app at the head of its section: its weekly goal, what you did last
-  // time, and the way in. The whole card opens the app's own home screen.
-  const renderApp = (row: TodayRowModel, sectionColor: string) => {
-    const appId = row.appId as TodayAppId;
-    const app = MINI_APPS[appId];
-    const route = TODAY_APPS.find((a) => a.id === appId)!.route;
-    const { pace } = row;
-    const status = sectionFor(pace);
-    const week = t('today.app.week', '{completed} of {target} this week', {
-      completed: pace.completed,
-      target: pace.target,
-    });
-    const goalLine = pace.doneToday ? t('today.app.doneToday', 'Done today · {week}', { week }) : week;
-    const last = lastAppCheckin(appId, nudgeLogs);
-    const lastMinutes = typeof last?.metrics?.duration_min === 'number' ? last.metrics.duration_min : undefined;
-    const lastLine = last
-      ? appId === 'meals'
-        ? t('today.app.lastMeals', 'Last on-target day: {day}', { day: formatRelativeDay(last.date) })
-        : lastMinutes
-          ? t('today.app.lastWithMinutes', 'Last: {day} · {minutes} min', {
-              day: formatRelativeDay(last.date),
-              minutes: lastMinutes,
-            })
-          : t('today.app.last', 'Last: {day}', { day: formatRelativeDay(last.date) })
-      : appId === 'meals'
-        ? t('today.app.firstMeals', 'Log what was on your plate today.')
-        : t('today.app.first', 'Nothing logged yet. Start your first session.');
-    return (
-      <TodayAppCard
-        key={row.habitId}
-        name={app.title}
-        icon={app.icon}
-        color={sectionColor}
-        goalLine={goalLine}
-        goalAlert={status === 'behind'}
-        lastLine={lastLine}
-        cta={appId === 'meals' ? t('today.app.open', 'Open') : t('today.app.start', 'Start')}
-        // A root route, above the tabs — dispatch bubbles up to it.
-        onOpen={() => navigation.dispatch(CommonActions.navigate({ name: route }))}
-      />
-    );
-  };
-
-  const renderRow = (row: TodayRowModel, index: number, sectionColor: string) => {
-    const habit = habitsById[row.habitId];
-    if (!habit) return null;
-    const def = getPractice(habit.practice_id);
-    const status = sectionFor(row.pace);
-    // The status line ("1 of 3 · do 1 today"), else the amount committed to.
-    const caption = detailFor(row.pace, t) ?? formatCommitment(def, habit.metric_goals);
-    const done = status === 'done';
-    // Habits never open an app: every row logs quickly. A briefing is "About"
-    // in the row's panel, behind the ›.
-    const onPress = () => openQuickLog(habit);
-    return (
-      <TodayRow
-        key={row.habitId}
-        first={index === 0}
-        name={habit.name}
-        caption={done ? null : caption}
-        captionAlert={status === 'behind' || (status === 'due_today' && row.pace.missed > 0)}
-        accentColor={sectionColor}
-        done={done}
-        doneLabel={done ? doneLabelFor(row.pace) : undefined}
-        onPress={onPress}
-        // The full check-in: day, notes, every field, amounts from last time.
-        onLongPress={() => handleHabitLogIt(habit)}
-        expanded={expandedHabitId === habit.id}
-        onToggleExpand={() => setExpandedHabitId((prev) => (prev === habit.id ? null : habit.id))}
-        panel={
-          <TodayRowPanel
-            name={habit.name}
-            pace={row.pace}
-            accentColor={sectionColor}
-            weekDates={weekDates}
-            today={todayStr}
-            hasAbout={!!def?.ready}
-            onLogDay={(date) => handleHabitLogIt(habit, date)}
-            onAbout={() => setBriefingHabit(habit)}
-            onLogDetails={() => handleHabitLogIt(habit)}
-            onHistory={() => navigation.navigate('HabitDetail', { habitId: habit.id })}
-          />
-        }
-      />
-    );
+  // A root route, above the tabs — dispatch bubbles up to it.
+  const openApp = (appId: TodayAppId) => {
+    const route = TODAY_APPS.find((a) => a.id === appId)?.route;
+    if (route) navigation.dispatch(CommonActions.navigate({ name: route }));
   };
 
   return (
     <View style={styles.screen}>
       {/*
-        TODAY. One list of every active habit, ordered by what needs attention.
-
-        The old zoned/customisable layout, the mantra section and the points
-        hero are archived (see services/homeLayout.ts and SECTION_REGISTRY —
-        both still exist and still compile). Craving Crusher survives as a card
-        near the bottom rather than a peer tab: it's a tool you reach for in a
-        moment, not a second thing this screen is about.
+        HOME. The dashboard (components/homeDashboard): rings, then Overview and
+        a page per app. Habits are being dropped (docs/no-generic-habits-micro-apps.md),
+        so there is no habit list. Everything a check-in sets off — the rating
+        sheet, XP, the celebration, the weekly review, rule modals — still lives
+        here, below.
       */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
-        }
-      >
-        <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
+      {user && (
+        <HomeDashboardView
+          userId={user.uid}
+          logs={nudgeLogs}
+          onOpenApp={openApp}
+          onRefresh={loadData}
+          overviewTop={
+            <>
+              <RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />
 
-        {/* XP and the day streak, quietly. The ⓘ in the header explains the screen. */}
-        <Text style={styles.stats}>
-          {t('today.stats.xp', '{xp} XP', { xp: xp.toLocaleString() })}
-          {streak >= 2 ? ` · ${t('today.stats.streak', '{days}-day streak', { days: streak })}` : ''}
-        </Text>
+              {/* XP and the day streak, quietly. The ⓘ in the header explains the screen. */}
+              <Text style={styles.stats}>
+                {t('today.stats.xp', '{xp} XP', { xp: xp.toLocaleString() })}
+                {streak >= 2 ? ` · ${t('today.stats.streak', '{days}-day streak', { days: streak })}` : ''}
+              </Text>
 
-        {/* Last night's if-then, shown until the habit it names is logged. The
-            plan only works if it's in front of you when the cue arrives. */}
-        {todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr) && (
-          <View style={styles.planCard}>
-            <Ionicons name="navigate-outline" size={18} color={Colors.primary} />
-            <View style={styles.utilityText}>
-              <Copy id="today.plan.label" style={styles.planLabel}>{'Today’s plan'}</Copy>
-              <Text style={styles.planText}>{formatPlan(todaysPlan)}</Text>
-            </View>
-          </View>
-        )}
+              {/* Last night's if-then, shown until the habit it names is logged. The
+                  plan only works if it's in front of you when the cue arrives. */}
+              {todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr) && (
+                <View style={styles.planCard}>
+                  <Ionicons name="navigate-outline" size={18} color={Colors.primary} />
+                  <View style={styles.utilityText}>
+                    <Copy id="today.plan.label" style={styles.planLabel}>{'Today’s plan'}</Copy>
+                    <Text style={styles.planText}>{formatPlan(todaysPlan)}</Text>
+                  </View>
+                </View>
+              )}
+            </>
+          }
+          overviewBottom={
+            <>
+              {/* Close out the day: always visible — it's the only way in, and
+                  Progress renders a weekly card from it. */}
+              <TouchableOpacity
+                style={styles.utilityCard}
+                onPress={() => navigation.navigate('NightlyReflection')}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name={reflectedToday ? 'checkmark-circle' : 'moon-outline'}
+                  size={20}
+                  color={reflectedToday ? Colors.primary : Colors.gray}
+                />
+                <View style={styles.utilityText}>
+                  {reflectedToday ? (
+                    <Copy id="today.close.titleDone" style={styles.utilityTitle}>
+                      {'Today’s reflection'}
+                    </Copy>
+                  ) : (
+                    <Copy id="today.close.title" style={styles.utilityTitle}>
+                      {'Close out the day'}
+                    </Copy>
+                  )}
+                  {reflectedToday ? (
+                    todaysGrade ? (
+                      <Copy
+                        id="today.close.graded"
+                        style={styles.utilitySubtitle}
+                        vars={{ grade: todaysGrade }}
+                      >
+                        {'You graded today a {grade}. Tap to review.'}
+                      </Copy>
+                    ) : (
+                      <Copy id="today.close.saved" style={styles.utilitySubtitle}>
+                        {'Saved. Tap to review.'}
+                      </Copy>
+                    )
+                  ) : (
+                    <Copy id="today.close.subtitle" style={styles.utilitySubtitle}>
+                      {'Grade the effort, set tomorrow’s plan.'}
+                    </Copy>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+              </TouchableOpacity>
 
-        {/*
-          Mind, Movement, Meals. Each section is one card: its app on top
-          (always there), then the habits that need you today, with what isn't owed today and what's done
-          folded into two links at the foot. A tap logs; press and hold opens
-          the full check-in; the › opens the row's panel (week, About, Log
-          details, History). See
-          services/todaySections.ts.
-        */}
-        {sectionViews.map((view) => {
-          const section = getHabitSection(view.id);
-          const name = t(`today.section.name.${view.id}`, section.name);
-          return (
-            <TodaySectionCard
-              key={view.id}
-              name={name}
-              color={section.color}
-              apps={view.apps.map((r) => renderApp(r, section.color))}
-              onAddHabit={habitsLoaded ? () => navigation.getParent()?.navigate('Library') : undefined}
-              rows={view.rows.map((r, i) => renderRow(r, i, section.color))}
-              weekRows={view.weekRows.map((r, i) => renderRow(r, i, section.color))}
-              doneRows={view.doneRows.map((r, i) => renderRow(r, i, section.color))}
-            />
-          );
-        })}
-
-        {/* No "No habits yet" message: the apps are always here, and each
-            section without habits has its own "Add a habit" link. */}
-
-        {/*
-          Close out the day. Answers a different question from the habit rows:
-          resistance is per-habit and mechanical, this is per-day and
-          interpretive, so they don't compete.
-
-          ALWAYS visible, unlike the old version which only appeared after 5pm
-          and only if you hadn't reflected. That gate made it a surprise element
-          — fine when it lived inside a collapsible "Also today" section, wrong
-          for the only route to a feature. Progress renders a weekly card from
-          this data, so it needs a visible source.
-        */}
-        <TouchableOpacity
-          style={styles.utilityCard}
-          onPress={() => navigation.navigate('NightlyReflection')}
-          activeOpacity={0.85}
-        >
-          <Ionicons
-            name={reflectedToday ? 'checkmark-circle' : 'moon-outline'}
-            size={20}
-            color={reflectedToday ? Colors.primary : Colors.gray}
-          />
-          <View style={styles.utilityText}>
-            {reflectedToday ? (
-              <Copy id="today.close.titleDone" style={styles.utilityTitle}>
-                {'Today’s reflection'}
-              </Copy>
-            ) : (
-              <Copy id="today.close.title" style={styles.utilityTitle}>
-                {'Close out the day'}
-              </Copy>
-            )}
-            {reflectedToday ? (
-              todaysGrade ? (
-                <Copy
-                  id="today.close.graded"
-                  style={styles.utilitySubtitle}
-                  vars={{ grade: todaysGrade }}
-                >
-                  {'You graded today a {grade}. Tap to review.'}
-                </Copy>
-              ) : (
-                <Copy id="today.close.saved" style={styles.utilitySubtitle}>
-                  {'Saved. Tap to review.'}
-                </Copy>
-              )
-            ) : (
-              <Copy id="today.close.subtitle" style={styles.utilitySubtitle}>
-                {'Grade the effort, set tomorrow’s plan.'}
-              </Copy>
-            )}
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
-        </TouchableOpacity>
-
-        {/* Craving Crusher — an in-the-moment tool, kept below the habits. */}
-        <TouchableOpacity
-          style={styles.utilityCard}
-          onPress={() => navigation.navigate('CravingCrusher')}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="flash-outline" size={20} color={Colors.secondary} />
-          <View style={styles.utilityText}>
-            <Copy id="today.craving.title" style={styles.utilityTitle}>
-              {'Craving Crusher'}
-            </Copy>
-            <Copy id="today.craving.subtitle" style={styles.utilitySubtitle}>
-              {'Ride out an urge without giving in.'}
-            </Copy>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
-        </TouchableOpacity>
-
-        {/*
-          Two ways in, one tap apart. Browse leads, because the curated library
-          with its science pages is the thing worth finding first — but someone
-          who already knows what they want shouldn't have to scroll a list of 45
-          to discover they can just type it.
-        */}
-        <View style={styles.addRow}>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => navigation.getParent()?.navigate('Library')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="library-outline" size={18} color={Colors.primary} />
-            <Copy id="today.add.browse" style={styles.addText}>{'Browse library'}</Copy>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => navigation.navigate('CreateHabit')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
-            <Copy id="today.add.create" style={styles.addText}>{'Create your own'}</Copy>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+              {/* Craving Crusher — an in-the-moment tool. */}
+              <TouchableOpacity
+                style={styles.utilityCard}
+                onPress={() => navigation.navigate('CravingCrusher')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="flash-outline" size={20} color={Colors.secondary} />
+                <View style={styles.utilityText}>
+                  <Copy id="today.craving.title" style={styles.utilityTitle}>
+                    {'Craving Crusher'}
+                  </Copy>
+                  <Copy id="today.craving.subtitle" style={styles.utilitySubtitle}>
+                    {'Ride out an urge without giving in.'}
+                  </Copy>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+              </TouchableOpacity>
+            </>
+          }
+        />
+      )}
 
       {/* Weekly "what got in the way?" — one tap per habit that fell short. */}
       <SkipReviewSheet
@@ -1163,24 +954,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           setReflectVisible(true);
         }}
       />
-      <PracticeBriefingModal
-        visible={!!briefingHabit}
-        practiceId={briefingHabit?.practice_id}
-        habitId={briefingHabit?.id}
-        userId={user?.uid}
-        // "Log it" drops into the same full capture a press and hold opens.
-        onStart={() => {
-          const habit = briefingHabit;
-          setBriefingHabit(null);
-          if (habit) handleHabitLogIt(habit);
-        }}
-        onLearn={() => {
-          const practiceId = briefingHabit?.practice_id;
-          setBriefingHabit(null);
-          if (practiceId) navigation.navigate('PracticeDetail', { practiceId, readOnly: true });
-        }}
-        onClose={() => setBriefingHabit(null)}
-      />
       <HabitCelebrationModal
         visible={celebrationVisible}
         pointsEarned={earnedPoints}
@@ -1216,7 +989,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       {comebackRule && (
       <ComebackModal
         visible={ruleModalVisible}
-        habits={habits}
+        habits={appHabits}
         title={comebackRule.content.title}
         body={comebackRule.content.body}
         onCommit={async (habitId, habitName, barrierReason) => {
@@ -1263,26 +1036,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
-  scrollView: { flex: 1 },
-  content: { padding: Spacing.md, paddingBottom: Spacing.xxl * 2 },
   stats: { fontFamily: Fonts.secondaryBold, fontSize: 13, color: Colors.gray, marginLeft: Spacing.xs },
-  sectionHeading: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xs,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
-    color: Colors.gray,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-    marginLeft: 2,
-  },
-  emptyText: {
-    fontFamily: Fonts.secondary,
-    fontSize: 14,
-    color: Colors.gray,
-    textAlign: 'center',
-    marginVertical: Spacing.xl,
-  },
   utilityCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1316,25 +1070,5 @@ const styles = StyleSheet.create({
   planText: { fontFamily: Fonts.secondary, fontSize: 15, color: Colors.dark, lineHeight: 21 },
   utilityTitle: { fontFamily: Fonts.primaryBold, fontSize: 16, color: Colors.dark },
   utilitySubtitle: { fontFamily: Fonts.secondary, fontSize: 13, color: Colors.gray },
-  addRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  addBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: Spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-  },
-  addText: { fontFamily: Fonts.primaryBold, fontSize: 14, color: Colors.primary },
 });
 

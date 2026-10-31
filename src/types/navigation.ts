@@ -33,8 +33,6 @@ export type RootStackParamList = {
   ComposeApp: undefined;
   /** The Meals mini-app (Lab). `habitId` = opened from that habit on Today. */
   MealsApp: { habitId?: string } | undefined;
-  /** The new Home (Lab): rings across the top, a page per app. */
-  HomeDashboardApp: undefined;
 };
 
 // ============================================================================
@@ -52,7 +50,6 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Library: NavigatorScreenParams<LibraryStackParamList>;
   Progress: NavigatorScreenParams<ProgressStackParamList>;
   Settings: NavigatorScreenParams<SettingsStackParamList>;
   // ---- Archived tabs -------------------------------------------------------
@@ -61,17 +58,6 @@ export type MainTabParamList = {
   // MainTabs. Re-add a <Tab.Screen> to bring one back.
   Challenges: NavigatorScreenParams<ChallengesStackParamList>;
   Tools: NavigatorScreenParams<WorksheetsStackParamList>;
-};
-
-// ============================================================================
-// LIBRARY STACK
-// ============================================================================
-
-export type LibraryStackParamList = {
-  CreateHabit: undefined;
-  HabitLibrary: undefined;
-  HabitLibraryDetail: { habitId: string };
-  PracticeDetail: { practiceId: string; readOnly?: boolean } | { habitId: string; readOnly?: boolean };
 };
 
 // The Challenges tab reuses the challenge-flow screens (they also stay in the

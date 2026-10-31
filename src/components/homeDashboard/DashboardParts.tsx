@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
-import { formatShortDay } from '../../../../utils/date';
-import type { WeekGrid as WeekGridData, MealsDayState, Serving } from '../../../../services/homeDashboard';
-import type { TodayAppId } from '../../../../services/appCheckins';
-import { groupLabel } from '../../../../data/mealGroups';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { formatShortDay } from '../../utils/date';
+import type { WeekGrid as WeekGridData, MealsDayState, Serving } from '../../services/homeDashboard';
+import type { TodayAppId } from '../../services/appCheckins';
+import { groupLabel } from '../../data/mealGroups';
 
 export const TINT = Colors.primary + '1A';
 

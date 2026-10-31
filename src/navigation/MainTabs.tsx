@@ -3,7 +3,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
-import { LibraryStack } from './LibraryStack';
 import { ProgressStack } from './ProgressStack';
 // ---- Archived tabs ---------------------------------------------------------
 // Challenges/Training and Tools are no longer registered as tabs. The app is a
@@ -24,8 +23,6 @@ export const MainTabs: React.FC = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
           if (route.name === 'Home') iconName = focused ? 'today' : 'today-outline';
-          else if (route.name === 'Library')
-            iconName = focused ? 'library' : 'library-outline';
           else if (route.name === 'Progress')
             iconName = focused ? 'trending-up' : 'trending-up-outline';
           else if (route.name === 'Settings')
@@ -46,7 +43,6 @@ export const MainTabs: React.FC = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeStack} options={{ tabBarLabel: 'Today' }} />
-      <Tab.Screen name="Library" component={LibraryStack} />
       <Tab.Screen name="Progress" component={ProgressStack} />
       {/* Archived — see the import block above for how to restore either tab.
       <Tab.Screen name="Challenges" component={ChallengesStack} options={{ tabBarLabel: 'Training' }} />

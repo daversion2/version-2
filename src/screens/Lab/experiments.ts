@@ -84,14 +84,6 @@ export const LAB_EXPERIMENTS = [
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
   },
-  {
-    id: 'homeDashboard',
-    title: 'Home dashboard',
-    description:
-      'The new Home: rings for each app’s weekly goal, then an Overview and a full page per app. Swipe or tap a tab.',
-    open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
-      navigation.dispatch(CommonActions.navigate({ name: 'HomeDashboardApp' })),
-  },
 ] as const satisfies readonly LabExperiment[];
 
 /** Typed against the registry, so useLab('typo') fails tsc. */

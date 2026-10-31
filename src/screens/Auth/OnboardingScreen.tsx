@@ -10,8 +10,7 @@ import { FadeRise } from '../../components/common/FadeRise';
 import { useAuth } from '../../context/AuthContext';
 import { showAlert } from '../../utils/alert';
 import { markOnboardingComplete, setStartingPractice } from '../../services/users';
-import { createHabit, ensureCuratedPractices, updateHabit } from '../../services/practices';
-import { syncHabitReminder } from '../../services/habitReminders';
+import { createHabit, ensureCuratedPractices } from '../../services/practices';
 import { HabitDefinition } from '../../data/practices';
 import {
   ONBOARDING_BEATS,
@@ -116,23 +115,9 @@ export const OnboardingScreen: React.FC = () => {
       // Derived here rather than held in state: nothing edits it any more, so
       // a stored draft could only ever disagree with the habit it describes.
       const draft = deriveHabitSetupDraft(definition);
-      const habitId = await createHabit(user.uid, buildHabitCreationPayload(definition, draft));
+      await createHabit(user.uid, buildHabitCreationPayload(definition, draft));
 
-      // The reminder is a second write because createHabit doesn't take one, and
-      // syncHabitReminder reads the saved habit rather than taking the value.
-      if (draft.reminderEnabled) {
-        await updateHabit(user.uid, habitId, {
-          reminder: { time: draft.reminderTime, enabled: true },
-        });
-        try {
-          await syncHabitReminder(user.uid, habitId);
-        } catch (err) {
-          // A denied notification permission must not cost the user the habit
-          // they just set up. The reminder is saved either way and gets picked
-          // up by reconcileHabitReminders on a later launch.
-          console.warn('Habit reminder sync failed:', err);
-        }
-      }
+      // No reminder: habit reminders were removed (2026-10-31).
 
       // AFTER the habit exists. This id is what tells ensureCuratedPractices the
       // user made an explicit choice and the core protocol must not be seeded on

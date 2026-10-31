@@ -118,9 +118,10 @@ whole-food groups only.
   smaller: streak now needs to power a combined top-level number across all
   three apps, not just one count per app.
 
-## Built in the Lab (2026-10-26)
+## Built: the main screen (Lab 2026-10-26, replaced Today 2026-10-31)
 
-Admin → Lab → **Home dashboard** (route `HomeDashboardApp`). Mockup chosen
+This is now the **Today tab** for every account. It started as the Lab
+experiment "Home dashboard". Mockup chosen
 2026-10-24: rings across the top, then Overview / Meditate / Workouts / Meals
 as pages you swipe between or pick from tabs. The rings shrink to one line
 once you scroll into a page. Overview carries a "week at a glance" grid, one
@@ -129,8 +130,8 @@ row per app and one column per day.
 - **The numbers:** `services/homeDashboard.ts`, which is pure and tested. It
   reads each app's own collections (`lab_meditate_sessions`,
   `lab_workout_sessions`, `lab_meals_days`). Friction is the exception: it
-  comes from the `app:<id>` check-in logs. The screen is
-  `screens/Lab/experiments/home/`.
+  comes from the `app:<id>` check-in logs. The view is
+  `components/homeDashboard/`, rendered by `screens/Home/HomeScreen.tsx`.
 - **Two corrections to the spec above:**
   - Friction is a **3-level rating**, not 1–10 (`constants/resistance.ts`).
     Shown as "Mostly easy (1.6 of 3) · down from 2.1".
@@ -154,9 +155,28 @@ row per app and one column per day.
     `scoring.on_target_threshold`, so the ring, streak and grid follow it.
 - **Standout lift:** of the exercises trained in the last 4 weeks, the one
   whose best set moved furthest the right way over its last 6 sessions.
-- **Not wired yet:** a session started from the dashboard still asks "How
-  hard was it to start?" back on Today. The rating handoff
-  (`takePendingFinish`) is read by Today on focus.
+- **What carried over from the old Today (founder, 2026-10-31):**
+  - HomeScreen still owns everything a check-in sets off: the "How hard was
+    it to start?" sheet, XP, the celebration and toast, the weekly review,
+    rule modals and the push prompt. Friction on the dashboard reads
+    HomeScreen's own logs, so a rating shows at once.
+  - Overview also keeps the rule banner, the XP line, "Today's plan", Close
+    out the day and Craving Crusher.
+- **What was removed:**
+  - The habit list.
+  - Browse library / Create your own.
+  - The habit briefing.
+  - The weekly "What got in the way?" review and the comeback flow now cover
+    the apps only, because hidden habits would all read as missed.
+  - **Habit reminders (2026-10-31).** Nothing schedules one any more:
+    `syncHabitReminder` only cancels. Today cancels any repeating local
+    notification still on the device once per session, using
+    `cancelScheduledHabitReminders`. Habit reminders were the only repeating
+    ones; the bells and Craving Crusher pings fire once. The toggle is gone
+    from the habit plan screen, and onboarding no longer saves a reminder.
+  - **The Library tab (2026-10-31).** `LibraryStack` was deleted. The library
+    screens are still registered in the Home stack, but nothing links to
+    them.
 
 ## Open questions (not yet decided)
 

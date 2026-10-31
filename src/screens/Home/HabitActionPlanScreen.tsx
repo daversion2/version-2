@@ -10,16 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Switch,
 } from 'react-native';
-import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { HomeScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { updateHabit } from '../../services/practices';
-import { syncHabitReminder } from '../../services/habitReminders';
 import { HabitActionPlan, PracticeInstance } from '../../types';
-import { ANCHORS, findAnchorByPhrase, defaultTimeForAnchor } from '../../data/anchors';
+import { ANCHORS, findAnchorByPhrase } from '../../data/anchors';
 
 type Props = HomeScreenProps<'HabitActionPlan'>;
 
@@ -91,27 +88,8 @@ const PAIRING_OPTIONS = [
   'an episode of my show',
 ];
 
-const DEFAULT_REMINDER_TIME = '09:00';
-
-const timeToDate = (hhmm: string): Date => {
-  const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10));
-  return new Date(2000, 0, 1, Number.isNaN(h) ? 9 : h, Number.isNaN(m) ? 0 : m);
-};
-
-const formatTime = (hhmm: string): string => {
-  try {
-    const [h, m] = hhmm.split(':');
-    const d = new Date();
-    d.setHours(parseInt(h, 10));
-    d.setMinutes(parseInt(m, 10));
-    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
-  } catch {
-    return hhmm;
-  }
-};
-
 export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { habitId, prefilled, afterSaveRoute, supportsPairing, reminder } = route.params;
+  const { habitId, prefilled, afterSaveRoute, supportsPairing } = route.params;
   const { user } = useAuth();
 
   // Steps are built dynamically: the pairing step only appears for bundling-viable habits,
@@ -127,16 +105,9 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
   const [answers, setAnswers] = useState<HabitActionPlan>(prefilled ?? {});
   const [saving, setSaving] = useState(false);
 
-  // Anchor + reminder state, seeded from any prefilled anchor / existing reminder.
+  // Anchor state, seeded from any prefilled anchor.
   const initialAnchorIsCustom = !!(prefilled?.anchor && !findAnchorByPhrase(prefilled.anchor));
   const [customAnchorMode, setCustomAnchorMode] = useState(initialAnchorIsCustom);
-  const [reminderTime, setReminderTime] = useState(
-    reminder?.time ?? defaultTimeForAnchor(prefilled?.anchor) ?? DEFAULT_REMINDER_TIME
-  );
-  const [reminderEnabled, setReminderEnabled] = useState(
-    reminder?.enabled ?? !!defaultTimeForAnchor(prefilled?.anchor)
-  );
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const current = steps[step];
   const isLast = step === steps.length - 1;
@@ -152,10 +123,7 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
     const anchor = ANCHORS.find((a) => a.key === anchorKey);
     if (!anchor) return;
     setCustomAnchorMode(false);
-    setShowTimePicker(false);
     setAnswer('anchor', anchor.phrase);
-    setReminderTime(anchor.defaultTime);
-    setReminderEnabled(true); // curated anchors have a sensible default time, so default the reminder on
   };
 
   const chooseCustomAnchor = () => {
@@ -163,21 +131,10 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
     setAnswer('anchor', '');
   };
 
-  const onTimeChange = (event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') setShowTimePicker(false);
-    if (event.type === 'set' && selected) {
-      const hh = String(selected.getHours()).padStart(2, '0');
-      const mm = String(selected.getMinutes()).padStart(2, '0');
-      setReminderTime(`${hh}:${mm}`);
-    }
-    if (Platform.OS === 'ios' && event.type === 'dismissed') setShowTimePicker(false);
-  };
-
   const goNext = () => {
     if (isLast) {
       handleSave();
     } else {
-      setShowTimePicker(false);
       setStep((s) => s + 1);
     }
   };
@@ -191,7 +148,6 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
     if (isLast) {
       handleSave();
     } else {
-      setShowTimePicker(false);
       setStep((s) => s + 1);
     }
   };
@@ -207,31 +163,9 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
         if (typeof v === 'string' && v.trim()) plan[k] = v.trim();
       });
 
+      // Habit reminders were removed (2026-10-31): the plan saves without one.
       const payload: Partial<PracticeInstance> = { action_plan: plan };
-      // Carry the reminder when there's an anchor to fire it against, or the user turned it on.
-      if (plan.anchor || reminderEnabled) {
-        payload.reminder = { time: reminderTime, enabled: reminderEnabled };
-      }
-
       await updateHabit(user.uid, habitId, payload);
-
-      // Schedule / cancel the on-device daily reminder. `reminder` (route param) is the
-      // previous state, so its notificationId gets cancelled before rescheduling.
-      // The plan itself is already saved, so a reminder that can't be scheduled
-      // is reported and the save still stands.
-      try {
-        const result = await syncHabitReminder(user.uid, habitId, reminder);
-        if (reminderEnabled && result.reason === 'no_slots') {
-          // iOS drops notifications past its ceiling without telling anyone, so
-          // this is the one place the user can learn the reminder isn't live.
-          Alert.alert(
-            'Reminder not set',
-            'Your phone is holding as many scheduled reminders as it allows. This habit is saved, but it won’t remind you until you turn off a reminder on another habit.'
-          );
-        }
-      } catch (err) {
-        console.warn('Habit reminder sync failed:', err);
-      }
 
       if (afterSaveRoute) {
         (navigation as { navigate: (screen: string) => void }).navigate(afterSaveRoute);
@@ -329,36 +263,6 @@ export const HabitActionPlanScreen: React.FC<Props> = ({ navigation, route }) =>
               </Text>
             )}
 
-            {/* Reminder */}
-            <View style={styles.reminderRow}>
-              <View style={styles.reminderInfo}>
-                <Text style={styles.reminderLabel}>🔔 Daily reminder</Text>
-                {reminderEnabled ? (
-                  <TouchableOpacity onPress={() => setShowTimePicker((s) => !s)} activeOpacity={0.7}>
-                    <Text style={styles.reminderTime}>at {formatTime(reminderTime)} · change</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <Text style={styles.reminderOff}>Off</Text>
-                )}
-              </View>
-              <Switch
-                value={reminderEnabled}
-                onValueChange={(v) => {
-                  setReminderEnabled(v);
-                  if (!v) setShowTimePicker(false);
-                }}
-                trackColor={{ true: Colors.primary }}
-              />
-            </View>
-            {showTimePicker && reminderEnabled && (
-              <DateTimePickerNative
-                value={timeToDate(reminderTime)}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onTimeChange}
-                is24Hour={false}
-              />
-            )}
           </View>
         ) : current.kind === 'pairing' ? (
           <View>
@@ -534,37 +438,6 @@ const styles = StyleSheet.create({
   anchorPreviewStrong: {
     fontFamily: Fonts.primaryBold,
     color: Colors.dark,
-  },
-  reminderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-  },
-  reminderInfo: {
-    flex: 1,
-  },
-  reminderLabel: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.sm,
-    color: Colors.dark,
-  },
-  reminderTime: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    marginTop: 2,
-  },
-  reminderOff: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
-    color: Colors.gray,
-    marginTop: 2,
   },
   skipQuestion: {
     alignSelf: 'flex-start',

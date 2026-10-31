@@ -1,9 +1,10 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   LayoutAnimation,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,37 +12,29 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CommonActions, useFocusEffect } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
-import type { RootStackParamList } from '../../../../types/navigation';
-import type { WeightUnit } from '../../../../types/workouts';
-import { useAuth } from '../../../../context/AuthContext';
-import {
-  addDays,
-  buildHomeDashboard,
-  describeFriction,
-  describeVsPrior,
-  HomeDashboard,
-} from '../../../../services/homeDashboard';
-import { clampWeeklyGoal, TODAY_APPS, TodayAppId } from '../../../../services/appCheckins';
-import { getMeditatePrefs, listMeditateSessions } from '../../../../services/labMeditate';
+import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import type { CompletionLog } from '../../types';
+import type { CompletedMeditateSession } from '../../types/meditate';
+import type { CompletedWorkoutSession, Exercise, TrainingPhase, WeightUnit } from '../../types/workouts';
+import type { MealsDay, MealsRules } from '../../types/meals';
+import { addDays, buildHomeDashboard, describeFriction, describeVsPrior } from '../../services/homeDashboard';
+import { clampWeeklyGoal, TodayAppId } from '../../services/appCheckins';
+import { getMeditatePrefs, listMeditateSessions } from '../../services/labMeditate';
 import {
   getWorkoutPrefs,
   listCustomExercises,
   listPhases,
   listSessions,
   mergeExerciseLibrary,
-} from '../../../../services/labWorkouts';
-import { getMealsPrefs, listMealsDays } from '../../../../services/labMeals';
-import { rulesOf } from '../../../../services/mealsMath';
-import { currentPhase } from '../../../../services/trainingPhases';
-import { fetchAllNudgeLogs } from '../../../../services/practices';
-import { MODES } from '../../../../services/meditateMath';
-import { formatVolume } from '../../../../services/workoutMath';
-import { formatShortDay, getTodayString } from '../../../../utils/date';
+} from '../../services/labWorkouts';
+import { getMealsPrefs, listMealsDays } from '../../services/labMeals';
+import { rulesOf } from '../../services/mealsMath';
+import { currentPhase } from '../../services/trainingPhases';
+import { MODES } from '../../services/meditateMath';
+import { formatVolume } from '../../services/workoutMath';
+import { formatShortDay, getTodayString } from '../../utils/date';
 import {
   APP_ICONS,
   Chip,
@@ -57,10 +50,14 @@ import {
 } from './DashboardParts';
 
 // =============================================================================
-// HOME DASHBOARD (Lab) — the new Home from docs/no-generic-habits-micro-apps.md:
-// rings across the top, then Overview / Meditate / Workouts / Meals as pages
-// you swipe between (or tap a tab). The rings shrink to one line once you
-// scroll into a page. Numbers come from services/homeDashboard.ts.
+// HOME — the main screen (docs/no-generic-habits-micro-apps.md): rings across
+// the top, then Overview / Meditate / Workouts / Meals as pages you swipe
+// between or pick from the tabs. The rings shrink to one line once you scroll
+// into a page. Numbers come from services/homeDashboard.ts.
+//
+// The check-in machinery (the rating sheet, XP, celebrations, rule modals) is
+// HomeScreen's; this is only what you see. Friction reads the logs HomeScreen
+// holds, so a rating shows here the moment it's made.
 // =============================================================================
 
 type PageId = 'overview' | TodayAppId;
@@ -73,19 +70,24 @@ const PAGES: { id: PageId; title: string; icon: string }[] = [
 
 const COLLAPSE_AT = 40;
 const EXPAND_AT = 8;
-const ROUTE: Record<TodayAppId, string> = Object.fromEntries(TODAY_APPS.map((a) => [a.id, a.route])) as Record<
-  TodayAppId,
-  string
->;
 
-interface Loaded {
-  data: HomeDashboard;
+/** Everything the dashboard reads apart from the check-in logs. */
+interface AppData {
+  today: string;
+  meditateSessions: CompletedMeditateSession[];
+  meditateGoal: number;
+  workoutSessions: CompletedWorkoutSession[];
+  workoutsGoal: number;
+  exercisesById: Record<string, Exercise>;
   unit: WeightUnit;
+  phase: TrainingPhase | undefined;
+  mealsDays: Record<string, MealsDay>;
+  mealsRules: MealsRules;
 }
 
-const load = async (uid: string): Promise<Loaded> => {
+const loadAppData = async (uid: string): Promise<AppData> => {
   const today = getTodayString();
-  const [medSessions, medPrefs, wSessions, wPrefs, custom, phases, mealsPrefs, mealsDays, logs] = await Promise.all([
+  const [medSessions, medPrefs, wSessions, wPrefs, custom, phases, mealsPrefs, mealsDays] = await Promise.all([
     listMeditateSessions(uid, 1000),
     getMeditatePrefs(uid),
     listSessions(uid, 300),
@@ -94,9 +96,8 @@ const load = async (uid: string): Promise<Loaded> => {
     listPhases(uid),
     getMealsPrefs(uid),
     listMealsDays(uid, addDays(today, -89), today),
-    fetchAllNudgeLogs(uid, addDays(today, -13)),
   ]);
-  const data = buildHomeDashboard({
+  return {
     today,
     meditateSessions: medSessions,
     meditateGoal: clampWeeklyGoal(medPrefs.weekly_goal, 'meditate'),
@@ -107,39 +108,63 @@ const load = async (uid: string): Promise<Loaded> => {
     phase: currentPhase(phases),
     mealsDays,
     mealsRules: rulesOf(mealsPrefs),
-    logs,
-  });
-  return { data, unit: wPrefs.unit };
+  };
 };
 
-export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamList, 'HomeDashboardApp'>> = ({
-  navigation,
+interface Props {
+  userId: string;
+  /** The account's nudge logs (at least the last 14 days) — friction comes from these. */
+  logs: CompletionLog[];
+  onOpenApp: (appId: TodayAppId) => void;
+  /** Pull to refresh on Overview also reloads the parent screen. */
+  onRefresh?: () => Promise<void> | void;
+  /** On Overview, above the week grid. */
+  overviewTop?: React.ReactNode;
+  /** On Overview, under the app rows. */
+  overviewBottom?: React.ReactNode;
+}
+
+export const HomeDashboardView: React.FC<Props> = ({
+  userId,
+  logs,
+  onOpenApp,
+  onRefresh,
+  overviewTop,
+  overviewBottom,
 }) => {
-  const { user, userProfile } = useAuth();
-  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const pager = useRef<ScrollView>(null);
   const offsets = useRef<Record<PageId, number>>({ overview: 0, meditate: 0, workouts: 0, meals: 0 });
 
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [appData, setAppData] = useState<AppData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<PageId>('overview');
   const [collapsed, setCollapsed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const uid = user?.uid;
+  const reload = useCallback(
+    () =>
+      loadAppData(userId).then(
+        (data) => (setAppData(data), setError(null)),
+        (e) => setError(String(e?.message ?? e))
+      ),
+    [userId]
+  );
+
   // Reload on every return, so a session finished in an app shows up.
   useFocusEffect(
     useCallback(() => {
-      if (!uid) return;
-      let live = true;
-      load(uid)
-        .then((l) => live && (setLoaded(l), setError(null)))
-        .catch((e) => live && setError(String(e?.message ?? e)));
-      return () => {
-        live = false;
-      };
-    }, [uid])
+      reload();
+    }, [reload])
   );
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await Promise.all([reload(), onRefresh?.()]);
+    setRefreshing(false);
+  };
+
+  const d = useMemo(() => (appData ? buildHomeDashboard({ ...appData, logs }) : null), [appData, logs]);
 
   const collapsedRef = useRef(false);
   const setCollapsedSmooth = (next: boolean) => {
@@ -154,9 +179,9 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
   const shouldCollapse = (y: number): boolean =>
     y > COLLAPSE_AT ? true : y < EXPAND_AT ? false : collapsedRef.current;
 
-  const goTo = (id: PageId, animated = true) => {
+  const goTo = (id: PageId) => {
     const i = PAGES.findIndex((p) => p.id === id);
-    pager.current?.scrollTo({ x: i * width, animated });
+    pager.current?.scrollTo({ x: i * width, animated: true });
     setPage(id);
     setCollapsedSmooth(offsets.current[id] > COLLAPSE_AT);
   };
@@ -176,23 +201,7 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
     }
   };
 
-  const openApp = (appId: TodayAppId) => navigation.dispatch(CommonActions.navigate({ name: ROUTE[appId] }));
-
-  // Lab screen: reachable only from Admin → Lab, and closed to everyone else here too.
-  if (!user || !userProfile?.is_admin) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>This isn’t available on this account.</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.link}>Close</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const pageBottom = { paddingBottom: Spacing.xxl + insets.bottom };
-  const d = loaded?.data;
-  const unit = loaded?.unit ?? 'lb';
+  const unit = appData?.unit ?? 'lb';
   const collapsedLine: Record<PageId, string> = {
     overview: 'across Mind, Movement & Meals',
     meditate: d ? `Meditate · ${d.meditate.minutes} min` : 'Meditate',
@@ -200,17 +209,17 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
     meals: d ? `Meals · ${d.meals.averageScore === null ? 'no plates yet' : `score ${d.meals.averageScore}`}` : 'Meals',
   };
 
-  return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Fixed header */}
-      <View style={styles.header}>
-        <View style={styles.topRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Close">
-            <Ionicons name="close" size={24} color={Colors.dark} />
-          </TouchableOpacity>
-          <Text style={styles.window}>Last 7 days</Text>
-        </View>
+  const pageProps = (id: PageId) => ({
+    style: { width },
+    contentContainerStyle: styles.page,
+    onScroll: onPageScroll(id),
+    scrollEventThrottle: 16,
+  });
 
+  return (
+    <View style={styles.screen}>
+      {/* Fixed header: tabs, then the rings (or their one-line summary) */}
+      <View style={styles.header}>
         <View style={styles.tabs} accessibilityRole="tablist">
           {PAGES.map((p) => {
             const on = p.id === page;
@@ -240,16 +249,17 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
             </View>
           ) : (
             <View style={styles.rings}>
+              <Text style={styles.window}>Last 7 days</Text>
               <View style={styles.ringRow}>
-                {d.rings.map((r) => (
-                  <TouchableOpacity key={r.appId} style={styles.ringItem} onPress={() => goTo(r.appId)}>
-                    <Ring
-                      pct={r.pct}
-                      label={`${PAGES.find((p) => p.id === r.appId)?.title}: ${r.done} of ${r.goal}`}
-                    />
-                    <Text style={styles.ringLabel}>{PAGES.find((p) => p.id === r.appId)?.title}</Text>
-                  </TouchableOpacity>
-                ))}
+                {d.rings.map((r) => {
+                  const title = PAGES.find((p) => p.id === r.appId)?.title;
+                  return (
+                    <TouchableOpacity key={r.appId} style={styles.ringItem} onPress={() => goTo(r.appId)}>
+                      <Ring pct={r.pct} label={`${title}: ${r.done} of ${r.goal}`} />
+                      <Text style={styles.ringLabel}>{title}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
               <Text style={styles.insight}>
                 <Text style={styles.strong}>
@@ -263,7 +273,11 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
 
       {!d ? (
         <View style={styles.center}>
-          {error ? <Text style={styles.muted}>Couldn’t load: {error}</Text> : <ActivityIndicator color={Colors.primary} />}
+          {error ? (
+            <Text style={styles.muted}>Couldn’t load: {error}</Text>
+          ) : (
+            <ActivityIndicator color={Colors.primary} />
+          )}
         </View>
       ) : (
         <ScrollView
@@ -276,11 +290,10 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
         >
           {/* Overview */}
           <ScrollView
-            style={{ width }}
-            contentContainerStyle={[styles.page, pageBottom]}
-            onScroll={onPageScroll('overview')}
-            scrollEventThrottle={16}
+            {...pageProps('overview')}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.primary} />}
           >
+            {overviewTop}
             <SectionLabel>Your week at a glance</SectionLabel>
             <WeekGrid grid={d.grid} />
 
@@ -311,15 +324,11 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
                 <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
               </TouchableOpacity>
             ))}
+            {overviewBottom}
           </ScrollView>
 
           {/* Meditate */}
-          <ScrollView
-            style={{ width }}
-            contentContainerStyle={[styles.page, pageBottom]}
-            onScroll={onPageScroll('meditate')}
-            scrollEventThrottle={16}
-          >
+          <ScrollView {...pageProps('meditate')}>
             <Text style={styles.hero}>
               {d.meditate.minutes} <Text style={styles.heroUnit}>min</Text>
             </Text>
@@ -340,16 +349,11 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
             {d.meditate.recent.map((s, i) => (
               <ListRow key={i} cells={[formatShortDay(s.date), MODES[s.mode].label, `${s.minutes} min`]} />
             ))}
-            <StartButton label="Start a session" onPress={() => openApp('meditate')} />
+            <StartButton label="Start a session" onPress={() => onOpenApp('meditate')} />
           </ScrollView>
 
           {/* Workouts */}
-          <ScrollView
-            style={{ width }}
-            contentContainerStyle={[styles.page, pageBottom]}
-            onScroll={onPageScroll('workouts')}
-            scrollEventThrottle={16}
-          >
+          <ScrollView {...pageProps('workouts')}>
             <Text style={styles.hero}>{formatVolume(d.workouts.volumeKg, unit)}</Text>
             <Text style={styles.body}>
               {d.workouts.volumeChangePct === null
@@ -372,23 +376,16 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
               <Chip text={describeFriction(d.friction.workouts) ?? 'No ratings yet'} />
             </View>
             {(d.workouts.week.length > 0 || d.workouts.phaseLine) && (
-              <SectionLabel>
-                This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}
-              </SectionLabel>
+              <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>
             )}
             {d.workouts.week.map((w, i) => (
               <ListRow key={i} cells={[formatShortDay(w.date), w.name, `${w.sets} sets`]} />
             ))}
-            <StartButton label="Start a workout" onPress={() => openApp('workouts')} />
+            <StartButton label="Start a workout" onPress={() => onOpenApp('workouts')} />
           </ScrollView>
 
           {/* Meals */}
-          <ScrollView
-            style={{ width }}
-            contentContainerStyle={[styles.page, pageBottom]}
-            onScroll={onPageScroll('meals')}
-            scrollEventThrottle={16}
-          >
+          <ScrollView {...pageProps('meals')}>
             {d.meals.averageScore === null ? (
               <Text style={styles.hero}>
                 – <Text style={styles.heroUnit}>no plates logged yet</Text>
@@ -418,7 +415,7 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
               <Chip text={`${d.meals.streakDays}-day streak`} />
               <Chip text={describeFriction(d.friction.meals) ?? 'No ratings yet'} />
             </View>
-            <StartButton label="Log a meal" onPress={() => openApp('meals')} />
+            <StartButton label="Log a meal" onPress={() => onOpenApp('meals')} />
           </ScrollView>
         </ScrollView>
       )}
@@ -428,33 +425,35 @@ export const HomeDashboardApp: React.FC<NativeStackScreenProps<RootStackParamLis
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.lg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg },
   flex: { flex: 1 },
-  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, backgroundColor: Colors.lightGray },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
-  window: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    color: Colors.gray,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    overflow: 'hidden',
-  },
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, backgroundColor: Colors.lightGray },
   tabs: { flexDirection: 'row' },
   tab: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 4 },
   tabText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
   tabTextOn: { fontFamily: Fonts.secondaryBold, color: Colors.primary },
   tabBar: { height: 2, alignSelf: 'stretch', borderRadius: 1, marginTop: 4, backgroundColor: 'transparent' },
   tabBarOn: { backgroundColor: Colors.primary },
-  rings: { paddingVertical: Spacing.md },
+  rings: { paddingVertical: Spacing.sm },
+  window: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: Colors.gray,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
   ringRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: Spacing.sm },
   ringItem: { alignItems: 'center', gap: 4 },
   ringLabel: { fontFamily: Fonts.secondaryBold, fontSize: 11, color: Colors.gray },
-  insight: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, textAlign: 'center', lineHeight: 17 },
+  insight: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.xs,
+    color: Colors.gray,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
   strong: { fontFamily: Fonts.secondaryBold, color: Colors.dark },
   slim: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm },
   slimDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primary },
@@ -465,7 +464,6 @@ const styles = StyleSheet.create({
   heroUnit: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray },
   body: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: 2 },
   muted: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, marginTop: 2 },
-  link: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.primary },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: Spacing.md },
   appRow: {
     flexDirection: 'row',

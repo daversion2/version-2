@@ -33,29 +33,29 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     id: 'today',
     icon: 'today-outline',
     title: 'Today',
-    intro: 'Three sections: Mind, Movement and Meals. Each opens with its app, with your habits underneath.',
+    intro: 'Your last 7 days across Meditate, Workouts and Meals, with each app one swipe away.',
     points: [
       {
-        label: 'Tap to log',
-        text: 'A tap opens the check-in with your numbers already set to last time. Pick 1, 2 or 3 for how hard it was to start, and it’s logged.',
+        label: 'The rings',
+        text: 'Each ring is how much of that app’s weekly goal you’ve met in the last 7 days. Tap one to jump to its page. They shrink to one line as you scroll.',
       },
       {
-        label: 'Press and hold for the details',
-        text: 'Hold a habit to log it in full: notes, every number, or a day you forgot. The arrow on the right opens its week, About and History.',
+        label: 'Swipe between apps',
+        text: 'Overview first, then a page each for Meditate, Workouts and Meals. Swipe sideways or tap a tab. Start a session from the button at the bottom of each page.',
       },
       {
-        label: 'The apps lead',
-        text: 'Meditate, Workouts and Meals sit at the top of their sections. Finishing a session there is a check-in of its own, and ticks a matching habit.',
+        label: 'How hard was it',
+        text: 'When you finish a session, pick 1, 2 or 3 for how hard it was to start. Each app’s page shows how that’s trending: “Mostly easy (1.6 of 3) · down from 2.1”.',
       },
       {
-        label: 'Only today is showing',
-        text: 'Habits with nothing owed today wait under “more this week”, and finished ones under “done”. Rate honestly: the number only earns its keep if it is true.',
+        label: 'Your week at a glance',
+        text: 'On Overview, a filled square is a day you showed up for that app: a session for Meditate and Workouts, an on-target day for Meals.',
       },
     ],
     science: [
       {
         label: 'Resistance is the measurement',
-        text: 'How hard a thing feels to start is the clearest signal of whether it is bedding in. What repetition makes automatic is the starting, not the work — so the number falls while the habit itself stays exactly as demanding. Watching that fall over weeks is the point of tracking it at all.',
+        text: 'How hard a thing feels to start is the clearest signal of whether it is bedding in. What repetition makes automatic is the starting, not the work — so the number falls while the session itself stays exactly as demanding. Watching that fall over weeks is the point of tracking it at all.',
       },
     ],
   },

@@ -80,20 +80,20 @@ Before non-admins get Compose:
 
 ## Later
 
-**Home dashboard (Lab): not tried on screen** *(added 2026-10-26)*
-Admin → Lab → Home dashboard. Jest covers the numbers
-(`services/homeDashboard.ts`) and tsc is clean, but nobody has looked at it
-yet. Check these on a real account:
-- swiping between pages and tapping the tabs
-- the rings shrinking and growing back as you scroll
-- the rings drawn with plain Views (no SVG)
-- the heatmap and day dots
-- each Start button opening its app
-
-Known gap: a session started from here gets its "How hard was it?" question
-back on Today, not on the dashboard. Meals' 0-100 score is already on its
-page. Next: moving the rating handoff off Today. See
-`docs/no-generic-habits-micro-apps.md`, "Built in the Lab".
+**New Today: what hiding habits left behind** *(added 2026-10-31)*
+The dashboard replaced Today on 2026-10-31. See
+`docs/no-generic-habits-micro-apps.md`, "Built: the main screen". Habits are
+off the screen, but these still assume them. Habit reminders and the Library
+tab were removed on 2026-10-31. Still open:
+- *Tonight's plan names a habit.* The nightly close builds "Today's plan"
+  from habits (`services/nightlyClose.ts`). A habit can't be logged any
+  more, so the plan card stays up all day.
+- *Progress is still habit-based.* That includes "Friction you can handle"
+  and the per-habit pages.
+- *The ⓘ intro was rewritten for the new screen* (`data/screenIntros.ts`). An
+  edited version saved in the wording editor would still win.
+- *Nobody has run it on screen since the move.* Check the rating sheet after
+  a session, the celebration, and pull to refresh on Overview.
 
 **Apps-first Today: untested on screen** *(added 2026-10-18)*
 See `docs/apps-first-today.md`. Maestro checked the cards, the apps opening and
