@@ -80,8 +80,13 @@ The foundation. Today each app is a pretend habit, `app:<id>`
 (`services/appCheckins.ts`), and each session also writes a mirror log onto
 a real habit.
 
-- [ ] **Design the replacement** for the pretend-habit check-in. Write it up
-  first, since everything else in this phase builds on it.
+- [x] **Design the replacement** for the pretend-habit check-in:
+  `docs/app-checkins-design.md`, approved 2026-10-31. Its five build steps
+  are below.
+- [ ] **Step 1. `sessionsByDay`:** one session count, used by the dashboard.
+- [ ] **Step 2. `rateAppSession`:** the handoff carries the `sessionId`, and
+  mirror logs stop.
+- [ ] **Step 3. One day streak and the rule counters**, from app sessions.
 - [ ] **XP and the day streak** (`willpower.ts`) come from app check-ins, not
   habits.
 - [ ] **The weekly review** (`skipLogic`/`skips`) counts the same way the
