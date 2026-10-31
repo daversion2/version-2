@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   LayoutAnimation,
@@ -20,7 +20,13 @@ import type { CompletionLog } from '../../types';
 import type { CompletedMeditateSession } from '../../types/meditate';
 import type { CompletedWorkoutSession, Exercise, TrainingPhase, WeightUnit } from '../../types/workouts';
 import type { MealsDay, MealsRules } from '../../types/meals';
-import { addDays, buildHomeDashboard, describeFriction, describeVsPrior } from '../../services/homeDashboard';
+import {
+  addDays,
+  buildHomeDashboard,
+  describeFriction,
+  describeVsPrior,
+  HomeDashboard,
+} from '../../services/homeDashboard';
 import { clampWeeklyGoal, TodayAppId } from '../../services/appCheckins';
 import { getMeditatePrefs, listMeditateSessions } from '../../services/labMeditate';
 import {
@@ -35,7 +41,7 @@ import { rulesOf } from '../../services/mealsMath';
 import { currentPhase } from '../../services/trainingPhases';
 import { MODES } from '../../services/meditateMath';
 import { formatVolume } from '../../services/workoutMath';
-import { formatShortDay, getTodayString } from '../../utils/date';
+import { formatRelativeDay, getTodayString } from '../../utils/date';
 import {
   APP_ICONS,
   Chip,
@@ -116,6 +122,8 @@ interface Props {
   userId: string;
   /** The account's nudge logs (at least the last 14 days) — friction comes from these. */
   logs: CompletionLog[];
+  /** False until those logs have loaded: drawing before would show "No ratings yet" and short counts. */
+  logsReady?: boolean;
   onOpenApp: (appId: TodayAppId) => void;
   /** Pull to refresh on Overview also reloads the parent screen. */
   onRefresh?: () => Promise<void> | void;
@@ -123,15 +131,19 @@ interface Props {
   overviewTop?: React.ReactNode;
   /** On Overview, under the app rows. */
   overviewBottom?: React.ReactNode;
+  /** Every time the numbers change — the streak line and the user doc follow them. */
+  onDashboard?: (d: HomeDashboard) => void;
 }
 
 export const HomeDashboardView: React.FC<Props> = ({
   userId,
   logs,
+  logsReady = true,
   onOpenApp,
   onRefresh,
   overviewTop,
   overviewBottom,
+  onDashboard,
 }) => {
   const { width } = useWindowDimensions();
   // The tab bar sits over the bottom of the pages, so each page ends above it.
@@ -167,7 +179,14 @@ export const HomeDashboardView: React.FC<Props> = ({
     setRefreshing(false);
   };
 
-  const d = useMemo(() => (appData ? buildHomeDashboard({ ...appData, logs }) : null), [appData, logs]);
+  const d = useMemo(
+    () => (appData && logsReady ? buildHomeDashboard({ ...appData, logs }) : null),
+    [appData, logs, logsReady]
+  );
+  useEffect(() => {
+    if (d) onDashboard?.(d);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d]);
 
   const collapsedRef = useRef(false);
   const setCollapsedSmooth = (next: boolean) => {
@@ -206,7 +225,7 @@ export const HomeDashboardView: React.FC<Props> = ({
 
   const unit = appData?.unit ?? 'lb';
   const collapsedLine: Record<PageId, string> = {
-    overview: 'across Mind, Movement & Meals',
+    overview: 'Overview',
     meditate: d ? `Meditate · ${d.meditate.minutes} min` : 'Meditate',
     workouts: d ? `Workouts · ${d.workouts.sessions} of ${d.workouts.goal}` : 'Workouts',
     meals: d ? `Meals · ${d.meals.averageScore === null ? 'no plates yet' : `score ${d.meals.averageScore}`}` : 'Meals',
@@ -270,8 +289,8 @@ export const HomeDashboardView: React.FC<Props> = ({
               <Text style={styles.insight}>
                 <Text style={styles.strong}>
                   {d.combinedStreak > 0 ? `${d.combinedStreak}-day streak` : 'No streak yet'}
-                </Text>{' '}
-                across all three{d.insight ? ` · ${d.insight}` : ''}
+                </Text>
+                {d.insight ? ` · ${d.insight}` : ''}
               </Text>
             </View>
           ))}
@@ -353,7 +372,7 @@ export const HomeDashboardView: React.FC<Props> = ({
             </View>
             {d.meditate.recent.length > 0 && <SectionLabel>Recent sessions</SectionLabel>}
             {d.meditate.recent.map((s, i) => (
-              <ListRow key={i} cells={[formatShortDay(s.date), MODES[s.mode].label, `${s.minutes} min`]} />
+              <ListRow key={i} cells={[formatRelativeDay(s.date), MODES[s.mode].label, `${s.minutes} min`]} />
             ))}
             <StartButton label="Start a session" onPress={() => onOpenApp('meditate')} />
           </ScrollView>
@@ -385,7 +404,7 @@ export const HomeDashboardView: React.FC<Props> = ({
               <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>
             )}
             {d.workouts.week.map((w, i) => (
-              <ListRow key={i} cells={[formatShortDay(w.date), w.name, `${w.sets} sets`]} />
+              <ListRow key={i} cells={[formatRelativeDay(w.date), w.name, `${w.sets} sets`]} />
             ))}
             <StartButton label="Start a workout" onPress={() => onOpenApp('workouts')} />
           </ScrollView>

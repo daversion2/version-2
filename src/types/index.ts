@@ -108,6 +108,14 @@ export interface User {
   // Distinct practices completed at least once (denormalized; powers the
   // {practices_tried} rule placeholder and the month-1 sampler stat)
   practices_tried?: number;
+  // From the apps' own data, kept by Today (services/homeDashboard.profileActivityPatch).
+  // The rules read these in place of totalHabitsCompleted / practices_tried.
+  /** App sessions completed, ever (Meals counts logged days). Only rises. */
+  sessions_completed?: number;
+  /** Apps used at least once, 0–3. Only rises. */
+  apps_tried?: number;
+  /** Apps used in the last 28 days, 0–3. */
+  apps_active?: number;
   // Journey check-ins (baseline from onboarding, day-14/28 retakes) —
   // see src/services/checkins.ts
   journey_checkins?: Record<string, { mood: number; focus: number; motivation: number; date: string }>;

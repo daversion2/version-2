@@ -230,7 +230,9 @@ export const resolveUserGlobals = (
         value = String(userData.totalWillpowerPoints ?? 0);
         break;
       case 'habits_completed':
-        value = String(userData.totalHabitsCompleted ?? 0);
+        // App sessions since the move off habits (2026-10-31); the old habit
+        // counter only until Today has written the new one.
+        value = String(userData.sessions_completed ?? userData.totalHabitsCompleted ?? 0);
         break;
       case 'challenges_completed':
         value = String(userData.totalChallengesCompleted ?? 0);
@@ -239,8 +241,8 @@ export const resolveUserGlobals = (
         value = String(userData.reflection_streak ?? 0);
         break;
       case 'practices_tried':
-        // Denormalized counter bumped on a practice's first-ever completion
-        value = String(userData.practices_tried ?? 0);
+        // Apps used, 0–3 (D5); the old habit counter only until Today writes it.
+        value = String(userData.apps_tried ?? userData.practices_tried ?? 0);
         break;
       default:
         continue; // pool keys resolved by the caller
@@ -307,11 +309,13 @@ export const buildUserFacts = (
     days_since_last_activity: lastActivity ? daysBetween(todayLocal, lastActivity) : 0,
     current_streak: streakAlive ? userData.currentStreak || 0 : 0,
     total_willpower_points: userData.totalWillpowerPoints || 0,
-    total_habits_completed: userData.totalHabitsCompleted || 0,
+    // The fact keys stay (stored rules name them); what they count is now the
+    // apps (D5). The old habit counters only until Today has written these.
+    total_habits_completed: userData.sessions_completed ?? userData.totalHabitsCompleted ?? 0,
     app_open_count: userData.app_open_count || 0,
     days_since_signup: signupDate ? daysBetween(todayLocal, signupDate) : 0,
     active_goal_count: 0, // requires a subcollection read; supplied via extras when needed
-    active_habit_count: 0, // requires a subcollection read; supplied via extras when needed
+    active_habit_count: userData.apps_active ?? 0, // apps used in the last 28 days
     local_hour: localHour,
     // days_since_last_activity falls back to the signup date, so it can't
     // distinguish "trained today" from "signed up today" — this can.

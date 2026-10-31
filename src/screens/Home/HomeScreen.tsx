@@ -40,6 +40,8 @@ import { getTodayString, toLocalDateString, formatRelativeDay } from '../../util
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { PlanDraft, getPlanForToday, isPlanDone, formatPlan } from '../../services/nightlyClose';
 import { markPointsIntroSeen, incrementAppOpenCount } from '../../services/users';
+import { syncProfileActivity } from '../../services/appActivity';
+import { HomeDashboard, ProfileActivity, profileActivityPatch } from '../../services/homeDashboard';
 import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
 import { PushOptInModal } from '../../components/common/PushOptInModal';
@@ -116,6 +118,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // This week's nudge logs, kept in state so the Today list can be derived from
   // them and recompute when a habit is logged without waiting on a full reload.
   const [nudgeLogs, setNudgeLogs] = useState<CompletionLog[]>([]);
+  // The dashboard waits for these: friction and the session counts read them.
+  const [logsReady, setLogsReady] = useState(false);
+  const [logsFailed, setLogsFailed] = useState(false);
   const [pendingFinish, setPendingFinish] = useState<SessionHandoff | null>(null);
   // The apps are the main thing (services/appCheckins.ts): always on Today,
   // each as a check-in habit of its own with the weekly goal set in the app.
@@ -127,6 +132,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
   // A tap on a plain habit: the quick sheet, amounts filled in from last time.
   const [quickLog, setQuickLog] = useState<QuickLogTarget | null>(null);
+  // The dashboard's combined day streak (services/homeDashboard.ts), once loaded.
+  const [dashStreak, setDashStreak] = useState<number | null>(null);
+  const lastActivityPatchRef = useRef<string | null>(null);
   // The everyday "+N XP" — the full celebration is kept for milestones.
   const [toast, setToast] = useState<LogToastContent | null>(null);
   const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
@@ -347,6 +355,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       try {
         cachedNudgeLogs = await fetchAllNudgeLogs(user.uid, toLocalDateString(logWindowStart));
         setNudgeLogs(cachedNudgeLogs);
+        setLogsReady(true);
         const todayStr = getTodayString();
         if (habitList.length > 0) {
           setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList));
@@ -364,6 +373,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
       } catch (err) {
         console.warn('Nudge logs fetch failed:', err);
+        setLogsFailed(true);
       }
 
       // Challenge maintenance. Home is the only screen that runs it, so it stays
@@ -484,7 +494,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       // Optimistically add the rating to the logs the dashboard reads, so its
       // friction and counts move the moment it's made.
-      setNudgeLogs((prev) => [
+      // A reload that started before the rating can land after it, already
+      // holding this log — so add it only if it isn't there yet.
+      setNudgeLogs((prev) => prev.some((l) => l.id === logId) ? prev : [
         ...prev,
         {
           id: logId,
@@ -627,7 +639,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const todayStr = getTodayString();
   const xp = userProfile?.totalWillpowerPoints ?? 0;
-  const streak = displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
+  // The dashboard's own day streak once it has loaded, so this line always
+  // matches the rings; the stored one only until then.
+  const streak = dashStreak ?? displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
+
+  // Keep the user doc in step with the apps: the stored streak (past days
+  // only), and the counters the rules read. Written only when something moved.
+  const onDashboard = (d: HomeDashboard) => {
+    setDashStreak(d.combinedStreak);
+    if (!user || !userProfile) return;
+    // Cheap check against the profile on screen first; the transaction then
+    // works the patch out again from the doc itself.
+    if (!profileActivityPatch(d.activity, getTodayString(), userProfile as ProfileActivity)) return;
+    const key = JSON.stringify(d.activity);
+    if (key === lastActivityPatchRef.current) return;
+    lastActivityPatchRef.current = key;
+    syncProfileActivity(user.uid, d.activity, getTodayString())
+      .then((wrote) => (wrote ? refreshProfile() : null))
+      .catch((err) => console.warn('Saving app activity failed:', err));
+  };
 
   // A root route, above the tabs — dispatch bubbles up to it.
   const openApp = (appId: TodayAppId) => {
@@ -648,6 +678,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <HomeDashboardView
           userId={user.uid}
           logs={nudgeLogs}
+          // On a failed read the dashboard still draws, just without friction.
+          logsReady={logsReady || logsFailed}
+          onDashboard={onDashboard}
           onOpenApp={openApp}
           onRefresh={loadData}
           overviewTop={

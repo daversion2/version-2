@@ -16,13 +16,13 @@ export const RULE_FACTS = {
   days_since_last_activity: 'Days since last activity',
   current_streak: 'Current streak (days)',
   total_willpower_points: 'Total XP',
-  total_habits_completed: 'Habits completed (lifetime)',
+  total_habits_completed: 'App sessions completed (lifetime)',
   app_open_count: 'App opens (lifetime)',
   days_since_signup: 'Days since signup',
   active_goal_count: 'Active goals',
-  active_habit_count: 'Active habits',
+  active_habit_count: 'Apps used (last 28 days, 0–3)',
   local_hour: 'Hour of day in user timezone (0–23)',
-  completed_today: 'Logged a habit today (0/1)',
+  completed_today: 'Rated a session today (0/1)',
   /**
    * Whether we hold a push token for this user. Exists so the push opt-in ask
    * can be conditioned on NOT already having said yes — without it that rule

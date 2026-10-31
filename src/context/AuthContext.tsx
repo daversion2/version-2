@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import * as Localization from 'expo-localization';
 import { subscribeToAuth } from '../services/auth';
@@ -66,10 +66,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // effect dependency, so a fresh function every render would refire their
   // data loads in a loop. Returns the fetched profile so callers can use it
   // without a second Firestore read.
+  //
+  // Refreshes can overlap (Today's load and a rating's both refresh). Only the
+  // newest one may set the profile: an older read finishing last would put a
+  // stale XP back on screen.
+  const refreshSeq = useRef(0);
   const refreshProfile = useCallback(async (): Promise<User | null> => {
     if (!user) return null;
+    const seq = ++refreshSeq.current;
     const profile = await getUserProfile(user.uid);
-    setUserProfile(profile);
+    if (seq === refreshSeq.current) setUserProfile(profile);
     return profile;
   }, [user]);
 

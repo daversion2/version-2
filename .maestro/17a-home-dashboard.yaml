@@ -63,10 +63,20 @@ appId: com.neuronudge.neuronudge
 - tapOn: "., Meditate"
 - waitForAnimationToEnd
 - takeScreenshot: 17a-05-meditate-top
-- scrollUntilVisible:
-    element: ".*Start a session.*"
-    direction: DOWN
-    timeout: 15000
+# scrollUntilVisible passes here without scrolling (the button is in the tree
+# while off screen), so swipe explicitly.
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+- assertVisible: ".*Start a session.*"
+- assertVisible: ".*Meditate · [0-9]+ min.*"
 - takeScreenshot: 17a-06-meditate-bottom
 
 # Workouts page via tab.
@@ -83,15 +93,23 @@ appId: com.neuronudge.neuronudge
 - tapOn: "., Meals"
 - waitForAnimationToEnd
 - takeScreenshot: 17a-09-meals-top
-- scrollUntilVisible:
-    element: "DAY BY DAY"
-    direction: DOWN
-    timeout: 15000
+# Same as Meditate: scrollUntilVisible would pass without scrolling.
+- swipe:
+    start: "50%,80%"
+    end: "50%,45%"
+- waitForAnimationToEnd
 - takeScreenshot: 17a-10-meals-mid
-- scrollUntilVisible:
-    element: ".*Log a meal.*"
-    direction: DOWN
-    timeout: 15000
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+- assertVisible: ".*Log a meal.*"
 - takeScreenshot: 17a-11-meals-bottom
 
 # Swipe back horizontally to Workouts.

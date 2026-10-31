@@ -7,6 +7,7 @@ import {
   pushBudgetAllows,
   recordPushSend,
   renderTemplate,
+  resolveUserGlobals,
   ruleMatches,
   selectFiringRules,
 } from '../rulesEngine';
@@ -187,6 +188,29 @@ describe('daysBetween / buildUserFacts', () => {
     expect(facts.app_open_count).toBe(14);
     expect(facts.days_since_signup).toBe(40);
     expect(facts.local_hour).toBe(18);
+  });
+
+  it('counts app sessions and apps once Today has written them (D5)', () => {
+    const facts = buildUserFacts(
+      { totalHabitsCompleted: 40, sessions_completed: 12, apps_active: 2 },
+      '2026-06-10',
+      9
+    );
+    expect(facts.total_habits_completed).toBe(12);
+    expect(facts.active_habit_count).toBe(2);
+    // Before Today has written them: the old habit counter, and 0 apps.
+    const before = buildUserFacts({ totalHabitsCompleted: 40 }, '2026-06-10', 9);
+    expect(before.total_habits_completed).toBe(40);
+    expect(before.active_habit_count).toBe(0);
+  });
+
+  it('fills {habits_completed} and {practices_tried} from the apps', () => {
+    const doc = { totalHabitsCompleted: 40, practices_tried: 7, sessions_completed: 12, apps_tried: 3 };
+    expect(resolveUserGlobals(['habits_completed', 'practices_tried'], doc).vars).toEqual({
+      habits_completed: '12',
+      practices_tried: '3',
+    });
+    expect(resolveUserGlobals(['practices_tried'], { practices_tried: 7 }).vars).toEqual({ practices_tried: '7' });
   });
 
   it('falls back to signup date so new users are not treated as dormant', () => {

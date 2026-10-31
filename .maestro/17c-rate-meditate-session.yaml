@@ -1,0 +1,145 @@
+# Rate one Meditate session from Today (2026-10-31). **WRITES**: one finished
+# 1-minute Sit session, its Meditate check-in on Today rated 1 / "Easy today",
+# and the XP that comes with it. Run it only with the account owner's say-so,
+# and never twice in a row by accident: each run adds another session.
+#
+# Before: screenshots the Overview (rings, streak line, XP) and the Meditate
+# page (minutes, "N of 5 sessions", friction chip). Then Start a session →
+# Sit, 1 min, no calm rating → Begin → waits out the minute (no End early) →
+# Finish & rate it → rates 1 on Today's "How hard was it to start?" sheet →
+# screenshots the toast. After: the same Today screenshots, then Progress →
+# today's day view.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- extendedWaitUntil:
+    visible: "LAST 7 DAYS"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+# Dev builds raise a warnings toast over the tab bar; close it.
+- runFlow:
+    when:
+      visible: ".*Open debugger to view warnings.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+- tapOn: "., Overview"
+- waitForAnimationToEnd
+- takeScreenshot: 17c-01-before-overview
+
+# Meditate page. scrollUntilVisible passes here without scrolling, so swipe.
+- tapOn: "., Meditate"
+- waitForAnimationToEnd
+- takeScreenshot: 17c-02-before-meditate-top
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- swipe:
+    start: "50%,80%"
+    end: "50%,30%"
+- waitForAnimationToEnd
+- assertVisible: ".*Start a session.*"
+- takeScreenshot: 17c-03-before-meditate-bottom
+
+# ---- WRITES from here on ----------------------------------------------------
+- tapOn: ".*Start a session.*"
+- extendedWaitUntil:
+    visible: "Begin · .*"
+    timeout: 20000
+- tapOn: "., Sit"   # icon is a private-use glyph, not empty
+- tapOn: "On my own.*"
+# "Less time" is in the tree while hidden under the footer, so
+# scrollUntilVisible passes without scrolling: swipe the list up instead.
+- swipe:
+    start: "50%,65%"
+    end: "50%,20%"
+- swipe:
+    start: "50%,65%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+- repeat:
+    times: 40
+    while:
+      notVisible: "Begin · 1 min"
+    commands:
+      - tapOn: "Less time"
+- assertVisible: "Begin · 1 min"
+- assertNotVisible:
+    text: "Calm [1-5] of 5.*"
+    selected: true
+- takeScreenshot: 17c-04-setup-1-min
+- tapOn: "Begin · 1 min"
+- waitForAnimationToEnd
+- takeScreenshot: 17c-05-session-running
+# The full minute, then the bell. Never End early.
+- extendedWaitUntil:
+    visible: "Finish & rate it"
+    timeout: 150000
+- takeScreenshot: 17c-06-done-screen
+- tapOn: "Finish & rate it"
+- extendedWaitUntil:
+    visible: "How hard was it to start?"
+    timeout: 30000
+- takeScreenshot: 17c-07-rating-sheet
+- tapOn: "Easy today\\..*"
+- takeScreenshot: 17c-08-toast
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 17c-09-after-rate
+# ---- WRITES end -------------------------------------------------------------
+
+# ---- After (read-only) ------------------------------------------------------
+# The toast can arrive after 17c-09: the save took >5 s on the 2026-10-31 run.
+- extendedWaitUntil:
+    notVisible: "How hard was it to start?"
+    timeout: 30000
+- takeScreenshot: 17c-10-after-sheet-closed
+- tapOn: "., Overview"
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,35%"
+    end: "50%,90%"
+- swipe:
+    start: "50%,35%"
+    end: "50%,90%"
+- waitForAnimationToEnd
+- takeScreenshot: 17c-11-after-overview
+- tapOn: "., Meditate"
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,35%"
+    end: "50%,90%"
+- swipe:
+    start: "50%,35%"
+    end: "50%,90%"
+- waitForAnimationToEnd
+- takeScreenshot: 17c-12-after-meditate
+
+# Progress (three tabs: 50%) → today's day view. Exactly one Meditate entry,
+# no "Meditation" mirror. The calendar date label is account-date specific:
+# change it to today's date before re-running.
+- repeat:
+    times: 6
+    while:
+      notVisible: ".*(friction faced in the last 7 days|how much friction you.re handling).*"
+    commands:
+      - tapOn:
+          point: "50%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- scrollUntilVisible:
+    element: ".*Saturday 31 October 2026.*"
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+- tapOn: ".*Saturday 31 October 2026.*"
+- extendedWaitUntil:
+    visible: "Meditate, .* XP, .*"
+    timeout: 20000
+- assertNotVisible: "Meditation, .*"
+- takeScreenshot: 17c-13-day-view

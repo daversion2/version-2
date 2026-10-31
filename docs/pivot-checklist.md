@@ -39,12 +39,25 @@ three stop bad data piling up.
     - pages ended under the tab bar
     - "Week 2 of 6" showed during the baseline phase
     - "−1 days", and two different "no streak" wordings
-  - *Still to do* (it writes a real check-in):
-    - a session leads to the rating sheet, and the rating shows on the
-      app's page
-    - the celebration
-    - Meditate's end bell still rings
-    - re-check the fixes above
+  - *Real test session, 2026-10-31* (Maestro `17c`, WRITES: one 1-minute
+    Meditate sit, rated Easy):
+    - **Worked:**
+      - the rating sheet appeared after the session
+      - one "Meditate" check-in worth 1 XP, and no mirror entry
+      - the friction chip read "Mostly easy (1.0 of 3)"
+      - the end-of-sit banner fired
+      - the three fixes above held
+    - **Fixed the same day:**
+      - The session counted twice until a relaunch: a reload landed after the
+        rating and the on-screen update added it again.
+      - XP showed 269 until a relaunch: an older profile read finished last.
+      - The step 3 user-doc sync could, from a stale profile copy, have undone
+        the streak a rating had just stamped. It now runs in a transaction.
+  - *Still unverified:*
+    - the celebration (no milestone was crossed)
+    - the toast's text
+    - the bell's sound
+    - the double-count and XP fixes, which need another rated session
   - `17a`'s `scrollUntilVisible` steps on the Meditate and Meals pages pass
     without scrolling, so they need explicit swipes.
 
@@ -90,14 +103,21 @@ a real habit.
 - [x] **Step 2. `rateAppSession`:** the handoff carries the `sessionId`, and
   mirror logs stop. *(2026-10-31)* `services/appRatings.ts` (tested).
   Ratings now carry `app_id` and `session_id`.
-- [ ] **Step 3. One day streak and the rule counters**, from app sessions.
-- [ ] **XP and the day streak** (`willpower.ts`) come from app check-ins, not
-  habits.
+- [x] **Step 3. One day streak and the rule counters**, from app sessions.
+  *(2026-10-31)* Today's XP line shows the dashboard's streak, so it always
+  matches the rings. `profileActivityPatch` keeps the user doc's
+  `currentStreak` / `lastActivityDate` right for past days, and writes
+  `sessions_completed`, `apps_tried` and `apps_active`. Today is left to the
+  rating, so the streak-tier celebration still fires. The Cloud Function
+  needs a deploy before push rules use the new counters.
+- [x] **XP and the day streak** come from the apps. XP was already the
+  rating. The streak is step 3.
 - [ ] **The weekly review** (`skipLogic`/`skips`) counts the same way the
   dashboard does: sessions, from the apps' own data.
-- [ ] **Rule facts.** Replace `active_habit_count` (`useRuleSurfaces.ts`) and
-  the Cloud Function's `practices_tried` / `totalHabitsCompleted`
-  (`functions/src/rulesEngine.ts`) with app-session facts. **🔒 D5**
+- [x] **Rule facts.** Both evaluators now read the new counters, falling
+  back to the old ones until Today writes them. `active_habit_count` is
+  `apps_active`. The fact keys are unchanged, so stored rules still work, and
+  their Admin labels now say sessions and apps. The rules' copy is Phase 4.
 - [x] **Stop writing mirror logs.** Done in step 2 (D1 allowed it). Old ones
   are ignored by `withoutMirrors`. `logMirrorCompletion` goes in step 5.
 - [ ] **Move Meditate's technique steps** out of the practice catalog

@@ -450,6 +450,54 @@ export const describeFriction = (f: FrictionSummary): string | null => {
   return `${head} · ${diff < 0 ? 'down' : 'up'} from ${f.priorAvg.toFixed(1)}`;
 };
 
+// --- The user doc --------------------------------------------------------------
+
+// A type, not an interface, so it can be written as a plain Firestore patch.
+export type ProfileActivity = {
+  currentStreak?: number;
+  lastActivityDate?: string | null;
+  sessions_completed?: number;
+  apps_tried?: number;
+  apps_active?: number;
+};
+
+/**
+ * The fields to write so the user doc agrees with the apps (design §3–4), or
+ * null when it already does.
+ *
+ * The streak is corrected for PAST days only. Today belongs to the rating:
+ * its updateWillpowerStats stamps today and, crossing a tier, raises the
+ * streak celebration. Stamping today here first would make that rating find
+ * the day already counted, and the celebration would never fire. So a day
+ * with only an unrated session reaches the stored streak the next morning.
+ * The screen never waits: it shows the dashboard's own count.
+ *
+ * The lifetime counters only ever rise: they're counted from what Today
+ * loaded (a few months), which must not undercount a history read earlier.
+ */
+export const profileActivityPatch = (
+  activity: AppActivity,
+  today: string,
+  profile: ProfileActivity
+): ProfileActivity | null => {
+  const patch: ProfileActivity = {};
+  if (profile.lastActivityDate !== today) {
+    const yesterday = addDays(today, -1);
+    const days = new Set(activity.activeDays);
+    const past = activity.activeDays.filter((d) => d < today);
+    const last = past.length ? past[past.length - 1] : null;
+    const streak = days.has(yesterday) ? dayStreak(new Set(past), yesterday) : 0;
+    if ((profile.currentStreak ?? 0) !== streak) patch.currentStreak = streak;
+    if ((profile.lastActivityDate ?? null) !== last) patch.lastActivityDate = last;
+  }
+  if (activity.sessionsCompleted > (profile.sessions_completed ?? 0)) {
+    patch.sessions_completed = activity.sessionsCompleted;
+  }
+  if (activity.appsTried > (profile.apps_tried ?? 0)) patch.apps_tried = activity.appsTried;
+  if (activity.appsActive !== profile.apps_active) patch.apps_active = activity.appsActive;
+  return Object.keys(patch).length ? patch : null;
+};
+
 // --- Across the apps -----------------------------------------------------------
 
 export interface AppProgress {
@@ -520,7 +568,20 @@ export interface HomeDashboardInput {
   logs: CompletionLog[];
 }
 
+/** What the user doc and the rules need, from the apps' own data (design §3–4). */
+export interface AppActivity {
+  /** Every day with an app session or a meal logged, oldest first. */
+  activeDays: string[];
+  /** App sessions over everything loaded; Meals counts logged days. */
+  sessionsCompleted: number;
+  /** Apps used at least once, 0–3. */
+  appsTried: number;
+  /** Apps used in the last 28 days, 0–3. */
+  appsActive: number;
+}
+
 export interface HomeDashboard {
+  activity: AppActivity;
   meditate: MeditateDashboard;
   workouts: WorkoutsDashboard;
   meals: MealsDashboard;
@@ -531,7 +592,14 @@ export interface HomeDashboard {
   grid: WeekGrid;
 }
 
-export const buildHomeDashboard = (input: HomeDashboardInput): HomeDashboard => {
+/** A log read back by a reload and also added on screen is still one log. */
+const uniqueById = (logs: CompletionLog[]): CompletionLog[] => {
+  const seen = new Set<string>();
+  return logs.filter((l) => (l.id && seen.has(l.id) ? false : (seen.add(l.id), true)));
+};
+
+export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
+  const input = { ...raw, logs: uniqueById(raw.logs) };
   const { today } = input;
   const meditate = meditateDashboard(
     input.meditateSessions,
@@ -561,12 +629,32 @@ export const buildHomeDashboard = (input: HomeDashboardInput): HomeDashboard => 
   ];
   // One day streak (design §3): any app session, or any meal logged (Q2).
   // Craving Crusher doesn't count (Q3).
-  const everyDay = new Set([
-    ...sessionsByDay(input.meditateSessions.map((s) => s.date), ratingDates(input.logs, 'meditate')).keys(),
-    ...sessionsByDay(input.workoutSessions.map(sessionDate), ratingDates(input.logs, 'workouts')).keys(),
-    ...Object.keys(input.mealsDays).filter((d) => hasAnything(input.mealsDays[d])),
-  ]);
+  const perApp: Record<TodayAppId, Map<string, number>> = {
+    meditate: sessionsByDay(input.meditateSessions.map((s) => s.date), ratingDates(input.logs, 'meditate')),
+    workouts: sessionsByDay(input.workoutSessions.map(sessionDate), ratingDates(input.logs, 'workouts')),
+    meals: new Map(
+      Object.keys(input.mealsDays)
+        .filter((d) => hasAnything(input.mealsDays[d]))
+        .map((d) => [d, 1] as [string, number])
+    ),
+  };
+  const everyDay = new Set(Object.values(perApp).flatMap((m) => [...m.keys()]));
+  const since = addDays(today, -27);
+  const used = (recent: boolean) =>
+    (Object.keys(perApp) as TodayAppId[]).filter((a) =>
+      [...perApp[a].keys()].some((d) => d <= today && (!recent || d >= since))
+    ).length;
+  const activity: AppActivity = {
+    activeDays: [...everyDay].filter((d) => d <= today).sort(),
+    sessionsCompleted: Object.values(perApp).reduce(
+      (n, m) => n + [...m].filter(([d]) => d <= today).reduce((t, [, c]) => t + c, 0),
+      0
+    ),
+    appsTried: used(false),
+    appsActive: used(true),
+  };
   return {
+    activity,
     meditate,
     workouts,
     meals,

@@ -10,6 +10,7 @@ import {
   mealsDashboard,
   mealsDayState,
   meditateDashboard,
+  profileActivityPatch,
   progressOf,
   ratingDates,
   sessionsByDay,
@@ -475,5 +476,98 @@ describe('across the apps', () => {
     });
     expect(d.combinedStreak).toBe(3);
     expect(d.rings.map((r) => r.done)).toEqual([1, 1, 1]);
+  });
+});
+
+describe('the user doc', () => {
+  const build = (over: Partial<Parameters<typeof buildHomeDashboard>[0]> = {}) =>
+    buildHomeDashboard({
+      today: TODAY,
+      meditateSessions: [],
+      meditateGoal: 5,
+      workoutSessions: [],
+      workoutsGoal: 3,
+      exercisesById: EXERCISES,
+      unit: 'lb',
+      phase: undefined,
+      mealsDays: {},
+      mealsRules: RULES,
+      logs: [],
+      ...over,
+    });
+
+  it('counts a rating once when a reload and the screen both hold it', () => {
+    const rating = log('app:meditate', '2026-10-24', 1);
+    const d = build({ meditateSessions: [sit('2026-10-24', 1)], logs: [rating, { ...rating }] });
+    expect(d.meditate.sessions).toBe(1);
+    expect(d.friction.meditate.count).toBe(1);
+  });
+
+  it('sums sessions and apps across what was loaded', () => {
+    const { activity } = build({
+      meditateSessions: [sit('2026-10-24', 10), sit('2026-10-24', 10, '20:00'), sit('2026-09-01', 5)],
+      workoutSessions: [workout('2026-10-20', 1000)],
+      logs: [log('app:workouts', '2026-10-22', 2)], // a past session
+    });
+    expect(activity.sessionsCompleted).toBe(5);
+    expect(activity.appsTried).toBe(2);
+    expect(activity.appsActive).toBe(2);
+    expect(activity.activeDays).toEqual(['2026-09-01', '2026-10-20', '2026-10-22', '2026-10-24']);
+  });
+
+  it('counts an app as tried but not active after 28 quiet days', () => {
+    const { activity } = build({ meditateSessions: [sit('2026-09-01', 5)] });
+    expect(activity.appsTried).toBe(1);
+    expect(activity.appsActive).toBe(0);
+  });
+
+  const activity = (activeDays: string[]) => ({ activeDays, sessionsCompleted: 0, appsTried: 0, appsActive: 0 });
+
+  it('corrects the stored streak from past days', () => {
+    expect(
+      profileActivityPatch(activity(['2026-10-21', '2026-10-22', '2026-10-23']), TODAY, {
+        currentStreak: 9,
+        lastActivityDate: '2026-10-23',
+        apps_active: 0,
+      })
+    ).toEqual({ currentStreak: 3 });
+  });
+
+  it('breaks a streak whose last day was before yesterday', () => {
+    expect(
+      profileActivityPatch(activity(['2026-10-20']), TODAY, {
+        currentStreak: 4,
+        lastActivityDate: '2026-10-23',
+        apps_active: 0,
+      })
+    ).toEqual({ currentStreak: 0, lastActivityDate: '2026-10-20' });
+  });
+
+  it("leaves today to the rating, so its streak celebration still fires", () => {
+    // An unrated session today: the doc keeps yesterday's run until tomorrow.
+    expect(
+      profileActivityPatch(activity(['2026-10-23', '2026-10-24']), TODAY, {
+        currentStreak: 1,
+        lastActivityDate: '2026-10-23',
+        apps_active: 0,
+      })
+    ).toBeNull();
+    // Already rated today: hands off entirely.
+    expect(
+      profileActivityPatch(activity(['2026-10-20']), TODAY, {
+        currentStreak: 1,
+        lastActivityDate: TODAY,
+        apps_active: 0,
+      })
+    ).toBeNull();
+  });
+
+  it('only ever raises the lifetime counters', () => {
+    const a = { activeDays: [], sessionsCompleted: 10, appsTried: 2, appsActive: 1 };
+    expect(profileActivityPatch(a, TODAY, { lastActivityDate: TODAY, sessions_completed: 40, apps_tried: 3, apps_active: 1 })).toBeNull();
+    expect(profileActivityPatch(a, TODAY, { lastActivityDate: TODAY, sessions_completed: 4, apps_tried: 1, apps_active: 1 })).toEqual({
+      sessions_completed: 10,
+      apps_tried: 2,
+    });
   });
 });
