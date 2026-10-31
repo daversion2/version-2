@@ -12,19 +12,13 @@ import { MyPracticeDetailScreen } from '../screens/Home/MyPracticeDetailScreen';
 import { HabitActionPlanScreen } from '../screens/Home/HabitActionPlanScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { CreateChallengeScreen } from '../screens/Home/CreateChallengeScreen';
-import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { stackHeaderOptions } from './headerOptions';
 
 const Stack = createNativeStackNavigator<ProgressStackParamList>();
 
 export const ProgressStack: React.FC = () => (
   <Stack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: '#FBFBFB' },
-      headerTintColor: Colors.primary,
-      headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg },
-      headerBackButtonDisplayMode: 'minimal',
-      headerShadowVisible: false,
-    }}
+    screenOptions={stackHeaderOptions}
   >
     <Stack.Screen
       name="ProgressScreen"

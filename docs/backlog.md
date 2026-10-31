@@ -42,6 +42,32 @@ The last item in Phase 1 of `docs/pivot-checklist.md`. The rest of Phase 1
 - Meditate's end bell still ringing
 - Progress without its habit sections
 
+**Apple-style redesign, phases 2–4** *(added 2026-10-31)*
+An Apple-simple look for the whole app, built behind the Lab switch
+"Apple-style redesign" (admin-only, applies on the next launch). The design is
+20 screens on a claude.ai canvas: https://claude.ai/artifact/AR5aQji6PnQTb7zmLLxryG.
+Phase 1 (foundation) is built:
+- theme tokens plus the `REDESIGN` values in `constants/theme.ts`, applied at
+  startup by `utils/redesign.ts`
+- shared pieces in `components/common/`: `ListGroup`/`ListRow`,
+  `SegmentedControl`, `Stepper`, `BottomSheet`, `ProgressRing`/`AppRings`
+
+Next:
+1. Look at Phase 1 on screen with the switch on (ask first). Greys and corners
+   change everywhere; check nothing reads wrong. Fonts stay the brand's: the
+   founder tried the system font and reverted it (2026-10-31).
+2. Phase 2: Today as one scrolling list with `AppRings`, then Progress,
+   Settings, the rating sheet and Close out the day.
+3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
+4. Phase 4: sign-in and the two-step onboarding (D4). Sign in with Apple needs
+   a native build.
+5. Then flip it on for everyone and delete the old branches.
+
+Decide before Phase 2: dark mode (not designed yet). Separately, Garet (the
+primary brand font) has never actually loaded: its files are commented out in
+`App.tsx`, so text set in it falls back to the system font. Add the font files
+and uncomment them to fix it.
+
 ## Next (pre-launch)
 
 **Device checks on a real phone** *(added 2026-09-05)*

@@ -36,7 +36,8 @@ import { MicroExerciseCommitmentScreen } from '../screens/MicroExercise/MicroExe
 import { MicroExerciseCompleteScreen } from '../screens/MicroExercise/MicroExerciseCompleteScreen';
 import { MicroExerciseFollowUpScreen } from '../screens/MicroExercise/MicroExerciseFollowUpScreen';
 import { CravingCrusherScreen } from '../screens/Home/CravingCrusherScreen';
-import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { Colors } from '../constants/theme';
+import { stackHeaderOptions } from './headerOptions';
 
 const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
 
@@ -44,15 +45,7 @@ const Stack = createNativeStackNavigator<HomeStackParamList>();
 
 export const HomeStack: React.FC = () => (
   <Stack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: '#FBFBFB' },
-      headerTintColor: Colors.primary,
-      headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg },
-      headerBackButtonDisplayMode: 'minimal',
-      headerShadowVisible: false,
-      headerTransparent: false,
-      headerBlurEffect: undefined,
-    }}
+    screenOptions={stackHeaderOptions}
   >
     <Stack.Screen
       name="HomeScreen"
@@ -250,7 +243,7 @@ export const HomeStack: React.FC = () => (
 const styles = StyleSheet.create({
   headerBg: {
     flex: 1,
-    backgroundColor: '#FBFBFB',
+    backgroundColor: Colors.headerBg,
   },
   headerLogo: {
     position: 'absolute',

@@ -10,7 +10,8 @@ import { WorksheetDetailScreen } from '../screens/Worksheets/WorksheetDetailScre
 import { YourStoryLandingScreen } from '../screens/YourStory/YourStoryLandingScreen';
 import { AddProofPointScreen } from '../screens/YourStory/AddProofPointScreen';
 import { ProofPointLibraryScreen } from '../screens/YourStory/ProofPointLibraryScreen';
-import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { Colors } from '../constants/theme';
+import { stackHeaderOptions } from './headerOptions';
 import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
 
 const logo = require('../../assets/Neuro-Nudge_Mark_Blue.png');
@@ -19,15 +20,7 @@ const Stack = createNativeStackNavigator<WorksheetsStackParamList>();
 
 export const WorksheetsStack: React.FC = () => (
   <Stack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: '#FBFBFB' },
-      headerTintColor: Colors.primary,
-      headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg },
-      headerBackButtonDisplayMode: 'minimal',
-      headerShadowVisible: false,
-      headerTransparent: false,
-      headerBlurEffect: undefined,
-    }}
+    screenOptions={stackHeaderOptions}
   >
     <Stack.Screen
       name="WorksheetLibraryScreen"

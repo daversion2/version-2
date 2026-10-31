@@ -4,21 +4,13 @@ import { SettingsStackParamList } from '../types/navigation';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { EditProfileScreen } from '../screens/Settings/EditProfileScreen';
 import { AdminStack } from './AdminStack';
-import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { stackHeaderOptions } from './headerOptions';
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
 
 export const SettingsStack: React.FC = () => (
   <Stack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: '#FBFBFB' },
-      headerTintColor: Colors.primary,
-      headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg },
-      headerBackButtonDisplayMode: 'minimal',
-      headerShadowVisible: false,
-      headerTransparent: false,
-      headerBlurEffect: undefined,
-    }}
+    screenOptions={stackHeaderOptions}
   >
     <Stack.Screen
       name="SettingsScreen"

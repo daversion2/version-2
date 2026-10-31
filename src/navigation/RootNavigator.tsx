@@ -13,6 +13,8 @@ import { MainTabs } from './MainTabs';
 // it, since curated seeding was narrowed alongside this change.
 import { OnboardingScreen } from '../screens/Auth/OnboardingScreen';
 import { Colors } from '../constants/theme';
+import { isLabExperimentOn } from '../services/lab';
+import { saveRedesignPref } from '../services/redesignPref';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -96,6 +98,14 @@ export const RootNavigator: React.FC = () => {
 
     return () => sub.remove();
   }, []);
+
+  // Copy the redesign switch to this device for the next launch (it can't
+  // apply mid-session; see services/redesignPref.ts). Signed out = off.
+  const redesignOn = isLabExperimentOn(userProfile, 'redesign');
+  useEffect(() => {
+    if (loading || (user && !userProfile)) return;
+    saveRedesignPref(redesignOn);
+  }, [loading, user, userProfile, redesignOn]);
 
   if (loading) {
     return (

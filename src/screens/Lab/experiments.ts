@@ -51,6 +51,14 @@ export const LAB_EXPERIMENTS = [
   //   description: 'A guided 4-7-8 breathing screen.',
   //   screen: () => require('./experiments/BreathPacerScreen').BreathPacerScreen,
   // },
+  // The whole-app restyle, built phase by phase behind one switch; see the
+  // REDESIGN block in constants/theme.ts. Applies at launch, not live.
+  {
+    id: 'redesign',
+    title: 'Apple-style redesign',
+    description:
+      'The simpler look: iOS greys, rounder corners, grouped lists. Takes effect the next time you open the app.',
+  },
   // Workouts, Meditate and Meals went live for everyone on 2026-10-18 (their
   // habits open them from Today). These rows stay so an admin can open one
   // without a linked habit; the "Start on Today" switches are retired.

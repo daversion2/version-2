@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ChallengesStackParamList } from '../types/navigation';
-import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { stackHeaderOptions } from './headerOptions';
 
 // Landing hub for the Training tab — cards into Challenges / Avoidance / Programs.
 import { TrainingHomeScreen } from '../screens/Challenges/TrainingHomeScreen';
@@ -35,15 +35,7 @@ const Stack = createNativeStackNavigator<ChallengesStackParamList>();
 
 export const ChallengesStack: React.FC = () => (
   <Stack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: '#FBFBFB' },
-      headerTintColor: Colors.primary,
-      headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg },
-      headerBackButtonDisplayMode: 'minimal',
-      headerShadowVisible: false,
-      headerTransparent: false,
-      headerBlurEffect: undefined,
-    }}
+    screenOptions={stackHeaderOptions}
   >
     <Stack.Screen
       name="TrainingHome"

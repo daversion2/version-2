@@ -108,7 +108,7 @@ export const StepFlowShell: React.FC<StepFlowShellProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: Colors.surfaceSubtle,
   },
   header: {
     flexDirection: 'row',
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.lg,
     paddingTop: Spacing.sm,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: Colors.surfaceSubtle,
   },
   skipButton: {
     alignItems: 'center',

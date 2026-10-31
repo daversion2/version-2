@@ -20,20 +20,15 @@ import { AdminMicroExerciseEditScreen } from '../screens/Admin/AdminMicroExercis
 import { AdminPracticesScreen } from '../screens/Admin/AdminPracticesScreen';
 import { AdminPracticeEditScreen } from '../screens/Admin/AdminPracticeEditScreen';
 import { AdminCopyScreen } from '../screens/Admin/AdminCopyScreen';
-import { Colors, Fonts, FontSizes } from '../constants/theme';
+import { Colors } from '../constants/theme';
+import { stackHeaderOptions } from './headerOptions';
 import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 export const AdminStack: React.FC = () => (
   <Stack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: '#FBFBFB' },
-      headerTintColor: Colors.primary,
-      headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg },
-      headerBackButtonDisplayMode: 'minimal',
-      headerShadowVisible: false,
-    }}
+    screenOptions={stackHeaderOptions}
   >
     <Stack.Screen
       name="AdminDashboard"
