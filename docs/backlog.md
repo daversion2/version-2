@@ -240,6 +240,14 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Today is the dashboard; habit reminders and the Library tab removed** *(2026-10-31, 1063111, live OTA)*
+Today shows the rings, then Overview and a page each for Meditate, Workouts
+and Meals, instead of the habit list. The rating sheet, XP, celebrations,
+the weekly review and rule pop-ups are unchanged. Habit reminders are no
+longer scheduled, and any still on a phone are cancelled on launch. The
+Library tab is gone. Not tried on screen yet. Open follow-ups are under
+"New Today: what hiding habits left behind".
+
 **Meals: 0-100 spectrum scoring, replacing pass/fail** *(2026-10-26, not live yet)*
 Each plate scores 0-100 instead of pass/fail: whole-food ratio dominates,
 a small bonus per nutrient tag, a flat penalty for Processed on top of the
