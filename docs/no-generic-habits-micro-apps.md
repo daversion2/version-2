@@ -178,6 +178,20 @@ row per app and one column per day.
     screens are still registered in the Home stack, but nothing links to
     them.
 
+## Decisions for the rest of the pivot (founder, 2026-10-31)
+
+The full list, with the work each one unblocks, is in
+`docs/pivot-checklist.md` (Phase 2).
+
+- **Old habit data:** kept and hidden, never shown or deleted.
+- **Progress:** friction across all three apps first, then a longer history
+  for each app.
+- **Nightly close:** plans one app session for tomorrow.
+- **Onboarding:** introduces the apps and sets their weekly goals.
+- **Rules:** rewritten around app sessions and apps tried.
+- **Admin catalog editor:** shrunk to Meditate's techniques.
+- **Tidbits and the "what helped you start?" pattern:** re-keyed by app.
+
 ## Open questions (not yet decided)
 
 - **What happens to existing habit data** on the founder's own account (streaks, XP

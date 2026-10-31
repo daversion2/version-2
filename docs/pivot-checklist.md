@@ -3,7 +3,7 @@
 The work left to finish the move to micro-apps plus friction. The direction
 is in `docs/no-generic-habits-micro-apps.md`; this is the order to do it in.
 Tick an item in the same commit that finishes it. Items marked **🔒 D#**
-wait on that founder decision (Phase 2).
+were waiting on that founder decision; all are now decided (Phase 2).
 
 Already done on 2026-10-31: Today is the dashboard, habit reminders are
 removed, the Library tab is removed.
@@ -50,23 +50,29 @@ three stop bad data piling up.
 
 ## Phase 2: founder decisions
 
-Each one unblocks part of Phases 3 and 4.
+All decided 2026-10-31.
 
-- [ ] **D1. Existing habit data.** What happens to `users/{uid}/habits` and
-  the habit logs: migrate them, keep them read-only, or accept losing them.
-- [ ] **D2. What Progress becomes.** A longer view of the dashboard, a friction
-  story across the apps, or something else.
-- [ ] **D3. What the nightly close plans around.** An app session, a time, or
-  something else. Also, does "Today's plan" survive?
-- [ ] **D4. What onboarding asks.** Pick an app, pick nothing, or set the
-  weekly goals.
-- [ ] **D5. Rules.** New wording for the stored admin rules, and what
-  "practices tried" and "habits completed" mean now.
-- [ ] **D6. The Admin practice catalog editor.** Shrink it to Meditate
-  techniques, or remove it.
-- [ ] **D7. Habit-keyed extras.** Science tidbits are matched by habit name,
-  and the "what helped you start?" pattern by habit id. Re-key them by app,
-  or drop them.
+- [x] **D1. Existing habit data: keep it, hidden.** Habit docs and their old
+  check-ins stay in Firestore and are never shown. Nothing to migrate or
+  delete, and the choice can be reversed. Mirror logs can stop as soon as
+  nothing reads them.
+- [x] **D2. Progress: friction first, then the apps.** It leads with
+  "friction you can handle" across Meditate, Workouts and Meals, then shows a
+  longer history (weeks and months) for each app.
+- [x] **D3. Nightly close: plan tomorrow's app session.** Grade the day, then
+  plan one app session for tomorrow, e.g. "After coffee, I'll do Workouts".
+  The "Today's plan" card shows it until that app is done.
+- [x] **D4. Onboarding: the apps plus weekly goals.** Introduce Meditate,
+  Workouts and Meals, and set each weekly goal. No habit is created.
+- [x] **D5. Rules: rewritten around sessions.**
+  - "Habits completed" becomes app sessions completed.
+  - "Practices tried" becomes apps tried (0–3).
+  - The rules' copy talks about sessions and apps.
+- [x] **D6. Admin catalog editor: shrink it to Meditate.** Keep a small editor
+  for Meditate's techniques and their steps, and remove the rest.
+- [x] **D7. Tidbits and "what helped you start?": both re-keyed by app.**
+  Tidbits match Meditate, Workouts or Meals, and the pattern builds up per
+  app.
 
 ## Phase 3: apps stop being habits
 
