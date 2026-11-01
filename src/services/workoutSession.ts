@@ -2,6 +2,7 @@ import {
   BlockItem,
   CompletedWorkoutSession,
   Exercise,
+  IntervalClock,
   LoggedSet,
   PersonalRecord,
   SessionBlock,
@@ -12,7 +13,7 @@ import {
   WorkoutSession,
 } from '../types/workouts';
 import { DEFAULT_REST_SEC } from '../data/workoutExercises';
-import { formatSeconds, formatTarget, sessionVolumeKg } from './workoutMath';
+import { formatClock, formatSeconds, formatTarget, sessionVolumeKg } from './workoutMath';
 
 // =============================================================================
 // THE SESSION ENGINE — pure functions over WorkoutSession, no I/O.
@@ -21,6 +22,12 @@ import { formatSeconds, formatTarget, sessionVolumeKg } from './workoutMath';
 // done in order, repeated for N rounds. A single has one item, so a round is a
 // set. Rest comes after a completed round and never between items inside one,
 // which is exactly "straight from dips to push-ups, rest after the plank".
+//
+// A block can instead run on the clock (`intervalSec`): a round starts every N
+// seconds and the rest is whatever's left after the work. Finish early and you
+// rest till the next round's start; finish late and the next one starts right
+// away — the clock never makes up lost time. That rest is an ordinary
+// `session.rest`, so the sheet and the lock-screen bell work unchanged.
 //
 // Every function returns a new session; screens hold it in state and persist
 // it as a draft after each change.
@@ -47,6 +54,7 @@ const toSessionBlock = (block: WorkoutBlock, added = false): SessionBlock => ({
   items: cloneItems(block.items),
   rounds: Math.max(1, block.rounds),
   restSec: Math.max(0, block.restSec),
+  ...(block.intervalSec && block.intervalSec > 0 ? { intervalSec: block.intervalSec } : {}),
   plannedRounds: added ? 0 : block.rounds,
   sets: [],
   skipped: false,
@@ -79,8 +87,12 @@ export const startSession = (opts: {
 export const roundsDone = (block: SessionBlock): number =>
   Math.floor(block.sets.length / block.items.length);
 
+/** Rounds done plus rounds missed on the clock: where the block has got to. */
+export const roundsUsed = (block: SessionBlock): number =>
+  roundsDone(block) + (block.missedRounds?.length ?? 0);
+
 export const isBlockFinished = (block: SessionBlock): boolean =>
-  block.skipped || roundsDone(block) >= block.rounds;
+  block.skipped || roundsUsed(block) >= block.rounds;
 
 /** The block you're on: the cursor if unfinished, else the next unfinished, wrapping round. */
 export const currentBlockIndex = (session: WorkoutSession): number | null => {
@@ -105,7 +117,7 @@ export const currentPosition = (session: WorkoutSession): Position | null => {
   if (blockIndex === null) return null;
   const block = session.blocks[blockIndex];
   const itemIndex = block.sets.length % block.items.length;
-  return { blockIndex, block, round: roundsDone(block), itemIndex, item: block.items[itemIndex] };
+  return { blockIndex, block, round: roundsUsed(block), itemIndex, item: block.items[itemIndex] };
 };
 
 export const isSessionComplete = (session: WorkoutSession): boolean =>
@@ -169,6 +181,24 @@ export const logSet = (session: WorkoutSession, values: SetValues, now: Date): L
   const roundComplete = block.sets.length % block.items.length === 0;
   const blockComplete = isBlockFinished(block);
   const workoutComplete = currentBlockIndex(next) === null;
+
+  const clock = clockFor(session, block);
+  if (clock) {
+    if (!roundComplete) return { session: next, restSec: null, roundComplete, blockComplete, workoutComplete };
+    // The round's work time, then the next round's start: on the clock, or now if you ran over.
+    const startedAt = new Date(clock.roundStartsAt).getTime();
+    const workSec = Math.max(0, Math.round((now.getTime() - startedAt) / 1000));
+    // A rest under a second and a half is rounding, not rest: start now.
+    const onTime = startedAt + clock.sec * 1000;
+    const nextStart = onTime - now.getTime() < 1500 ? now.getTime() : onTime;
+    next.blocks = replaceAt(next.blocks, pos.blockIndex, { ...block, workSec: [...(block.workSec ?? []), workSec] });
+    if (blockComplete) delete next.clock;
+    else next.clock = { ...clock, roundStartsAt: new Date(nextStart).toISOString() };
+    const restSec = workoutComplete ? 0 : Math.ceil((nextStart - now.getTime()) / 1000);
+    if (restSec > 0) next.rest = { endsAt: new Date(nextStart).toISOString(), totalSec: restSec };
+    return { session: next, restSec: restSec > 0 ? restSec : null, roundComplete, blockComplete, workoutComplete };
+  }
+
   const restSec = roundComplete && !workoutComplete && block.restSec > 0 ? block.restSec : null;
   if (restSec) {
     next.rest = { endsAt: new Date(now.getTime() + restSec * 1000).toISOString(), totalSec: restSec };
@@ -181,18 +211,29 @@ export const undoLastSet = (session: WorkoutSession): WorkoutSession => {
   if (!session.history.length) return session;
   const blockIndex = session.history[session.history.length - 1];
   const block = session.blocks[blockIndex];
+  const undone = block.sets[block.sets.length - 1];
+  const reopened: SessionBlock = { ...block, sets: block.sets.slice(0, -1), skipped: false };
+  let clock = session.clock;
+  // Taking back a round's last set on the clock puts that round's clock back
+  // where it was: it started its work time before the set was logged.
+  const work = block.workSec?.[block.workSec.length - 1];
+  if (block.intervalSec && block.sets.length % block.items.length === 0 && undone && work !== undefined) {
+    reopened.workSec = block.workSec!.slice(0, -1);
+    clock = {
+      blockId: block.id,
+      sec: block.intervalSec,
+      roundStartsAt: new Date(new Date(undone.at).getTime() - work * 1000).toISOString(),
+    };
+  }
   const next: WorkoutSession = {
     ...session,
-    blocks: replaceAt(session.blocks, blockIndex, {
-      ...block,
-      sets: block.sets.slice(0, -1),
-      skipped: false,
-    }),
+    blocks: replaceAt(session.blocks, blockIndex, reopened),
     cursor: blockIndex,
     history: session.history.slice(0, -1),
   };
+  if (clock) next.clock = clock;
   delete next.rest;
-  return next;
+  return dropStrayClock(next);
 };
 
 // --- Rest --------------------------------------------------------------------
@@ -206,22 +247,181 @@ export const restRemainingSec = (session: WorkoutSession, now: Date): number =>
 export const adjustRest = (session: WorkoutSession, deltaSec: number, now: Date): WorkoutSession => {
   if (!session.rest) return session;
   const endsAt = new Date(session.rest.endsAt).getTime() + deltaSec * 1000;
-  if (endsAt <= now.getTime()) return endRest(session);
-  return {
+  if (endsAt <= now.getTime()) return skipRest(session, now);
+  const next: WorkoutSession = {
     ...session,
     rest: {
       endsAt: new Date(endsAt).toISOString(),
       totalSec: Math.max(1, session.rest.totalSec + deltaSec),
     },
   };
+  // On the clock, a longer rest moves the next round's start with it.
+  if (resting(session, now)) next.clock = { ...session.clock!, roundStartsAt: new Date(endsAt).toISOString() };
+  return next;
 };
 
+/** Rest ran out on its own. On the clock the next round already starts at that moment. */
 export const endRest = (session: WorkoutSession): WorkoutSession => {
   if (!session.rest) return session;
   const next = { ...session };
   delete next.rest;
   return next;
 };
+
+/** "Skip rest": on the clock, the next round starts now. */
+export const skipRest = (session: WorkoutSession, now: Date): WorkoutSession => {
+  const next = endRest(session);
+  if (resting(session, now)) next.clock = { ...session.clock!, roundStartsAt: now.toISOString() };
+  return next;
+};
+
+// --- The clock (interval blocks) ------------------------------------------------
+
+/** The session's clock, if it belongs to this block and has started. */
+const clockFor = (session: WorkoutSession, block: WorkoutBlock): IntervalClock | null =>
+  block.intervalSec && session.clock?.blockId === block.id ? session.clock : null;
+
+/** Resting on the clock: the next round's start is still ahead. */
+const resting = (session: WorkoutSession, now: Date): boolean =>
+  !!session.clock && !session.clock.pausedAt && new Date(session.clock.roundStartsAt).getTime() > now.getTime();
+
+/** The clock goes with the block you're on — moving off it (skip, jump, finish) stops it. */
+const dropStrayClock = (session: WorkoutSession): WorkoutSession => {
+  if (!session.clock) return session;
+  const index = currentBlockIndex(session);
+  if (index !== null && session.blocks[index].id === session.clock.blockId) return session;
+  const next = { ...session };
+  delete next.clock;
+  return next;
+};
+
+export type ClockStatus =
+  /** An interval block whose clock hasn't started: "Start the clock". */
+  | { phase: 'ready'; sec: number }
+  /** Working: `remainingSec` till the interval ends, then `overSec` past it. */
+  | { phase: 'work'; sec: number; remainingSec: number; overSec: number }
+  /** Done early: the next round starts in `remainingSec`. */
+  | { phase: 'rest'; sec: number; remainingSec: number }
+  | { phase: 'paused'; sec: number; remainingSec: number; overSec: number; resting: boolean };
+
+/** Where the clock is for the block you're on; null when that block isn't on the clock. */
+export const clockStatus = (session: WorkoutSession, now: Date): ClockStatus | null => {
+  const index = currentBlockIndex(session);
+  if (index === null) return null;
+  const block = session.blocks[index];
+  if (!block.intervalSec) return null;
+  const clock = clockFor(session, block);
+  if (!clock) return { phase: 'ready', sec: block.intervalSec };
+  const at = clock.pausedAt ? new Date(clock.pausedAt) : now;
+  const start = new Date(clock.roundStartsAt).getTime();
+  const sinceStart = (at.getTime() - start) / 1000;
+  if (sinceStart < 0) {
+    const remainingSec = Math.ceil(-sinceStart);
+    return clock.pausedAt
+      ? { phase: 'paused', sec: clock.sec, remainingSec, overSec: 0, resting: true }
+      : { phase: 'rest', sec: clock.sec, remainingSec };
+  }
+  const remainingSec = Math.max(0, Math.ceil(clock.sec - sinceStart));
+  const overSec = Math.max(0, Math.floor(sinceStart - clock.sec));
+  if (clock.pausedAt) return { phase: 'paused', sec: clock.sec, remainingSec, overSec, resting: false };
+  return { phase: 'work', sec: clock.sec, remainingSec, overSec };
+};
+
+/** First round of an interval block starts now. */
+export const startClock = (session: WorkoutSession, now: Date): WorkoutSession => {
+  const index = currentBlockIndex(session);
+  if (index === null) return session;
+  const block = session.blocks[index];
+  if (!block.intervalSec) return session;
+  const next: WorkoutSession = {
+    ...session,
+    cursor: index,
+    clock: { blockId: block.id, sec: block.intervalSec, roundStartsAt: now.toISOString() },
+  };
+  delete next.rest;
+  return next;
+};
+
+/** Stops the clock where it is, rest included — a phone call, a taken bench. */
+export const pauseClock = (session: WorkoutSession, now: Date): WorkoutSession => {
+  if (!session.clock || session.clock.pausedAt) return session;
+  const next: WorkoutSession = { ...session, clock: { ...session.clock, pausedAt: now.toISOString() } };
+  delete next.rest;
+  return next;
+};
+
+/** Picks up exactly where pause left it: every time on the clock moves on by the pause. */
+export const resumeClock = (session: WorkoutSession, now: Date): WorkoutSession => {
+  const clock = session.clock;
+  if (!clock?.pausedAt) return session;
+  const paused = now.getTime() - new Date(clock.pausedAt).getTime();
+  const start = new Date(clock.roundStartsAt).getTime() + Math.max(0, paused);
+  const next: WorkoutSession = { ...session, clock: { blockId: clock.blockId, sec: clock.sec, roundStartsAt: new Date(start).toISOString() } };
+  if (start > now.getTime()) {
+    next.rest = { endsAt: new Date(start).toISOString(), totalSec: Math.ceil((start - now.getTime()) / 1000) };
+  }
+  return next;
+};
+
+/**
+ * The interval ran out before you started the round: give it up, and the next
+ * round starts now. Only before the round's first set — a set you did is never
+ * thrown away, so mid-round you just finish late.
+ */
+export const missRound = (session: WorkoutSession, now: Date): WorkoutSession => {
+  const pos = currentPosition(session);
+  if (!pos || pos.itemIndex !== 0 || !clockFor(session, pos.block)) return session;
+  const block: SessionBlock = { ...pos.block, missedRounds: [...(pos.block.missedRounds ?? []), pos.round] };
+  const next: WorkoutSession = {
+    ...session,
+    blocks: replaceAt(session.blocks, pos.blockIndex, block),
+    clock: { ...session.clock!, roundStartsAt: now.toISOString() },
+  };
+  delete next.rest;
+  return dropStrayClock(next);
+};
+
+/** Can the round you're on be marked missed right now? */
+export const canMissRound = (session: WorkoutSession, now: Date): boolean => {
+  const pos = currentPosition(session);
+  const status = clockStatus(session, now);
+  return !!pos && pos.itemIndex === 0 && status?.phase === 'work' && status.remainingSec === 0;
+};
+
+export interface IntervalReport {
+  sec: number;
+  rounds: number;
+  missed: number;
+  avgWorkSec: number;
+  /** Average work as a share of the interval, 0–1+. */
+  share: number;
+  /** Work is eating the rest: more than 85% of the interval, over 2+ rounds. */
+  tight: boolean;
+}
+
+/** How an interval block went: work time against the clock. Null off the clock or with nothing timed. */
+export const intervalReport = (block: SessionBlock): IntervalReport | null => {
+  const work = block.workSec ?? [];
+  if (!block.intervalSec || (!work.length && !block.missedRounds?.length)) return null;
+  const avgWorkSec = work.length ? Math.round(work.reduce((a, b) => a + b, 0) / work.length) : 0;
+  const share = avgWorkSec / block.intervalSec;
+  return {
+    sec: block.intervalSec,
+    rounds: work.length,
+    missed: block.missedRounds?.length ?? 0,
+    avgWorkSec,
+    share,
+    tight: work.length >= 2 && share > 0.85,
+  };
+};
+
+/**
+ * A first guess at the interval: the rest you'd have taken plus ~40s of work
+ * per exercise in the round, rounded up to 30s. The summary corrects it from
+ * real work times.
+ */
+export const defaultIntervalSec = (block: WorkoutBlock): number =>
+  Math.max(60, Math.ceil((Math.max(0, block.restSec) + 40 * Math.max(1, block.items.length)) / 30) * 30);
 
 // --- Changing the plan mid-session --------------------------------------------
 
@@ -232,7 +432,7 @@ export const skipBlock = (session: WorkoutSession, blockIndex: number): WorkoutS
     blocks: replaceAt(session.blocks, blockIndex, { ...session.blocks[blockIndex], skipped: true }),
   };
   delete next.rest;
-  return next;
+  return dropStrayClock(next);
 };
 
 /** Go to a block now — out of order, or back to one you skipped. */
@@ -243,7 +443,7 @@ export const jumpTo = (session: WorkoutSession, blockIndex: number): WorkoutSess
     cursor: blockIndex,
   };
   delete next.rest;
-  return next;
+  return dropStrayClock(next);
 };
 
 /** One more set (or round) on a block, and that block becomes the one you're on. */
@@ -254,13 +454,13 @@ export const addRound = (session: WorkoutSession, blockIndex: number): WorkoutSe
     blocks: replaceAt(session.blocks, blockIndex, {
       ...block,
       // From a skip, "one more" means one more than you actually did.
-      rounds: (block.skipped ? roundsDone(block) : block.rounds) + 1,
+      rounds: (block.skipped ? roundsUsed(block) : block.rounds) + 1,
       skipped: false,
     }),
     cursor: blockIndex,
   };
   delete next.rest;
-  return next;
+  return dropStrayClock(next);
 };
 
 /**
@@ -335,6 +535,7 @@ const toWorkoutBlock = (block: SessionBlock, rounds: number, items: BlockItem[])
   items,
   rounds,
   restSec: block.restSec,
+  ...(block.intervalSec ? { intervalSec: block.intervalSec } : {}),
 });
 
 /** "Save changes to Push Day": keeps added blocks you did and extra sets. */
@@ -389,7 +590,8 @@ export const describeBlock = (
     parts.push(`${block.rounds} ${block.rounds === 1 ? 'set' : 'sets'}`);
     if (item) parts.push(formatTarget(item.target, kind, unit));
   }
-  if (block.restSec > 0) parts.push(`rest ${formatSeconds(block.restSec)}`);
+  if (block.intervalSec) parts.push(`every ${formatClock(block.intervalSec)}`);
+  else if (block.restSec > 0) parts.push(`rest ${formatSeconds(block.restSec)}`);
   return parts.join(' · ');
 };
 
@@ -399,11 +601,11 @@ export const durationSec = (session: WorkoutSession, now: Date): number => {
 };
 
 /** Finish tapped: stop the clock, drop any rest, show the summary. */
-export const enterSummary = (session: WorkoutSession, now: Date): WorkoutSession => ({
-  ...endRest(session),
-  phase: 'summary',
-  endedAt: now.toISOString(),
-});
+export const enterSummary = (session: WorkoutSession, now: Date): WorkoutSession => {
+  const next: WorkoutSession = { ...endRest(session), phase: 'summary', endedAt: now.toISOString() };
+  delete next.clock;
+  return next;
+};
 
 /** "Back to workout" from the summary — the clock runs again. */
 export const backToWorkout = (session: WorkoutSession): WorkoutSession => {

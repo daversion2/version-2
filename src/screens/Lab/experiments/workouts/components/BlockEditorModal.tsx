@@ -3,8 +3,11 @@ import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet 
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
 import { BlockItem, SetValues, WorkoutBlock } from '../../../../../types/workouts';
+import { defaultIntervalSec } from '../../../../../services/workoutSession';
+import { SegmentedControl } from '../../../../../components/common/SegmentedControl';
 import {
   DEFAULT_TARGET,
+  formatClock,
   formatSeconds,
   fromDisplayWeight,
   stepWeight,
@@ -94,6 +97,13 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
 
   if (!draft) return null;
   const isCircuit = draft.items.length > 1;
+  const onClock = !!draft.intervalSec;
+
+  const setClock = (mode: 'rest' | 'interval') => {
+    if (mode === 'interval') return setDraft({ ...draft, intervalSec: defaultIntervalSec(draft) });
+    const { intervalSec: _off, ...rest } = draft;
+    setDraft(rest);
+  };
 
   const setItem = (index: number, target: SetValues) =>
     setDraft({ ...draft, items: draft.items.map((it, i) => (i === index ? { ...it, target } : it)) });
@@ -148,19 +158,44 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
               onDecrement={() => setDraft({ ...draft, rounds: clamp(draft.rounds - 1, 1, 20) })}
               onIncrement={() => setDraft({ ...draft, rounds: clamp(draft.rounds + 1, 1, 20) })}
             />
-            <NumberStepper
-              label={isCircuit ? 'Rest after a round' : 'Rest between sets'}
-              value={draft.restSec}
-              suffix={draft.restSec > 0 ? formatSeconds(draft.restSec) : 'no rest'}
-              onDecrement={() => setDraft({ ...draft, restSec: clamp(draft.restSec - 15, 0, 600) })}
-              onIncrement={() => setDraft({ ...draft, restSec: clamp(draft.restSec + 15, 0, 600) })}
+            {onClock ? (
+              <NumberStepper
+                label={isCircuit ? 'A round every' : 'A set every'}
+                value={draft.intervalSec!}
+                suffix={formatClock(draft.intervalSec!)}
+                onDecrement={() => setDraft({ ...draft, intervalSec: clamp(draft.intervalSec! - 15, 30, 900) })}
+                onIncrement={() => setDraft({ ...draft, intervalSec: clamp(draft.intervalSec! + 15, 30, 900) })}
+              />
+            ) : (
+              <NumberStepper
+                label={isCircuit ? 'Rest after a round' : 'Rest between sets'}
+                value={draft.restSec}
+                suffix={draft.restSec > 0 ? formatSeconds(draft.restSec) : 'no rest'}
+                onDecrement={() => setDraft({ ...draft, restSec: clamp(draft.restSec - 15, 0, 600) })}
+                onIncrement={() => setDraft({ ...draft, restSec: clamp(draft.restSec + 15, 0, 600) })}
+              />
+            )}
+          </View>
+
+          <View style={{ gap: Spacing.xs }}>
+            <Text style={ws.sectionLabel}>Clock</Text>
+            <SegmentedControl
+              accessibilityLabel="Clock"
+              options={[
+                { value: 'rest', label: 'Rest after each' },
+                { value: 'interval', label: 'On the clock' },
+              ]}
+              value={onClock ? 'interval' : 'rest'}
+              onChange={setClock}
             />
           </View>
-          {isCircuit && (
-            <Text style={ws.muted}>
-              Exercises run back to back with no rest; the timer starts after the last one.
-            </Text>
-          )}
+          <Text style={ws.muted}>
+            {onClock
+              ? `${isCircuit ? 'Each round' : 'Each set'} starts on the clock; whatever’s left after the work is rest. ${draft.rounds} ${isCircuit ? (draft.rounds === 1 ? 'round' : 'rounds') : draft.rounds === 1 ? 'set' : 'sets'} take ${formatClock(draft.rounds * draft.intervalSec!)}.${isCircuit ? ' The exercises run back to back inside it.' : ''}`
+              : isCircuit
+                ? 'Exercises run back to back with no rest; the timer starts after the last one.'
+                : 'Rest starts when you log the set. Best for sets to failure or anything you can’t time.'}
+          </Text>
 
           <Text style={ws.sectionLabel}>{isCircuit ? 'Exercises, in order' : 'Each set'}</Text>
           {draft.items.map((item, index) => (

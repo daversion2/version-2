@@ -249,6 +249,21 @@ build is already happening for another reason).
   have to be skipped by round counting, the "last time" prefill, records,
   volume and step-ups.
 
+- **On the clock: check a circuit on screen** *(added 2026-11-01)*. The
+  simulator run covered a single exercise only; "A round every" / "each
+  round" wording and a circuit's rest-after-round are Jest-tested only.
+- **On the clock: follow-ups** *(added 2026-11-01)*. Left out of the first cut
+  on purpose:
+  - Buttons on the summary's "tight" line that apply a longer interval or
+    fewer reps to the workout (today it's advice only).
+  - "Shorten the interval" as a third step-up, after 3 sessions in a row
+    with lots of spare time (`trainingPhases.ts` step-ups).
+  - Ladders (target reps changing per round). Targets are per item today.
+  - Logging a set during the rest counts as 0s of work; it could start the
+    round at that moment instead.
+  - The session's "That's every set" heading shows even when a set was
+    missed (plan row reads 5/6).
+
 Considered and declined: a plate-math/bodyweight calculator, attaching
 photo/video to a set for form checks, and sharing a workout or PR as an image.
 
@@ -284,6 +299,22 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workouts: blocks on the clock (EMOM-style intervals)** *(2026-11-01, live OTA)*
+A block can run "On the clock" instead of resting after each set: a round
+starts every N seconds and whatever's left after the work is rest. A circuit
+fits a whole round in one interval (decision 2026-11-01: option B on the
+canvas https://claude.ai/artifact/UCsACsCqRKsfwcLoedoZPY). Finish early →
+rest till the next start; finish late → the next round starts at once, no
+make-up. Start the clock, Pause/Resume, and "Missed this set" (only before
+a round's first set; never logged as a set, so records and volume are
+untouched). Each round's work time is kept; the summary shows the average
+against the interval and flags it past 85%. Per block: the Rest/On the clock
+switch in the block editor. One optional field, `WorkoutBlock.intervalSec`;
+old workouts are unchanged. Engine in `services/workoutSession.ts` (tested);
+the phase "shorter rests" change skips clock blocks. Checked in the simulator
+2026-11-01 with a single exercise (throwaway workout, discarded); three rough
+edges it found were fixed the same day.
 
 **Today is the dashboard; habit reminders and the Library tab removed** *(2026-10-31, 1063111, live OTA)*
 Today shows the rings, then Overview and a page each for Meditate, Workouts

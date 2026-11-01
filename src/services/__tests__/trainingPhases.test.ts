@@ -326,6 +326,11 @@ describe('applyChangeToWorkouts', () => {
     expect(changed[0].blocks.map((b) => b.restSec)).toEqual([60, 60, 60, 30]);
   });
 
+  it('leaves blocks on the clock alone when shortening rests', () => {
+    const clocked = program.map((w) => ({ ...w, blocks: w.blocks.map((b) => ({ ...b, intervalSec: 180 })) }));
+    expect(applyChangeToWorkouts(clocked, { key: 'rest', label: '' }, NOW)).toEqual([]);
+  });
+
   it('leaves the changes a person makes by hand alone', () => {
     expect(applyChangeToWorkouts(program, { key: 'swap', label: '' }, NOW)).toEqual([]);
     expect(applyChangeToWorkouts(program, { key: 'none', label: '' }, NOW)).toEqual([]);

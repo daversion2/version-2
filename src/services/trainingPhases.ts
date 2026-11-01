@@ -347,7 +347,8 @@ export const applyChangeToWorkouts = (workouts: Workout[], change: PhaseChange, 
         touched = true;
         return { ...b, rounds: b.rounds + 1 };
       }
-      if (b.restSec <= 30) return b;
+      // On the clock, rest is whatever the interval leaves; restSec isn't used.
+      if (b.intervalSec || b.restSec <= 30) return b;
       touched = true;
       return { ...b, restSec: Math.max(30, b.restSec - 30) };
     });

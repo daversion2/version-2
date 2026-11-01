@@ -6,6 +6,7 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import { WorkoutsStackParamList } from '../../../../types/workouts';
 import { blockTitle, repeatsInBlock } from '../../../../services/workoutSession';
 import {
+  formatClock,
   formatSeconds,
   formatSetValues,
   formatTarget,
@@ -84,7 +85,11 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
                     {isCircuit
                       ? `Circuit · ${block.rounds} rounds`
                       : `${block.rounds} ${block.rounds === 1 ? 'set' : 'sets'}`}
-                    {block.restSec > 0 ? ` · rest ${formatSeconds(block.restSec)}` : ' · no rest'}
+                    {block.intervalSec
+                      ? ` · every ${formatClock(block.intervalSec)}`
+                      : block.restSec > 0
+                        ? ` · rest ${formatSeconds(block.restSec)}`
+                        : ' · no rest'}
                   </Text>
                 </View>
               </View>

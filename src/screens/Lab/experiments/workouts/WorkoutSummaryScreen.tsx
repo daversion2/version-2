@@ -9,6 +9,7 @@ import {
   applySessionToWorkout,
   backToWorkout,
   durationSec,
+  intervalReport,
   planChanges,
   roundsDone,
   toCompletedSession,
@@ -18,6 +19,7 @@ import {
 import {
   computeSessionRecords,
   describeRecord,
+  formatClock,
   formatSeconds,
   formatSetValues,
   formatWeight,
@@ -166,6 +168,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           const multi = block.items.length > 1;
           const title = multi ? block.name || 'Circuit' : exercise(block.items[0].exerciseId).name;
           const done = roundsDone(block);
+          const clock = intervalReport(block);
           return (
             <View key={block.id} style={ws.card}>
               <View style={styles.recapHead}>
@@ -188,6 +191,31 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                     })
                     .join(multi ? '\n' : '  ·  ')}
                 </Text>
+              )}
+              {clock && (
+                <View style={styles.clock}>
+                  <Text style={styles.clockLine}>
+                    Every {formatClock(clock.sec)}
+                    {clock.rounds > 0
+                      ? ` · work took ${formatClock(clock.avgWorkSec)} on average (${Math.round(clock.share * 100)}%)`
+                      : ''}
+                    {clock.missed > 0 ? ` · ${clock.missed} missed` : ''}
+                  </Text>
+                  <View style={styles.clockTrack}>
+                    <View
+                      style={[
+                        styles.clockFill,
+                        clock.tight && styles.clockFillTight,
+                        { width: `${Math.min(100, Math.round(clock.share * 100))}%` },
+                      ]}
+                    />
+                  </View>
+                  {clock.tight && (
+                    <Text style={styles.clockTight}>
+                      That left almost no rest. Next time, try a longer interval or a rep or two fewer.
+                    </Text>
+                  )}
+                </View>
               )}
             </View>
           );
@@ -275,6 +303,12 @@ const styles = StyleSheet.create({
   recapHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   recapSets: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 4, lineHeight: 18 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  clock: { gap: 6, marginTop: Spacing.sm },
+  clockLine: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.label2 },
+  clockTrack: { height: 6, borderRadius: 3, backgroundColor: Colors.fill, overflow: 'hidden' },
+  clockFill: { height: '100%', backgroundColor: WORKOUTS_ACCENT },
+  clockFillTight: { backgroundColor: Colors.danger },
+  clockTight: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.dark },
   nameInput: {
     marginTop: Spacing.sm,
     borderRadius: BorderRadius.md,

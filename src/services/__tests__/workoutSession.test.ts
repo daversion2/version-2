@@ -4,21 +4,31 @@ import {
   adjustRest,
   applySessionToWorkout,
   backToWorkout,
+  canMissRound,
+  clockStatus,
   currentPosition,
+  defaultIntervalSec,
   describeBlock,
   durationSec,
   endRest,
   enterSummary,
+  intervalReport,
   isSessionComplete,
   jumpTo,
   logSet,
+  missRound,
+  pauseClock,
   planChanges,
   repeatsInBlock,
   restRemainingSec,
+  resumeClock,
   roundsDone,
+  roundsUsed,
   setsTodayFor,
   skipBlock,
+  skipRest,
   slotSets,
+  startClock,
   startSession,
   toCompletedSession,
   undoLastSet,
@@ -368,5 +378,209 @@ describe('toCompletedSession', () => {
     const s = log(start());
     expect(setsTodayFor(s, 'bench')).toHaveLength(1);
     expect(setsTodayFor(s, 'dip')).toHaveLength(0);
+  });
+});
+
+// --- On the clock (interval blocks) -------------------------------------------------
+
+/** Bench every 3:00 for 3 sets, then a pull-up / dip round every 2:00, twice. */
+const CLOCKED: Workout = {
+  ...WORKOUT,
+  blocks: [
+    { ...WORKOUT.blocks[0], rounds: 3, intervalSec: 180 },
+    {
+      id: 'b2',
+      type: 'circuit',
+      name: 'Pull / Dip',
+      items: [
+        { exerciseId: 'curl', target: { reps: 8 } },
+        { exerciseId: 'dip', target: { reps: 8 } },
+      ],
+      rounds: 2,
+      restSec: 60,
+      intervalSec: 120,
+    },
+  ],
+};
+
+const startClocked = () => startClock(startSession({ id: 's1', workout: CLOCKED, now: T0 }), T0);
+
+describe('on the clock', () => {
+  it('waits for Start, then runs the first round from that moment', () => {
+    const s = startSession({ id: 's1', workout: CLOCKED, now: T0 });
+    expect(s.blocks[0].intervalSec).toBe(180);
+    expect(clockStatus(s, T0)).toEqual({ phase: 'ready', sec: 180 });
+    expect(clockStatus(startClock(s, at(5)), at(65))).toEqual({ phase: 'work', sec: 180, remainingSec: 120, overSec: 0 });
+  });
+
+  it('rests until the next interval when a set finishes early, and records the work time', () => {
+    const r = logSet(startClocked(), { reps: 8, weightKg: 60 }, at(40));
+    expect(r.restSec).toBe(140);
+    expect(r.session.rest?.endsAt).toBe(at(180).toISOString());
+    expect(r.session.clock?.roundStartsAt).toBe(at(180).toISOString());
+    expect(r.session.blocks[0].workSec).toEqual([40]);
+    expect(clockStatus(r.session, at(100))).toEqual({ phase: 'rest', sec: 180, remainingSec: 80 });
+  });
+
+  it('starts the next round straight away after running over — no make-up rest', () => {
+    const r = logSet(startClocked(), { reps: 8, weightKg: 60 }, at(200));
+    expect(r.restSec).toBeNull();
+    expect(r.session.rest).toBeUndefined();
+    expect(r.session.clock?.roundStartsAt).toBe(at(200).toISOString());
+    expect(clockStatus(startClocked(), at(200))).toMatchObject({ phase: 'work', remainingSec: 0, overSec: 20 });
+  });
+
+  it('skips a rest of under a second and a half — that is rounding, not rest', () => {
+    const r = logSet(startClocked(), { reps: 8, weightKg: 60 }, new Date(T0.getTime() + 179_000));
+    expect(r.restSec).toBeNull();
+    expect(r.session.clock?.roundStartsAt).toBe(new Date(T0.getTime() + 179_000).toISOString());
+  });
+
+  it('keeps the overtime visible while paused past the interval', () => {
+    expect(clockStatus(pauseClock(startClocked(), at(190)), at(300))).toMatchObject({
+      phase: 'paused',
+      remainingSec: 0,
+      overSec: 10,
+    });
+  });
+
+  it('runs a circuit back to back inside one interval and rests only after the round', () => {
+    let s = startClocked();
+    s = log(s, 10);
+    s = log(s, 180);
+    s = log(s, 360); // bench done: rest to 540, then the circuit is ready
+    expect(s.clock).toBeUndefined();
+    expect(clockStatus(s, at(400))).toEqual({ phase: 'ready', sec: 120 });
+    s = startClock(s, at(540));
+    const mid = logSet(s, { reps: 8 }, at(560));
+    expect(mid.restSec).toBeNull();
+    const end = logSet(mid.session, { reps: 8 }, at(590));
+    expect(end.restSec).toBe(70);
+    expect(end.session.blocks[1].workSec).toEqual([50]);
+  });
+
+  it('stops the clock when the block is done, resting to the end of its last interval', () => {
+    let s = startClocked();
+    s = log(s, 30);
+    s = log(s, 210);
+    const r = logSet(s, { reps: 8, weightKg: 60 }, at(400));
+    expect(r.blockComplete).toBe(true);
+    expect(r.session.clock).toBeUndefined();
+    expect(r.restSec).toBe(140);
+  });
+
+  it('skipping the rest starts the next round now; adjusting it moves the start too', () => {
+    const resting = logSet(startClocked(), { reps: 8, weightKg: 60 }, at(40)).session;
+    const skipped = skipRest(resting, at(60));
+    expect(skipped.rest).toBeUndefined();
+    expect(skipped.clock?.roundStartsAt).toBe(at(60).toISOString());
+    const longer = adjustRest(resting, 15, at(60));
+    expect(longer.clock?.roundStartsAt).toBe(at(195).toISOString());
+    expect(longer.rest?.endsAt).toBe(at(195).toISOString());
+    expect(adjustRest(resting, -200, at(60)).clock?.roundStartsAt).toBe(at(60).toISOString());
+  });
+
+  it('pause freezes the clock and resume shifts it by the pause', () => {
+    const paused = pauseClock(startClocked(), at(30));
+    expect(clockStatus(paused, at(500))).toEqual({
+      phase: 'paused',
+      sec: 180,
+      remainingSec: 150,
+      overSec: 0,
+      resting: false,
+    });
+    const resumed = resumeClock(paused, at(130));
+    expect(resumed.clock?.pausedAt).toBeUndefined();
+    expect(clockStatus(resumed, at(130))).toMatchObject({ phase: 'work', remainingSec: 150 });
+  });
+
+  it('pausing in a rest drops the rest, and resuming brings it back shifted', () => {
+    const resting = logSet(startClocked(), { reps: 8, weightKg: 60 }, at(40)).session;
+    const paused = pauseClock(resting, at(100));
+    expect(paused.rest).toBeUndefined();
+    expect(clockStatus(paused, at(999))).toMatchObject({ phase: 'paused', remainingSec: 80, resting: true });
+    const resumed = resumeClock(paused, at(160));
+    expect(resumed.rest?.endsAt).toBe(at(240).toISOString());
+  });
+
+  it('a missed round counts toward the block but is never logged as a set', () => {
+    const s = startClocked();
+    expect(canMissRound(s, at(100))).toBe(false);
+    expect(canMissRound(s, at(181))).toBe(true);
+    const missed = missRound(s, at(181));
+    expect(missed.blocks[0].sets).toHaveLength(0);
+    expect(missed.blocks[0].missedRounds).toEqual([0]);
+    expect(roundsUsed(missed.blocks[0])).toBe(1);
+    expect(currentPosition(missed)?.round).toBe(1);
+    expect(missed.clock?.roundStartsAt).toBe(at(181).toISOString());
+  });
+
+  it('cannot miss a round once a set in it is logged', () => {
+    let s = startSession({ id: 's1', workout: CLOCKED, now: T0 });
+    s = startClock(skipBlock(s, 0), T0);
+    s = logSet(s, { reps: 8 }, at(30)).session;
+    expect(canMissRound(s, at(200))).toBe(false);
+    expect(missRound(s, at(200))).toBe(s);
+  });
+
+  it('undo puts a finished round’s clock back where it was', () => {
+    const r = logSet(startClocked(), { reps: 8, weightKg: 60 }, at(40));
+    const undone = undoLastSet(r.session);
+    expect(undone.blocks[0].workSec).toEqual([]);
+    expect(undone.clock?.roundStartsAt).toBe(T0.toISOString());
+    expect(clockStatus(undone, at(50))).toMatchObject({ phase: 'work', remainingSec: 130 });
+  });
+
+  it('moving to another block stops the clock', () => {
+    expect(jumpTo(startClocked(), 1).clock).toBeUndefined();
+    expect(skipBlock(startClocked(), 0).clock).toBeUndefined();
+    expect(enterSummary(startClocked(), at(10)).clock).toBeUndefined();
+  });
+
+  it('keeps the interval when saving back to the workout', () => {
+    const s = log(startClocked(), 30);
+    const saved = applySessionToWorkout(CLOCKED, s, at(100));
+    expect(saved.blocks.map((b) => b.intervalSec)).toEqual([180, 120]);
+  });
+
+  it('describes the clock in place of the rest', () => {
+    expect(describeBlock(CLOCKED.blocks[0], EXERCISES, 'lb')).toBe('3 sets · 8 reps · every 3:00');
+  });
+});
+
+describe('intervalReport', () => {
+  const block = (workSec: number[], missedRounds?: number[]) => ({
+    ...startSession({ id: 's1', workout: CLOCKED, now: T0 }).blocks[0],
+    workSec,
+    ...(missedRounds ? { missedRounds } : {}),
+  });
+
+  it('is null off the clock or before anything was timed', () => {
+    expect(intervalReport(start().blocks[0])).toBeNull();
+    expect(intervalReport(block([]))).toBeNull();
+  });
+
+  it('averages work against the interval', () => {
+    expect(intervalReport(block([40, 50], [2]))).toEqual({
+      sec: 180,
+      rounds: 2,
+      missed: 1,
+      avgWorkSec: 45,
+      share: 0.25,
+      tight: false,
+    });
+  });
+
+  it('calls it tight past 85% of the interval over two or more rounds', () => {
+    expect(intervalReport(block([160, 158]))?.tight).toBe(true);
+    expect(intervalReport(block([170]))?.tight).toBe(false);
+  });
+});
+
+describe('defaultIntervalSec', () => {
+  it('is the rest plus ~40s per exercise, rounded up to 30s, at least a minute', () => {
+    expect(defaultIntervalSec(WORKOUT.blocks[0])).toBe(150); // 90 + 40
+    expect(defaultIntervalSec(WORKOUT.blocks[1])).toBe(180); // 60 + 120
+    expect(defaultIntervalSec({ ...WORKOUT.blocks[0], restSec: 0 })).toBe(60);
   });
 });

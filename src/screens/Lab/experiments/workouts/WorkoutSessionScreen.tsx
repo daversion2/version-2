@@ -11,6 +11,8 @@ import {
   addBlock,
   addRound,
   adjustRest,
+  canMissRound,
+  clockStatus,
   currentPosition,
   durationSec,
   endRest,
@@ -19,13 +21,18 @@ import {
   jumpTo,
   logSet,
   makeId,
+  missRound,
+  pauseClock,
   Position,
   repeatsInBlock,
   restRemainingSec,
+  resumeClock,
   roundsDone,
   setsTodayFor,
   skipBlock,
+  skipRest,
   slotSets,
+  startClock,
   totalSetsLogged,
   undoLastSet,
 } from '../../../../services/workoutSession';
@@ -152,6 +159,13 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
       : `${name} · set ${p.round + 1} of ${p.block.rounds}`;
   };
 
+  // On the clock: a tap the moment the interval runs out with the round unfinished.
+  const clock = session ? clockStatus(session, now) : null;
+  const workRanOut = clock?.phase === 'work' && clock.remainingSec === 0;
+  useEffect(() => {
+    if (workRanOut) triggerTapHaptic();
+  }, [workRanOut, session?.clock?.roundStartsAt]);
+
   // Locked phone or another app open: a notification says rest's up.
   useRestBell(session?.rest, pos ? describePosition(pos) : 'Finish');
 
@@ -234,6 +248,11 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const isCircuit = !!pos && pos.block.items.length > 1;
   const isLastInRound = !!pos && pos.itemIndex === pos.block.items.length - 1;
   const logLabel = !isCircuit ? `Log set ${(pos?.round ?? 0) + 1}` : isLastInRound ? 'Log & finish round' : 'Log & next';
+  const clockReady = clock?.phase === 'ready';
+  const clockPaused = clock?.phase === 'paused';
+  // Out of time from the moment the clock reads 0:00, so the panel doesn't shift a second later.
+  const clockOver =
+    (clock?.phase === 'work' || (clock?.phase === 'paused' && !clock.resting)) && clock.remainingSec === 0;
   const nextAfterRest = currentPosition(session);
 
   return (
@@ -322,11 +341,17 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.pills}>
               {Array.from({ length: pos.block.rounds }).map((_, i) => {
-                const done = i < roundsDone(pos.block);
+                const missed = !!pos.block.missedRounds?.includes(i);
+                const done = i < pos.round && !missed;
                 const active = i === pos.round;
                 return (
-                  <View key={i} style={[styles.pill, done && styles.pillDone, active && styles.pillActive]}>
-                    {done ? (
+                  <View
+                    key={i}
+                    style={[styles.pill, done && styles.pillDone, missed && styles.pillMissed, active && styles.pillActive]}
+                  >
+                    {missed ? (
+                      <Ionicons name="remove" size={14} color={Colors.gray} />
+                    ) : done ? (
                       <Ionicons name="checkmark" size={14} color={Colors.white} />
                     ) : (
                       <Text style={[styles.pillText, active && styles.pillTextActive]}>{i + 1}</Text>
@@ -335,6 +360,67 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 );
               })}
             </View>
+
+            {/* A rest normally shows in the sheet below; this covers one without it. */}
+            {clock && !(clock.phase === 'rest' && session.rest) && (
+              <View style={styles.clockPanel}>
+                {clock.phase === 'ready' ? (
+                  <Text style={styles.clockHint}>
+                    Every {formatClock(clock.sec)}: {isCircuit ? 'each round' : 'each set'} starts on the clock, and
+                    what’s left is rest. It starts when you tap Start the clock.
+                  </Text>
+                ) : (
+                  <>
+                    <View style={styles.clockRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[styles.clockTime, clockOver && styles.clockOver]}
+                          accessibilityRole="timer"
+                        >
+                          {clockOver && 'overSec' in clock
+                            ? `+${formatClock(clock.overSec)}`
+                            : formatClock(clock.remainingSec)}
+                        </Text>
+                        <Text style={styles.clockHint}>
+                          {clock.phase === 'paused'
+                            ? clock.resting
+                              ? 'Paused in the rest'
+                              : 'Paused'
+                            : clock.phase === 'rest'
+                              ? `till the next ${isCircuit ? 'round' : 'set'}`
+                              : clockOver
+                                ? 'Over the interval. The next one starts as soon as you log.'
+                                : `left of ${formatClock(clock.sec)}`}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.clockBtn}
+                        onPress={() =>
+                          updateSession(
+                            clockPaused ? resumeClock(session, new Date()) : pauseClock(session, new Date())
+                          )
+                        }
+                        accessibilityRole="button"
+                      >
+                        <Ionicons name={clockPaused ? 'play' : 'pause'} size={16} color={WORKOUTS_ACCENT} />
+                        <Text style={styles.clockBtnText}>{clockPaused ? 'Resume' : 'Pause'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                    {canMissRound(session, now) && (
+                      <TouchableOpacity
+                        style={styles.missBtn}
+                        onPress={() => updateSession(missRound(session, new Date()))}
+                        accessibilityRole="button"
+                      >
+                        <Text style={styles.missText}>
+                          Missed this {isCircuit ? 'round' : 'set'} — start the next one
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </View>
+            )}
 
             <Text style={styles.lastTime}>
               {prefill?.last
@@ -399,14 +485,27 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             )}
 
-            <TouchableOpacity
-              style={[ws.primaryBtn, holdRunning && ws.disabled]}
-              onPress={onLog}
-              disabled={holdRunning}
-              accessibilityRole="button"
-            >
-              <Text style={ws.primaryBtnText}>{logLabel}</Text>
-            </TouchableOpacity>
+            {clockReady ? (
+              <TouchableOpacity
+                style={ws.primaryBtn}
+                onPress={() => {
+                  triggerTapHaptic();
+                  updateSession(startClock(session, new Date()));
+                }}
+                accessibilityRole="button"
+              >
+                <Text style={ws.primaryBtnText}>Start the clock</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[ws.primaryBtn, (holdRunning || clockPaused) && ws.disabled]}
+                onPress={onLog}
+                disabled={holdRunning || clockPaused}
+                accessibilityRole="button"
+              >
+                <Text style={ws.primaryBtnText}>{logLabel}</Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.actions}>
               <TouchableOpacity
@@ -527,7 +626,8 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
           totalSec={session.rest.totalSec}
           nextLabel={nextAfterRest ? describePosition(nextAfterRest) : 'Finish'}
           onAdjust={(delta) => updateSession(adjustRest(session, delta, new Date()))}
-          onSkip={() => updateSession(endRest(session))}
+          onSkip={() => updateSession(skipRest(session, new Date()))}
+          skipLabel={session.clock ? 'Start now' : undefined}
         />
       )}
 
@@ -619,6 +719,7 @@ const styles = StyleSheet.create({
   },
   pillDone: { backgroundColor: WORKOUTS_ACCENT, borderColor: WORKOUTS_ACCENT },
   pillActive: { borderColor: WORKOUTS_ACCENT, borderWidth: 2 },
+  pillMissed: { backgroundColor: Colors.fill, borderColor: Colors.fill },
   pillText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xs, color: Colors.gray },
   pillTextActive: { color: WORKOUTS_ACCENT },
   lastTime: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
@@ -653,6 +754,25 @@ const styles = StyleSheet.create({
   },
   lightWeekText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark },
   inputs: { flexDirection: 'row', gap: Spacing.sm },
+  clockPanel: { gap: Spacing.sm, padding: Spacing.md, borderRadius: BorderRadius.md, backgroundColor: WORKOUTS_TINT },
+  clockRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  clockTime: { fontFamily: Fonts.primaryBold, fontSize: 44, color: Colors.dark, fontVariant: ['tabular-nums'] },
+  clockOver: { color: Colors.danger },
+  clockHint: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.label2, lineHeight: 19 },
+  clockBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 44,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    borderColor: WORKOUTS_ACCENT,
+    backgroundColor: Colors.white,
+  },
+  clockBtnText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  missBtn: { alignItems: 'center', paddingVertical: 10, borderRadius: BorderRadius.full, backgroundColor: Colors.white },
+  missText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
   actions: { flexDirection: 'row', justifyContent: 'space-around' },
   action: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: Spacing.sm },
   actionText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },

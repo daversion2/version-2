@@ -11,6 +11,8 @@ interface Props {
   nextLabel: string;
   onAdjust: (deltaSec: number) => void;
   onSkip: () => void;
+  /** On the clock, skipping the rest starts the next round: "Start now". */
+  skipLabel?: string;
 }
 
 /** How much of the screen the sheet covers, so the set screen can scroll clear of it. */
@@ -21,7 +23,7 @@ export const REST_SHEET_HEIGHT = 250;
  * resting is when you load the bar for the next set, so the weight and reps
  * above stay live. Logging the next set ends the rest on its own.
  */
-export const RestSheet: React.FC<Props> = ({ remainingSec, totalSec, nextLabel, onAdjust, onSkip }) => {
+export const RestSheet: React.FC<Props> = ({ remainingSec, totalSec, nextLabel, onAdjust, onSkip, skipLabel }) => {
   const insets = useSafeAreaInsets();
   const progress = totalSec > 0 ? Math.min(1, remainingSec / totalSec) : 0;
   return (
@@ -40,7 +42,7 @@ export const RestSheet: React.FC<Props> = ({ remainingSec, totalSec, nextLabel, 
             <Text style={styles.adjustText}>−15s</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[ws.primaryBtn, styles.skip]} onPress={onSkip}>
-            <Text style={ws.primaryBtnText}>Skip rest</Text>
+            <Text style={ws.primaryBtnText}>{skipLabel ?? 'Skip rest'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.adjust} onPress={() => onAdjust(15)} accessibilityLabel="15 seconds more">
             <Text style={styles.adjustText}>+15s</Text>

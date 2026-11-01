@@ -63,6 +63,12 @@ export interface WorkoutBlock {
   rounds: number;
   /** Rest after each completed round. Never between items inside a round. */
   restSec: number;
+  /**
+   * On the clock: a round starts every this many seconds, and whatever is left
+   * after the work is the rest. A whole round fits in one interval, so a
+   * circuit runs back to back inside it. Set, it replaces `restSec`.
+   */
+  intervalSec?: number;
 }
 
 export interface Workout {
@@ -90,11 +96,27 @@ export interface SessionBlock extends WorkoutBlock {
   sets: LoggedSet[];
   skipped: boolean;
   added: boolean;
+  /** On the clock: 0-based rounds given up when their interval ran out. Never logged as sets. */
+  missedRounds?: number[];
+  /** On the clock: seconds of work in each finished round, in order. */
+  workSec?: number[];
 }
 
 export interface RestState {
   endsAt: string;
   totalSec: number;
+}
+
+/**
+ * The running clock of an interval block. `roundStartsAt` is the start of the
+ * round you're on, or — when it's still ahead — of the next one, and you're
+ * resting till then.
+ */
+export interface IntervalClock {
+  blockId: string;
+  sec: number;
+  roundStartsAt: string;
+  pausedAt?: string;
 }
 
 export interface WorkoutSession {
@@ -110,6 +132,8 @@ export interface WorkoutSession {
   /** Block index of every logged set, in order — what "Undo" walks back. */
   history: number[];
   rest?: RestState;
+  /** Only while the block you're on is an interval block and its clock has started. */
+  clock?: IntervalClock;
   phase: 'active' | 'summary';
   /** The training phase this session counts toward (services/trainingPhases.ts). */
   phaseId?: string;
