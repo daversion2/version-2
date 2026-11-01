@@ -219,6 +219,12 @@ export interface WorkoutPrefs {
    * the screen even in a week it hasn't been done yet.
    */
   weekly_targets?: Record<string, number>;
+  /**
+   * Exercises the user never wants offered, by id — built-ins or their own.
+   * Left out of the picker and My exercises; history, stats and workouts that
+   * already use one are untouched. Settings → Hidden exercises brings one back.
+   */
+  hidden_exercise_ids?: string[];
 }
 
 /**
@@ -315,6 +321,7 @@ export type WorkoutsStackParamList = {
   WorkoutHistory: undefined;
   WorkoutSettings: undefined;
   WorkoutExercises: undefined;
+  WorkoutHiddenExercises: undefined;
   /** One exercise's or one body part's stats. `id` is an exercise id or a MuscleGroup. */
   WorkoutStatsDetail: { kind: 'exercise' | 'muscle'; id: string; range: StatsRange };
   PhaseSetup: undefined;

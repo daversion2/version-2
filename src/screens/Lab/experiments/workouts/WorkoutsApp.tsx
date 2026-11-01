@@ -15,6 +15,7 @@ import { WorkoutSummaryScreen } from './WorkoutSummaryScreen';
 import { WorkoutHistoryScreen } from './WorkoutHistoryScreen';
 import { WorkoutSettingsScreen } from './WorkoutSettingsScreen';
 import { WorkoutExercisesScreen } from './WorkoutExercisesScreen';
+import { WorkoutHiddenExercisesScreen } from './WorkoutHiddenExercisesScreen';
 import { WorkoutStatsDetailScreen } from './WorkoutStatsDetailScreen';
 import { PhaseSetupScreen } from './PhaseSetupScreen';
 import { PhaseScreen } from './PhaseScreen';
@@ -87,6 +88,11 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
         <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'History' }} />
         <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: 'Settings' }} />
         <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: 'My exercises' }} />
+        <Stack.Screen
+          name="WorkoutHiddenExercises"
+          component={WorkoutHiddenExercisesScreen}
+          options={{ title: 'Hidden exercises' }}
+        />
         <Stack.Screen name="WorkoutStatsDetail" component={WorkoutStatsDetailScreen} options={{ title: '' }} />
         <Stack.Screen name="PhaseSetup" component={PhaseSetupScreen} options={{ title: 'New phase' }} />
         <Stack.Screen name="Phase" component={PhaseScreen} options={{ title: '' }} />

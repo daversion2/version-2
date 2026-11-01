@@ -18,7 +18,8 @@ import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '../data/workoutExercises'
 const sameName = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 /**
- * What the picker and My exercises show: everything not deleted, A–Z. A
+ * Everything not deleted, A–Z — what the picker and My exercises show once
+ * the hidden ones are taken out (visibleExercises). A
  * built-in with the same name as one of your own is hidden — yours wins. That
  * happens when the library grows to include something you'd already made.
  */
@@ -28,6 +29,30 @@ export const activeExercises = (all: Exercise[]): Exercise[] => {
   return live
     .filter((e) => e.custom || !yours.some((y) => sameName(y.name, e.name)))
     .sort((a, b) => a.name.localeCompare(b.name));
+};
+
+// --- Hidden exercises -----------------------------------------------------------
+// One tap in the picker hides an exercise the user will never do; Settings →
+// Hidden exercises brings it back. Stored as ids on WorkoutPrefs. Hiding only
+// affects what's offered — never history, stats or a workout that uses it.
+
+/** What's offered: active exercises minus the hidden ones. */
+export const visibleExercises = (active: Exercise[], hiddenIds: string[] = []): Exercise[] => {
+  if (hiddenIds.length === 0) return active;
+  const hidden = new Set(hiddenIds);
+  return active.filter((e) => !hidden.has(e.id));
+};
+
+/** The hidden ones that still exist, A–Z as `active` is — a deleted one has nothing to bring back. */
+export const hiddenExercises = (active: Exercise[], hiddenIds: string[] = []): Exercise[] => {
+  const hidden = new Set(hiddenIds);
+  return active.filter((e) => hidden.has(e.id));
+};
+
+/** Hide or show one. Never duplicates an id; showing one that isn't hidden is a no-op. */
+export const withExerciseHidden = (hiddenIds: string[] = [], exerciseId: string, hide: boolean): string[] => {
+  const rest = hiddenIds.filter((id) => id !== exerciseId);
+  return hide ? [...rest, exerciseId] : rest;
 };
 
 /**

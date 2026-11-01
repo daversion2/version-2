@@ -18,7 +18,7 @@ const UNITS: { value: WeightUnit; label: string }[] = [
 
 export const WorkoutSettingsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<WorkoutsStackParamList>>();
-  const { prefs, updatePrefs, exercises, notes } = useWorkouts();
+  const { prefs, updatePrefs, exercises, hiddenExercises, notes } = useWorkouts();
   const mineCount = exercises.filter((e) => e.custom).length;
   const notesCount = Object.keys(notes).length;
 
@@ -38,6 +38,23 @@ export const WorkoutSettingsScreen: React.FC = () => {
           <Text style={ws.muted}>
             {mineCount === 0 ? 'Add your own' : `${mineCount} of your own`}
             {notesCount > 0 ? ` · cues on ${notesCount}` : ''}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[ws.card, styles.linkRow]}
+        onPress={() => navigation.navigate('WorkoutHiddenExercises')}
+        accessibilityRole="button"
+      >
+        <Ionicons name="eye-off-outline" size={20} color={WORKOUTS_ACCENT} />
+        <View style={{ flex: 1 }}>
+          <Text style={ws.title}>Hidden exercises</Text>
+          <Text style={ws.muted}>
+            {hiddenExercises.length === 0
+              ? 'None — hide one from the picker with its eye icon'
+              : `${hiddenExercises.length} hidden from the picker`}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.gray} />

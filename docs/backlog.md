@@ -360,6 +360,17 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Workouts: hide exercises you'll never do** *(2026-11-01, not live yet: the next OTA is blocked, see Now)*
+Every exercise shows by default. In the exercise picker, the eye icon on a
+row hides it in one tap, with a few seconds to Undo. Hidden ones leave the
+picker, its body-part tiles and My exercises, but a search still lists them
+last under "Hidden" (tap the eye to bring one back), so one never seems to be
+missing and can't be recreated by name. Settings → Hidden exercises lists
+them with Show and Show all. History, stats and workouts that already use
+one are untouched. Stored as `WorkoutPrefs.hidden_exercise_ids`; no
+migration. `visibleExercises` / `hiddenExercises` / `withExerciseHidden` in
+`services/exerciseLibrary.ts` (tested). Checked on a phone by the founder.
+
 **Workouts: 200 more exercises from free-exercise-db** *(2026-11-01, not live yet)*
 Built-ins go from 59 to 259, hand-picked from
 [free-exercise-db](https://github.com/yuhonas/free-exercise-db) across every

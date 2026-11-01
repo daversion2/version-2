@@ -39,7 +39,15 @@ import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../
 import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
 import { makeId, startSession } from '../../../../services/workoutSession';
-import { activeExercises, ExerciseDraft, isExerciseUsed } from '../../../../services/exerciseLibrary';
+import {
+  activeExercises,
+  ExerciseDraft,
+  hiddenExercises as findHiddenExercises,
+  isExerciseUsed,
+  visibleExercises,
+  withExerciseHidden,
+} from '../../../../services/exerciseLibrary';
+import { showAlert } from '../../../../utils/alert';
 import { currentPhase as findCurrentPhase, isLighterWeek, lightenSession } from '../../../../services/trainingPhases';
 import { toLocalDateString } from '../../../../utils/date';
 import { addLoggedSets, logSessionId, recordsFor, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
@@ -60,8 +68,12 @@ interface WorkoutsContextValue {
   prefs: WorkoutPrefs;
   updatePrefs: (changes: Partial<WorkoutPrefs>) => Promise<void>;
 
-  /** What can be picked: built-ins plus the user's own, minus deleted ones. */
+  /** What can be picked: built-ins plus the user's own, minus deleted and hidden ones. */
   exercises: Exercise[];
+  /** Hidden from the picker by the user (Settings → Hidden exercises), A–Z. */
+  hiddenExercises: Exercise[];
+  /** Hide an exercise from the picker, or bring it back. Never touches history. */
+  setExerciseHidden: (exerciseId: string, hidden: boolean) => Promise<void>;
   /** Every exercise, deleted ones included — history still names them. */
   exercisesById: Record<string, Exercise>;
   /** Never undefined — an unknown id still renders as something. */
@@ -149,6 +161,9 @@ export const WorkoutsProvider: React.FC<{
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<WorkoutPrefs>(DEFAULT_WORKOUT_PREFS);
+  // Hiding two exercises in quick succession must build on the first.
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
   const [customExercises, setCustomExercises] = useState<Exercise[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -212,7 +227,12 @@ export const WorkoutsProvider: React.FC<{
   }, [reload]);
 
   const allExercises = useMemo(() => mergeExerciseLibrary(customExercises), [customExercises]);
-  const exercises = useMemo(() => activeExercises(allExercises), [allExercises]);
+  const active = useMemo(() => activeExercises(allExercises), [allExercises]);
+  const exercises = useMemo(() => visibleExercises(active, prefs.hidden_exercise_ids), [active, prefs.hidden_exercise_ids]);
+  const hiddenExercises = useMemo(
+    () => findHiddenExercises(active, prefs.hidden_exercise_ids),
+    [active, prefs.hidden_exercise_ids]
+  );
   const exercisesById = useMemo(
     () => Object.fromEntries(allExercises.map((e) => [e.id, e])) as Record<string, Exercise>,
     [allExercises]
@@ -226,6 +246,26 @@ export const WorkoutsProvider: React.FC<{
     async (changes: Partial<WorkoutPrefs>) => {
       setPrefs((p) => ({ ...p, ...changes }));
       await saveWorkoutPrefs(userId, changes);
+    },
+    [userId]
+  );
+
+  const setExerciseHidden = useCallback(
+    async (exerciseId: string, hidden: boolean) => {
+      const before = prefsRef.current.hidden_exercise_ids ?? [];
+      const next = withExerciseHidden(before, exerciseId, hidden);
+      prefsRef.current = { ...prefsRef.current, hidden_exercise_ids: next };
+      setPrefs((p) => ({ ...p, hidden_exercise_ids: next }));
+      try {
+        await saveWorkoutPrefs(userId, { hidden_exercise_ids: next });
+      } catch (e) {
+        console.warn('Workouts: could not save hidden exercises:', e);
+        // Undo just this one, keeping any change made since.
+        const undone = withExerciseHidden(prefsRef.current.hidden_exercise_ids, exerciseId, !hidden);
+        prefsRef.current = { ...prefsRef.current, hidden_exercise_ids: undone };
+        setPrefs((p) => ({ ...p, hidden_exercise_ids: undone }));
+        showAlert("Couldn't save that", 'Check your connection and try again.');
+      }
     },
     [userId]
   );
@@ -435,6 +475,8 @@ export const WorkoutsProvider: React.FC<{
     prefs,
     updatePrefs,
     exercises,
+    hiddenExercises,
+    setExerciseHidden,
     exercisesById,
     exercise,
     saveExercise,

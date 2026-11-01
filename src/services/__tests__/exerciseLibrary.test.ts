@@ -2,10 +2,13 @@ import {
   activeExercises,
   exerciseSubtitle,
   exercisesInGroup,
+  hiddenExercises,
   isExerciseUsed,
   searchExercises,
   validateExerciseName,
   validateExerciseDistance,
+  visibleExercises,
+  withExerciseHidden,
 } from '../exerciseLibrary';
 import { BUILT_IN_EXERCISES } from '../../data/workoutExercises';
 import { CompletedWorkoutSession, Exercise, WorkoutSession } from '../../types/workouts';
@@ -142,5 +145,36 @@ describe('validateExerciseDistance', () => {
     expect(validateExerciseDistance('distance', 0)).toBe('Pick the distance.');
     expect(validateExerciseDistance('distance', 1609.344)).toBeNull();
     expect(validateExerciseDistance('distance', 200000)).toBe('Keep it under 100 km.');
+  });
+});
+
+describe('hidden exercises', () => {
+  const active = activeExercises(library);
+  const squat = BUILT_IN_EXERCISES[0];
+
+  it('everything is offered until something is hidden', () => {
+    expect(visibleExercises(active)).toBe(active);
+    expect(visibleExercises(active, [])).toBe(active);
+    expect(hiddenExercises(active)).toEqual([]);
+  });
+
+  it('a hidden built-in or one of your own leaves the offered list and shows up as hidden', () => {
+    const hidden = [squat.id, sled.id];
+    const visible = visibleExercises(active, hidden);
+    expect(visible).toHaveLength(active.length - 2);
+    expect(visible.some((e) => e.id === squat.id || e.id === sled.id)).toBe(false);
+    expect(hiddenExercises(active, hidden).map((e) => e.id).sort()).toEqual([squat.id, sled.id].sort());
+  });
+
+  it('a hidden id for an exercise that no longer exists is ignored', () => {
+    expect(hiddenExercises(active, [gone.id, 'nope'])).toEqual([]);
+    expect(visibleExercises(active, [gone.id, 'nope'])).toEqual(active);
+  });
+
+  it('hiding twice keeps one id, and showing removes it', () => {
+    const once = withExerciseHidden([], squat.id, true);
+    expect(withExerciseHidden(once, squat.id, true)).toEqual([squat.id]);
+    expect(withExerciseHidden(once, squat.id, false)).toEqual([]);
+    expect(withExerciseHidden(undefined, squat.id, false)).toEqual([]);
   });
 });

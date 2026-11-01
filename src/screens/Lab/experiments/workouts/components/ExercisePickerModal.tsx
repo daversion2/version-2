@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, SectionList, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +37,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
   onConfirm,
 }) => {
   const insets = useSafeAreaInsets();
-  const { exercises, notes } = useWorkouts();
+  const { exercises, hiddenExercises, setExerciseHidden, notes } = useWorkouts();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Exercise[]>([]);
   const [creating, setCreating] = useState(false);
@@ -45,6 +45,12 @@ export const ExercisePickerModal: React.FC<Props> = ({
   const [group, setGroup] = useState<MuscleGroup | null>(null);
   // The exercise whose photos are open, from its thumbnail.
   const [preview, setPreview] = useState<Exercise | null>(null);
+  // Just hidden with one tap — offered back for a few seconds in case it was a slip.
+  const [justHidden, setJustHidden] = useState<Exercise | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  }, []);
 
   useEffect(() => {
     if (visible) {
@@ -53,8 +59,21 @@ export const ExercisePickerModal: React.FC<Props> = ({
       setCreating(false);
       setGroup(null);
       setPreview(null);
+      setJustHidden(null);
     }
   }, [visible]);
+
+  const hide = (exercise: Exercise) => {
+    setExerciseHidden(exercise.id, true);
+    setJustHidden(exercise);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setJustHidden(null), 5000);
+  };
+  const undoHide = () => {
+    if (!justHidden) return;
+    setExerciseHidden(justHidden.id, false);
+    setJustHidden(null);
+  };
 
   const term = search.trim().toLowerCase();
   // A search looks through everything, whichever tile is open.
@@ -73,9 +92,12 @@ export const ExercisePickerModal: React.FC<Props> = ({
         title: MUSCLE_GROUP_LABELS[muscle],
         data: matching.filter((e) => !e.custom && e.muscle === muscle),
       })),
+      // A search still finds what you hid, last, so it's never "missing".
+      { title: 'Hidden', data: searchExercises(hiddenExercises, term) },
     ].filter((s) => s.data.length > 0);
-  }, [exercises, term, group]);
-  const exactMatch = exercises.some((e) => e.name.toLowerCase() === term);
+  }, [exercises, hiddenExercises, term, group]);
+  const hiddenIds = useMemo(() => new Set(hiddenExercises.map((e) => e.id)), [hiddenExercises]);
+  const exactMatch = [...exercises, ...hiddenExercises].some((e) => e.name.toLowerCase() === term);
 
   const pick = (exercise: Exercise) => {
     if (mode === 'single') {
@@ -136,6 +158,17 @@ export const ExercisePickerModal: React.FC<Props> = ({
           </Text>
         </TouchableOpacity>
 
+        {justHidden && (
+          <View style={styles.undoBar}>
+            <Text style={styles.undoText} numberOfLines={1}>
+              {justHidden.name} hidden
+            </Text>
+            <TouchableOpacity onPress={undoHide} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Undo hiding ${justHidden.name}`}>
+              <Text style={styles.undoAction}>Undo</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {showTiles ? (
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -159,6 +192,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
             renderItem={({ item }) => {
               const at = positions(item.id);
               const isSelected = at.length > 0;
+              const isHidden = hiddenIds.has(item.id);
               return (
                 <TouchableOpacity
                   style={[styles.row, isSelected && styles.rowSelected]}
@@ -175,6 +209,20 @@ export const ExercisePickerModal: React.FC<Props> = ({
                   {!!notes[item.id] && (
                     <Ionicons name="document-text-outline" size={16} color={Colors.gray} style={styles.noteIcon} />
                   )}
+                  {/* One tap: hide one you'll never do, or bring a hidden one back. */}
+                  <TouchableOpacity
+                    onPress={() => (isHidden ? setExerciseHidden(item.id, false) : hide(item))}
+                    hitSlop={8}
+                    style={styles.hideBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={isHidden ? `Show ${item.name}` : `Hide ${item.name}`}
+                  >
+                    <Ionicons
+                      name={isHidden ? 'eye-outline' : 'eye-off-outline'}
+                      size={18}
+                      color={isHidden ? WORKOUTS_ACCENT : Colors.gray}
+                    />
+                  </TouchableOpacity>
                   {mode === 'multi' &&
                     (isSelected ? (
                       <View style={styles.badge}>
@@ -313,6 +361,20 @@ const styles = StyleSheet.create({
   },
   newText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: WORKOUTS_ACCENT, flexShrink: 1 },
   noteIcon: { marginRight: Spacing.sm },
+  hideBtn: { paddingHorizontal: Spacing.sm, paddingVertical: 4, marginRight: Spacing.xs },
+  undoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xs,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.dark,
+  },
+  undoText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.white },
+  undoAction: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.white },
   sectionHeader: {
     fontFamily: Fonts.secondaryBold,
     fontSize: 11,
