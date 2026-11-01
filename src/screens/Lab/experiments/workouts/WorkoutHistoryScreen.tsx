@@ -56,7 +56,9 @@ export const WorkoutHistoryScreen: React.FC = () => {
                   <View style={{ flex: 1 }}>
                     <Text style={ws.title}>{s.workout_name}</Text>
                     <Text style={ws.muted}>
-                      {formatDayHeader(toLocalDateString(new Date(s.finished_at)))} · {formatSeconds(s.duration_sec)} ·{' '}
+                      {formatDayHeader(toLocalDateString(new Date(s.finished_at)))} ·{' '}
+                      {/* Logged sets have no clock: added on This week, not timed. */}
+                      {s.logged_sets ? '' : `${formatSeconds(s.duration_sec)} · `}
                       {s.total_sets} sets
                       {s.total_volume_kg > 0 ? ` · ${formatVolume(s.total_volume_kg, unit)}` : ''}
                     </Text>

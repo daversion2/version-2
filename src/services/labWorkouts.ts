@@ -257,6 +257,28 @@ export const saveFinishedSession = async (
   await batch.commit();
 };
 
+/**
+ * An edit from This week (services/weeklyVolume.ts): the session rewritten,
+ * or deleted when `session` is null, plus the records it changed — in one
+ * batch, so a best is never left pointing at a set that's gone.
+ */
+export const saveSessionChange = async (
+  userId: string,
+  input: {
+    sessionId: string;
+    session: CompletedWorkoutSession | null;
+    records: Record<string, ExerciseRecord>;
+  }
+): Promise<void> => {
+  const batch = writeBatch(db);
+  if (input.session) batch.set(ref(userId, COL.sessions, input.sessionId), stripUndefined(input.session));
+  else batch.delete(ref(userId, COL.sessions, input.sessionId));
+  for (const [exerciseId, record] of Object.entries(input.records)) {
+    batch.set(ref(userId, COL.records, exerciseId), stripUndefined(record));
+  }
+  await batch.commit();
+};
+
 // --- Standalone tests ------------------------------------------------------------
 
 /** Newest first. */

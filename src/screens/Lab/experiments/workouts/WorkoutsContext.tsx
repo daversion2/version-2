@@ -30,6 +30,7 @@ import {
   saveExerciseNote,
   saveExerciseTest,
   savePhase,
+  saveSessionChange,
   saveWorkout,
   saveWorkoutPrefs,
   sortWorkouts,
@@ -41,6 +42,8 @@ import { makeId, startSession } from '../../../../services/workoutSession';
 import { activeExercises, ExerciseDraft, isExerciseUsed } from '../../../../services/exerciseLibrary';
 import { currentPhase as findCurrentPhase, isLighterWeek, lightenSession } from '../../../../services/trainingPhases';
 import { toLocalDateString } from '../../../../utils/date';
+import { addLoggedSets, logSessionId, recordsFor, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
+import type { PersonalRecord, SetValues } from '../../../../types/workouts';
 
 const APP = 'workouts' as const;
 /** A ceiling, not a page size — years of training for one person. */
@@ -106,6 +109,17 @@ interface WorkoutsContextValue {
     records: Record<string, ExerciseRecord>;
     workout?: Workout;
   }) => void;
+
+  /**
+   * This week: sets added to today's logged-sets session. `askCheckin` says
+   * this was the day's first and "rate it now?" should be asked — it's
+   * already marked as asked, so it never comes up twice.
+   */
+  logSets: (exercise: Exercise, values: SetValues, count: number) => Promise<{ askCheckin: boolean; prs: PersonalRecord[]; session: CompletedWorkoutSession }>;
+  /** This week: a session rewritten or (null) deleted, and its records rebuilt. */
+  changeSession: (sessionId: string, next: CompletedWorkoutSession | null, exerciseIds: string[]) => Promise<void>;
+  /** Today's logged sets, handed to Today to be rated. Closes the app. */
+  rateLoggedSets: (log: CompletedWorkoutSession) => Promise<void>;
 
   closeApp: () => void;
   /**
@@ -353,6 +367,40 @@ export const WorkoutsProvider: React.FC<{
     [userId]
   );
 
+  // Kept in a ref too: two quick adds in a row must both land on the same day's doc.
+  const sessionsRef = useRef<CompletedWorkoutSession[]>([]);
+  sessionsRef.current = sessions;
+
+  const changeSession = useCallback<WorkoutsContextValue['changeSession']>(
+    async (sessionId, next, exerciseIds) => {
+      const nextSessions = replaceSession(sessionsRef.current, sessionId, next);
+      const touched = recordsFor(nextSessions, exercisesById, exerciseIds);
+      await saveSessionChange(userId, { sessionId, session: next, records: touched });
+      sessionsRef.current = nextSessions;
+      setSessions(nextSessions);
+      setRecords((all) => ({ ...all, ...touched }));
+    },
+    [userId, exercisesById]
+  );
+
+  const logSets = useCallback<WorkoutsContextValue['logSets']>(
+    async (ex, values, count) => {
+      const now = new Date();
+      const id = logSessionId(toLocalDateString(now));
+      const existing = sessionsRef.current.find((s) => s.id === id);
+      const { session: built, record, prs } = addLoggedSets({ existing, exercise: ex, values, count, records, exercisesById, now });
+      const askCheckin = shouldAskCheckin(sessionsRef.current, built);
+      const next = askCheckin ? { ...built, checkin_asked_at: now.toISOString() } : built;
+      await saveSessionChange(userId, { sessionId: id, session: next, records: { [ex.id]: record } });
+      const nextSessions = replaceSession(sessionsRef.current, id, next);
+      sessionsRef.current = nextSessions;
+      setSessions(nextSessions);
+      setRecords((all) => ({ ...all, [ex.id]: record }));
+      return { askCheckin, prs, session: next };
+    },
+    [userId, records, exercisesById]
+  );
+
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
@@ -363,6 +411,20 @@ export const WorkoutsProvider: React.FC<{
       rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });
     },
     [rootNavigation]
+  );
+
+  const rateLoggedSets = useCallback(
+    async (log: CompletedWorkoutSession) => {
+      // The newest copy: sets added since `log` was read must not be overwritten.
+      const latest = sessionsRef.current.find((s) => s.id === log.id) ?? log;
+      const sent = { ...latest, checkin_sent_at: new Date().toISOString() };
+      await saveSessionChange(userId, { sessionId: log.id, session: sent, records: {} });
+      sessionsRef.current = replaceSession(sessionsRef.current, log.id, sent);
+      setSessions(sessionsRef.current);
+      // No real duration for a day of logged sets: the sheet's own default stands.
+      closeAndCheckOff(0, undefined, log.id);
+    },
+    [userId, closeAndCheckOff]
   );
 
   const value: WorkoutsContextValue = {
@@ -398,6 +460,9 @@ export const WorkoutsProvider: React.FC<{
     beginSession,
     discardSession,
     recordFinished,
+    logSets,
+    changeSession,
+    rateLoggedSets,
     closeApp,
     closeAndCheckOff,
   };

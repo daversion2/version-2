@@ -300,6 +300,24 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Workouts: This week — volume per exercise, sets added straight from it** *(2026-11-01, not live yet)*
+For tracking by the week instead of by the workout (squat at 60 lb, add
+reps until Sunday). Workouts home → This week lists every exercise done
+since Monday from any workout: weight, reps, sets and volume, against last
+week. "+" adds sets (weight × reps × how many sets, so each is a real set
+and PRs stay honest); tapping an exercise shows its sets by day, each
+editable or deletable — workout sets included, with records rebuilt. An
+optional weekly target (reps, or seconds for holds) shows a progress bar
+and keeps the exercise listed before it's been done. Added sets are saved
+as an ordinary session, one per day (`log_<date>`, `logged_sets: true`), so
+stats, history, PRs and the dashboard count them unchanged. The day's first
+logged sets ask "rate it now?" once (founder, 2026-11-01), unless a workout
+already ran that day; "Keep logging" leaves a "Rate it" card on This week,
+and rating is what counts the day toward the weekly goal. Sets can only be
+added for today; distance exercises can't be added here. Logic in
+`services/weeklyVolume.ts` (tested); screens `WeeklyVolumeScreen`,
+`WeeklyVolumeExerciseScreen`. **Not tried on screen yet.**
+
 **Meals: a protein shake on its own counts as an on-target meal** *(2026-11-01, not live yet)*
 The Supplements chip is now "Protein shake" (shakes, powder, bars). A plate
 that's only a shake scores exactly `on_target_threshold`, strict mode or not,

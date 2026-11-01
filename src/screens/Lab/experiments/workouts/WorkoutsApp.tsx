@@ -22,6 +22,8 @@ import { PhaseTestScreen } from './PhaseTestScreen';
 import { ExerciseTestScreen } from './ExerciseTestScreen';
 import { PhaseResultsScreen } from './PhaseResultsScreen';
 import { PhaseNextScreen } from './PhaseNextScreen';
+import { WeeklyVolumeScreen } from './WeeklyVolumeScreen';
+import { WeeklyVolumeExerciseScreen } from './WeeklyVolumeExerciseScreen';
 import { WORKOUTS_ACCENT } from './components/workoutsStyle';
 
 const Stack = createNativeStackNavigator<WorkoutsStackParamList>();
@@ -80,6 +82,8 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           component={WorkoutSummaryScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        <Stack.Screen name="WeeklyVolume" component={WeeklyVolumeScreen} options={{ title: 'This week' }} />
+        <Stack.Screen name="WeeklyVolumeExercise" component={WeeklyVolumeExerciseScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'History' }} />
         <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: 'Settings' }} />
         <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: 'My exercises' }} />

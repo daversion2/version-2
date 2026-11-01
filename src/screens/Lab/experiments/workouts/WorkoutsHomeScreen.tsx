@@ -13,6 +13,8 @@ import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { isRetestDue, nextProgramWorkout, phaseSessions } from '../../../../services/trainingPhases';
 import { PhaseStatusCard } from './components/PhaseParts';
+import { checkinPending, weekSummary } from '../../../../services/weeklyVolume';
+import { formatVolume } from '../../../../services/workoutMath';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
@@ -42,6 +44,8 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
     sessions,
   } = useWorkouts();
   const today = toLocalDateString(new Date());
+  const week = weekSummary({ sessions, exercisesById, targets: prefs.weekly_targets, now: new Date() });
+  const weekToRate = checkinPending(sessions, new Date());
   const latestPhase = phases[0];
   const nextInPhase = currentPhase ? nextProgramWorkout(currentPhase, workouts, sessions) : undefined;
   // A workout done without the app, or forgotten: credit only comes through
@@ -209,6 +213,25 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={ws.muted}>Build and save a routine</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={[ws.card, styles.testCard]}
+        onPress={() => navigation.navigate('WeeklyVolume')}
+        accessibilityRole="button"
+      >
+        <Ionicons name="barbell-outline" size={20} color={WORKOUTS_ACCENT} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={ws.title}>This week</Text>
+          <Text style={ws.muted}>
+            {weekToRate
+              ? 'Today’s sets are waiting to be rated'
+              : week.totalSets > 0
+                ? `${formatVolume(week.totalVolumeKg, prefs.unit)} · ${week.totalSets} ${week.totalSets === 1 ? 'set' : 'sets'} across ${week.rows.filter((r) => r.sets > 0).length} ${week.rows.filter((r) => r.sets > 0).length === 1 ? 'exercise' : 'exercises'}`
+                : 'Track volume per exercise — add sets any time'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={[ws.card, styles.testCard]}

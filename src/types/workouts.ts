@@ -182,6 +182,15 @@ export interface CompletedWorkoutSession {
   phase_id?: string;
   /** Seeded by Admin → demo data; removed when demo mode is turned off. */
   is_demo?: boolean;
+  /**
+   * Sets added on "This week" rather than run as a workout — one doc per day
+   * (services/weeklyVolume.ts). Counts everywhere a workout does.
+   */
+  logged_sets?: true;
+  /** "Rate it now?" was asked for this day's logged sets. Asked once, ever. */
+  checkin_asked_at?: string;
+  /** This day's logged sets were handed to Today to be rated. */
+  checkin_sent_at?: string;
 }
 
 export interface WorkoutPrefs {
@@ -193,6 +202,12 @@ export interface WorkoutPrefs {
   starters_seeded: boolean;
   /** The first-open "how this works" card has been dismissed. */
   intro_seen?: boolean;
+  /**
+   * "This week" targets, by exercise id: reps a week for weight and reps
+   * exercises, seconds a week for holds. An exercise with a target stays on
+   * the screen even in a week it hasn't been done yet.
+   */
+  weekly_targets?: Record<string, number>;
 }
 
 /**
@@ -279,6 +294,9 @@ export type StatsRange = 'week' | 'month' | 'year' | 'all';
 
 export type WorkoutsStackParamList = {
   WorkoutsHome: undefined;
+  /** Every exercise done this week, with sets added straight from here. */
+  WeeklyVolume: undefined;
+  WeeklyVolumeExercise: { exerciseId: string };
   WorkoutPreview: { workoutId: string };
   WorkoutBuilder: { workoutId?: string };
   WorkoutSession: undefined;
