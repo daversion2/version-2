@@ -61,6 +61,8 @@ const PAGES: { id: PageId; title: string; icon: string }[] = [
   { id: 'meals', title: 'Meals', icon: APP_ICONS.meals },
 ];
 
+const NO_APPS: TodayAppId[] = [];
+
 const COLLAPSE_AT = 40;
 const EXPAND_AT = 8;
 
@@ -79,6 +81,8 @@ interface Props {
   overviewBottom?: React.ReactNode;
   /** Every time the numbers change — the streak line and the user doc follow them. */
   onDashboard?: (d: HomeDashboard) => void;
+  /** Apps switched off (services/appSetup.ts): no page, ring, row or grid line. */
+  hiddenApps?: TodayAppId[];
 }
 
 export const HomeDashboardView: React.FC<Props> = ({
@@ -90,7 +94,10 @@ export const HomeDashboardView: React.FC<Props> = ({
   overviewTop,
   overviewBottom,
   onDashboard,
+  hiddenApps = NO_APPS,
 }) => {
+  const pages = useMemo(() => PAGES.filter((p) => p.id === 'overview' || !hiddenApps.includes(p.id)), [hiddenApps]);
+  const shows = (id: TodayAppId) => !hiddenApps.includes(id);
   const { width } = useWindowDimensions();
   // The tab bar sits over the bottom of the pages, so each page ends above it.
   const tabBarHeight = useBottomTabBarHeight();
@@ -126,8 +133,8 @@ export const HomeDashboardView: React.FC<Props> = ({
   };
 
   const d = useMemo(
-    () => (appData && logsReady ? buildHomeDashboard({ ...appData, logs }) : null),
-    [appData, logs, logsReady]
+    () => (appData && logsReady ? buildHomeDashboard({ ...appData, logs, hiddenApps }) : null),
+    [appData, logs, logsReady, hiddenApps]
   );
   useEffect(() => {
     if (d) onDashboard?.(d);
@@ -148,7 +155,7 @@ export const HomeDashboardView: React.FC<Props> = ({
     y > COLLAPSE_AT ? true : y < EXPAND_AT ? false : collapsedRef.current;
 
   const goTo = (id: PageId) => {
-    const i = PAGES.findIndex((p) => p.id === id);
+    const i = pages.findIndex((p) => p.id === id);
     pager.current?.scrollTo({ x: i * width, animated: true });
     setPage(id);
     setCollapsedSmooth(offsets.current[id] > COLLAPSE_AT);
@@ -162,7 +169,7 @@ export const HomeDashboardView: React.FC<Props> = ({
 
   const onSwipeEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
-    const id = PAGES[Math.max(0, Math.min(PAGES.length - 1, i))].id;
+    const id = pages[Math.max(0, Math.min(pages.length - 1, i))].id;
     if (id !== page) {
       setPage(id);
       setCollapsedSmooth(offsets.current[id] > COLLAPSE_AT);
@@ -189,7 +196,7 @@ export const HomeDashboardView: React.FC<Props> = ({
       {/* Fixed header: tabs, then the rings (or their one-line summary) */}
       <View style={styles.header}>
         <View style={styles.tabs} accessibilityRole="tablist">
-          {PAGES.map((p) => {
+          {pages.map((p) => {
             const on = p.id === page;
             return (
               <TouchableOpacity
@@ -266,7 +273,7 @@ export const HomeDashboardView: React.FC<Props> = ({
           >
             {overviewTop}
             <SectionLabel>Your week at a glance</SectionLabel>
-            <WeekGrid grid={d.grid} />
+            <WeekGrid grid={d.grid} apps={pages.flatMap((p) => (p.id === 'overview' ? [] : [p.id]))} />
 
             <SectionLabel>Open an app</SectionLabel>
             {(
@@ -280,114 +287,123 @@ export const HomeDashboardView: React.FC<Props> = ({
                 [
                   'meals',
                   'Meals',
-                  `${d.meals.averageScore === null ? 'No plates yet' : `Score ${d.meals.averageScore}`} · ${d.meals.onTarget} of 7 days on target`,
+                  `${d.meals.loggedDates.length} of ${d.meals.goal} days logged · ${d.meals.averageScore === null ? 'no plates yet' : `score ${d.meals.averageScore}`}`,
                 ],
               ] as [TodayAppId, string, string][]
-            ).map(([id, title, line]) => (
-              <TouchableOpacity key={id} style={styles.appRow} onPress={() => goTo(id)} accessibilityRole="button">
-                <View style={styles.appIcon}>
-                  <Ionicons name={APP_ICONS[id] as never} size={18} color={Colors.primary} />
-                </View>
-                <View style={styles.flex}>
-                  <Text style={styles.appTitle}>{title}</Text>
-                  <Text style={styles.muted}>{line}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
-              </TouchableOpacity>
-            ))}
+            )
+              .filter(([id]) => shows(id))
+              .map(([id, title, line]) => (
+                <TouchableOpacity key={id} style={styles.appRow} onPress={() => goTo(id)} accessibilityRole="button">
+                  <View style={styles.appIcon}>
+                    <Ionicons name={APP_ICONS[id] as never} size={18} color={Colors.primary} />
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.appTitle}>{title}</Text>
+                    <Text style={styles.muted}>{line}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+                </TouchableOpacity>
+              ))}
             {overviewBottom}
           </ScrollView>
 
           {/* Meditate */}
-          <ScrollView {...pageProps('meditate')}>
-            <Text style={styles.hero}>
-              {d.meditate.minutes} <Text style={styles.heroUnit}>min</Text>
-            </Text>
-            <Text style={styles.body}>
-              {describeVsPrior(d.meditate.minutes, d.meditate.priorMinutes, 'min') ?? 'Nothing yet this week'}
-            </Text>
-            {d.meditate.lastSessionMinutes !== null && (
-              <Text style={styles.muted}>Last session: {d.meditate.lastSessionMinutes} min</Text>
-            )}
-            <SectionLabel>Minutes per session</SectionLabel>
-            <DotTrend values={d.meditate.series} label="Your last 8 sessions" empty="No sessions yet." />
-            <View style={styles.chips}>
-              <Chip text={`${d.meditate.streakDays}-day streak`} />
-              <Chip text={`${d.meditate.sessions} of ${d.meditate.goal} sessions`} />
-              <Chip text={describeFriction(d.friction.meditate) ?? 'No ratings yet'} />
-            </View>
-            {d.meditate.recent.length > 0 && <SectionLabel>Recent sessions</SectionLabel>}
-            {d.meditate.recent.map((s, i) => (
-              <ListRow key={i} cells={[recentDayLabel(s.date, appData!.today), MODES[s.mode].label, `${s.minutes} min`]} />
-            ))}
-            <StartButton label="Start a session" onPress={() => onOpenApp('meditate')} />
-          </ScrollView>
+          {shows('meditate') && (
+            <ScrollView {...pageProps('meditate')}>
+              <Text style={styles.hero}>
+                {d.meditate.minutes} <Text style={styles.heroUnit}>min</Text>
+              </Text>
+              <Text style={styles.body}>
+                {describeVsPrior(d.meditate.minutes, d.meditate.priorMinutes, 'min') ?? 'Nothing yet this week'}
+              </Text>
+              {d.meditate.lastSessionMinutes !== null && (
+                <Text style={styles.muted}>Last session: {d.meditate.lastSessionMinutes} min</Text>
+              )}
+              <SectionLabel>Minutes per session</SectionLabel>
+              <DotTrend values={d.meditate.series} label="Your last 8 sessions" empty="No sessions yet." />
+              <View style={styles.chips}>
+                <Chip text={`${d.meditate.streakDays}-day streak`} />
+                <Chip text={`${d.meditate.sessions} of ${d.meditate.goal} sessions`} />
+                <Chip text={describeFriction(d.friction.meditate) ?? 'No ratings yet'} />
+              </View>
+              {d.meditate.recent.length > 0 && <SectionLabel>Recent sessions</SectionLabel>}
+              {d.meditate.recent.map((s, i) => (
+                <ListRow key={i} cells={[recentDayLabel(s.date, appData!.today), MODES[s.mode].label, `${s.minutes} min`]} />
+              ))}
+              <StartButton label="Start a session" onPress={() => onOpenApp('meditate')} />
+            </ScrollView>
+          )}
 
           {/* Workouts */}
-          <ScrollView {...pageProps('workouts')}>
-            <Text style={styles.hero}>{formatVolume(d.workouts.volumeKg, unit)}</Text>
-            <Text style={styles.body}>
-              {d.workouts.volumeChangePct === null
-                ? 'Total volume lifted'
-                : `Total volume ${d.workouts.volumeChangePct >= 0 ? 'up' : 'down'} ${Math.abs(
-                    d.workouts.volumeChangePct
-                  )}% on the 7 days before`}
-            </Text>
-            {d.workouts.standout && (
-              <Text style={styles.muted}>
-                {d.workouts.standout.name}: {d.workouts.standout.line}
+          {shows('workouts') && (
+            <ScrollView {...pageProps('workouts')}>
+              <Text style={styles.hero}>{formatVolume(d.workouts.volumeKg, unit)}</Text>
+              <Text style={styles.body}>
+                {d.workouts.volumeChangePct === null
+                  ? 'Total volume lifted'
+                  : `Total volume ${d.workouts.volumeChangePct >= 0 ? 'up' : 'down'} ${Math.abs(
+                      d.workouts.volumeChangePct
+                    )}% on the 7 days before`}
               </Text>
-            )}
-            <SectionLabel>Volume per session</SectionLabel>
-            <DotTrend values={d.workouts.series} label="Your last 8 sessions" empty="No sessions yet." />
-            <View style={styles.chips}>
-              <Chip text={`${d.workouts.streakWeeks}-week streak`} />
-              <Chip text={`${d.workouts.sessions} of ${d.workouts.goal} sessions`} />
-              <Chip text={`${d.workouts.priorSessions} the week before`} />
-              <Chip text={describeFriction(d.friction.workouts) ?? 'No ratings yet'} />
-            </View>
-            {(d.workouts.week.length > 0 || d.workouts.phaseLine) && (
-              <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>
-            )}
-            {d.workouts.week.map((w, i) => (
-              <ListRow key={i} cells={[recentDayLabel(w.date, appData!.today), w.name, `${w.sets} sets`]} />
-            ))}
-            <StartButton label="Start a workout" onPress={() => onOpenApp('workouts')} />
-          </ScrollView>
+              {d.workouts.standout && (
+                <Text style={styles.muted}>
+                  {d.workouts.standout.name}: {d.workouts.standout.line}
+                </Text>
+              )}
+              <SectionLabel>Volume per session</SectionLabel>
+              <DotTrend values={d.workouts.series} label="Your last 8 sessions" empty="No sessions yet." />
+              <View style={styles.chips}>
+                <Chip text={`${d.workouts.streakWeeks}-week streak`} />
+                <Chip text={`${d.workouts.sessions} of ${d.workouts.goal} sessions`} />
+                <Chip text={`${d.workouts.priorSessions} the week before`} />
+                <Chip text={describeFriction(d.friction.workouts) ?? 'No ratings yet'} />
+              </View>
+              {(d.workouts.week.length > 0 || d.workouts.phaseLine) && (
+                <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>
+              )}
+              {d.workouts.week.map((w, i) => (
+                <ListRow key={i} cells={[recentDayLabel(w.date, appData!.today), w.name, `${w.sets} sets`]} />
+              ))}
+              <StartButton label="Start a workout" onPress={() => onOpenApp('workouts')} />
+            </ScrollView>
+          )}
 
           {/* Meals */}
-          <ScrollView {...pageProps('meals')}>
-            {d.meals.averageScore === null ? (
-              <Text style={styles.hero}>
-                – <Text style={styles.heroUnit}>no plates logged yet</Text>
-              </Text>
-            ) : (
-              <>
+          {shows('meals') && (
+            <ScrollView {...pageProps('meals')}>
+              {d.meals.averageScore === null ? (
                 <Text style={styles.hero}>
-                  {d.meals.averageScore} <Text style={styles.heroUnit}>average score</Text>
+                  – <Text style={styles.heroUnit}>no plates logged yet</Text>
                 </Text>
-                <Text style={styles.body}>
-                  {d.meals.priorAverageScore === null
-                    ? 'Every plate in the last 7 days, out of 100'
-                    : describeVsPrior(d.meals.averageScore, d.meals.priorAverageScore, 'pts')}
-                </Text>
-              </>
-            )}
-            <Text style={styles.muted}>
-              {d.meals.onTarget} of 7 days on target ({d.meals.threshold}+) ·{' '}
-              {describeVsPrior(d.meals.onTarget, d.meals.priorOnTarget, 'days')?.toLowerCase() ??
-                'none the week before'}
-            </Text>
-            <SectionLabel>What you ate</SectionLabel>
-            <ServingsHeatmap servings={d.meals.servings} />
-            <SectionLabel>Day by day</SectionLabel>
-            <DayDots days={d.meals.days} threshold={d.meals.threshold} />
-            <View style={styles.chips}>
-              <Chip text={`${d.meals.streakDays}-day streak`} />
-              <Chip text={describeFriction(d.friction.meals) ?? 'No ratings yet'} />
-            </View>
-            <StartButton label="Log a meal" onPress={() => onOpenApp('meals')} />
-          </ScrollView>
+              ) : (
+                <>
+                  <Text style={styles.hero}>
+                    {d.meals.averageScore} <Text style={styles.heroUnit}>average score</Text>
+                  </Text>
+                  <Text style={styles.body}>
+                    {d.meals.priorAverageScore === null
+                      ? 'Every plate in the last 7 days, out of 100'
+                      : describeVsPrior(d.meals.averageScore, d.meals.priorAverageScore, 'pts')}
+                  </Text>
+                </>
+              )}
+              <Text style={styles.muted}>
+                {d.meals.onTarget} of 7 days on target ({d.meals.threshold}+) ·{' '}
+                {describeVsPrior(d.meals.onTarget, d.meals.priorOnTarget, 'days')?.toLowerCase() ??
+                  'none the week before'}
+              </Text>
+              <SectionLabel>What you ate</SectionLabel>
+              <ServingsHeatmap servings={d.meals.servings} />
+              <SectionLabel>Day by day</SectionLabel>
+              <DayDots days={d.meals.days} threshold={d.meals.threshold} />
+              <View style={styles.chips}>
+                <Chip text={`${d.meals.loggedDates.length} of ${d.meals.goal} days logged`} />
+                <Chip text={`${d.meals.streakDays}-day streak`} />
+                <Chip text={describeFriction(d.friction.meals) ?? 'No ratings yet'} />
+              </View>
+              <StartButton label="Log a meal" onPress={() => onOpenApp('meals')} />
+            </ScrollView>
+          )}
         </ScrollView>
       )}
     </View>

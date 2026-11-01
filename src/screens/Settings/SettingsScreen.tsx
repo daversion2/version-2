@@ -19,6 +19,9 @@ import { isRedesignOn } from '../../utils/redesign';
 import { LargeTitle } from '../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../components/common/ListGroup';
 import { TopScrim } from '../../components/common/TopScrim';
+import { AppGoalsSheet } from '../../components/appSetup/AppGoalsSheet';
+import { CloseOutReminderSheet } from '../../components/appSetup/CloseOutReminderSheet';
+import { formatReminderTime } from '../../services/closeOutTimes';
 
 export const SettingsScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
@@ -27,6 +30,18 @@ export const SettingsScreen: React.FC = () => {
   const [clearing, setClearing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [goalsOpen, setGoalsOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const reminderTime = userProfile?.closeout_reminder_time;
+  const reminderLabel = reminderTime ? `Every day at ${formatReminderTime(reminderTime)}` : 'Off';
+
+  // Both sheets, rendered by either layout.
+  const sheets = (
+    <>
+      <AppGoalsSheet visible={goalsOpen} mode="edit" onClose={() => setGoalsOpen(false)} />
+      <CloseOutReminderSheet visible={reminderOpen} onClose={() => setReminderOpen(false)} />
+    </>
+  );
 
   // A stored token IS the opt-in record — the same signal the server filters on,
   // so the switch shows exactly what the backend believes.
@@ -195,6 +210,20 @@ export const SettingsScreen: React.FC = () => {
             />
           </ListGroup>
 
+          <ListGroup>
+            <ListRow
+              title="Apps and weekly goals"
+              icon={{ name: 'flag', color: Colors.primary }}
+              onPress={() => setGoalsOpen(true)}
+            />
+            <ListRow
+              title="Evening reminder"
+              subtitle={reminderLabel}
+              icon={{ name: 'moon', color: Colors.gray }}
+              onPress={() => setReminderOpen(true)}
+            />
+          </ListGroup>
+
           <ListGroup footer="Occasional nudges when you've been away, and a recap when you've put a week together. At most three a week, never more than one a day.">
             <ListRow
               title="Notifications"
@@ -243,6 +272,7 @@ export const SettingsScreen: React.FC = () => {
           </ListGroup>
         </ScrollView>
         <TopScrim />
+        {sheets}
       </View>
     );
   }
@@ -256,6 +286,28 @@ export const SettingsScreen: React.FC = () => {
             <Text style={styles.label}>Profile</Text>
             {username && <Text style={styles.username}>@{username}</Text>}
             <Text style={styles.email}>{user?.email || 'Not signed in'}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
+      {/* Apps and weekly goals (services/appSetup.ts) */}
+      <Card style={styles.card} onPress={() => setGoalsOpen(true)}>
+        <View style={styles.navRow}>
+          <View style={styles.profileInfo}>
+            <Text style={styles.label}>Apps and Weekly Goals</Text>
+            <Text style={styles.desc}>Which apps are on Today, and how often each one asks for</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
+        </View>
+      </Card>
+
+      {/* The close-out reminder (services/closeOutReminder.ts) */}
+      <Card style={styles.card} onPress={() => setReminderOpen(true)}>
+        <View style={styles.navRow}>
+          <View style={styles.profileInfo}>
+            <Text style={styles.label}>Evening Reminder</Text>
+            <Text style={styles.desc}>{reminderLabel}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
@@ -376,6 +428,7 @@ export const SettingsScreen: React.FC = () => {
         </View>
       </Card>
 
+      {sheets}
     </ScrollView>
   );
 };

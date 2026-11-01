@@ -8,10 +8,10 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
-import { FadeRise } from '../common/FadeRise';
-import { Copy } from '../common/Copy';
-import { ob } from './onboardingStyles';
+import { Colors, Fonts, FontSizes, Spacing } from '../../../constants/theme';
+import { FadeRise } from '../../common/FadeRise';
+import { Copy } from '../../common/Copy';
+import { ob } from '../onboardingStyles';
 
 // ============================================================================
 // BEAT 2 — THE NEURONS

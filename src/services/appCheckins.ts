@@ -32,11 +32,15 @@ export const TODAY_APPS: { id: TodayAppId; section: HabitSectionId; route: 'Work
   { id: 'meals', section: 'meals', route: 'MealsApp' },
 ];
 
-/** Sessions a week, until the user changes it in the app. Meals counts days on target. */
+/**
+ * Sessions a week, until the user changes it (onboarding, the goals sheet, or
+ * the app's own settings). Meals counts days logged. Low on purpose: week one
+ * should end in a win (founder, 2026-11-01).
+ */
 export const DEFAULT_APP_WEEKLY_GOALS: Record<TodayAppId, number> = {
   workouts: 3,
-  meditate: 5,
-  meals: 7,
+  meditate: 3,
+  meals: 5,
 };
 
 export const APP_CHECKIN_PREFIX = 'app:';

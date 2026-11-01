@@ -346,7 +346,8 @@ describe('meals', () => {
 });
 
 describe('meals: showing up', () => {
-  // Founder Q2: any meal logged counts as showing up; the ring stays on-target days.
+  // Founder Q2: any meal logged counts as showing up. Since 2026-11-01 the ring
+  // counts those logged days too, against the Meals goal (default 5).
   const low = (date: string) =>
     mealsDay(date, { meals: { lunch: plate('veggies', 'chicken'), dinner: plate('veggies', 'processed') } });
 
@@ -374,7 +375,13 @@ describe('meals: showing up', () => {
     });
     expect(d.grid.rows.meals.slice(5)).toEqual([true, true]);
     expect(d.combinedStreak).toBe(2);
-    expect(d.rings.find((r) => r.appId === 'meals')?.done).toBe(0);
+    expect(d.rings.find((r) => r.appId === 'meals')).toMatchObject({ done: 2, goal: 5 });
+  });
+
+  it('measures the ring against the saved Meals goal', () => {
+    const days = { '2026-10-23': low('2026-10-23') };
+    expect(mealsDashboard(days, RULES, TODAY, Object.keys(days), 2).goal).toBe(2);
+    expect(mealsDashboard(days, RULES, TODAY, Object.keys(days)).goal).toBe(5);
   });
 });
 
@@ -486,6 +493,25 @@ describe('across the apps', () => {
     });
     expect(d.combinedStreak).toBe(3);
     expect(d.rings.map((r) => r.done)).toEqual([1, 1, 1]);
+  });
+
+  it('leaves a switched-off app out of the rings, but not the streak', () => {
+    const d = buildHomeDashboard({
+      today: TODAY,
+      meditateSessions: [sit('2026-10-24', 10)],
+      meditateGoal: 5,
+      workoutSessions: [workout('2026-10-23', 1000)],
+      workoutsGoal: 3,
+      exercisesById: EXERCISES,
+      unit: 'lb',
+      phase: undefined,
+      mealsDays: {},
+      mealsRules: RULES,
+      hiddenApps: ['workouts'],
+      logs: [],
+    });
+    expect(d.rings.map((r) => r.appId)).toEqual(['meditate', 'meals']);
+    expect(d.combinedStreak).toBe(2);
   });
 });
 

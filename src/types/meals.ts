@@ -96,6 +96,8 @@ export interface MealsRules {
 export interface MealsPrefs extends MealsRules {
   linked_habit_ids: string[];
   intro_seen?: boolean;
+  /** Days logged a week, the ring on Today. Absent = DEFAULT_APP_WEEKLY_GOALS. */
+  weekly_goal?: number;
 }
 
 /** A logged meal: the groups on the plate, or "didn't eat" (never counts against the day). */

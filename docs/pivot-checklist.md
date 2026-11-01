@@ -133,8 +133,12 @@ a real habit.
   **🔒 D2**
 - [ ] **The nightly close** and "Today's plan" (`services/nightlyClose.ts`,
   `NightlyReflectionScreen`). **🔒 D3**
-- [ ] **Onboarding** stops creating a habit and stops showing a mock habit row
-  (`OnboardingScreen.tsx`, `components/onboarding/`). **🔒 D4**
+- [x] **Onboarding** stops creating a habit and stops showing a mock habit row
+  (`OnboardingScreen.tsx`, `components/onboarding/`). **🔒 D4** *(2026-11-01)*
+  Four screens: why → apps (all on, switch off any) → weekly goals (3 / 3 / 5,
+  pick a start app) → evening reminder. Logic in `services/appSetup.ts`,
+  `services/closeOutReminder.ts`, `services/onboardingSetup.ts`. The old beats
+  moved to `components/onboarding/_archived/`.
 - [ ] **Rewrite the rules' wording** (`services/rules.ts`, plus copies already
   saved in Firestore). **🔒 D5**
 - [ ] **Admin practice catalog editor.** **🔒 D6**

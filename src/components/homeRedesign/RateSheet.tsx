@@ -8,6 +8,7 @@ import { RESISTANCE_LEVELS } from '../../constants/resistance';
 import { formatMetricValue, stepMetric } from '../../services/lastMetrics';
 import { useCopy } from '../../context/CopyContext';
 import { CHIP_CAPTIONS } from '../home/TodayHabitRow';
+import { RatingExplainer } from '../home/RatingExplainer';
 
 // =============================================================================
 // THE RATING SHEET, REDESIGNED (canvas "After a session: rate it"). Same job
@@ -26,6 +27,8 @@ interface Props {
   initialValues: Record<string, number>;
   /** One line under the app name, e.g. "From your workout". */
   note?: string | null;
+  /** First rating ever: explain the question once (RatingExplainer). */
+  explain?: boolean;
   /** The rating is the save. Throwing keeps the sheet open. */
   onRate: (resistance: number, values: Record<string, number>) => Promise<void>;
   onCancel: () => void;
@@ -38,6 +41,7 @@ export const RateSheet: React.FC<Props> = ({
   fields,
   initialValues,
   note,
+  explain,
   onRate,
   onCancel,
 }) => {
@@ -87,6 +91,8 @@ export const RateSheet: React.FC<Props> = ({
               {t('today.quick.question', 'How hard was it to start?')}
             </Text>
           </View>
+
+          {explain && <RatingExplainer />}
 
           {shown.length > 0 && (
             <View style={styles.fields}>

@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { FadeRise } from '../common/FadeRise';
-import { Copy } from '../common/Copy';
-import { HABIT_SECTIONS, HabitSectionId, sectionForCategory, getHabitSection } from '../../data/habitSections';
-import { HabitDefinition, getPracticeIntensity } from '../../data/practices';
-import { getOnboardingHabitsBySection } from '../../data/onboardingOrder';
-import { ob } from './onboardingStyles';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { FadeRise } from '../../common/FadeRise';
+import { Copy } from '../../common/Copy';
+import { HABIT_SECTIONS, HabitSectionId, sectionForCategory, getHabitSection } from '../../../data/habitSections';
+import { HabitDefinition, getPracticeIntensity } from '../../../data/practices';
+import { getOnboardingHabitsBySection } from '../../../data/onboardingOrder';
+import { ob } from '../onboardingStyles';
 
 // ============================================================================
 // BEAT 7 — PICK ONE HABIT

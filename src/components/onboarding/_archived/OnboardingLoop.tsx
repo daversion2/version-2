@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { FadeRise } from '../common/FadeRise';
-import { Copy } from '../common/Copy';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../constants/theme';
+import { FadeRise } from '../../common/FadeRise';
+import { Copy } from '../../common/Copy';
 import {
   RESISTANCE_LEVELS,
   TACTIC_GATE_RESISTANCE,
-} from '../../constants/resistance';
-import { TACTIC_PROMPT, TACTIC_HELPER, OFFERED_TACTICS } from '../../data/overrideTactics';
-import { CHIP_CAPTIONS, CHIP_STYLES, CHIP_TEXT } from '../home/TodayHabitRow';
-import { getEditableDates, formatRelativeDay } from '../../utils/date';
-import { ob } from './onboardingStyles';
+} from '../../../constants/resistance';
+import { TACTIC_PROMPT, TACTIC_HELPER, OFFERED_TACTICS } from '../../../data/overrideTactics';
+import { CHIP_CAPTIONS, CHIP_STYLES, CHIP_TEXT } from '../../home/TodayHabitRow';
+import { getEditableDates, formatRelativeDay } from '../../../utils/date';
+import { ob } from '../onboardingStyles';
 
 // ============================================================================
 // BEATS 4–6 — HOW IT WORKS

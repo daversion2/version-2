@@ -16,6 +16,9 @@ import { Platform } from 'react-native';
 import { HabitReminder } from '../types';
 import { getHabitById, updateHabit } from './practices';
 
+/** Mirrors CLOSEOUT_REMINDER_ID in closeOutReminder.ts, which imports this file. */
+const CLOSEOUT_REMINDER_ID = 'closeout-reminder';
+
 const ANDROID_CHANNEL = 'habit-reminders';
 
 /** The fields cancelling needs. */
@@ -102,13 +105,16 @@ export const cancelHabitReminder = async (habit: RemindableHabit): Promise<void>
  * scheduled (daily, or weekly per weekday). Meditate's end bell, the Workouts
  * rest alert and Craving Crusher's pings are all one-shot, so cancelling
  * repeating ones only removes habit reminders — even on a device whose ids
- * were never written back to Firestore. Safe to run on every launch. Never throws.
+ * were never written back to Firestore. The one other repeating notification,
+ * the close-out reminder (2026-11-01), is skipped by its id. Safe to run on
+ * every launch. Never throws.
  */
 export const cancelScheduledHabitReminders = async (): Promise<number> => {
   if (Platform.OS === 'web') return 0;
   try {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-    const habitReminders = scheduled.filter((n) => isRepeating(n.trigger));
+    // The close-out reminder repeats too, but isn't a habit's (services/closeOutReminder.ts).
+    const habitReminders = scheduled.filter((n) => isRepeating(n.trigger) && n.identifier !== CLOSEOUT_REMINDER_ID);
     await cancel(habitReminders.map((n) => n.identifier));
     return habitReminders.length;
   } catch (e) {

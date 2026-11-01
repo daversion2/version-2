@@ -7,7 +7,7 @@ import { logResistance, RESISTANCE_MAX } from '../constants/resistance';
 import { rulesForDay, scoreDay } from './mealsMath';
 import { bestSetTrend, describeTrend, lowerIsBetter } from './workoutStats';
 import { phaseWeek } from './trainingPhases';
-import { appCheckinId, TodayAppId } from './appCheckins';
+import { appCheckinId, clampWeeklyGoal, TodayAppId } from './appCheckins';
 import { getWeekStart, toLocalDateString } from '../utils/date';
 
 // =============================================================================
@@ -325,6 +325,7 @@ export interface MealsDashboard {
   threshold: number;
   onTarget: number;
   priorOnTarget: number;
+  /** Days logged a week — the ring counts `loggedDates` against it (founder, 2026-11-01). */
   goal: number;
   /** Whole-food groups, most servings first. */
   servings: Serving[];
@@ -393,7 +394,8 @@ export const mealsDashboard = (
   daysByDate: Record<string, MealsDay>,
   current: MealsRules,
   today: string,
-  streakFrom: string[]
+  streakFrom: string[],
+  goal?: number
 ): MealsDashboard => {
   const dates = windowDates(today);
   const days = dates.map((date) => ({
@@ -415,7 +417,7 @@ export const mealsDashboard = (
     threshold: current.scoring.on_target_threshold,
     onTarget: onDates.length,
     priorOnTarget: priorOn.length,
-    goal: WINDOW_DAYS,
+    goal: clampWeeklyGoal(goal, 'meals'),
     servings,
     streakDays: dayStreak(loggedAll, today),
     onDates,
@@ -577,6 +579,10 @@ export interface HomeDashboardInput {
   phase: TrainingPhase | undefined;
   mealsDays: Record<string, MealsDay>;
   mealsRules: MealsRules;
+  /** Days logged a week. Absent = DEFAULT_APP_WEEKLY_GOALS. */
+  mealsGoal?: number;
+  /** Apps switched off (services/appSetup.ts): left out of the rings and the insight. */
+  hiddenApps?: TodayAppId[];
   logs: CompletionLog[];
 }
 
@@ -628,7 +634,7 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
     today,
     ratingDates(input.logs, 'workouts')
   );
-  const meals = mealsDashboard(input.mealsDays, input.mealsRules, today, Object.keys(input.mealsDays));
+  const meals = mealsDashboard(input.mealsDays, input.mealsRules, today, Object.keys(input.mealsDays), input.mealsGoal);
   const friction = {
     meditate: appFriction(input.logs, 'meditate', today),
     workouts: appFriction(input.logs, 'workouts', today),
@@ -637,8 +643,8 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
   const rings = [
     progressOf('meditate', meditate.sessions, meditate.goal),
     progressOf('workouts', workouts.sessions, workouts.goal),
-    progressOf('meals', meals.onTarget, meals.goal),
-  ];
+    progressOf('meals', meals.loggedDates.length, meals.goal),
+  ].filter((r) => !input.hiddenApps?.includes(r.appId));
   // One day streak (design §3): any app session, or any meal logged (Q2).
   // Craving Crusher doesn't count (Q3).
   const perApp: Record<TodayAppId, Map<string, number>> = {

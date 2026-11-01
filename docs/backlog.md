@@ -23,6 +23,16 @@ How to use it:
 
 ## Now
 
+**Check the new onboarding on screen** *(added 2026-11-01)*
+Built and green in jest, not yet seen running. It needs a throwaway signup
+(**writes to production; ask first**), or Settings → Replay intro on an admin
+account. Look at: the four screens; switching an app off (gone from Today's
+rings, rows, pages and week grid); "Today's plan" saying start with the chosen
+app until its first rating; the rating explainer on that first sheet; the
+reminder prompt and the 9 PM notification. On an older account: the one-time
+goals sheet. Two known gaps: Progress and the redesign's app pages still show
+switched-off apps, and the friction card counts them.
+
 **⚠ Replace the exercise library's photos and steps: they're likely copyrighted** *(added 2026-11-01)*
 **Blocks launch/charging.** On
 2026-11-01, 200 exercises from free-exercise-db went into Workouts (commit
@@ -113,10 +123,10 @@ Next:
    that needs a finished session. **Close out the day is deferred to D3**: its
    content (habit chips, "you showed up for N habits") changes when nightly
    planning moves to app sessions, so redesign it once, together with D3.
-   Weekly goals in Settings wait for the D4 onboarding work.
+   Weekly goals are in Settings now (Apps and weekly goals, 2026-11-01).
 3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
-4. Phase 4: sign-in and the two-step onboarding (D4). Sign in with Apple needs
-   a native build.
+4. Phase 4: sign-in, and restyling the new four-screen onboarding (built
+   2026-11-01) onto the shared pieces. Sign in with Apple needs a native build.
 5. Then flip it on for everyone and delete the old branches.
 
 Decide before Phase 2: dark mode (not designed yet). Separately, Garet (the
@@ -371,6 +381,25 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Onboarding for the micro-apps (D4)** *(2026-11-01, not live yet)*
+Four screens replace the seven-beat habit flow: why (the friction is the
+training) → apps (all three on, switch off any) → weekly goals (prefilled
+3 / 3 / 5, Meals counted in days logged, pick a start app) → evening reminder
+(a time, or none; picking one asks iOS). Nothing about habits is created. The
+founder chose every option in an interview on 2026-11-01. Along with it:
+- default goals are now 3 / 3 / 5 (were 5 / 3 / 7), and Meals' ring counts
+  days logged against its goal (it was on-target days out of 7);
+- switched-off apps (`users.hidden_apps`) leave Today and the weekly review;
+- the start app (`users.start_app`) fills Today's plan until its first rating;
+- the rating sheet explains itself once (`seen_intros.rating`), only to
+  accounts that have never rated;
+- older accounts get a one-time goals sheet (`users.app_goals_set`);
+- Settings has Apps and weekly goals and Evening reminder; Meals has its own
+  weekly goal setting like the other two.
+Logic and tests: `services/appSetup.ts`, `services/closeOutReminder.ts`
+(daily local notification, re-synced each launch, skipped by the habit
+reminder cleanup), `services/onboardingSetup.ts`.
 
 **Workouts: hide exercises you'll never do** *(2026-11-01, 503e23c, live OTA)*
 Every exercise shows by default. In the exercise picker, the eye icon on a

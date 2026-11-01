@@ -12,7 +12,6 @@ import {
   describeCommitment,
   describePromise,
   formatReminderTime,
-  isBeatComplete,
   isScheduleValid,
   stepAmount,
   toggleDay,
@@ -42,31 +41,8 @@ const timed: HabitDefinition = {
 };
 
 describe('ONBOARDING_BEATS', () => {
-  it('argues, then walks the loop, then asks — in that order', () => {
-    expect(ONBOARDING_BEATS.map((b) => b.key)).toEqual([
-      'premise',
-      'neurons',
-      'thesis',
-      'loopHabit',
-      'loopRating',
-      'loopReflect',
-      'pick',
-    ]);
-  });
-
-  it('asks for exactly one thing, and asks for it last', () => {
-    // The point of the rewrite. A second gated beat anywhere means a form crept
-    // back in; a gated beat that is not last means the argument got interrupted.
-    const gated = ONBOARDING_BEATS.filter((b) => !isBeatComplete(b.key, { definitionId: null }));
-    expect(gated.map((b) => b.key)).toEqual(['pick']);
-    expect(ONBOARDING_BEATS[ONBOARDING_BEATS.length - 1].key).toBe('pick');
-  });
-
-  it('gives every gated beat a hint, so a disabled button always says why', () => {
-    ONBOARDING_BEATS.forEach((beat) => {
-      const gated = !isBeatComplete(beat.key, { definitionId: null });
-      if (gated) expect(beat.hint && beat.hint.length).toBeTruthy();
-    });
+  it('is four screens: why, the apps, their goals, the reminder', () => {
+    expect(ONBOARDING_BEATS.map((b) => b.key)).toEqual(['why', 'apps', 'goals', 'reminder']);
   });
 
   it('gives every beat a forward label', () => {
@@ -75,26 +51,8 @@ describe('ONBOARDING_BEATS', () => {
 });
 
 describe('beatAllowsSkip', () => {
-  it('offers the escape hatch on the argument and on the ask', () => {
-    expect(beatAllowsSkip('premise')).toBe(true);
-    expect(beatAllowsSkip('neurons')).toBe(true);
-    expect(beatAllowsSkip('thesis')).toBe(true);
-    expect(beatAllowsSkip('pick')).toBe(true);
-  });
-
-  it('keeps it off the walkthrough, which is the part worth staying for', () => {
-    expect(beatAllowsSkip('loopHabit')).toBe(false);
-    expect(beatAllowsSkip('loopRating')).toBe(false);
-    expect(beatAllowsSkip('loopReflect')).toBe(false);
-  });
-
-  it('never strands a user on a beat with no way out', () => {
-    // Every beat either advances freely or offers the skip. A beat that gates
-    // AND hides the skip is a dead end for anyone who will not pick a habit.
-    ONBOARDING_BEATS.forEach((beat) => {
-      const canAdvance = isBeatComplete(beat.key, { definitionId: null });
-      expect(canAdvance || beatAllowsSkip(beat.key)).toBe(true);
-    });
+  it('offers the escape hatch only before anything has been chosen', () => {
+    expect(ONBOARDING_BEATS.filter((b) => beatAllowsSkip(b.key)).map((b) => b.key)).toEqual(['why']);
   });
 });
 
@@ -260,21 +218,6 @@ describe('toggleDay', () => {
     // A habit due on no days is permanently un-due: invisible to pace,
     // impossible to miss, and unfixable from the UI.
     expect(toggleDay([1], 1)).toEqual([1]);
-  });
-});
-
-describe('isBeatComplete', () => {
-  const empty = { definitionId: null };
-
-  it('lets every read-only beat through unconditionally', () => {
-    (['premise', 'neurons', 'thesis', 'loopHabit', 'loopRating', 'loopReflect'] as const).forEach(
-      (key) => expect(isBeatComplete(key, empty)).toBe(true)
-    );
-  });
-
-  it('holds the pick beat until a habit is chosen', () => {
-    expect(isBeatComplete('pick', empty)).toBe(false);
-    expect(isBeatComplete('pick', { definitionId: 'test-timed' })).toBe(true);
   });
 });
 

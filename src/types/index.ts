@@ -116,6 +116,15 @@ export interface User {
   apps_tried?: number;
   /** Apps used in the last 28 days, 0–3. */
   apps_active?: number;
+  // App setup (services/appSetup.ts), from onboarding or the goals sheet.
+  /** Apps switched off: not on Today, not in the weekly review. Never all three. */
+  hidden_apps?: string[];
+  /** Today's plan card says "start here" for this app until its first session. */
+  start_app?: string | null;
+  /** Weekly goals have been set — the one-time goals sheet is done. */
+  app_goals_set?: boolean;
+  /** The daily "Close out the day" reminder, HH:mm local. Absent/null = off. */
+  closeout_reminder_time?: string | null;
   // Journey check-ins (baseline from onboarding, day-14/28 retakes) —
   // see src/services/checkins.ts
   journey_checkins?: Record<string, { mood: number; focus: number; motivation: number; date: string }>;

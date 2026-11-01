@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
-import { FadeRise } from '../common/FadeRise';
-import { Copy } from '../common/Copy';
-import { REACH_STOPS, EDGE_STOP_INDEX } from '../../data/comfortZone';
-import { ob } from './onboardingStyles';
+import { Colors, Fonts, FontSizes, Spacing } from '../../../constants/theme';
+import { FadeRise } from '../../common/FadeRise';
+import { Copy } from '../../common/Copy';
+import { REACH_STOPS, EDGE_STOP_INDEX } from '../../../data/comfortZone';
+import { ob } from '../onboardingStyles';
 
 // ============================================================================
 // BEAT 3 — THE THESIS

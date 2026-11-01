@@ -31,6 +31,8 @@ import {
   updateCustomGroup,
 } from '../../../../services/mealsMath';
 import { showConfirm } from '../../../../utils/alert';
+import { clampWeeklyGoal } from '../../../../services/appCheckins';
+import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
 import { useMeals } from './MealsContext';
 import { MEALS_ACCENT, NUTRIENT_COLOR, mls } from './components/mealsStyle';
 
@@ -247,6 +249,14 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll} keyboardShouldPersistTaps="handled">
+      <Text style={mls.sectionLabel}>Weekly goal</Text>
+      <WeeklyGoalPicker
+        noun="days logged"
+        value={clampWeeklyGoal(prefs.weekly_goal, 'meals')}
+        accent={MEALS_ACCENT}
+        onChange={(n) => updatePrefs({ weekly_goal: n })}
+      />
+
       <Text style={mls.sectionLabel}>My meals</Text>
       {prefs.slots.map((slot, i) => (
         <SlotRow

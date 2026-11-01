@@ -44,7 +44,11 @@ interface Props {
   plan: string | null;
   closeOut: { title: string; subtitle: string; done: boolean; onPress: () => void };
   craving: { title: string; subtitle: string; onPress: () => void };
+  /** Apps switched off (services/appSetup.ts): no ring and no row. */
+  hiddenApps?: TodayAppId[];
 }
+
+const NO_APPS: TodayAppId[] = [];
 
 export const TodayView: React.FC<Props> = ({
   userId,
@@ -59,7 +63,9 @@ export const TodayView: React.FC<Props> = ({
   plan,
   closeOut,
   craving,
+  hiddenApps = NO_APPS,
 }) => {
+  const apps = useMemo(() => APP_ORDER.filter((id) => !hiddenApps.includes(id)), [hiddenApps]);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const [appData, setAppData] = useState<HomeAppData | null>(null);
@@ -89,8 +95,8 @@ export const TodayView: React.FC<Props> = ({
   };
 
   const d = useMemo(
-    () => (appData && logsReady ? buildHomeDashboard({ ...appData, logs }) : null),
-    [appData, logs, logsReady]
+    () => (appData && logsReady ? buildHomeDashboard({ ...appData, logs, hiddenApps }) : null),
+    [appData, logs, logsReady, hiddenApps]
   );
   useEffect(() => {
     if (d) onDashboard?.(d);
@@ -134,13 +140,13 @@ export const TodayView: React.FC<Props> = ({
             <View style={styles.card}>
               <View style={styles.ringsRow}>
                 <AppRings
-                  rings={APP_ORDER.map((id) => ({ pct: ringOf(id)?.pct ?? 0, color: AppColors[id] }))}
-                  accessibilityLabel={`Last 7 days: ${APP_ORDER.map(
+                  rings={apps.map((id) => ({ pct: ringOf(id)?.pct ?? 0, color: AppColors[id] }))}
+                  accessibilityLabel={`Last 7 days: ${apps.map(
                     (id) => `${APP_TITLES[id]} ${ringOf(id)?.done ?? 0} of ${ringOf(id)?.goal ?? 0}`
                   ).join(', ')}`}
                 />
                 <View style={styles.legend} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-                  {APP_ORDER.map((id) => (
+                  {apps.map((id) => (
                     <View key={id} style={styles.legendItem}>
                       <View style={styles.legendLabel}>
                         <View style={[styles.legendDot, { backgroundColor: AppColors[id] }]} />
@@ -172,7 +178,7 @@ export const TodayView: React.FC<Props> = ({
             ) : null}
 
             <ListGroup title="Your apps">
-              {APP_ORDER.map((id) => (
+              {apps.map((id) => (
                 <ListRow
                   key={id}
                   title={APP_TITLES[id]}

@@ -41,8 +41,8 @@ describe('app check-in ids', () => {
 describe('weekly goals', () => {
   it('defaults per app and keeps to 1–7', () => {
     expect(clampWeeklyGoal(undefined, 'workouts')).toBe(3);
-    expect(clampWeeklyGoal(undefined, 'meditate')).toBe(5);
-    expect(clampWeeklyGoal(undefined, 'meals')).toBe(7);
+    expect(clampWeeklyGoal(undefined, 'meditate')).toBe(3);
+    expect(clampWeeklyGoal(undefined, 'meals')).toBe(5);
     expect(clampWeeklyGoal(0, 'workouts')).toBe(1);
     expect(clampWeeklyGoal(12, 'workouts')).toBe(7);
     expect(appCheckinHabit('workouts', 4)).toMatchObject({ id: 'app:workouts', name: 'Workouts', target_count_per_week: 4, is_active: true });

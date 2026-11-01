@@ -42,7 +42,7 @@ import { NeuroscienceTidbit } from '../../types';
 import { getTodayString, toLocalDateString, formatRelativeDay } from '../../utils/date';
 import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { PlanDraft, getPlanForToday, isPlanDone, formatPlan } from '../../services/nightlyClose';
-import { markPointsIntroSeen, incrementAppOpenCount } from '../../services/users';
+import { markPointsIntroSeen, incrementAppOpenCount, markScreenIntroSeen } from '../../services/users';
 import { syncProfileActivity } from '../../services/appActivity';
 import { HomeDashboard, ProfileActivity, profileActivityPatch } from '../../services/homeDashboard';
 import { ReflectionGrade } from '../../types';
@@ -82,6 +82,10 @@ import {
 } from '../../services/miniApps';
 import { getWorkoutPrefs } from '../../services/labWorkouts';
 import { getMeditatePrefs } from '../../services/labMeditate';
+import { getMealsPrefs } from '../../services/labMeals';
+import { hiddenAppsOf, needsGoalSetup, shouldExplainRating, startAppOf, startHereLine } from '../../services/appSetup';
+import { syncCloseOutReminder } from '../../services/closeOutReminder';
+import { AppGoalsSheet } from '../../components/appSetup/AppGoalsSheet';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
@@ -133,11 +137,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // The apps are the main thing (services/appCheckins.ts): always on Today,
   // each as a check-in habit of its own with the weekly goal set in the app.
   const [appGoals, setAppGoals] = useState<Partial<Record<TodayAppId, number>>>({});
+  // Apps switched off in onboarding or Settings (services/appSetup.ts).
+  const hiddenApps = useMemo(() => hiddenAppsOf(userProfile), [userProfile]);
   const appHabits = useMemo(
     () =>
-      TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile)).map((a) => appCheckinHabit(a.id, appGoals[a.id])),
-    [appGoals, userProfile]
+      TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile) && !hiddenApps.includes(a.id)).map((a) =>
+        appCheckinHabit(a.id, appGoals[a.id])
+      ),
+    [appGoals, userProfile, hiddenApps]
   );
+  // The one-time goals sheet, for accounts that finished onboarding before goals.
+  const [goalSheetClosed, setGoalSheetClosed] = useState(false);
+  const goalSheetWanted = needsGoalSetup(userProfile) && !goalSheetClosed;
   // A tap on a plain habit: the quick sheet, amounts filled in from last time.
   const [quickLog, setQuickLog] = useState<QuickLogTarget | null>(null);
   // The dashboard's combined day streak (services/homeDashboard.ts), once loaded.
@@ -215,7 +226,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     reflectVisible ||
     intro.visible ||
     !!skipReview ||
-    !!quickLog;
+    !!quickLog ||
+    goalSheetWanted;
   const {
     modalRule: ruleModalRule,
     modalVisible: ruleModalVisible,
@@ -334,14 +346,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const habitList = await getActiveHabits(user.uid);
       setHabits(habitList);
       // The apps' weekly goals, set inside each app. Defaults if unreadable.
-      const [workoutPrefs, meditatePrefs] = await Promise.all([
+      const [workoutPrefs, meditatePrefs, mealsPrefs] = await Promise.all([
         getWorkoutPrefs(user.uid).catch(() => null),
         getMeditatePrefs(user.uid).catch(() => null),
+        getMealsPrefs(user.uid).catch(() => null),
       ]);
-      const goals = { workouts: workoutPrefs?.weekly_goal, meditate: meditatePrefs?.weekly_goal };
+      const goals: Partial<Record<TodayAppId, number>> = {
+        workouts: workoutPrefs?.weekly_goal,
+        meditate: meditatePrefs?.weekly_goal,
+        meals: mealsPrefs?.weekly_goal,
+      };
       setAppGoals(goals);
-      const appHabitList = TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile)).map((a) =>
-        appCheckinHabit(a.id, goals[a.id as keyof typeof goals])
+      const hidden = hiddenAppsOf(userProfile);
+      const appHabitList = TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile) && !hidden.includes(a.id)).map(
+        (a) => appCheckinHabit(a.id, goals[a.id])
       );
       // Habit reminders were removed (2026-10-31). Once per session, cancel any
       // still scheduled on this device from before.
@@ -417,7 +435,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [user, refreshProfile, userProfile?.starting_practice_id, userProfile?.is_admin]);
+  }, [user, refreshProfile, userProfile?.starting_practice_id, userProfile?.is_admin, hiddenApps.join(',')]);
+
+  // The close-out reminder from onboarding: put it back on a new phone or after
+  // a reinstall. Waits for the profile — syncing before it loads would cancel it.
+  const closeoutTime = userProfile ? (userProfile.closeout_reminder_time ?? null) : undefined;
+  useEffect(() => {
+    if (closeoutTime !== undefined) syncCloseOutReminder(closeoutTime);
+  }, [closeoutTime]);
 
   useFocusEffect(
     useCallback(() => {
@@ -650,6 +675,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // The dashboard's own day streak once it has loaded, so this line always
   // matches the rings; the stored one only until then.
   const streak = dashStreak ?? displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
+  // Today's plan: last night's, while it's still to do. Failing that, the app
+  // picked in onboarding as "start here", until its first session is rated.
+  const planLine =
+    todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr)
+      ? formatPlan(todaysPlan)
+      : logsReady
+        ? startHereLine(startAppOf(userProfile), hiddenApps, nudgeLogs)
+        : null;
 
   // Keep the user doc in step with the apps: the stored streak (past days
   // only), and the counters the rules read. Written only when something moved.
@@ -667,6 +700,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       .catch((err) => console.warn('Saving app activity failed:', err));
   };
 
+  // The first rating sheet ever explains its question, once. Accounts that
+  // already have app ratings know the question, so they never see it.
+  const explainRating = logsReady && shouldExplainRating(userProfile, nudgeLogs);
+
   // The rating is the save, from either sheet (QuickLogSheet, or RateSheet in the redesign).
   const rateQuickLog = async (resistance: number, values: Record<string, number>) => {
     if (!quickLog) return;
@@ -674,6 +711,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
     try {
       await handleAppRated(input, quickLog.appId, quickLog.sessionId);
+      if (explainRating && user) {
+        markScreenIntroSeen(user.uid, 'rating')
+          .then(refreshProfile)
+          .catch((err) => console.warn('Saving rating intro seen failed:', err));
+      }
     } catch (err) {
       console.warn('Quick log failed:', err);
       showAlert(
@@ -710,7 +752,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           onInfo={intro.reopen}
           top={<RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />}
           xp={xp}
-          plan={todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr) ? formatPlan(todaysPlan) : null}
+          plan={planLine}
+          hiddenApps={hiddenApps}
           closeOut={{
             done: reflectedToday,
             title: reflectedToday
@@ -738,6 +781,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           logsReady={logsReady || logsFailed}
           onDashboard={onDashboard}
           onOpenApp={openApp}
+          hiddenApps={hiddenApps}
           onRefresh={loadData}
           overviewTop={
             <>
@@ -751,12 +795,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
               {/* Last night's if-then, shown until the habit it names is logged. The
                   plan only works if it's in front of you when the cue arrives. */}
-              {todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr) && (
+              {!!planLine && (
                 <View style={styles.planCard}>
                   <Ionicons name="navigate-outline" size={18} color={Colors.primary} />
                   <View style={styles.utilityText}>
                     <Copy id="today.plan.label" style={styles.planLabel}>{'Today’s plan'}</Copy>
-                    <Text style={styles.planText}>{formatPlan(todaysPlan)}</Text>
+                    <Text style={styles.planText}>{planLine}</Text>
                   </View>
                 </View>
               )}
@@ -831,6 +875,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         />
       )}
 
+      {/* Weekly goals, once, for accounts from before onboarding set them. */}
+      <AppGoalsSheet
+        visible={goalSheetWanted && !intro.visible && !quickLog && !celebrationVisible}
+        mode="once"
+        onClose={() => setGoalSheetClosed(true)}
+      />
+
       {/* Weekly "what got in the way?" — one tap per habit that fell short. */}
       <SkipReviewSheet
         visible={!!skipReview}
@@ -877,6 +928,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           fields={quickLog?.fields ?? []}
           initialValues={quickLog?.initialValues ?? {}}
           note={quickLog?.note}
+          explain={explainRating}
           onRate={rateQuickLog}
           onCancel={() => setQuickLog(null)}
         />
@@ -893,6 +945,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           fields={quickLog?.fields ?? []}
           initialValues={quickLog?.initialValues ?? {}}
           note={quickLog?.note}
+          explain={explainRating}
           onRate={rateQuickLog}
           onCancel={() => setQuickLog(null)}
         />

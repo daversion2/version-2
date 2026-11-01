@@ -10,77 +10,46 @@ import {
 } from './habitSchedule';
 
 // =============================================================================
-// ONBOARDING SETUP — the logic behind the seven-beat first-run flow.
+// ONBOARDING SETUP — the logic behind the four-screen first-run flow.
 //
 // Pure functions only, no Firestore. The screen renders these and writes the
-// result; everything that can be got wrong (what a habit's defaults are, when a
-// beat is answered) lives here where jest can see it. The screen itself is
-// untestable — jest's testMatch excludes .tsx — so any logic that ends up in
-// OnboardingScreen.tsx is logic nothing is guarding.
+// result; everything that can be got wrong lives here where jest can see it.
+// The screen itself is untestable (jest's testMatch excludes .tsx).
 //
-//   1 premise        the friction is the training
-//   2 neurons        what repeating the override wires
-//   3 thesis         leaving the comfort zone IS the habit
-//   4 loopHabit      it sits on Today; you tap it after
-//   5 loopRating     one question, three answers, and the line comes down
-//   6 loopReflect    optional, encouraged, and why
-//   7 pick           one habit → practice_id · has_completed_onboarding
+//   1 why        the friction is the training — one screen, not three
+//   2 apps       Meditate, Workouts, Meals: all on, switch off any you won't use
+//   3 goals      a weekly goal each (3 / 3 / 5) and one app to start with
+//   4 reminder   an evening close-out nudge; picking a time is what asks iOS
 //
-// THE RULE THIS FLOW DELIBERATELY BREAKS. The five-beat version it replaces
-// made every beat store a value, on the reasoning that a screen storing nothing
-// is a slide. That produced two forms (amount/days/anchor/reminder, then a
-// resistance guess and three baseline sliders) asked of someone who had not yet
-// done the habit once — the single heaviest thing about the old first run.
+// Decided 2026-11-01 (pivot decision D4, then the founder's interview): no
+// habit is created, the rating is not demoed here (it explains itself the
+// first time it opens for real), and nothing personal is asked. The app setup
+// itself lives in services/appSetup.ts, the reminder in closeOutReminder.ts.
 //
-// Six of these seven store nothing. What they buy instead is that the user
-// meets the resistance question and the optional reflection HERE, explained,
-// rather than as a surprise toll after their first rep. Everything the promise
-// beat used to ask for now comes from the habit definition's own defaults
-// (deriveHabitSetupDraft), which is where it was always suggested from, and
-// stays editable on the habit afterwards.
-//
-// The two forms are kept, unrouted and still compiling, in
-// components/onboarding/_archived/.
+// The habit helpers further down belong to the seven-beat flow this replaced.
+// Only the archived beats in components/onboarding/_archived/ still use them.
 // =============================================================================
 
-export type OnboardingBeatKey =
-  | 'premise'
-  | 'neurons'
-  | 'thesis'
-  | 'loopHabit'
-  | 'loopRating'
-  | 'loopReflect'
-  | 'pick';
+export type OnboardingBeatKey = 'why' | 'apps' | 'goals' | 'reminder';
 
 export interface OnboardingBeat {
   key: OnboardingBeatKey;
   /** Label on the forward button. */
   cta: string;
-  /** Shown above a disabled CTA to say what is still missing. */
-  hint?: string;
 }
 
 export const ONBOARDING_BEATS: OnboardingBeat[] = [
-  { key: 'premise', cta: 'Go on →' },
-  { key: 'neurons', cta: 'Go on →' },
-  { key: 'thesis', cta: 'Show me how it works →' },
-  { key: 'loopHabit', cta: 'Next →' },
-  { key: 'loopRating', cta: 'Next →' },
-  { key: 'loopReflect', cta: 'Pick my first habit →' },
-  { key: 'pick', cta: 'Start training', hint: 'Choose one habit' },
+  { key: 'why', cta: 'Show me the apps →' },
+  { key: 'apps', cta: 'Set my goals →' },
+  { key: 'goals', cta: 'Next →' },
+  { key: 'reminder', cta: 'Start' },
 ];
 
 /**
- * Which beats offer "just take me to the app".
- *
- * Nothing is written before the pick, so an escape hatch is safe anywhere —
- * but it is deliberately absent from the three walkthrough beats. Those are the
- * shortest screens in the flow and the ones that make the daily loop legible;
- * a second, quieter button under the CTA there mostly invites people to leave
- * before the part that explains how the app works.
+ * Which beats offer "just take me to the app": only the first, before anything
+ * has been chosen. Skipping saves the default setup, so Today still has goals.
  */
-export const beatAllowsSkip = (key: OnboardingBeatKey): boolean =>
-  key === 'premise' || key === 'neurons' || key === 'thesis' || key === 'pick';
+export const beatAllowsSkip = (key: OnboardingBeatKey): boolean => key === 'why';
 
 /**
  * The habit setup written on completion. Seeded whole from the chosen habit's
@@ -207,23 +176,6 @@ export const describePromise = (def: HabitDefinition, draft: HabitSetupDraft): s
   if (anchor) parts.push(`after I ${anchor}`);
   return `${parts.join(', ')}.`;
 };
-
-export interface OnboardingProgress {
-  definitionId: string | null;
-}
-
-/**
- * Can the user move on from this beat?
- *
- * Exactly one beat gates, on the one thing the flow asks for. Every other beat
- * is read and tapped past, which is the whole point of the rewrite — a forward
- * button that is disabled on six of seven screens is a flow that feels like a
- * form even when it is mostly prose.
- */
-export const isBeatComplete = (
-  key: OnboardingBeatKey,
-  progress: OnboardingProgress
-): boolean => (key === 'pick' ? !!progress.definitionId : true);
 
 /**
  * What gets written for the chosen habit on completion. Returned as data rather

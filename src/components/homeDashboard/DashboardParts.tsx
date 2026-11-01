@@ -124,7 +124,8 @@ export const DotTrend: React.FC<{ values: number[]; label: string; empty: string
 
 const CELL = 32;
 
-export const WeekGrid: React.FC<{ grid: WeekGridData }> = ({ grid }) => {
+/** `apps`: which rows to draw (switched-off apps are left out). Default all three. */
+export const WeekGrid: React.FC<{ grid: WeekGridData; apps?: TodayAppId[] }> = ({ grid, apps }) => {
   const last = grid.dates.length - 1;
   return (
     <View>
@@ -136,7 +137,7 @@ export const WeekGrid: React.FC<{ grid: WeekGridData }> = ({ grid }) => {
           </Text>
         ))}
       </View>
-      {(Object.keys(APP_ICONS) as TodayAppId[]).map((appId) => (
+      {(apps ?? (Object.keys(APP_ICONS) as TodayAppId[])).map((appId) => (
         <View key={appId} style={styles.gridRow}>
           <View style={styles.gridIcon}>
             <Ionicons name={APP_ICONS[appId] as never} size={16} color={Colors.primary} />

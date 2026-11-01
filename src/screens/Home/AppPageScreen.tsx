@@ -155,7 +155,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
               ? 'Every plate in the last 7 days'
               : describeVsPrior(m.averageScore, m.priorAverageScore, 'pts') ?? ''
           }
-          note={`${m.onTarget} of 7 days on target (${m.threshold}+)`}
+          note={`${m.loggedDates.length} of ${m.goal} days logged · ${m.onTarget} of 7 on target (${m.threshold}+)`}
         />
         <View style={styles.card}>
           <Text style={styles.cardLabel}>What you ate</Text>

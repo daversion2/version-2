@@ -26,6 +26,7 @@ export interface HomeAppData {
   phase: TrainingPhase | undefined;
   mealsDays: Record<string, MealsDay>;
   mealsRules: MealsRules;
+  mealsGoal: number;
 }
 
 /** `mealsDays`: how many days of Meals to read, today included. Today needs 90; Progress's 6-month history 180. */
@@ -52,5 +53,6 @@ export const loadHomeAppData = async (uid: string, { mealsDays: mealsSpan = 90 }
     phase: currentPhase(phases),
     mealsDays,
     mealsRules: rulesOf(mealsPrefs),
+    mealsGoal: clampWeeklyGoal(mealsPrefs.weekly_goal, 'meals'),
   };
 };

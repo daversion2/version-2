@@ -90,13 +90,22 @@ Settings and are visible only to admin accounts.
 
 ## Journey 1 — Onboarding
 
-An interactive flow that teaches the premise before asking for anything:
+Four screens, about a minute, and no habit to pick (2026-11-01):
 
-1. **Premise / Neurons / Thesis.** Friction is the training. Repetition rewires
-   the starting, and "I didn't want to" becomes "I did it anyway."
-2. **The loop, demonstrated.** Pick a habit, rate it 1/2/3, optionally reflect.
-3. **Pick one habit.** The likeliest first picks lead each category. It lands on
-   Today with the catalog's default schedule, which can be changed later.
+1. **Why.** The friction is the training. Three apps; after each session, one
+   question: how hard was it to start?
+2. **Your apps.** Meditate, Workouts and Meals, all on. Switch off any you
+   won't use. Settings brings it back.
+3. **Weekly goals.** Prefilled at Meditate 3, Workouts 3 and Meals 5 days
+   logged, with − / +. Tap "Start with this one" on the app to begin with.
+4. **Evening reminder.** 7, 8, 9 or 10 PM, or none. Picking a time is what
+   asks the phone for notification permission.
+
+Then Today, where "Today's plan" says to start with the chosen app until its
+first session is rated. The rating itself is explained once, on the first
+rating sheet. Accounts from before this get a one-time "Set your weekly goals"
+sheet on Today. Settings → Apps and weekly goals / Evening reminder change
+either one later.
 
 ## Journey 2 — Today (the daily loop)
 
