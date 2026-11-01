@@ -24,7 +24,7 @@ How to use it:
 ## Now
 
 **⚠ Replace the exercise library's photos and steps: they're likely copyrighted** *(added 2026-11-01)*
-**Blocks the next OTA update from `main`, and launch/charging.** On
+**Blocks launch/charging.** On
 2026-11-01, 200 exercises from free-exercise-db went into Workouts (commit
 a9d04c3). Their 400 photos (`assets/exercise-library/`) and their steps
 (`steps` in `src/data/exerciseLibrary.ts`) were taken as public domain. They
@@ -42,10 +42,10 @@ aren't safe to ship. free-exercise-db labels its own repository public domain
 - the steps read like Bodybuilding.com's text ("This will be your starting
   position"), so treat them as copied too.
 
-Names, body parts, equipment and kinds are plain facts and can stay. **Nothing
-has reached users yet**, because no OTA has run since. But every OTA ships
-`main`, so do this before the next one. The plan (founder's call, not yet
-started):
+Names, body parts, equipment and kinds are plain facts and can stay. **They
+went out in an OTA on 2026-11-01** by the founder's call: the founder is the
+only user and it's all testing. Every OTA ships `main`, so replace them before
+anyone else gets the app. The plan (founder's call, not yet started):
 1. Delete `assets/exercise-library/` and `src/data/exerciseLibraryImages.ts`.
    Stop the import script downloading photos and copying `instructions`.
 2. Give each of the 200 its own spec in the style of `src/data/exerciseDemos.ts`
@@ -360,7 +360,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: hide exercises you'll never do** *(2026-11-01, not live yet: the next OTA is blocked, see Now)*
+**Workouts: hide exercises you'll never do** *(2026-11-01, 503e23c, live OTA)*
 Every exercise shows by default. In the exercise picker, the eye icon on a
 row hides it in one tap, with a few seconds to Undo. Hidden ones leave the
 picker, its body-part tiles and My exercises, but a search still lists them
