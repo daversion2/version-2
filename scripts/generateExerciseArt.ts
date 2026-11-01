@@ -12,7 +12,8 @@
  *           --max-cost D      refuse a run estimated above $D (default 10)
  *
  * Each pair is a start photo (made from the master athlete photo, plus a
- * public-domain pose photo where the spec names one) and an end photo made by
+ * free-exercise-db pose photo where the spec names one — not actually public
+ * domain, see docs/backlog.md) and an end photo made by
  * editing that start — the start alone is sent, so only the pose changes.
  * A `reverse` exercise (pull-up, chin-up) makes the end first and edits it
  * back into the start. Holds and carries get the start only. Then review them all at once:

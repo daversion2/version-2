@@ -67,8 +67,11 @@ start without a person at the keyboard.
 ## Pose photos
 
 Start photos for most exercises also send a pose photo from
-[free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense,
-public domain): `0.jpg` is the start, `1.jpg` the end. The prompt tells the
+[free-exercise-db](https://github.com/yuhonas/free-exercise-db): `0.jpg` is
+the start, `1.jpg` the end. **Not actually public domain:** the repo is
+labelled Unlicense, but the photos were scraped, likely from Bodybuilding.com
+(see the first **Now** item in `docs/backlog.md`). They're used only as pose
+references and never shipped. Decide before launch whether to keep doing that. The prompt tells the
 model to copy only the body position from it. End photos don't: sent with an
 edit, the model copied the pose photo whole, red gym and all. Downloaded once
 to `.cache/poses/`.

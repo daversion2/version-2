@@ -2,9 +2,13 @@
 
 The 200 extra built-in exercises in Workouts, on top of the 59 hand-made ones
 in `src/data/workoutExercises.ts`. Taken from
-[free-exercise-db](https://github.com/yuhonas/free-exercise-db), which is public
-domain (Unlicense): no credit or licence text needed, and we can change
-anything.
+[free-exercise-db](https://github.com/yuhonas/free-exercise-db).
+
+> **⚠ Not safe to ship as it stands.** free-exercise-db labels its own
+> repository Unlicense, but its **photos and instructions are probably
+> copyrighted**: they were scraped, likely from Bodybuilding.com. Only the
+> names and categories are safe. See the first **Now** item in
+> `docs/backlog.md` for the evidence and the replacement plan.
 
 | | |
 |---|---|

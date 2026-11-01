@@ -33,7 +33,8 @@ export interface ExerciseDemo {
   /** Up to three short form cues, drawn by the app under the photos. */
   cues?: string[];
   /**
-   * A free-exercise-db entry (public domain) whose 0.jpg / 1.jpg photos show
+   * A free-exercise-db entry (labelled Unlicense, but the photos are likely
+   * scraped from Bodybuilding.com: see docs/backlog.md) whose 0.jpg / 1.jpg photos show
    * the start / end pose. Used only as a pose reference when generating.
    */
   poseRef?: string;

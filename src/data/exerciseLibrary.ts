@@ -1,6 +1,7 @@
 // Written by scripts/importExerciseLibrary.ts — don't edit by hand; change
 // content/exercise-library/ and run it again.
-// From free-exercise-db (public domain) at f00c92c.
+// From free-exercise-db at f00c92c. Steps are probably copyrighted:
+// see docs/backlog.md before shipping.
 import type { LibraryExercise } from '../types/workouts';
 
 export const LIBRARY_EXERCISES: LibraryExercise[] = [

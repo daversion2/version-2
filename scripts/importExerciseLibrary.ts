@@ -1,5 +1,9 @@
 /**
- * Build the Workouts exercise library from free-exercise-db (public domain).
+ * Build the Workouts exercise library from free-exercise-db.
+ *
+ * ⚠ Its photos and instructions are probably copyrighted (scraped, likely from
+ * Bodybuilding.com) despite the repo's Unlicense label. Don't ship them; see
+ * the first Now item in docs/backlog.md.
  *
  * Run with: npx tsx scripts/importExerciseLibrary.ts
  *
@@ -178,7 +182,7 @@ async function main() {
   writeFileSync(
     DATA_FILE,
     header +
-      `// From free-exercise-db (public domain) at ${COMMIT.slice(0, 7)}.\n` +
+      `// From free-exercise-db at ${COMMIT.slice(0, 7)}. Steps are probably copyrighted:\n// see docs/backlog.md before shipping.\n` +
       `import type { LibraryExercise } from '../types/workouts';\n\n` +
       `export const LIBRARY_EXERCISES: LibraryExercise[] = [\n${entries.join('\n')}\n];\n`
   );

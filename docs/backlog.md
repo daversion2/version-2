@@ -23,6 +23,44 @@ How to use it:
 
 ## Now
 
+**⚠ Replace the exercise library's photos and steps: they're likely copyrighted** *(added 2026-11-01)*
+**Blocks the next OTA update from `main`, and launch/charging.** On
+2026-11-01, 200 exercises from free-exercise-db went into Workouts (commit
+a9d04c3). Their 400 photos (`assets/exercise-library/`) and their steps
+(`steps` in `src/data/exerciseLibrary.ts`) were taken as public domain. They
+aren't safe to ship. free-exercise-db labels its own repository public domain
+(Unlicense), but:
+- its maintainer says they don't know where the images came from or whether
+  they're royalty-free: "use at your own risk" ([issue #2](https://github.com/yuhonas/free-exercise-db/issues/2),
+  [#13](https://github.com/yuhonas/free-exercise-db/issues/13)). In Aug 2026
+  they proposed replacing the images with placeholders.
+- the upstream project, wrkout/exercises.json, says in its CONTRIBUTING the
+  images "have been scraped off the internet" and advises against commercial
+  use. A reverse image search points to Bodybuilding.com, whose terms forbid
+  reuse without written permission ([issue #305](https://github.com/wrkout/exercises.json/issues/305)).
+  Others suspect ExRx.net.
+- the steps read like Bodybuilding.com's text ("This will be your starting
+  position"), so treat them as copied too.
+
+Names, body parts, equipment and kinds are plain facts and can stay. **Nothing
+has reached users yet**, because no OTA has run since. But every OTA ships
+`main`, so do this before the next one. The plan (founder's call, not yet
+started):
+1. Delete `assets/exercise-library/` and `src/data/exerciseLibraryImages.ts`.
+   Stop the import script downloading photos and copying `instructions`.
+2. Give each of the 200 its own spec in the style of `src/data/exerciseDemos.ts`
+   (start position, end position, up to 3 cues), written fresh. The app then
+   shows them as text, like core exercises without art. `howToFor` in
+   `workouts/components/exerciseHowTo.ts` already falls back to a spec, and
+   the art test then needs to cover every built-in again.
+3. Optional, later: generate house-style art for them with the existing
+   pipeline (`content/exercise-art/README.md`). At $0.134 an image that's about
+   $55 for 400, plus redos, and the founder approves each one.
+
+Related, lower risk: that art pipeline sends these same photos to the image
+model as **pose references** for the core 59 (it copies only the body
+position). Decide whether to keep doing that before launch.
+
 **Fresh-account walkthrough + account deletion** *(added 2026-09-05)*
 Nobody has tried a brand-new account since the 2026-10-11 changes: onboarding
 now renders through `<Copy>`, plus the new nightly close, Today's plan card and
@@ -323,15 +361,16 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ## Done (recent)
 
 **Workouts: 200 more exercises from free-exercise-db** *(2026-11-01, not live yet)*
-Built-ins go from 59 to 259, hand-picked from the public-domain
+Built-ins go from 59 to 259, hand-picked from
 [free-exercise-db](https://github.com/yuhonas/free-exercise-db) across every
 body part. Each comes with its start/end photos (bundled, 6.4 MB) and numbered
 steps, shown in the picker thumbnail, the preview and the exercise's stats
 screen. The 59 core exercises keep their generated art and cues. Your own
 exercise wins a name clash with a new built-in (the built-in is hidden). The
 list lives in `content/exercise-library/` (see its README). Rebuild with
-`npx tsx scripts/importExerciseLibrary.ts`. Still to do: look at it on screen,
-and ship OTA. Ids are permanent once shipped.
+`npx tsx scripts/importExerciseLibrary.ts`. **Its photos and steps must be
+replaced before any OTA ships: see the ⚠ item at the top of Now.** Ids are
+permanent once shipped.
 
 **Workouts: This week — volume per exercise, sets added straight from it** *(2026-11-01, not live yet)*
 For tracking by the week instead of by the workout (squat at 60 lb, add

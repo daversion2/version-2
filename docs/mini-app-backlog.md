@@ -105,7 +105,8 @@ The plan, when picked up:
    `src/data/workoutExercises.ts`: grip, side view, which phase of the lift.
    Names alone are ambiguous (pull-up vs chin-up, deadlift vs RDL).
 3. **Generate with two references each:** the style image plus a pose photo.
-   Use free-exercise-db photos for pose (public domain, covers ~46 of 48).
+   Use free-exercise-db photos for pose (covers ~46 of 48; **not** public domain
+   after all — likely scraped from Bodybuilding.com, see `docs/backlog.md`).
    Don't feed in everkinetic (CC BY-SA carries over to derivatives) or
    ExerciseDB (copyrighted).
 4. **The founder approves every image**, like the meditation recordings:
