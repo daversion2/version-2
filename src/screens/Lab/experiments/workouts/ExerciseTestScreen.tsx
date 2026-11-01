@@ -112,7 +112,7 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
             </Text>
           </View>
         </ScrollView>
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+        <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
           <TouchableOpacity style={ws.primaryBtn} onPress={() => navigation.goBack()} accessibilityRole="button">
             <Text style={ws.primaryBtnText}>Done</Text>
           </TouchableOpacity>
@@ -189,7 +189,7 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
           style={[ws.primaryBtn, (saving || running || value <= 0) && ws.disabled]}
           onPress={save}
@@ -224,7 +224,9 @@ const styles = StyleSheet.create({
   centerText: { textAlign: 'center' },
   footer: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     backgroundColor: Colors.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
   },
 });

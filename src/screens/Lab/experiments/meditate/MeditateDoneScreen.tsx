@@ -110,7 +110,7 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
           style={[ms.primaryBtn, saving && ms.disabled]}
           onPress={finish}
@@ -149,7 +149,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     backgroundColor: Colors.lightGray,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
 });

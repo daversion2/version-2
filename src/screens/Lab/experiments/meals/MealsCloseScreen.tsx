@@ -175,7 +175,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
           style={[mls.primaryBtn, saving && mls.disabled]}
           onPress={finish}
@@ -217,7 +217,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     backgroundColor: Colors.lightGray,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
 });

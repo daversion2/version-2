@@ -277,7 +277,7 @@ export const PhaseSetupScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity style={[ws.secondaryBtn, styles.footerBtn]} onPress={back} disabled={saving}>
           <Text style={ws.secondaryBtnText}>{step === 'program' ? 'Cancel' : 'Back'}</Text>
         </TouchableOpacity>
@@ -333,8 +333,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     backgroundColor: Colors.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
   },
   footerBtn: { flex: 1 },
 });

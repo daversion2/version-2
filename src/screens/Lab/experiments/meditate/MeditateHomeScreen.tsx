@@ -539,7 +539,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         onSave={logPast}
       />
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <CalmScale question="How calm do you feel?" value={calmBefore} onChange={setCalmBefore} />
         <TouchableOpacity
           style={[ms.primaryBtn, (starting || needsLink) && ms.disabled]}
@@ -640,8 +640,10 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     gap: Spacing.md,
     backgroundColor: Colors.lightGray,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
 });

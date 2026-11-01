@@ -177,7 +177,7 @@ export const MealPickerModal: React.FC<Props> = ({
 
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+        <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
           <View style={[styles.verdict, verdict.score !== null && { backgroundColor: scoreColor(verdict.score) + '14' }]}>
             <Text style={[styles.verdictTitle, { color: verdict.score !== null ? scoreColor(verdict.score) : Colors.gray }]}>
               {verdict.score !== null ? verdict.score : 'Nothing picked yet'}
@@ -258,8 +258,10 @@ const styles = StyleSheet.create({
   rules: { gap: Spacing.sm },
   footer: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     gap: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
     backgroundColor: Colors.lightGray,
   },
   verdict: {

@@ -89,7 +89,7 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
   // --- Paced breathing --------------------------------------------------------
   if (session.style === 'pacer') {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + Spacing.lg, paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.screen, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.middle}>
           <BreathPacer
             pattern={session.pattern ?? 'box'}
@@ -109,7 +109,7 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
   // --- Timed: came back before the bell --------------------------------------
   if (view === 'peek') {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + Spacing.xl, paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.screen, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.middle}>
           <Ionicons name="eye-off-outline" size={36} color={MEDITATE_ACCENT} />
           <Text style={styles.title}>{STILL[session.mode]}</Text>
@@ -136,7 +136,7 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
         : 'Lie still and follow the recording. Deeply relaxed — not asleep.';
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + Spacing.xl, paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+    <View style={[styles.screen, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.md }]}>
       <View style={styles.middle}>
         <Ionicons name={MODES[session.mode].icon as any} size={40} color={MEDITATE_ACCENT} />
         <Text style={styles.title}>{fresh ? 'Lock your phone' : 'Back to it'}</Text>

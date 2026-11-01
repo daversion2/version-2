@@ -129,7 +129,7 @@ export const PhaseNextScreen: React.FC<Props> = ({ navigation, route }) => {
         {option(SAME, 'Keep everything the same', 'Run the same phase again')}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <Text style={ws.muted}>{how}</Text>
         <TouchableOpacity style={[ws.primaryBtn, saving && ws.disabled]} onPress={start} disabled={saving}>
           {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Start phase {phase.number + 1}</Text>}
@@ -153,7 +153,9 @@ const styles = StyleSheet.create({
   footer: {
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     backgroundColor: Colors.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
   },
 });

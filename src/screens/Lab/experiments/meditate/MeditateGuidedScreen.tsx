@@ -47,7 +47,7 @@ export const MeditateGuidedScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <View style={[ms.screen, styles.screen, { paddingTop: insets.top + Spacing.lg, paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+    <View style={[ms.screen, styles.screen, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.md }]}>
       <View style={styles.middle}>
         <Ionicons name="headset-outline" size={40} color={MEDITATE_ACCENT} />
         <Text style={styles.title}>{session.guidedTitle ?? 'Guided session'}</Text>

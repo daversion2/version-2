@@ -206,7 +206,7 @@ export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
         })}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
           style={[ws.primaryBtn, (saving || anyRunning) && ws.disabled]}
           onPress={save}
@@ -241,7 +241,9 @@ const styles = StyleSheet.create({
   testType: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: WORKOUTS_ACCENT },
   footer: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     backgroundColor: Colors.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
   },
 });
