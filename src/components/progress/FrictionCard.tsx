@@ -12,6 +12,8 @@ import { Copy } from '../common/Copy';
 
 interface Props {
   overview: FrictionOverview;
+  /** The redesign's version: no label above the number, no growth badge (founder's canvas edit, 2026-10-31). */
+  bare?: boolean;
 }
 
 const CHART_HEIGHT = 80;
@@ -25,7 +27,7 @@ const DOT = 9;
  * friction felt (the ratings they tapped). The gap between them is the
  * strength gained. Logic in services/frictionCapacity.ts.
  */
-export const FrictionCard: React.FC<Props> = ({ overview }) => {
+export const FrictionCard: React.FC<Props> = ({ overview, bare = false }) => {
   const { windows, faced, rated } = overview;
 
   if (rated < MIN_RATED_FOR_FRICTION) {
@@ -47,9 +49,11 @@ export const FrictionCard: React.FC<Props> = ({ overview }) => {
 
   return (
     <View style={styles.card}>
-      <Copy id="progress.friction.label" style={styles.label}>
-        Friction you can handle
-      </Copy>
+      {!bare && (
+        <Copy id="progress.friction.label" style={styles.label}>
+          Friction you can handle
+        </Copy>
+      )}
 
       <View style={styles.headlineRow}>
         <Text style={styles.big}>{faced}</Text>
@@ -58,7 +62,7 @@ export const FrictionCard: React.FC<Props> = ({ overview }) => {
         </Copy>
       </View>
 
-      {growth && (
+      {growth && !bare && (
         <View style={styles.pill}>
           <Ionicons name="arrow-up" size={12} color={Colors.primary} />
           <Text style={styles.pillText}>{growth}</Text>
@@ -107,7 +111,18 @@ export const FrictionCard: React.FC<Props> = ({ overview }) => {
 
       <Text style={styles.sentence}>{frictionSentence(overview)}</Text>
 
-      {rated === 1 ? (
+      {/* The redesign's Progress has no time filter, so its footnote doesn't mention one. */}
+      {bare ? (
+        rated === 1 ? (
+          <Copy id="progress.friction.footnoteBare.one" style={styles.footnote} vars={{ count: rated }}>
+            {'Based on {count} rated check-in.'}
+          </Copy>
+        ) : (
+          <Copy id="progress.friction.footnoteBare.other" style={styles.footnote} vars={{ count: rated }}>
+            {'Based on {count} rated check-ins.'}
+          </Copy>
+        )
+      ) : rated === 1 ? (
         <Copy id="progress.friction.footnote.one" style={styles.footnote} vars={{ count: rated }}>
           {'Based on {count} rated check-in. Not affected by the time filter.'}
         </Copy>

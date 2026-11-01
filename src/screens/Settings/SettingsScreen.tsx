@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SettingsNavigation } from '../../types/navigation';
@@ -13,6 +13,12 @@ import { registerForPushNotifications } from '../../services/notifications';
 import { cancelAllHabitReminders } from '../../services/habitReminders';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { PRIVACY_POLICY_URL } from '../../constants/links';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isRedesignOn } from '../../utils/redesign';
+import { LargeTitle } from '../../components/common/LargeTitle';
+import { ListGroup, ListRow } from '../../components/common/ListGroup';
+import { TopScrim } from '../../components/common/TopScrim';
 
 export const SettingsScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
@@ -25,6 +31,15 @@ export const SettingsScreen: React.FC = () => {
   // A stored token IS the opt-in record — the same signal the server filters on,
   // so the switch shows exactly what the backend believes.
   const pushEnabled = !!userProfile?.expoPushToken;
+
+  // The redesign (Lab switch, applied at launch) draws its own title; see the
+  // grouped-list return below the handlers.
+  const redesign = isRedesignOn();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  useLayoutEffect(() => {
+    if (redesign) navigation.setOptions({ headerShown: false });
+  }, [navigation, redesign]);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -157,6 +172,80 @@ export const SettingsScreen: React.FC = () => {
       'Sign Out'
     );
   };
+
+  if (redesign) {
+    // Same actions as below, as iOS-style grouped rows (canvas "Settings").
+    return (
+      <View style={styles.redesignRoot}>
+        <ScrollView
+          style={styles.screen}
+          contentContainerStyle={[
+            styles.redesignContent,
+            { paddingTop: insets.top + Spacing.sm, paddingBottom: tabBarHeight + Spacing.lg },
+          ]}
+        >
+          <LargeTitle title="Settings" />
+
+          <ListGroup>
+            <ListRow
+              title={username ? `@${username}` : 'Profile'}
+              subtitle={user?.email || 'Not signed in'}
+              icon={{ name: 'person', color: Colors.gray }}
+              onPress={() => navigation.navigate('EditProfile')}
+            />
+          </ListGroup>
+
+          <ListGroup footer="Occasional nudges when you've been away, and a recap when you've put a week together. At most three a week, never more than one a day.">
+            <ListRow
+              title="Notifications"
+              right={
+                <Switch
+                  value={pushEnabled}
+                  onValueChange={handleTogglePush}
+                  disabled={pushBusy}
+                  trackColor={{ true: Colors.primary }}
+                />
+              }
+            />
+          </ListGroup>
+
+          <ListGroup>
+            <ListRow title="Replay intro" onPress={handleReplayOnboarding} />
+            <ListRow title="Send feedback" onPress={() => Linking.openURL('https://forms.gle/TNQCzas3JyHs3fNU9')} />
+            <ListRow title="Privacy policy" onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} />
+          </ListGroup>
+
+          {/* Admin only, as below: a maintenance destination, and Clear Account is a build tool. */}
+          {userProfile?.is_admin === true && (
+            <ListGroup title="Admin">
+              <ListRow
+                title="Admin"
+                subtitle="Catalog, tidbits, rules and seeding"
+                onPress={() => navigation.navigate('Admin')}
+              />
+              <ListRow
+                title={clearing ? 'Clearing…' : 'Clear account'}
+                tint="destructive"
+                chevron={false}
+                onPress={clearing ? undefined : handleClearAccount}
+              />
+            </ListGroup>
+          )}
+
+          <ListGroup footer="Delete account permanently erases your account and all of your data. This cannot be undone.">
+            <ListRow title="Sign out" tint="accent" chevron={false} onPress={handleLogout} />
+            <ListRow
+              title={deleting ? 'Deleting account…' : 'Delete account'}
+              tint="destructive"
+              chevron={false}
+              onPress={deleting ? undefined : handleDeleteAccount}
+            />
+          </ListGroup>
+        </ScrollView>
+        <TopScrim />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.scrollContent}>
@@ -292,6 +381,8 @@ export const SettingsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  redesignRoot: { flex: 1 },
+  redesignContent: { paddingHorizontal: Spacing.md, gap: 24 },
   screen: {
     flex: 1,
     backgroundColor: Colors.lightGray,

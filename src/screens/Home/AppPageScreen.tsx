@@ -22,6 +22,7 @@ import { fetchAllNudgeLogs } from '../../services/practices';
 import { MODES } from '../../services/meditateMath';
 import { formatVolume } from '../../services/workoutMath';
 import { ListGroup, ListRow } from '../../components/common/ListGroup';
+import { TopScrim } from '../../components/common/TopScrim';
 import { DayDots, DotTrend, ServingsHeatmap } from '../../components/homeDashboard/DashboardParts';
 import { APP_TITLES } from '../../components/homeRedesign/TodayView';
 
@@ -205,6 +206,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.startText}>{START_LABEL[appId]}</Text>
         </TouchableOpacity>
       </View>
+      <TopScrim />
     </View>
   );
 };

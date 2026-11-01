@@ -28,7 +28,8 @@ export interface HomeAppData {
   mealsRules: MealsRules;
 }
 
-export const loadHomeAppData = async (uid: string): Promise<HomeAppData> => {
+/** `mealsDays`: how many days of Meals to read, today included. Today needs 90; Progress's 6-month history 180. */
+export const loadHomeAppData = async (uid: string, { mealsDays: mealsSpan = 90 } = {}): Promise<HomeAppData> => {
   const today = getTodayString();
   const [medSessions, medPrefs, wSessions, wPrefs, custom, phases, mealsPrefs, mealsDays] = await Promise.all([
     listMeditateSessions(uid, 1000),
@@ -38,7 +39,7 @@ export const loadHomeAppData = async (uid: string): Promise<HomeAppData> => {
     listCustomExercises(uid),
     listPhases(uid),
     getMealsPrefs(uid),
-    listMealsDays(uid, addDays(today, -89), today),
+    listMealsDays(uid, addDays(today, -(mealsSpan - 1)), today),
   ]);
   return {
     today,

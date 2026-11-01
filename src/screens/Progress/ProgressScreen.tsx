@@ -29,6 +29,8 @@ import { toLocalDateString, getTodayString } from '../../utils/date';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro, ScreenIntroButton } from '../../components/common/ScreenIntro';
 import { Copy } from '../../components/common/Copy';
+import { isRedesignOn } from '../../utils/redesign';
+import { ProgressRedesignScreen } from './ProgressRedesignScreen';
 
 function getStartDateForFilter(filter: TimeFilter): string | undefined {
   if (filter === 'all') return undefined;
@@ -38,7 +40,7 @@ function getStartDateForFilter(filter: TimeFilter): string | undefined {
   return toLocalDateString(d);
 }
 
-export const ProgressScreen: React.FC = () => {
+const ProgressScreenClassic: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<ProgressNavigation>();
   // First visit explains the screen; the ⓘ in the header brings it back.
@@ -195,6 +197,9 @@ export const ProgressScreen: React.FC = () => {
     </ScrollView>
   );
 };
+
+/** The redesign's Progress for admins with the Lab switch on (applied at launch); this screen otherwise. */
+export const ProgressScreen: React.FC = () => (isRedesignOn() ? <ProgressRedesignScreen /> : <ProgressScreenClassic />);
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },

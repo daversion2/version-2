@@ -62,8 +62,16 @@ Next:
    `isRedesignOn()`), along with the per-app pages it opens
    (`screens/Home/AppPageScreen.tsx`, route `AppPage`). Both still need an
    on-screen check. Their charts reuse the old dashboard's pieces (`DotTrend`,
-   `ServingsHeatmap`, `DayDots`), which are still teal-only. Next: Progress,
-   Settings, the rating sheet, then Close out the day.
+   `ServingsHeatmap`, `DayDots`), which are still teal-only. **Progress and
+   Settings are built too**:
+   - `ProgressRedesignScreen`: friction first, then History (W/M/6M per app,
+     from `services/appHistory.ts`), the phase card, and the calendar.
+   - Settings: the redesign branch inside `SettingsScreen.tsx`.
+
+   Shared header: `common/LargeTitle`. Today and AppPage still draw their own
+   copy of it; switch them over. Next: the rating sheet (QuickLogSheet), then
+   Close out the day (NightlyReflectionScreen). Weekly goals in Settings wait
+   for the D4 onboarding work.
 3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
 4. Phase 4: sign-in and the two-step onboarding (D4). Sign in with Apple needs
    a native build.
