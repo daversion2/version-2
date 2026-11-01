@@ -117,7 +117,7 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
           );
         })}
       </ScrollView>
-      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
         <TouchableOpacity
           style={[ws.primaryBtn, workout.blocks.length === 0 && ws.disabled]}
           onPress={start}
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     backgroundColor: Colors.lightGray,
   },
 });

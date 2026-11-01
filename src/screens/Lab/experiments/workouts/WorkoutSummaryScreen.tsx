@@ -262,7 +262,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
 
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
         <TouchableOpacity style={[ws.primaryBtn, saving && ws.disabled]} onPress={finish} disabled={saving}>
           {saving ? (
             <ActivityIndicator color={Colors.white} />
@@ -327,10 +327,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     backgroundColor: Colors.lightGray,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
   },
   footerNote: { textAlign: 'center' },
   back: { alignItems: 'center', paddingVertical: Spacing.sm },

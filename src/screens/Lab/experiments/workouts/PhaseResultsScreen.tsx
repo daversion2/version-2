@@ -77,7 +77,7 @@ export const PhaseResultsScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
         {canContinue && (
           <TouchableOpacity
             style={ws.primaryBtn}
@@ -102,9 +102,7 @@ const styles = StyleSheet.create({
   footer: {
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     backgroundColor: Colors.white,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
   },
 });

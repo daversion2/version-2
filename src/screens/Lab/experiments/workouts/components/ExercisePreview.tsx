@@ -71,7 +71,7 @@ export const ExercisePreviewModal: React.FC<{
             <Text style={ws.muted}>{exerciseSubtitle(exercise, KIND_LABELS[exercise.kind])}</Text>
             <ExerciseDemoCard exerciseId={exercise.id} />
           </ScrollView>
-          <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
             <TouchableOpacity style={ws.primaryBtn} onPress={() => onAdd(exercise)} accessibilityRole="button">
               <Text style={ws.primaryBtnText}>{addLabel}</Text>
             </TouchableOpacity>
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     backgroundColor: Colors.lightGray,
   },
 });

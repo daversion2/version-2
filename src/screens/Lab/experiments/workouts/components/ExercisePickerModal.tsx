@@ -243,7 +243,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
         )}
 
         {mode === 'multi' && (
-          <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
             {selected.length > 0 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
                 {selected.map((e, i) => (
@@ -423,9 +423,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     backgroundColor: Colors.white,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
   },
 });
