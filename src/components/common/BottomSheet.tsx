@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, TextStyles } from '../../constants/theme';
 
@@ -13,12 +13,18 @@ export const BottomSheet: React.FC<{
   onClose: () => void;
   title?: string;
   dismissable?: boolean;
+  /** For a sheet with a text field: it rises above the keyboard (iOS). */
+  avoidKeyboard?: boolean;
   children: React.ReactNode;
-}> = ({ visible, onClose, title, dismissable = true, children }) => {
+}> = ({ visible, onClose, title, dismissable = true, avoidKeyboard = false, children }) => {
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={dismissable ? onClose : () => {}}>
-      <View style={styles.root}>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={avoidKeyboard && Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={avoidKeyboard}
+      >
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={dismissable ? onClose : undefined}
@@ -40,7 +46,7 @@ export const BottomSheet: React.FC<{
           ) : null}
           {children}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

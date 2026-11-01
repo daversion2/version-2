@@ -129,6 +129,14 @@ models.
 
 ## Next
 
+### Avoidance Training (Lab, 2026-11-01)
+
+A short list of the things you keep putting off: add one with how hard you
+expect starting to be, face the oldest each day, rate how hard starting was.
+The Cleared screen shows dread vs reality. It replaces the archived Training
+tab's Avoidance screen, whose open tasks it can bring over. Spec and build
+notes: `docs/micro-apps/avoidance.md`.
+
 ### Cold → built as **Hot & Cold** (Lab, 2026-11-01)
 
 Cold plunges and sauna in one app: time and temperature for each, a plunge

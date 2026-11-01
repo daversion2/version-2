@@ -26,6 +26,8 @@ describe('canOpenMiniApp', () => {
     expect(canOpenMiniApp('hotcold', { is_admin: true })).toBe(true);
     expect(canOpenMiniApp('hotcold', { is_admin: false })).toBe(false);
     expect(canOpenMiniApp('hotcold', null)).toBe(false);
+    expect(canOpenMiniApp('avoidance', { is_admin: true })).toBe(true);
+    expect(canOpenMiniApp('avoidance', { is_admin: false })).toBe(false);
   });
 
   it('opens the live mini-apps for everyone', () => {

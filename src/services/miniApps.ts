@@ -14,7 +14,7 @@ import type { PracticeInstance, User } from '../types';
 //     to start?" and files it as the app's own check-in (services/appCheckins.ts).
 // =============================================================================
 
-export type MiniAppId = 'workouts' | 'meditate' | 'compose' | 'meals' | 'hotcold';
+export type MiniAppId = 'workouts' | 'meditate' | 'compose' | 'meals' | 'hotcold' | 'avoidance';
 
 export interface MiniAppManifest {
   id: MiniAppId;
@@ -63,6 +63,14 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     title: 'Hot & Cold',
     icon: 'snow-outline',
     accent: AppColors.hotcold,
+    release: 'lab',
+  },
+  // The things you keep putting off (Lab, 2026-11-01): docs/micro-apps/avoidance.md.
+  avoidance: {
+    id: 'avoidance',
+    title: 'Avoidance Training',
+    icon: 'flash-outline',
+    accent: CategoryColors.mind,
     release: 'lab',
   },
 };

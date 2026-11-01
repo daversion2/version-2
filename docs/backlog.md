@@ -222,6 +222,18 @@ date added, a sentence or two of context, link to a design doc if one exists.
 No priority ordering implied — flag with a note if something's more wanted
 than the rest.
 
+### Avoidance Training: check on screen, then decide on graduating *(added 2026-11-01)*
+
+A to-do list for what you keep putting off, built in the Lab with the
+`build-micro-app` skill (`docs/micro-apps/avoidance.md`). Jest and tsc are
+clean; nobody has seen it on screen. Next:
+1. Try it from Admin → Lab → Avoidance Training: add with a forecast, Did it
+   → rating → the dread-vs-reality line, the task editor with the keyboard up,
+   the Cleared screen, and bringing over the old list. Ask before `ui-verify`.
+2. If it earns a place: add it to `TodayAppId` / `TODAY_APPS`, move the rating
+   to `finishSession`, migrate `lab_avoidance_*`, and decide what happens to
+   the archived `AvoidanceTraining` screen and its `avoidanceTasks` data.
+
 ### Hot & Cold: check on screen, then decide on graduating *(added 2026-11-01)*
 
 Cold plunge + sauna micro-app, built in the Lab with the `build-micro-app`

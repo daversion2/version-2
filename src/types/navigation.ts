@@ -36,6 +36,8 @@ export type RootStackParamList = {
   MealsApp: { habitId?: string } | undefined;
   /** Hot & Cold (Lab): cold plunges and sauna, time and temperature. */
   HotColdApp: undefined;
+  /** Avoidance Training (Lab): the things you keep putting off, one rep a day. */
+  AvoidanceApp: undefined;
 };
 
 // ============================================================================

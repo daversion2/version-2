@@ -190,3 +190,44 @@ no window, query or index. The old collection is only ever read.
 - A dashboard page with dread vs reality.
 - Decide the fate of the archived Training tab's Avoidance screen and its
   `avoidanceTasks` collection.
+
+---
+
+## What got built (Lab, 2026-11-01)
+
+Built the same day as the spec with the `build-micro-app` skill. Open it from
+**Admin → Lab → Avoidance Training** (admin accounts only). It ships over the air.
+
+| Piece | Where |
+|---|---|
+| Types | `src/types/avoidance.ts` |
+| Defaults, placeholder examples | `src/data/avoidance.ts` |
+| All the rules (pure, 15 tests) | `src/services/avoidanceMath.ts`, `__tests__/avoidanceMath.test.ts` |
+| Storage (4 tests) | `src/services/labAvoidance.ts`, `__tests__/labAvoidance.test.ts` |
+| Manifest + gate | `MINI_APPS.avoidance` in `services/miniApps.ts`, `release: 'lab'` |
+| Route | `AvoidanceApp` in `RootNavigator` (getComponent + require) |
+| Lab entry | `src/screens/Lab/experiments.ts` |
+| Screens | `src/screens/Lab/experiments/avoidance/`: `AvoidanceHomeScreen`, `AvoidanceClearedScreen`, `AvoidanceSettingsScreen`, `components/AvoidanceSheets` (rating, task editor, forecast chips) |
+
+**Collections:** `users/{uid}/lab_avoidance_tasks`, `users/{uid}/lab_avoidance_prefs/main`.
+The old `users/{uid}/avoidanceTasks` is read (to offer the import), never
+written. No rules or index changes.
+
+**Reused:** `homeDashboard.weekStreak`, `RESISTANCE_LEVELS` for both the
+forecast and the rating, `services/avoidanceTasks.getAvoidanceTasks` for the
+old list, `BottomSheet`, `ListGroup`/`ListRow`, `Stepper`, `ProgressRing`.
+
+**Shared change:** `BottomSheet` gained an opt-in `avoidKeyboard` prop, so the
+task editor's text field rises above the keyboard. Off by default; no other
+sheet changes.
+
+**Differences from the spec:**
+- The list shows a short dread hint on the right of each row (Easy / Hard /
+  Dreading), from the forecast, so the list reads as a set of reps.
+- The old list's import is offered on Home as well as in Settings, because
+  that's where an empty list is first seen.
+- An old task with an unreadable added date imports as added today.
+- Cleared screen: tap a row to remove it from the log. Reopening isn't there
+  (out of scope, as planned).
+
+**Not checked on screen yet.** Jest and tsc are clean.
