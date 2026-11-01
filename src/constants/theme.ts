@@ -31,6 +31,14 @@ export const AppColors = {
   meditate: '#217180',
   workouts: '#F2600C',
   meals: '#1F4FA8',
+  /** Hot & Cold (Lab, 2026-11-01): a glacier blue, kept clear of Meals' blue. */
+  hotcold: '#2A8BB5',
+};
+
+// Hot & Cold's two kinds, so a cold row and a heat row never read alike.
+export const ThermalColors = {
+  cold: '#2A8BB5',
+  heat: '#D9531E',
 };
 
 // Habit-category accents. Six-digit hex only: screens append an alpha suffix

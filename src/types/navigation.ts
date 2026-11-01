@@ -34,6 +34,8 @@ export type RootStackParamList = {
   ComposeApp: undefined;
   /** The Meals mini-app (Lab). `habitId` = opened from that habit on Today. */
   MealsApp: { habitId?: string } | undefined;
+  /** Hot & Cold (Lab): cold plunges and sauna, time and temperature. */
+  HotColdApp: undefined;
 };
 
 // ============================================================================

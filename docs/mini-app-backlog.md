@@ -128,7 +128,13 @@ models.
 
 ## Next
 
-### Cold
+### Cold → built as **Hot & Cold** (Lab, 2026-11-01)
+
+Cold plunges and sauna in one app: time and temperature for each, a plunge
+timer with a bell, longest/coldest records, and friction asked per session.
+Spec and build notes: `docs/micro-apps/hotcold.md`. The original brainstorm
+entry follows.
+
 - **Habits:** `cold_exposure` (already has its own template — a water-temp
   metric field exists today, see `habitTemplates.ts`)
 - **Engine:** Timer

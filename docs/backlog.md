@@ -184,6 +184,17 @@ date added, a sentence or two of context, link to a design doc if one exists.
 No priority ordering implied — flag with a note if something's more wanted
 than the rest.
 
+### Hot & Cold: check on screen, then decide on graduating *(added 2026-11-01)*
+
+Cold plunge + sauna micro-app, built in the Lab with the `build-micro-app`
+skill (`docs/micro-apps/hotcold.md`). Jest and tsc are clean, but nobody has
+seen it on screen yet. Next:
+1. Try it from Admin → Lab → Hot & Cold. Check the log sheet, the timer bell
+   with the phone locked, and History edit/delete. Ask before running
+   `ui-verify`.
+2. If it earns a place: add it to `TodayAppId` / `TODAY_APPS`, move friction
+   to `finishSession`, migrate `lab_hotcold_*`, give it a dashboard page.
+
 ### Drop generic habits, unify Home *(added 2026-10-24)*
 
 The direction is `docs/no-generic-habits-micro-apps.md`. The work, in

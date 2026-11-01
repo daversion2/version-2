@@ -187,3 +187,44 @@ The in-progress timer is kept in `miniAppDrafts` so a killed app resumes it.
   keep the in-sheet rating.
 - Rename or migrate `lab_hotcold_*`, flip `release` to `'live'`.
 - A dashboard page and ring, and a place in the week grid.
+
+---
+
+## What got built (Lab, 2026-11-01)
+
+Built the same day as the spec, with the `build-micro-app` skill. Open it from
+**Admin → Lab → Hot & Cold** (admin accounts only). It ships over the air.
+
+| Piece | Where |
+|---|---|
+| Types | `src/types/hotcold.ts` |
+| Defaults, labels, safety line | `src/data/hotcold.ts` |
+| All the rules (pure, 26 tests) | `src/services/hotcoldMath.ts`, `__tests__/hotcoldMath.test.ts` |
+| Storage (4 tests) | `src/services/labHotCold.ts`, `__tests__/labHotCold.test.ts` |
+| Manifest + gate | `MINI_APPS.hotcold` in `services/miniApps.ts`, `release: 'lab'` |
+| Route | `HotColdApp` in `RootNavigator` (getComponent + require) |
+| Lab entry | `src/screens/Lab/experiments.ts` |
+| Screens | `src/screens/Lab/experiments/hotcold/`: `HotColdHomeScreen`, `HotColdTimerScreen`, `HotColdHistoryScreen`, `HotColdSettingsScreen`, `components/LogSheet` |
+| Colours | `AppColors.hotcold`, `ThermalColors` in `constants/theme.ts` |
+
+**Collections:** `users/{uid}/lab_hotcold_sessions`, `users/{uid}/lab_hotcold_prefs/main`.
+The running timer is kept on the phone (`miniAppDrafts`, key `hotcold`).
+No rules or index changes.
+
+**Reused, not rebuilt:**
+- `sessionTimer.elapsedSec` (a wall-clock timer that survives a locked phone)
+- `sessionBell` (the bell as a scheduled notification)
+- `homeDashboard.weekStreak`
+- `BottomSheet`, `Stepper`, `SegmentedControl`, `ListGroup`/`ListRow`,
+  `ProgressRing`
+
+**Differences from the spec:**
+- The safety line sits at the bottom of Home all the time, not only on first
+  use. That needs no "seen it" flag, and it's one quiet line.
+- The rating label shows as each row's subtitle in Today and History, so a
+  falling resistance is visible before any chart exists.
+- Changing the bell time on the timer screen also saves it as the new default
+  (Settings shows the same value).
+
+**Not checked on screen yet.** Jest and tsc are clean; nobody has seen it in
+the simulator. See `docs/backlog.md`.

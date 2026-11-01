@@ -22,6 +22,10 @@ describe('canOpenMiniApp', () => {
     expect(canOpenMiniApp('compose', { is_admin: false })).toBe(false);
     expect(canOpenMiniApp('compose', {})).toBe(false);
     expect(canOpenMiniApp('compose', null)).toBe(false);
+    // Hot & Cold too, since 2026-11-01.
+    expect(canOpenMiniApp('hotcold', { is_admin: true })).toBe(true);
+    expect(canOpenMiniApp('hotcold', { is_admin: false })).toBe(false);
+    expect(canOpenMiniApp('hotcold', null)).toBe(false);
   });
 
   it('opens the live mini-apps for everyone', () => {

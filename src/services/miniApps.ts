@@ -1,4 +1,4 @@
-import { CategoryColors, Colors } from '../constants/theme';
+import { AppColors, CategoryColors, Colors } from '../constants/theme';
 import type { TrackingField } from '../data/practices';
 import type { PracticeInstance, User } from '../types';
 
@@ -14,7 +14,7 @@ import type { PracticeInstance, User } from '../types';
 //     to start?" and files it as the app's own check-in (services/appCheckins.ts).
 // =============================================================================
 
-export type MiniAppId = 'workouts' | 'meditate' | 'compose' | 'meals';
+export type MiniAppId = 'workouts' | 'meditate' | 'compose' | 'meals' | 'hotcold';
 
 export interface MiniAppManifest {
   id: MiniAppId;
@@ -56,6 +56,14 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     icon: 'nutrition-outline',
     accent: CategoryColors.fuel,
     release: 'live',
+  },
+  // Cold plunges and sauna (Lab, 2026-11-01): docs/micro-apps/hotcold.md.
+  hotcold: {
+    id: 'hotcold',
+    title: 'Hot & Cold',
+    icon: 'snow-outline',
+    accent: AppColors.hotcold,
+    release: 'lab',
   },
 };
 
