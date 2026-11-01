@@ -87,10 +87,12 @@ export function sourceSha(id: string): string {
 }
 
 export const listScriptIds = () =>
-  readdirSync(SCRIPTS_DIR)
-    .filter((f) => f.endsWith('.md'))
-    .map((f) => f.slice(0, -3))
-    .sort();
+  existsSync(SCRIPTS_DIR)
+    ? readdirSync(SCRIPTS_DIR)
+        .filter((f) => f.endsWith('.md'))
+        .map((f) => f.slice(0, -3))
+        .sort()
+    : [];
 
 export const readApprovals = (): Record<string, MeditationApproval> =>
   existsSync(APPROVALS_FILE) ? readJson(APPROVALS_FILE) : {};
