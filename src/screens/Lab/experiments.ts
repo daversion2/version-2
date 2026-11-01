@@ -69,6 +69,14 @@ export const LAB_EXPERIMENTS = [
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'WorkoutsApp' })),
   },
+  // Prototype (2026-11-01): a drawn, animated figure instead of generated
+  // exercise photos. Push-up only for now.
+  {
+    id: 'exerciseFigures',
+    title: 'Exercise figures',
+    description: 'A drawn figure that shows how an exercise moves, start to end. Push-up only for now.',
+    screen: () => require('./experiments/ExerciseFiguresScreen').ExerciseFiguresScreen,
+  },
   {
     id: 'meditate',
     title: 'Meditate',

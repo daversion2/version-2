@@ -292,7 +292,14 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
   the app-wide nightly close, past weeks, and a habit-detail highlight card.
   When it goes live, remove the old food habits in the same release (the list
   is in the doc).
-- **Workouts exercise art.** On hold. The 5-step plan is in the doc.
+- **Workouts exercise photos: 9 left to make.** Start/end photo pairs,
+  generated with Nano Banana Pro and approved by the founder in batches of 10
+  (`content/exercise-art/README.md`). They show as thumbnails in the exercise
+  picker (tap for start/end and cues), in each exercise's card in the block
+  editor, and on its stats screen. 34 shipped OTA 2026-11-01; 6 skipped as
+  text only. Next: `generateExerciseArt.ts --next` once the Pro daily limit
+  resets, review, then publish and ship OTA. The drawn-figure Lab prototype
+  (Lab → Exercise figures) lost to photos and can be deleted.
 - **Cold and Focus mini-apps.** Candidates. Both reuse Meditate's timer and
   bell.
 

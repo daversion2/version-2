@@ -1,0 +1,426 @@
+{
+  "ab-wheel": {
+    "status": "rejected",
+    "at": "2026-11-01T19:37:38.340Z"
+  },
+  "back-squat": {
+    "status": "approved",
+    "start": {
+      "file": "back-squat_start.c1.jpg",
+      "sha256": "8a8e9c4e473de844cee383d4cd344d48c7bfb6e1094f880c24a7de3283af67ea"
+    },
+    "end": {
+      "file": "back-squat_end.c1.jpg",
+      "sha256": "9059c9cfd6cbe55fed06abd8180e8f97c8fcd76e20253a6b7bccb28a18cbcf8a"
+    },
+    "at": "2026-11-01T19:25:33.194Z"
+  },
+  "barbell-curl": {
+    "status": "approved",
+    "start": {
+      "file": "barbell-curl_start.c3.jpg",
+      "sha256": "2bd76f5bd2feab8c8d7eaee97943d2eedc79a1a6a0e7357032d89b3b9e2fe071"
+    },
+    "end": {
+      "file": "barbell-curl_end.c3.jpg",
+      "sha256": "ad6d9cb26815014a63faf39abba84d44dae04d5c4e9db3011317c4dcf61420e0"
+    },
+    "at": "2026-11-01T19:30:17.300Z"
+  },
+  "barbell-row": {
+    "status": "approved",
+    "start": {
+      "file": "barbell-row_start.c3.jpg",
+      "sha256": "4e3209b7011ffaef86723f1cfe9a2525d753c373899ec43e54c9805add499d01"
+    },
+    "end": {
+      "file": "barbell-row_end.c3.jpg",
+      "sha256": "494fd0fce20161e9f0484f16c45d1dd824fe3268d10283e0e5c142daceb900dc"
+    },
+    "at": "2026-11-01T18:48:28.162Z"
+  },
+  "bench-press": {
+    "status": "approved",
+    "start": {
+      "file": "bench-press_start.c2.jpg",
+      "sha256": "0dd70c73bf4de1167a50c0f1ace09869d2372241d7d8723e9b6423868c2ae7b4"
+    },
+    "end": {
+      "file": "bench-press_end.c2.jpg",
+      "sha256": "17ee597c65d2d7cae8c0f724c83e0e4b5d4e8608bf56df8925ad762f5a05d9c9"
+    },
+    "at": "2026-11-01T18:48:37.172Z"
+  },
+  "bodyweight-squat": {
+    "status": "approved",
+    "start": {
+      "file": "bodyweight-squat_start.c2.jpg",
+      "sha256": "ba3adfd68eb467a9f097d884e14a59493398ebca72fa6f47178489a5568e755c"
+    },
+    "end": {
+      "file": "bodyweight-squat_end.c2.jpg",
+      "sha256": "c3778f39026212f33289b8352c8d93899a634314b63861c788e7b27c86a16e10"
+    },
+    "at": "2026-11-01T18:47:00.991Z"
+  },
+  "box-jump": {
+    "status": "approved",
+    "start": {
+      "file": "box-jump_start.c1.jpg",
+      "sha256": "23935acb748a2220ebdfb0d530cf17d91cd7186de6794281873625703c81996e"
+    },
+    "end": {
+      "file": "box-jump_end.c1.jpg",
+      "sha256": "726386548baf28125bc44fe2234ecd1ea16d091896b4165e6ddb73c6d20de7b8"
+    },
+    "at": "2026-11-01T19:30:17.283Z"
+  },
+  "bulgarian-split-squat": {
+    "status": "approved",
+    "start": {
+      "file": "bulgarian-split-squat_start.c2.jpg",
+      "sha256": "7de52170be5a0466100e9bbec75deb4c7577db6215e28a71144c98f1ac157d14"
+    },
+    "end": {
+      "file": "bulgarian-split-squat_end.c2.jpg",
+      "sha256": "4060a121bfd81b2b22a327df8de38959583d932e84bcfec24cbfe331b08f730e"
+    },
+    "at": "2026-11-01T19:25:33.225Z"
+  },
+  "cable-crossover": {
+    "status": "approved",
+    "start": {
+      "file": "cable-crossover_start.c2.jpg",
+      "sha256": "80085ce16e040c776d7a2955259e58acc8a72576a1d1c5b1303288b532dd02a1"
+    },
+    "end": {
+      "file": "cable-crossover_end.c2.jpg",
+      "sha256": "f00b139058dffec6e83dc25d5c2d929e9f2994716a88d4b26f9f68123200441b"
+    },
+    "at": "2026-11-01T18:53:31.440Z"
+  },
+  "calf-raise": {
+    "status": "approved",
+    "start": {
+      "file": "calf-raise_start.c3.jpg",
+      "sha256": "5eca494f94439b4d56795b80f6ad2481ea6289b8f34b307df4762a224571058d"
+    },
+    "end": {
+      "file": "calf-raise_end.c3.jpg",
+      "sha256": "ca4c63647ca4cc3c74d14ecc40e4169d8e85cac7c9ffade6b211c65ea9cc67f5"
+    },
+    "at": "2026-11-01T19:30:17.272Z"
+  },
+  "chin-up": {
+    "status": "rejected",
+    "at": "2026-11-01T19:04:13.777Z"
+  },
+  "db-curl": {
+    "status": "approved",
+    "start": {
+      "file": "db-curl_start.c2.jpg",
+      "sha256": "277361339916ef51a06778939c36222d5544c49fd9a639777aa223ba8933ae0f"
+    },
+    "end": {
+      "file": "db-curl_end.c2.jpg",
+      "sha256": "3f2cb24221e508ef24738de279293b850c0e47fd7eabe8e5f61e2cabac2992c3"
+    },
+    "at": "2026-11-01T19:32:02.287Z"
+  },
+  "db-fly": {
+    "status": "rejected",
+    "at": "2026-11-01T18:53:12.100Z"
+  },
+  "db-row": {
+    "status": "approved",
+    "start": {
+      "file": "db-row_start.c3.jpg",
+      "sha256": "bdfbba5a2f579241e7d459aff6b7af2f399d9454735ac31bee521467d3440aeb"
+    },
+    "end": {
+      "file": "db-row_end.c3.jpg",
+      "sha256": "34ace3b4ade06b807de83ef844a07efe13383838632c9756929b4b1f4e954ceb"
+    },
+    "at": "2026-11-01T18:47:01.017Z"
+  },
+  "db-shoulder-press": {
+    "status": "approved",
+    "start": {
+      "file": "db-shoulder-press_start.c2.jpg",
+      "sha256": "abe864579699fb089745decaec8c79f5f8fc7335e21f7f708c52deb3b1accf22"
+    },
+    "end": {
+      "file": "db-shoulder-press_end.c2.jpg",
+      "sha256": "a8b8934f6b52bcb847f3873f6b77519b0cbb8fc4cfc18a4857d13d2c6b28d39a"
+    },
+    "at": "2026-11-01T18:47:01.026Z"
+  },
+  "deadlift": {
+    "status": "approved",
+    "start": {
+      "file": "deadlift_start.c2.jpg",
+      "sha256": "430f477248750f506e5e947f3935ff5bcf74bfe81eef5b69eb2969882c1ab9d5"
+    },
+    "end": {
+      "file": "deadlift_end.c2.jpg",
+      "sha256": "9d469e74f64cef82d03558603cbbe9be414256ff08cf30070b9dc0a3e2914383"
+    },
+    "at": "2026-11-01T18:48:28.168Z"
+  },
+  "dip": {
+    "status": "approved",
+    "start": {
+      "file": "dip_start.c2.jpg",
+      "sha256": "c7cf3faabb3b08a8ab903b1f7ca2bf29128203a146775e8e39c5d79785e58a7c"
+    },
+    "end": {
+      "file": "dip_end.c2.jpg",
+      "sha256": "bbdde98fdbfcb2daf04af674e12113b913cbe589187d4cf931f63b0f02941e6f"
+    },
+    "at": "2026-11-01T18:53:53.441Z"
+  },
+  "face-pull": {
+    "status": "approved",
+    "start": {
+      "file": "face-pull_start.c3.jpg",
+      "sha256": "cd9edd917d5f9bc2e2736d57b1234fca467c8f0eaa3c17185e5d66e1a3b87ce2"
+    },
+    "end": {
+      "file": "face-pull_end.c3.jpg",
+      "sha256": "2f10a791a530323ecb74fdadb6d7b85f67a3030001c6456e94b5ba0595781544"
+    },
+    "at": "2026-11-01T19:04:13.776Z"
+  },
+  "front-squat": {
+    "status": "approved",
+    "start": {
+      "file": "front-squat_start.c1.jpg",
+      "sha256": "b22c42a747fd5fc3e7c01ce8cc9099d69148fc85a5fda435a97d3a76ad27e533"
+    },
+    "end": {
+      "file": "front-squat_end.c1.jpg",
+      "sha256": "c20475bdc4dee97bda152d7b2c4022d87d55a780619b4c8e8d8befe1d8bc0759"
+    },
+    "at": "2026-11-01T19:25:33.203Z"
+  },
+  "goblet-squat": {
+    "status": "approved",
+    "start": {
+      "file": "goblet-squat_start.c2.jpg",
+      "sha256": "5977ac311bd300988991c9feef94501cd057bb3705f15f0c56ada76dde3905a3"
+    },
+    "end": {
+      "file": "goblet-squat_end.c2.jpg",
+      "sha256": "653adbebf6c0d23f304e032659e46be7fbab85bb996eb9c10f61be825af2bc62"
+    },
+    "at": "2026-11-01T18:47:01.011Z"
+  },
+  "hammer-curl": {
+    "status": "rejected",
+    "at": "2026-11-01T19:32:02.288Z"
+  },
+  "hanging-leg-raise": {
+    "status": "approved",
+    "start": {
+      "file": "hanging-leg-raise_start.c2.jpg",
+      "sha256": "b04d41dcec859ed87fbeebea6e7b44e8795d931ac4451948e9d158c6b4a378f8"
+    },
+    "end": {
+      "file": "hanging-leg-raise_end.c2.jpg",
+      "sha256": "daaad7f431c103b4d092ac4d06b3d098993888e0950c7da30aa7e8d645644fcc"
+    },
+    "at": "2026-11-01T19:32:48.081Z"
+  },
+  "hip-thrust": {
+    "status": "rejected",
+    "at": "2026-11-01T19:25:33.226Z"
+  },
+  "incline-db-press": {
+    "status": "approved",
+    "start": {
+      "file": "incline-db-press_start.c3.jpg",
+      "sha256": "f3f517f906d80e987f79ee787d0d8c3028b25468139074faccead810849bb043"
+    },
+    "end": {
+      "file": "incline-db-press_end.c3.jpg",
+      "sha256": "51f86d23333fa5eaf46a315fd5f9fa659c07a46f1cf6199e4d63d545ce6525db"
+    },
+    "at": "2026-11-01T18:52:40.543Z"
+  },
+  "lat-pulldown": {
+    "status": "approved",
+    "start": {
+      "file": "lat-pulldown_start.c1.jpg",
+      "sha256": "5ce452529a410a223177369c8763906758aec8d3ad1092ce438dea52c5706248"
+    },
+    "end": {
+      "file": "lat-pulldown_end.c1.jpg",
+      "sha256": "0f91b3043bd05274a72ebddec8a5c715d093e8ec4e7bad44170b2ffc31311da7"
+    },
+    "at": "2026-11-01T18:54:05.623Z"
+  },
+  "lateral-raise": {
+    "status": "approved",
+    "start": {
+      "file": "lateral-raise_start.c1.jpg",
+      "sha256": "0aa2dafb002cc5d8713b7f0a6287468dc2b1cedf7fea6d4913235e2b9e6e6ec7"
+    },
+    "end": {
+      "file": "lateral-raise_end.c1.jpg",
+      "sha256": "8141ea8791d07408781beb36d2829e6828d74361650d224c249b760ad7786a65"
+    },
+    "at": "2026-11-01T19:25:33.174Z"
+  },
+  "leg-curl": {
+    "status": "rejected",
+    "at": "2026-11-01T19:25:33.226Z"
+  },
+  "leg-extension": {
+    "status": "approved",
+    "start": {
+      "file": "leg-extension_start.c2.jpg",
+      "sha256": "4179027788b9a18e07ce93c0079701a6e50de3265b754ce9fc5c17a327e45915"
+    },
+    "end": {
+      "file": "leg-extension_end.c2.jpg",
+      "sha256": "1f9862391dbf853661ba0c0576353c325b9f2503e153a015165ebfaad1e418d8"
+    },
+    "at": "2026-11-01T19:25:33.231Z"
+  },
+  "leg-press": {
+    "status": "approved",
+    "start": {
+      "file": "leg-press_start.c1.jpg",
+      "sha256": "137dd41f230e831b82190001aa47a1319b66f692d02d19d192cb908260e7447a"
+    },
+    "end": {
+      "file": "leg-press_end.c1.jpg",
+      "sha256": "2357c3e0ae128f6a888a4076bb197fe377ab189624fbd4911b5bdb852d7e1414"
+    },
+    "at": "2026-11-01T19:25:33.219Z"
+  },
+  "overhead-press": {
+    "status": "approved",
+    "start": {
+      "file": "overhead-press_start.c2.jpg",
+      "sha256": "b2296258cfc4631057b05699dd833b1522cacd751d5ac580fea67bc568d84a7e"
+    },
+    "end": {
+      "file": "overhead-press_end.c2.jpg",
+      "sha256": "911b5f6d365a540f8dc7b8ab717649db0d96ea94df47433925e2da6d50cd416a"
+    },
+    "at": "2026-11-01T19:04:13.785Z"
+  },
+  "plank": {
+    "status": "approved",
+    "start": {
+      "file": "plank_start.c3.jpg",
+      "sha256": "6e631833136b0789abfbe0c0a825214fc5dc326e093a6897153e34bf09ca630d"
+    },
+    "at": "2026-11-01T18:47:01.029Z"
+  },
+  "pull-up": {
+    "status": "rejected",
+    "at": "2026-11-01T19:04:13.766Z"
+  },
+  "push-up": {
+    "status": "approved",
+    "start": {
+      "file": "push-up_start.c1.jpg",
+      "sha256": "33bc89430df4d41417f1282809415cf75e9e02eb23c67f2bedaab91e67a7d2ea"
+    },
+    "end": {
+      "file": "push-up_end.c1.jpg",
+      "sha256": "57b9d9258fab80c8c6c49bcfc21dbfa322693fd0574db69f3f3d6aea5b1ff911"
+    },
+    "at": "2026-11-01T18:40:50.938Z"
+  },
+  "rear-delt-fly": {
+    "status": "approved",
+    "start": {
+      "file": "rear-delt-fly_start.c1.jpg",
+      "sha256": "6a15362f4ea8c902d10b9875ad5a29fae5c56c82ec7e10a5799f5a7270f80e71"
+    },
+    "end": {
+      "file": "rear-delt-fly_end.c1.jpg",
+      "sha256": "8861f10f2e56ae2288a2208ec245401a9798464ba9d042f65cc7a4d15b8103b2"
+    },
+    "at": "2026-11-01T19:25:33.184Z"
+  },
+  "romanian-deadlift": {
+    "status": "approved",
+    "start": {
+      "file": "romanian-deadlift_start.c2.jpg",
+      "sha256": "b7073c4c2e2b543d8c6d4c31ac752afa0510151857486675e9ab25b21ed32ce3"
+    },
+    "end": {
+      "file": "romanian-deadlift_end.c2.jpg",
+      "sha256": "23d9ab0aec0c88bd6406426a0aa06bd873777126f6f70e14d9b73bf9179a9702"
+    },
+    "at": "2026-11-01T19:25:33.211Z"
+  },
+  "seated-cable-row": {
+    "status": "approved",
+    "start": {
+      "file": "seated-cable-row_start.c1.jpg",
+      "sha256": "fe7f8d7f41cde790364e57181a2c5bd98e35cffc6374240eba503d3ef327f305"
+    },
+    "end": {
+      "file": "seated-cable-row_end.c1.jpg",
+      "sha256": "c065bf50fc41e25c16ad9f3c1f45a0750014be0a1ddc05590f357887302a1a5e"
+    },
+    "at": "2026-11-01T18:54:43.806Z"
+  },
+  "side-plank": {
+    "status": "approved",
+    "start": {
+      "file": "side-plank_start.c1.jpg",
+      "sha256": "0500ffde88f711e6da79c36479764a078e31637bba6b79934e5290bf2c975ea5"
+    },
+    "at": "2026-11-01T19:32:26.499Z"
+  },
+  "skull-crusher": {
+    "status": "approved",
+    "start": {
+      "file": "skull-crusher_start.c2.jpg",
+      "sha256": "491438644bcd9689656d402e407faa63ab147d39d48eec2ee66043c5a4a6c3fb"
+    },
+    "end": {
+      "file": "skull-crusher_end.c2.jpg",
+      "sha256": "6564ca8e42960653350324c1249c495dc0cc0a3c299e605ca3c9dac5753ca602"
+    },
+    "at": "2026-11-01T19:32:26.494Z"
+  },
+  "tricep-pushdown": {
+    "status": "approved",
+    "start": {
+      "file": "tricep-pushdown_start.c3.jpg",
+      "sha256": "125620f11f398744669f5191d4806208ea4efb023341a60c6ff0ddf09d70039b"
+    },
+    "end": {
+      "file": "tricep-pushdown_end.c3.jpg",
+      "sha256": "e2965595b88069591f7bfac8a40dd1402d468834a3767dd7951601194959b961"
+    },
+    "at": "2026-11-01T19:32:02.298Z"
+  },
+  "walking-lunge": {
+    "status": "approved",
+    "start": {
+      "file": "walking-lunge_start.c3.jpg",
+      "sha256": "ecf769b9e0fb62d7b4680c386b732d83e7b56ec3334d6439504d3036ce9afb98"
+    },
+    "end": {
+      "file": "walking-lunge_end.c3.jpg",
+      "sha256": "f2125f83ac6079c4c1151bba2e09e41e4a6fa1a3292da22a6d16ac03432c2f15"
+    },
+    "at": "2026-11-01T18:47:01.021Z"
+  },
+  "wall-sit": {
+    "status": "approved",
+    "start": {
+      "file": "wall-sit_start.c2.jpg",
+      "sha256": "171435dc2f36a5aa6b54a33fa9fe5f8083b08509ce933d6c88a4fed7f093742b"
+    },
+    "at": "2026-11-01T19:30:17.290Z"
+  }
+}

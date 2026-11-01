@@ -18,6 +18,7 @@ import { useWorkouts } from '../WorkoutsContext';
 import { NumberStepper } from './NumberStepper';
 import { TimeEntry } from './TimeEntry';
 import { ExercisePickerModal } from './ExercisePickerModal';
+import { ExercisePhotos } from './ExerciseDemoCard';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
@@ -224,6 +225,7 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
                   </View>
                 )}
               </View>
+              <ExercisePhotos exerciseId={item.exerciseId} style={styles.photos} />
               <TargetEditor item={item} onChange={(target) => setItem(index, target)} />
             </View>
           ))}
@@ -266,6 +268,7 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
 };
 
 const styles = StyleSheet.create({
+  photos: { marginTop: Spacing.sm },
   sheet: { flex: 1, backgroundColor: Colors.lightGray },
   header: {
     flexDirection: 'row',
