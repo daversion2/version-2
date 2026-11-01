@@ -23,10 +23,31 @@ export type WholeGroupId =
  */
 export type ProcessedGroupId = 'dairy' | 'supplements' | 'semi' | 'processed';
 
-export type FoodGroupId = WholeGroupId | ProcessedGroupId;
+/** One of the user's own foods (see CustomFoodGroup). The prefix keeps it apart from the built-in ids. */
+export type CustomGroupId = `custom_${string}`;
 
-/** What a plate can be tagged with, inferred from its food groups — never grams. */
-export type NutrientId = 'protein' | 'fiber' | 'fats';
+export type FoodGroupId = WholeGroupId | ProcessedGroupId | CustomGroupId;
+
+/**
+ * What a plate can be tagged with, inferred from its food groups — never grams.
+ * Carbs is information only: it adds no points (founder, 2026-11-01).
+ */
+export type NutrientId = 'protein' | 'fiber' | 'fats' | 'carbs';
+
+/**
+ * A food the user defines ("Carb supplement", 80, Carbs). On its own a plate
+ * of it scores `score`; mixed with other food it counts as one share of the
+ * plate at that score (services/mealsMath.ts scorePlate). Removing one only
+ * archives it, so days already logged with it keep their name and score.
+ */
+export interface CustomFoodGroup {
+  id: CustomGroupId;
+  label: string;
+  /** 0-100. */
+  score: number;
+  nutrients: NutrientId[];
+  archived?: boolean;
+}
 
 /** One of the user's own meals ("Breakfast", "Pre-workout"). The id never changes. */
 export interface MealSlot {
@@ -68,6 +89,8 @@ export interface MealsRules {
   strict: boolean;
   group_goals: GroupGoal[];
   scoring: MealsScoringWeights;
+  /** The user's own foods, archived ones included. Missing on days saved before they existed. */
+  custom_groups?: CustomFoodGroup[];
 }
 
 export interface MealsPrefs extends MealsRules {

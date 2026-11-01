@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
-import { closeDay, scoreDay, withMeal } from '../../../../services/mealsMath';
+import { activeCustomGroups, closeDay, scoreDay, withMeal } from '../../../../services/mealsMath';
 import { MEAL_OFF_REASONS, groupLabel } from '../../../../data/mealGroups';
 import { saveMealsDay } from '../../../../services/labMeals';
 import { showAlert } from '../../../../utils/alert';
@@ -29,7 +29,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
  */
 export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { userId, today, rules, dayFor, saveDay, closeAndCheckOff } = useMeals();
+  const { userId, today, prefs, rules, dayFor, saveDay, closeAndCheckOff } = useMeals();
   const day = dayFor(today);
   const score = useMemo(() => scoreDay(day, rules), [day, rules]);
 
@@ -95,6 +95,8 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           target={editing}
           strict={rules.strict}
           weights={rules.scoring}
+          custom={rules.custom_groups}
+          offered={activeCustomGroups(prefs.custom_groups)}
           onCancel={() => setEditing(null)}
           onSave={logMeal}
           onSkip={skipMeal}

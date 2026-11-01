@@ -3,12 +3,36 @@ import { View, Text, TextInput, ScrollView, Switch, TouchableOpacity, StyleSheet
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
-import type { GroupGoal, MealSlot, MealsScoringWeights, MealsStackParamList } from '../../../../types/meals';
-import { DEFAULT_MEALS_SCORING, MAX_GROUP_GOALS, MAX_SLOTS, WHOLE_GROUPS } from '../../../../data/mealGroups';
-import { addSlot, describeGroupGoal, newGroupGoal, removeSlot } from '../../../../services/mealsMath';
+import type {
+  CustomFoodGroup,
+  GroupGoal,
+  MealSlot,
+  MealsScoringWeights,
+  MealsStackParamList,
+  NutrientId,
+} from '../../../../types/meals';
+import {
+  DEFAULT_MEALS_SCORING,
+  MAX_CUSTOM_GROUPS,
+  MAX_GROUP_GOALS,
+  MAX_SLOTS,
+  NUTRIENTS,
+  WHOLE_GROUPS,
+} from '../../../../data/mealGroups';
+import {
+  activeCustomGroups,
+  addSlot,
+  archiveCustomGroup,
+  describeGroupGoal,
+  moveSlot,
+  newCustomGroup,
+  newGroupGoal,
+  removeSlot,
+  updateCustomGroup,
+} from '../../../../services/mealsMath';
 import { showConfirm } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
-import { MEALS_ACCENT, mls } from './components/mealsStyle';
+import { MEALS_ACCENT, NUTRIENT_COLOR, mls } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsSettings'>;
 
@@ -41,13 +65,16 @@ const Stepper: React.FC<{
   </View>
 );
 
-/** A meal's name, saved when you leave the field — not on every keystroke. */
-const SlotRow: React.FC<{ slot: MealSlot; canRemove: boolean; onRename: (name: string) => void; onRemove: () => void }> = ({
-  slot,
-  canRemove,
-  onRename,
-  onRemove,
-}) => {
+/** A meal's name, saved when you leave the field — not on every keystroke. Arrows move it up or down. */
+const SlotRow: React.FC<{
+  slot: MealSlot;
+  canRemove: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onRename: (name: string) => void;
+  onRemove: () => void;
+  onMove: (by: -1 | 1) => void;
+}> = ({ slot, canRemove, canMoveUp, canMoveDown, onRename, onRemove, onMove }) => {
   const [name, setName] = useState(slot.name);
   useEffect(() => setName(slot.name), [slot.name]);
   const commit = () => {
@@ -66,6 +93,26 @@ const SlotRow: React.FC<{ slot: MealSlot; canRemove: boolean; onRename: (name: s
         returnKeyType="done"
         accessibilityLabel={`Rename ${slot.name}`}
       />
+      <View style={styles.moves}>
+        <TouchableOpacity
+          onPress={() => onMove(-1)}
+          disabled={!canMoveUp}
+          style={!canMoveUp && mls.disabled}
+          hitSlop={6}
+          accessibilityLabel={`Move ${slot.name} up`}
+        >
+          <Ionicons name="chevron-up" size={20} color={Colors.gray} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => onMove(1)}
+          disabled={!canMoveDown}
+          style={!canMoveDown && mls.disabled}
+          hitSlop={6}
+          accessibilityLabel={`Move ${slot.name} down`}
+        >
+          <Ionicons name="chevron-down" size={20} color={Colors.gray} />
+        </TouchableOpacity>
+      </View>
       {canRemove && (
         <TouchableOpacity onPress={onRemove} hitSlop={8} accessibilityLabel={`Remove ${slot.name}`}>
           <Ionicons name="trash-outline" size={20} color={Colors.gray} />
@@ -75,9 +122,82 @@ const SlotRow: React.FC<{ slot: MealSlot; canRemove: boolean; onRename: (name: s
   );
 };
 
+/**
+ * One of your own foods: its name (saved on leaving the field), its score and
+ * the tags it carries. Removing it only archives it — see archiveCustomGroup.
+ */
+const CustomFoodRow: React.FC<{
+  food: CustomFoodGroup;
+  autoFocus: boolean;
+  onChange: (changes: Partial<Omit<CustomFoodGroup, 'id'>>) => void;
+  onRemove: () => void;
+}> = ({ food, autoFocus, onChange, onRemove }) => {
+  const [name, setName] = useState(food.label);
+  useEffect(() => setName(food.label), [food.label]);
+  const commit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) setName(food.label);
+    else if (trimmed !== food.label) onChange({ label: trimmed });
+  };
+  const toggleTag = (id: NutrientId) =>
+    onChange({ nutrients: food.nutrients.includes(id) ? food.nutrients.filter((n) => n !== id) : [...food.nutrients, id] });
+  return (
+    <View style={[mls.card, styles.goalCard]}>
+      <View style={styles.row}>
+        <TextInput
+          style={styles.slotInput}
+          value={name}
+          onChangeText={setName}
+          onEndEditing={commit}
+          autoFocus={autoFocus}
+          selectTextOnFocus={autoFocus}
+          maxLength={28}
+          returnKeyType="done"
+          accessibilityLabel={`Rename ${food.label}`}
+        />
+        <TouchableOpacity onPress={onRemove} hitSlop={8} accessibilityLabel={`Remove ${food.label}`}>
+          <Ionicons name="trash-outline" size={20} color={Colors.gray} />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.goalLine}>
+        <Text style={mls.body}>Scores</Text>
+        <Stepper
+          value={food.score}
+          min={0}
+          max={100}
+          step={5}
+          label={`${food.label} score`}
+          onChange={(score) => onChange({ score })}
+        />
+      </View>
+      <View style={mls.chipRow}>
+        {NUTRIENTS.map((n) => {
+          const on = food.nutrients.includes(n.id);
+          const color = NUTRIENT_COLOR[n.id];
+          return (
+            <TouchableOpacity
+              key={n.id}
+              style={[mls.chip, on && { borderColor: color, backgroundColor: color }]}
+              onPress={() => toggleTag(n.id)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on }}
+              accessibilityLabel={`${food.label} has ${n.label}`}
+            >
+              <Text style={[mls.chipText, on && mls.chipTextActive]}>{n.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
 export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const { prefs, updatePrefs, habits, newId } = useMeals();
   const [choosingFor, setChoosingFor] = useState<string | null>(null);
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const customGroups = prefs.custom_groups ?? [];
+  const myFoods = activeCustomGroups(customGroups);
 
   const setWeight = (key: keyof MealsScoringWeights, n: number) =>
     updatePrefs({ scoring: { ...prefs.scoring, [key]: n } });
@@ -100,6 +220,26 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const renameMeal = (slotId: string, name: string) =>
     updatePrefs({ slots: prefs.slots.map((s) => (s.id === slotId ? { ...s, name } : s)) });
 
+  const moveMeal = (slotId: string, by: -1 | 1) => updatePrefs(moveSlot(prefs, slotId, by));
+
+  const addFood = () => {
+    const food = newCustomGroup(customGroups, newId(), prefs.scoring.on_target_threshold);
+    if (!food) return;
+    setJustAdded(food.id);
+    updatePrefs({ custom_groups: [...customGroups, food] });
+  };
+
+  const changeFood = (id: string, changes: Partial<Omit<CustomFoodGroup, 'id'>>) =>
+    updatePrefs({ custom_groups: updateCustomGroup(customGroups, id, changes) });
+
+  const removeFood = (food: CustomFoodGroup) =>
+    showConfirm(
+      `Remove ${food.label}?`,
+      'It leaves the picker. Days already logged with it keep it.',
+      () => updatePrefs({ custom_groups: archiveCustomGroup(customGroups, food.id) }),
+      'Remove'
+    );
+
   const addGoal = () => {
     const goal = newGroupGoal(prefs.group_goals, newId());
     if (goal) setGoals([...prefs.group_goals, goal]);
@@ -108,13 +248,16 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll} keyboardShouldPersistTaps="handled">
       <Text style={mls.sectionLabel}>My meals</Text>
-      {prefs.slots.map((slot) => (
+      {prefs.slots.map((slot, i) => (
         <SlotRow
           key={slot.id}
           slot={slot}
           canRemove={prefs.slots.length > 1}
+          canMoveUp={i > 0}
+          canMoveDown={i < prefs.slots.length - 1}
           onRename={(name) => renameMeal(slot.id, name)}
           onRemove={() => removeMeal(slot)}
+          onMove={(by) => moveMeal(slot.id, by)}
         />
       ))}
       {prefs.slots.length < MAX_SLOTS && (
@@ -124,6 +267,27 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       )}
       <Text style={mls.muted}>Snacks and drinks between meals don’t need a meal — add them as “something additional”.</Text>
+
+      <Text style={mls.sectionLabel}>My foods</Text>
+      <Text style={mls.muted}>
+        Foods the groups don’t fit, like a carb supplement. On its own, a plate scores what you give the food. With other
+        food, it’s one share of the plate at that score. Tags show on the plate but add no points.
+      </Text>
+      {myFoods.map((food) => (
+        <CustomFoodRow
+          key={food.id}
+          food={food}
+          autoFocus={food.id === justAdded}
+          onChange={(changes) => changeFood(food.id, changes)}
+          onRemove={() => removeFood(food)}
+        />
+      ))}
+      {myFoods.length < MAX_CUSTOM_GROUPS && (
+        <TouchableOpacity onPress={addFood} style={styles.add}>
+          <Ionicons name="add" size={16} color={MEALS_ACCENT} />
+          <Text style={mls.link}>Add a food</Text>
+        </TouchableOpacity>
+      )}
 
       <Text style={mls.sectionLabel}>Scoring</Text>
       <View style={[mls.card, styles.goal]}>
@@ -294,6 +458,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  moves: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   slotInput: { flex: 1, fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, paddingVertical: 2 },
   add: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 },
   goal: { gap: Spacing.sm },

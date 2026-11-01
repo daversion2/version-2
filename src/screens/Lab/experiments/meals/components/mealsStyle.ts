@@ -12,13 +12,14 @@ export const PASS_COLOR = Colors.success;
 export const FAIL_COLOR = Colors.fail;
 
 /**
- * Nutrient tags borrow category colours (Sleep, Money, Mind) so they can never
- * be read as pass (teal) or fail (orange).
+ * Nutrient tags borrow category colours (Sleep, Money, Mind, Fuel) so they can
+ * never be read as pass (teal) or fail (orange).
  */
 export const NUTRIENT_COLOR: Record<NutrientId, string> = {
   protein: CategoryColors.sleep,
   fiber: CategoryColors.money,
   fats: CategoryColors.mind,
+  carbs: CategoryColors.fuel,
 };
 
 const hexToRgb = (hex: string): [number, number, number] => {

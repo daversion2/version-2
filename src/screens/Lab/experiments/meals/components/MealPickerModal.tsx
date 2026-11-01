@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../../data/mealGroups';
-import type { FoodGroupId, MealsScoringWeights } from '../../../../../types/meals';
+import type { CustomFoodGroup, FoodGroupId, MealsScoringWeights } from '../../../../../types/meals';
 import type { RecentPlate } from '../../../../../services/mealsMath';
 import { describeGroups, plateNutrients, scoreVerdict } from '../../../../../services/mealsMath';
 import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, scoreColor, mls } from './mealsStyle';
@@ -26,6 +26,10 @@ interface Props {
   target: PickerTarget | null;
   strict: boolean;
   weights: MealsScoringWeights;
+  /** Every one of the user's foods this plate is scored with, archived ones included. */
+  custom?: CustomFoodGroup[];
+  /** The user's foods to offer as chips — the ones not removed. */
+  offered?: CustomFoodGroup[];
   /** Plates logged before (services/mealsMath recentPlates): a tap fills the chips. */
   recent?: RecentPlate[];
   onCancel: () => void;
@@ -41,7 +45,18 @@ interface Props {
  * as you go, so you see it before saving. The user never chooses the score —
  * only the groups.
  */
-export const MealPickerModal: React.FC<Props> = ({ target, strict, weights, recent = [], onCancel, onSave, onSkip, onRemove }) => {
+export const MealPickerModal: React.FC<Props> = ({
+  target,
+  strict,
+  weights,
+  custom = [],
+  offered = [],
+  recent = [],
+  onCancel,
+  onSave,
+  onSkip,
+  onRemove,
+}) => {
   const insets = useSafeAreaInsets();
   const [groups, setGroups] = useState<FoodGroupId[]>([]);
   const [name, setName] = useState('');
@@ -66,12 +81,16 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, weights, rece
   const sameAs = (plate: RecentPlate) =>
     plate.groups.length === groups.length && plate.groups.every((g) => groups.includes(g));
 
-  const verdict = scoreVerdict(groups, strict, weights);
+  const verdict = scoreVerdict(groups, strict, weights, custom);
   const isExtra = target?.kind === 'extra';
+  // A removed food already on this plate stays tappable, so it can be taken off.
+  const myFoods = [
+    ...offered,
+    ...custom.filter((c) => groups.includes(c.id) && !offered.some((o) => o.id === c.id)),
+  ];
 
-  const renderChip = (group: FoodGroup, processed: boolean) => {
+  const renderChip = (group: Pick<FoodGroup, 'id' | 'label' | 'nutrients'>, color: string, score?: number) => {
     const on = groups.includes(group.id);
-    const color = processed ? FAIL_COLOR : PASS_COLOR;
     return (
       <TouchableOpacity
         key={group.id}
@@ -88,6 +107,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, weights, rece
         <Text style={styles.chipText} numberOfLines={2}>
           {group.label}
         </Text>
+        {score !== undefined && <Text style={[styles.chipScore, { color: scoreColor(score) }]}>{score}</Text>}
         {/* What this group adds — the same colours as the tags below. */}
         <View style={styles.chipDots}>
           {group.nutrients.map((n) => (
@@ -130,8 +150,8 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, weights, rece
               <View style={styles.recentList}>
                 {recent.map((plate) => {
                   const on = sameAs(plate);
-                  const result = scoreVerdict(plate.groups, strict, weights).score;
-                  const label = describeGroups(plate.groups);
+                  const result = scoreVerdict(plate.groups, strict, weights, custom).score;
+                  const label = describeGroups(plate.groups, custom);
                   return (
                     <TouchableOpacity
                       key={plate.groups.join('|')}
@@ -171,13 +191,21 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, weights, rece
           )}
 
           <Text style={mls.sectionLabel}>Whole food</Text>
-          <View style={styles.grid}>{WHOLE_GROUPS.map((g) => renderChip(g, false))}</View>
+          <View style={styles.grid}>{WHOLE_GROUPS.map((g) => renderChip(g, PASS_COLOR))}</View>
 
           <Text style={mls.sectionLabel}>Processed</Text>
-          <View style={styles.grid}>{PROCESSED_GROUPS.map((g) => renderChip(g, true))}</View>
+          <View style={styles.grid}>{PROCESSED_GROUPS.map((g) => renderChip(g, FAIL_COLOR))}</View>
           <Text style={mls.muted}>
             {PROCESSED_GROUPS.map((g) => `${g.label}: ${g.examples}.`).join(' ')}
           </Text>
+
+          {myFoods.length > 0 && (
+            <>
+              <Text style={mls.sectionLabel}>My foods</Text>
+              <View style={styles.grid}>{myFoods.map((g) => renderChip(g, MEALS_ACCENT, g.score))}</View>
+              <Text style={mls.muted}>Each scores what you gave it in settings, as one share of the plate.</Text>
+            </>
+          )}
 
           <TouchableOpacity onPress={() => setShowRules((v) => !v)} style={styles.rulesToggle}>
             <Ionicons name={showRules ? 'chevron-up' : 'information-circle-outline'} size={16} color={MEALS_ACCENT} />
@@ -201,7 +229,7 @@ export const MealPickerModal: React.FC<Props> = ({ target, strict, weights, rece
               {verdict.score !== null ? verdict.score : 'Nothing picked yet'}
             </Text>
             <Text style={mls.muted}>{verdict.why}</Text>
-            {groups.length > 0 && <NutrientTags have={plateNutrients(groups)} showMissing />}
+            {groups.length > 0 && <NutrientTags have={plateNutrients(groups, custom)} showMissing />}
           </View>
           <View style={styles.footerRow}>
             {!isExtra && onSkip && (
@@ -268,6 +296,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipText: { flex: 1, fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  chipScore: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xs },
   chipDots: { flexDirection: 'row', gap: 3 },
   chipDot: { width: 7, height: 7, borderRadius: 4 },
   recentList: { gap: Spacing.sm },

@@ -1,5 +1,11 @@
 import {
+  activeCustomGroups,
   addSlot,
+  archiveCustomGroup,
+  describeGroups,
+  moveSlot,
+  newCustomGroup,
+  updateCustomGroup,
   canReopen,
   closeDay,
   emptyDay,
@@ -24,7 +30,7 @@ import {
   withoutExtra,
 } from '../mealsMath';
 import { DEFAULT_MEALS_SCORING } from '../../data/mealGroups';
-import type { FoodGroupId, GroupGoal, MealsDay, MealsRules } from '../../types/meals';
+import type { CustomFoodGroup, FoodGroupId, GroupGoal, MealsDay, MealsRules } from '../../types/meals';
 
 const SLOTS = [
   { id: 'breakfast', name: 'Breakfast' },
@@ -266,7 +272,8 @@ describe('rulesForDay', () => {
 
   it('a past day keeps the rules it was saved under, so editing settings never rescores it', () => {
     const lenient = rules({ scoring: { ...weights, on_target_threshold: 10 } });
-    expect(rulesForDay('2026-10-14', '2026-10-15', { rules: lenient }, current)).toEqual(lenient);
+    // Saved before custom foods existed: the current list (empty here) fills in.
+    expect(rulesForDay('2026-10-14', '2026-10-15', { rules: lenient }, current)).toEqual({ ...lenient, custom_groups: [] });
     expect(rulesForDay('2026-10-14', '2026-10-15', undefined, current)).toBe(current);
   });
 
@@ -274,6 +281,19 @@ describe('rulesForDay', () => {
     const r = rulesForDay('2026-10-14', '2026-10-15', { rules: oldRules }, current);
     expect(r.scoring).toEqual(DEFAULT_MEALS_SCORING);
     expect(r.slots).toBe(oldRules.slots); // the rest of the saved snapshot is preserved
+  });
+
+  it('a day keeps the custom foods it was saved with, even after one is changed', () => {
+    const then: CustomFoodGroup[] = [{ id: 'custom_a', label: 'Carb supplement', score: 80, nutrients: ['carbs'] }];
+    const now = rules({ custom_groups: updateCustomGroup(then, 'custom_a', { score: 40 }) });
+    const r = rulesForDay('2026-10-14', '2026-10-15', { rules: rules({ custom_groups: then }) }, now);
+    expect(r.custom_groups).toEqual(then);
+  });
+
+  it('a past day still knows a food added after it was saved — say, one logged on it later', () => {
+    const later: CustomFoodGroup = { id: 'custom_b', label: 'Gel', score: 60, nutrients: [] };
+    const r = rulesForDay('2026-10-14', '2026-10-15', { rules: rules() }, rules({ custom_groups: [later] }));
+    expect(r.custom_groups).toEqual([later]);
   });
 
   it('backfills only the missing keys of a partially-present scoring object', () => {
@@ -443,16 +463,22 @@ describe('nutrient tags', () => {
   it('tags a plate from its groups, in display order', () => {
     expect(plateNutrients(['chicken', 'veggies'])).toEqual(['protein', 'fiber']);
     expect(plateNutrients(['fish'])).toEqual(['protein', 'fats']);
-    expect(plateNutrients(['legumes'])).toEqual(['protein', 'fiber']);
+    expect(plateNutrients(['legumes'])).toEqual(['protein', 'fiber', 'carbs']);
     expect(plateNutrients(['nuts'])).toEqual(['fiber', 'fats']);
-    expect(plateNutrients(['grains'])).toEqual(['fiber']);
+    expect(plateNutrients(['grains'])).toEqual(['fiber', 'carbs']);
+    expect(plateNutrients(['fruit'])).toEqual(['fiber', 'carbs']);
     expect(plateNutrients(['dairy'])).toEqual(['protein']);
     expect(plateNutrients(['supplements'])).toEqual(['protein']);
   });
 
-  it('gives processed food nothing', () => {
-    expect(plateNutrients(['semi'])).toEqual([]);
+  it('gives processed food nothing, and semi-processed only Carbs', () => {
+    expect(plateNutrients(['semi'])).toEqual(['carbs']);
     expect(plateNutrients(['processed'])).toEqual([]);
+  });
+
+  it('Carbs is shown but earns no bonus, so it never changes a score', () => {
+    expect(scorePlate(['grains'], false, weights)).toBe(75); // ratio 1.0 (70) + fiber (5); carbs adds nothing
+    expect(scorePlate(['legumes'], false, weights)).toBe(80); // protein + fiber, not carbs
   });
 
   it('counts plates — meals and snacks alike — and skips meals not eaten or not logged', () => {
@@ -465,6 +491,7 @@ describe('nutrient tags', () => {
       { nutrient: 'protein', have: 1, of: 2 },
       { nutrient: 'fiber', have: 2, of: 2 },
       { nutrient: 'fats', have: 1, of: 2 },
+      { nutrient: 'carbs', have: 1, of: 2 },
     ]);
   });
 
@@ -578,5 +605,123 @@ describe('pastWeeks', () => {
   it('counts a week where only "didn’t eat" was logged', () => {
     const days = { '2026-10-06': day('2026-10-06', { breakfast: skipped }) };
     expect(pastWeeks(today, days, rules())).toHaveLength(1);
+  });
+});
+
+describe('reordering meals', () => {
+  it('moves a meal up or down one place', () => {
+    const ids = (p: { slots: { id: string }[] }) => p.slots.map((x) => x.id);
+    expect(ids(moveSlot({ slots: SLOTS }, 'dinner', -1))).toEqual(['breakfast', 'dinner', 'lunch']);
+    expect(ids(moveSlot({ slots: SLOTS }, 'breakfast', 1))).toEqual(['lunch', 'breakfast', 'dinner']);
+  });
+
+  it('stays put past either end, or for a meal it can’t find', () => {
+    const p = { slots: SLOTS };
+    expect(moveSlot(p, 'breakfast', -1)).toBe(p);
+    expect(moveSlot(p, 'dinner', 1)).toBe(p);
+    expect(moveSlot(p, 'nope', 1)).toBe(p);
+  });
+
+  it('a day is scored and listed in the new order', () => {
+    const s = scoreDay(day('d', {}), rules({ slots: moveSlot({ slots: SLOTS }, 'dinner', -1).slots }));
+    expect(s.items.map((i) => i.key)).toEqual(['breakfast', 'dinner', 'lunch']);
+  });
+});
+
+describe('your own foods', () => {
+  const carb: CustomFoodGroup = { id: 'custom_carb', label: 'Carb supplement', score: 80, nutrients: ['carbs'] };
+  const bar: CustomFoodGroup = { id: 'custom_bar', label: 'Snack bar', score: 40, nutrients: ['protein'] };
+  const custom = [carb, bar];
+
+  it('on its own, a plate scores what you gave the food', () => {
+    expect(scorePlate(['custom_carb'], false, weights, custom)).toBe(80);
+    expect(scorePlate(['custom_carb'], true, weights, custom)).toBe(80); // strict mode doesn't touch it
+  });
+
+  it('two of your own foods alone average out', () => {
+    expect(scorePlate(['custom_carb', 'custom_bar'], false, weights, custom)).toBe(60);
+  });
+
+  it('mixed with food, it is one share of the plate at its score', () => {
+    // Eggs + Fruit score 80 as two shares; the bar is a third at 40.
+    expect(scorePlate(['eggs', 'fruit'], false, weights)).toBe(80);
+    expect(scorePlate(['eggs', 'fruit', 'custom_bar'], false, weights, custom)).toBe(67); // (160 + 40) / 3
+  });
+
+  it('its tags show on the plate but never add a bonus — its score is already yours', () => {
+    expect(plateNutrients(['custom_bar'], custom)).toEqual(['protein']);
+    expect(scorePlate(['custom_bar'], false, weights, custom)).toBe(40);
+  });
+
+  it('a protein shake with your own food: each keeps its own score', () => {
+    // Shake alone = the on-target line (70); with the 80 supplement, (70 + 80) / 2.
+    expect(scorePlate(['supplements', 'custom_carb'], false, weights, custom)).toBe(75);
+  });
+
+  it('a food with no definition is left out of the score', () => {
+    expect(scorePlate(['eggs', 'fruit', 'custom_gone'], false, weights, custom)).toBe(80);
+    expect(scorePlate(['custom_gone'], false, weights, custom)).toBeNull();
+  });
+
+  it('says why in the picker', () => {
+    expect(scoreVerdict(['custom_carb'], false, weights, custom).why).toBe('Your own food: Carb supplement 80.');
+    expect(scoreVerdict(['eggs', 'custom_carb'], false, weights, custom).why).toBe(
+      'Your own food (Carb supplement 80) counts as one share of the plate.'
+    );
+    // A penalty on the rest of the plate is still named.
+    expect(scoreVerdict(['processed', 'custom_carb'], false, weights, custom)).toEqual({
+      score: 40,
+      why: 'Your own food (Carb supplement 80) counts as one share of the plate · Processed on the plate (−30).',
+    });
+  });
+
+  it('reads by name, and an archived one still reads by name on the days it was logged', () => {
+    expect(describeGroups(['eggs', 'custom_carb'], custom)).toBe('Eggs · Carb supplement');
+    expect(describeGroups(['custom_carb'], archiveCustomGroup(custom, 'custom_carb'))).toBe('Carb supplement');
+  });
+
+  it('scores a day with the foods in its rules, Carbs included in the coverage', () => {
+    const s = scoreDay(
+      day('d', { breakfast: plate('custom_carb'), lunch: plate('eggs', 'fruit', 'custom_bar'), dinner: skipped }),
+      rules({ custom_groups: custom })
+    );
+    expect(s.items.map((i) => i.score)).toEqual([80, 67, null]);
+    expect(s.average).toBe(74);
+    expect(s.status).toBe('on');
+    expect(s.nutrients.find((n) => n.nutrient === 'carbs')).toEqual({ nutrient: 'carbs', have: 2, of: 2 });
+  });
+
+  it('a new food starts at the given score with no tags, up to the limit of active foods', () => {
+    expect(newCustomGroup([], 'abc', 70)).toEqual({ id: 'custom_abc', label: 'My food 1', score: 70, nutrients: [] });
+    const twelve = Array.from({ length: 12 }, (_, i) => ({ ...carb, id: `custom_${i}` as const }));
+    expect(newCustomGroup(twelve, 'x', 70)).toBeNull();
+    // Archived foods don't count toward the limit.
+    expect(newCustomGroup(archiveCustomGroup(twelve, 'custom_0'), 'x', 70)).not.toBeNull();
+  });
+
+  it('edits keep the score a whole number from 0 to 100', () => {
+    expect(updateCustomGroup(custom, 'custom_carb', { score: 140 })[0].score).toBe(100);
+    expect(updateCustomGroup(custom, 'custom_carb', { score: -5 })[0].score).toBe(0);
+    expect(updateCustomGroup(custom, 'custom_carb', { label: 'Gel' })[0]).toEqual({ ...carb, label: 'Gel' });
+  });
+
+  it('removing one archives it: it leaves the picker but stays defined', () => {
+    const after = archiveCustomGroup(custom, 'custom_carb');
+    expect(after).toHaveLength(2);
+    expect(activeCustomGroups(after).map((g) => g.id)).toEqual(['custom_bar']);
+  });
+
+  it('recent plates skip a removed food, and list your foods after the built-in ones', () => {
+    const days = [
+      day('2026-10-12', { breakfast: plate('custom_carb', 'eggs') }),
+      day('2026-10-13', { lunch: plate('custom_bar', 'veggies') }),
+    ];
+    expect(recentPlates(days, { kind: 'extra' }, 4, custom).map((p) => p.groups)).toEqual([
+      ['eggs', 'custom_carb'],
+      ['veggies', 'custom_bar'],
+    ]);
+    expect(recentPlates(days, { kind: 'extra' }, 4, archiveCustomGroup(custom, 'custom_carb')).map((p) => p.groups)).toEqual([
+      ['veggies', 'custom_bar'],
+    ]);
   });
 });

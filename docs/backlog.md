@@ -300,6 +300,20 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Meals: your own foods, a Carbs tag, and reordering meals** *(2026-11-01, not live yet)*
+Settings → My foods: name a food the groups don't fit ("Carb supplement"),
+give it a score (starts at the on-target line) and tags. On its own a plate
+scores what you gave it; with other food it's one share of the plate at that
+score — Chicken + Rice (80) + a 60 food = 73 (founder, 2026-11-01: blend by
+share). Its tags show but never add points. A new Carbs tag sits on Grains,
+Fruit, Legumes and Semi-processed and is information only, so no existing
+score moves. Removing a food archives it; days keep the definitions they
+were saved with, and a past day learns any food logged on it later
+(`mergeCustomGroups`). Ids are `custom_…`; no migration. Meals also move
+up/down in Settings (`moveSlot`). Custom foods can't be a food-group goal
+yet. Logic in `services/mealsMath.ts` (tested). Checked in the simulator
+2026-11-01 (`.maestro/18a`–`18e`; 18b/18e assume Lunch, Dinner, Breakfast).
+
 **Meals: a protein shake on its own counts as an on-target meal** *(2026-11-01, not live yet)*
 The Supplements chip is now "Protein shake" (shakes, powder, bars). A plate
 that's only a shake scores exactly `on_target_threshold`, strict mode or not,

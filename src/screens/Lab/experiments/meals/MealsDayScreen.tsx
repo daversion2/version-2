@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing } from '../../../../constants/theme';
 import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
 import {
+  activeCustomGroups,
   canReopen,
   recentPlates,
   reopenDay,
@@ -53,9 +54,11 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
         ? []
         : recentPlates(
             recentDays,
-            editing.kind === 'meal' && editing.slotId ? { kind: 'meal', slotId: editing.slotId } : { kind: 'extra' }
+            editing.kind === 'meal' && editing.slotId ? { kind: 'meal', slotId: editing.slotId } : { kind: 'extra' },
+            4,
+            prefs.custom_groups
           ),
-    [editing, recentDays]
+    [editing, recentDays, prefs.custom_groups]
   );
   const locked = closed;
 
@@ -249,6 +252,8 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
         target={editing}
         strict={dayRules.strict}
         weights={dayRules.scoring}
+        custom={dayRules.custom_groups}
+        offered={activeCustomGroups(prefs.custom_groups)}
         recent={recent}
         onCancel={() => setEditing(null)}
         onSave={save}

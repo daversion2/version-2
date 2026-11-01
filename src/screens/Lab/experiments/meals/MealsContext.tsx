@@ -7,7 +7,7 @@ import type { MealsDay, MealsPrefs, MealsRules } from '../../../../types/meals';
 import { DEFAULT_MEALS_PREFS } from '../../../../data/mealGroups';
 import { getMealsPrefs, listMealsDays, newMealsId, saveMealsDay, saveMealsPrefs } from '../../../../services/labMeals';
 import { addDays } from '../../../../services/habitSchedule';
-import { emptyDay, rulesOf, weekDates } from '../../../../services/mealsMath';
+import { emptyDay, mergeCustomGroups, rulesOf, weekDates } from '../../../../services/mealsMath';
 import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
 import { toLocalDateString } from '../../../../utils/date';
@@ -146,9 +146,16 @@ export const MealsProvider: React.FC<{
   const saveDay = useCallback(
     async (next: MealsDay) => {
       const before = daysRef.current[next.date];
+      const kept = next.rules ?? before?.rules;
+      // A past day keeps its rules, but learns any of your foods it didn't
+      // know yet — one may have just been logged on it.
+      const pastRules = kept && {
+        ...kept,
+        custom_groups: mergeCustomGroups(kept.custom_groups, rules.custom_groups),
+      };
       const withRules: MealsDay = {
         ...next,
-        rules: next.date === today ? rules : (next.rules ?? before?.rules ?? rules),
+        rules: next.date === today ? rules : (pastRules ?? rules),
       };
       setDays((d) => ({ ...d, [next.date]: withRules }));
       try {

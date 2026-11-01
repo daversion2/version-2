@@ -1,0 +1,29 @@
+# Meals (Lab): open Meals settings and record the meal order before 18b
+# changes it. Writes nothing. Starts with Meals open or the Today card visible.
+appId: com.neuronudge.neuronudge
+---
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- runFlow:
+    when:
+      notVisible: "Close Meals"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "Meals\\. .*"
+          direction: DOWN
+          centerElement: true
+          timeout: 10000
+      - tapOn: "Meals\\. .*"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 20000
+- takeScreenshot: 18a-1-day-before
+- tapOn: "Meals settings"
+- extendedWaitUntil:
+    visible: "MY MEALS"
+    timeout: 10000
+- takeScreenshot: 18a-2-settings-before
