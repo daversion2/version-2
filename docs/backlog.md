@@ -71,6 +71,16 @@ Related, lower risk: that art pipeline sends these same photos to the image
 model as **pose references** for the core 59 (it copies only the body
 position). Decide whether to keep doing that before launch.
 
+**Listen to, approve and publish focus-05, focus-15 and focus-20** *(added 2026-11-01)*
+The rest of the focus series: recipes in `content/meditations/recordings/`,
+cut from the same Regina recording as focus-10 (wording, voice and ambience
+identical; only the seven practice pauses get longer). On the laptop:
+`npx tsx scripts/extendRecording.ts focus-05` (and 15, 20), listen to each in
+full, `npx tsx scripts/approveMeditation.ts <id>`, then
+`npx tsx scripts/publishMeditations.ts --publish`. At 20 min each practice
+pause runs about 2–3 min, so check it doesn't feel too sparse. The old
+written `focus-05.md` script (never approved) was replaced by its recipe.
+
 **Fresh-account walkthrough + account deletion** *(added 2026-09-05)*
 Nobody has tried a brand-new account since the 2026-10-11 changes: onboarding
 now renders through `<Copy>`, plus the new nightly close, Today's plan card and
