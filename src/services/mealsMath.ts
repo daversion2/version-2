@@ -24,7 +24,6 @@ import {
   MAX_GROUP_GOALS,
   MAX_SLOTS,
   NUTRIENTS,
-  PROCESSED_GROUPS,
   WHOLE_GROUPS,
 } from '../data/mealGroups';
 import { toLocalDateString } from '../utils/date';
@@ -488,72 +487,6 @@ export const describeGroupGoal = (goal: GroupGoal): string => {
   const label = groupLabel(goal.group);
   if (goal.period === 'day') return `${label} at ${goal.count} ${goal.count === 1 ? 'meal' : 'meals'} a day`;
   return `${label} ${goal.count} ${goal.count === 1 ? 'time' : 'times'} a week`;
-};
-
-// --- Recent plates ------------------------------------------------------------
-
-/** A plate logged before, offered as a one-tap fill in the picker. */
-export interface RecentPlate {
-  /** In the picker's order, so the same plate always reads the same way. */
-  groups: FoodGroupId[];
-  /** Extras: the most recent name it was logged under, if it had one. */
-  name?: string;
-}
-
-const GROUP_ORDER: FoodGroupId[] = [...WHOLE_GROUPS, ...PROCESSED_GROUPS].map((g) => g.id);
-
-/** Built-in groups in the picker's order, then the user's own foods. */
-const rank = (g: FoodGroupId): number => {
-  const i = GROUP_ORDER.indexOf(g);
-  return i === -1 ? GROUP_ORDER.length : i;
-};
-
-const canonical = (groups: FoodGroupId[]): FoodGroupId[] =>
-  [...new Set(groups)].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-
-/**
- * Distinct plates from past days, newest first, for the picker's "Recent" row.
- * Plates logged in the same place come first: your usual lunch when you tap
- * Lunch, your usual snacks when you add something additional. Then everything
- * else. "Didn't eat" and empty plates are never offered, nor is a plate with
- * one of your own foods you've since removed.
- */
-export const recentPlates = (
-  days: MealsDay[],
-  target: { kind: 'meal'; slotId: string } | { kind: 'extra' },
-  max = 4,
-  custom: CustomFoodGroup[] = []
-): RecentPlate[] => {
-  const offered = new Set(activeCustomGroups(custom).map((g) => g.id));
-  interface Seen {
-    plate: RecentPlate;
-    at: string;
-    here: boolean;
-  }
-  const seen = new Map<string, Seen>();
-  const note = (groups: FoodGroupId[] | undefined, at: string, here: boolean, name?: string) => {
-    if (!groups || groups.length === 0) return;
-    if (groups.some((g) => isCustomGroup(g) && !offered.has(g))) return;
-    const ordered = canonical(groups);
-    const key = ordered.join('|');
-    const prev = seen.get(key);
-    const newer = !prev || at > prev.at;
-    seen.set(key, {
-      plate: { groups: ordered, name: newer ? name ?? prev?.plate.name : prev.plate.name ?? name },
-      at: newer ? at : prev.at,
-      here: here || !!prev?.here,
-    });
-  };
-  for (const day of days) {
-    for (const [slotId, entry] of Object.entries(day.meals)) {
-      note(entry.groups, entry.logged_at, target.kind === 'meal' && slotId === target.slotId);
-    }
-    for (const extra of day.extras) note(extra.groups, extra.logged_at, target.kind === 'extra', extra.name);
-  }
-  return [...seen.values()]
-    .sort((a, b) => Number(b.here) - Number(a.here) || b.at.localeCompare(a.at))
-    .slice(0, max)
-    .map(({ plate }) => (target.kind === 'extra' && plate.name ? plate : { groups: plate.groups }));
 };
 
 // --- Editing a day -------------------------------------------------------------

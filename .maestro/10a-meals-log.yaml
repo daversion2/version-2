@@ -77,11 +77,9 @@ appId: com.neuronudge.neuronudge
     timeout: 10000
 - takeScreenshot: 10a-3-day-off
 
-# Change dinner to salmon and rice — the day turns on target. Re-editing an
-# already-logged plate shows a Recent row above the chips (today's own
-# Processed plate), which pushes the Processed chip and the whole-food chips
-# below it further down than a fresh picker — scrollUntilVisible rather than
-# a fixed swipe, so it finds them regardless of how tall Recent is.
+# Change dinner to salmon and rice — the day turns on target.
+# scrollUntilVisible rather than a fixed swipe, so it finds the chips
+# whatever the picker's height.
 - tapOn: "Dinner: .*"
 - scrollUntilVisible:
     element:

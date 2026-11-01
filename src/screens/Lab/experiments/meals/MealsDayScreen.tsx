@@ -7,7 +7,6 @@ import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
 import {
   activeCustomGroups,
   canReopen,
-  recentPlates,
   reopenDay,
   rulesForDay,
   scoreDay,
@@ -37,7 +36,7 @@ const dayLabel = (date: string, today: string): string => {
  * as "something additional"; close out today when the eating's done.
  */
 export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { loading, loadError, reload, today, prefs, rules, updatePrefs, dayFor, recentDays, saveDay, newId, closeApp } =
+  const { loading, loadError, reload, today, prefs, rules, updatePrefs, dayFor, saveDay, newId, closeApp } =
     useMeals();
   const date = route.params?.date ?? today;
   const isToday = date === today;
@@ -48,18 +47,6 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const dayRules = rulesForDay(date, today, day, rules);
   const score = useMemo(() => scoreDay(day, dayRules), [day, dayRules]);
   const closed = !!day.closed_at;
-  const recent = useMemo(
-    () =>
-      !editing
-        ? []
-        : recentPlates(
-            recentDays,
-            editing.kind === 'meal' && editing.slotId ? { kind: 'meal', slotId: editing.slotId } : { kind: 'extra' },
-            4,
-            prefs.custom_groups
-          ),
-    [editing, recentDays, prefs.custom_groups]
-  );
   const locked = closed;
 
   useLayoutEffect(() => {
@@ -254,7 +241,6 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
         weights={dayRules.scoring}
         custom={dayRules.custom_groups}
         offered={activeCustomGroups(prefs.custom_groups)}
-        recent={recent}
         onCancel={() => setEditing(null)}
         onSave={save}
         onSkip={editing?.kind === 'meal' ? skip : undefined}

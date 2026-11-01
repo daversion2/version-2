@@ -300,7 +300,12 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Meals: your own foods, a Carbs tag, and reordering meals** *(2026-11-01, not live yet)*
+**Meals: Recent plates removed from the picker** *(2026-11-01, live OTA)*
+Founder: with only a handful of chips it was redundant. The picker opens
+straight on the chips. `recentPlates` and its `.maestro/13a`–`13d` flows are
+gone; the four earlier weeks still load, for Past weeks.
+
+**Meals: your own foods, a Carbs tag, and reordering meals** *(2026-11-01, 932f4ba, live OTA)*
 Settings → My foods: name a food the groups don't fit ("Carb supplement"),
 give it a score (starts at the on-target line) and tags. On its own a plate
 scores what you gave it; with other food it's one share of the plate at that
@@ -314,7 +319,7 @@ up/down in Settings (`moveSlot`). Custom foods can't be a food-group goal
 yet. Logic in `services/mealsMath.ts` (tested). Checked in the simulator
 2026-11-01 (`.maestro/18a`–`18e`; 18b/18e assume Lunch, Dinner, Breakfast).
 
-**Meals: a protein shake on its own counts as an on-target meal** *(2026-11-01, not live yet)*
+**Meals: a protein shake on its own counts as an on-target meal** *(2026-11-01, 2ca2f54, live OTA)*
 The Supplements chip is now "Protein shake" (shakes, powder, bars). A plate
 that's only a shake scores exactly `on_target_threshold`, strict mode or not,
 so a shake-for-lunch counts without sinking the day; before, it scored 5 and
@@ -375,7 +380,7 @@ Up to 4 plates logged in the last 4 weeks, shown above the chips. Plates from
 the same meal come first (your usual lunch when you tap Lunch); for
 "something additional", past snacks come first, with their names. A tap fills
 the chips and you still press Save, so pass or fail shows first.
-`recentPlates` in `services/mealsMath.ts` (tested). Checked in the simulator (`.maestro/13a`–`13d`).
+Removed 2026-11-01 (see above).
 
 **Workouts: best-set trend per exercise** *(2026-10-24, bebf7b8, live OTA)*
 On an exercise's stats screen, above Records: one dot per session (last 12)
