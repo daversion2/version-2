@@ -9,6 +9,7 @@ import { exerciseSubtitle, exercisesInGroup, searchExercises } from '../../../..
 import { useWorkouts } from '../WorkoutsContext';
 import { BodyPartTiles } from './BodyPartTiles';
 import { ExerciseEditorModal } from './ExerciseEditorModal';
+import { ExercisePreviewModal, ExerciseThumb } from './ExercisePreview';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './workoutsStyle';
 
 interface Props {
@@ -42,6 +43,8 @@ export const ExercisePickerModal: React.FC<Props> = ({
   const [creating, setCreating] = useState(false);
   // Which body part's tile is open; null = the tiles themselves.
   const [group, setGroup] = useState<MuscleGroup | null>(null);
+  // The exercise whose photos are open, from its thumbnail.
+  const [preview, setPreview] = useState<Exercise | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -49,6 +52,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
       setSelected([]);
       setCreating(false);
       setGroup(null);
+      setPreview(null);
     }
   }, [visible]);
 
@@ -163,6 +167,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
                   accessibilityState={{ selected: isSelected }}
                   accessibilityHint={mode === 'multi' && isSelected ? 'Adds it again' : undefined}
                 >
+                  <ExerciseThumb exercise={item} onPress={() => setPreview(item)} />
                   <View style={{ flex: 1 }}>
                     <Text style={ws.title}>{item.name}</Text>
                     <Text style={ws.muted}>{exerciseSubtitle(item, KIND_LABELS[item.kind])}</Text>
@@ -232,6 +237,22 @@ export const ExercisePickerModal: React.FC<Props> = ({
           </View>
         )}
       </View>
+
+      <ExercisePreviewModal
+        exercise={preview}
+        addLabel={mode === 'single' ? 'Choose this exercise' : 'Add this exercise'}
+        onClose={() => setPreview(null)}
+        onAdd={(exercise) => {
+          setPreview(null);
+          if (mode === 'multi') {
+            pick(exercise);
+            return;
+          }
+          // Choosing closes this sheet too: let the preview slide away first,
+          // as with the editor below.
+          setTimeout(() => onConfirm([exercise]), 450);
+        }}
+      />
 
       <ExerciseEditorModal
         visible={creating}
@@ -306,7 +327,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },

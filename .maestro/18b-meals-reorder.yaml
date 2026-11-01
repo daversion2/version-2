@@ -1,0 +1,17 @@
+# Meals (Lab): reorder meals with the chevrons. Starts in Meals settings (18a).
+# WRITES the meal order — moves Breakfast to the top. 18f puts it back to
+# Lunch, Dinner, Breakfast (this account's order on 2026-11-01).
+appId: com.neuronudge.neuronudge
+---
+- extendedWaitUntil:
+    visible: "MY MEALS"
+    timeout: 10000
+- tapOn: "Move Breakfast up"
+- takeScreenshot: 18b-1-breakfast-up-once
+- tapOn: "Move Breakfast up"
+- takeScreenshot: 18b-2-breakfast-top
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- takeScreenshot: 18b-3-day-new-order

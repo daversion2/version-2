@@ -1,0 +1,47 @@
+# Meals (Lab): remove "Maestro Carb" (archives it), check the picker no longer
+# offers it, and put the meal order back to Lunch, Dinner, Breakfast (this
+# account's order before 18b). Starts on the Meals day view. Picker is Cancelled.
+appId: com.neuronudge.neuronudge
+---
+- tapOn: "Meals settings"
+- extendedWaitUntil:
+    visible: "Rename Maestro Carb"
+    timeout: 10000
+- tapOn: "Remove Maestro Carb"
+- extendedWaitUntil:
+    visible: "Remove Maestro Carb\\?"
+    timeout: 5000
+- takeScreenshot: 18e-1-remove-confirm
+- tapOn: "Remove"
+- extendedWaitUntil:
+    notVisible: "Rename Maestro Carb"
+    timeout: 5000
+- takeScreenshot: 18e-2-food-removed
+# Restore the meal order.
+- tapOn: "Move Breakfast down"
+- tapOn: "Move Breakfast down"
+- takeScreenshot: 18e-3-order-restored
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- takeScreenshot: 18e-4-day-order-restored
+- tapOn: "Lunch: .*"
+- extendedWaitUntil:
+    visible:
+      id: "meal-chip-eggs"
+    timeout: 10000
+- swipe:
+    start: 50%, 60%
+    end: 50%, 20%
+- swipe:
+    start: 50%, 60%
+    end: 50%, 20%
+- assertNotVisible: "MY FOODS"
+- assertNotVisible:
+    id: "meal-chip-custom_.*"
+- takeScreenshot: 18e-5-picker-no-custom
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000

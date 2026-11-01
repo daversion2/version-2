@@ -19,8 +19,8 @@ appId: com.neuronudge.neuronudge
 - tapOn: "What was it.*"
 - inputText: "Donut"
 - hideKeyboard
-# The Recent row (today's own plates) plus the text field push the Processed
-# chip well below the fold — scrollUntilVisible rather than a fixed swipe.
+# The text field pushes the Processed chip below the fold —
+# scrollUntilVisible rather than a fixed swipe.
 - scrollUntilVisible:
     element:
       id: "meal-chip-processed"

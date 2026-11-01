@@ -6,6 +6,7 @@ import { DayScore, NutrientCoverage, ScoredItem, describeGroups } from '../../..
 import { NUTRIENTS, groupLabel } from '../../../../../data/mealGroups';
 import type { NutrientId } from '../../../../../types/meals';
 import { FAIL_COLOR, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, itemColor, mls } from './mealsStyle';
+import { useMeals } from '../MealsContext';
 
 /** "2 of 3 meals logged · averaging 64 so far". */
 const statusLine = (score: DayScore, threshold: number): string => {
@@ -121,12 +122,14 @@ export const PlateRow: React.FC<{
   onPress?: () => void;
   compact?: boolean;
 }> = ({ item, onPress, compact }) => {
+  // Removed foods are only archived, so the current list names every one ever logged.
+  const custom = useMeals().prefs.custom_groups;
   const line =
     item.state === 'pending'
       ? 'Tap to log'
       : item.state === 'skipped'
         ? 'Didn’t eat — doesn’t count'
-        : describeGroups(item.groups);
+        : describeGroups(item.groups, custom);
   const content = (
     <>
       <View

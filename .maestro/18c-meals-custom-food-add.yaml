@@ -1,0 +1,33 @@
+# Meals (Lab): add a custom food in Settings → My foods. Starts on the Meals
+# day view. WRITES a custom food "Maestro Carb" (score 80, Carbs); 18e removes it.
+appId: com.neuronudge.neuronudge
+---
+- tapOn: "Meals settings"
+- extendedWaitUntil:
+    visible: "MY MEALS"
+    timeout: 10000
+- tapOn: ".*Add a food"
+- extendedWaitUntil:
+    visible: "Rename My food.*"
+    timeout: 10000
+- takeScreenshot: 18c-1-food-added-keyboard
+- eraseText: 30
+- inputText: "Maestro Carb"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Rename Maestro Carb"
+    timeout: 10000
+- hideKeyboard
+- tapOn: "More Maestro Carb score"
+- tapOn: "More Maestro Carb score"
+- tapOn: "Maestro Carb has Carbs"
+- takeScreenshot: 18c-2-food-edited
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- tapOn: "Meals settings"
+- extendedWaitUntil:
+    visible: "Rename Maestro Carb"
+    timeout: 10000
+- takeScreenshot: 18c-3-food-persisted

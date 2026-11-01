@@ -1,0 +1,62 @@
+# Meals (Lab): a custom food in the picker. Starts in Meals settings with
+# "Maestro Carb" (80, Carbs) present (18c). Writes nothing — Cancels the picker.
+appId: com.neuronudge.neuronudge
+---
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- tapOn: "Breakfast: .*"
+- extendedWaitUntil:
+    visible:
+      id: "meal-chip-eggs"
+    timeout: 10000
+- takeScreenshot: 18d-1-picker-top
+- swipe:
+    start: 50%, 60%
+    end: 50%, 20%
+- swipe:
+    start: 50%, 60%
+    end: 50%, 20%
+- takeScreenshot: 18d-2-picker-my-foods
+# Maestro Carb alone: the plate scores what the food was given.
+- tapOn:
+    id: "meal-chip-custom_.*"
+- extendedWaitUntil:
+    visible: "Your own food: Maestro Carb 80\\."
+    timeout: 5000
+- takeScreenshot: 18d-3-custom-alone
+# Plus Eggs + Fruit (80 on their own): one share at 80 → still 80.
+- scrollUntilVisible:
+    element:
+      id: "meal-chip-eggs"
+    direction: UP
+    centerElement: true
+    timeout: 10000
+- tapOn:
+    id: "meal-chip-eggs"
+- tapOn:
+    id: "meal-chip-fruit"
+- extendedWaitUntil:
+    visible: ".*Maestro Carb 80.*one share of the plate.*"
+    timeout: 5000
+- takeScreenshot: 18d-4-custom-eggs-fruit
+# Swap to Processed + Maestro Carb.
+- tapOn:
+    id: "meal-chip-eggs"
+- tapOn:
+    id: "meal-chip-fruit"
+- swipe:
+    start: 50%, 60%
+    end: 50%, 20%
+- swipe:
+    start: 50%, 60%
+    end: 50%, 20%
+- tapOn:
+    id: "meal-chip-processed"
+- takeScreenshot: 18d-5-custom-processed
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Close Meals"
+    timeout: 10000
+- assertVisible: "Breakfast: Tap to log"

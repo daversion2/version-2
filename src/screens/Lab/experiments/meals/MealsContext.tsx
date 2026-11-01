@@ -7,14 +7,14 @@ import type { MealsDay, MealsPrefs, MealsRules } from '../../../../types/meals';
 import { DEFAULT_MEALS_PREFS } from '../../../../data/mealGroups';
 import { getMealsPrefs, listMealsDays, newMealsId, saveMealsDay, saveMealsPrefs } from '../../../../services/labMeals';
 import { addDays } from '../../../../services/habitSchedule';
-import { emptyDay, rulesOf, weekDates } from '../../../../services/mealsMath';
+import { emptyDay, mergeCustomGroups, rulesOf, weekDates } from '../../../../services/mealsMath';
 import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
 
 const APP = 'meals' as const;
-/** How far back Past weeks and the picker's recent plates look. */
+/** How far back Past weeks looks. */
 const RECENT_WEEKS = 4;
 
 interface MealsContextValue {
@@ -33,10 +33,8 @@ interface MealsContextValue {
   /** This week's days, keyed by date. A day nobody has touched is absent. */
   days: Record<string, MealsDay>;
   dayFor: (date: string) => MealsDay;
-  /** The four weeks before this one, keyed by date. Read-only: for past weeks and recent plates. */
+  /** The four weeks before this one, keyed by date. Read-only: for past weeks. */
   pastDays: Record<string, MealsDay>;
-  /** The last four weeks plus this one, for the picker's recent plates. */
-  recentDays: MealsDay[];
   /**
    * Save a day. Shown at once, written in the background; a failed write puts
    * the day back and says so. Today's day always carries today's rules; a past
@@ -101,7 +99,7 @@ export const MealsProvider: React.FC<{
         getMealsPrefs(userId),
         listMealsDays(userId, week[0], week[6]),
         getActiveHabits(userId),
-        // Only feeds the recent plates, so a failure here mustn't block the app.
+        // Only feeds Past weeks, so a failure here mustn't block the app.
         listMealsDays(userId, addDays(week[0], -RECENT_WEEKS * 7), addDays(week[0], -1)).catch(
           () => ({}) as Record<string, MealsDay>
         ),
@@ -141,14 +139,20 @@ export const MealsProvider: React.FC<{
   );
 
   const dayFor = useCallback((date: string) => days[date] ?? emptyDay(date), [days]);
-  const recentDays = useMemo(() => [...Object.values(pastDays), ...Object.values(days)], [pastDays, days]);
 
   const saveDay = useCallback(
     async (next: MealsDay) => {
       const before = daysRef.current[next.date];
+      const kept = next.rules ?? before?.rules;
+      // A past day keeps its rules, but learns any of your foods it didn't
+      // know yet — one may have just been logged on it.
+      const pastRules = kept && {
+        ...kept,
+        custom_groups: mergeCustomGroups(kept.custom_groups, rules.custom_groups),
+      };
       const withRules: MealsDay = {
         ...next,
-        rules: next.date === today ? rules : (next.rules ?? before?.rules ?? rules),
+        rules: next.date === today ? rules : (pastRules ?? rules),
       };
       setDays((d) => ({ ...d, [next.date]: withRules }));
       try {
@@ -195,7 +199,6 @@ export const MealsProvider: React.FC<{
     days,
     dayFor,
     pastDays,
-    recentDays,
     saveDay,
     newId,
     habits,

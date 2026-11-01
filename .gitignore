@@ -58,3 +58,7 @@ content/meditations/composed/
 
 # copied into the functions build by `npm --prefix functions run sync-core` (predeploy)
 functions/meditation-assets/
+
+# exercise demo photo candidates — the master photo, approvals and run log are committed
+content/exercise-art/out/
+content/exercise-art/.cache/

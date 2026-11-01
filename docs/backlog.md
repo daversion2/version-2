@@ -292,7 +292,14 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
   the app-wide nightly close, past weeks, and a habit-detail highlight card.
   When it goes live, remove the old food habits in the same release (the list
   is in the doc).
-- **Workouts exercise art.** On hold. The 5-step plan is in the doc.
+- **Workouts exercise photos: 9 left to make.** Start/end photo pairs,
+  generated with Nano Banana Pro and approved by the founder in batches of 10
+  (`content/exercise-art/README.md`). They show as thumbnails in the exercise
+  picker (tap for start/end and cues), in each exercise's card in the block
+  editor, and on its stats screen. 34 shipped OTA 2026-11-01; 6 skipped as
+  text only. Next: `generateExerciseArt.ts --next` once the Pro daily limit
+  resets, review, then publish and ship OTA. The drawn-figure Lab prototype
+  (Lab → Exercise figures) lost to photos and can be deleted.
 - **Cold and Focus mini-apps.** Candidates. Both reuse Meditate's timer and
   bell.
 
@@ -318,7 +325,26 @@ added for today; distance exercises can't be added here. Logic in
 `services/weeklyVolume.ts` (tested); screens `WeeklyVolumeScreen`,
 `WeeklyVolumeExerciseScreen`. **Not tried on screen yet.**
 
-**Meals: a protein shake on its own counts as an on-target meal** *(2026-11-01, not live yet)*
+**Meals: Recent plates removed from the picker** *(2026-11-01, live OTA)*
+Founder: with only a handful of chips it was redundant. The picker opens
+straight on the chips. `recentPlates` and its `.maestro/13a`–`13d` flows are
+gone; the four earlier weeks still load, for Past weeks.
+
+**Meals: your own foods, a Carbs tag, and reordering meals** *(2026-11-01, 932f4ba, live OTA)*
+Settings → My foods: name a food the groups don't fit ("Carb supplement"),
+give it a score (starts at the on-target line) and tags. On its own a plate
+scores what you gave it; with other food it's one share of the plate at that
+score — Chicken + Rice (80) + a 60 food = 73 (founder, 2026-11-01: blend by
+share). Its tags show but never add points. A new Carbs tag sits on Grains,
+Fruit, Legumes and Semi-processed and is information only, so no existing
+score moves. Removing a food archives it; days keep the definitions they
+were saved with, and a past day learns any food logged on it later
+(`mergeCustomGroups`). Ids are `custom_…`; no migration. Meals also move
+up/down in Settings (`moveSlot`). Custom foods can't be a food-group goal
+yet. Logic in `services/mealsMath.ts` (tested). Checked in the simulator
+2026-11-01 (`.maestro/18a`–`18e`; 18b/18e assume Lunch, Dinner, Breakfast).
+
+**Meals: a protein shake on its own counts as an on-target meal** *(2026-11-01, 2ca2f54, live OTA)*
 The Supplements chip is now "Protein shake" (shakes, powder, bars). A plate
 that's only a shake scores exactly `on_target_threshold`, strict mode or not,
 so a shake-for-lunch counts without sinking the day; before, it scored 5 and
@@ -379,7 +405,7 @@ Up to 4 plates logged in the last 4 weeks, shown above the chips. Plates from
 the same meal come first (your usual lunch when you tap Lunch); for
 "something additional", past snacks come first, with their names. A tap fills
 the chips and you still press Save, so pass or fail shows first.
-`recentPlates` in `services/mealsMath.ts` (tested). Checked in the simulator (`.maestro/13a`–`13d`).
+Removed 2026-11-01 (see above).
 
 **Workouts: best-set trend per exercise** *(2026-10-24, bebf7b8, live OTA)*
 On an exercise's stats screen, above Records: one dot per session (last 12)
