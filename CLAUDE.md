@@ -248,6 +248,10 @@ production screen. `src/screens/Lab/experiments.ts` explains how to add one:
   dispatches to it. **Workouts** works this way. See `docs/mini-app-contract.md`
   ("What got built") for how a mini-app hands a finished session back to Today.
 
+**New micro-app from an idea:** use the `build-micro-app` skill
+(`.claude/skills/build-micro-app/`). It writes a spec sheet to
+`docs/micro-apps/<id>.md`, then builds the app in the Lab and wires it like Meals.
+
 The Lab screens load lazily via `getComponent` in `AdminStack.tsx`. Don't import
 from `screens/Lab` at the top of any file that loads at startup. Experiments
 write to their own `users/{uid}/lab_*` subcollections, never global collections.
@@ -265,6 +269,7 @@ They ship over the air like any other change.
   "habits support underneath" framing is superseded by the doc above
 - `docs/habit-library-audit.md`, `docs/challenge-library.md`, `docs/tidbit-audit.md` — content inventories
 - `docs/backlog.md` — the open-work list
+- `docs/micro-apps/` — one spec sheet per micro-app built with `build-micro-app`
 - `docs/pivot-checklist.md` — the ordered checklist for finishing the move off habits
 - `docs/go-live-checklist.md` (stale — rewrite is on the backlog)
 - `docs/app-overview-user-facing.md` — the product in the user's own words
