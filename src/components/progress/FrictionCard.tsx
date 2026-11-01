@@ -37,7 +37,7 @@ export const FrictionCard: React.FC<Props> = ({ overview, bare = false }) => {
           Friction you can handle
         </Copy>
         <Copy id="progress.friction.empty" style={styles.empty}>
-          {"Log a few habits and this will show how much friction you're handling, and how much easier it's getting."}
+          {"Log a few sessions and this will show how much friction you're handling, and how much easier it's getting."}
         </Copy>
       </View>
     );

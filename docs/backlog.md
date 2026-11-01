@@ -69,9 +69,13 @@ Next:
    - Settings: the redesign branch inside `SettingsScreen.tsx`.
 
    Shared header: `common/LargeTitle`. Today and AppPage still draw their own
-   copy of it; switch them over. Next: the rating sheet (QuickLogSheet), then
-   Close out the day (NightlyReflectionScreen). Weekly goals in Settings wait
-   for the D4 onboarding work.
+   copy of it; switch them over. **The rating sheet is built**
+   (`homeRedesign/RateSheet.tsx`; HomeScreen swaps it in for QuickLogSheet
+   and both share `rateQuickLog`). It has not been seen on screen, because
+   that needs a finished session. **Close out the day is deferred to D3**: its
+   content (habit chips, "you showed up for N habits") changes when nightly
+   planning moves to app sessions, so redesign it once, together with D3.
+   Weekly goals in Settings wait for the D4 onboarding work.
 3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
 4. Phase 4: sign-in and the two-step onboarding (D4). Sign in with Apple needs
    a native build.

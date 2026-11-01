@@ -50,7 +50,9 @@ export const Fonts = {
   primary: 'Garet',
   primaryBold: 'Garet-Bold',
   secondary: 'Avenir',
-  secondaryBold: 'Avenir-Bold',
+  // A real iOS face name. It was 'Avenir-Bold', which iOS doesn't have, so
+  // "bold" headings rendered at regular weight (seen on screen 2026-10-31).
+  secondaryBold: 'Avenir-Heavy',
   accent: 'RacingSansOne',
 };
 

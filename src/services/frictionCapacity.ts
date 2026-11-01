@@ -145,5 +145,5 @@ export const frictionSentence = (overview: FrictionOverview): string => {
   if (felt - faced >= 1) {
     return 'Your last 7 days felt harder than when you started. A tough stretch, not a step back.';
   }
-  return 'Your last 7 days felt about as hard as when you started. As habits bed in, the gap opens up.';
+  return 'Your last 7 days felt about as hard as when you started. As starting gets easier, the gap opens up.';
 };

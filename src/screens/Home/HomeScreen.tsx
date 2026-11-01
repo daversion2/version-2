@@ -7,7 +7,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { AppColors, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +30,7 @@ import {
 } from '../../services/appCheckins';
 import { HomeDashboardView } from '../../components/homeDashboard/HomeDashboardView';
 import { TodayView } from '../../components/homeRedesign/TodayView';
+import { RateSheet } from '../../components/homeRedesign/RateSheet';
 import { isRedesignOn } from '../../utils/redesign';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
 import { PointsIntroModal } from '../../components/common/PointsIntroModal';
@@ -666,6 +667,23 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       .catch((err) => console.warn('Saving app activity failed:', err));
   };
 
+  // The rating is the save, from either sheet (QuickLogSheet, or RateSheet in the redesign).
+  const rateQuickLog = async (resistance: number, values: Record<string, number>) => {
+    if (!quickLog) return;
+    const input = buildQuickSheetInput(resistance, values, quickLog.initialValues, quickLog.date);
+    if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
+    try {
+      await handleAppRated(input, quickLog.appId, quickLog.sessionId);
+    } catch (err) {
+      console.warn('Quick log failed:', err);
+      showAlert(
+        t('today.alert.quickLogFailed.title', "Couldn't log that"),
+        t('today.alert.quickLogFailed.message', 'Check your connection and try again.')
+      );
+      throw err;
+    }
+  };
+
   // A root route, above the tabs — dispatch bubbles up to it.
   const openApp = (appId: TodayAppId) => {
     const route = TODAY_APPS.find((a) => a.id === appId)?.route;
@@ -851,35 +869,34 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }}
       />
 
-      <QuickLogSheet
-        visible={!!quickLog}
-        habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
-        sectionName={
-          quickLog
-            ? t(`today.section.name.${sectionOfApp(quickLog.appId)}`, getHabitSection(sectionOfApp(quickLog.appId)).name)
-            : ''
-        }
-        sectionColor={quickLog ? getHabitSection(sectionOfApp(quickLog.appId)).color : Colors.primary}
-        fields={quickLog?.fields ?? []}
-        initialValues={quickLog?.initialValues ?? {}}
-        note={quickLog?.note}
-        onRate={async (resistance, values) => {
-          if (!quickLog) return;
-          const input = buildQuickSheetInput(resistance, values, quickLog.initialValues, quickLog.date);
-          if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
-          try {
-            await handleAppRated(input, quickLog.appId, quickLog.sessionId);
-          } catch (err) {
-            console.warn('Quick log failed:', err);
-            showAlert(
-              t('today.alert.quickLogFailed.title', "Couldn't log that"),
-              t('today.alert.quickLogFailed.message', 'Check your connection and try again.')
-            );
-            throw err;
+      {redesign ? (
+        <RateSheet
+          visible={!!quickLog}
+          habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
+          appColor={quickLog ? AppColors[quickLog.appId] : Colors.primary}
+          fields={quickLog?.fields ?? []}
+          initialValues={quickLog?.initialValues ?? {}}
+          note={quickLog?.note}
+          onRate={rateQuickLog}
+          onCancel={() => setQuickLog(null)}
+        />
+      ) : (
+        <QuickLogSheet
+          visible={!!quickLog}
+          habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
+          sectionName={
+            quickLog
+              ? t(`today.section.name.${sectionOfApp(quickLog.appId)}`, getHabitSection(sectionOfApp(quickLog.appId)).name)
+              : ''
           }
-        }}
-        onCancel={() => setQuickLog(null)}
-      />
+          sectionColor={quickLog ? getHabitSection(sectionOfApp(quickLog.appId)).color : Colors.primary}
+          fields={quickLog?.fields ?? []}
+          initialValues={quickLog?.initialValues ?? {}}
+          note={quickLog?.note}
+          onRate={rateQuickLog}
+          onCancel={() => setQuickLog(null)}
+        />
+      )}
       <LogToast
         toast={toast}
         onHide={() => setToast(null)}
