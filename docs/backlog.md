@@ -382,7 +382,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Onboarding for the micro-apps (D4)** *(2026-11-01, not live yet)*
+**Onboarding for the micro-apps (D4)** *(2026-11-01, 7926923 + 85c51ca, live OTA)*
 Four screens replace the seven-beat habit flow: why (the friction is the
 training) → apps (all three on, switch off any) → weekly goals (prefilled
 3 / 3 / 5, Meals counted in days logged, pick a start app) → evening reminder
