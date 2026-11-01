@@ -300,6 +300,15 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Meals: a protein shake on its own counts as an on-target meal** *(2026-11-01, not live yet)*
+The Supplements chip is now "Protein shake" (shakes, powder, bars). A plate
+that's only a shake scores exactly `on_target_threshold`, strict mode or not,
+so a shake-for-lunch counts without sinking the day; before, it scored 5 and
+could push the day off. Mixed with food it scores as semi-processed, as
+before. Still tagged Protein. The id stays `supplements`, so saved days need
+no migration. Vitamins deliberately left out (founder, 2026-11-01: keep it
+simple). `isShakeOnly` in `services/mealsMath.ts` (tested).
+
 **Workouts: blocks on the clock (EMOM-style intervals)** *(2026-11-01, live OTA)*
 A block can run "On the clock" instead of resting after each set: a round
 starts every N seconds and whatever's left after the work is rest. A circuit

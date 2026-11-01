@@ -17,7 +17,9 @@ import type { FoodGroupId, MealsPrefs, MealsScoringWeights, NutrientId, Processe
 // protein isn't lost among the bread and pasta.
 // Supplements (protein bars, shakes, powder) are semi-processed too, same
 // reasoning and same chip treatment (founder, 2026-10-24) — not whole food,
-// but not lumped in with chips and soda either.
+// but not lumped in with chips and soda either. Shown as "Protein shake"
+// (2026-11-01); the id stays 'supplements' so saved days keep working. A
+// shake on its own scores exactly on target — see isShakeOnly in mealsMath.
 //
 // Each group also carries the nutrients it's tagged with (NUTRIENTS below).
 // Tags say a plate HAD protein, not how much — the honest reading of a chip.
@@ -59,8 +61,8 @@ export const PROCESSED_GROUPS: FoodGroup<ProcessedGroupId>[] = [
   },
   {
     id: 'supplements',
-    label: 'Supplements',
-    examples: 'protein bars, protein shakes, protein powder — counts as semi-processed',
+    label: 'Protein shake',
+    examples: 'protein shakes, protein powder, protein bars — on its own it counts as on target',
     nutrients: ['protein'],
   },
   {
@@ -105,7 +107,8 @@ export const MEAL_GUIDE_RULES: string[] = [
   'Cooking basics don’t need a chip: oil, butter, salt, spices.',
   'Each plate scores 0 to 100. More whole food and fewer other groups scores higher — that ratio is most of the score.',
   'Protein, Fiber and Healthy fats tags add a little on top. They say a plate had some, not how much.',
-  'Processed costs points beyond just being on the plate. Strict mode (in settings) makes Dairy, Semi-processed and Supplements cost extra too.',
+  'Processed costs points beyond just being on the plate. Strict mode (in settings) makes Dairy, Semi-processed and Protein shake cost extra too.',
+  'A protein shake on its own counts as an on-target meal. Mixed with food, it counts as semi-processed.',
 ];
 
 // --- Why an off-target day happened -------------------------------------------

@@ -14,7 +14,8 @@ const EXAMPLES: { meal: string; groups: FoodGroupId[] }[] = [
   { meal: 'Chicken stir-fry with bottled sauce', groups: ['chicken', 'veggies', 'grains', 'semi'] },
   { meal: 'Greek yogurt with berries', groups: ['fruit', 'dairy'] },
   { meal: 'Greek yogurt on its own', groups: ['dairy'] },
-  { meal: 'Protein shake on its own', groups: ['supplements'] },
+  { meal: 'Protein shake for lunch', groups: ['supplements'] },
+  { meal: 'Protein shake with a banana', groups: ['fruit', 'supplements'] },
   { meal: 'Frozen pizza with a side salad', groups: ['processed', 'veggies'] },
   { meal: 'Drive-through combo', groups: ['processed'] },
 ];

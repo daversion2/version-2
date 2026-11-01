@@ -193,7 +193,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
             onChange={(n) => setWeight('strict_penalty', n)}
           />
         </View>
-        <Text style={mls.muted}>Strict mode only: subtracted when Dairy, Semi-processed or Supplements are on the plate.</Text>
+        <Text style={mls.muted}>Strict mode only: subtracted when Dairy, Semi-processed or Protein shake are on the plate.</Text>
       </View>
       <TouchableOpacity onPress={() => updatePrefs({ scoring: DEFAULT_MEALS_SCORING })} style={styles.add}>
         <Ionicons name="refresh" size={16} color={MEALS_ACCENT} />
@@ -204,7 +204,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={mls.title}>Strict mode</Text>
           <Text style={mls.muted}>
-            Dairy, Semi-processed and Supplements cost −{prefs.scoring.strict_penalty} instead of only diluting your ratio.
+            Dairy, Semi-processed and Protein shake (mixed with food) cost −{prefs.scoring.strict_penalty} instead of only diluting your ratio.
           </Text>
         </View>
         <Switch

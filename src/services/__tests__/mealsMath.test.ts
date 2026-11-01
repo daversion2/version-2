@@ -81,7 +81,6 @@ describe('scorePlate', () => {
   });
 
   it('never goes below 0', () => {
-    expect(scorePlate(['supplements'], true, weights)).toBe(0); // 0 ratio + protein (5) - strict_penalty (10), clamped
     expect(scorePlate(['semi'], true, weights)).toBe(0); // 0 ratio + nothing - strict_penalty (10), clamped
   });
 
@@ -115,6 +114,14 @@ describe('scoreDay — averaging plates into a day score', () => {
     const s = scoreDay(day('d', { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') }), rules());
     // 75, 80, 75 → 76.67 → 77
     expect(s.average).toBe(77);
+    expect(s.scoredCount).toBe(3);
+    expect(s.status).toBe('on');
+  });
+
+  it('a shake-only lunch counts as a meal without sinking the day', () => {
+    const s = scoreDay(day('d', { breakfast: plate('eggs'), lunch: plate('supplements'), dinner: plate('beef') }), rules());
+    // 75, 70, 75 → 73.33 → 73 — would have been 52 (and off) when a lone shake scored 5
+    expect(s.average).toBe(73);
     expect(s.scoredCount).toBe(3);
     expect(s.status).toBe('on');
   });
@@ -412,7 +419,17 @@ describe('dairy', () => {
 describe('supplements', () => {
   it('dilutes the ratio like any non-whole group, but isn’t penalized unless strict', () => {
     expect(scorePlate(['fruit', 'supplements'], false, weights)).toBe(45);
-    expect(scorePlate(['supplements'], false, weights)).toBe(5);
+  });
+
+  it('a shake on its own scores exactly on target, strict or not', () => {
+    expect(scorePlate(['supplements'], false, weights)).toBe(weights.on_target_threshold);
+    expect(scorePlate(['supplements'], true, weights)).toBe(weights.on_target_threshold);
+    expect(scorePlate(['supplements'], false, { ...weights, on_target_threshold: 80 })).toBe(80);
+    expect(scoreVerdict(['supplements'], true, weights).why).toBe('A protein shake on its own counts as on target.');
+  });
+
+  it('still tags a shake-only plate as protein', () => {
+    expect(plateNutrients(['supplements'])).toEqual(['protein']);
   });
 
   it('costs the strict penalty like semi-processed does', () => {

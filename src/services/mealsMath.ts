@@ -31,7 +31,8 @@ import { toLocalDateString } from '../utils/date';
 // Each plate scores 0-100 (null if nothing's been tapped yet): mostly whole
 // food scores high; Processed, and (in strict mode) Dairy/Semi-processed/
 // Supplements, cost points on top of what diluting the whole-food ratio
-// already costs. See scorePlate().
+// already costs. A protein shake on its own scores exactly on target.
+// See scorePlate().
 //
 // A day's score is the plain average of every scored plate (meals + extras
 // together, unweighted). A meal marked "didn't eat" never counts against the
@@ -45,6 +46,15 @@ import { toLocalDateString } from '../utils/date';
 /** Dairy, Semi-processed and Supplements — what strict mode's extra penalty applies to. 'processed' has its own penalty. */
 const SEMI_TIER_GROUPS: ProcessedGroupId[] = ['dairy', 'supplements', 'semi'];
 
+/**
+ * A plate that's only a protein shake/bar — a shake-for-lunch. It scores
+ * exactly the on-target line, strict mode or not, so it counts as a real meal
+ * without lifting or sinking the day (founder, 2026-11-01). Mixed with food,
+ * the chip scores like any semi-processed group.
+ */
+export const isShakeOnly = (groups: FoodGroupId[]): boolean =>
+  groups.length > 0 && groups.every((g) => g === 'supplements');
+
 /** 0-100, or null for an empty plate (nothing chosen yet). */
 export const scorePlate = (
   groups: FoodGroupId[] | undefined,
@@ -52,6 +62,7 @@ export const scorePlate = (
   weights: MealsScoringWeights
 ): number | null => {
   if (!groups || groups.length === 0) return null;
+  if (isShakeOnly(groups)) return Math.max(0, Math.min(100, Math.round(weights.on_target_threshold)));
   const wholeFoodRatio = groups.filter(isWholeGroup).length / groups.length;
   const ratioPoints = wholeFoodRatio * weights.ratio_points;
   const nutrientBonus = plateNutrients(groups).length * weights.nutrient_bonus;
@@ -71,6 +82,7 @@ export interface PlateScore {
 export const scoreVerdict = (groups: FoodGroupId[], strict: boolean, weights: MealsScoringWeights): PlateScore => {
   const score = scorePlate(groups, strict, weights);
   if (score === null) return { score, why: 'Tap what was on the plate.' };
+  if (isShakeOnly(groups)) return { score, why: 'A protein shake on its own counts as on target.' };
   const notes: string[] = [];
   if (groups.includes('processed')) notes.push(`Processed on the plate (−${weights.processed_penalty})`);
   if (strict && groups.some((g) => SEMI_TIER_GROUPS.includes(g as ProcessedGroupId))) {
