@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
@@ -38,13 +37,15 @@ import { APP_TITLES } from '../../components/homeRedesign/TodayView';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'AppPage'>;
 
+/** The docked start bar: the 52pt button plus its padding above and below. */
+const START_BAR_HEIGHT = 52 + Spacing.sm * 2;
+
 const START_LABEL = { meditate: 'Start a session', workouts: 'Start a workout', meals: 'Log a meal' } as const;
 
 export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
   const { appId } = route.params;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
   const [data, setData] = useState<{ app: HomeAppData; logs: CompletionLog[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,7 +179,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top, paddingBottom: tabBarHeight + 52 + Spacing.xl },
+          { paddingTop: insets.top, paddingBottom: START_BAR_HEIGHT + Spacing.lg },
         ]}
       >
         <TouchableOpacity
@@ -201,7 +202,9 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
           body()
         )}
       </ScrollView>
-      <View style={[styles.startWrap, { bottom: tabBarHeight + Spacing.md }]}>
+      {/* Docked on the tab bar, solid, so the list never shows around the button.
+          The tab bar isn't translucent, so this screen already ends at its top. */}
+      <View style={styles.startBar}>
         <TouchableOpacity style={styles.start} onPress={start} accessibilityRole="button">
           <Text style={styles.startText}>{START_LABEL[appId]}</Text>
         </TouchableOpacity>
@@ -245,7 +248,15 @@ const styles = StyleSheet.create({
   heroUnit: { ...TextStyles.title3, color: Colors.gray },
   heroLine: { ...TextStyles.subhead, color: Colors.label2 },
   muted: { ...TextStyles.subhead, color: Colors.gray },
-  startWrap: { position: 'absolute', left: Spacing.md, right: Spacing.md },
+  startBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.lightGray,
+  },
   start: {
     height: 52,
     borderRadius: 26,
