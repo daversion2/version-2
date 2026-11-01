@@ -1,8 +1,26 @@
 {
+  "focus-05": {
+    "audio_sha256": "e619754a9bafc4b8ef67a5e2eba8db7779eaa0de04ea41308cabe22c73f42355",
+    "script_sha256": "4191d944a2a97894f268e31c4dcfc669b65d570635695f0a78fe5a76ed1aff57",
+    "duration_sec": 300,
+    "approved_at": "2026-11-01T23:39:30.830Z"
+  },
   "focus-10": {
     "audio_sha256": "812f6b2e7baff85c0e7e058df87e80631336c7641b778fb6311f93edaaa691fd",
     "script_sha256": "13be99977763293470a85760e94a008810c14b30240935fdef78a68fb1b449cc",
     "duration_sec": 600,
     "approved_at": "2026-10-19T02:34:34.523Z"
+  },
+  "focus-15": {
+    "audio_sha256": "115c116e638c2a6aad59ccde4e9ca096ed10db0d094bf31657566e3059bb60e0",
+    "script_sha256": "13da51355fa5759239e862db4a132ac8855a572d9e1ab4eb369053fcddf40886",
+    "duration_sec": 900,
+    "approved_at": "2026-11-01T23:39:35.705Z"
+  },
+  "focus-20": {
+    "audio_sha256": "7afafc6414d6bf6b782bb914848745935817a9be29330b07ea1666e2c13ee6dc",
+    "script_sha256": "93a36ba0843e2a15292306dd35942b9a665230d374e299113325b74b555db441",
+    "duration_sec": 1200,
+    "approved_at": "2026-11-01T23:39:39.897Z"
   }
 }
