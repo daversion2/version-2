@@ -322,6 +322,17 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Workouts: 200 more exercises from free-exercise-db** *(2026-11-01, not live yet)*
+Built-ins go from 59 to 259, hand-picked from the public-domain
+[free-exercise-db](https://github.com/yuhonas/free-exercise-db) across every
+body part. Each comes with its start/end photos (bundled, 6.4 MB) and numbered
+steps, shown in the picker thumbnail, the preview and the exercise's stats
+screen. The 59 core exercises keep their generated art and cues. Your own
+exercise wins a name clash with a new built-in (the built-in is hidden). The
+list lives in `content/exercise-library/` (see its README). Rebuild with
+`npx tsx scripts/importExerciseLibrary.ts`. Still to do: look at it on screen,
+and ship OTA. Ids are permanent once shipped.
+
 **Workouts: This week — volume per exercise, sets added straight from it** *(2026-11-01, not live yet)*
 For tracking by the week instead of by the workout (squat at 60 lb, add
 reps until Sunday). Workouts home → This week lists every exercise done

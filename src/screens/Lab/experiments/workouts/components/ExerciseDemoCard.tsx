@@ -1,40 +1,30 @@
 import React from 'react';
-import { Image, ImageSourcePropType, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Image, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { BorderRadius, Colors, Fonts, Spacing } from '../../../../../constants/theme';
-import { EXERCISE_DEMOS } from '../../../../../data/exerciseDemos';
-import { EXERCISE_DEMO_IMAGES } from '../../../../../data/exerciseDemoImages';
+import { howToFor } from './exerciseHowTo';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
-type Frame = { label: string; text: string; image?: ImageSourcePropType };
-
-const framesOf = (exerciseId: string): Frame[] | null => {
-  const demo = EXERCISE_DEMOS[exerciseId];
-  if (!demo) return null;
-  const images = EXERCISE_DEMO_IMAGES[exerciseId];
-  return demo.end
-    ? [
-        { label: 'Start', text: demo.start, image: images?.start },
-        { label: 'End', text: demo.end, image: images?.end },
-      ]
-    : [{ label: 'Position', text: demo.start, image: images?.start }];
-};
-
 /**
- * Just the approved photos, side by side with their Start/End labels — or
- * nothing, when the exercise has none. For places where the photos sit inside
+ * Just the photos, side by side with their Start/End labels — or nothing,
+ * when the exercise has none. For places where the photos sit inside
  * something else, like an exercise's card in the block editor.
  */
 export const ExercisePhotos: React.FC<{ exerciseId: string; style?: StyleProp<ViewStyle> }> = ({ exerciseId, style }) => {
-  const frames = framesOf(exerciseId);
-  if (!frames || !frames.every((f) => f.image)) return null;
+  const howTo = howToFor(exerciseId);
+  if (!howTo || !howTo.frames.every((f) => f.image)) return null;
+  const { frames, stock } = howTo;
   return (
     <View style={[styles.photos, style]}>
       {frames.map((f) => (
-        <View key={f.label} style={[styles.photoWrap, frames.length === 1 && styles.single]}>
+        <View
+          key={f.label}
+          style={[styles.photoWrap, stock && styles.stockWrap, frames.length === 1 && styles.single]}
+        >
           <Image
             source={f.image!}
             style={styles.photo}
-            resizeMode="cover"
+            // Stock photos come in mixed shapes: show all of it, never crop a limb off.
+            resizeMode={stock ? 'contain' : 'cover'}
             accessibilityLabel={`${f.label} position: ${f.text}`}
           />
           <View style={styles.tag}>
@@ -47,15 +37,16 @@ export const ExercisePhotos: React.FC<{ exerciseId: string; style?: StyleProp<Vi
 };
 
 /**
- * How an exercise is done: the approved start and end photos side by side,
- * with the labels and form cues drawn here rather than in the photos. Without
- * approved photos it shows the same positions as text; an exercise the user
- * made has neither, and gets nothing.
+ * How an exercise is done: the start and end photos side by side, with the
+ * labels drawn here rather than in the photos, then the form cues (core
+ * exercises) or numbered steps (library exercises). A core exercise without
+ * approved photos shows its positions as text; an exercise the user made has
+ * none of this, and gets nothing.
  */
 export const ExerciseDemoCard: React.FC<{ exerciseId: string }> = ({ exerciseId }) => {
-  const frames = framesOf(exerciseId);
-  if (!frames) return null;
-  const cues = EXERCISE_DEMOS[exerciseId].cues;
+  const howTo = howToFor(exerciseId);
+  if (!howTo) return null;
+  const { frames, cues, steps } = howTo;
   const hasPhotos = frames.every((f) => f.image);
 
   return (
@@ -70,12 +61,23 @@ export const ExerciseDemoCard: React.FC<{ exerciseId: string }> = ({ exerciseId 
           </View>
         ))
       )}
-      {!!cues?.length && (
+      {cues.length > 0 && (
         <View style={styles.cues}>
           {cues.map((c) => (
             <View key={c} style={styles.cueRow}>
               <View style={styles.dot} />
               <Text style={ws.body}>{c}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {steps.length > 0 && (
+        <View style={styles.cues}>
+          <Text style={styles.textLabel}>How to do it</Text>
+          {steps.map((step, i) => (
+            <View key={i} style={styles.stepRow}>
+              <Text style={styles.stepNum}>{i + 1}</Text>
+              <Text style={[ws.body, styles.stepText]}>{step}</Text>
             </View>
           ))}
         </View>
@@ -94,6 +96,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: Colors.lightGray,
   },
+  stockWrap: { aspectRatio: 3 / 2 },
   single: { flex: 0, width: '100%' },
   photo: { width: '100%', height: '100%' },
   tag: {
@@ -117,4 +120,7 @@ const styles = StyleSheet.create({
   cues: { gap: Spacing.xs },
   cueRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: WORKOUTS_ACCENT },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  stepNum: { fontFamily: Fonts.secondaryBold, fontSize: 13, lineHeight: 20, color: WORKOUTS_ACCENT, minWidth: 14 },
+  stepText: { flex: 1 },
 });

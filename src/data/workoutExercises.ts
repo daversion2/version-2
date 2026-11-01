@@ -1,9 +1,12 @@
 import { Equipment, Exercise, ExerciseKind, MuscleGroup, Workout, WorkoutBlock } from '../types/workouts';
+import { LIBRARY_EXERCISES } from './exerciseLibrary';
 
 export const METRES_PER_MILE = 1609.344;
 
 // Ids are stored in workouts, sessions and records — never rename one.
-export const BUILT_IN_EXERCISES: Exercise[] = [
+// The hand-made core: each has a demo spec (exerciseDemos.ts) and, once
+// approved, generated art.
+export const CORE_EXERCISES: Exercise[] = [
   // Chest
   { id: 'bench-press', name: 'Bench Press', kind: 'weight', muscle: 'chest', equipment: 'barbell' },
   { id: 'incline-db-press', name: 'Incline Dumbbell Press', kind: 'weight', muscle: 'chest', equipment: 'dumbbell' },
@@ -64,6 +67,15 @@ export const BUILT_IN_EXERCISES: Exercise[] = [
   { id: 'run-mile', name: 'Mile Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: METRES_PER_MILE },
   { id: 'run-5k', name: '5K Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: 5000 },
   { id: 'row-2000m', name: '2,000 m Row', kind: 'distance', muscle: 'full_body', equipment: 'machine', distanceM: 2000 },
+];
+
+/**
+ * Every built-in: the core plus the 200 from the exercise library
+ * (content/exercise-library/), which bring their own photos and steps.
+ */
+export const BUILT_IN_EXERCISES: Exercise[] = [
+  ...CORE_EXERCISES,
+  ...LIBRARY_EXERCISES.map(({ sourceId: _sourceId, steps: _steps, ...exercise }) => exercise),
 ];
 
 export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {

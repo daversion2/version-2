@@ -30,7 +30,7 @@ import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { TestHistoryRows } from './components/TestHistory';
 import { testHistory } from '../../../../services/exerciseTests';
 import { testTypeFor } from '../../../../services/trainingPhases';
-import { EXERCISE_DEMOS } from '../../../../data/exerciseDemos';
+import { hasHowTo } from './components/exerciseHowTo';
 import { ExerciseDemoCard } from './components/ExerciseDemoCard';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutStatsDetail'>;
@@ -72,7 +72,7 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
 
   return (
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
-      {isExercise && EXERCISE_DEMOS[id] && (
+      {isExercise && hasHowTo(id) && (
         <>
           <Text style={ws.sectionLabel}>How to do it</Text>
           <ExerciseDemoCard exerciseId={id} />

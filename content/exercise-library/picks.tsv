@@ -1,0 +1,201 @@
+# source name (free-exercise-db)	our id	our name	overrides (muscle= equipment= kind=)
+Dumbbell Bench Press	db-bench-press	Dumbbell Bench Press
+Barbell Incline Bench Press - Medium Grip	incline-bench-press	Incline Bench Press
+Decline Barbell Bench Press	decline-bench-press	Decline Bench Press
+Decline Dumbbell Bench Press	decline-db-press	Decline Dumbbell Press
+Wide-Grip Barbell Bench Press	wide-grip-bench-press	Wide-Grip Bench Press
+Hammer Grip Incline DB Bench Press	neutral-incline-db-press	Neutral-Grip Incline Dumbbell Press
+One Arm Dumbbell Bench Press	single-arm-db-bench-press	Single-Arm Dumbbell Bench Press
+Dumbbell Floor Press	db-floor-press	Dumbbell Floor Press	muscle=chest
+Floor Press	barbell-floor-press	Barbell Floor Press	muscle=chest
+Incline Dumbbell Flyes	incline-db-fly	Incline Dumbbell Fly
+Decline Dumbbell Flyes	decline-db-fly	Decline Dumbbell Fly
+Butterfly	pec-deck	Pec Deck
+Machine Bench Press	machine-chest-press	Machine Chest Press
+Leverage Incline Chest Press	incline-machine-press	Incline Machine Press
+Smith Machine Bench Press	smith-bench-press	Smith Machine Bench Press
+Smith Machine Incline Bench Press	smith-incline-press	Smith Machine Incline Press
+Cable Chest Press	cable-chest-press	Cable Chest Press
+Low Cable Crossover	low-cable-crossover	Low Cable Crossover
+Incline Cable Flye	incline-cable-fly	Incline Cable Fly
+Flat Bench Cable Flyes	flat-cable-fly	Flat Cable Fly
+Single-Arm Cable Crossover	single-arm-cable-crossover	Single-Arm Cable Crossover
+Straight-Arm Dumbbell Pullover	db-pullover	Dumbbell Pullover
+Incline Push-Up	incline-push-up	Incline Push-up
+Push-Ups With Feet Elevated	feet-elevated-push-up	Feet-Elevated Push-up
+Push-Up Wide	wide-push-up	Wide Push-up
+Plyo Push-up	plyo-push-up	Plyo Push-up	muscle=chest
+Svend Press	svend-press	Svend Press	kind=weight
+Bent Over Two-Dumbbell Row	bent-over-db-row	Bent-Over Dumbbell Row
+T-Bar Row with Handle	t-bar-row	T-Bar Row
+Lying T-Bar Row	chest-supported-t-bar-row	Chest-Supported T-Bar Row
+Dumbbell Incline Row	chest-supported-db-row	Chest-Supported Dumbbell Row
+Reverse Grip Bent-Over Rows	underhand-barbell-row	Underhand Barbell Row
+Leverage Iso Row	machine-row	Machine Row
+Leverage High Row	machine-high-row	Machine High Row
+Seated One-arm Cable Pulley Rows	single-arm-cable-row	Single-Arm Cable Row
+Inverted Row	inverted-row	Inverted Row	equipment=bodyweight kind=reps
+Suspended Row	suspension-row	Suspension Row	kind=reps
+Close-Grip Front Lat Pulldown	close-grip-pulldown	Close-Grip Lat Pulldown
+V-Bar Pulldown	v-bar-pulldown	V-Bar Pulldown
+Underhand Cable Pulldowns	underhand-pulldown	Underhand Lat Pulldown
+One Arm Lat Pulldown	single-arm-pulldown	Single-Arm Lat Pulldown
+Straight-Arm Pulldown	straight-arm-pulldown	Straight-Arm Pulldown
+Weighted Pull Ups	weighted-pull-up	Weighted Pull-up	kind=weight
+Band Assisted Pull-Up	band-assisted-pull-up	Band-Assisted Pull-up	equipment=band kind=reps
+Muscle Up	muscle-up	Muscle-up	equipment=bodyweight kind=reps
+Scapular Pull-Up	scapular-pull-up	Scapular Pull-up	equipment=bodyweight kind=reps
+Rack Pulls	rack-pull	Rack Pull
+Deficit Deadlift	deficit-deadlift	Deficit Deadlift
+Barbell Shrug	barbell-shrug	Barbell Shrug
+Dumbbell Shrug	db-shrug	Dumbbell Shrug
+Hyperextensions (Back Extensions)	back-extension	Back Extension	kind=reps
+One-Arm Kettlebell Row	kb-row	Kettlebell Row
+Alternating Renegade Row	renegade-row	Renegade Row
+Bent-Arm Barbell Pullover	barbell-pullover	Barbell Pullover
+Kettlebell Sumo High Pull	kb-high-pull	Kettlebell Sumo High Pull
+Rope Climb	rope-climb	Rope Climb	kind=reps
+Arnold Dumbbell Press	arnold-press	Arnold Press
+Seated Barbell Military Press	seated-barbell-press	Seated Barbell Press
+Standing Dumbbell Press	standing-db-press	Standing Dumbbell Press
+Dumbbell One-Arm Shoulder Press	single-arm-db-shoulder-press	Single-Arm Dumbbell Press
+Machine Shoulder (Military) Press	machine-shoulder-press	Machine Shoulder Press
+Smith Machine Overhead Shoulder Press	smith-shoulder-press	Smith Machine Shoulder Press
+Two-Arm Kettlebell Military Press	kb-overhead-press	Kettlebell Overhead Press
+Single-Arm Linear Jammer	landmine-press	Single-Arm Landmine Press
+Push Press	push-press	Push Press	muscle=shoulders
+Handstand Push-Ups	handstand-push-up	Handstand Push-up
+Standing Low-Pulley Deltoid Raise	single-arm-cable-lateral-raise	Single-Arm Cable Lateral Raise
+Seated Side Lateral Raise	seated-lateral-raise	Seated Lateral Raise
+Front Dumbbell Raise	db-front-raise	Dumbbell Front Raise
+Front Plate Raise	plate-front-raise	Plate Front Raise
+Front Cable Raise	cable-front-raise	Cable Front Raise
+Reverse Machine Flyes	reverse-pec-deck	Reverse Pec Deck
+Cable Rear Delt Fly	cable-rear-delt-fly	Cable Rear Delt Fly
+Seated Bent-Over Rear Delt Raise	seated-rear-delt-raise	Seated Rear Delt Raise
+Band Pull Apart	band-pull-apart	Band Pull-Apart	kind=reps
+Upright Barbell Row	upright-row	Barbell Upright Row
+Standing Dumbbell Upright Row	db-upright-row	Dumbbell Upright Row	muscle=shoulders
+External Rotation with Cable	cable-external-rotation	Cable External Rotation
+External Rotation with Band	band-external-rotation	Band External Rotation	kind=reps
+Lateral Raise - With Bands	band-lateral-raise	Band Lateral Raise	kind=reps
+Shoulder Press - With Bands	band-shoulder-press	Band Shoulder Press	kind=reps
+Box Squat	box-squat	Box Squat
+Hack Squat	hack-squat	Hack Squat
+Smith Machine Squat	smith-squat	Smith Machine Squat
+Dumbbell Squat	db-squat	Dumbbell Squat
+Front Squats With Two Kettlebells	double-kb-front-squat	Double Kettlebell Front Squat
+Zercher Squats	zercher-squat	Zercher Squat
+Overhead Squat	overhead-squat	Overhead Squat	muscle=legs
+Plie Dumbbell Squat	db-sumo-squat	Dumbbell Sumo Squat
+Kettlebell Pistol Squat	kb-pistol-squat	Kettlebell Pistol Squat
+Sumo Deadlift	sumo-deadlift	Sumo Deadlift
+Trap Bar Deadlift	trap-bar-deadlift	Trap Bar Deadlift	equipment=barbell
+Stiff-Legged Barbell Deadlift	stiff-leg-deadlift	Stiff-Leg Deadlift
+Stiff-Legged Dumbbell Deadlift	db-stiff-leg-deadlift	Dumbbell Stiff-Leg Deadlift
+Kettlebell One-Legged Deadlift	single-leg-kb-deadlift	Single-Leg Kettlebell Deadlift
+Good Morning	good-morning	Good Morning
+Barbell Lunge	barbell-lunge	Barbell Lunge
+Dumbbell Rear Lunge	db-reverse-lunge	Dumbbell Reverse Lunge
+Bodyweight Walking Lunge	bw-walking-lunge	Bodyweight Walking Lunge	equipment=bodyweight kind=reps
+Dumbbell Step Ups	db-step-up	Dumbbell Step-up
+Barbell Step Ups	barbell-step-up	Barbell Step-up
+Barbell Glute Bridge	barbell-glute-bridge	Barbell Glute Bridge
+Butt Lift (Bridge)	glute-bridge	Glute Bridge
+Single Leg Glute Bridge	single-leg-glute-bridge	Single-Leg Glute Bridge
+Glute Kickback	glute-kickback	Glute Kickback
+One-Legged Cable Kickback	cable-glute-kickback	Cable Glute Kickback
+Pull Through	cable-pull-through	Cable Pull-Through
+Glute Ham Raise	glute-ham-raise	Glute-Ham Raise	kind=reps
+Natural Glute Ham Raise	nordic-curl	Nordic Hamstring Curl
+Seated Leg Curl	seated-leg-curl	Seated Leg Curl
+Standing Leg Curl	standing-leg-curl	Standing Leg Curl
+Ball Leg Curl	stability-ball-leg-curl	Stability Ball Leg Curl	kind=reps
+Single-Leg Leg Extension	single-leg-extension	Single-Leg Leg Extension
+Thigh Abductor	hip-abduction-machine	Hip Abduction Machine
+Thigh Adductor	hip-adduction-machine	Hip Adduction Machine
+Monster Walk	monster-walk	Monster Walk	kind=reps
+Reverse Hyperextension	reverse-hyper	Reverse Hyperextension
+Seated Calf Raise	seated-calf-raise	Seated Calf Raise
+Standing Dumbbell Calf Raise	db-calf-raise	Dumbbell Calf Raise
+Calf Press On The Leg Press Machine	leg-press-calf-raise	Leg Press Calf Raise
+Donkey Calf Raises	donkey-calf-raise	Donkey Calf Raise
+Freehand Jump Squat	jump-squat	Jump Squat
+Split Jump	split-jump	Split Jump	muscle=legs
+Knee Tuck Jump	tuck-jump	Tuck Jump	muscle=legs
+Standing Long Jump	broad-jump	Broad Jump	muscle=legs
+Lateral Bound	lateral-bound	Lateral Bound	muscle=legs
+Star Jump	star-jump	Star Jump	muscle=full_body
+Close-Grip Barbell Bench Press	close-grip-bench-press	Close-Grip Bench Press
+EZ-Bar Curl	ez-bar-curl	EZ-Bar Curl	equipment=barbell
+Preacher Curl	preacher-curl	Preacher Curl
+Concentration Curls	concentration-curl	Concentration Curl
+Incline Dumbbell Curl	incline-db-curl	Incline Dumbbell Curl
+Spider Curl	spider-curl	Spider Curl	equipment=barbell
+Cable Hammer Curls - Rope Attachment	rope-hammer-curl	Cable Rope Hammer Curl
+Standing Biceps Cable Curl	cable-curl	Cable Curl
+Machine Preacher Curls	machine-preacher-curl	Machine Preacher Curl
+Machine Bicep Curl	machine-curl	Machine Bicep Curl
+Reverse Barbell Curl	reverse-curl	Reverse Curl
+Zottman Curl	zottman-curl	Zottman Curl
+Drag Curl	drag-curl	Drag Curl
+Cross Body Hammer Curl	cross-body-hammer-curl	Cross-Body Hammer Curl
+Overhead Cable Curl	overhead-cable-curl	Overhead Cable Curl
+One Arm Dumbbell Preacher Curl	db-preacher-curl	Dumbbell Preacher Curl
+Triceps Pushdown - Rope Attachment	rope-pushdown	Rope Pushdown
+Reverse Grip Triceps Pushdown	reverse-grip-pushdown	Reverse-Grip Pushdown
+Cable One Arm Tricep Extension	single-arm-pushdown	Single-Arm Cable Pushdown
+Cable Rope Overhead Triceps Extension	overhead-cable-extension	Overhead Cable Triceps Extension
+Standing Dumbbell Triceps Extension	overhead-db-extension	Overhead Dumbbell Triceps Extension
+Lying Dumbbell Tricep Extension	db-skull-crusher	Dumbbell Skull Crusher
+Tricep Dumbbell Kickback	triceps-kickback	Triceps Kickback
+Machine Triceps Extension	machine-triceps-extension	Machine Triceps Extension
+Dip Machine	machine-dip	Machine Dip
+JM Press	jm-press	JM Press
+Bench Dips	bench-dip	Bench Dip
+Ring Dips	ring-dip	Ring Dip	equipment=other kind=reps
+Push-Ups - Close Triceps Position	close-grip-push-up	Close-Grip Push-up
+Palms-Up Barbell Wrist Curl Over A Bench	wrist-curl	Barbell Wrist Curl
+Palms-Down Wrist Curl Over A Bench	reverse-wrist-curl	Reverse Wrist Curl
+Seated Dumbbell Palms-Up Wrist Curl	db-wrist-curl	Dumbbell Wrist Curl
+Wrist Roller	wrist-roller	Wrist Roller	kind=weight
+Plate Pinch	plate-pinch	Plate Pinch	kind=time
+Crunches	crunch	Crunch
+Sit-Up	sit-up	Sit-up
+Reverse Crunch	reverse-crunch	Reverse Crunch
+Air Bike	bicycle-crunch	Bicycle Crunch
+Oblique Crunches - On The Floor	oblique-crunch	Oblique Crunch
+Decline Crunch	decline-crunch	Decline Crunch
+Jackknife Sit-Up	jackknife-sit-up	Jackknife Sit-up
+Alternate Heel Touchers	heel-touch	Heel Touch
+Flat Bench Lying Leg Raise	lying-leg-raise	Lying Leg Raise
+Knee/Hip Raise On Parallel Bars	captains-chair-knee-raise	Captain’s Chair Knee Raise	equipment=bodyweight kind=reps
+Seated Leg Tucks	seated-knee-tuck	Seated Knee Tuck
+Flutter Kicks	flutter-kicks	Flutter Kicks	muscle=core kind=time
+Cable Crunch	cable-crunch	Cable Crunch
+Ab Crunch Machine	ab-crunch-machine	Ab Crunch Machine
+Exercise Ball Crunch	stability-ball-crunch	Stability Ball Crunch	kind=reps
+Exercise Ball Pull-In	stability-ball-knee-tuck	Stability Ball Knee Tuck	kind=reps
+Barbell Ab Rollout	barbell-rollout	Barbell Rollout	kind=reps
+Pallof Press	pallof-press	Pallof Press
+Standing Cable Wood Chop	cable-woodchopper	Cable Woodchopper
+Dumbbell Side Bend	db-side-bend	Dumbbell Side Bend
+Kettlebell Windmill	kb-windmill	Kettlebell Windmill
+Landmine 180's	landmine-180	Landmine 180
+Power Clean	power-clean	Power Clean	muscle=full_body
+Hang Clean	hang-clean	Hang Clean	muscle=full_body
+Clean and Jerk	clean-and-jerk	Clean and Jerk	muscle=full_body
+Snatch	snatch	Snatch	muscle=full_body
+Clean and Press	clean-and-press	Clean and Press	muscle=full_body
+Dumbbell Clean	db-clean	Dumbbell Clean	muscle=full_body
+One-Arm Kettlebell Clean	kb-clean	Kettlebell Clean	muscle=full_body
+One-Arm Kettlebell Snatch	kb-snatch	Kettlebell Snatch	muscle=full_body
+One-Arm Kettlebell Swings	single-arm-kb-swing	Single-Arm Kettlebell Swing	muscle=full_body
+Kettlebell Thruster	kb-thruster	Kettlebell Thruster	muscle=full_body
+Kettlebell Turkish Get-Up (Squat style)	turkish-get-up	Turkish Get-up	muscle=full_body
+Battling Ropes	battle-ropes	Battle Ropes	muscle=full_body kind=time
+Overhead Slam	med-ball-slam	Medicine Ball Slam	muscle=full_body
+Medicine Ball Chest Pass	med-ball-chest-pass	Medicine Ball Chest Pass	muscle=chest
+Sled Push	sled-push	Sled Push	muscle=full_body
+Tire Flip	tire-flip	Tire Flip	muscle=full_body kind=reps
+Sledgehammer Swings	sledgehammer-swing	Sledgehammer Swing	muscle=full_body kind=reps

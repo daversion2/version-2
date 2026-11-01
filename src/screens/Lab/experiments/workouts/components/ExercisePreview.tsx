@@ -3,8 +3,7 @@ import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../../../../constants/theme';
-import { EXERCISE_DEMOS } from '../../../../../data/exerciseDemos';
-import { EXERCISE_DEMO_IMAGES } from '../../../../../data/exerciseDemoImages';
+import { hasHowTo, thumbFor } from './exerciseHowTo';
 import { KIND_LABELS } from '../../../../../data/workoutExercises';
 import { exerciseSubtitle } from '../../../../../services/exerciseLibrary';
 import { Exercise } from '../../../../../types/workouts';
@@ -14,7 +13,7 @@ import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 const THUMB = 52;
 
 /** Is there anything to show for this exercise — photos or a written how-to? */
-export const hasPreview = (exerciseId: string) => !!EXERCISE_DEMOS[exerciseId];
+export const hasPreview = hasHowTo;
 
 /**
  * The exercise's start photo, small, for a list row: you can tell a pull-up
@@ -22,7 +21,7 @@ export const hasPreview = (exerciseId: string) => !!EXERCISE_DEMOS[exerciseId];
  * line up. Tapping it opens the preview, when there's one to open.
  */
 export const ExerciseThumb: React.FC<{ exercise: Exercise; onPress?: () => void }> = ({ exercise, onPress }) => {
-  const photo = EXERCISE_DEMO_IMAGES[exercise.id]?.start;
+  const photo = thumbFor(exercise.id);
   const tile = photo ? (
     <Image source={photo} style={styles.thumb} resizeMode="cover" />
   ) : (

@@ -1,4 +1,4 @@
-import { BUILT_IN_EXERCISES } from '../../data/workoutExercises';
+import { BUILT_IN_EXERCISES, CORE_EXERCISES } from '../../data/workoutExercises';
 import { EXERCISE_DEMOS, NO_DEMO, PILOT_IDS } from '../../data/exerciseDemos';
 import {
   approvedPair,
@@ -42,8 +42,9 @@ const approve = (n: number) => ({
 });
 
 describe('exercise demo spec', () => {
-  it('covers every built-in exercise, or says why not', () => {
-    const missing = BUILT_IN_EXERCISES.filter((e) => !EXERCISE_DEMOS[e.id] && !NO_DEMO.includes(e.id));
+  it('covers every core exercise, or says why not', () => {
+    // Library exercises bring their own photos and steps (exerciseLibrary.ts).
+    const missing = CORE_EXERCISES.filter((e) => !EXERCISE_DEMOS[e.id] && !NO_DEMO.includes(e.id));
     expect(missing.map((e) => e.id)).toEqual([]);
   });
 

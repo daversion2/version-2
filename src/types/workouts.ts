@@ -35,6 +35,17 @@ export interface Exercise {
   archived_at?: string;
 }
 
+/**
+ * A built-in from the exercise library (src/data/exerciseLibrary.ts, made by
+ * scripts/importExerciseLibrary.ts): an Exercise plus how to do it.
+ */
+export interface LibraryExercise extends Exercise {
+  /** Its id in free-exercise-db, where the photos and steps came from. */
+  sourceId: string;
+  /** How to do it, in order. */
+  steps: string[];
+}
+
 /** Planned or logged numbers for one set. Weight is always kilograms underneath. */
 export interface SetValues {
   reps?: number;

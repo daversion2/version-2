@@ -15,9 +15,20 @@ import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '../data/workoutExercises'
 // still free to change. Pure — the Firestore side is services/labWorkouts.ts.
 // =============================================================================
 
-/** What the picker and My exercises show: everything not deleted, A–Z. */
-export const activeExercises = (all: Exercise[]): Exercise[] =>
-  all.filter((e) => !e.archived_at).sort((a, b) => a.name.localeCompare(b.name));
+const sameName = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * What the picker and My exercises show: everything not deleted, A–Z. A
+ * built-in with the same name as one of your own is hidden — yours wins. That
+ * happens when the library grows to include something you'd already made.
+ */
+export const activeExercises = (all: Exercise[]): Exercise[] => {
+  const live = all.filter((e) => !e.archived_at);
+  const yours = live.filter((e) => e.custom);
+  return live
+    .filter((e) => e.custom || !yours.some((y) => sameName(y.name, e.name)))
+    .sort((a, b) => a.name.localeCompare(b.name));
+};
 
 /**
  * A search matches the name, the equipment or the body part — "dumbbell"
@@ -88,9 +99,10 @@ export const validateExerciseName = (
   const trimmed = name.trim();
   if (!trimmed) return 'Give it a name.';
   if (trimmed.length > 60) return 'Keep the name under 60 characters.';
-  const clash = existing.find(
-    (e) => !e.archived_at && e.id !== selfId && e.name.toLowerCase() === trimmed.toLowerCase()
-  );
+  // Keeping its own name is always fine, even if a built-in arrived since with the same one.
+  const self = selfId ? existing.find((e) => e.id === selfId) : undefined;
+  if (self && sameName(self.name, trimmed)) return null;
+  const clash = existing.find((e) => !e.archived_at && e.id !== selfId && sameName(e.name, trimmed));
   return clash ? `There's already an exercise called “${clash.name}”.` : null;
 };
 

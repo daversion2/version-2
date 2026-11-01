@@ -50,11 +50,20 @@ describe('activeExercises', () => {
     const active = activeExercises([sled, gone, BUILT_IN_EXERCISES[0]]);
     expect(active.map((e) => e.name)).toEqual(['Bench Press', 'Sled Push']);
   });
+
+  it('hides a built-in with the same name as one of yours', () => {
+    // The library has its own "Sled Push" (since 2026-11-01); this user made one first.
+    const active = activeExercises(library);
+    expect(active.filter((e) => e.name === 'Sled Push').map((e) => e.id)).toEqual(['custom_1']);
+    // Delete yours, and the built-in comes back.
+    const built = activeExercises([...BUILT_IN_EXERCISES, { ...sled, archived_at: '2026-11-01' }]);
+    expect(built.filter((e) => e.name === 'Sled Push').map((e) => e.id)).toEqual(['sled-push']);
+  });
 });
 
 describe('searchExercises', () => {
   it('matches name, equipment and body part', () => {
-    expect(searchExercises(library, 'sled').map((e) => e.id)).toEqual(['custom_1']);
+    expect(searchExercises(activeExercises(library), 'sled push').map((e) => e.id)).toEqual(['custom_1']);
     const dumbbell = searchExercises(library, 'Dumbbell');
     expect(dumbbell.length).toBeGreaterThan(5);
     expect(dumbbell.every((e) => e.equipment === 'dumbbell' || e.name.includes('Dumbbell'))).toBe(true);
@@ -92,7 +101,9 @@ describe('validateExerciseName', () => {
   });
 
   it('lets an exercise keep its own name, and reuse a deleted one’s', () => {
+    // Even though a built-in "Sled Push" now exists too.
     expect(validateExerciseName('Sled Push', library, 'custom_1')).toBeNull();
+    expect(validateExerciseName(' sled push ', library, 'custom_1')).toBeNull();
     expect(validateExerciseName('Old Thing', library)).toBeNull();
   });
 
