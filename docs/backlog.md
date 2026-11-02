@@ -382,6 +382,11 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Meditate: first guided NSDR, nsdr-15 is live** *(2026-11-01)*
+"Deep rest body scan", 15 min, Regina over brown noise. Written script
+(`content/meditations/scripts/nsdr-15.md`), rendered, approved by the founder
+and published. It's the first guided recording under NSDR in Meditate.
+
 **Meditate: focus-05, focus-15 and focus-20 are live** *(2026-11-01)*
 Rendered from the focus-10 recipe (`scripts/extendRecording.ts`), listened to
 and approved by the founder, published to Storage + `guidedRecordings`. The

@@ -22,5 +22,11 @@
     "script_sha256": "93a36ba0843e2a15292306dd35942b9a665230d374e299113325b74b555db441",
     "duration_sec": 1200,
     "approved_at": "2026-11-01T23:39:39.897Z"
+  },
+  "nsdr-15": {
+    "audio_sha256": "2e6d1295790dbe4daa3bae98a17b396b30ec85039a45ec5e8ecb1b8f74a002e0",
+    "script_sha256": "9bf9b330fdf1761f904766695c49087326574cc3f8cec350bcd2158e54c1899d",
+    "duration_sec": 900,
+    "approved_at": "2026-11-02T00:02:18.475Z"
   }
 }
