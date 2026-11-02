@@ -151,7 +151,7 @@ Next:
    "56 · target 70+"), but the flows that tap Save or the chips by position
    haven't been rerun against the new layout. Meditate and Meals went out
    OTA on 2026-11-01 (383972e).
-   **Workouts, pass 1 done** (2026-11-01, not yet seen on screen or OTA): the
+   **Workouts, pass 1 done** (2026-11-01, 063e70d, live OTA; not yet seen on screen): the
    three canvas boards plus everything they share. `workoutsStyle.ts` is the
    redesign's text styles (accent stays teal: white on the orange fails
    contrast); home is a large title ("Start a workout"), the phase card,
