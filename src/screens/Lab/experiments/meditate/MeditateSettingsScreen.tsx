@@ -49,7 +49,7 @@ export const MeditateSettingsScreen: React.FC = () => {
 
       <ListGroup
         title="The bell"
-        footer="The bell is your phone’s notification sound. A Focus mode or Do Not Disturb can silence it."
+        footer="The bell is your phone’s notification sound, so the silent switch, a Focus mode or Do Not Disturb can quiet it."
       >
         <ListRow
           title={BELL_STATUS[bellPermission]}

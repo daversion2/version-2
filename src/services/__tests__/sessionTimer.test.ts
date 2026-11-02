@@ -33,4 +33,13 @@ describe('sessionTimer', () => {
     expect(formatMinutes(60)).toBe('1 min');
     expect(formatMinutes(629)).toBe('10 min');
   });
+
+  it('rounds down, so a logged time is never overstated', () => {
+    expect(formatMinutes(90)).toBe('1 min');
+    expect(formatMinutes(119)).toBe('1 min');
+    expect(formatMinutes(59.6)).toBe('59 sec');
+    expect(formatMinutes(-5)).toBe('0 sec');
+    // The Done screen splits it into number and unit.
+    expect(formatMinutes(3599).split(' ')).toEqual(['59', 'min']);
+  });
 });

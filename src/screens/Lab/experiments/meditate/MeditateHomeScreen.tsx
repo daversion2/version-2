@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants/theme';
 import { LargeTitle } from '../../../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
@@ -22,7 +23,9 @@ import {
   clampMinutes,
   describeSession,
   getSitTechnique,
+  GUIDED_BLURB,
   guidedOptions,
+  isReadyToLog,
   MODE_ORDER,
   MODES,
   pastSession,
@@ -38,6 +41,8 @@ import { CalmScale } from './components/CalmScale';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { newMeditateId, saveMeditateSession } from '../../../../services/labMeditate';
+import { remainingSec } from '../../../../services/sessionTimer';
+import { withTimeout } from '../../../../utils/withTimeout';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateHome'>;
 
@@ -56,6 +61,8 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     updatePrefs,
     sessions,
     guided,
+    guidedStatus,
+    reloadGuided,
     launchHabit,
     bellPermission,
     session,
@@ -69,8 +76,12 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   // A sit done without the app, or forgotten: credit only comes through the
   // app, so it's entered here — saved to history, then rated on Today.
   const [loggingPast, setLoggingPast] = useState(false);
+  const [savingPast, setSavingPast] = useState(false);
+  // Same as the Done screen: a spinner while it saves, and give up offline
+  // rather than spin forever. The sheet stays open so nothing is lost.
   const logPast = async (input: { date: string; minutes: number; mode?: string }) => {
-    setLoggingPast(false);
+    if (savingPast) return;
+    setSavingPast(true);
     const completed = pastSession({
       id: newMeditateId(userId),
       mode: (input.mode as MeditateMode) ?? 'sit',
@@ -79,15 +90,38 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
       now: new Date(),
     });
     try {
-      await saveMeditateSession(userId, completed);
+      await withTimeout(saveMeditateSession(userId, completed), 15000);
     } catch (e) {
       console.warn('Meditate: past session not saved:', e);
+      setSavingPast(false);
       showAlert("Couldn't save that session", 'Check your connection and try again.');
       return;
     }
+    setSavingPast(false);
+    setLoggingPast(false);
     recordFinished(completed);
     closeAndCheckOff(completed);
   };
+
+  // The guided catalog didn't load: try again each time this screen shows.
+  useFocusEffect(
+    useCallback(() => {
+      if (guidedStatus === 'error') reloadGuided();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
+
+  // A timed session's bell rings while this screen is up: re-render then, so
+  // the resume card says it's ready to log.
+  const [, setTick] = useState(0);
+  const runningTimer = session && session.style === 'timer' && !session.endedAt ? session : null;
+  useEffect(() => {
+    if (!runningTimer) return undefined;
+    const left = remainingSec(runningTimer, new Date());
+    if (left === 0) return undefined;
+    const timer = setTimeout(() => setTick((t) => t + 1), left * 1000 + 500);
+    return () => clearTimeout(timer);
+  }, [runningTimer]);
 
   const [choices, setChoices] = useState<StartChoices | null>(null);
   const [showSteps, setShowSteps] = useState(false);
@@ -167,6 +201,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     : undefined;
   const timed = !useGuided && (mode !== 'breathe' || choices.breatheStyle === 'timer');
   const needsLink = mode === 'nsdr' && !useGuided && !nsdrLink;
+  const readyToLog = !!session && isReadyToLog(session, new Date());
 
   const setMinutes = (next: number) => set({ minutes: { ...choices.minutes, [mode]: clampMinutes(mode, next) } });
 
@@ -256,6 +291,11 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.introLine}>
               • Tap Begin and lock your phone. A bell rings at the end — no screen glowing at you while you sit.
             </Text>
+            {guided.length > 0 && (
+              <Text style={styles.introLine}>
+                • Guided is the exception: the recording plays with the screen on, so leave it lit to the end.
+              </Text>
+            )}
             <Text style={styles.introLine}>
               • Finish, and it hands back to Today to rate your override: how hard was it to start? It counts toward
               your week.
@@ -269,7 +309,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         {session && (
           <TouchableOpacity style={styles.resume} onPress={resume} accessibilityRole="button">
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.resumeEyebrow}>{session.endedAt ? 'Ready to log' : 'In progress'}</Text>
+              <Text style={styles.resumeEyebrow}>{readyToLog ? 'Ready to log' : 'In progress'}</Text>
               <Text style={styles.resumeTitle}>
                 {describeSession({
                   mode: session.mode,
@@ -281,7 +321,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </View>
             <View style={styles.resumeActions}>
-              <Text style={styles.resumeCta}>{session.endedAt ? 'Log it' : 'Resume'}</Text>
+              <Text style={styles.resumeCta}>{readyToLog ? 'Log it' : 'Resume'}</Text>
               <TouchableOpacity
                 hitSlop={8}
                 onPress={() => showConfirm('Discard this session?', 'Nothing from it will be saved.', discardSession, 'Discard')}
@@ -294,7 +334,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
 
         {!!loadError && (
           <TouchableOpacity style={ms.card} onPress={reload}>
-            <Text style={ms.title}>Couldn't load your history</Text>
+            <Text style={ms.title}>Couldn't load everything</Text>
             <Text style={ms.muted}>You can still start a session. Tap to try loading again.</Text>
           </TouchableOpacity>
         )}
@@ -309,7 +349,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
           }}
           accessibilityLabel="Kind of session"
         />
-        <Text style={[ms.lead, styles.blurb]}>{config.blurb}</Text>
+        <Text style={[ms.lead, styles.blurb]}>{useGuided ? GUIDED_BLURB : config.blurb}</Text>
 
         {/* What you'll do */}
         {mode === 'sit' && (
@@ -453,9 +493,14 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         visible={loggingPast}
         accent={MEDITATE_ACCENT}
         title="Log a past session"
-        minutes={{ min: 1, max: 90, step: 1, initial: 10 }}
-        modes={MODE_ORDER.map((m) => ({ value: m, label: MODES[m].label }))}
-        onCancel={() => setLoggingPast(false)}
+        minutes={{ min: MODES.sit.minMin, max: MODES.sit.maxMin, step: MODES.sit.stepMin, initial: MODES.sit.defaultMin }}
+        modes={MODE_ORDER.map((m) => ({
+          value: m,
+          label: MODES[m].label,
+          minutes: { min: MODES[m].minMin, max: MODES[m].maxMin, step: MODES[m].stepMin, initial: MODES[m].defaultMin },
+        }))}
+        saving={savingPast}
+        onCancel={() => !savingPast && setLoggingPast(false)}
         onSave={logPast}
       />
 

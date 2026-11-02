@@ -8,7 +8,14 @@ import { StatusBar } from 'expo-status-bar';
 import { BorderRadius, Colors, MeditateNight, Spacing, TextStyles } from '../../../../constants/theme';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import { getBreathPattern } from '../../../../data/breathPatterns';
-import { addPacedSeconds, getSitTechnique, MODES } from '../../../../services/meditateMath';
+import {
+  addPacedSeconds,
+  breatheCue,
+  getSitTechnique,
+  isTooShortToLog,
+  loggedIfEndedNow,
+  MODES,
+} from '../../../../services/meditateMath';
 import { elapsedSec, formatMinutes, isDue } from '../../../../services/sessionTimer';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
@@ -38,7 +45,7 @@ const haptic = (fn: () => void) => {
  */
 export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { session, end, updateSession, prefs } = useMeditate();
+  const { session, end, updateSession, prefs, discardSession } = useMeditate();
   const [fresh] = useState(() => !!session && elapsedSec(session, new Date()) < FRESH_SEC);
   const [view, setView] = useState<'settle' | 'peek'>(fresh ? 'settle' : 'peek');
   const appState = useRef(AppState.currentState);
@@ -79,8 +86,12 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
 
   if (!session || session.endedAt) return <View style={ms.screen} />;
 
+  // Under a minute can't be logged (meditateMath MIN_LOGGED_SEC), so ending
+  // then only throws it away — and says so before it does.
   const endEarly = () =>
-    showConfirm('End now?', 'It’s logged as the time you actually did — that still counts.', () => end(true), 'End');
+    isTooShortToLog(loggedIfEndedNow(session, new Date()))
+      ? showConfirm('Too short to count', 'Under a minute isn’t logged, so ending now discards this session.', discardSession, 'Discard', 'Keep going')
+      : showConfirm('End now?', 'It’s logged as the time you actually did — that still counts.', () => end(true), 'End');
 
   const link = prefs.nsdr_links.find((l) => l.id === session.nsdrLinkId);
   const openRecording = () =>
@@ -134,7 +145,7 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
     session.mode === 'sit'
       ? getSitTechnique(session.technique).cue
       : session.mode === 'breathe'
-        ? `${getBreathPattern(session.pattern).label}: ${getBreathPattern(session.pattern).blurb}. Make the exhale longer than the inhale.`
+        ? `${getBreathPattern(session.pattern).label}: ${getBreathPattern(session.pattern).blurb}. ${breatheCue(session.pattern)}`
         : 'Lie still and follow the recording. Deeply relaxed — not asleep.';
 
   return (

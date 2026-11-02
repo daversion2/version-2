@@ -6,6 +6,7 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-au
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { formatClock } from '../../services/labCompose';
+import { createPlayThroughWatcher } from '../../services/audioPlayThrough';
 
 interface Props {
   url: string;
@@ -14,7 +15,7 @@ interface Props {
   durationSec?: number;
   /** The host app's one colour. */
   accent: string;
-  /** Called once, when the recording plays through to its end. */
+  /** Called once, when the recording plays through to its end (not on a seek there while paused). */
   onFinish?: () => void;
 }
 
@@ -27,9 +28,10 @@ const SLOW_LOAD_MS = 15_000;
  * has no background audio (UIBackgroundModes audio arrived in app.json after
  * it), so there auto-lock would cut a session off mid-way. Turn this off in
  * the first store build that includes background audio: playing with the
- * screen off is the intended experience.
+ * screen off is the intended experience. Meditate's guided screen shows "keep
+ * the screen on" copy only while this is true.
  */
-const KEEP_SCREEN_ON_WHILE_PLAYING = true;
+export const KEEP_SCREEN_ON_WHILE_PLAYING = true;
 const KEEP_AWAKE_TAG = 'guided-session';
 
 /**
@@ -114,13 +116,28 @@ export const SessionPlayer: React.FC<Props> = ({ url, title, durationSec, accent
   }, [status.playing]);
 
   // Tell the host once, when it plays through (not on a seek to the end).
+  // From the raw status events, not the rendered status: didJustFinish is
+  // true in one event only, and a render can batch it away
+  // (services/audioPlayThrough.ts). The render path stays as a backstop.
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
   const finishedOnce = useRef(false);
+  const fireFinish = useCallback(() => {
+    if (finishedOnce.current) return;
+    finishedOnce.current = true;
+    onFinishRef.current?.();
+  }, []);
   useEffect(() => {
-    if (status.didJustFinish && !finishedOnce.current) {
-      finishedOnce.current = true;
-      onFinish?.();
-    }
-  }, [status.didJustFinish, onFinish]);
+    finishedOnce.current = false;
+    const watch = createPlayThroughWatcher();
+    const sub = player.addListener('playbackStatusUpdate', (s) => {
+      if (watch(s)) fireFinish();
+    });
+    return () => sub.remove();
+  }, [player, fireFinish]);
+  useEffect(() => {
+    if (status.didJustFinish) fireFinish();
+  }, [status.didJustFinish, fireFinish]);
 
   useEffect(() => {
     if (loaded) {

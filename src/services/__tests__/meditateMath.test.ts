@@ -1,6 +1,13 @@
 import {
   addPacedSeconds,
+  breatheCue,
   calmInsight,
+  isReadyToLog,
+  isTooShortToLog,
+  loggedIfEndedNow,
+  MIN_LOGGED_SEC,
+  MODES,
+  pastSession,
   describeCalm,
   describeCalmInsight,
   breakdown,
@@ -384,5 +391,83 @@ describe('calm, before and after', () => {
     expect(describeCalm({ calm_before: 3 })).toBe('Calm before: 3');
     expect(describeCalm({ calm_after: 5 })).toBe('Calm after: 5');
     expect(describeCalm({})).toBeNull();
+  });
+});
+
+describe('too short to log', () => {
+  it('sets the line at one minute', () => {
+    expect(MIN_LOGGED_SEC).toBe(60);
+    expect(isTooShortToLog(0)).toBe(true);
+    expect(isTooShortToLog(59)).toBe(true);
+    expect(isTooShortToLog(60)).toBe(false);
+    expect(isTooShortToLog(NaN)).toBe(true);
+  });
+
+  it('knows what ending now would log — the clock for a timed sit, breaths for the pacer', () => {
+    const start = local(2026, 10, 17, 7);
+    const sit = startSession({ id: 'x', mode: 'sit', minutes: 10, now: start });
+    expect(loggedIfEndedNow(sit, new Date(start.getTime() + 40_000))).toBe(40);
+    expect(loggedIfEndedNow(sit, new Date(start.getTime() + 90_000))).toBe(90);
+    const paced = addPacedSeconds(
+      startSession({ id: 'p', mode: 'breathe', minutes: 5, now: start, breatheStyle: 'pacer' }),
+      32
+    );
+    expect(loggedIfEndedNow(paced, new Date(start.getTime() + 600_000))).toBe(32);
+  });
+
+  it('every full session clears it: the shortest plan is one minute', () => {
+    for (const m of Object.values(MODES)) expect(isTooShortToLog(m.minMin * 60)).toBe(false);
+  });
+});
+
+describe('isReadyToLog', () => {
+  const start = local(2026, 10, 17, 7);
+  const at = (sec: number) => new Date(start.getTime() + sec * 1000);
+
+  it('is ready once ended, or once a timed session\'s bell has rung', () => {
+    const sit = startSession({ id: 'x', mode: 'sit', minutes: 10, now: start });
+    expect(isReadyToLog(sit, at(599))).toBe(false);
+    expect(isReadyToLog(sit, at(600))).toBe(true);
+    expect(isReadyToLog(endSession(sit, at(30), true), at(31))).toBe(true);
+  });
+
+  it('a pacer or guided session is not over just because the clock passed', () => {
+    const paced = startSession({ id: 'p', mode: 'breathe', minutes: 5, now: start, breatheStyle: 'pacer' });
+    expect(isReadyToLog(paced, at(3600))).toBe(false);
+    const guided = startSession({
+      id: 'g',
+      mode: 'sit',
+      minutes: 10,
+      now: start,
+      guided: { id: 'r', title: 'Focus', duration_sec: 600 },
+    });
+    expect(isReadyToLog(guided, at(3600))).toBe(false);
+  });
+});
+
+describe('breatheCue', () => {
+  it('asks for a longer exhale only where the pattern has one', () => {
+    expect(breatheCue('478')).toBe('Make the exhale longer than the inhale.');
+    expect(breatheCue('extended')).toBe('Make the exhale longer than the inhale.');
+    expect(breatheCue('sigh')).toBe('Make the exhale longer than the inhale.');
+    expect(breatheCue('box')).toBe('Keep every count even and unhurried.');
+    expect(breatheCue('coherent')).toBe('Keep every count even and unhurried.');
+  });
+
+  it("the Breathe blurb doesn't promise a longer exhale either", () => {
+    expect(MODES.breathe.blurb).not.toMatch(/longer out/);
+  });
+});
+
+describe('pastSession ranges', () => {
+  it("keeps the minutes on the mode's own range and steps", () => {
+    const now = new Date('2026-10-18T10:00:00');
+    const at = (mode: 'sit' | 'breathe' | 'nsdr', minutes: number) =>
+      pastSession({ id: 's', mode, date: '2026-10-16', minutes, now }).duration_sec / 60;
+    expect(at('sit', 90)).toBe(60);
+    expect(at('breathe', 30)).toBe(20);
+    expect(at('nsdr', 1)).toBe(5);
+    expect(at('nsdr', 22)).toBe(20);
+    expect(at('sit', 12)).toBe(12);
   });
 });

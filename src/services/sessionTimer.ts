@@ -40,9 +40,12 @@ export const isDue = (clock: TimerClock, now: Date): boolean => remainingSec(clo
 export const loggedSec = (clock: TimerClock, now: Date): number =>
   Math.min(clock.plannedSec, elapsedSec(clock, now));
 
-/** Seconds → "10 min", "1 min", "45 sec" — for copy, never for a running clock. */
+/**
+ * Seconds → "10 min", "1 min", "45 sec" — for copy, never for a running clock.
+ * Rounds down: a 1½-minute sit reads "1 min", never "2 min" — time logged is
+ * never overstated. Always "<number> <unit>": the Done screen splits on the space.
+ */
 export const formatMinutes = (sec: number): string => {
-  if (sec < 60) return `${Math.max(0, Math.round(sec))} sec`;
-  const min = Math.round(sec / 60);
-  return `${min} min`;
+  if (sec < 60) return `${Math.max(0, Math.floor(sec))} sec`;
+  return `${Math.floor(sec / 60)} min`;
 };

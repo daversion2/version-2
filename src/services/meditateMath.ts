@@ -10,7 +10,7 @@ import {
   SitTechnique,
 } from '../types/meditate';
 import { getWeekStart, toLocalDateString } from '../utils/date';
-import { loggedSec } from './sessionTimer';
+import { isDue, loggedSec } from './sessionTimer';
 
 // =============================================================================
 // Meditate's logic, kept out of the screens so it can be tested: what the start
@@ -49,7 +49,7 @@ export const MODES: Record<MeditateMode, ModeConfig> = {
     maxMin: 20,
     stepMin: 1,
     defaultMin: 5,
-    blurb: 'Slow, deliberate breathing — longer out than in.',
+    blurb: 'Slow, deliberate breathing to a steady count.',
   },
   nsdr: {
     label: 'NSDR',
@@ -63,6 +63,29 @@ export const MODES: Record<MeditateMode, ModeConfig> = {
 };
 
 export const MODE_ORDER: MeditateMode[] = ['sit', 'breathe', 'nsdr'];
+
+/** Under the mode on the start screen when Guided is picked — the mode blurbs talk about locking the phone. */
+export const GUIDED_BLURB = 'A recording guides you, start to finish.';
+
+/**
+ * The shortest session that can be logged. Under a minute is a tap on Begin,
+ * not a sit — the Done screen offers only Discard (founder, 2026-11-02).
+ */
+export const MIN_LOGGED_SEC = 60;
+
+export const isTooShortToLog = (sec: number): boolean => !(sec >= MIN_LOGGED_SEC);
+
+/**
+ * The line under a breathing pattern while it's timed. "Longer out than in"
+ * only where the pattern really is — Box and Coherent are even.
+ */
+export const breatheCue = (pattern?: string): string => {
+  const phases = getBreathPattern(pattern).phases;
+  const total = (kind: string) => phases.filter((p) => p.kind === kind).reduce((t, p) => t + p.sec, 0);
+  return total('exhale') > total('inhale')
+    ? 'Make the exhale longer than the inhale.'
+    : 'Keep every count even and unhurried.';
+};
 
 export interface SitTechniqueDef {
   key: SitTechnique;
@@ -219,6 +242,18 @@ export const startSession = (input: {
 export const isEnded = (session: MeditateSession): boolean => !!session.endedAt;
 
 /**
+ * Over and waiting to be logged: ended, or a timed one whose bell has already
+ * rung (the clock is only checked on the session screen, so the draft can
+ * still look open). The start screen's resume card says "Ready to log" then.
+ */
+export const isReadyToLog = (session: MeditateSession, now: Date): boolean =>
+  !!session.endedAt || (session.style === 'timer' && isDue(session, now));
+
+/** What ending now would log — for warning before an end that's too short to count. */
+export const loggedIfEndedNow = (session: MeditateSession, now: Date): number =>
+  endSession(session, now, true).loggedSec ?? 0;
+
+/**
  * Ends a session and fixes what it logs. A timed one counts by the clock
  * (capped at the plan — see sessionTimer.loggedSec); a paced one by the
  * seconds actually breathed, so pauses don't count; a guided one counts only
@@ -325,8 +360,9 @@ export const describeCalm = (s: Pick<CompletedMeditateSession, 'calm_before' | '
 
 /**
  * A session entered after the fact ("Log a past session"): no timer ran, so
- * planned and logged are the minutes given, filed on the day chosen (started
- * at noon local, so the day can't slip across midnight in any timezone math).
+ * planned and logged are the minutes given — kept on the mode's own range and
+ * steps, like a timed one — filed on the day chosen (started at noon local, so
+ * the day can't slip across midnight in any timezone math).
  */
 export const pastSession = (input: {
   id: string;
@@ -336,7 +372,7 @@ export const pastSession = (input: {
   now: Date;
 }): CompletedMeditateSession => {
   const [y, m, d] = input.date.split('-').map(Number);
-  const sec = Math.max(1, Math.round(input.minutes)) * 60;
+  const sec = clampMinutes(input.mode, input.minutes) * 60;
   return {
     id: input.id,
     mode: input.mode,

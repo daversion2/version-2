@@ -42,8 +42,12 @@ interface MeditateContextValue {
   /** Newest first. */
   sessions: CompletedMeditateSession[];
 
-  /** Published guided recordings; empty if none (or they couldn't load). */
+  /** Published guided recordings; empty if none (or they couldn't load — see guidedStatus). */
   guided: GuidedRecording[];
+  /** Whether the guided catalog has loaded, is loading, or failed (and can be retried). */
+  guidedStatus: GuidedStatus;
+  /** Fetches the catalog again; a no-op while a fetch is already running. */
+  reloadGuided: () => void;
 
   habits: PracticeInstance[];
   /** The habit whose Start button opened the app, if one did. */
@@ -71,6 +75,8 @@ interface MeditateContextValue {
    */
   closeAndCheckOff: (completed: CompletedMeditateSession) => void;
 }
+
+export type GuidedStatus = 'loading' | 'ready' | 'error';
 
 const MeditateContext = createContext<MeditateContextValue | null>(null);
 
@@ -100,6 +106,13 @@ export const MeditateProvider: React.FC<{
   const [sessions, setSessions] = useState<CompletedMeditateSession[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [guided, setGuided] = useState<GuidedRecording[]>([]);
+  const [guidedStatus, setGuidedStatus] = useState<GuidedStatus>('loading');
+  const guidedInFlight = useRef(false);
+  /**
+   * Saved prefs have been read at least once. Until then the NSDR list in
+   * state is the empty default, and writing it would replace the saved links.
+   */
+  const prefsLoaded = useRef(false);
   const [bellPermission, setBellPermission] = useState<BellPermission>('undetermined');
   const [session, setSession] = useState<MeditateSession | null>(null);
   const sessionRef = useRef<MeditateSession | null>(null);
@@ -127,45 +140,80 @@ export const MeditateProvider: React.FC<{
     return () => sub.remove();
   }, []);
 
+  // Each on its own, so one failing doesn't throw away the others.
   const reload = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
-    try {
-      const [p, s, h] = await Promise.all([
-        getMeditatePrefs(userId),
-        listMeditateSessions(userId),
-        getActiveHabits(userId),
-      ]);
-      setPrefs(p);
-      setSessions(s);
-      setHabits(h.filter((habit) => !habit.archived_at));
-    } catch (e) {
-      console.warn('Meditate: load failed:', e);
-      setLoadError(errorText(e));
-    } finally {
-      setLoading(false);
-    }
+    const [p, s, h] = await Promise.allSettled([
+      getMeditatePrefs(userId),
+      listMeditateSessions(userId),
+      getActiveHabits(userId),
+    ]);
+    if (p.status === 'fulfilled') {
+      prefsLoaded.current = true;
+      setPrefs(p.value);
+    } else console.warn('Meditate: prefs not loaded:', p.reason);
+    if (s.status === 'fulfilled') setSessions(s.value);
+    else console.warn('Meditate: history not loaded:', s.reason);
+    if (h.status === 'fulfilled') setHabits(h.value.filter((habit) => !habit.archived_at));
+    else console.warn('Meditate: habits not loaded:', h.reason);
+    const failed = [p, s].find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failed) setLoadError(errorText(failed.reason));
+    setLoading(false);
   }, [userId]);
 
   useEffect(() => {
     reload();
   }, [reload]);
 
-  // The guided catalog on its own: if it can't load, Meditate works as before.
-  useEffect(() => {
+  // The guided catalog on its own: if it can't load, Meditate works as before
+  // and it's tried again (reloadGuided — on coming back to the app, the start
+  // screen, or the guided screen's Try again).
+  const reloadGuided = useCallback(() => {
+    if (guidedInFlight.current) return;
+    guidedInFlight.current = true;
+    setGuidedStatus('loading');
     listGuidedRecordings()
-      .then(setGuided)
-      .catch((e) => console.warn('Meditate: guided recordings not loaded:', e));
+      .then((list) => {
+        setGuided(list);
+        setGuidedStatus('ready');
+      })
+      .catch((e) => {
+        console.warn('Meditate: guided recordings not loaded:', e);
+        setGuidedStatus('error');
+      })
+      .finally(() => {
+        guidedInFlight.current = false;
+      });
   }, []);
+
+  useEffect(() => {
+    reloadGuided();
+  }, [reloadGuided]);
+
+  const guidedStatusRef = useRef(guidedStatus);
+  guidedStatusRef.current = guidedStatus;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && guidedStatusRef.current === 'error') reloadGuided();
+    });
+    return () => sub.remove();
+  }, [reloadGuided]);
 
   const launchHabit = habits.find((h) => h.id === launchHabitId);
 
   const updatePrefs = useCallback(
     async (changes: Partial<MeditatePrefs>) => {
+      // The links are written whole: before the saved ones are read, that
+      // would overwrite them with just the new one. Try loading again instead.
+      if (changes.nsdr_links && !prefsLoaded.current) {
+        reload();
+        throw new Error('Meditate prefs not loaded yet');
+      }
       setPrefs((p) => ({ ...p, ...changes }));
       await saveMeditatePrefs(userId, changes);
     },
-    [userId]
+    [userId, reload]
   );
 
   const updateSession = useCallback(
@@ -193,6 +241,8 @@ export const MeditateProvider: React.FC<{
         const bellId = await scheduleBell(next.plannedSec, {
           title: BELL_TITLE[next.mode],
           body: `${formatMinutes(next.plannedSec)} done. Open Meditate when you’re ready to log it.`,
+          // A tap opens Meditate (RootNavigator), where it's ready to log.
+          data: { open: 'MeditateApp' },
         });
         if (bellId) next = { ...next, bellId };
       }
@@ -261,6 +311,8 @@ export const MeditateProvider: React.FC<{
     updatePrefs,
     sessions,
     guided,
+    guidedStatus,
+    reloadGuided,
     habits,
     launchHabit,
     launchHabitId,

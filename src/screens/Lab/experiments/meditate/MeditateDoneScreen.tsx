@@ -9,21 +9,19 @@ import {
   calmInsight,
   describeCalmInsight,
   describeSession,
+  isTooShortToLog,
   newRecords,
   toCompletedSession,
 } from '../../../../services/meditateMath';
 import { saveMeditateSession } from '../../../../services/labMeditate';
 import { formatMinutes } from '../../../../services/sessionTimer';
 import { showAlert, showConfirm } from '../../../../utils/alert';
+import { withTimeout } from '../../../../utils/withTimeout';
 import { useMeditate } from './MeditateContext';
 import { MEDITATE_ACCENT, MEDITATE_TINT, ms } from './components/meditateStyle';
 import { CalmScale } from './components/CalmScale';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateDone'>;
-
-/** Offline, a Firestore write never settles — give up and say so rather than spin forever. */
-const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-  Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
 
 const DONE_TITLE: Record<string, string> = { sit: 'Sit done', breathe: 'Breathing done', nsdr: 'Rest done' };
 
@@ -63,14 +61,46 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
     closeAndCheckOff(completed);
   };
 
+  const throwAway = async () => {
+    await discardSession();
+    navigation.popToTop();
+  };
+
   const discard = () =>
-    showConfirm('Discard this session?', 'It won’t be saved or counted.', async () => {
-      await discardSession();
-      navigation.popToTop();
-    }, 'Discard');
+    showConfirm('Discard this session?', 'It won’t be saved or counted.', throwAway, 'Discard');
 
   // "5 min" → a big 5 and a small "min"; "40 sec" the same way.
   const [amount, unit] = formatMinutes(preview.duration_sec).split(' ');
+
+  // Under a minute can't be logged (MIN_LOGGED_SEC): nothing to rate, only Discard.
+  if (isTooShortToLog(preview.duration_sec)) {
+    return (
+      <View style={[ms.screen, { paddingTop: insets.top }]}>
+        <ScrollView contentContainerStyle={[ms.scroll, styles.scroll, { paddingBottom: 170 + insets.bottom }]}>
+          <View style={styles.hero}>
+            <View style={[styles.badge, styles.badgeMuted]}>
+              <Ionicons name="hourglass-outline" size={28} color={MEDITATE_ACCENT} />
+            </View>
+            <Text style={styles.heroTitle} accessibilityRole="header">
+              Too short to count
+            </Text>
+            <Text style={styles.amount}>
+              {amount}
+              <Text style={styles.unit}> {unit}</Text>
+            </Text>
+            <Text style={[styles.described, styles.center]}>
+              Sessions under a minute aren’t logged. Begin again whenever you’re ready.
+            </Text>
+          </View>
+        </ScrollView>
+        <View style={[ms.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
+          <TouchableOpacity style={ms.primaryBtn} onPress={throwAway} accessibilityRole="button">
+            <Text style={ms.primaryBtnText}>Discard</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[ms.screen, { paddingTop: insets.top }]}>
@@ -156,6 +186,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
+  badgeMuted: { backgroundColor: MEDITATE_TINT },
   heroTitle: { ...TextStyles.title1, color: Colors.dark },
   amount: { fontFamily: TextStyles.largeTitle.fontFamily, fontSize: 64, lineHeight: 72, fontWeight: '700', color: Colors.dark },
   unit: { ...TextStyles.title2, fontWeight: '600', color: Colors.gray },

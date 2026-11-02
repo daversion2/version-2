@@ -18,6 +18,16 @@ const ANDROID_CHANNEL = 'habit-reminders'; // the channel habitReminders sets up
 
 export type BellPermission = 'granted' | 'denied' | 'undetermined';
 
+/**
+ * Every bell carries this in its data, so the foreground handler
+ * (services/notifications.ts) can let it ring with the app open — other
+ * notifications arrive silently there.
+ */
+export const SESSION_BELL_KIND = 'session-bell';
+
+export const isSessionBell = (data: unknown): boolean =>
+  !!data && typeof data === 'object' && (data as Record<string, unknown>).kind === SESSION_BELL_KIND;
+
 /** Read-only — never prompts. For warning before a session that no bell will ring. */
 export const getBellPermission = async (): Promise<BellPermission> => {
   if (Platform.OS === 'web') return 'denied';
@@ -39,7 +49,12 @@ export const requestBellPermission = (): Promise<boolean> => ensureReminderPermi
  */
 export const scheduleBell = async (
   seconds: number,
-  content: { title: string; body: string }
+  content: {
+    title: string;
+    body: string;
+    /** Extra notification data — e.g. `{ open: 'MeditateApp' }`, which a tap routes on (RootNavigator). */
+    data?: Record<string, string>;
+  }
 ): Promise<string | undefined> => {
   if (seconds < 1) return undefined;
   try {
@@ -47,7 +62,7 @@ export const scheduleBell = async (
     return await Notifications.scheduleNotificationAsync({
       // A local notification without `sound` arrives silently on iOS — and a
       // silent bell is no bell.
-      content: { ...content, sound: 'default' },
+      content: { ...content, sound: 'default', data: { ...content.data, kind: SESSION_BELL_KIND } },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: Math.round(seconds),

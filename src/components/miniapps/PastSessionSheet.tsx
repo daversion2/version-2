@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { formatRelativeDay, getEditableDates } from '../../utils/date';
@@ -10,17 +10,24 @@ export interface PastSessionInput {
   mode?: string;
 }
 
+type MinuteRange = { min: number; max: number; step: number; initial: number };
+
 interface Props {
   visible: boolean;
   accent: string;
   /** "Log a past workout" */
   title: string;
-  minutes: { min: number; max: number; step: number; initial: number };
-  /** Meditate's Sit / Breathe / NSDR. */
-  modes?: { value: string; label: string }[];
+  minutes: MinuteRange;
+  /** Meditate's Sit / Breathe / NSDR — each may bring its own range, used in place of `minutes`. */
+  modes?: { value: string; label: string; minutes?: MinuteRange }[];
+  /** A save is in flight: the button spins and nothing can be tapped twice. */
+  saving?: boolean;
   onSave: (input: PastSessionInput) => void;
   onCancel: () => void;
 }
+
+/** Inside the range and on its steps. */
+const fit = (m: number, r: MinuteRange) => Math.min(r.max, Math.max(r.min, Math.round(m / r.step) * r.step));
 
 /**
  * "Log a past session" inside an app. Credit only comes through the app
@@ -28,24 +35,39 @@ interface Props {
  * entered here: which day (within the week the rest of the app allows), how
  * long, and for Meditate which kind. Saving hands it to Today to be rated.
  */
-export const PastSessionSheet: React.FC<Props> = ({ visible, accent, title, minutes, modes, onSave, onCancel }) => {
+export const PastSessionSheet: React.FC<Props> = ({
+  visible,
+  accent,
+  title,
+  minutes,
+  modes,
+  saving = false,
+  onSave,
+  onCancel,
+}) => {
   const insets = useSafeAreaInsets();
   const days = getEditableDates();
+  const rangeFor = (value?: string): MinuteRange => modes?.find((m) => m.value === value)?.minutes ?? minutes;
   const [date, setDate] = useState(days[0]);
-  const [mins, setMins] = useState(minutes.initial);
+  const [mins, setMins] = useState(rangeFor(modes?.[0]?.value).initial);
   const [mode, setMode] = useState(modes?.[0]?.value);
+  const range = rangeFor(mode);
 
   useEffect(() => {
     if (visible) {
       setDate(getEditableDates()[0]);
-      setMins(minutes.initial);
+      setMins(rangeFor(modes?.[0]?.value).initial);
       setMode(modes?.[0]?.value);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const step = (dir: 1 | -1) =>
-    setMins((m) => Math.min(minutes.max, Math.max(minutes.min, m + dir * minutes.step)));
+  const pickMode = (value: string) => {
+    setMode(value);
+    setMins((m) => fit(m, rangeFor(value)));
+  };
+
+  const step = (dir: 1 | -1) => setMins((m) => fit(m + dir * range.step, range));
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
@@ -82,7 +104,7 @@ export const PastSessionSheet: React.FC<Props> = ({ visible, accent, title, minu
                     <TouchableOpacity
                       key={m.value}
                       style={[styles.chip, styles.modeChip, on && { backgroundColor: accent, borderColor: accent }]}
-                      onPress={() => setMode(m.value)}
+                      onPress={() => pickMode(m.value)}
                       accessibilityRole="radio"
                       accessibilityState={{ checked: on }}
                     >
@@ -106,11 +128,13 @@ export const PastSessionSheet: React.FC<Props> = ({ visible, accent, title, minu
           </View>
 
           <TouchableOpacity
-            style={[styles.save, { backgroundColor: accent }]}
+            style={[styles.save, { backgroundColor: accent }, saving && styles.saving]}
             onPress={() => onSave({ date, minutes: mins, mode })}
+            disabled={saving}
             accessibilityRole="button"
+            accessibilityState={{ busy: saving }}
           >
-            <Text style={styles.saveText}>Save & rate it</Text>
+            {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.saveText}>Save & rate it</Text>}
           </TouchableOpacity>
           <Text style={styles.hint}>Next: “How hard was it to start?” on Today.</Text>
         </View>
@@ -166,6 +190,7 @@ const styles = StyleSheet.create({
   stepGlyph: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, color: Colors.dark },
   value: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
   save: { height: 54, borderRadius: BorderRadius.full, alignItems: 'center', justifyContent: 'center', marginTop: Spacing.sm },
+  saving: { opacity: 0.6 },
   saveText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: Colors.white },
   hint: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, textAlign: 'center' },
 });
