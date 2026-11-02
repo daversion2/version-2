@@ -190,7 +190,7 @@ export const HomeStack: React.FC = () => (
     <Stack.Screen
       name="NightlyReflection"
       component={NightlyReflectionScreen}
-      options={{ title: 'Nightly Reflection' }}
+      options={{ title: 'Close out the day' }}
     />
     <Stack.Screen name="AppPage" component={AppPageScreen} options={{ headerShown: false }} />
     <Stack.Screen

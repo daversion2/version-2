@@ -60,7 +60,7 @@ export const JourneyCheckinScreen: React.FC = () => {
       setSaved(record);
       await refreshProfile();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save. Please try again.');
+      Alert.alert("Couldn't save that", 'Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -127,7 +127,7 @@ export const JourneyCheckinScreen: React.FC = () => {
         })}
 
         <Button
-          title="Back to training"
+          title="Back to Today"
           onPress={() => navigation.goBack()}
           style={styles.button}
         />
@@ -143,7 +143,7 @@ export const JourneyCheckinScreen: React.FC = () => {
         {slot === 'day28' ? 'Four weeks in. Take stock.' : 'Two weeks in. Take stock.'}
       </Text>
       <Text style={styles.subtitle}>
-        The same three questions from day one. Answer honestly — you'll see them side by side.
+        Three quick questions. Answer honestly — each time you check in, your answers line up side by side.
       </Text>
 
       {CHECKIN_METRICS.map((metric) => (

@@ -195,7 +195,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     name: 'Push opt-in ask',
     description:
       'The only place the app asks for notification permission. Fires on app open once the ' +
-      'user has logged at least one habit — deliberately NOT during onboarding: iOS grants one ' +
+      'user has finished at least one app session — deliberately NOT during onboarding: iOS grants one ' +
       'permission prompt per install, and spending it before the app has done anything for ' +
       'them is how you get a permanent no. Conditioned on has_push_token == 0 so it never ' +
       'asks someone who already said yes (or who turned it off in Settings and then back on). ' +
@@ -215,7 +215,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 45,
     content: {
       title: 'Want a nudge when it matters?',
-      body: "You've logged your first habit. A reminder on the days you said you'd train makes the second one easier — and we'll keep it to three a week, at most.",
+      body: "You've finished your first session. A nudge when it matters makes the next one easier to start — and we'll keep it to three a week, at most.",
       cta: 'Turn them on',
       component: 'push_optin',
     },
@@ -304,7 +304,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   {
     name: 'Journey day 0: first check-in tonight',
     description:
-      'Signup-day evening rescue for users who have not logged their first habit. Skipped automatically once they train.',
+      'Signup-day evening rescue for users who have not finished their first app session. Skipped automatically once they do.',
     enabled: true,
     surface: 'push',
     event: 'scheduled_hourly',
@@ -344,7 +344,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 30,
     content: {
       title: 'Three days in',
-      body: "The schedule you set when you started is a promise, not a score to hit — falling short of it still counts as showing up. Open any habit to change what you committed to.",
+      body: "The weekly goals you set when you started are a promise, not a score to hit — falling short of one still counts as showing up. Change any app's goal in its settings.",
       cta: 'Got it',
     },
   },
@@ -364,7 +364,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'Week one: {habits_completed} overrides logged',
-      body: "That's {habits_completed} times your brain said stop and you didn't. You've tried {practices_tried} habits so far — pick one you haven't this week.",
+      body: "That's {habits_completed} times your brain said not now and you started anyway. You've tried {practices_tried} of Meditate, Workouts and Meals so far.",
       cta_target: { type: 'screen', screen: 'Progress' },
     },
   },
@@ -387,7 +387,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'Two weeks in. Notice anything?',
-      body: 'Same three questions as day one — mood, focus, motivation. Ten seconds, then see them side by side.',
+      body: 'Three quick questions — mood, focus, motivation. Ten seconds, then see your answers side by side.',
       cta_target: { type: 'screen', screen: 'JourneyCheckin' },
     },
   },
@@ -432,7 +432,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'Three weeks. {habits_completed} overrides.',
-      body: "You've tried {practices_tried} habits. The ones you're avoiding are the ones with the most to teach.",
+      body: "You've tried {practices_tried} of the three apps. The one you keep putting off is the one with the most to teach.",
       cta_target: { type: 'screen', screen: 'Progress' },
     },
   },
@@ -451,7 +451,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 25,
     content: {
       title: 'The science said two to four weeks.',
-      body: "You're there. Retake your day-one baseline — mood, focus, motivation — and see the data for yourself.",
+      body: "You're there. Ten seconds: rate your mood, focus and motivation, and see the data for yourself.",
       cta_target: { type: 'screen', screen: 'JourneyCheckin' },
     },
   },
@@ -471,8 +471,8 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 40,
     content: {
       title: 'Month one complete',
-      body: '{habits_completed} overrides. {practices_tried} habits tried. {xp} XP earned. What you built this month is your baseline now — set the next target.',
-      cta: 'See your training volume',
+      body: '{habits_completed} sessions. {practices_tried} of the three apps tried. {xp} XP earned. This month is your baseline now — if a weekly goal has started to feel easy, raise it.',
+      cta: 'See your progress',
       cta_target: { type: 'screen', screen: 'Progress' },
     },
   },
@@ -493,7 +493,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 20,
     content: {
       title: "Yesterday didn't happen. Fine.",
-      body: "Today can be the two-minute version. Volume beats perfection — one small override keeps the protocol alive.",
+      body: "Today can be the two-minute version: a short sit, one set, one meal logged. Starting beats doing it perfectly.",
     },
   },
 ];

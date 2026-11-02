@@ -23,6 +23,13 @@ How to use it:
 
 ## Now
 
+**Work through `docs/launch-review.md`** *(added 2026-11-02)*
+The app-wide launch review fixed everything small (see Done). What's left is
+there, most important first: deploy rules, functions and hosting; **Sign in
+with Apple** (App Store guideline 4.8: a launch blocker, not a redesign
+detail) plus `app.json` permission and name fixes for the next store build;
+live rule copy in Admin → Rules; then product decisions.
+
 **Check the new onboarding on screen** *(added 2026-11-01)*
 Built and green in jest, not yet seen running. It needs a throwaway signup
 (**writes to production; ask first**), or Settings → Replay intro on an admin
@@ -426,6 +433,44 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**App-wide launch review: the small fixes** *(2026-11-02, not yet seen on screen, not deployed or OTA'd)*
+Eight reviewers went through the app; everything small was fixed and tested.
+What's left is in `docs/launch-review.md`. Highlights beyond sign-in (below):
+- Today: new accounts aren't asked about the week before they signed up;
+  active users don't get "Welcome back"; Today reloads after midnight; no
+  endless spinner; a session crossing midnight counts once; a rating can't be
+  saved twice (fixed log id per session); one sheet at a time; intros rewritten.
+- Meditate: a guided recording that plays through always reaches Done; bell
+  tap opens Meditate and sounds with the app open; NSDR links can't be wiped
+  by a failed load; sessions under a minute don't count.
+- Workouts: a failed first load can no longer reset records or today's log;
+  offline adds don't hang; no duplicate saved workouts; overnight drafts end
+  at their last set.
+- Meals: a day is rated once; an all-"didn't eat" day is neutral; scoring
+  weights admin-only. Hot & Cold and Avoidance (Lab) fixes too.
+- Progress: Day Detail reads one day; unrated sessions show on the calendar.
+- Backend (needs deploy): retired social collections locked; only admins
+  can start Compose; push crons batched with a longer timeout; dead tokens
+  cleared; Challenges crons deleted; privacy and delete-account pages updated.
+
+**Sign-in, onboarding and account fixes before launch** *(2026-11-02, not yet seen on screen)*
+- New accounts wait on the spinner until their profile is read, and a profile
+  doc with no `created_at` (made by a stray merge write) gets its base fields
+  and goes through onboarding (`ensureBaseProfile` in `services/auth.ts`,
+  `needsOnboarding` in `services/onboardingSetup.ts`). An account with
+  `created_at` but no flag predates the flag and is let in.
+- Replay intro opens on the saved setup and reminder; skipping a replay saves
+  nothing; "No reminder" turns one off (`planOnboardingFinish`). "Not you? Sign
+  out" on the first onboarding screen.
+- A notification tap that cold-launches the app is held and followed once the
+  navigator is ready and onboarding is done. The push token refreshes on launch.
+- Cancelling Google sign-in shows nothing; Firebase errors read as plain text
+  (`utils/authErrors.ts`). Delete Account waits the function's 300s and cancels
+  reminders only once the delete succeeds. Clear Account empties the `lab_*`
+  collections and resets the profile to a new account's.
+- Rule targets no longer offer Challenges or Programs (now retired), and
+  Programs no longer seeds production when opened.
 
 **The rating is called the override, and it answers back** *(2026-11-01, 78a24bf, live OTA)*
 The 1–3 after a session felt like paperwork: explained twice up front, then a

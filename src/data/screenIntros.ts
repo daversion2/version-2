@@ -33,23 +33,23 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     id: 'today',
     icon: 'today-outline',
     title: 'Today',
-    intro: 'Your last 7 days across Meditate, Workouts and Meals, with each app one swipe away.',
+    intro: 'Your last 7 days across Meditate, Workouts and Meals, on one screen.',
     points: [
       {
         label: 'The rings',
-        text: 'Each ring is how much of that app’s weekly goal you’ve met in the last 7 days. Tap one to jump to its page. They shrink to one line as you scroll.',
+        text: 'One ring per app: how much of its weekly goal you’ve met in the last 7 days. Beside them, sessions done out of the goal (days logged, for Meals). Under them, your streak and XP.',
       },
       {
-        label: 'Swipe between apps',
-        text: 'Overview first, then a page each for Meditate, Workouts and Meals. Swipe sideways or tap a tab. Start a session from the button at the bottom of each page.',
+        label: 'Open an app',
+        text: 'Tap Meditate, Workouts or Meals under Your apps for its page: the main number and how it’s trending, your streak, your goal and your override. Start a session from the button at the bottom.',
       },
       {
         label: 'Your override',
-        text: 'When you finish a session, rate your override: 1, 2 or 3 for how hard it was to start. Each app’s page shows how it’s trending: “Mostly easy (1.6 of 3) · down from 2.1”.',
+        text: 'When you finish a session, rate how hard it was to start: 1, 2 or 3. Each app’s page shows how it’s trending: “Mostly easy (1.6 of 3) · down from 2.1”.',
       },
       {
-        label: 'Your week at a glance',
-        text: 'On Overview, a filled square is a day you showed up for that app: a session for Meditate and Workouts, a meal logged for Meals.',
+        label: 'Close out the day',
+        text: 'Last thing at night, grade the effort and set a plan for tomorrow. It shows here the next day as Today’s plan.',
       },
     ],
     science: [
@@ -81,87 +81,27 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     ],
   },
 
-  library: {
-    id: 'library',
-    icon: 'library-outline',
-    title: 'Library',
-    intro: 'Habits you can take on, and what each one asks of you.',
-    points: [
-      {
-        label: 'Open one to read it first',
-        text: 'What it is, how to do it, and what tends to get in the way — before you commit to anything.',
-      },
-      {
-        label: 'Some ask for an amount',
-        text: 'Water asks how much, reading asks how long. You choose the number when you add it, and you can change it later.',
-      },
-      {
-        label: 'Start with fewer than you want to',
-        text: 'Two habits you keep beat six you abandon. You can always add more once the first ones hold.',
-      },
-    ],
-  },
-
-  habit_detail: {
-    id: 'habit_detail',
-    icon: 'stats-chart-outline',
-    title: 'Habit details',
-    intro: 'Everything this one habit has done since you started it.',
-    points: [
-      {
-        label: 'Adherence is the honest number',
-        text: 'Of the days this habit asked for, how many you kept. Totals tell you how much; this tells you how reliably.',
-      },
-      {
-        label: 'Change the schedule any time',
-        text: 'A set number of times a week, or specific days. Naming the days makes a missed one a fact rather than an estimate.',
-      },
-      {
-        label: 'Archive rather than delete',
-        text: 'A habit you archive comes off Today and stops counting toward your streaks, but every check-in you logged is kept and you can bring it back.',
-      },
-    ],
-  },
-
-  archived: {
-    id: 'archived',
-    icon: 'archive-outline',
-    title: 'Archived habits',
-    intro: 'Habits you have put away. Nothing here was deleted.',
-    points: [
-      {
-        label: 'Restore brings it back whole',
-        text: 'Its history, schedule and plan return exactly as they were, and it reappears on Today.',
-      },
-      {
-        label: 'Tap one to read its history',
-        text: 'Everything you logged is still there, whether or not you ever restore it.',
-      },
-    ],
-  },
+  // library, habit_detail and archived went with their screens' last links
+  // (docs/pivot-checklist.md, Phase 1). Those screens still call
+  // useScreenIntro, and ScreenIntro renders nothing for an id with no entry.
 
   nightly_reflection: {
     id: 'nightly_reflection',
     icon: 'moon-outline',
     title: 'Closing out the day',
-    intro:
-      'Under a minute: see one win, grade the effort, and decide exactly when tomorrow’s hardest habit happens.',
+    intro: 'Under a minute: grade the effort, then decide exactly when tomorrow’s session happens.',
     points: [
       {
-        label: 'One win, already found',
-        text: 'It picks out the habit you did even though it was hard. Nothing to type.',
-      },
-      {
         label: 'Grade the effort, not the list',
-        text: 'A day where you did little but held the line under pressure can beat one where everything got ticked.',
+        text: 'A day where you did little but held the line under pressure can beat one where everything got done.',
       },
       {
         label: 'Tomorrow as a when-then',
-        text: 'It’s pre-filled from your toughest habit due tomorrow. Edit it if you like — it’s waiting at the top of Today in the morning.',
+        text: 'When it happens, then what you’ll do: “When I finish work, then a 10-minute sit.” It’s waiting on Today in the morning.',
       },
       {
         label: 'A rough day gets a smaller plan',
-        text: 'Grade it D or F and the plan shrinks to the minimum version. Getting back on track beats making up for it.',
+        text: 'Grade it D or F and keep tomorrow small. Getting back on track beats making up for it.',
       },
     ],
     science: [

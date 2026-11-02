@@ -6,6 +6,7 @@ import {
   habitMatchesApp,
   habitTickedBy,
   lastAppCheckin,
+  mergeReloadedLogs,
   TODAY_APPS,
 } from '../appCheckins';
 import { buildTodayList } from '../habitPace';
@@ -57,6 +58,13 @@ describe('weekly goals', () => {
   it("is reviewed when a week falls short, like a habit's", () => {
     const short = findShortfalls([appCheckinHabit('meditate', 5)], [log('app:meditate', '2026-10-06')], '2026-10-06', '2026-10-12');
     expect(short).toEqual([expect.objectContaining({ habitId: 'app:meditate', habitName: 'Meditate', target: 5, completed: 1, missed: 4 })]);
+  });
+
+  it('is not reviewed for a week from before the account existed', () => {
+    const app = appCheckinHabit('meditate', 5, '2026-10-08T12:00:00');
+    expect(app.created_at).toBe('2026-10-08T12:00:00');
+    expect(findShortfalls([app], [], '2026-10-06', '2026-10-12')).toEqual([]);
+    expect(findShortfalls([app], [], '2026-10-13', '2026-10-19')).toHaveLength(1);
   });
 });
 
@@ -110,5 +118,25 @@ describe('pastSession', () => {
     const s = pastSession({ id: 's1', mode: 'nsdr', date: '2026-10-16', minutes: 20, now: new Date('2026-10-18T10:00:00') });
     expect(s).toMatchObject({ id: 's1', mode: 'nsdr', style: 'timer', date: '2026-10-16', duration_sec: 1200, planned_sec: 1200, ended_early: false });
     expect(new Date(s.started_at).getDate()).toBe(16);
+  });
+});
+
+describe('mergeReloadedLogs', () => {
+  const rating = (id: string) => ({ ...log('app:meditate', '2026-10-24'), id }) as CompletionLog;
+
+  it('keeps a rating made while the reload was in flight', () => {
+    const merged = mergeReloadedLogs([rating('a')], [{ log: rating('new'), addedAt: 200 }], 100);
+    expect(merged.map((l) => l.id)).toEqual(['a', 'new']);
+  });
+
+  it('does not double a rating the reload already read back', () => {
+    const merged = mergeReloadedLogs([rating('a'), rating('new')], [{ log: rating('new'), addedAt: 200 }], 100);
+    expect(merged.map((l) => l.id)).toEqual(['a', 'new']);
+  });
+
+  it('trusts a reload asked for after the rating', () => {
+    // The read began after the write, so a log it lacks was deleted since.
+    const merged = mergeReloadedLogs([rating('a')], [{ log: rating('gone'), addedAt: 50 }], 100);
+    expect(merged.map((l) => l.id)).toEqual(['a']);
   });
 });

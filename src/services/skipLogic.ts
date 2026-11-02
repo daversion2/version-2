@@ -65,6 +65,14 @@ export const lastClosedWeek = (todayStr: string): { start: string; end: string }
   return { start, end: addDays(start, 6) };
 };
 
+/** The local day an ISO timestamp (or a bare YYYY-MM-DD) falls on. */
+const startDay = (createdAt?: string): string | null => {
+  if (!createdAt) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(createdAt)) return createdAt;
+  const d = new Date(createdAt);
+  return Number.isNaN(d.getTime()) ? null : toDateStr(d);
+};
+
 /**
  * Work out which habits fell short of their weekly target in the given week.
  *
@@ -72,6 +80,11 @@ export const lastClosedWeek = (todayStr: string): { start: string; end: string }
  * week count, so a backdated log lands in the week it was FOR, not the week it
  * was entered — which is the behaviour a user would expect and the reason this
  * filters on `date` rather than `completed_at`.
+ *
+ * A habit whose `created_at` is after the week began is left out: it wasn't
+ * there for the whole week, so it can't have fallen short of it. For the apps
+ * that's the account's start, so a new account isn't asked on its first visit
+ * what got in the way of a week it never had.
  */
 export const findShortfalls = (
   habits: PracticeInstance[],
@@ -83,6 +96,10 @@ export const findShortfalls = (
 
   return habits
     .filter((h) => h.is_active)
+    .filter((h) => {
+      const since = startDay(h.created_at);
+      return !since || since <= weekStart;
+    })
     .map((habit) => {
       const mine = inWeek.filter((l) => l.reference_id === habit.id);
       // Count DISTINCT DAYS, not logs: two reps on one day is one day's worth of

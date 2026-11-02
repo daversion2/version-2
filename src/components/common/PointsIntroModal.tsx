@@ -17,7 +17,7 @@ export const PointsIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
           <Ionicons name="flash" size={36} color={Colors.primary} style={styles.icon} />
           <Text style={styles.title}>XP</Text>
           <Text style={styles.body}>
-            XP is the total friction you’ve pushed through. Every habit you log adds to it.
+            XP is the total friction you’ve pushed through. Every session you rate adds to it.
           </Text>
           <View style={styles.bulletList}>
             <Text style={styles.bullet}>

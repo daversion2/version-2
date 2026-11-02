@@ -1,6 +1,7 @@
 import { rateAppSession } from '../appRatings';
 import { addMockDocument, getMockDB, resetMockDB } from '../__mocks__/firestore';
-import { getTodayString } from '../../utils/date';
+import { getTodayString, toLocalDateString } from '../../utils/date';
+import { limit, runTransaction } from 'firebase/firestore';
 
 describe('rateAppSession', () => {
   const userId = 'test-user-123';
@@ -48,5 +49,73 @@ describe('rateAppSession', () => {
   it('earns XP from the rating', async () => {
     const result = await rateAppSession(userId, 'meals', { difficulty: 'challenging', resistance: 3 });
     expect(result.pointsEarned).toBe(3);
+  });
+});
+
+describe('rateAppSession is safe to retry', () => {
+  const userId = 'test-user-123';
+  const logs = () => Object.values(getMockDB()[`users/${userId}/completionLogs`] || {}).map((d: any) => d.data);
+  const userDoc = () => getMockDB().users?.[userId]?.data;
+
+  beforeEach(() => {
+    resetMockDB();
+    jest.clearAllMocks();
+    addMockDocument('users', userId, {
+      totalWillpowerPoints: 10,
+      totalHabitsCompleted: 0,
+      practices_tried: 0,
+      currentStreak: 0,
+      lastActivityDate: null,
+    });
+  });
+
+  it('rates a session once, however many times it is sent', async () => {
+    const first = await rateAppSession(userId, 'meditate', { difficulty: 'challenging', resistance: 2, sessionId: 'sess-1' });
+    const again = await rateAppSession(userId, 'meditate', { difficulty: 'challenging', resistance: 2, sessionId: 'sess-1' });
+    expect(logs()).toHaveLength(1);
+    expect(again.logId).toBe(first.logId);
+    expect(userDoc().totalWillpowerPoints).toBe(12);
+    expect(userDoc().totalHabitsCompleted).toBe(1);
+  });
+
+  it('still logs separate sessions separately', async () => {
+    await rateAppSession(userId, 'meditate', { difficulty: 'easy', resistance: 1, sessionId: 'sess-1' });
+    await rateAppSession(userId, 'meditate', { difficulty: 'easy', resistance: 1, sessionId: 'sess-2' });
+    expect(logs()).toHaveLength(2);
+  });
+
+  it('reports success once the log is saved, even if the XP write fails', async () => {
+    (runTransaction as jest.Mock).mockRejectedValueOnce(new Error('offline'));
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await rateAppSession(userId, 'workouts', { difficulty: 'easy', resistance: 1, sessionId: 'w-1' });
+    spy.mockRestore();
+    expect(logs()).toHaveLength(1);
+    expect(result.logId).toBe('workouts_w-1');
+    expect(result.willpower.newTierReached).toBe(false);
+  });
+
+  it('counts a first try once, from a single-doc read', async () => {
+    await rateAppSession(userId, 'meals', { difficulty: 'easy', resistance: 1 });
+    await rateAppSession(userId, 'meals', { difficulty: 'easy', resistance: 1 });
+    expect(userDoc().practices_tried).toBe(1);
+    expect(limit).toHaveBeenCalledWith(1);
+  });
+
+  it('leaves the stored streak alone for a backdated rating', async () => {
+    // Today's syncProfileActivity owns it: recalculating from rated logs only
+    // would undo what it counted from the sessions themselves.
+    addMockDocument('users', userId, {
+      totalWillpowerPoints: 10,
+      currentStreak: 4,
+      lastActivityDate: getTodayString(),
+    });
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    const date = toLocalDateString(d);
+    const result = await rateAppSession(userId, 'meditate', { difficulty: 'easy', resistance: 1, date, sessionId: 's-old' });
+    expect(result.backdated).toBe(true);
+    expect(userDoc().currentStreak).toBe(4);
+    expect(userDoc().lastActivityDate).toBe(getTodayString());
+    expect(userDoc().totalWillpowerPoints).toBe(11);
   });
 });

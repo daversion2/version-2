@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeStack } from './HomeStack';
 import { ProgressStack } from './ProgressStack';
 // ---- Archived tabs ---------------------------------------------------------
-// Challenges/Training and Tools are no longer registered as tabs. The app is a
-// habit tracker built on resistance; these belong to the previous direction.
+// Challenges/Training and Tools are no longer registered as tabs. The app is
+// the micro-apps (Meditate, Workouts, Meals) with the friction rating across
+// them; these belong to an earlier direction.
 // Nothing is deleted — the stacks, screens and param types all still exist, so
 // re-adding a <Tab.Screen> below brings either one straight back.
 // import { ChallengesStack } from './ChallengesStack';

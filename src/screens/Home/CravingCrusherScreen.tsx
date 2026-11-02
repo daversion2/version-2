@@ -299,7 +299,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
       setPhase('complete');
     } catch (err) {
       console.warn('Failed to save craving session:', err);
-      showAlert('Error', 'Could not save this session. Please try again.');
+      showAlert("Couldn't save that", 'Check your connection and try again.');
       setSaving(false);
     }
   };

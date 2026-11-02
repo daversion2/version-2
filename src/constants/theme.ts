@@ -53,6 +53,16 @@ export const ThermalColors = {
   heat: '#D9531E',
 };
 
+// The milestone celebration (components/habits/HabitCelebrationModal): the
+// ring sweeps teal → bright teal → amber, then the streak dots fill orange.
+// Six-digit hex only: the ring blends between them channel by channel.
+export const CelebrationColors = {
+  ringStart: '#217180',
+  ringMid: '#33ADBF',
+  ringEnd: '#FFA500',
+  streakDot: '#FF5B02',
+};
+
 // Habit-category accents. Six-digit hex only: screens append an alpha suffix
 // (`color + '1A'`) for tinted chip backgrounds.
 export const CategoryColors = {

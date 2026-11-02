@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, Fonts, FontSizes, Spacing, BorderRadius, CelebrationColors } from '../../constants/theme';
 import { triggerRewardHaptic } from '../../utils/haptics';
 import { NeuroscienceTidbit } from '../../types';
 import { Copy } from '../common/Copy';
@@ -63,9 +63,9 @@ interface HabitCelebrationModalProps {
 // "Ring close" celebration: a segmented ring sweeps shut like closing a
 // fitness ring, snaps with a flash + checkmark, then the points card springs
 // up and streak dots fill one by one. Pure Reanimated — OTA-safe (no Skia).
-const TEAL = '#217180';
-const TEAL3 = '#33ADBF';
-const AMBER = '#FFA500';
+const TEAL = CelebrationColors.ringStart;
+const TEAL3 = CelebrationColors.ringMid;
+const AMBER = CelebrationColors.ringEnd;
 
 const RING_SIZE = 210;
 const TICKS = 44;
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   dotFill: {
     flex: 1,
     borderRadius: 7,
-    backgroundColor: '#FF5B02',
+    backgroundColor: CelebrationColors.streakDot,
   },
   streakRow: {
     backgroundColor: Colors.lightGray,

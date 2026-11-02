@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +24,8 @@ import { ListGroup, ListRow } from '../../components/common/ListGroup';
 import { TopScrim } from '../../components/common/TopScrim';
 import { DayDots, DotTrend, ServingsHeatmap } from '../../components/homeDashboard/DashboardParts';
 import { APP_TITLES } from '../../components/homeRedesign/TodayView';
+import { LoadError } from '../../components/homeRedesign/LoadError';
+import { getTodayString } from '../../utils/date';
 
 // =============================================================================
 // AN APP'S PAGE (redesign only; canvas "Meditate" / "Workouts" / "Meals").
@@ -47,19 +49,35 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<{ app: HomeAppData; logs: CompletionLog[] } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  const reload = useCallback(async () => {
+    if (!user) return;
+    try {
+      const app = await loadHomeAppData(user.uid);
+      const logs = await fetchAllNudgeLogs(user.uid, addDays(app.today, -20));
+      setData({ app, logs });
+      setError(false);
+    } catch (e) {
+      console.warn('App page: loading failed:', e);
+      setError(true);
+    }
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
-      loadHomeAppData(user.uid)
-        .then(async (app) => ({ app, logs: await fetchAllNudgeLogs(user.uid, addDays(app.today, -20)) }))
-        .then(
-          (loaded) => (setData(loaded), setError(null)),
-          (e) => setError(String(e?.message ?? e))
-        );
-    }, [user])
+      reload();
+    }, [reload])
   );
+
+  // Back in the app on a new day: the 7 days moved, so read again.
+  const loadedDay = data?.app.today;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && loadedDay && loadedDay !== getTodayString()) reload();
+    });
+    return () => sub.remove();
+  }, [loadedDay, reload]);
 
   const d = useMemo(() => (data ? buildHomeDashboard({ ...data.app, logs: data.logs }) : null), [data]);
 
@@ -82,14 +100,14 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             label="Last 7 days"
             value={`${m.minutes}`}
             unit=" min"
-            line={describeVsPrior(m.minutes, m.priorMinutes, 'min') ?? 'Nothing yet this week'}
+            line={describeVsPrior(m.minutes, m.priorMinutes, 'min') ?? 'Nothing in the last 7 days'}
             note={m.lastSessionMinutes !== null ? `Last session: ${m.lastSessionMinutes} min` : undefined}
           />
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Minutes per session</Text>
             <DotTrend values={m.series} label="Your last 8 sessions" empty="No sessions yet." />
           </View>
-          <ListGroup title="This week">
+          <ListGroup title="Last 7 days">
             <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
             <ListRow title="Goal" value={`${m.sessions} of ${m.goal} sessions`} />
             <ListRow title="Your override" subtitle={friction} />
@@ -126,10 +144,10 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.cardLabel}>Volume per session</Text>
             <DotTrend values={w.series} label="Your last 8 sessions" empty="No sessions yet." />
           </View>
-          <ListGroup title="This week">
+          <ListGroup title="Last 7 days">
             <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
             <ListRow title="Goal" value={`${w.sessions} of ${w.goal} sessions`} />
-            <ListRow title="The week before" value={`${w.priorSessions} sessions`} />
+            <ListRow title="The 7 days before" value={`${w.priorSessions} ${w.priorSessions === 1 ? 'session' : 'sessions'}`} />
             <ListRow title="Your override" subtitle={friction} />
           </ListGroup>
           {(w.week.length > 0 || w.phaseLine) && (
@@ -166,7 +184,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.cardLabel}>Day by day</Text>
           <DayDots days={m.days} threshold={m.threshold} />
         </View>
-        <ListGroup title="This week">
+        <ListGroup title="Last 7 days">
           <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
           <ListRow title="Your override" subtitle={friction} />
         </ListGroup>
@@ -196,7 +214,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
         </Text>
         {!d ? (
           <View style={styles.loading}>
-            {error ? <Text style={styles.muted}>Couldn’t load: {error}</Text> : <ActivityIndicator color={Colors.primary} />}
+            {error ? <LoadError onRetry={reload} /> : <ActivityIndicator color={Colors.primary} />}
           </View>
         ) : (
           body()

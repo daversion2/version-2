@@ -91,7 +91,7 @@ export const PracticeReflectionSheet: React.FC<Props> = ({
       console.warn('Failed to save practice reflection:', err);
       showAlert(
         "Couldn't save your reflection",
-        'Your habit is already logged. Check your connection and try again.'
+        'Your rating is already saved. Check your connection and try again.'
       );
     }
   };

@@ -269,6 +269,7 @@ They ship over the air like any other change.
   "habits support underneath" framing is superseded by the doc above
 - `docs/habit-library-audit.md`, `docs/challenge-library.md`, `docs/tidbit-audit.md` — content inventories
 - `docs/backlog.md` — the open-work list
+- `docs/launch-review.md` — what the 2026-11-02 launch review left for the founder (deploys, store build, decisions)
 - `docs/micro-apps/` — one spec sheet per micro-app built with `build-micro-app`
 - `docs/pivot-checklist.md` — the ordered checklist for finishing the move off habits
 - `docs/go-live-checklist.md` (stale — rewrite is on the backlog)

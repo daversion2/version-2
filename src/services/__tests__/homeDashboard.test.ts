@@ -163,6 +163,23 @@ describe('sessionsByDay', () => {
     expect(day(['2026-10-24'], ['2026-10-24', '2026-10-24'], '2026-10-24')).toBe(2);
   });
 
+  it('counts a session rated after midnight once, on the day it started', () => {
+    const docs = [{ id: 'sess-1', date: '2026-10-23' }];
+    const byDay = sessionsByDay(docs, [{ date: '2026-10-24', sessionId: 'sess-1' }]);
+    expect(byDay.get('2026-10-23')).toBe(1);
+    expect(byDay.has('2026-10-24')).toBe(false);
+  });
+
+  it('keeps a rating whose session is not loaded, and old ratings with no session id', () => {
+    const byDay = sessionsByDay(
+      [{ id: 'sess-1', date: '2026-10-23' }],
+      [{ date: '2026-10-24', sessionId: 'sess-other' }, { date: '2026-10-22' }, '2026-10-23']
+    );
+    expect(byDay.get('2026-10-22')).toBe(1);
+    expect(byDay.get('2026-10-23')).toBe(1);
+    expect(byDay.get('2026-10-24')).toBe(1);
+  });
+
   it('reads ratings for one app and skips mirror logs', () => {
     const logs = [
       log('app:workouts', '2026-10-23', 2),
@@ -315,10 +332,18 @@ describe('meals', () => {
     expect(mealsDayState(TODAY, undefined, RULES, TODAY)).toBe('pending');
   });
 
-  it('a past day left half-logged is off target, today is still pending', () => {
+  it('a past day left half-logged is not off target, just not logged; today is still pending', () => {
     const half = (date: string) => mealsDay(date, { meals: { lunch: plate('veggies') } });
-    expect(mealsDayState('2026-10-20', half('2026-10-20'), RULES, TODAY)).toBe('off');
+    expect(mealsDayState('2026-10-20', half('2026-10-20'), RULES, TODAY)).toBe('empty');
     expect(mealsDayState(TODAY, half(TODAY), RULES, TODAY)).toBe('pending');
+  });
+
+  it('a day of only "didn\'t eat" is never off — even one closed off before that rule', () => {
+    const skipped = { skipped: true as const, logged_at: '' };
+    const none = (over: Partial<MealsDay> = {}) =>
+      mealsDay('2026-10-20', { meals: { lunch: skipped, dinner: skipped }, ...over });
+    expect(mealsDayState('2026-10-20', none(), RULES, TODAY)).toBe('empty');
+    expect(mealsDayState('2026-10-20', none({ closed_at: 'x', result: 'off' }), RULES, TODAY)).toBe('empty');
   });
 
   it('counts one serving per plate, extras included, skipped meals not', () => {
@@ -536,6 +561,17 @@ describe('the user doc', () => {
     const rating = log('app:meditate', '2026-10-24', 1);
     const d = build({ meditateSessions: [sit('2026-10-24', 1)], logs: [rating, { ...rating }] });
     expect(d.meditate.sessions).toBe(1);
+    expect(d.friction.meditate.count).toBe(1);
+  });
+
+  it('counts a sit that crossed midnight once across the dashboard', () => {
+    const late = { ...sit('2026-10-23', 20, '23:50'), id: 'late-sit' };
+    const rating = { ...log('app:meditate', '2026-10-24', 1), session_id: 'late-sit' } as CompletionLog;
+    const d = build({ meditateSessions: [late], logs: [rating] });
+    expect(d.meditate.sessions).toBe(1);
+    expect(d.activity.sessionsCompleted).toBe(1);
+    expect(d.activity.activeDays).toEqual(['2026-10-23']);
+    // The rating still counts as friction for the window.
     expect(d.friction.meditate.count).toBe(1);
   });
 

@@ -28,6 +28,7 @@ import type { TodayAppId } from '../../services/appCheckins';
 import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
 import { MODES } from '../../services/meditateMath';
 import { formatVolume } from '../../services/workoutMath';
+import { LoadError } from '../homeRedesign/LoadError';
 import {
   APP_ICONS,
   Chip,
@@ -81,6 +82,8 @@ interface Props {
   overviewBottom?: React.ReactNode;
   /** Every time the numbers change — the streak line and the user doc follow them. */
   onDashboard?: (d: HomeDashboard) => void;
+  /** The apps' data couldn't be read: Today has no dashboard to hand on. */
+  onLoadFailed?: () => void;
   /** Apps switched off (services/appSetup.ts): no page, ring, row or grid line. */
   hiddenApps?: TodayAppId[];
 }
@@ -94,6 +97,7 @@ export const HomeDashboardView: React.FC<Props> = ({
   overviewTop,
   overviewBottom,
   onDashboard,
+  onLoadFailed,
   hiddenApps = NO_APPS,
 }) => {
   const pages = useMemo(() => PAGES.filter((p) => p.id === 'overview' || !hiddenApps.includes(p.id)), [hiddenApps]);
@@ -105,7 +109,7 @@ export const HomeDashboardView: React.FC<Props> = ({
   const offsets = useRef<Record<PageId, number>>({ overview: 0, meditate: 0, workouts: 0, meals: 0 });
 
   const [appData, setAppData] = useState<HomeAppData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
   const [page, setPage] = useState<PageId>('overview');
   const [collapsed, setCollapsed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -113,9 +117,14 @@ export const HomeDashboardView: React.FC<Props> = ({
   const reload = useCallback(
     () =>
       loadHomeAppData(userId).then(
-        (data) => (setAppData(data), setError(null)),
-        (e) => setError(String(e?.message ?? e))
+        (data) => (setAppData(data), setError(false)),
+        (e) => {
+          console.warn('Today: loading the apps failed:', e);
+          setError(true);
+          onLoadFailed?.();
+        }
       ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId]
   );
 
@@ -252,7 +261,7 @@ export const HomeDashboardView: React.FC<Props> = ({
       {!d ? (
         <View style={styles.center}>
           {error ? (
-            <Text style={styles.muted}>Couldn’t load: {error}</Text>
+            <LoadError onRetry={() => Promise.all([reload(), onRefresh?.()])} />
           ) : (
             <ActivityIndicator color={Colors.primary} />
           )}

@@ -5,19 +5,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
+  AppState,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
-import { PracticeInstance } from '../../types';
-import { activateScheduledChallenges, expireStaleDailyChallenges } from '../../services/challenges';
-import { getActiveHabits, fetchAllNudgeLogs, getHabitsStreaksFromLogs, saveLogReflection } from '../../services/practices';
+import { fetchAllNudgeLogs, saveLogReflection } from '../../services/practices';
 import { rateAppSession } from '../../services/appRatings';
+import { markProgressStale } from '../../services/progress';
 import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
 import { cancelScheduledHabitReminders } from '../../services/habitReminders';
-import { HabitStreakInfo } from '../../types';
 import { PracticeCompletionInput } from '../../types';
 import { showAlert } from '../../utils/alert';
 import { PracticeReflectionSheet, ReflectionInput } from '../../components/habits/PracticeReflectionSheet';
@@ -27,6 +26,8 @@ import {
   TodayAppId,
   appCheckinHabit,
   appCheckinId,
+  LocalLog,
+  mergeReloadedLogs,
 } from '../../services/appCheckins';
 import { HomeDashboardView } from '../../components/homeDashboard/HomeDashboardView';
 import { TodayView } from '../../components/homeRedesign/TodayView';
@@ -89,6 +90,29 @@ import { AppGoalsSheet } from '../../components/appSetup/AppGoalsSheet';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
+/** How long a sheet waits for the one before it to finish leaving: iOS drops a modal presented mid-dismissal. */
+const SHEET_GAP_MS = 500;
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * True once `free` has held for SHEET_GAP_MS; false the moment it doesn't.
+ * Today's sheets take turns through this, so one never opens on top of
+ * another or while another is still sliding away.
+ */
+const useSettled = (free: boolean): boolean => {
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (!free) {
+      setSettled(false);
+      return;
+    }
+    const timer = setTimeout(() => setSettled(true), SHEET_GAP_MS);
+    return () => clearTimeout(timer);
+  }, [free]);
+  return free && settled;
+};
+
 /** What the quick sheet is open on. */
 interface QuickLogTarget {
   appId: TodayAppId;
@@ -124,15 +148,24 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user, userProfile, refreshProfile } = useAuth();
   const t = useCopy();
 
-  const [habits, setHabits] = useState<PracticeInstance[]>([]);
   // Last week's shortfalls, if any are still unanswered. See services/skipLogic.ts.
   const [skipReview, setSkipReview] = useState<PendingSkipReview | null>(null);
+  // Whether the review has been looked for yet: the goals sheet waits for it.
+  const [skipChecked, setSkipChecked] = useState(false);
   // This week's nudge logs, kept in state so the Today list can be derived from
   // them and recompute when a habit is logged without waiting on a full reload.
   const [nudgeLogs, setNudgeLogs] = useState<CompletionLog[]>([]);
   // The dashboard waits for these: friction and the session counts read them.
   const [logsReady, setLogsReady] = useState(false);
   const [logsFailed, setLogsFailed] = useState(false);
+  // Ratings added on screen, so a reload that was already in flight can't drop them.
+  const localLogsRef = useRef<LocalLog[]>([]);
+  // The day the screen last loaded. Coming back to the app on a later day reloads.
+  const [loadedDay, setLoadedDay] = useState<string | null>(null);
+  const loadedDayRef = useRef<string | null>(null);
+  // The day the user doc was last brought in line with the apps. Rules wait for
+  // it: until then lastActivityDate can be days behind an active user.
+  const [activitySyncedDay, setActivitySyncedDay] = useState<string | null>(null);
   const [pendingFinish, setPendingFinish] = useState<SessionHandoff | null>(null);
   // The apps are the main thing (services/appCheckins.ts): always on Today,
   // each as a check-in habit of its own with the weekly goal set in the app.
@@ -142,7 +175,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const appHabits = useMemo(
     () =>
       TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile) && !hiddenApps.includes(a.id)).map((a) =>
-        appCheckinHabit(a.id, appGoals[a.id])
+        appCheckinHabit(a.id, appGoals[a.id], userProfile?.created_at)
       ),
     [appGoals, userProfile, hiddenApps]
   );
@@ -151,12 +184,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const goalSheetWanted = needsGoalSetup(userProfile) && !goalSheetClosed;
   // A tap on a plain habit: the quick sheet, amounts filled in from last time.
   const [quickLog, setQuickLog] = useState<QuickLogTarget | null>(null);
-  // The dashboard's combined day streak (services/homeDashboard.ts), once loaded.
-  const [dashStreak, setDashStreak] = useState<number | null>(null);
+  // The dashboard (services/homeDashboard.ts), once loaded: its combined day
+  // streak heads the screen and its activity keeps the user doc in step.
+  const [dash, setDash] = useState<HomeDashboard | null>(null);
+  const dashStreak = dash?.combinedStreak ?? null;
+  // When the rating sheet last closed: what follows it waits out its exit.
+  const sheetClosedAtRef = useRef(0);
+  // True in the gap between one check-in sheet leaving and the next opening,
+  // so nothing else takes the turn.
+  const [betweenSheets, setBetweenSheets] = useState(false);
   const lastActivityPatchRef = useRef<string | null>(null);
   // The everyday "+N XP" — the full celebration is kept for milestones.
   const [toast, setToast] = useState<LogToastContent | null>(null);
-  const [habitStreaks, setHabitStreaks] = useState<Record<string, HabitStreakInfo>>({});
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [celebrationMilestone, setCelebrationMilestone] = useState<string | null>(null);
   const [celebrationVisible, setCelebrationVisible] = useState(false);
@@ -227,6 +266,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     intro.visible ||
     !!skipReview ||
     !!quickLog ||
+    !!pendingFinish ||
+    betweenSheets ||
     goalSheetWanted;
   const {
     modalRule: ruleModalRule,
@@ -234,7 +275,29 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     dismissModal: dismissRuleModal,
     bannerRule: ruleBannerRule,
     dismissBanner: dismissRuleBanner,
-  } = useRuleSurfaces('app_open', anyModalActive);
+  } = useRuleSurfaces('app_open', anyModalActive, {
+    // Facts read the user doc, so wait for today's activity sync to land.
+    ready: !!loadedDay && activitySyncedDay === loadedDay,
+    day: loadedDay ?? undefined,
+  });
+
+  // One sheet at a time. The weekly review waits for everything a check-in
+  // sets off, the first-visit intro and any rule modal; the goals sheet also
+  // waits for the review.
+  const checkinFlowBusy =
+    intro.visible ||
+    !!quickLog ||
+    !!pendingFinish ||
+    betweenSheets ||
+    celebrationVisible ||
+    pointsIntroVisible ||
+    reflectVisible ||
+    habitLearnMoreVisible ||
+    ruleModalVisible;
+  const skipReviewFree = useSettled(!checkinFlowBusy);
+  const skipReviewVisible = !!skipReview && skipReviewFree;
+  const goalSheetFree = useSettled(!checkinFlowBusy && skipChecked && !skipReview);
+  const goalSheetVisible = goalSheetWanted && goalSheetFree;
 
   // A modal rule can name a bespoke component to open in the rule-modal slot
   // instead of the generic RuleModal: 'comeback' is the barrier → recommit flow,
@@ -331,20 +394,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const loadData = useCallback(async () => {
     if (!user) return;
+    const loadDay = getTodayString();
+    loadedDayRef.current = loadDay;
+    setLoadedDay(loadDay);
     try {
       // Refresh user profile so totalHabitsCompleted, flags, etc. are current.
       // Runs concurrently with the main fetch.
       refreshProfile().catch(() => {});
 
       // No habit seeding: habits were dropped (2026-10-31), and Today used to
-      // add Meditation, Breathwork and Unplugged Cardio on every load.
-
-      // Home renders habits and nothing else, so it fetches habits and nothing
-      // else. It used to also pull daily challenges, extended challenges and
-      // willpower stats on every focus — four reads feeding an object no longer
-      // rendered since the zoned layout was archived.
-      const habitList = await getActiveHabits(user.uid);
-      setHabits(habitList);
+      // add Meditation, Breathwork and Unplugged Cardio on every load. Nor a
+      // habit read: nothing on Today shows one any more.
+      //
       // The apps' weekly goals, set inside each app. Defaults if unreadable.
       const [workoutPrefs, meditatePrefs, mealsPrefs] = await Promise.all([
         getWorkoutPrefs(user.uid).catch(() => null),
@@ -358,8 +419,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       };
       setAppGoals(goals);
       const hidden = hiddenAppsOf(userProfile);
+      // Each app's clock starts with the account, so the weekly review never
+      // asks a new account about a week from before it existed.
       const appHabitList = TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile) && !hidden.includes(a.id)).map(
-        (a) => appCheckinHabit(a.id, goals[a.id])
+        (a) => appCheckinHabit(a.id, goals[a.id], userProfile?.created_at)
       );
       // Habit reminders were removed (2026-10-31). Once per session, cancel any
       // still scheduled on this device from before.
@@ -371,28 +434,27 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // Streak-break comeback check-in now fires via the rules engine
       // ("Comeback check-in" rule, app_open) — see the comebackRule block above.
 
-      // Fetch nudge logs once — the Today list, the week strips and the streaks
-      // are all derived from them. Windowed to the last 120 days so the read
-      // stays flat as history grows; the only casualty is that a current streak
-      // longer than the window displays capped at it.
+      // Fetch nudge logs once — the dashboard's friction and counts, and the
+      // weekly review, are derived from them. Windowed to the last 120 days so
+      // the read stays flat as history grows.
       const logWindowStart = new Date();
       logWindowStart.setDate(logWindowStart.getDate() - 120);
-      let cachedNudgeLogs: Awaited<ReturnType<typeof fetchAllNudgeLogs>> = [];
       try {
-        cachedNudgeLogs = await fetchAllNudgeLogs(user.uid, toLocalDateString(logWindowStart));
+        const requestedAt = Date.now();
+        const fetched = await fetchAllNudgeLogs(user.uid, toLocalDateString(logWindowStart));
+        // Keep ratings made while this read was in flight; anything older is in it.
+        const cachedNudgeLogs = mergeReloadedLogs(fetched, localLogsRef.current, requestedAt);
+        localLogsRef.current = localLogsRef.current.filter((e) => e.addedAt >= requestedAt);
         setNudgeLogs(cachedNudgeLogs);
         setLogsReady(true);
-        const todayStr = getTodayString();
-        if (habitList.length > 0) {
-          setHabitStreaks(getHabitsStreaksFromLogs(cachedNudgeLogs, habitList));
-        }
-        // Weekly skip review: did any habit fall short of its target LAST week?
+        setLogsFailed(false);
+        // Weekly skip review: did any app fall short of its goal LAST week?
         // buildPendingReview runs locally first and bails before any read when
         // nothing is short, so the common case costs nothing.
         try {
           setSkipReview(
             // Only the apps: habits are off the screen, so every one would read as missed.
-            await getPendingSkipReview(user.uid, appHabitList, cachedNudgeLogs, todayStr)
+            await getPendingSkipReview(user.uid, appHabitList, cachedNudgeLogs, loadDay)
           );
         } catch (err) {
           console.warn('Skip review check failed:', err);
@@ -400,32 +462,27 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       } catch (err) {
         console.warn('Nudge logs fetch failed:', err);
         setLogsFailed(true);
+      } finally {
+        setSkipChecked(true);
       }
 
-      // Challenge maintenance. Home is the only screen that runs it, so it stays
-      // even though Home no longer shows challenges — but it is fire-and-forget
-      // now. Nothing on this screen reads the result, so awaiting it only
-      // delayed the reflection check behind two writes.
-      const maintenanceDay = getTodayString();
-      expireStaleDailyChallenges(user.uid, maintenanceDay).catch((err) =>
-        console.warn('Challenge expiry failed:', err)
-      );
-      activateScheduledChallenges(user.uid, maintenanceDay).catch((err) =>
-        console.warn('Challenge activation failed:', err)
-      );
+      // Challenge maintenance (expire / activate) used to run here on every
+      // focus. Challenges are archived and nothing reachable shows one, so it
+      // only wrote 'not_yet' onto old docs. Gone with them.
 
       // Check nightly reflection status
       try {
-        const todayStr = getTodayString();
         const [reflected, plan] = await Promise.all([
           hasReflectedToday(user.uid),
-          getPlanForToday(user.uid, todayStr),
+          getPlanForToday(user.uid, loadDay),
         ]);
         setReflectedToday(reflected);
         setTodaysPlan(plan);
         if (reflected) {
-          const todayReflection = await getReflection(user.uid, todayStr);
+          const todayReflection = await getReflection(user.uid, loadDay);
           setTodaysGrade(todayReflection?.grade);
+        } else {
+          setTodaysGrade(undefined);
         }
         // Show prominent banner at 8pm+, always show at least the compact version
         setShowReflectionBanner(true);
@@ -434,8 +491,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       }
     } catch (e) {
       console.error(e);
+      // Never leave the dashboard waiting on logs that aren't coming.
+      setLogsFailed(true);
+      setSkipChecked(true);
     }
-  }, [user, refreshProfile, userProfile?.starting_practice_id, userProfile?.is_admin, hiddenApps.join(',')]);
+  }, [user, refreshProfile, userProfile?.starting_practice_id, userProfile?.is_admin, userProfile?.created_at, hiddenApps.join(',')]);
 
   // The close-out reminder from onboarding: put it back on a new phone or after
   // a reinstall. Waits for the profile — syncing before it loads would cancel it.
@@ -453,6 +513,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }, [loadData])
   );
 
+  // Back in the app on a later day (left open overnight): everything on Today
+  // is dated, so load again. The rules re-run for the new day once its
+  // activity sync lands (useRuleSurfaces' `day`).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && loadedDayRef.current && loadedDayRef.current !== getTodayString()) {
+        loadData();
+      }
+    });
+    return () => sub.remove();
+  }, [loadData]);
+
   // The finished session's rating: the quick sheet, with what the session
   // measured filled in, then handleAppRated (services/appRatings.ts). Waits
   // for the mini-app's full-screen dismissal: iOS drops a modal presented
@@ -460,7 +532,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     if (!pendingFinish) return;
     const appId = pendingFinish.appId;
-    if (!isTodayApp(appId) || !canOpenMiniApp(appId, userProfile)) return;
+    // A hand-back that can't be rated is dropped, so it doesn't hold the
+    // other sheets (it counts as busy) for the rest of the session.
+    if (!isTodayApp(appId)) {
+      setPendingFinish(null);
+      return;
+    }
+    // A Lab app waits for the profile to say whether this is an admin.
+    if (!canOpenMiniApp(appId, userProfile)) {
+      if (userProfile) setPendingFinish(null);
+      return;
+    }
     const tracking = APP_TRACKING[appId];
     const measured = checkinMetricsFor(tracking, pendingFinish) ?? {};
     const numeric = tracking.filter(isNumericField);
@@ -516,6 +598,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     // and shows the error — the follow-up celebration work below stays best-effort.
     const { logId, pointsEarned, streakBefore, firstTry, backdated, date, willpower: updateResult } =
       await rateAppSession(user.uid, appId, { ...input, sessionId });
+    // Progress keeps its read for a minute; this rating should show there next visit.
+    // Called here, not in completePractice: progress.ts imports practices.ts.
+    markProgressStale();
     try {
       // Neutral confirmation of which day the rep landed on. Not a bonus —
       // it goes in its own muted slot so backdating never looks rewarded.
@@ -529,9 +614,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // friction and counts move the moment it's made.
       // A reload that started before the rating can land after it, already
       // holding this log — so add it only if it isn't there yet.
-      setNudgeLogs((prev) => prev.some((l) => l.id === logId) ? prev : [
-        ...prev,
-        {
+      const added = {
           id: logId,
           user_id: user.uid,
           type: 'nudge',
@@ -546,10 +629,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           metrics: input.metrics,
           completed_at: new Date().toISOString(),
           date,
-        } as CompletionLog,
-      ]);
+        } as CompletionLog;
+      localLogsRef.current.push({ log: added, addedAt: Date.now() });
+      setNudgeLogs((prev) => (prev.some((l) => l.id === logId) ? prev : [...prev, added]));
 
       setQuickLog(null);
+      sheetClosedAtRef.current = Date.now();
+      setBetweenSheets(true);
       // XP and the streak in the header live on the profile.
       refreshProfile().catch(() => {});
 
@@ -661,6 +747,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       setCelebrationStreak(updateResult.newStreak);
       setCelebrationMilestone(milestoneLabel);
       setCelebrationSkipIntro(false);
+      // Let the rating sheet finish leaving first: iOS drops a modal
+      // presented while another is still animating away.
+      const sinceClosed = Date.now() - sheetClosedAtRef.current;
+      if (sinceClosed < SHEET_GAP_MS) await wait(SHEET_GAP_MS - sinceClosed);
       // The points intro goes first on the very first completion; dismissing it
       // opens the celebration staged above.
       if (needsPointsIntro) {
@@ -674,6 +764,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // screen is already correct without another round-trip.
     } catch (e) {
       console.error(e);
+    } finally {
+      // The next sheet (if any) is up, or the toast took its place.
+      setBetweenSheets(false);
     }
   };
 
@@ -699,19 +792,36 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Keep the user doc in step with the apps: the stored streak (past days
   // only), and the counters the rules read. Written only when something moved.
-  const onDashboard = (d: HomeDashboard) => {
-    setDashStreak(d.combinedStreak);
-    if (!user || !userProfile) return;
+  // Once it's settled for the day (written, or nothing to write), the rules
+  // may read the profile.
+  const onDashboard = useCallback((d: HomeDashboard) => setDash(d), []);
+  const hasProfile = !!userProfile;
+  useEffect(() => {
+    if (!dash || !user || !userProfile) return;
+    const today = getTodayString();
+    const settled = () => setActivitySyncedDay(today);
     // Cheap check against the profile on screen first; the transaction then
     // works the patch out again from the doc itself.
-    if (!profileActivityPatch(d.activity, getTodayString(), userProfile as ProfileActivity)) return;
-    const key = JSON.stringify(d.activity);
+    if (!profileActivityPatch(dash.activity, today, userProfile as ProfileActivity)) {
+      settled();
+      return;
+    }
+    const key = `${today}:${JSON.stringify(dash.activity)}`;
     if (key === lastActivityPatchRef.current) return;
     lastActivityPatchRef.current = key;
-    syncProfileActivity(user.uid, d.activity, getTodayString())
+    syncProfileActivity(user.uid, dash.activity, today)
       .then((wrote) => (wrote ? refreshProfile() : null))
-      .catch((err) => console.warn('Saving app activity failed:', err));
-  };
+      .catch((err) => console.warn('Saving app activity failed:', err))
+      .finally(settled);
+    // userProfile is read, not watched: the sync re-reads the doc itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dash, user, hasProfile]);
+
+  // No dashboard is coming: let the rules run on the profile as it is.
+  const onDashboardFailed = useCallback(() => setActivitySyncedDay(getTodayString()), []);
+  useEffect(() => {
+    if (logsFailed) onDashboardFailed();
+  }, [logsFailed, onDashboardFailed]);
 
   // The first rating sheet ever explains its question, once. Accounts that
   // already have app ratings know the question, so they never see it.
@@ -760,6 +870,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           logs={nudgeLogs}
           logsReady={logsReady || logsFailed}
           onDashboard={onDashboard}
+          onLoadFailed={onDashboardFailed}
           onRefresh={loadData}
           onOpenAppPage={(appId) => navigation.navigate('AppPage', { appId })}
           onInfo={intro.reopen}
@@ -793,6 +904,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           // On a failed read the dashboard still draws, just without friction.
           logsReady={logsReady || logsFailed}
           onDashboard={onDashboard}
+          onLoadFailed={onDashboardFailed}
           onOpenApp={openApp}
           hiddenApps={hiddenApps}
           onRefresh={loadData}
@@ -890,14 +1002,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Weekly goals, once, for accounts from before onboarding set them. */}
       <AppGoalsSheet
-        visible={goalSheetWanted && !intro.visible && !quickLog && !celebrationVisible}
+        visible={goalSheetVisible}
         mode="once"
         onClose={() => setGoalSheetClosed(true)}
       />
 
-      {/* Weekly "what got in the way?" — one tap per habit that fell short. */}
+      {/* Weekly "what got in the way?" — one tap per app that fell short. */}
       <SkipReviewSheet
-        visible={!!skipReview}
+        visible={skipReviewVisible}
         review={skipReview}
         onAnswer={async (item, reasonId) => {
           if (!user || !skipReview) return;
@@ -998,7 +1110,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           setPointsIntroVisible(false);
           // Hand off to the celebration staged by handleAppRated — this is
           // the first completion, so it's the one that most needs the reflect offer.
-          setCelebrationVisible(true);
+          // After the intro has left, so the two never overlap.
+          setBetweenSheets(true);
+          setTimeout(() => {
+            setCelebrationVisible(true);
+            setBetweenSheets(false);
+          }, SHEET_GAP_MS);
         }}
       />
       {/* The "Comeback check-in" rule fires the bespoke comeback/story flow in

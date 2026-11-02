@@ -155,14 +155,15 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
       showAlert(
         hasPlan ? t('nightly.alert.saved.plan.title', 'Plan set') : t('nightly.alert.saved.noplan.title', 'Saved'),
         hasPlan
-          ? t('nightly.alert.saved.plan.message', 'You’ll see it at the top of Today tomorrow.')
+          ? t('nightly.alert.saved.plan.message', 'You’ll see it on Today tomorrow.')
           : t('nightly.alert.saved.noplan.message', 'Today is closed out.')
       );
       navigation.goBack();
     } catch (e: any) {
+      console.warn('Saving the close-out failed:', e);
       showAlert(
-        t('nightly.alert.error.title', 'Error'),
-        e.message || t('nightly.alert.error.message', 'Could not save reflection.')
+        t('nightly.alert.error.title', "Couldn't save that"),
+        t('nightly.alert.error.message', 'Check your connection and try again.')
       );
     } finally {
       setSaving(false);
@@ -210,15 +211,15 @@ export const NightlyReflectionScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.winTextWrap}>
             {win.kind === 'hard' ? (
               <Copy id="nightly.win.hard.title" style={styles.winTitle} vars={{ habit: win.habitName }}>
-                {'You did {habit} even though it was hard.'}
+                {'{habit} was hard to start today, and you did it anyway.'}
               </Copy>
             ) : win.count === 1 ? (
               <Copy id="nightly.win.logged.title.one" style={styles.winTitle} vars={{ count: win.count }}>
-                {'You showed up for {count} habit today.'}
+                {'You showed up today.'}
               </Copy>
             ) : (
               <Copy id="nightly.win.logged.title.other" style={styles.winTitle} vars={{ count: win.count }}>
-                {'You showed up for {count} habits today.'}
+                {'You showed up for {count} things today.'}
               </Copy>
             )}
             {win.kind === 'hard' ? (

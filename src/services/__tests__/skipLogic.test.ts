@@ -63,6 +63,31 @@ describe('week boundaries', () => {
 });
 
 describe('findShortfalls', () => {
+  it('skips a week that began before the habit (or the account) existed', () => {
+    // Created on the Wednesday of last week: that week was never a full one.
+    const result = findShortfalls(
+      [habit({ id: 'app:meditate', target_count_per_week: 3, created_at: '2026-08-19T15:00:00' })],
+      [],
+      LAST_WEEK_START,
+      LAST_WEEK_END
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('still reviews a week that began on or after the start date', () => {
+    const habits = [
+      habit({ id: 'a', target_count_per_week: 3, created_at: '2026-08-17T09:00:00' }),
+      habit({ id: 'b', target_count_per_week: 3, created_at: '2026-08-17' }),
+      habit({ id: 'c', target_count_per_week: 3, created_at: '2026-01-01T09:00:00Z' }),
+    ];
+    expect(findShortfalls(habits, [], LAST_WEEK_START, LAST_WEEK_END).map((c) => c.habitId)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('gives a brand-new account no review on its first visit', () => {
+    const fresh = [habit({ id: 'app:workouts', created_at: '2026-08-30T08:00:00' })];
+    expect(buildPendingReview(fresh, [], TODAY)).toBeNull();
+  });
+
   it('reports a habit that fell short of its weekly target', () => {
     const result = findShortfalls(
       [habit({ id: 'h1', name: 'Cold', target_count_per_week: 4 })],

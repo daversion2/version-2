@@ -59,14 +59,19 @@ export const clampWeeklyGoal = (n: number | undefined, appId: TodayAppId): numbe
   return Math.min(7, Math.max(1, v));
 };
 
-/** The app as the habit the pace / skip / streak code already understands. */
-export const appCheckinHabit = (appId: TodayAppId, weeklyGoal?: number): PracticeInstance => ({
+/**
+ * The app as the habit the pace / skip / streak code already understands.
+ * `since` is when the clock started — the account's created_at — so the
+ * weekly review never asks about a week from before the account existed.
+ */
+export const appCheckinHabit = (appId: TodayAppId, weeklyGoal?: number, since?: string): PracticeInstance => ({
   id: appCheckinId(appId),
   user_id: '',
   name: MINI_APPS[appId].title,
   is_active: true,
   created_by_user: false,
   target_count_per_week: clampWeeklyGoal(weeklyGoal, appId),
+  ...(since ? { created_at: since } : {}),
 });
 
 /** What the quick sheet asks after a session (the duration, filled in from it). */
@@ -113,4 +118,27 @@ export const lastAppCheckin = (appId: TodayAppId, logs: CompletionLog[]): Comple
   return logs
     .filter((l) => l.reference_id === id)
     .sort((a, b) => b.date.localeCompare(a.date) || (b.completed_at ?? '').localeCompare(a.completed_at ?? ''))[0];
+};
+
+/** A rating added on screen before any reload has read it back. */
+export interface LocalLog {
+  log: CompletionLog;
+  /** Date.now() when it was added. */
+  addedAt: number;
+}
+
+/**
+ * A reload's logs, plus the ones added on screen since that reload was asked
+ * for. A read that started before a rating can land after it, without it;
+ * putting its result straight on screen would make the rating vanish until the
+ * next reload. Anything added before the read began is already in it.
+ */
+export const mergeReloadedLogs = (
+  fetched: CompletionLog[],
+  local: LocalLog[],
+  requestedAt: number
+): CompletionLog[] => {
+  const ids = new Set(fetched.map((l) => l.id));
+  const missing = local.filter((e) => e.addedAt >= requestedAt && !ids.has(e.log.id)).map((e) => e.log);
+  return missing.length ? [...fetched, ...missing] : fetched;
 };

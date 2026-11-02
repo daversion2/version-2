@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,11 +9,12 @@ import type { CompletionLog } from '../../types';
 import type { TodayAppId } from '../../services/appCheckins';
 import { buildHomeDashboard, HomeDashboard } from '../../services/homeDashboard';
 import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
-import { formatDayHeader } from '../../utils/date';
+import { formatDayHeader, getTodayString } from '../../utils/date';
 import { AppRings } from '../common/ProgressRing';
 import { ListGroup, ListRow } from '../common/ListGroup';
 import { TopScrim } from '../common/TopScrim';
 import { APP_ICONS } from '../homeDashboard/DashboardParts';
+import { LoadError } from './LoadError';
 
 // =============================================================================
 // TODAY, REDESIGNED (Lab → "Apple-style redesign"; canvas "Today" artboard).
@@ -33,6 +34,8 @@ interface Props {
   /** False until those logs have loaded: drawing before would show short counts. */
   logsReady: boolean;
   onDashboard?: (d: HomeDashboard) => void;
+  /** The apps' data couldn't be read: Today has no dashboard to hand on. */
+  onLoadFailed?: () => void;
   onRefresh?: () => Promise<void> | void;
   onOpenAppPage: (appId: TodayAppId) => void;
   /** Opens the screen intro (the ⓘ). */
@@ -55,6 +58,7 @@ export const TodayView: React.FC<Props> = ({
   logs,
   logsReady,
   onDashboard,
+  onLoadFailed,
   onRefresh,
   onOpenAppPage,
   onInfo,
@@ -69,15 +73,20 @@ export const TodayView: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const [appData, setAppData] = useState<HomeAppData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const reload = useCallback(
     () =>
       loadHomeAppData(userId).then(
-        (data) => (setAppData(data), setError(null)),
-        (e) => setError(String(e?.message ?? e))
+        (data) => (setAppData(data), setError(false)),
+        (e) => {
+          console.warn('Today: loading the apps failed:', e);
+          setError(true);
+          onLoadFailed?.();
+        }
       ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId]
   );
 
@@ -87,6 +96,16 @@ export const TodayView: React.FC<Props> = ({
       reload();
     }, [reload])
   );
+
+  // Back in the app on a new day (left open overnight): the window moved, so
+  // read again. A same-day resume keeps what's on screen.
+  const loadedDay = appData?.today;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && loadedDay && loadedDay !== getTodayString()) reload();
+    });
+    return () => sub.remove();
+  }, [loadedDay, reload]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -133,7 +152,7 @@ export const TodayView: React.FC<Props> = ({
 
         {!d ? (
           <View style={styles.loading}>
-            {error ? <Text style={styles.muted}>Couldn’t load: {error}</Text> : <ActivityIndicator color={Colors.primary} />}
+            {error ? <LoadError onRetry={() => Promise.all([reload(), onRefresh?.()])} /> : <ActivityIndicator color={Colors.primary} />}
           </View>
         ) : (
           <>
@@ -165,7 +184,7 @@ export const TodayView: React.FC<Props> = ({
                   <Text style={styles.strong}>
                     {d.combinedStreak > 0 ? `${d.combinedStreak}-day streak` : 'No streak yet'}
                   </Text>
-                  {` · ${xp.toLocaleString()} XP · last 7 days`}
+                  {` · ${xp.toLocaleString()} XP in all`}
                 </Text>
               </View>
             </View>
@@ -220,7 +239,6 @@ const styles = StyleSheet.create({
   title: { ...TextStyles.largeTitle, color: Colors.dark },
   infoButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   loading: { paddingVertical: Spacing.xxl, alignItems: 'center' },
-  muted: { ...TextStyles.subhead, color: Colors.gray },
   card: { backgroundColor: Colors.cardBg, borderRadius: BorderRadius.lg, padding: 20, gap: Spacing.md },
   ringsRow: { flexDirection: 'row', alignItems: 'center', gap: 22 },
   legend: { flex: 1, gap: 12 },

@@ -165,8 +165,10 @@ Do this after Phases 3 and 4, so nothing still depends on it. Run
     `habitCleanup`, `todayRequests`, `habitReminders`
 - [ ] **Static habit data:** library, traditional habits, templates, sections,
   anchors, `habitScience`.
-- [ ] **Leftovers on Today:** the `habits` and `habitStreaks` state.
+- [x] **Leftovers on Today:** the `habits` and `habitStreaks` state.
   (`pendingDetailedLog` and `HabitCompletionModal` went in Phase 1.)
+  *(2026-11-02)* Gone, with Today's `getActiveHabits` read and the challenge
+  expire/activate writes.
 - [ ] **Each mini-app's context** loads `getActiveHabits` for nothing, and the
   `habitId` route params are unused.
 
@@ -177,6 +179,8 @@ Do this after Phases 3 and 4, so nothing still depends on it. Run
 - [ ] **ⓘ intros:** rewrite the Progress and nightly ones, and remove the
   library, habit and archived ones (`data/screenIntros.ts`, plus any saved
   overrides).
+  *(2026-11-02)* Today's and the nightly one rewritten; library, habit and
+  archived removed. Left: Progress, and any saved overrides.
 - [ ] **Docs:** update `docs/app-overview-user-facing.md`,
   `docs/mini-app-contract.md`, `docs/skip-capture.md`, CLAUDE.md's
   data-model section, and the "current docs" list.

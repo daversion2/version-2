@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   addDoc,
+  setDoc,
   updateDoc,
   query,
   where,
@@ -9,6 +10,7 @@ import {
   getDoc,
   increment,
   deleteField,
+  limit,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { PracticeInstance, HabitDifficulty, CompletionLog, HabitStreakInfo, HabitStats, HabitActionPlan, ArenaId, PracticeCompletionInput } from '../types';
@@ -362,7 +364,17 @@ export interface CompletionExtras {
   /** An app session's rating: which app, and the session doc it rates (if it has one). */
   appId?: string;
   sessionId?: string;
+  /** Write the log under this id instead of a new one (see appRatingLogId). */
+  logId?: string;
 }
+
+/**
+ * The log id for an app session's rating. A session is rated once
+ * (services/weeklyVolume.shouldAskCheckin, the mini-app hand-back), so its
+ * rating gets a fixed id: a retry after a lost reply finds the log already
+ * there instead of writing a second one and paying the XP twice.
+ */
+export const appRatingLogId = (appId: string, sessionId: string): string => `${appId}_${sessionId}`;
 
 /**
  * Log a habit completion with optional backdating, notes, and tracking/reflection.
@@ -426,9 +438,21 @@ export const logHabitCompletion = async (
   if (extras?.appId) logData.app_id = extras.appId;
   if (extras?.sessionId) logData.session_id = extras.sessionId;
 
-  const docRef = await addDoc(logsRef(userId), logData);
-  await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
-  return docRef.id;
+  let logId: string;
+  if (extras?.logId) {
+    await setDoc(doc(db, 'users', userId, 'completionLogs', extras.logId), logData);
+    logId = extras.logId;
+  } else {
+    logId = (await addDoc(logsRef(userId), logData)).id;
+  }
+  // The log is the record. A counter that fails to move must not fail it:
+  // the caller would offer a retry, and the retry would log it twice.
+  try {
+    await updateDoc(doc(db, 'users', userId), { totalHabitsCompleted: increment(1) });
+  } catch (err) {
+    console.error('Failed to bump totalHabitsCompleted:', err);
+  }
+  return logId;
 };
 
 /**
@@ -517,9 +541,14 @@ export interface CompletePracticeResult {
  * would credit today's streak for a rep the user did on Saturday. Backdated
  * reps instead adjust the XP total directly and then recalculate streak and
  * lastActivityDate from the logs — so a backfilled rep that closes a gap
- * extends the streak correctly, and one that doesn't leaves it alone.
+ * extends the streak correctly, and one that doesn't leaves it alone. A
+ * backdated app rating skips the recalculation: Today's syncProfileActivity
+ * owns the stored streak for the apps.
  * The XP and tracking metrics are identical, because a rep you did yesterday
  * is not worth less than one you did an hour ago.
+ *
+ * Only the log write can fail the call. Once it's saved, the counters and XP
+ * are best-effort, so a retry never logs (or pays) the same rating twice.
  */
 export const completePractice = async (
   userId: string,
@@ -533,30 +562,6 @@ export const completePractice = async (
   const date = input.date || today;
   const backdated = date !== today;
 
-  // First-ever completion of this practice → bump the user's sampler counter
-  // (powers the {practices_tried} rule placeholder). Best-effort: never block
-  // the completion.
-  let firstTry = false;
-  try {
-    const prior = await getHabitCompletionLogs(userId, practice.id);
-    firstTry = prior.length === 0;
-    if (firstTry) {
-      await updateDoc(doc(db, 'users', userId), { practices_tried: increment(1) });
-    }
-  } catch (err) {
-    console.warn('Failed to update practices_tried counter:', err);
-  }
-
-  const logId = await logHabitCompletion(userId, practice.id, difficulty, date, notes, {
-    resistance,
-    metrics,
-    hitHardMoment,
-    tactics,
-    reflection,
-    mindTags,
-    ...link,
-  });
-
   // XP is friction overcome: the 1–3 rating itself, never multiplied. The
   // binary difficulty is only a fallback for a caller with no rating.
   const pointsEarned =
@@ -565,29 +570,95 @@ export const completePractice = async (
       : difficulty === 'easy'
         ? 1
         : 2;
-  const stats = await getWillpowerStats(userId);
 
-  let willpower: Awaited<ReturnType<typeof updateWillpowerStats>>;
-  if (backdated) {
-    const newTotal = await adjustWillpowerPoints(userId, pointsEarned);
-    const { newStreak } = await recalculateUserStats(userId);
-    // newTierReached stays false so the caller never fires a "Streak Milestone!"
-    // alert for a backfill. Crossing a tier is a moment you earn in the present;
-    // discovering it while tidying up last week's log is not that moment.
-    willpower = {
-      newTotal,
-      newStreak,
-      newTierReached: false,
-      tierInfo: null,
-    };
-  } else {
-    willpower = await updateWillpowerStats(userId, pointsEarned);
+  // An app session's rating has a fixed id. If it's already there, an earlier
+  // try got through and only its reply was lost: report it, award nothing again.
+  const fixedId = link?.appId && link.sessionId ? appRatingLogId(link.appId, link.sessionId) : undefined;
+  if (fixedId) {
+    const existing = await getDoc(doc(db, 'users', userId, 'completionLogs', fixedId));
+    if (existing.exists()) {
+      const stats = await getWillpowerStats(userId).catch(() => ({ totalPoints: 0, currentStreak: 0 }));
+      return {
+        logId: fixedId,
+        pointsEarned,
+        streakBefore: stats.currentStreak,
+        firstTry: false,
+        date: (existing.data()?.date as string) || date,
+        backdated,
+        willpower: { newTotal: stats.totalPoints, newStreak: stats.currentStreak, newTierReached: false, tierInfo: null },
+      };
+    }
   }
+
+  // Read before the log is written, so the new log isn't counted. Both are
+  // best-effort: neither may block the rating.
+  const [hadPrior, stats] = await Promise.all([
+    hasCompletionLog(userId, practice.id).catch((err) => {
+      console.warn('Failed to check for an earlier completion:', err);
+      return null;
+    }),
+    getWillpowerStats(userId).catch((err) => {
+      console.warn('Failed to read willpower stats:', err);
+      return null;
+    }),
+  ]);
+  const firstTry = hadPrior === false;
+
+  // The one step that may fail the call: nothing is written before it.
+  const logId = await logHabitCompletion(userId, practice.id, difficulty, date, notes, {
+    resistance,
+    metrics,
+    hitHardMoment,
+    tactics,
+    reflection,
+    mindTags,
+    ...link,
+    ...(fixedId ? { logId: fixedId } : {}),
+  });
+
+  // From here the rating is saved, so nothing below may throw: a failure
+  // would offer a retry, and the retry would log it again. The counters and
+  // XP are logged and left; a missed XP award is smaller harm than a double one.
+  //
+  // First-ever completion of this practice → bump the user's sampler counter
+  // (powers the {practices_tried} rule placeholder).
+  const triedWrite = firstTry
+    ? updateDoc(doc(db, 'users', userId), { practices_tried: increment(1) }).catch((err) =>
+        console.error('Failed to update practices_tried counter:', err)
+      )
+    : Promise.resolve();
+
+  const streakBefore = stats?.currentStreak ?? 0;
+  let willpower: Awaited<ReturnType<typeof updateWillpowerStats>> = {
+    newTotal: (stats?.totalPoints ?? 0) + pointsEarned,
+    newStreak: streakBefore,
+    newTierReached: false,
+    tierInfo: null,
+  };
+  try {
+    if (!backdated) {
+      willpower = await updateWillpowerStats(userId, pointsEarned);
+    } else {
+      const newTotal = await adjustWillpowerPoints(userId, pointsEarned);
+      // An app rating leaves the stored streak to Today's syncProfileActivity
+      // (services/appActivity.ts), which counts every app session and meal.
+      // recalculateUserStats counts rated logs only, so the two would undo
+      // each other. Other reps still recalculate from their logs.
+      const newStreak = link?.appId ? streakBefore : (await recalculateUserStats(userId)).newStreak;
+      // newTierReached stays false so the caller never fires a "Streak Milestone!"
+      // alert for a backfill. Crossing a tier is a moment you earn in the present;
+      // discovering it while tidying up last week's log is not that moment.
+      willpower = { newTotal, newStreak, newTierReached: false, tierInfo: null };
+    }
+  } catch (err) {
+    console.error('Failed to award XP for a saved log:', err);
+  }
+  await triedWrite;
 
   return {
     logId,
     pointsEarned,
-    streakBefore: stats.currentStreak,
+    streakBefore,
     firstTry,
     date,
     backdated,
@@ -700,6 +771,18 @@ export const getHabitById = async (
 /**
  * Get all completion logs for a specific habit
  */
+/** Whether a habit (or an app's check-ins) has any completion yet. Reads one doc. */
+export const hasCompletionLog = async (userId: string, habitId: string): Promise<boolean> => {
+  // Equality filters only, as getHabitCompletionLogs: no composite index needed.
+  const q = query(
+    logsRef(userId),
+    where('type', '==', 'nudge'),
+    where('reference_id', '==', habitId),
+    limit(1)
+  );
+  return !(await getDocs(q)).empty;
+};
+
 export const getHabitCompletionLogs = async (
   userId: string,
   habitId: string

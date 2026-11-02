@@ -10,25 +10,45 @@ import { getTodayString } from '../utils/date';
 /**
  * Client evaluation point for rule-driven in-app surfaces (modals/banners).
  *
- * Evaluates once per mount when the user profile is available and returns
+ * Evaluates once per mount (and again on a new `day`) when the user profile is
+ * available and `ready`, and returns
  * the highest-priority matching modal and banner rules. Fires are recorded
  * to ruleState when the surface is actually shown, so frequency caps work
  * the same as for pushes.
  *
  * `holdModal` keeps the rule modal off-screen while it's true (e.g. while a
  * bespoke modal is visible) — it shows after a short delay once released.
+ *
+ * `ready` holds evaluation until the caller says the profile is current. Today
+ * passes false until its first activity sync has run: the stored
+ * lastActivityDate lags behind unrated sessions and meals, and a profile read
+ * before that sync would greet an active user with "you've been away".
+ *
+ * `day` re-evaluates when it changes — the app left open overnight and
+ * brought back the next morning is a new app open.
  */
-export const useRuleSurfaces = (event: RuleEvent, holdModal: boolean) => {
+export const useRuleSurfaces = (
+  event: RuleEvent,
+  holdModal: boolean,
+  { ready = true, day }: { ready?: boolean; day?: string } = {}
+) => {
   const { user, userProfile } = useAuth();
-  const evaluatedRef = useRef(false);
+  // The day last evaluated; null = not yet.
+  const evaluatedRef = useRef<string | null>(null);
   const modalRecordedRef = useRef(false);
   const [modalRule, setModalRule] = useState<Rule | null>(null);
   const [bannerRule, setBannerRule] = useState<Rule | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
-    if (evaluatedRef.current || !user || !userProfile) return;
-    evaluatedRef.current = true;
+    const key = day ?? 'once';
+    if (evaluatedRef.current === key || !ready || !user || !userProfile) return;
+    const isRepeat = evaluatedRef.current !== null;
+    evaluatedRef.current = key;
+    if (isRepeat) {
+      // A new day: last day's modal may fire again, under its own frequency cap.
+      modalRecordedRef.current = false;
+    }
     (async () => {
       try {
         // active_habit_count now comes from the user doc (apps_active), so
@@ -58,15 +78,13 @@ export const useRuleSurfaces = (event: RuleEvent, holdModal: boolean) => {
         }
 
         setModalRule(modal);
-        if (banner) {
-          setBannerRule(banner);
-          markRuleShown(user.uid, banner.id).catch(() => {});
-        }
+        setBannerRule(banner);
+        if (banner) markRuleShown(user.uid, banner.id).catch(() => {});
       } catch (err) {
         console.warn('Rule surface evaluation failed:', err);
       }
     })();
-  }, [user, userProfile, event]);
+  }, [user, userProfile, event, ready, day]);
 
   // Show the modal once nothing else is on screen; record the fire then.
   useEffect(() => {

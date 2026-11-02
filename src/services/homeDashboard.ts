@@ -93,25 +93,54 @@ export const describeVsPrior = (current: number, prior: number, unit: string): s
  *   - a session whose rating was cancelled (1 doc, 0) still counts (Q1);
  *   - a Workouts past session (0 docs, 1 rating) still counts;
  *   - old ratings with no session id pair up with their docs by day.
+ *
+ * A rating that names a loaded session doc is that session, so it's left out
+ * of the tally. Otherwise a session started before midnight and rated after
+ * would count on both days.
  */
-export const sessionsByDay = (docDates: string[], ratingDates: string[]): Map<string, number> => {
+export interface SessionRef {
+  id?: string;
+  date: string;
+}
+
+export interface RatingRef {
+  date: string;
+  sessionId?: string;
+}
+
+export const sessionsByDay = (
+  sessions: (string | SessionRef)[],
+  ratings: (string | RatingRef)[]
+): Map<string, number> => {
+  const docs = sessions.map((s) => (typeof s === 'string' ? { date: s } : s));
+  const ids = new Set(docs.map((s) => s.id).filter((id): id is string => !!id));
+  const unpaired = ratings
+    .map((r) => (typeof r === 'string' ? { date: r } : r))
+    .filter((r) => !r.sessionId || !ids.has(r.sessionId));
   const tally = (dates: string[]) => {
     const m = new Map<string, number>();
     for (const d of dates) m.set(d, (m.get(d) ?? 0) + 1);
     return m;
   };
-  const docs = tally(docDates);
-  const ratings = tally(ratingDates);
+  const byDoc = tally(docs.map((s) => s.date));
+  const byRating = tally(unpaired.map((r) => r.date));
   const out = new Map<string, number>();
-  for (const d of new Set([...docs.keys(), ...ratings.keys()])) {
-    out.set(d, Math.max(docs.get(d) ?? 0, ratings.get(d) ?? 0));
+  for (const d of new Set([...byDoc.keys(), ...byRating.keys()])) {
+    out.set(d, Math.max(byDoc.get(d) ?? 0, byRating.get(d) ?? 0));
   }
   return out;
 };
 
+const appRatings = (logs: CompletionLog[], appId: TodayAppId): CompletionLog[] =>
+  logs.filter((l) => l.reference_id === appCheckinId(appId) && !l.mirror_of);
+
 /** The days an app's sessions were rated on — one entry per rating. */
 export const ratingDates = (logs: CompletionLog[], appId: TodayAppId): string[] =>
-  logs.filter((l) => l.reference_id === appCheckinId(appId) && !l.mirror_of).map((l) => l.date);
+  appRatings(logs, appId).map((l) => l.date);
+
+/** An app's ratings, with the session each one rates when it names one. */
+export const ratingRefs = (logs: CompletionLog[], appId: TodayAppId): RatingRef[] =>
+  appRatings(logs, appId).map((l) => (l.session_id ? { date: l.date, sessionId: l.session_id } : { date: l.date }));
 
 const countIn = (byDay: Map<string, number>, today: string, offset = 0): number => {
   let n = 0;
@@ -157,13 +186,13 @@ export const meditateDashboard = (
   sessions: CompletedMeditateSession[],
   goal: number,
   today: string,
-  ratedOn: string[] = []
+  ratedOn: (string | RatingRef)[] = []
 ): MeditateDashboard => {
   const sorted = [...sessions].sort((a, b) => b.started_at.localeCompare(a.started_at));
   const current = sorted.filter((s) => inWindow(s.date, today));
   const prior = sorted.filter((s) => inWindow(s.date, today, 1));
   const byDay = sessionsByDay(
-    sorted.map((s) => s.date),
+    sorted.map((s) => ({ id: s.id, date: s.date })),
     ratedOn
   );
   const active = [...byDay.keys()];
@@ -215,6 +244,8 @@ export interface WorkoutsDashboard {
 }
 
 const sessionDate = (s: CompletedWorkoutSession): string => toLocalDateString(new Date(s.started_at));
+
+const workoutRef = (s: CompletedWorkoutSession): SessionRef => ({ id: s.id, date: sessionDate(s) });
 
 /** How far the trend moved, as a share of where it started, with "better" positive. */
 const improvement = (values: number[], lowerBetter: boolean): number => {
@@ -273,14 +304,14 @@ export const workoutsDashboard = (
   unit: WeightUnit,
   phase: TrainingPhase | undefined,
   today: string,
-  ratedOn: string[] = []
+  ratedOn: (string | RatingRef)[] = []
 ): WorkoutsDashboard => {
   const sorted = [...sessions].sort((a, b) => b.started_at.localeCompare(a.started_at));
   const current = sorted.filter((s) => inWindow(sessionDate(s), today));
   const prior = sorted.filter((s) => inWindow(sessionDate(s), today, 1));
   // A past session logged in Workouts is a rating with no session doc: it
   // counts as a session, though it has no sets or volume.
-  const byDay = sessionsByDay(sorted.map(sessionDate), ratedOn);
+  const byDay = sessionsByDay(sorted.map(workoutRef), ratedOn);
   const active = [...byDay.keys()];
   const volume = (list: CompletedWorkoutSession[]) => list.reduce((t, s) => t + (s.total_volume_kg ?? 0), 0);
   const volumeKg = volume(current);
@@ -307,7 +338,7 @@ export const workoutsDashboard = (
 
 // --- Meals ---------------------------------------------------------------------
 
-/** 'empty' = a past day with nothing logged; 'pending' = today, still open. */
+/** 'empty' = a past day not logged in full, or with no plates at all; 'pending' = today, still open. */
 export type MealsDayState = 'on' | 'off' | 'pending' | 'empty';
 
 export interface Serving {
@@ -345,10 +376,14 @@ export const mealsDayState = (
   current: MealsRules,
   today: string
 ): MealsDayState => {
-  if (day?.result) return day.result;
-  if (!hasAnything(day)) return date === today ? 'pending' : 'empty';
+  if (!hasAnything(day)) return day?.result ?? (date === today ? 'pending' : 'empty');
   const status = scoreDay(day, rulesForDay(date, today, day, current)).status;
-  if (status === 'pending') return date === today ? 'pending' : 'off';
+  // Every meal "didn't eat" counts neither way — even a day closed 'off' before that rule.
+  if (status === 'none') return 'empty';
+  if (day?.result) return day.result;
+  // Unfinished: still open today; once past, just not logged in full — never 'off'
+  // (Meals' own week grid shows no dot for it either).
+  if (status === 'pending') return date === today ? 'pending' : 'empty';
   return status;
 };
 
@@ -623,7 +658,7 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
     input.meditateSessions,
     input.meditateGoal,
     today,
-    ratingDates(input.logs, 'meditate')
+    ratingRefs(input.logs, 'meditate')
   );
   const workouts = workoutsDashboard(
     input.workoutSessions,
@@ -632,7 +667,7 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
     input.unit,
     input.phase,
     today,
-    ratingDates(input.logs, 'workouts')
+    ratingRefs(input.logs, 'workouts')
   );
   const meals = mealsDashboard(input.mealsDays, input.mealsRules, today, Object.keys(input.mealsDays), input.mealsGoal);
   const friction = {
@@ -648,8 +683,11 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
   // One day streak (design §3): any app session, or any meal logged (Q2).
   // Craving Crusher doesn't count (Q3).
   const perApp: Record<TodayAppId, Map<string, number>> = {
-    meditate: sessionsByDay(input.meditateSessions.map((s) => s.date), ratingDates(input.logs, 'meditate')),
-    workouts: sessionsByDay(input.workoutSessions.map(sessionDate), ratingDates(input.logs, 'workouts')),
+    meditate: sessionsByDay(
+      input.meditateSessions.map((s) => ({ id: s.id, date: s.date })),
+      ratingRefs(input.logs, 'meditate')
+    ),
+    workouts: sessionsByDay(input.workoutSessions.map(workoutRef), ratingRefs(input.logs, 'workouts')),
     meals: new Map(
       Object.keys(input.mealsDays)
         .filter((d) => hasAnything(input.mealsDays[d]))

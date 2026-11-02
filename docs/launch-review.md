@@ -133,3 +133,31 @@ Changing the code's seed text doesn't change what's already in production.
   can't change them.
 - **Brand fonts never load** (already on the backlog). Text falls back to
   the system font.
+
+## 6. Small leftovers the fixers noticed
+
+None of these blocks launch. Each is a short job once you want it.
+
+- **Push after signing back in.** Signing out clears the push token, and
+  signing back in doesn't re-register it. The Settings switch correctly shows
+  off until it's turned back on.
+- **Meals.** Non-admins who changed the scoring weights before they were
+  hidden keep their values, now invisible. A day reopened *before* this fix
+  and closed on target again can be rated once more.
+- **Hot & Cold.** Editing a cold session longer than 30 minutes that was logged
+  before the new cap shortens it to 30 minutes on save.
+- **Workouts.**
+  - Starting a phase or test isn't blocked after a failed load.
+  - After an edit, only that session's record badges are recomputed.
+  - The This week hero reads "0 lb" in a bodyweight-only week.
+- **Hot & Cold's bell** now sounds with the app open, like Meditate's.
+  Tapping it doesn't open Hot & Cold yet.
+- **Not seen on screen.** Everything above passed Jest, but screens and
+  contexts aren't unit-tested. The riskiest to eyeball:
+  - a brand-new signup going through onboarding
+  - a guided recording playing to the end and reaching Done
+  - finishing a workout
+  - closing a Meals day
+
+  Running these needs your OK: they use the simulator signed in to your
+  account, and a signup writes to production.
