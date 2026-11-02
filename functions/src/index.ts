@@ -1,6 +1,5 @@
 import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { Expo, ExpoPushMessage } from "expo-server-sdk";
 import {
@@ -45,6 +44,22 @@ const getUsersAtHour = async (
   });
 };
 
+/**
+ * Run fn over items a few at a time. The hourly crons used to await each user
+ * in turn, which hits the function timeout at a couple of hundred users — and
+ * since users always come back in the same order, the same tail never got a
+ * push. fn must catch its own errors.
+ */
+const forEachInChunks = async <T>(
+  items: T[],
+  size: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> => {
+  for (let i = 0; i < items.length; i += size) {
+    await Promise.all(items.slice(i, i + size).map(fn));
+  }
+};
+
 // Helper to get a date (default: now) in YYYY-MM-DD format for a specific timezone
 const getDateInTimezone = (timezone: string, date: Date = new Date()): string => {
   try {
@@ -81,8 +96,8 @@ const getHourInTimezone = (timezone: string): number => {
  * Atomically reserve one slot from the user's push budget.
  *
  * A transaction rather than a read-then-write because the send paths are not
- * mutually exclusive: onChallengeFailure is a Firestore trigger that can run
- * while either hourly cron is mid-flight, and checkMicroCommitmentFollowUps
+ * mutually exclusive: the two hourly crons can overlap, each handles several
+ * users at once, and checkMicroCommitmentFollowUps
  * loops over several exercises for one user off a single stale userData read.
  * Every one of those would otherwise see the same pre-send history and all
  * decide they were within budget.
@@ -106,6 +121,20 @@ const claimPushBudget = async (userId: string, nowIso: string): Promise<boolean>
   } catch (error) {
     console.error(`Push budget claim failed for user ${userId}:`, error);
     return false;
+  }
+};
+
+/** Null the user's push token, but only if it's still the one that failed. */
+const clearStaleToken = async (userId: string, pushToken: string): Promise<void> => {
+  try {
+    const ref = db.collection("users").doc(userId);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (snap.get("expoPushToken") === pushToken) tx.update(ref, { expoPushToken: null });
+    });
+    console.log(`Cleared unregistered push token for user ${userId}`);
+  } catch (error) {
+    console.error(`Couldn't clear push token for user ${userId}:`, error);
   }
 };
 
@@ -151,7 +180,17 @@ const sendPushNotification = async (
   try {
     const chunks = expo.chunkPushNotifications([message]);
     for (const chunk of chunks) {
-      await expo.sendPushNotificationsAsync(chunk);
+      const tickets = await expo.sendPushNotificationsAsync(chunk);
+      // The app was deleted or the token replaced (new phone, reinstall).
+      // Forget the token so the account stops sending into the void, and the
+      // app can ask again next time it opens.
+      const gone = tickets.some(
+        (t) => t.status === "error" && t.details?.error === "DeviceNotRegistered"
+      );
+      if (gone) {
+        await clearStaleToken(userId, pushToken);
+        return false;
+      }
     }
     console.log(`Notification sent to user ${userId}: ${title}`);
     return true;
@@ -363,44 +402,6 @@ const fireEventRuleForUser = async (
   return true;
 };
 
-// ============================================
-// 3. Challenge Failed: Immediate encouragement
-// Triggers when a challenge status changes to 'failed'
-//
-// INERT AS OF 2026-09-18 and expected to stay that way: the rule is parked and
-// its DEFAULT_EVENT_RULES entry is gone, so getPushRuleForEvent returns null and
-// this early-returns on every invocation. Kept as the evaluation point rather
-// than deleted, matching how the parked rules are handled — re-enabling becomes
-// "create a challenge_failed rule in Admin" instead of a redeploy. If the
-// per-update invocation cost ever matters more than that optionality, this whole
-// export is the thing to remove.
-// ============================================
-export const onChallengeFailure = onDocumentUpdated(
-  "users/{userId}/challenges/{challengeId}",
-  async (event) => {
-    if (!PUSH_NOTIFICATIONS_ENABLED) return;
-
-    const beforeData = event.data?.before.data();
-    const afterData = event.data?.after.data();
-    if (!beforeData || !afterData) return;
-
-    // Only trigger when status changes TO 'failed'
-    if (beforeData.status === "failed" || afterData.status !== "failed") return;
-
-    const rule = await getPushRuleForEvent("challenge_failed");
-    if (!rule) {
-      console.log("No enabled challenge_failed rule — skipping");
-      return;
-    }
-
-    const userId = event.params.userId;
-    const userDoc = await db.collection("users").doc(userId).get();
-    await fireEventRuleForUser(rule, userId, userDoc.data(), {
-      challenge_name: afterData.name || "your challenge",
-    });
-  }
-);
-
 // ============================================================================
 // 9. Micro-commitment follow-up notifications
 // Runs every hour; sends a follow-up notification the day after a micro-exercise
@@ -410,6 +411,7 @@ export const checkMicroCommitmentFollowUps = onSchedule(
   {
     schedule: "0 * * * *", // Every hour at minute 0
     timeZone: "UTC",
+    timeoutSeconds: 540,
   },
   async () => {
     if (!PUSH_NOTIFICATIONS_ENABLED) {
@@ -432,13 +434,13 @@ export const checkMicroCommitmentFollowUps = onSchedule(
     const userDocs = await getUsersAtHour(targetHour);
     console.log(`Found ${userDocs.length} users at hour ${targetHour}`);
 
-    for (const userDoc of userDocs) {
+    await forEachInChunks(userDocs, 20, async (userDoc) => {
       try {
         const userData = userDoc.data();
         const pushToken = userData.expoPushToken;
         const timezone = userData.timezone || "America/New_York";
 
-        if (!pushToken) continue;
+        if (!pushToken) return;
 
         const today = getDateInTimezone(timezone);
         const yesterdayDate = new Date(today + "T00:00:00");
@@ -504,71 +506,9 @@ export const checkMicroCommitmentFollowUps = onSchedule(
           error
         );
       }
-    }
+    });
 
     console.log("checkMicroCommitmentFollowUps complete");
-  }
-);
-
-// ============================================================================
-// AUTO-EXPIRE STALE DAILY CHALLENGES
-// Runs every hour. At midnight in each user's timezone, marks active daily
-// challenges from previous days as 'not_yet'. Extended challenges are excluded.
-// ============================================================================
-export const expireStaleChallenges = onSchedule(
-  {
-    schedule: "0 * * * *",
-    timeZone: "UTC",
-  },
-  async () => {
-    console.log("Running stale challenge expiry check...");
-
-    // Only fetch users whose timezone is currently at midnight
-    const userDocs = await getUsersAtHour(0);
-    console.log(`Found ${userDocs.length} users at midnight`);
-
-    for (const userDoc of userDocs) {
-      try {
-        const userData = userDoc.data();
-        const timezone = userData.timezone || "America/New_York";
-
-        const today = getDateInTimezone(timezone);
-
-        const challengesSnapshot = await db
-          .collection("users")
-          .doc(userDoc.id)
-          .collection("challenges")
-          .where("status", "==", "active")
-          .get();
-
-        // Batch all updates for this user's stale challenges
-        const batch = db.batch();
-        let expiredCount = 0;
-        for (const challengeDoc of challengesSnapshot.docs) {
-          const challenge = challengeDoc.data();
-          // Skip extended challenges — they span multiple days
-          if (challenge.challenge_type === "extended") continue;
-          if (challenge.date < today) {
-            batch.update(challengeDoc.ref, { status: "not_yet" });
-            expiredCount++;
-          }
-        }
-
-        if (expiredCount > 0) {
-          await batch.commit();
-          console.log(
-            `Expired ${expiredCount} stale challenges for user ${userDoc.id}`
-          );
-        }
-      } catch (error) {
-        console.error(
-          `Error expiring challenges for user ${userDoc.id}:`,
-          error
-        );
-      }
-    }
-
-    console.log("expireStaleChallenges complete");
   }
 );
 
@@ -583,6 +523,7 @@ export const evaluatePushRules = onSchedule(
   {
     schedule: "0 * * * *", // Every hour at minute 0
     timeZone: "UTC",
+    timeoutSeconds: 540,
   },
   async () => {
     if (!PUSH_NOTIFICATIONS_ENABLED) {
@@ -616,22 +557,22 @@ export const evaluatePushRules = onSchedule(
     const poolCache: PoolCache = {};
     let sentCount = 0;
 
-    for (const userDoc of usersSnap.docs) {
+    await forEachInChunks(usersSnap.docs, 20, async (userDoc) => {
       try {
         const userData = userDoc.data();
         const pushToken = userData.expoPushToken;
-        if (!pushToken || !Expo.isExpoPushToken(pushToken)) continue;
+        if (!pushToken || !Expo.isExpoPushToken(pushToken)) return;
 
         const timezone = userData.timezone || "America/New_York";
         const localHour = getHourInTimezone(timezone);
-        if (localHour < 0) continue; // invalid timezone
+        if (localHour < 0) return; // invalid timezone
         const todayLocal = getDateInTimezone(timezone);
         const facts = buildUserFacts(userData, todayLocal, localHour, undefined, timezone);
 
         // Cheap pre-check off the batch query's data — no extra read. The
         // authoritative claim still happens inside sendPushNotification; this
         // only skips the per-rule ruleState reads for users who are capped out.
-        if (!pushBudgetAllows(userData.push_send_history, nowIso)) continue;
+        if (!pushBudgetAllows(userData.push_send_history, nowIso)) return;
 
         for (const rule of rules) {
           if (!ruleMatches(rule, facts)) continue;
@@ -685,7 +626,7 @@ export const evaluatePushRules = onSchedule(
       } catch (error) {
         console.error(`Error evaluating rules for user ${userDoc.id}:`, error);
       }
-    }
+    });
 
     console.log(`evaluatePushRules complete — ${sentCount} notification(s) sent`);
   }
@@ -708,6 +649,9 @@ const USER_OWNED_COLLECTIONS: { name: string; ownerField: string }[] = [
   { name: "reviewVotes", ownerField: "user_id" },
   { name: "fistBumps", ownerField: "sender_id" },
   { name: "coachApplications", ownerField: "user_id" },
+  { name: "buddyChallenges", ownerField: "inviter_id" },
+  { name: "buddyChallenges", ownerField: "partner_id" },
+  { name: "programs", ownerField: "creator_id" },
 ];
 
 /** Delete every doc in a collection matching ownerField == uid, in batches. */
