@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
 import { Platform } from 'react-native';
-import { loadRedesignPref } from './src/services/redesignPref';
+import { loadClassicPref } from './src/services/redesignPref';
 import { applyRedesign } from './src/utils/redesign';
 
 SplashScreen.preventAutoHideAsync();
@@ -21,8 +21,9 @@ const loadAppTree = () => ({
     .RootNavigator,
 });
 
-const startRedesignIfOn = async () => {
-  if (await loadRedesignPref()) applyRedesign();
+// The redesign is everyone's look; only an admin's "Classic look" switch skips it.
+const startRedesign = async () => {
+  if (!(await loadClassicPref())) applyRedesign();
 };
 
 // Configure Google Sign-In (native module — web uses Firebase signInWithPopup instead)
@@ -40,7 +41,7 @@ export default function App() {
   React.useEffect(() => {
     async function loadFonts() {
       try {
-        await startRedesignIfOn();
+        await startRedesign();
         // Load brand fonts — add actual font files to ./assets/fonts/
         // For now, the app will fall back to system fonts if files aren't present
         await Font.loadAsync({

@@ -51,13 +51,14 @@ export const LAB_EXPERIMENTS = [
   //   description: 'A guided 4-7-8 breathing screen.',
   //   screen: () => require('./experiments/BreathPacerScreen').BreathPacerScreen,
   // },
-  // The whole-app restyle, built phase by phase behind one switch; see the
-  // REDESIGN block in constants/theme.ts. Applies at launch, not live.
+  // The Apple-style redesign is everyone's look since 2026-11-01. This is the
+  // way back while the classic branches still exist; delete it with them.
+  // Applies at launch, not live.
   {
-    id: 'redesign',
-    title: 'Apple-style redesign',
+    id: 'classicLook',
+    title: 'Classic look',
     description:
-      'The simpler look: iOS greys, rounder corners, grouped lists. Takes effect the next time you open the app.',
+      'Switch back to the look from before the Apple-style redesign. Takes effect the next time you open the app.',
   },
   // Workouts, Meditate and Meals went live for everyone on 2026-10-18 (their
   // habits open them from Today). These rows stay so an admin can open one

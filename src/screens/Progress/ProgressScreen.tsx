@@ -198,7 +198,7 @@ const ProgressScreenClassic: React.FC = () => {
   );
 };
 
-/** The redesign's Progress for admins with the Lab switch on (applied at launch); this screen otherwise. */
+/** The redesign's Progress (everyone, applied at launch); this classic screen only under Lab → "Classic look". */
 export const ProgressScreen: React.FC = () => (isRedesignOn() ? <ProgressRedesignScreen /> : <ProgressScreenClassic />);
 
 const styles = StyleSheet.create({

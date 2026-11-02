@@ -14,7 +14,7 @@ import { MainTabs } from './MainTabs';
 import { OnboardingScreen } from '../screens/Auth/OnboardingScreen';
 import { Colors } from '../constants/theme';
 import { isLabExperimentOn } from '../services/lab';
-import { saveRedesignPref } from '../services/redesignPref';
+import { saveClassicPref } from '../services/redesignPref';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -99,13 +99,13 @@ export const RootNavigator: React.FC = () => {
     return () => sub.remove();
   }, []);
 
-  // Copy the redesign switch to this device for the next launch (it can't
-  // apply mid-session; see services/redesignPref.ts). Signed out = off.
-  const redesignOn = isLabExperimentOn(userProfile, 'redesign');
+  // Copy the admin's "Classic look" switch to this device for the next launch
+  // (it can't apply mid-session; see services/redesignPref.ts). Signed out = off.
+  const classicOn = isLabExperimentOn(userProfile, 'classicLook');
   useEffect(() => {
     if (loading || (user && !userProfile)) return;
-    saveRedesignPref(redesignOn);
-  }, [loading, user, userProfile, redesignOn]);
+    saveClassicPref(classicOn);
+  }, [loading, user, userProfile, classicOn]);
 
   if (loading) {
     return (

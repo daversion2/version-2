@@ -110,13 +110,13 @@ export const TextStyles = {
 } as const;
 
 // =============================================================================
-// THE REDESIGN (Admin → Lab → "Apple-style redesign"; design canvas
-// https://claude.ai/artifact/AR5aQji6PnQTb7zmLLxryG).
+// THE REDESIGN (design canvas https://claude.ai/artifact/AR5aQji6PnQTb7zmLLxryG),
+// everyone's look since 2026-11-01.
 //
 // Every screen reads Colors/BorderRadius when its module first loads, so the
-// switch can't flip live. utils/redesign.ts writes these values over the
-// objects above at startup, before any screen loads (App.tsx), and only for an
-// admin who has the switch on. Everyone else never sees them. Fonts stay the
+// look can't flip live. utils/redesign.ts writes these values over the objects
+// above at startup, before any screen loads (App.tsx), unless an admin has
+// Lab → "Classic look" on. Fonts stay the
 // brand's: the founder tried the system font and reverted it (2026-10-31).
 // =============================================================================
 

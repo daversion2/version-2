@@ -47,7 +47,7 @@ export const SettingsScreen: React.FC = () => {
   // so the switch shows exactly what the backend believes.
   const pushEnabled = !!userProfile?.expoPushToken;
 
-  // The redesign (Lab switch, applied at launch) draws its own title; see the
+  // The redesign (everyone's look, applied at launch) draws its own title; see the
   // grouped-list return below the handlers.
   const redesign = isRedesignOn();
   const insets = useSafeAreaInsets();

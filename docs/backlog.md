@@ -93,8 +93,10 @@ The last item in Phase 1 of `docs/pivot-checklist.md`. The rest of Phase 1
 - Progress without its habit sections
 
 **Apple-style redesign, phases 2–4** *(added 2026-10-31)*
-An Apple-simple look for the whole app, built behind the Lab switch
-"Apple-style redesign" (admin-only, applies on the next launch). The design is
+An Apple-simple look for the whole app. **Everyone's look since 2026-11-01**
+(OTA): `App.tsx` applies it at every launch unless an admin has Lab →
+"Classic look" on (`services/redesignPref.ts`, key `nn.classic`). That switch
+is the escape hatch while the classic branches exist; step 5 deletes both. The design is
 20 screens on a claude.ai canvas: https://claude.ai/artifact/AR5aQji6PnQTb7zmLLxryG.
 Phase 1 (foundation) is built:
 - theme tokens plus the `REDESIGN` values in `constants/theme.ts`, applied at
@@ -129,7 +131,9 @@ Next:
 3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
 4. Phase 4: sign-in, and restyling the new four-screen onboarding (built
    2026-11-01) onto the shared pieces. Sign in with Apple needs a native build.
-5. Then flip it on for everyone and delete the old branches.
+5. ~~Flip it on for everyone~~ (done 2026-11-01). Then delete the classic
+   branches (old dashboard, `QuickLogSheet`, `ProgressScreenClassic`,
+   Settings' old branch) and the "Classic look" switch.
 
 Decide before Phase 2: dark mode (not designed yet). Separately, Garet (the
 primary brand font) has never actually loaded: its files are commented out in
