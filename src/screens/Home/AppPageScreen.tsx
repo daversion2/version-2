@@ -70,7 +70,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const today = data?.app.today ?? '';
-  const friction = d ? describeFriction(d.friction[appId]) ?? 'No ratings yet' : '';
+  const friction = d ? describeFriction(d.friction[appId]) ?? 'Not rated yet' : '';
 
   const body = () => {
     if (!d || !data) return null;
@@ -92,7 +92,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
           <ListGroup title="This week">
             <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
             <ListRow title="Goal" value={`${m.sessions} of ${m.goal} sessions`} />
-            <ListRow title="How hard to start" subtitle={friction} />
+            <ListRow title="Your override" subtitle={friction} />
           </ListGroup>
           {m.recent.length > 0 && (
             <ListGroup title="Recent">
@@ -130,7 +130,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
             <ListRow title="Goal" value={`${w.sessions} of ${w.goal} sessions`} />
             <ListRow title="The week before" value={`${w.priorSessions} sessions`} />
-            <ListRow title="How hard to start" subtitle={friction} />
+            <ListRow title="Your override" subtitle={friction} />
           </ListGroup>
           {(w.week.length > 0 || w.phaseLine) && (
             <ListGroup title={w.phaseLine ? `Sessions · ${w.phaseLine}` : 'Sessions'}>
@@ -168,7 +168,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
         <ListGroup title="This week">
           <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
-          <ListRow title="How hard to start" subtitle={friction} />
+          <ListRow title="Your override" subtitle={friction} />
         </ListGroup>
       </>
     );

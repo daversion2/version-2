@@ -43,8 +43,8 @@ export const OnboardingWhy: React.FC = () => (
       </Copy>
     </FadeRise>
     <FadeRise delay={400}>
-      <Copy id="onboarding.why.body" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'Three apps: Meditate, Workouts and Meals. After each session the app asks one question: **how hard was it to start?**'}
+      <Copy id="onboarding.why.bodyOverride" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Three apps: Meditate, Workouts and Meals. After each session you rate your **override**, from 1 to 3: how hard was it to start?'}
       </Copy>
       <Copy id="onboarding.why.body2" style={ob.body} boldStyle={ob.bodyStrong}>
         {'The hard days are the ones doing the work. Keep showing up and you’ll watch them get easier. **That’s the capacity you’re building.**'}

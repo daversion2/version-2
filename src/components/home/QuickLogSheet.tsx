@@ -6,8 +6,9 @@ import type { TrackingField } from '../../data/practices';
 import { RESISTANCE_LEVELS } from '../../constants/resistance';
 import { formatMetricValue, stepMetric } from '../../services/lastMetrics';
 import { useCopy } from '../../context/CopyContext';
-import { CHIP_CAPTIONS, CHIP_STYLES, CHIP_TEXT } from './TodayHabitRow';
+import { CHIP_STYLES, CHIP_TEXT } from './TodayHabitRow';
 import { RatingExplainer } from './RatingExplainer';
+import { OverrideInfoButton } from './OverrideInfoButton';
 
 interface Props {
   visible: boolean;
@@ -109,7 +110,12 @@ export const QuickLogSheet: React.FC<Props> = ({
           )}
 
           {!!note && <Text style={styles.hint}>{note}</Text>}
-          <Text style={styles.question}>{t('today.quick.question', 'How hard was it to start?')}</Text>
+          <View style={styles.questionRow}>
+            <Text style={styles.question}>
+              {t('today.override.question', 'Your override: how hard was it to start?')}
+            </Text>
+            <OverrideInfoButton />
+          </View>
           {explain && <RatingExplainer />}
 
           <View style={styles.ratings}>
@@ -121,14 +127,16 @@ export const QuickLogSheet: React.FC<Props> = ({
                 disabled={saving !== null}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={`${level.label}. ${level.sublabel}.`}
+                accessibilityLabel={`${level.value}, ${level.anchor}.`}
               >
                 {saving === level.value ? (
                   <ActivityIndicator color={CHIP_TEXT[i].color} />
                 ) : (
                   <>
                     <Text style={[styles.ratingGlyph, CHIP_TEXT[i]]}>{level.value}</Text>
-                    <Text style={[styles.ratingCap, CHIP_TEXT[i]]}>{CHIP_CAPTIONS[i]}</Text>
+                    <Text style={[styles.ratingCap, CHIP_TEXT[i]]} numberOfLines={2}>
+                      {level.anchor}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -186,17 +194,20 @@ const styles = StyleSheet.create({
     color: Colors.dark,
   },
   hint: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, paddingLeft: 4 },
-  question: {
-    fontFamily: Fonts.secondary,
-    fontSize: 15,
-    color: Colors.gray,
+  questionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
   },
+  question: { flexShrink: 1, fontFamily: Fonts.secondary, fontSize: 15, color: Colors.gray },
   ratings: { flexDirection: 'row', gap: Spacing.sm + 2 },
   rating: {
     flex: 1,
-    height: 76,
+    minHeight: 88,
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.lg,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -205,5 +216,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   ratingGlyph: { fontFamily: Fonts.primaryBold, fontSize: 26 },
-  ratingCap: { fontFamily: Fonts.secondaryBold, fontSize: 13 },
+  ratingCap: { fontFamily: Fonts.secondaryBold, fontSize: 13, textAlign: 'center' },
 });

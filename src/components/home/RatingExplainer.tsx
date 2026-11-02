@@ -11,8 +11,8 @@ import { Copy } from '../common/Copy';
  */
 export const RatingExplainer: React.FC = () => (
   <View style={styles.box}>
-    <Copy id="today.quick.explainer" style={styles.text} boldStyle={styles.strong}>
-      {'**This is the one question the app asks.** 1 means starting was easy, 3 means it took everything you had. Be honest: the hard starts are the training, and watching them turn easy is your progress.'}
+    <Copy id="today.override.explainer" style={styles.text} boldStyle={styles.strong}>
+      {'**This is your override, the one question the app asks.** 1 means starting was easy, 3 means it took everything you had. Rate the start, not the session. Be honest: the hard starts are the training, and watching them turn easy is your progress.'}
     </Copy>
   </View>
 );

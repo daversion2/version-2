@@ -103,8 +103,8 @@ export const FrictionCard: React.FC<Props> = ({ overview, bare = false }) => {
         </View>
         <View style={styles.legendItem}>
           <View style={styles.swatchDot} />
-          <Copy id="progress.friction.legend.felt" style={styles.legendText}>
-            Friction felt
+          <Copy id="progress.friction.legend.override" style={styles.legendText}>
+            Override it took
           </Copy>
         </View>
       </View>

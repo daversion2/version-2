@@ -85,6 +85,8 @@ CLAUDE.md).**
 The last item in Phase 1 of `docs/pivot-checklist.md`. The rest of Phase 1
 (the habit leaks) is done. Run `ui-verify`, asking first. Check:
 - the rating sheet after a session, and the rating showing on the app's page
+  (now: the two-line button anchors fit, the ⓘ opens above the sheet, and
+  the toast's override line is readable before it fades)
 - the celebration
 - pull to refresh on Overview
 - Meditate's end bell still ringing
@@ -381,6 +383,25 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**The rating is called the override, and it answers back** *(2026-11-01, not yet OTA)*
+The 1–3 after a session felt like paperwork: explained twice up front, then a
+bare Easy / Med / Hard that changed nothing. Now:
+- after a rating, the toast says one line back (`services/overrideEcho.ts`):
+  the app's override falling from its first two weeks to this week once that's
+  true (by half a level or more), otherwise what that level means. A rising
+  override is never shown there.
+- the buttons say what the start felt like: Barely thought about it / Had to
+  push / Nearly didn't (`anchor` in `constants/resistance.ts`), not Easy / Med
+  / Hard, which read as how hard the session was.
+- one name: **friction** is what makes starting hard, your **override** is
+  what it took to start anyway. Used on both rating sheets, the toast, app
+  pages, dashboard chips, onboarding, the Today and Progress intros, and the
+  friction card's legend ("Override it took").
+- a permanent ⓘ on both rating sheets (`components/home/OverrideInfoButton.tsx`):
+  How it works / Why this works.
+Changed lines use new copy ids, so an older admin edit can't hide them.
+Not seen on screen yet: needs a finished session (see "Check the new Today").
 
 **Meditate: first guided NSDR, nsdr-15 is live** *(2026-11-01)*
 "Deep rest body scan", 15 min, Regina over brown noise. Written script

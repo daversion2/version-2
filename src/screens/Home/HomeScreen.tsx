@@ -49,7 +49,7 @@ import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
 import { PushOptInModal } from '../../components/common/PushOptInModal';
 import { registerForPushNotifications } from '../../services/notifications';
-import { CHIP_CAPTIONS } from '../../components/home/TodayHabitRow';
+import { appRatedDays, overrideEcho } from '../../services/overrideEcho';
 import { QuickLogSheet } from '../../components/home/QuickLogSheet';
 import { LogToast, LogToastContent } from '../../components/home/LogToast';
 import { buildQuickSheetInput, formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
@@ -608,7 +608,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       // tidbit) is kept for milestones — a streak tier, or the first ever
       // check-in, which the points intro leads into.
       if (!needsPointsIntro && !milestoneLabel) {
-        const level = typeof input.resistance === 'number' ? CHIP_CAPTIONS[input.resistance - 1] : undefined;
+        const level =
+          typeof input.resistance === 'number'
+            ? t('today.toast.override', 'Override {level}', { level: input.resistance })
+            : undefined;
         const amounts = APP_TRACKING[appId]
           .filter((f) => isNumericField(f) && typeof input.metrics?.[f.key] === 'number')
           .map((f) => formatMetricValue(f, input.metrics![f.key] as number));
@@ -619,6 +622,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           context: backdated
             ? t('today.celebration.loggedFor', 'Logged for {day}', { day: formatRelativeDay(date) })
             : null,
+          echo:
+            typeof input.resistance === 'number'
+              ? overrideEcho({
+                  level: input.resistance,
+                  appName,
+                  history: appRatedDays(nudgeLogs, appId, logId),
+                  date,
+                  today: getTodayString(),
+                })
+              : null,
           canAddNote: wasHard,
         });
         return;

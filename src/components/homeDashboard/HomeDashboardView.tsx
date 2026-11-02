@@ -324,7 +324,7 @@ export const HomeDashboardView: React.FC<Props> = ({
               <View style={styles.chips}>
                 <Chip text={`${d.meditate.streakDays}-day streak`} />
                 <Chip text={`${d.meditate.sessions} of ${d.meditate.goal} sessions`} />
-                <Chip text={describeFriction(d.friction.meditate) ?? 'No ratings yet'} />
+                <Chip text={`Override: ${describeFriction(d.friction.meditate) ?? 'not rated yet'}`} />
               </View>
               {d.meditate.recent.length > 0 && <SectionLabel>Recent sessions</SectionLabel>}
               {d.meditate.recent.map((s, i) => (
@@ -356,7 +356,7 @@ export const HomeDashboardView: React.FC<Props> = ({
                 <Chip text={`${d.workouts.streakWeeks}-week streak`} />
                 <Chip text={`${d.workouts.sessions} of ${d.workouts.goal} sessions`} />
                 <Chip text={`${d.workouts.priorSessions} the week before`} />
-                <Chip text={describeFriction(d.friction.workouts) ?? 'No ratings yet'} />
+                <Chip text={`Override: ${describeFriction(d.friction.workouts) ?? 'not rated yet'}`} />
               </View>
               {(d.workouts.week.length > 0 || d.workouts.phaseLine) && (
                 <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>
@@ -399,7 +399,7 @@ export const HomeDashboardView: React.FC<Props> = ({
               <View style={styles.chips}>
                 <Chip text={`${d.meals.loggedDates.length} of ${d.meals.goal} days logged`} />
                 <Chip text={`${d.meals.streakDays}-day streak`} />
-                <Chip text={describeFriction(d.friction.meals) ?? 'No ratings yet'} />
+                <Chip text={`Override: ${describeFriction(d.friction.meals) ?? 'not rated yet'}`} />
               </View>
               <StartButton label="Log a meal" onPress={() => onOpenApp('meals')} />
             </ScrollView>

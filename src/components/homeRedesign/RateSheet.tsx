@@ -7,8 +7,8 @@ import type { TrackingField } from '../../data/practices';
 import { RESISTANCE_LEVELS } from '../../constants/resistance';
 import { formatMetricValue, stepMetric } from '../../services/lastMetrics';
 import { useCopy } from '../../context/CopyContext';
-import { CHIP_CAPTIONS } from '../home/TodayHabitRow';
 import { RatingExplainer } from '../home/RatingExplainer';
+import { OverrideInfoButton } from '../home/OverrideInfoButton';
 
 // =============================================================================
 // THE RATING SHEET, REDESIGNED (canvas "After a session: rate it"). Same job
@@ -81,6 +81,9 @@ export const RateSheet: React.FC<Props> = ({
           accessibilityViewIsModal
         >
           <View style={styles.grabber} />
+          <View style={styles.info}>
+            <OverrideInfoButton />
+          </View>
 
           <View style={styles.head}>
             <View style={[styles.check, { backgroundColor: appColor }]}>
@@ -122,7 +125,7 @@ export const RateSheet: React.FC<Props> = ({
           )}
 
           <View style={styles.ratings}>
-            {RESISTANCE_LEVELS.map((level, i) => (
+            {RESISTANCE_LEVELS.map((level) => (
               <TouchableOpacity
                 key={level.value}
                 style={[styles.rating, saving === level.value && { backgroundColor: appColor }]}
@@ -130,21 +133,23 @@ export const RateSheet: React.FC<Props> = ({
                 disabled={saving !== null}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={`${level.value}, ${level.label}. ${level.sublabel}.`}
+                accessibilityLabel={`${level.value}, ${level.anchor}.`}
               >
                 {saving === level.value ? (
                   <ActivityIndicator color={Colors.white} />
                 ) : (
                   <>
                     <Text style={styles.ratingNumber}>{level.value}</Text>
-                    <Text style={styles.ratingCaption}>{CHIP_CAPTIONS[i]}</Text>
+                    <Text style={styles.ratingCaption} numberOfLines={2}>
+                      {level.anchor}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
             ))}
           </View>
           <Text style={styles.hint}>
-            {t('today.quick.redesignHint', 'Tap one to save. Each app’s page shows how it’s trending.')}
+            {t('today.override.hint', 'Your override: rate the start, not the session. Tap one to save.')}
           </Text>
         </View>
       </View>
@@ -164,6 +169,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: Colors.separator },
+  info: { position: 'absolute', top: Spacing.md, right: Spacing.md, zIndex: 1 },
   head: { alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.xs },
   check: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   app: { ...TextStyles.subhead, color: Colors.gray, textAlign: 'center' },
@@ -185,7 +191,9 @@ const styles = StyleSheet.create({
   ratings: { flexDirection: 'row', gap: 10 },
   rating: {
     flex: 1,
-    height: 92,
+    minHeight: 92,
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: Spacing.sm,
     borderRadius: 18,
     backgroundColor: Colors.lightGray,
     alignItems: 'center',
@@ -193,6 +201,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   ratingNumber: { ...TextStyles.title1, color: Colors.dark },
-  ratingCaption: { ...TextStyles.subhead, fontWeight: '500', color: Colors.label2 },
+  ratingCaption: { ...TextStyles.subhead, fontWeight: '500', color: Colors.label2, textAlign: 'center' },
   hint: { ...TextStyles.footnote, color: Colors.gray, textAlign: 'center', marginTop: -Spacing.sm },
 });

@@ -7,8 +7,10 @@ export interface LogToastContent {
   /** Changes on every log so a second toast restarts the timer. */
   key: number;
   points: number;
-  /** "Cold exposure · 3 min · Med" */
+  /** "Workouts · 40 min · Override 2" */
   text: string;
+  /** What the override said back (services/overrideEcho). */
+  echo?: string | null;
   /** "Logged for Yesterday", for a backfilled check-in. */
   context?: string | null;
   /** Offer "Add a note" — after a Med or Hard rating. */
@@ -24,6 +26,8 @@ interface Props {
 const SHOW_MS = 3200;
 // Long enough to read and reach for the link.
 const SHOW_WITH_NOTE_MS = 6000;
+// Long enough to read the override line.
+const SHOW_WITH_ECHO_MS = 5500;
 
 /**
  * The everyday "+N XP" after a check-in, in place of the full celebration —
@@ -40,7 +44,7 @@ export const LogToast: React.FC<Props> = ({ toast, onAddNote, onHide }) => {
     const timer = setTimeout(
       () =>
         Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(() => onHide()),
-      toast.canAddNote ? SHOW_WITH_NOTE_MS : SHOW_MS
+      toast.canAddNote ? SHOW_WITH_NOTE_MS : toast.echo ? SHOW_WITH_ECHO_MS : SHOW_MS
     );
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,6 +58,7 @@ export const LogToast: React.FC<Props> = ({ toast, onAddNote, onHide }) => {
         <Text style={styles.text} numberOfLines={2}>
           {toast.text}
         </Text>
+        {!!toast.echo && <Text style={styles.echo}>{toast.echo}</Text>}
         {!!toast.context && <Text style={styles.context}>{toast.context}</Text>}
       </View>
       {toast.canAddNote && (
@@ -83,6 +88,7 @@ const styles = StyleSheet.create({
   points: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.white },
   body: { flex: 1, paddingVertical: Spacing.sm + 2 },
   text: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.white },
+  echo: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.white, marginTop: 2, lineHeight: 19 },
   context: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.border },
   noteBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm + 4 },
   noteText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.secondary },

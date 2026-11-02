@@ -35,12 +35,17 @@ export interface ResistanceLevel {
   label: string;
   /** One line under the label, clarifying where the boundary sits. */
   sublabel: string;
+  /**
+   * What the rating button says under its number. About the START, not the
+   * session: "Easy / Med / Hard" read as how hard the workout was.
+   */
+  anchor: string;
 }
 
 export const RESISTANCE_LEVELS: ResistanceLevel[] = [
-  { value: 1, label: 'Easy today', sublabel: 'Barely had to think about it' },
-  { value: 2, label: 'Difficult but manageable', sublabel: 'Had to push, but never in doubt' },
-  { value: 3, label: 'Took everything I had', sublabel: 'Nearly didn’t' },
+  { value: 1, label: 'Easy today', sublabel: 'Barely had to think about it', anchor: 'Barely thought about it' },
+  { value: 2, label: 'Difficult but manageable', sublabel: 'Had to push, but never in doubt', anchor: 'Had to push' },
+  { value: 3, label: 'Took everything I had', sublabel: 'Nearly didn’t', anchor: 'Nearly didn’t' },
 ];
 
 /** Above this, a check-in counts as "challenging" for the legacy binary field. */

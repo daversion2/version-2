@@ -44,8 +44,8 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
         text: 'Overview first, then a page each for Meditate, Workouts and Meals. Swipe sideways or tap a tab. Start a session from the button at the bottom of each page.',
       },
       {
-        label: 'How hard was it',
-        text: 'When you finish a session, pick 1, 2 or 3 for how hard it was to start. Each app’s page shows how that’s trending: “Mostly easy (1.6 of 3) · down from 2.1”.',
+        label: 'Your override',
+        text: 'When you finish a session, rate your override: 1, 2 or 3 for how hard it was to start. Each app’s page shows how it’s trending: “Mostly easy (1.6 of 3) · down from 2.1”.',
       },
       {
         label: 'Your week at a glance',
@@ -54,7 +54,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     ],
     science: [
       {
-        label: 'Resistance is the measurement',
+        label: 'Your override is the measurement',
         text: 'How hard a thing feels to start is the clearest signal of whether it is bedding in. What repetition makes automatic is the starting, not the work — so the number falls while the session itself stays exactly as demanding. Watching that fall over weeks is the point of tracking it at all.',
       },
     ],
@@ -68,7 +68,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     points: [
       {
         label: 'Friction you can handle',
-        text: 'The bars are friction faced: each habit counted at how hard it was when you started it. They climb as you take on more. The dots are how hard it actually felt. The gap between them is how much stronger you’ve got.',
+        text: 'The bars are friction faced: each session counted at how hard starting that app was in your first few sessions. They climb as you do more. The dots are the override it actually took. The gap between them is how much stronger you’ve got.',
       },
       {
         label: 'The calendar shows the shape of it',
