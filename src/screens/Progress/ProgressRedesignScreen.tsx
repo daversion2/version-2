@@ -1,5 +1,5 @@
-import React, { useCallback, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,13 +9,23 @@ import { useAuth } from '../../context/AuthContext';
 import type { ProgressNavigation } from '../../types/navigation';
 import type { CompletionLog } from '../../types';
 import type { TodayAppId } from '../../services/appCheckins';
-import { getCompletionLogs } from '../../services/progress';
+import {
+  appSessionsByDay,
+  DayAppSessions,
+  getCompletionLogs,
+  getProgressVersion,
+  progressNeedsReload,
+  ProgressLoadStamp,
+  rememberDaySessions,
+  showedUpDays,
+} from '../../services/progress';
 import { buildFrictionOverview, FrictionOverview } from '../../services/frictionCapacity';
 import { appHistory, HistoryRange, historyDays } from '../../services/appHistory';
 import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
 import { getTodayString } from '../../utils/date';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro } from '../../components/common/ScreenIntro';
+import { Button } from '../../components/common/Button';
 import { LargeTitle } from '../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../components/common/ListGroup';
 import { TopScrim } from '../../components/common/TopScrim';
@@ -52,35 +62,75 @@ export const ProgressRedesignScreen: React.FC = () => {
   const [apps, setApps] = useState<HomeAppData | null>(null);
   const [friction, setFriction] = useState<FrictionOverview | null>(null);
   const [logs, setLogs] = useState<CompletionLog[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [sessionDays, setSessionDays] = useState<Map<string, DayAppSessions>>(new Map());
+  const [error, setError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // When the screen last read, so a quick tab switch doesn't read the whole
+  // history again (services/progress.ts, progressNeedsReload). The check-in
+  // read stays all-time: the friction card's baselines need a habit's first
+  // ratings, and the calendar pages back to any month.
+  const stamp = useRef<ProgressLoadStamp | null>(null);
+  const inFlight = useRef(false);
+
+  const load = useCallback(async () => {
+    if (!user || inFlight.current) return;
+    inFlight.current = true;
+    const version = getProgressVersion();
+    try {
+      const [appData, allLogs] = await Promise.all([
+        loadHomeAppData(user.uid, { mealsDays: historyDays('sixMonths') }),
+        getCompletionLogs(user.uid),
+      ]);
+      // One read of the check-ins serves the friction card and the calendar.
+      const byDay = appSessionsByDay(appData, allLogs);
+      rememberDaySessions(user.uid, byDay);
+      setApps(appData);
+      setLogs(allLogs);
+      setSessionDays(byDay);
+      setFriction(buildFrictionOverview(allLogs, getTodayString()));
+      setError(false);
+      stamp.current = { userId: user.uid, at: Date.now(), version };
+    } catch (e) {
+      console.warn('Progress: could not load:', e);
+      setError(true);
+    } finally {
+      inFlight.current = false;
+    }
+  }, [user]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
-      Promise.all([
-        loadHomeAppData(user.uid, { mealsDays: historyDays('sixMonths') }),
-        getCompletionLogs(user.uid),
-      ]).then(
-        ([appData, allLogs]) => {
-          setApps(appData);
-          setLogs(allLogs);
-          setFriction(buildFrictionOverview(allLogs, getTodayString()));
-          setError(null);
-        },
-        (e) => setError(String(e?.message ?? e))
-      );
-    }, [user])
+      if (user && progressNeedsReload(stamp.current, user.uid, Date.now())) load();
+    }, [user, load])
   );
 
-  // A dot on every day with a check-in; tapping a day opens it.
-  const marked: Record<string, { marked: boolean; dotColor: string }> = {};
-  for (const log of logs) marked[log.date] = { marked: true, dotColor: Colors.secondary };
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  const retry = () => {
+    setError(false);
+    load();
+  };
+
+  // A dot on every day you showed up — the days Today's streak counts (a
+  // session, rated or not, or meals logged) plus any day with a check-in.
+  // Tapping a day opens it.
+  const marked = useMemo(() => {
+    const out: Record<string, { marked: boolean; dotColor: string }> = {};
+    for (const d of showedUpDays(sessionDays.keys(), logs)) out[d] = { marked: true, dotColor: Colors.secondary };
+    return out;
+  }, [sessionDays, logs]);
   const onDayPress = (day: DateData) => navigation.navigate('DayDetail', { date: day.dateString });
 
   return (
     <View style={styles.root}>
       <ScrollView
         style={styles.screen}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         contentContainerStyle={[
           styles.content,
           {
@@ -94,7 +144,10 @@ export const ProgressRedesignScreen: React.FC = () => {
         {!apps || !friction ? (
           <View style={styles.loading}>
             {error ? (
-              <Text style={styles.muted}>Couldn’t load: {error}</Text>
+              <View style={styles.errorBox}>
+                <Text style={styles.muted}>Couldn’t load your progress. Check your connection and try again.</Text>
+                <Button title="Try again" variant="outline" onPress={retry} />
+              </View>
             ) : (
               <ActivityIndicator color={Colors.primary} />
             )}
@@ -177,7 +230,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
   content: { paddingHorizontal: Spacing.md, gap: 20 },
   loading: { paddingVertical: Spacing.xxl, alignItems: 'center' },
-  muted: { ...TextStyles.subhead, color: Colors.gray },
+  muted: { ...TextStyles.subhead, color: Colors.gray, textAlign: 'center' },
+  errorBox: { alignItems: 'center', gap: Spacing.md },
   section: { gap: 10 },
   sectionHead: {
     flexDirection: 'row',

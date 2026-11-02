@@ -2,7 +2,9 @@ const mockNotifications = {
   getPermissionsAsync: jest.fn(),
   scheduleNotificationAsync: jest.fn(),
   cancelScheduledNotificationAsync: jest.fn(),
+  setNotificationChannelAsync: jest.fn(),
   SchedulableTriggerInputTypes: { DAILY: 'daily' },
+  AndroidImportance: { DEFAULT: 3 },
 };
 jest.mock('expo-notifications', () => mockNotifications);
 jest.mock('react-native', () => ({ Platform: { OS: 'ios' } }));
@@ -72,5 +74,33 @@ describe('syncCloseOutReminder', () => {
     expect(mockNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
     await syncCloseOutReminder(undefined);
     expect(mockNotifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith(CLOSEOUT_REMINDER_ID);
+  });
+
+  describe('on Android', () => {
+    const platform = jest.requireMock('react-native').Platform;
+    beforeEach(() => (platform.OS = 'android'));
+    afterEach(() => (platform.OS = 'ios'));
+
+    it('creates the channel before scheduling, even when permission was already granted', async () => {
+      mockNotifications.getPermissionsAsync.mockResolvedValue({ status: 'granted' });
+      await syncCloseOutReminder('21:00');
+      expect(mockEnsure).not.toHaveBeenCalled();
+      expect(mockNotifications.setNotificationChannelAsync).toHaveBeenCalledWith(
+        'habit-reminders',
+        expect.objectContaining({ name: 'Habit reminders' })
+      );
+      const channelAt = mockNotifications.setNotificationChannelAsync.mock.invocationCallOrder[0];
+      const scheduleAt = mockNotifications.scheduleNotificationAsync.mock.invocationCallOrder[0];
+      expect(channelAt).toBeLessThan(scheduleAt);
+      expect(mockNotifications.scheduleNotificationAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ trigger: expect.objectContaining({ channelId: 'habit-reminders' }) })
+      );
+    });
+  });
+
+  it('never touches channels on iOS', async () => {
+    mockNotifications.getPermissionsAsync.mockResolvedValue({ status: 'granted' });
+    await syncCloseOutReminder('21:00');
+    expect(mockNotifications.setNotificationChannelAsync).not.toHaveBeenCalled();
   });
 });

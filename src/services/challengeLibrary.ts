@@ -1,4 +1,4 @@
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 import { LibraryChallenge, BarrierType, TimeCategory, ActionType } from '../types';
 import {
@@ -159,64 +159,6 @@ export const getChallengesByBarrier = async (
     ...additionalFilters,
     barrierType,
   });
-};
-
-/**
- * Get challenges filtered by category
- */
-export const getLibraryChallengesByCategory = async (
-  category: string
-): Promise<LibraryChallenge[]> => {
-  const q = query(
-    libraryRef,
-    where('category', '==', category),
-    orderBy('name')
-  );
-  const snap = await getDocs(q);
-  let challenges = snap.docs.map((doc) =>
-    normalizeChallenge({
-      id: doc.id,
-      ...doc.data(),
-    } as LibraryChallenge)
-  );
-
-  // Fallback to sample challenges filtered by category
-  if (challenges.length === 0) {
-    challenges = SAMPLE_CHALLENGES.filter((c) => c.category === category).map(
-      (c) => normalizeChallenge(c as unknown as LibraryChallenge)
-    );
-  }
-
-  return challenges;
-};
-
-/**
- * Get challenges filtered by difficulty
- */
-export const getLibraryChallengesByDifficulty = async (
-  difficulty: number
-): Promise<LibraryChallenge[]> => {
-  const q = query(
-    libraryRef,
-    where('difficulty', '==', difficulty),
-    orderBy('name')
-  );
-  const snap = await getDocs(q);
-  let challenges = snap.docs.map((doc) =>
-    normalizeChallenge({
-      id: doc.id,
-      ...doc.data(),
-    } as LibraryChallenge)
-  );
-
-  // Fallback to sample challenges filtered by difficulty
-  if (challenges.length === 0) {
-    challenges = SAMPLE_CHALLENGES.filter((c) => c.difficulty === difficulty).map(
-      (c) => normalizeChallenge(c as unknown as LibraryChallenge)
-    );
-  }
-
-  return challenges;
 };
 
 /**

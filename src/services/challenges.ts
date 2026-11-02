@@ -8,7 +8,6 @@ import {
   query,
   where,
   getDocs,
-  orderBy,
   limit,
   Timestamp,
   deleteDoc,
@@ -806,73 +805,6 @@ export const getChallengesByActionType = async (
   }
 
   return counts;
-};
-
-/**
- * Get consecutive days streak for a specific barrier type
- * @param userId User's ID
- * @param barrierType The barrier type to check
- */
-export const getBarrierTypeStreak = async (
-  userId: string,
-  barrierType: BarrierType
-): Promise<number> => {
-  // Query completed challenges with the specific barrier type
-  const q = query(
-    challengesRef(userId),
-    where('status', '==', 'completed'),
-    where('barrier_type', '==', barrierType),
-    orderBy('date', 'desc'),
-    limit(100) // Check last 100 to find streak
-  );
-
-  const snap = await getDocs(q);
-  if (snap.empty) return 0;
-
-  const challenges = snap.docs.map(d => d.data() as Challenge);
-
-  // Calculate streak by checking consecutive days
-  let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Get unique dates in descending order
-  const uniqueDates = [...new Set(challenges.map(c => c.date))].sort((a, b) => b.localeCompare(a));
-
-  // Check if most recent is today or yesterday
-  if (uniqueDates.length === 0) return 0;
-
-  const mostRecentDate = new Date(uniqueDates[0]);
-  mostRecentDate.setHours(0, 0, 0, 0);
-
-  const daysSinceMostRecent = Math.floor((today.getTime() - mostRecentDate.getTime()) / (1000 * 60 * 60 * 24));
-
-  // If most recent is more than 1 day ago, streak is broken
-  if (daysSinceMostRecent > 1) return 0;
-
-  // Count consecutive days
-  let expectedDate = mostRecentDate;
-  for (const dateStr of uniqueDates) {
-    const date = new Date(dateStr);
-    date.setHours(0, 0, 0, 0);
-
-    const dayDiff = Math.floor((expectedDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (dayDiff === 0) {
-      streak++;
-      expectedDate.setDate(expectedDate.getDate() - 1);
-    } else if (dayDiff === 1) {
-      // Same as expected next day
-      streak++;
-      expectedDate = date;
-      expectedDate.setDate(expectedDate.getDate() - 1);
-    } else {
-      // Gap in dates, streak broken
-      break;
-    }
-  }
-
-  return streak;
 };
 
 // ============================================================================

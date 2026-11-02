@@ -9,6 +9,10 @@ import {
   getCompletionLogsWithNames,
   EnrichedCompletionLog,
   deleteCompletionLog,
+  daySessionsFor,
+  describeDaySessions,
+  logKindLabel,
+  markProgressStale,
 } from '../../services/progress';
 import { updateChallengeCompletion, getChallengeById } from '../../services/challenges';
 import { isEditableDate, formatDayHeader, formatRelativeDay } from '../../utils/date';
@@ -23,6 +27,11 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
   const navigation = useNavigation<ProgressNavigation>();
   const [logs, setLogs] = useState<EnrichedCompletionLog[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  // The day's app sessions, as Progress counted them — rated or not, and
+  // meals logged. Empty when the page wasn't opened from Progress.
+  const sessionLines = user ? describeDaySessions(daySessionsFor(user.uid, date)) : [];
 
   const [editDifficultyModalVisible, setEditDifficultyModalVisible] = useState(false);
   const [editingChallenge, setEditingChallenge] = useState<{
@@ -41,10 +50,18 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
 
   const refreshData = useCallback(async () => {
     if (!user) return;
-    const enriched = await getCompletionLogsWithNames(user.uid, date);
-    setLogs(enriched);
-    const dayPts = enriched.reduce((sum, l) => sum + l.points, 0);
-    setTotalPoints(dayPts);
+    try {
+      const enriched = await getCompletionLogsWithNames(user.uid, date);
+      setLogs(enriched);
+      const dayPts = enriched.reduce((sum, l) => sum + (l.points || 0), 0);
+      setTotalPoints(dayPts);
+      setLoadFailed(false);
+    } catch (e) {
+      console.warn('Day page: could not load check-ins:', e);
+      setLoadFailed(true);
+    } finally {
+      setLoaded(true);
+    }
   }, [user, date]);
 
   useFocusEffect(
@@ -53,20 +70,20 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     }, [refreshData])
   );
 
-  // Handle deleting a habit log
+  // Handle deleting a check-in
   const handleDeleteHabitLog = (log: EnrichedCompletionLog) => {
     if (!user) return;
 
     showConfirm(
-      'Delete Habit Entry',
-      `Delete "${log.name}"? This will remove ${log.points} XP.`,
+      'Delete this entry?',
+      `"${log.name}" comes off this day, and its ${log.points} XP with it.`,
       async () => {
         try {
           await deleteCompletionLog(user.uid, log.id);
           showAlert('Deleted', `Removed ${log.points} XP.`);
           refreshData();
         } catch (error) {
-          showAlert('Error', 'Failed to delete. Please try again.');
+          showAlert('Couldn’t delete that', 'Please try again.');
         }
       },
       'Delete'
@@ -88,7 +105,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         setEditDifficultyModalVisible(true);
       }
     } catch (error) {
-      showAlert('Error', 'Failed to load challenge. Please try again.');
+      showAlert('Couldn’t open that challenge', 'Please try again.');
     }
   };
 
@@ -107,12 +124,14 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
           ? `+${result.pointsDelta}`
           : result.pointsDelta.toString();
 
+      // Progress shows XP and the calendar from these logs: read them again.
+      markProgressStale();
       setEditDifficultyModalVisible(false);
       setEditingChallenge(null);
       showAlert('Updated', `Difficulty changed. XP: ${deltaText}`);
       refreshData();
     } catch (error) {
-      showAlert('Error', 'Failed to update. Please try again.');
+      showAlert('Couldn’t save that', 'Please try again.');
     }
   };
 
@@ -133,13 +152,7 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
           <Text style={styles.logPoints}>{item.points} XP</Text>
         </View>
         <View style={styles.logMeta}>
-          <Text style={styles.metaText}>
-            {item.type === 'challenge'
-              ? 'Challenge'
-              : item.type === 'craving'
-                ? 'Craving'
-                : 'Habit'}
-          </Text>
+          <Text style={styles.metaText}>{logKindLabel(item)}</Text>
           {item.completed_at && (
             <Text style={styles.metaText}>
               {new Date(item.completed_at).toLocaleTimeString([], {
@@ -194,9 +207,18 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
           </View>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{logs.length}</Text>
-            <Text style={styles.summaryLabel}>Actions</Text>
+            <Text style={styles.summaryLabel}>Check-ins</Text>
           </View>
         </View>
+        {sessionLines.length > 0 && (
+          <View style={styles.sessionLines}>
+            {sessionLines.map((line) => (
+              <Text key={line} style={styles.sessionLine}>
+                {line}
+              </Text>
+            ))}
+          </View>
+        )}
       </Card>
 
     </>
@@ -212,7 +234,15 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No activity this day.</Text>
+          !loaded ? null : (
+            <Text style={styles.emptyText}>
+              {loadFailed
+                ? 'Couldn’t load this day. Go back and try again.'
+                : sessionLines.length > 0
+                  ? 'Nothing rated this day, so there’s nothing to edit.'
+                  : 'No activity this day.'}
+            </Text>
+          )
         }
       />
 
@@ -265,6 +295,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.xs,
     color: Colors.gray,
+  },
+  sessionLines: { marginTop: Spacing.md, alignItems: 'center', gap: Spacing.xs },
+  sessionLine: {
+    fontFamily: Fonts.secondary,
+    fontSize: FontSizes.sm,
+    color: Colors.dark,
   },
   logCard: { marginBottom: Spacing.sm },
   logHeader: {

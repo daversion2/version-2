@@ -7,61 +7,81 @@ import {
   deleteDoc,
   updateDoc,
   where,
+  limit,
   increment,
 } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { subtractWillpowerPoints, recalculateUserStats } from './willpower';
 import { getTodayString, getYesterdayString, toLocalDateString } from '../utils/date';
 import { getActiveHabits, getWeeklyCompletionCounts, getHabitsStreaks } from './practices';
 import { db } from './firebase';
-import { CompletionLog, Challenge, PracticeInstance } from '../types';
-import { appIdFromCheckinId } from './appCheckins';
+import { CompletionLog, Challenge } from '../types';
+import { appIdFromCheckinId, TodayAppId } from './appCheckins';
 import { MINI_APPS } from './miniApps';
+import { ratingDates, sessionsByDay } from './homeDashboard';
+import type { HomeAppData } from './homeDashboardLoad';
 
 export interface EnrichedCompletionLog extends CompletionLog {
   name: string;
 }
 
+/**
+ * One day's check-ins, named. Reads only that day: `date ==` is a single-field
+ * equality, served by Firestore's automatic index (no composite index). Then
+ * only the habit and challenge docs those logs point at, not every one the
+ * account has ever had.
+ */
 export const getCompletionLogsWithNames = async (
   userId: string,
   date: string
 ): Promise<EnrichedCompletionLog[]> => {
-  const habitsRef = collection(db, 'users', userId, 'habits');
+  const logSnap = await getDocs(query(logsRef(userId), where('date', '==', date)));
+  const logs = withoutMirrors(logSnap.docs.map((d) => ({ id: d.id, ...d.data() } as CompletionLog)));
 
-  const [logSnap, challengeSnap, habitSnap] = await Promise.all([
-    getDocs(query(logsRef(userId))),
-    getDocs(query(challengesRef(userId))),
-    getDocs(query(habitsRef)),
+  // Cravings and app sessions are named without a doc.
+  const challengeIds = new Set<string>();
+  const habitIds = new Set<string>();
+  for (const log of logs) {
+    if (log.type === 'craving' || !log.reference_id || appIdFromCheckinId(log.reference_id)) continue;
+    (log.type === 'challenge' ? challengeIds : habitIds).add(log.reference_id);
+  }
+  const nameOf = async (ref: DocumentReference): Promise<string | undefined> => {
+    try {
+      const snap = await getDoc(ref);
+      return snap.exists() ? (snap.data() as { name?: string }).name : undefined;
+    } catch {
+      return undefined; // a missing name reads "Unknown"; it shouldn't hide the day
+    }
+  };
+  const [challengeNames, habitNames] = await Promise.all([
+    Promise.all([...challengeIds].map(async (id) => [id, await nameOf(doc(db, 'users', userId, 'challenges', id))] as const)),
+    Promise.all([...habitIds].map(async (id) => [id, await nameOf(doc(db, 'users', userId, 'habits', id))] as const)),
   ]);
+  const challengeMap = new Map(challengeNames);
+  const habitMap = new Map(habitNames);
 
-  const challengeMap = new Map<string, { name: string }>();
-  challengeSnap.docs.forEach((d) => {
-    const data = d.data() as Challenge;
-    challengeMap.set(d.id, { name: data.name });
-  });
-
-  const habitMap = new Map<string, { name: string }>();
-  habitSnap.docs.forEach((d) => {
-    const data = d.data() as PracticeInstance;
-    habitMap.set(d.id, { name: data.name });
-  });
-
-  return withoutMirrors(logSnap.docs.map((d) => ({ id: d.id, ...d.data() } as CompletionLog)))
-    .filter((log) => log.date === date)
+  return logs
     .map((log) => {
       if (log.type === 'craving') {
         return { ...log, name: 'Craving Crusher' };
       }
-      const ref =
-        log.type === 'challenge'
-          ? challengeMap.get(log.reference_id)
-          : habitMap.get(log.reference_id);
+      const name = log.type === 'challenge' ? challengeMap.get(log.reference_id) : habitMap.get(log.reference_id);
       return {
         ...log,
         // An app session is filed under `app:<id>` — no habit doc to name it.
-        name: ref?.name || appNameFor(log.reference_id) || 'Unknown',
+        name: name || appNameFor(log.reference_id) || 'Unknown',
       };
     })
     .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''));
+};
+
+/** The small grey label under a check-in on the day's page. */
+export const logKindLabel = (log: Pick<CompletionLog, 'type' | 'reference_id'>): string => {
+  if (log.type === 'challenge') return 'Challenge';
+  if (log.type === 'craving') return 'Craving';
+  // App sessions are named after their app already; "Habit" would be wrong.
+  if (appIdFromCheckinId(log.reference_id)) return 'Session';
+  return 'Habit';
 };
 
 /**
@@ -193,11 +213,15 @@ export const deleteCompletionLog = async (
   let wasLastRepOfPractice = false;
   if (isPracticeRep) {
     try {
+      // Two is enough to tell "only this one" from "others too". Equality
+      // filters plus a limit, no orderBy: Firestore merges the single-field
+      // indexes, so this needs no composite index.
       const remaining = await getDocs(
         query(
           logsRef(userId),
           where('type', '==', 'nudge'),
-          where('reference_id', '==', logData.reference_id)
+          where('reference_id', '==', logData.reference_id),
+          limit(2)
         )
       );
       wasLastRepOfPractice = remaining.docs.filter((d) => d.id !== logId).length === 0;
@@ -207,6 +231,7 @@ export const deleteCompletionLog = async (
   }
 
   await deleteDoc(logRef);
+  markProgressStale();
 
   // Subtract points from user's total
   if (points > 0) {
@@ -241,6 +266,7 @@ export const updateCompletionLog = async (
 ): Promise<void> => {
   const logRef = doc(db, 'users', userId, 'completionLogs', logId);
   await updateDoc(logRef, data);
+  markProgressStale();
 };
 
 // Get a single completion log by ID
@@ -476,3 +502,94 @@ export const getHabitHealthScores = async (userId: string): Promise<HabitHealthS
     })
     .sort((a, b) => b.score - a.score);
 };
+
+// --- Days you showed up (Progress calendar + the day's page) ---------------------
+
+/** One day's app sessions; Meals is 1 when anything was logged. */
+export type DayAppSessions = Partial<Record<TodayAppId, number>>;
+
+const DAY_APP_ORDER: TodayAppId[] = ['meditate', 'workouts', 'meals'];
+
+const workoutDate = (startedAt: string): string => toLocalDateString(new Date(startedAt));
+
+/**
+ * Sessions per day per app, counted the way Today counts them
+ * (homeDashboard.buildHomeDashboard's day streak): a finished session counts
+ * whether or not it was rated, and a day with any meal logged counts for
+ * Meals. Craving Crusher doesn't. A test keeps the days in step with Today's.
+ */
+export const appSessionsByDay = (apps: HomeAppData, logs: CompletionLog[]): Map<string, DayAppSessions> => {
+  const perApp: Record<TodayAppId, Map<string, number>> = {
+    meditate: sessionsByDay(apps.meditateSessions.map((s) => s.date), ratingDates(logs, 'meditate')),
+    workouts: sessionsByDay(apps.workoutSessions.map((s) => workoutDate(s.started_at)), ratingDates(logs, 'workouts')),
+    meals: new Map(
+      Object.entries(apps.mealsDays)
+        .filter(([, day]) => Object.keys(day.meals ?? {}).length > 0 || (day.extras ?? []).length > 0)
+        .map(([date]) => [date, 1] as [string, number])
+    ),
+  };
+  const out = new Map<string, DayAppSessions>();
+  for (const appId of DAY_APP_ORDER) {
+    for (const [date, n] of perApp[appId]) {
+      if (n <= 0 || date > apps.today) continue;
+      out.set(date, { ...out.get(date), [appId]: n });
+    }
+  }
+  return out;
+};
+
+/**
+ * Every day the calendar dots: Today's session days, plus any day with a
+ * check-in on it (older habit, challenge and craving check-ins included, so
+ * history from before the apps doesn't vanish).
+ */
+export const showedUpDays = (sessionDays: Iterable<string>, logs: Pick<CompletionLog, 'date'>[]): Set<string> =>
+  new Set([...sessionDays, ...logs.map((l) => l.date)]);
+
+/** "Meditate · 2 sessions", "Meals · logged" — the day's page, in app order. */
+export const describeDaySessions = (day: DayAppSessions | undefined): string[] =>
+  DAY_APP_ORDER.filter((id) => (day?.[id] ?? 0) > 0).map((id) => {
+    const n = day![id] as number;
+    if (id === 'meals') return `${MINI_APPS[id].title} · logged`;
+    return `${MINI_APPS[id].title} · ${n} ${n === 1 ? 'session' : 'sessions'}`;
+  });
+
+// The day's page sits on top of Progress, which has already read every app's
+// sessions. It hands them over here instead of the day's page reading them all
+// again. Memory only: a cold open of the day's page just shows its check-ins.
+let daySessionsCache: { userId: string; byDay: Map<string, DayAppSessions> } | null = null;
+
+export const rememberDaySessions = (userId: string, byDay: Map<string, DayAppSessions>): void => {
+  daySessionsCache = { userId, byDay };
+};
+
+export const daySessionsFor = (userId: string, date: string): DayAppSessions | undefined =>
+  daySessionsCache?.userId === userId ? daySessionsCache.byDay.get(date) : undefined;
+
+// --- When Progress reads again ----------------------------------------------------
+
+/** A tab switch inside this is served from what's on screen. */
+export const PROGRESS_REFRESH_MS = 60_000;
+
+// Bumped by every change made from Progress itself (deleting or editing a
+// check-in), so coming back from the day's page always reads fresh.
+let progressVersion = 0;
+export const markProgressStale = (): void => {
+  progressVersion++;
+};
+export const getProgressVersion = (): number => progressVersion;
+
+export interface ProgressLoadStamp {
+  userId: string;
+  at: number;
+  version: number;
+}
+
+/** Read again on focus? Yes for a new account, a change made here, or data older than PROGRESS_REFRESH_MS. */
+export const progressNeedsReload = (
+  last: ProgressLoadStamp | null,
+  userId: string,
+  now: number,
+  version: number = progressVersion
+): boolean =>
+  !last || last.userId !== userId || last.version !== version || now - last.at >= PROGRESS_REFRESH_MS;

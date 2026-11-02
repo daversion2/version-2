@@ -9,6 +9,9 @@ import {
   addMockDocument,
   getMockDB,
   resetMockDB,
+  getDocs,
+  getDoc,
+  limit,
 } from '../__mocks__/firestore';
 
 // Mock the willpower module
@@ -174,6 +177,16 @@ describe('Progress Service - Delete and Update Logs', () => {
         expect(db.users?.[userId]?.data.totalHabitsCompleted).toBe(3);
       });
 
+      it('reads at most two reps to tell whether this was the last', async () => {
+        seedUser({ totalHabitsCompleted: 4, practices_tried: 2 });
+        ['log-1', 'log-2', 'log-3', 'log-4'].forEach((id) => seedRep(id, 'app:meditate'));
+
+        await deleteCompletionLog(userId, 'log-1');
+
+        expect(limit).toHaveBeenCalledWith(2);
+        expect(getMockDB().users?.[userId]?.data.practices_tried).toBe(2);
+      });
+
       it('does not touch practice counters when deleting a challenge log', async () => {
         seedUser({ totalHabitsCompleted: 4, practices_tried: 2 });
         addMockDocument(`users/${userId}/completionLogs`, 'log-c', {
@@ -301,6 +314,45 @@ describe('Progress Service - Delete and Update Logs', () => {
     it("lists it once on the day's page", async () => {
       const result = await getCompletionLogsWithNames(userId, '2024-01-15');
       expect(result.map((l) => l.name)).toEqual(['Meditate']);
+    });
+  });
+
+  describe("getCompletionLogsWithNames (the day's page)", () => {
+    beforeEach(() => {
+      const logs = `users/${userId}/completionLogs`;
+      addMockDocument(logs, 'h', { type: 'nudge', reference_id: 'habit-1', points: 1, date: '2024-01-15', completed_at: '2024-01-15T09:00:00Z' });
+      addMockDocument(logs, 'c', { type: 'challenge', reference_id: 'ch-1', points: 3, date: '2024-01-15', completed_at: '2024-01-15T10:00:00Z' });
+      addMockDocument(logs, 'k', { type: 'craving', reference_id: 'x', points: 1, date: '2024-01-15', completed_at: '2024-01-15T11:00:00Z' });
+      addMockDocument(logs, 'gone', { type: 'nudge', reference_id: 'habit-deleted', points: 1, date: '2024-01-15', completed_at: '2024-01-15T08:00:00Z' });
+      addMockDocument(logs, 'other-day', { type: 'nudge', reference_id: 'habit-2', points: 1, date: '2024-01-14' });
+      addMockDocument(`users/${userId}/habits`, 'habit-1', { name: 'Cold shower' });
+      addMockDocument(`users/${userId}/habits`, 'habit-2', { name: 'Not today' });
+      addMockDocument(`users/${userId}/challenges`, 'ch-1', { name: 'Ask for help' });
+    });
+
+    it("lists only that day's check-ins, named, newest first", async () => {
+      const result = await getCompletionLogsWithNames(userId, '2024-01-15');
+      expect(result.map((l) => [l.id, l.name])).toEqual([
+        ['k', 'Craving Crusher'],
+        ['c', 'Ask for help'],
+        ['h', 'Cold shower'],
+        ['gone', 'Unknown'],
+      ]);
+    });
+
+    it('queries the one day and reads only the docs it names', async () => {
+      jest.clearAllMocks();
+      await getCompletionLogsWithNames(userId, '2024-01-15');
+      expect(getDocs).toHaveBeenCalledTimes(1);
+      expect((getDocs as jest.Mock).mock.calls[0][0]._filters).toEqual([
+        expect.objectContaining({ field: 'date', operator: '==', value: '2024-01-15' }),
+      ]);
+      const paths = (getDoc as jest.Mock).mock.calls.map((c) => c[0]._path).sort();
+      expect(paths).toEqual([
+        `users/${userId}/challenges/ch-1`,
+        `users/${userId}/habits/habit-1`,
+        `users/${userId}/habits/habit-deleted`,
+      ]);
     });
   });
 

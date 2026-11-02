@@ -9,7 +9,6 @@ import {
   where,
   orderBy,
   deleteDoc,
-  limit,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { WorksheetEntry, ArenaId } from '../types';
@@ -285,22 +284,4 @@ export const updateMicroExerciseFollowUp = async (
 ): Promise<void> => {
   const ref = doc(db, 'users', userId, 'worksheets', entryId);
   await updateDoc(ref, { commitment_followed_through: followedThrough });
-};
-
-/**
- * Get completed micro-exercise entries, newest first.
- */
-export const getMicroExerciseHistory = async (
-  userId: string,
-  limitCount = 20
-): Promise<WorksheetEntry[]> => {
-  const q = query(
-    worksheetsRef(userId),
-    where('type', '==', 'micro_exercise'),
-    where('is_draft', '==', false),
-    orderBy('completed_at', 'desc'),
-    limit(limitCount)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as WorksheetEntry));
 };

@@ -37,10 +37,26 @@ const cancelLocal = async (): Promise<void> => {
   }
 };
 
+/**
+ * Android drops a notification aimed at a channel that doesn't exist. Only
+ * ensureReminderPermissions creates it, and sync skips that when permission is
+ * already granted (a reinstall, a new phone), so make sure of it here. Creating
+ * a channel that exists is a no-op; the name matches habitReminders' so it
+ * never renames it.
+ */
+const ensureAndroidChannel = async (): Promise<void> => {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL, {
+    name: 'Habit reminders',
+    importance: Notifications.AndroidImportance.DEFAULT,
+  });
+};
+
 /** Put the daily notification on this device. False when it can't (no permission, bad time). */
 const scheduleLocal = async (hhmm: string): Promise<boolean> => {
   const t = parseTime(hhmm);
   if (!t) return false;
+  await ensureAndroidChannel();
   await cancelLocal();
   await Notifications.scheduleNotificationAsync({
     identifier: CLOSEOUT_REMINDER_ID,

@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { getDateNDaysAgo, getTodayString } from '../utils/date';
 import { LibraryChallenge, FunFact, User } from '../types';
 
 // Collection references
@@ -176,14 +177,11 @@ export const getUserStats = async (): Promise<{
   const total = countSnap.data().count;
 
   // Get active users in last 7 and 30 days
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+  // Local calendar days, the way lastActivityDate is written (utils/date.ts) —
+  // toISOString() is UTC and shifts the cut-off a day in the evening (west of
+  // UTC) or the morning (east of it).
+  const sevenDaysAgoStr = getDateNDaysAgo(7);
+  const thirtyDaysAgoStr = getDateNDaysAgo(30);
 
   // Query for active users (users with lastActivityDate within range)
   const active7dQuery = query(
@@ -241,7 +239,7 @@ export const getLibraryStats = async (): Promise<{
  * For better performance at scale, consider using Cloud Functions to maintain aggregates
  */
 export const getTodaysChallengeCount = async (): Promise<number> => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayString();
 
   // Get all users
   const usersSnap = await getDocs(usersRef());

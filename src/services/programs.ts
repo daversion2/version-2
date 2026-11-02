@@ -163,19 +163,6 @@ export const getActiveEnrollment = async (
   return { id: snap.docs[0].id, ...snap.docs[0].data() } as ProgramEnrollment;
 };
 
-/** Get all past (non-active) enrollments. */
-export const getPastEnrollments = async (
-  userId: string
-): Promise<ProgramEnrollment[]> => {
-  const q = query(
-    enrollmentsRef(userId),
-    where('status', 'in', ['completed', 'failed', 'abandoned']),
-    orderBy('created_at', 'desc')
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as ProgramEnrollment));
-};
-
 /** Get a specific enrollment by ID. */
 export const getEnrollmentById = async (
   userId: string,

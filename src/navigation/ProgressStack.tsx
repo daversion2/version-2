@@ -28,7 +28,7 @@ export const ProgressStack: React.FC = () => (
     <Stack.Screen
       name="DayDetail"
       component={DayDetailScreen}
-      options={{ title: 'Day Detail' }}
+      options={{ title: 'Your day' }}
     />
     <Stack.Screen
       name="ReflectionDetail"
