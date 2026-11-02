@@ -274,6 +274,16 @@ export const describeWeekRow = (row: ExerciseWeek, unit: WeightUnit): string => 
   }
 };
 
+/**
+ * The week in a line for Workouts' home: "2,820 lb · 6 sets across 2
+ * exercises", or just "6 sets across 2 exercises" when nothing weighted was done.
+ */
+export const describeWeekTotals = (week: Pick<WeekSummary, 'rows' | 'totalSets' | 'totalVolumeKg'>, unit: WeightUnit): string => {
+  const done = week.rows.filter((r) => r.sets > 0).length;
+  const counts = `${week.totalSets} ${week.totalSets === 1 ? 'set' : 'sets'} across ${done} ${done === 1 ? 'exercise' : 'exercises'}`;
+  return week.totalVolumeKg > 0 ? `${formatVolume(week.totalVolumeKg, unit)} · ${counts}` : counts;
+};
+
 /** "47 / 100 reps", "2:30 / 5:00". */
 export const describeTarget = (row: Pick<ExerciseWeek, 'kind' | 'progress' | 'target'>): string | null => {
   if (!row.target) return null;
@@ -421,14 +431,28 @@ export const editSet = (
 };
 
 /**
+ * Can this one set be deleted on its own? Not from a circuit: its sets belong
+ * to their exercises by position (set k is item k % items — see slotSets in
+ * workoutSession.ts), so taking one out would hand every later set to the
+ * wrong exercise. Editing its numbers is fine.
+ */
+export const canRemoveSet = (
+  session: Pick<CompletedWorkoutSession, 'blocks'>,
+  at: { blockIndex: number }
+): boolean => (session.blocks[at.blockIndex]?.items.length ?? 0) < 2;
+
+/**
  * One set removed. A logged-sets session left with nothing comes back null,
  * to be deleted; a workout keeps its (now shorter) record of having happened.
+ * A set in a circuit can't be removed (canRemoveSet): the session comes back
+ * as it was.
  */
 export const removeSet = (
   session: CompletedWorkoutSession,
   at: { blockIndex: number; setIndex: number },
   exercisesById: Record<string, Exercise>
 ): CompletedWorkoutSession | null => {
+  if (!canRemoveSet(session, at)) return session;
   const blocks = session.blocks
     .map((b, bi) =>
       bi !== at.blockIndex
@@ -458,6 +482,42 @@ export const recordsFor = (
   const out: Record<string, ExerciseRecord> = {};
   for (const id of exerciseIds) out[id] = records[id] ?? { exerciseId: id };
   return out;
+};
+
+/**
+ * An edit or delete from This week, worked through: the sessions after it,
+ * the records it changed, and the edited session with its record badges
+ * recomputed for the exercises it touched — a set edited down is no longer a
+ * record, one edited up may be. Badges for other exercises are kept as saved.
+ * (Later sessions' badges aren't revisited: History shows what each session
+ * set at the time.)
+ */
+export const applySessionChange = (opts: {
+  sessions: CompletedWorkoutSession[];
+  sessionId: string;
+  next: CompletedWorkoutSession | null;
+  exercisesById: Record<string, Exercise>;
+  exerciseIds: string[];
+}): {
+  sessions: CompletedWorkoutSession[];
+  session: CompletedWorkoutSession | null;
+  records: Record<string, ExerciseRecord>;
+} => {
+  const { sessionId, next, exercisesById, exerciseIds } = opts;
+  const replaced = replaceSession(opts.sessions, sessionId, next);
+  const { records: rebuilt, prsBySession } = rebuildRecords(replaced, exercisesById);
+  const records: Record<string, ExerciseRecord> = {};
+  for (const id of exerciseIds) records[id] = rebuilt[id] ?? { exerciseId: id };
+  if (!next) return { sessions: replaced, session: null, records };
+  const touched = new Set(exerciseIds);
+  const session: CompletedWorkoutSession = {
+    ...next,
+    prs: [
+      ...next.prs.filter((pr) => !touched.has(pr.exerciseId)),
+      ...(prsBySession[next.id] ?? []).filter((pr) => touched.has(pr.exerciseId)),
+    ],
+  };
+  return { sessions: replaceSession(opts.sessions, sessionId, session), session, records };
 };
 
 /** Sessions with one replaced (or removed, when `next` is null). */

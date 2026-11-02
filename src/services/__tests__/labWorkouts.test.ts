@@ -5,6 +5,9 @@ import {
   listExerciseNotes,
   saveExerciseNote,
   getRecords,
+  getRecordsFor,
+  isTimeoutError,
+  withTimeout,
   getWorkoutPrefs,
   listCustomExercises,
   listPhases,
@@ -167,6 +170,38 @@ describe('saveFinishedSession', () => {
   it('never writes a check-in itself', async () => {
     await saveFinishedSession('u1', { session, records: {} });
     expect(Object.keys(getMockDB()).some((path) => path.includes('completionLogs'))).toBe(false);
+  });
+});
+
+describe('getRecordsFor', () => {
+  it('reads just these exercises’ saved records, skipping ones never logged', async () => {
+    addMockDocument(`${base}/lab_workout_records`, 'bench', { exerciseId: 'bench', heaviestKg: 100 });
+    addMockDocument(`${base}/lab_workout_records`, 'squat', { exerciseId: 'squat', heaviestKg: 140 });
+    expect(await getRecordsFor('u1', ['bench', 'curl', 'bench'])).toEqual({
+      bench: { exerciseId: 'bench', heaviestKg: 100 },
+    });
+  });
+});
+
+describe('withTimeout', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('passes a result straight through', async () => {
+    await expect(withTimeout(Promise.resolve(3), 1000)).resolves.toBe(3);
+  });
+
+  it('gives up on a write that never settles, as a timeout', async () => {
+    jest.useFakeTimers();
+    const pending = withTimeout(new Promise<never>(() => {}), 1000);
+    jest.advanceTimersByTime(1000);
+    const error = await pending.catch((e) => e);
+    expect(isTimeoutError(error)).toBe(true);
+  });
+
+  it('keeps a real failure as itself', async () => {
+    const error = await withTimeout(Promise.reject(new Error('permission-denied')), 1000).catch((e) => e);
+    expect(isTimeoutError(error)).toBe(false);
+    expect(error.message).toBe('permission-denied');
   });
 });
 

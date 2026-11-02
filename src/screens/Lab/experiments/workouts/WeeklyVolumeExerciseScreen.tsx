@@ -5,6 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import type { SetValues, WorkoutsStackParamList } from '../../../../types/workouts';
 import {
   canLogKind,
+  canRemoveSet,
   describeTarget,
   describeWeekRow,
   editSet,
@@ -19,7 +20,8 @@ import {
 import { formatCount, formatSeconds, formatSetValues, formatVolume } from '../../../../services/workoutMath';
 import { formatRelativeDay } from '../../../../utils/date';
 import { showAlert, showConfirm } from '../../../../utils/alert';
-import { useWorkouts } from './WorkoutsContext';
+import { isTimeoutError } from '../../../../services/labWorkouts';
+import { showNotSavedYet, useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { ProgressBar } from './components/PhaseParts';
 import { SetEntrySheet } from './components/SetEntrySheet';
@@ -74,7 +76,12 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
     try {
       await changeSession(session.id, editSet(session, entry, values, exercisesById), [exerciseId]);
       setEditing(null);
-    } catch {
+    } catch (e) {
+      if (isTimeoutError(e)) {
+        setEditing(null);
+        setTimeout(showNotSavedYet, 400);
+        return;
+      }
       showAlert("Couldn't save that set", 'Check your connection and try again.');
     }
   };
@@ -87,7 +94,12 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
       try {
         await changeSession(session.id, removeSet(session, entry, exercisesById), [exerciseId]);
         setEditing(null);
-      } catch {
+      } catch (e) {
+        if (isTimeoutError(e)) {
+          setEditing(null);
+          setTimeout(showNotSavedYet, 400);
+          return;
+        }
         showAlert("Couldn't delete that set", 'Check your connection and try again.');
       }
     };
@@ -99,6 +111,10 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
       400
     );
   };
+
+  // A set in a circuit can be fixed but not taken out on its own (canRemoveSet).
+  const editingSession = editing ? sessionOf(editing) : undefined;
+  const canDelete = !!editing && !!editingSession && canRemoveSet(editingSession, editing);
 
   const days = row ? entriesByDay(row.entries) : [];
   const targetText = row ? describeTarget(row) : null;
@@ -203,10 +219,14 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
         unit={prefs.unit}
         mode="edit"
         initial={editing?.set ?? {}}
-        note={editing ? `${editing.sessionName}, ${formatRelativeDay(editing.date)}` : undefined}
+        note={
+          editing
+            ? `${editing.sessionName}, ${formatRelativeDay(editing.date)}${canDelete ? '' : ' · part of a circuit, so it can be changed but not deleted'}`
+            : undefined
+        }
         onCancel={() => setEditing(null)}
         onSave={(values) => saveEdit(values)}
-        onDelete={deleteEntry}
+        onDelete={canDelete ? deleteEntry : undefined}
       />
     </ScrollView>
   );

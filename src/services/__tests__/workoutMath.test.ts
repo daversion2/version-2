@@ -13,8 +13,10 @@ import {
   KG_PER_LB,
   lastSetsFor,
   lastSlotSetsFor,
+  newRecordOnSet,
   prefillFor,
   rebuildRecords,
+  recordLines,
   sessionVolumeKg,
   stepWeight,
   toDisplayWeight,
@@ -292,7 +294,61 @@ describe('sessionVolumeKg', () => {
   });
 });
 
+describe('newRecordOnSet', () => {
+  const rec = { exerciseId: 'bench', heaviestKg: 100, repsAtWeight: { [weightKey(100)]: 5 } };
+
+  it('calls a second, heavier set a record even after the first one already was', () => {
+    const first = [set('bench', { weightKg: 105, reps: 3 })];
+    const second = [...first, set('bench', { weightKg: 110, reps: 2 })];
+    expect(newRecordOnSet('bench', 'weight', [], first, rec)).toMatchObject({ type: 'heaviest', value: 105 });
+    expect(newRecordOnSet('bench', 'weight', first, second, rec)).toMatchObject({ type: 'heaviest', value: 110 });
+  });
+
+  it('stays quiet for a set that beats nothing', () => {
+    const first = [set('bench', { weightKg: 105, reps: 3 })];
+    const lighter = [...first, set('bench', { weightKg: 90, reps: 3 })];
+    expect(newRecordOnSet('bench', 'weight', first, lighter, rec)).toBeNull();
+  });
+
+  it('compares a faster time downward', () => {
+    const run = { exerciseId: 'run', fastestSec: 500 };
+    const one = [set('run', { seconds: 490 })];
+    const two = [...one, set('run', { seconds: 480 })];
+    expect(newRecordOnSet('run', 'distance', one, two, run)).toMatchObject({ type: 'fastest', value: 480 });
+    expect(newRecordOnSet('run', 'distance', two, [...two, set('run', { seconds: 485 })], run)).toBeNull();
+  });
+
+  it('sets a baseline, not a record, the first time', () => {
+    expect(newRecordOnSet('bench', 'weight', [], [set('bench', { weightKg: 60, reps: 5 })], undefined)).toBeNull();
+  });
+});
+
+describe('recordLines', () => {
+  it('says hold only for holds', () => {
+    expect(recordLines({ exerciseId: 'plank', longestSec: 90 }, 'lb')).toEqual(['Longest hold 1:30']);
+    expect(recordLines({ exerciseId: 'jump-rope', longestSec: 180 }, 'lb')).toEqual(['Longest 3:00']);
+    expect(recordLines(undefined, 'lb')).toEqual([]);
+  });
+
+  it('lists weight, reps and time records', () => {
+    expect(recordLines({ exerciseId: 'bench', heaviestKg: lb(145), maxReps: 25, fastestSec: 462 }, 'lb')).toEqual([
+      'Heaviest 145 lb',
+      'Most reps 25',
+      'Fastest 7:42',
+    ]);
+  });
+});
+
 describe('describeRecord', () => {
+  it('says hold only for holds', () => {
+    expect(describeRecord({ exerciseId: 'plank', type: 'longest_hold', value: 75, previous: 60 }, 'Plank', 'lb').title).toBe(
+      'Plank — longest hold'
+    );
+    expect(
+      describeRecord({ exerciseId: 'farmers-carry', type: 'longest_hold', value: 75, previous: 60 }, 'Farmer’s Carry', 'lb').title
+    ).toBe('Farmer’s Carry — longest yet');
+  });
+
   it('reads in the user’s unit', () => {
     const text = describeRecord(
       { exerciseId: 'bench', type: 'heaviest', value: lb(145), previous: lb(140) },

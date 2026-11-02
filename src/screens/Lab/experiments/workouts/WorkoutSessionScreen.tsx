@@ -37,7 +37,6 @@ import {
   undoLastSet,
 } from '../../../../services/workoutSession';
 import {
-  applySetsToRecord,
   DEFAULT_TARGET,
   describeRecord,
   formatClock,
@@ -46,6 +45,7 @@ import {
   fromDisplayWeight,
   lastSetsFor,
   lastSlotSetsFor,
+  newRecordOnSet,
   prefillFor,
   stepWeight,
   toDisplayWeight,
@@ -82,7 +82,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const isFocused = useIsFocused();
   const now = useNow();
   const { session, updateSession, discardSession, exercise, prefs, sessions, records, closeApp, notes } = useWorkouts();
-  const unit = prefs.unit;
+  // The unit the session started in: a draft resumed with no signal has
+  // only the default prefs, and would read a kg session's numbers as lb.
+  const unit = session?.unit ?? prefs.unit;
 
   const [values, setValues] = useState<SetValues>({});
   const [picking, setPicking] = useState(false);
@@ -181,12 +183,12 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const onLog = () => {
     if (!pos || !ex) return;
     const result = logSet(session, values, new Date());
-    // A record set on this very set gets said now, not saved for the summary.
-    const before = applySetsToRecord(ex.id, ex.kind, todays, records[ex.id]).prs.length;
-    const after = applySetsToRecord(ex.id, ex.kind, setsTodayFor(result.session, ex.id), records[ex.id]).prs;
-    if (after.length > before) {
+    // A record set on this very set gets said now, not saved for the summary —
+    // by value, so a second heavier set today is called out too.
+    const record = newRecordOnSet(ex.id, ex.kind, todays, setsTodayFor(result.session, ex.id), records[ex.id]);
+    if (record) {
       triggerRewardHaptic();
-      showToast(`New record: ${describeRecord(after[after.length - 1], ex.name, unit).title}`);
+      showToast(`New record: ${describeRecord(record, ex.name, unit).title}`);
     } else {
       triggerTapHaptic();
     }
@@ -221,7 +223,15 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
       {
         label: 'Discard workout',
         onPress: () =>
-          showConfirm('Discard this workout?', 'Nothing from it will be saved.', discardSession, 'Discard'),
+          showConfirm(
+            'Discard this workout?',
+            // A Finish that timed out is still queued, and discarding can't stop it.
+            session.saveTimedOutAt
+              ? 'Your last Finish didn’t get through, but it may still save once you’re back online. Discarding here won’t stop it.'
+              : 'Nothing from it will be saved.',
+            discardSession,
+            'Discard'
+          ),
       },
     ]);
 

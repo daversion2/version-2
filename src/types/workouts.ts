@@ -154,6 +154,13 @@ export interface WorkoutSession {
   stepUps?: Record<string, StepUp>;
   /** When Finish was tapped — the duration stops here even if the summary sits for hours. */
   endedAt?: string;
+  /**
+   * The weight unit the session was started in, so a draft resumed with no
+   * signal (prefs not loaded) still reads "135" as the unit it was typed in.
+   */
+  unit?: WeightUnit;
+  /** A Finish timed out — the queued save may still land once back online. */
+  saveTimedOutAt?: string;
 }
 
 export interface ExerciseRecord {

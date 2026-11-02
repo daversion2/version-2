@@ -12,6 +12,10 @@ import {
   durationSec,
   endRest,
   enterSummary,
+  finishedDurationSec,
+  savedWorkoutIdFor,
+  sessionEndAt,
+  workedDurationSec,
   intervalReport,
   isSessionComplete,
   jumpTo,
@@ -345,6 +349,60 @@ describe('the summary', () => {
     expect(s.phase).toBe('active');
     expect(s.endedAt).toBeUndefined();
     expect(durationSec(s, at(900))).toBe(900);
+  });
+});
+
+describe('a draft finished long after its last set', () => {
+  const HOUR = 3600;
+
+  it('ends at the last set when nothing was logged for over three hours', () => {
+    let s = logSet(start(), { reps: 8 }, at(600)).session;
+    s = logSet(s, { reps: 8 }, at(1200)).session;
+    s = enterSummary(s, at(20 * HOUR));
+    expect(s.endedAt).toBe(at(1200).toISOString());
+    const done = toCompletedSession(s, { now: at(21 * HOUR), prs: [], exercisesById: EXERCISES });
+    expect(done.finished_at).toBe(at(1200).toISOString());
+    expect(done.duration_sec).toBe(1200);
+  });
+
+  it('ends at Finish for an ordinary workout', () => {
+    const s = enterSummary(logSet(start(), { reps: 8 }, at(600)).session, at(1800));
+    expect(s.endedAt).toBe(at(1800).toISOString());
+  });
+
+  it('keeps Finish’s time when the save is retried later', () => {
+    const s = enterSummary(logSet(start(), { reps: 8 }, at(600)).session, at(1800));
+    const done = toCompletedSession(s, { now: at(30 * HOUR), prs: [], exercisesById: EXERCISES });
+    expect(done.finished_at).toBe(at(1800).toISOString());
+    expect(done.duration_sec).toBe(1800);
+  });
+
+  it('leaves the overnight gap out of a draft resumed the next day', () => {
+    let s = logSet(start(), { reps: 8 }, at(600)).session;
+    s = logSet(s, { reps: 8 }, at(12 * HOUR)).session;
+    s = enterSummary(s, at(12 * HOUR + 900));
+    expect(s.endedAt).toBe(at(12 * HOUR + 900).toISOString());
+    expect(finishedDurationSec(s, at(13 * HOUR))).toBe(600 + 900);
+  });
+
+  it('caps a save made without a summary at the last set too', () => {
+    const s = logSet(start(), { reps: 8 }, at(600)).session;
+    expect(sessionEndAt(s, at(10 * HOUR)).toISOString()).toBe(at(600).toISOString());
+    expect(workedDurationSec(s, at(900))).toBe(900);
+  });
+});
+
+describe('savedWorkoutIdFor', () => {
+  it('is the same every time for one session, and differs between sessions', () => {
+    expect(savedWorkoutIdFor('s1')).toBe(savedWorkoutIdFor('s1'));
+    expect(savedWorkoutIdFor('s1')).not.toBe(savedWorkoutIdFor('s2'));
+  });
+});
+
+describe('the weight unit', () => {
+  it('is kept with the session when given', () => {
+    expect(startSession({ id: 's', now: T0, unit: 'kg' }).unit).toBe('kg');
+    expect(startSession({ id: 's', now: T0 }).unit).toBeUndefined();
   });
 });
 

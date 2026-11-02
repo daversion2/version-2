@@ -69,6 +69,30 @@ export const stripUndefined = <T>(value: T): T => {
   return value;
 };
 
+// --- Offline ------------------------------------------------------------------
+
+/** How long a save gets before the screen gives up waiting and says so. */
+export const SAVE_TIMEOUT_MS = 15000;
+
+const TIMEOUT_MESSAGE = 'timeout';
+
+/**
+ * Offline, a Firestore write never settles — this gives up waiting and says
+ * so, rather than spin forever. The write itself is still queued and can land
+ * once the phone is back online, so a timeout is "not saved yet", not "failed".
+ */
+export const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(TIMEOUT_MESSAGE)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+};
+
+export const isTimeoutError = (e: unknown): boolean => e instanceof Error && e.message === TIMEOUT_MESSAGE;
+
 // --- Prefs -------------------------------------------------------------------
 
 export const getWorkoutPrefs = async (userId: string): Promise<WorkoutPrefs> => {
@@ -226,6 +250,23 @@ export const getRecords = async (userId: string): Promise<Record<string, Exercis
   const out: Record<string, ExerciseRecord> = {};
   snap.docs.forEach((d) => {
     out[d.id] = { ...(d.data() as ExerciseRecord), exerciseId: d.id };
+  });
+  return out;
+};
+
+/**
+ * These exercises' records as saved now, read fresh rather than trusted from
+ * what's on screen — which may be empty after a load that failed with no
+ * signal. Saving records computed against nothing would wipe them out.
+ */
+export const getRecordsFor = async (
+  userId: string,
+  exerciseIds: string[]
+): Promise<Record<string, ExerciseRecord>> => {
+  const snaps = await Promise.all([...new Set(exerciseIds)].map((id) => getDoc(ref(userId, COL.records, id))));
+  const out: Record<string, ExerciseRecord> = {};
+  snaps.forEach((snap) => {
+    if (snap.exists()) out[snap.id] = { ...(snap.data() as ExerciseRecord), exerciseId: snap.id };
   });
   return out;
 };

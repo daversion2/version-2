@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
@@ -44,12 +44,20 @@ export const WeeklyVolumeScreen: React.FC<Props> = ({ navigation }) => {
 
   const openAdd = (exercise: Exercise) => setAdding({ exercise, initial: prefillFrom(sessions, exercise) });
 
+  // One tap, one hand-off: a second tap while the first saves would send it twice.
+  const [rating, setRating] = useState(false);
+  const ratingRef = useRef(false);
   const rate = async () => {
-    if (!pending) return;
+    if (!pending || ratingRef.current) return;
+    ratingRef.current = true;
+    setRating(true);
     try {
       await rateLoggedSets(pending);
     } catch {
       showAlert("Couldn't hand it to Today", 'Check your connection and try again.');
+    } finally {
+      ratingRef.current = false;
+      setRating(false);
     }
   };
 
@@ -72,8 +80,14 @@ export const WeeklyVolumeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={ws.title}>Done for today?</Text>
             <Text style={ws.muted}>Rate today’s sets to count them toward your week.</Text>
           </View>
-          <TouchableOpacity style={styles.rateBtn} onPress={rate} accessibilityRole="button">
-            <Text style={styles.rateBtnText}>Rate it</Text>
+          <TouchableOpacity
+            style={[styles.rateBtn, rating && ws.disabled]}
+            onPress={rate}
+            disabled={rating}
+            accessibilityRole="button"
+            accessibilityState={{ busy: rating, disabled: rating }}
+          >
+            {rating ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.rateBtnText}>Rate it</Text>}
           </TouchableOpacity>
         </View>
       )}

@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import type { Exercise, SetValues } from '../../../../../types/workouts';
 import { showAlert, showConfirm } from '../../../../../utils/alert';
-import { useWorkouts } from '../WorkoutsContext';
+import { isTimeoutError } from '../../../../../services/labWorkouts';
+import { showNotSavedYet, useWorkouts } from '../WorkoutsContext';
 
 /**
  * Save sets from This week, and — on the day's first, once — offer to rate
@@ -19,7 +20,13 @@ export const useLogSets = () => {
       let result: Awaited<ReturnType<typeof logSets>>;
       try {
         result = await logSets(exercise, values, count);
-      } catch {
+      } catch (e) {
+        if (isTimeoutError(e)) {
+          // Queued and already on This week — it lands once back online.
+          closeSheet();
+          setTimeout(showNotSavedYet, 400);
+          return true;
+        }
         showAlert("Couldn't save those sets", 'Check your connection and try again.');
         return false;
       }

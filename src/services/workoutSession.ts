@@ -36,6 +36,13 @@ import { formatClock, formatSeconds, formatTarget, sessionVolumeKg } from './wor
 export const makeId = (prefix: string): string =>
   `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
+/**
+ * The id "Save as a workout" gives the workout it makes — one per session, so
+ * a Finish retried after a timeout (whose first save may still land) rewrites
+ * the same workout instead of adding a second.
+ */
+export const savedWorkoutIdFor = (sessionId: string): string => `from_${sessionId}`;
+
 const cleanValues = (values: SetValues): SetValues => {
   const out: SetValues = {};
   if (typeof values.reps === 'number') out.reps = values.reps;
@@ -68,6 +75,8 @@ export const startSession = (opts: {
   habitId?: string;
   /** The training phase this session counts toward. */
   phaseId?: string;
+  /** The unit weights are entered in — kept with the draft (see WorkoutSession.unit). */
+  unit?: WeightUnit;
   now: Date;
 }): WorkoutSession => ({
   id: opts.id,
@@ -75,6 +84,7 @@ export const startSession = (opts: {
   workoutName: opts.workout?.name ?? opts.name ?? 'Workout',
   ...(opts.habitId ? { habitId: opts.habitId } : {}),
   ...(opts.phaseId ? { phaseId: opts.phaseId } : {}),
+  ...(opts.unit ? { unit: opts.unit } : {}),
   startedAt: opts.now.toISOString(),
   blocks: (opts.workout?.blocks ?? []).map((b) => toSessionBlock(b)),
   cursor: 0,
@@ -600,9 +610,59 @@ export const durationSec = (session: WorkoutSession, now: Date): number => {
   return Math.max(0, Math.round((end.getTime() - new Date(session.startedAt).getTime()) / 1000));
 };
 
+/**
+ * Over this long with nothing logged, the workout was over: a draft left
+ * overnight and finished the next day ended at its last set, not at Finish.
+ */
+export const STALE_GAP_SEC = 3 * 60 * 60;
+
+/** When the latest thing happened: the last logged set, or the start. */
+const lastActivityMs = (session: WorkoutSession): number =>
+  session.blocks
+    .flatMap((b) => b.sets)
+    .reduce((latest, s) => Math.max(latest, new Date(s.at).getTime()), new Date(session.startedAt).getTime());
+
+/** When the workout really ended: now — or, after a stale gap, its last set. */
+export const sessionEndAt = (session: WorkoutSession, now: Date): Date => {
+  const last = lastActivityMs(session);
+  return now.getTime() - last > STALE_GAP_SEC * 1000 ? new Date(last) : now;
+};
+
+/**
+ * Time actually trained, start to `end`, leaving out any stretch over
+ * STALE_GAP_SEC with nothing logged — started last night and finished this
+ * morning is the two workouts' worth of sets, not twelve hours.
+ */
+export const workedDurationSec = (session: WorkoutSession, end: Date): number => {
+  const endMs = end.getTime();
+  const points = [
+    new Date(session.startedAt).getTime(),
+    ...session.blocks
+      .flatMap((b) => b.sets)
+      .map((s) => new Date(s.at).getTime())
+      .filter((t) => t <= endMs)
+      .sort((a, b) => a - b),
+    endMs,
+  ];
+  let ms = 0;
+  for (let i = 1; i < points.length; i++) {
+    const gap = points[i] - points[i - 1];
+    if (gap > 0 && gap <= STALE_GAP_SEC * 1000) ms += gap;
+  }
+  return Math.round(ms / 1000);
+};
+
+/** The duration the summary shows and the saved session keeps. */
+export const finishedDurationSec = (session: WorkoutSession, now: Date): number =>
+  workedDurationSec(session, session.endedAt ? new Date(session.endedAt) : sessionEndAt(session, now));
+
 /** Finish tapped: stop the clock, drop any rest, show the summary. */
 export const enterSummary = (session: WorkoutSession, now: Date): WorkoutSession => {
-  const next: WorkoutSession = { ...endRest(session), phase: 'summary', endedAt: now.toISOString() };
+  const next: WorkoutSession = {
+    ...endRest(session),
+    phase: 'summary',
+    endedAt: sessionEndAt(session, now).toISOString(),
+  };
   delete next.clock;
   return next;
 };
@@ -624,8 +684,9 @@ export const toCompletedSession = (
   ...(session.habitId ? { habit_id: session.habitId } : {}),
   ...(session.phaseId ? { phase_id: session.phaseId } : {}),
   started_at: session.startedAt,
-  finished_at: opts.now.toISOString(),
-  duration_sec: durationSec(session, opts.now),
+  // Finish's time, not the save's: a save retried tomorrow is still today's workout.
+  finished_at: (session.endedAt ? new Date(session.endedAt) : sessionEndAt(session, opts.now)).toISOString(),
+  duration_sec: finishedDurationSec(session, opts.now),
   total_sets: totalSetsLogged(session),
   total_volume_kg: Math.round(sessionVolumeKg(session, opts.exercisesById) * 100) / 100,
   // Blocks you never touched are noise in history.

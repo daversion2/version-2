@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../../types/navigation';
 import type { PracticeInstance } from '../../../../types';
@@ -18,6 +19,7 @@ import {
   ensureStarterWorkouts,
   getRecords,
   getWorkoutPrefs,
+  isTimeoutError,
   listCustomExercises,
   archiveCustomExercise,
   listExerciseNotes,
@@ -30,10 +32,12 @@ import {
   saveExerciseNote,
   saveExerciseTest,
   savePhase,
+  SAVE_TIMEOUT_MS,
   saveSessionChange,
   saveWorkout,
   saveWorkoutPrefs,
   sortWorkouts,
+  withTimeout,
 } from '../../../../services/labWorkouts';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../../services/miniAppDrafts';
 import { finishSession } from '../../../../services/miniApps';
@@ -50,7 +54,7 @@ import {
 import { showAlert } from '../../../../utils/alert';
 import { currentPhase as findCurrentPhase, isLighterWeek, lightenSession } from '../../../../services/trainingPhases';
 import { toLocalDateString } from '../../../../utils/date';
-import { addLoggedSets, logSessionId, recordsFor, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
+import { addLoggedSets, applySessionChange, logSessionId, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
 import type { PersonalRecord, SetValues } from '../../../../types/workouts';
 
 const APP = 'workouts' as const;
@@ -59,11 +63,33 @@ const ALL_SESSIONS = 5000;
 
 const UNKNOWN_EXERCISE: Exercise = { id: 'unknown', name: 'Exercise', kind: 'weight', muscle: 'full_body' };
 
+/** What's on screen once it has loaded — trusted enough to build a save on. */
+export interface LoadedWorkouts {
+  sessions: CompletedWorkoutSession[];
+  records: Record<string, ExerciseRecord>;
+  workouts: Workout[];
+  prefs: WorkoutPrefs;
+}
+
+/**
+ * A save that timed out offline is still queued and lands once the phone is
+ * back online — so it stays on screen, and this says it isn't there yet.
+ */
+export const showNotSavedYet = () =>
+  showAlert('Not saved yet', 'No connection right now. It saves once you’re back online — keep the app open till then.');
+
 interface WorkoutsContextValue {
   userId: string;
   loading: boolean;
   loadError: string | null;
-  reload: () => Promise<void>;
+  /** Resolves true when everything loaded. */
+  reload: () => Promise<boolean>;
+  /**
+   * Before a save that builds on loaded data: retries a failed load, and
+   * throws if it still can't — saving on top of the empty defaults a failed
+   * load leaves would overwrite real records, days and settings.
+   */
+  ensureLoaded: () => Promise<LoadedWorkouts>;
 
   prefs: WorkoutPrefs;
   updatePrefs: (changes: Partial<WorkoutPrefs>) => Promise<void>;
@@ -168,7 +194,6 @@ export const WorkoutsProvider: React.FC<{
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [sessions, setSessions] = useState<CompletedWorkoutSession[]>([]);
-  const [records, setRecords] = useState<Record<string, ExerciseRecord>>({});
   const [phases, setPhases] = useState<TrainingPhase[]>([]);
   const [tests, setTests] = useState<ExerciseTest[]>([]);
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
@@ -189,7 +214,20 @@ export const WorkoutsProvider: React.FC<{
       .catch((e) => console.warn('Workouts: could not read the saved session:', e));
   }, [userId, launchHabitId]);
 
-  const reload = useCallback(async () => {
+  // Only a load that succeeded makes what's on screen safe to save on top of.
+  // A later refresh that fails (no signal) leaves the good data in place.
+  const loadedRef = useRef(false);
+  const loadingRef = useRef<Promise<boolean> | null>(null);
+  const [records, setRecords] = useState<Record<string, ExerciseRecord>>({});
+  const recordsRef = useRef(records);
+  recordsRef.current = records;
+  const workoutsRef = useRef(workouts);
+  workoutsRef.current = workouts;
+  // Kept in a ref too: two quick adds in a row must both land on the same day's doc.
+  const sessionsRef = useRef<CompletedWorkoutSession[]>([]);
+  sessionsRef.current = sessions;
+
+  const load = useCallback(async (): Promise<boolean> => {
     setLoading(true);
     setLoadError(null);
     try {
@@ -205,6 +243,10 @@ export const WorkoutsProvider: React.FC<{
         listPhases(userId),
         listExerciseTests(userId),
       ]);
+      prefsRef.current = seeded;
+      workoutsRef.current = w;
+      sessionsRef.current = s;
+      recordsRef.current = r;
       setPrefs(seeded);
       setWorkouts(w);
       setCustomExercises(custom);
@@ -214,16 +256,47 @@ export const WorkoutsProvider: React.FC<{
       setNotes(n);
       setPhases(ph);
       setTests(t);
+      loadedRef.current = true;
+      return true;
     } catch (e) {
       console.warn('Workouts: load failed:', e);
       setLoadError(errorText(e));
+      return false;
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
+  const reload = useCallback((): Promise<boolean> => {
+    const run = load();
+    loadingRef.current = run;
+    run.then(() => {
+      if (loadingRef.current === run) loadingRef.current = null;
+    });
+    return run;
+  }, [load]);
+
   useEffect(() => {
     reload();
+  }, [reload]);
+
+  // Opened with no signal: try again when the app comes back to the front.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && !loadedRef.current && !loadingRef.current) reload();
+    });
+    return () => sub.remove();
+  }, [reload]);
+
+  const ensureLoaded = useCallback(async (): Promise<LoadedWorkouts> => {
+    if (!loadedRef.current) await (loadingRef.current ?? reload());
+    if (!loadedRef.current) throw new Error('Workouts not loaded');
+    return {
+      sessions: sessionsRef.current,
+      records: recordsRef.current,
+      workouts: workoutsRef.current,
+      prefs: prefsRef.current,
+    };
   }, [reload]);
 
   const allExercises = useMemo(() => mergeExerciseLibrary(customExercises), [customExercises]);
@@ -244,14 +317,25 @@ export const WorkoutsProvider: React.FC<{
 
   const updatePrefs = useCallback(
     async (changes: Partial<WorkoutPrefs>) => {
+      // Lists and maps here are built from what's on screen — never from defaults.
+      await ensureLoaded();
+      prefsRef.current = { ...prefsRef.current, ...changes };
       setPrefs((p) => ({ ...p, ...changes }));
       await saveWorkoutPrefs(userId, changes);
     },
-    [userId]
+    [userId, ensureLoaded]
   );
 
   const setExerciseHidden = useCallback(
     async (exerciseId: string, hidden: boolean) => {
+      // The whole list is written: built on a list that never loaded, it would
+      // replace every exercise hidden before with just this one.
+      try {
+        await ensureLoaded();
+      } catch {
+        showAlert("Couldn't save that", 'Check your connection and try again.');
+        return;
+      }
       const before = prefsRef.current.hidden_exercise_ids ?? [];
       const next = withExerciseHidden(before, exerciseId, hidden);
       prefsRef.current = { ...prefsRef.current, hidden_exercise_ids: next };
@@ -267,7 +351,7 @@ export const WorkoutsProvider: React.FC<{
         showAlert("Couldn't save that", 'Check your connection and try again.');
       }
     },
-    [userId]
+    [userId, ensureLoaded]
   );
 
   const saveExercise = useCallback(
@@ -377,6 +461,8 @@ export const WorkoutsProvider: React.FC<{
         name: 'Empty workout',
         habitId: launchHabitId,
         phaseId: phase?.id,
+        // Only a unit that loaded; otherwise screens fall back to prefs once they do.
+        unit: loadedRef.current ? prefsRef.current.unit : undefined,
         now,
       });
       if (phase && isLighterWeek(phase, toLocalDateString(now))) next = lightenSession(next);
@@ -407,38 +493,58 @@ export const WorkoutsProvider: React.FC<{
     [userId]
   );
 
-  // Kept in a ref too: two quick adds in a row must both land on the same day's doc.
-  const sessionsRef = useRef<CompletedWorkoutSession[]>([]);
-  sessionsRef.current = sessions;
+  /** Puts sessions (and records) on screen now, ahead of the save. */
+  const showSessions = (next: CompletedWorkoutSession[], nextRecords?: Record<string, ExerciseRecord>) => {
+    sessionsRef.current = next;
+    setSessions(next);
+    if (nextRecords) {
+      recordsRef.current = nextRecords;
+      setRecords(nextRecords);
+    }
+  };
 
+  // Every change below goes on screen before its save is sent. Offline the
+  // save is queued and can take any time: the next change has to build on
+  // this one, or it would overwrite it once both land. A save that times out
+  // stays (it's queued); one refused outright is taken back off.
   const changeSession = useCallback<WorkoutsContextValue['changeSession']>(
     async (sessionId, next, exerciseIds) => {
-      const nextSessions = replaceSession(sessionsRef.current, sessionId, next);
-      const touched = recordsFor(nextSessions, exercisesById, exerciseIds);
-      await saveSessionChange(userId, { sessionId, session: next, records: touched });
-      sessionsRef.current = nextSessions;
-      setSessions(nextSessions);
-      setRecords((all) => ({ ...all, ...touched }));
+      const { sessions: before, records: recordsBefore } = await ensureLoaded();
+      const out = applySessionChange({ sessions: before, sessionId, next, exercisesById, exerciseIds });
+      showSessions(out.sessions, { ...recordsBefore, ...out.records });
+      try {
+        await withTimeout(saveSessionChange(userId, { sessionId, session: out.session, records: out.records }), SAVE_TIMEOUT_MS);
+      } catch (e) {
+        if (!isTimeoutError(e) && sessionsRef.current === out.sessions) showSessions(before, recordsBefore);
+        throw e;
+      }
     },
-    [userId, exercisesById]
+    [userId, exercisesById, ensureLoaded]
   );
 
   const logSets = useCallback<WorkoutsContextValue['logSets']>(
     async (ex, values, count) => {
+      await ensureLoaded();
       const now = new Date();
       const id = logSessionId(toLocalDateString(now));
-      const existing = sessionsRef.current.find((s) => s.id === id);
-      const { session: built, record, prs } = addLoggedSets({ existing, exercise: ex, values, count, records, exercisesById, now });
-      const askCheckin = shouldAskCheckin(sessionsRef.current, built);
+      const before = sessionsRef.current;
+      const recordsBefore = recordsRef.current;
+      const existing = before.find((s) => s.id === id);
+      const { session: built, record, prs } = addLoggedSets({ existing, exercise: ex, values, count, records: recordsBefore, exercisesById, now });
+      const askCheckin = shouldAskCheckin(before, built);
       const next = askCheckin ? { ...built, checkin_asked_at: now.toISOString() } : built;
-      await saveSessionChange(userId, { sessionId: id, session: next, records: { [ex.id]: record } });
-      const nextSessions = replaceSession(sessionsRef.current, id, next);
-      sessionsRef.current = nextSessions;
-      setSessions(nextSessions);
-      setRecords((all) => ({ ...all, [ex.id]: record }));
+      const nextSessions = replaceSession(before, id, next);
+      showSessions(nextSessions, { ...recordsBefore, [ex.id]: record });
+      try {
+        await withTimeout(saveSessionChange(userId, { sessionId: id, session: next, records: { [ex.id]: record } }), SAVE_TIMEOUT_MS);
+      } catch (e) {
+        // Refused, not just slow: take these sets back off — unless more went on top since.
+        if (!isTimeoutError(e) && sessionsRef.current === nextSessions) showSessions(before, recordsBefore);
+        throw e;
+      }
       return { askCheckin, prs, session: next };
     },
-    [userId, records, exercisesById]
+    [userId, exercisesById, ensureLoaded]
   );
 
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
@@ -455,16 +561,26 @@ export const WorkoutsProvider: React.FC<{
 
   const rateLoggedSets = useCallback(
     async (log: CompletedWorkoutSession) => {
+      const { sessions: before } = await ensureLoaded();
       // The newest copy: sets added since `log` was read must not be overwritten.
-      const latest = sessionsRef.current.find((s) => s.id === log.id) ?? log;
+      const latest = before.find((s) => s.id === log.id) ?? log;
       const sent = { ...latest, checkin_sent_at: new Date().toISOString() };
-      await saveSessionChange(userId, { sessionId: log.id, session: sent, records: {} });
-      sessionsRef.current = replaceSession(sessionsRef.current, log.id, sent);
-      setSessions(sessionsRef.current);
+      const nextSessions = replaceSession(before, log.id, sent);
+      showSessions(nextSessions);
+      try {
+        await withTimeout(saveSessionChange(userId, { sessionId: log.id, session: sent, records: {} }), SAVE_TIMEOUT_MS);
+      } catch (e) {
+        // Timed out: the "sent" mark is queued and lands later, so the rating
+        // goes ahead — stopping here would hide the card with nothing rated.
+        if (!isTimeoutError(e)) {
+          if (sessionsRef.current === nextSessions) showSessions(before);
+          throw e;
+        }
+      }
       // No real duration for a day of logged sets: the sheet's own default stands.
       closeAndCheckOff(0, undefined, log.id);
     },
-    [userId, closeAndCheckOff]
+    [userId, closeAndCheckOff, ensureLoaded]
   );
 
   const value: WorkoutsContextValue = {
@@ -472,6 +588,7 @@ export const WorkoutsProvider: React.FC<{
     loading,
     loadError,
     reload,
+    ensureLoaded,
     prefs,
     updatePrefs,
     exercises,

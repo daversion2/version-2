@@ -1,6 +1,9 @@
 import {
   addLoggedSets,
+  applySessionChange,
+  canRemoveSet,
   checkinPending,
+  describeWeekTotals,
   describeTarget,
   describeWeekRow,
   prefillFrom,
@@ -196,6 +199,87 @@ describe('editSet / removeSet', () => {
     expect(one.blocks[0].sets.map((s) => s.round)).toEqual([0]);
     expect(one.blocks[0].rounds).toBe(1);
     expect(removeSet(one, { blockIndex: 0, setIndex: 0 }, EX)).toBeNull();
+  });
+});
+
+describe('a set in a circuit', () => {
+  // Pull-ups then push-ups, two rounds: sets go pull, push, pull, push.
+  const circuit: CompletedWorkoutSession = {
+    ...workout('c1', local(2026, 10, 14), [
+      set('bench', { weightKg: 60, reps: 8 }, local(2026, 10, 14)),
+      set('pushup', { reps: 20 }, local(2026, 10, 14)),
+      set('bench', { weightKg: 60, reps: 8 }, local(2026, 10, 14)),
+      set('pushup', { reps: 18 }, local(2026, 10, 14)),
+    ]),
+  };
+  circuit.blocks[0].items = [
+    { exerciseId: 'bench', target: {} },
+    { exerciseId: 'pushup', target: {} },
+  ];
+
+  it('can’t be removed on its own — later sets would shift onto the wrong exercise', () => {
+    expect(canRemoveSet(circuit, { blockIndex: 0 })).toBe(false);
+    expect(removeSet(circuit, { blockIndex: 0, setIndex: 1 }, EX)).toBe(circuit);
+  });
+
+  it('can still be edited, keeping its place', () => {
+    const next = editSet(circuit, { blockIndex: 0, setIndex: 1 }, { reps: 25 }, EX);
+    expect(next.blocks[0].sets.map((s) => s.exerciseId)).toEqual(['bench', 'pushup', 'bench', 'pushup']);
+    expect(next.blocks[0].sets[1].reps).toBe(25);
+  });
+
+  it('is removable from a single exercise', () => {
+    expect(canRemoveSet(legDay, { blockIndex: 0 })).toBe(true);
+    const { session } = addLoggedSets({ exercise: EX.squat, values: { weightKg: 60, reps: 10 }, count: 2, records: {}, exercisesById: EX, now: NOW });
+    expect(canRemoveSet(session, { blockIndex: 0 })).toBe(true);
+  });
+});
+
+describe('applySessionChange', () => {
+  const before = workout('a', local(2026, 10, 12), [set('squat', { weightKg: 60, reps: 10 }, local(2026, 10, 12))]);
+  const record = {
+    ...workout('b', local(2026, 10, 13), [set('squat', { weightKg: 80, reps: 5 }, local(2026, 10, 13))]),
+    prs: [
+      { exerciseId: 'squat', type: 'heaviest' as const, value: 80, previous: 60 },
+      { exerciseId: 'bench', type: 'heaviest' as const, value: 70, previous: 65 },
+    ],
+  };
+
+  it('drops a record badge once the set that earned it is edited down', () => {
+    const edited = editSet(record, { blockIndex: 0, setIndex: 0 }, { weightKg: 50, reps: 5 }, EX);
+    const out = applySessionChange({ sessions: [record, before], sessionId: 'b', next: edited, exercisesById: EX, exerciseIds: ['squat'] });
+    // The squat badge goes; the bench one, untouched by this edit, stays.
+    expect(out.session!.prs).toEqual([{ exerciseId: 'bench', type: 'heaviest', value: 70, previous: 65 }]);
+    expect(out.records.squat.heaviestKg).toBe(60);
+    expect(out.sessions.find((s) => s.id === 'b')!.prs).toEqual(out.session!.prs);
+  });
+
+  it('awards one when a set is edited up past the best before it', () => {
+    const plain = { ...before, id: 'c', finished_at: local(2026, 10, 14).toISOString(), prs: [] };
+    plain.blocks = [{ ...before.blocks[0], sets: [set('squat', { weightKg: 60, reps: 10 }, local(2026, 10, 14))] }];
+    const edited = editSet(plain, { blockIndex: 0, setIndex: 0 }, { weightKg: 90, reps: 3 }, EX);
+    const out = applySessionChange({ sessions: [plain, before], sessionId: 'c', next: edited, exercisesById: EX, exerciseIds: ['squat'] });
+    expect(out.session!.prs).toEqual([{ exerciseId: 'squat', type: 'heaviest', value: 90, previous: 60 }]);
+  });
+
+  it('removes a deleted session and rebuilds its records', () => {
+    const out = applySessionChange({ sessions: [record, before], sessionId: 'b', next: null, exercisesById: EX, exerciseIds: ['squat'] });
+    expect(out.session).toBeNull();
+    expect(out.sessions.map((s) => s.id)).toEqual(['a']);
+    expect(out.records.squat.heaviestKg).toBe(60);
+  });
+});
+
+describe('describeWeekTotals', () => {
+  it('leaves the weight out of a bodyweight-only week', () => {
+    expect(describeWeekTotals({ rows: [{ sets: 6 } as never], totalSets: 6, totalVolumeKg: 0 }, 'lb')).toBe(
+      '6 sets across 1 exercise'
+    );
+  });
+
+  it('leads with the volume when there is some', () => {
+    const week = weekSummary({ sessions: [legDay], exercisesById: EX, now: NOW });
+    expect(describeWeekTotals(week, 'kg')).toBe('1,800 kg · 3 sets across 1 exercise');
   });
 });
 

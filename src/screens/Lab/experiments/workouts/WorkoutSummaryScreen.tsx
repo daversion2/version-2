@@ -4,14 +4,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants/theme';
-import { Workout, WorkoutsStackParamList } from '../../../../types/workouts';
+import { ExerciseRecord, Workout, WorkoutsStackParamList } from '../../../../types/workouts';
 import {
   applySessionToWorkout,
   backToWorkout,
-  durationSec,
+  finishedDurationSec,
   intervalReport,
   planChanges,
   roundsDone,
+  savedWorkoutIdFor,
   toCompletedSession,
   totalSetsLogged,
   workoutFromSession,
@@ -22,22 +23,27 @@ import {
   formatClock,
   formatSeconds,
   formatSetValues,
-  formatWeight,
+  formatVolume,
   sessionVolumeKg,
 } from '../../../../services/workoutMath';
-import { newWorkoutId, saveFinishedSession } from '../../../../services/labWorkouts';
+import {
+  getRecordsFor,
+  isTimeoutError,
+  SAVE_TIMEOUT_MS,
+  saveFinishedSession,
+  withTimeout,
+} from '../../../../services/labWorkouts';
+import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
-import { useWorkouts } from './WorkoutsContext';
+import { LoadedWorkouts, useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutSummary'>;
 
-/** Offline, a Firestore write never settles — give up and say so rather than spin forever. */
-const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-  Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-  ]);
+/** A fresh read of the records gets this long before the loaded ones are used instead. */
+const FRESH_READ_MS = 5000;
+
+const SAVE_FAILED = ['Couldn\'t save your workout', 'It’s kept on this phone. Check your connection and tap Finish again.'] as const;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -54,8 +60,10 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
     workouts,
     recordFinished,
     closeAndCheckOff,
+    ensureLoaded,
   } = useWorkouts();
-  const unit = prefs.unit;
+  // The unit the sets were entered in, even if prefs didn't load this time.
+  const unit = session?.unit ?? prefs.unit;
 
   const workout = session?.workoutId ? workouts.find((w) => w.id === session.workoutId) : undefined;
   const [saveChanges, setSaveChanges] = useState(false);
@@ -78,37 +86,72 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const doneBlocks = session.blocks.filter((b) => b.sets.length > 0);
 
   const finish = async () => {
+    if (saving) return;
     setSaving(true);
     const now = new Date();
+
+    // Records are written whole, so they're computed against what's really
+    // saved: a load that failed with no signal leaves {} on screen, and a
+    // save built on that would reset every record this workout touched.
+    let loaded: LoadedWorkouts;
+    try {
+      loaded = await ensureLoaded();
+    } catch (e) {
+      console.warn('Workouts: not loaded, not saving:', e);
+      setSaving(false);
+      showAlert(...SAVE_FAILED);
+      return;
+    }
+    const exerciseIds = [...new Set(session.blocks.flatMap((b) => b.sets.map((s) => s.exerciseId)))];
+    let base: Record<string, ExerciseRecord> = loaded.records;
+    try {
+      const fresh = await withTimeout(getRecordsFor(userId, exerciseIds), FRESH_READ_MS);
+      base = { ...loaded.records };
+      for (const id of exerciseIds) {
+        if (fresh[id]) base[id] = fresh[id];
+        else delete base[id];
+      }
+    } catch (e) {
+      // Offline after a good load: what loaded is the best there is, and the
+      // save queues as it always has.
+      console.warn('Workouts: records not re-read, using loaded ones:', e);
+    }
+    const { records: toSave, prs: finalPrs } = computeSessionRecords(session, exercisesById, base);
+
     let toWrite: Workout | undefined;
     // Every finished workout is the Workouts check-in on Today; no habit is
     // chosen here (services/appCheckins.ts ticks a matching Workout habit).
     let final = { ...session };
     delete final.habitId;
-    if (workout) {
-      toWrite = saveChanges ? applySessionToWorkout(workout, session, now) : workout;
-    } else if (saveAsNew && doneBlocks.length) {
+    delete final.saveTimedOutAt;
+    const ran = session.workoutId ? loaded.workouts.find((w) => w.id === session.workoutId) : undefined;
+    if (ran) {
+      toWrite = saveChanges ? applySessionToWorkout(ran, session, now) : ran;
+    } else if (!session.workoutId && saveAsNew && doneBlocks.length) {
       toWrite = workoutFromSession(session, {
-        id: newWorkoutId(userId),
+        // One id per session: a retry after a timed-out save (which may still
+        // land) rewrites this workout rather than adding a second.
+        id: savedWorkoutIdFor(session.id),
         name: newName || `Workout ${now.toLocaleDateString()}`,
         now,
       });
       final = { ...final, workoutId: toWrite.id, workoutName: toWrite.name };
     }
-    const completed = toCompletedSession(final, { now, prs, exercisesById });
+    const completed = toCompletedSession(final, { now, prs: finalPrs, exercisesById });
     try {
-      await withTimeout(saveFinishedSession(userId, { session: completed, records: touched, workout: toWrite }), 15000);
+      await withTimeout(saveFinishedSession(userId, { session: completed, records: toSave, workout: toWrite }), SAVE_TIMEOUT_MS);
     } catch (e) {
       console.warn('Workouts: save failed:', e);
       setSaving(false);
-      showAlert(
-        "Couldn't save your workout",
-        'It’s kept on this phone. Check your connection and tap Finish again.'
-      );
+      // Timed out, the save is still queued: Discard has to say so.
+      if (isTimeoutError(e)) updateSession({ ...session, saveTimedOutAt: now.toISOString() });
+      showAlert(...SAVE_FAILED);
       return;
     }
-    recordFinished({ completed, records: touched, workout: toWrite });
-    closeAndCheckOff(completed.duration_sec, undefined, completed.id);
+    recordFinished({ completed, records: toSave, workout: toWrite });
+    // A draft finished days after its last set is rated as that day's.
+    const day = toLocalDateString(new Date(completed.finished_at));
+    closeAndCheckOff(completed.duration_sec, day !== toLocalDateString(now) ? day : undefined, completed.id);
   };
 
   const backToSession = () => {
@@ -131,7 +174,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.stats}>
           <View style={styles.stat}>
-            <Text style={styles.statNum}>{formatSeconds(durationSec(session, new Date()))}</Text>
+            <Text style={styles.statNum}>{formatSeconds(finishedDurationSec(session, new Date()))}</Text>
             <Text style={styles.statLabel}>Time</Text>
           </View>
           <View style={styles.stat}>
@@ -139,7 +182,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.statLabel}>{sets === 1 ? 'Set' : 'Sets'}</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={styles.statNum}>{volume > 0 ? formatWeight(volume, unit) : '—'}</Text>
+            <Text style={styles.statNum}>{volume > 0 ? formatVolume(volume, unit) : '—'}</Text>
             <Text style={styles.statLabel}>Moved</Text>
           </View>
         </View>

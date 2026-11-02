@@ -1,4 +1,5 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,8 +16,7 @@ import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { isRetestDue, nextProgramWorkout, phaseSessions } from '../../../../services/trainingPhases';
 import { PhaseStatusCard } from './components/PhaseParts';
-import { checkinPending, weekSummary } from '../../../../services/weeklyVolume';
-import { formatVolume } from '../../../../services/workoutMath';
+import { checkinPending, describeWeekTotals, weekSummary } from '../../../../services/weeklyVolume';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
@@ -54,6 +54,13 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
   // the app, so it's entered here and rated on Today.
   const [loggingPast, setLoggingPast] = useState(false);
 
+  // Opened with no signal: try again each time Workouts' home comes back into view.
+  useFocusEffect(
+    useCallback(() => {
+      if (loadError && !loading) reload();
+    }, [loadError, loading, reload])
+  );
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
@@ -87,16 +94,22 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
   /** Starting anything while a session is saved asks first — never silently throws it away. */
   const guardStart = (start: () => void) => {
     if (!session) return start();
-    showChoice(`${session.workoutName} is still in progress`, 'Pick up where you left off, or throw it away and start this one?', [
-      { label: 'Resume it', onPress: resume },
-      {
-        label: 'Discard and start',
-        onPress: async () => {
-          await discardSession();
-          start();
+    showChoice(
+      `${session.workoutName} is still in progress`,
+      session.saveTimedOutAt
+        ? 'Its last Finish didn’t get through, but may still save once you’re back online. Pick up where you left off, or start this one?'
+        : 'Pick up where you left off, or throw it away and start this one?',
+      [
+        { label: 'Resume it', onPress: resume },
+        {
+          label: 'Discard and start',
+          onPress: async () => {
+            await discardSession();
+            start();
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const startEmpty = () =>
@@ -251,7 +264,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           subtitle={weekToRate
             ? 'Today’s sets are waiting to be rated'
             : week.totalSets > 0
-              ? `${formatVolume(week.totalVolumeKg, prefs.unit)} · ${week.totalSets} ${week.totalSets === 1 ? 'set' : 'sets'} across ${week.rows.filter((r) => r.sets > 0).length} ${week.rows.filter((r) => r.sets > 0).length === 1 ? 'exercise' : 'exercises'}`
+              ? describeWeekTotals(week, prefs.unit)
               : 'Track volume per exercise — add sets any time'}
           icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}
           onPress={() => navigation.navigate('WeeklyVolume')}

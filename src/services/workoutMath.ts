@@ -313,6 +313,38 @@ export const rebuildRecords = (
   return { records, prsBySession };
 };
 
+/**
+ * The new record logging this set made, if it made one — compared by value,
+ * so a second heavier set in the same session counts, not just the first
+ * record of each kind. `before` and `after` are today's sets of the
+ * exercise without and with it.
+ */
+export const newRecordOnSet = (
+  exerciseId: string,
+  kind: ExerciseKind,
+  before: LoggedSet[],
+  after: LoggedSet[],
+  existing?: ExerciseRecord
+): PersonalRecord | null => {
+  const had = applySetsToRecord(exerciseId, kind, before, existing).prs;
+  const now = applySetsToRecord(exerciseId, kind, after, existing).prs;
+  const sameSlot = (a: PersonalRecord, b: PersonalRecord) =>
+    a.type === b.type && (a.type !== 'reps_at_weight' || weightKey(a.weightKg ?? 0) === weightKey(b.weightKg ?? 0));
+  const better = (a: PersonalRecord, b: PersonalRecord) =>
+    a.type === 'fastest' ? a.value < b.value - EPSILON : a.value > b.value + EPSILON;
+  return now.find((pr) => {
+    const prior = had.find((h) => sameSlot(h, pr));
+    return !prior || better(pr, prior);
+  }) ?? null;
+};
+
+/** Timed exercises that are holds; the rest of the `time` kind (rope, carries) is "longest". */
+const HOLD_IDS = new Set(['plank', 'side-plank', 'wall-sit']);
+
+export const isHoldExercise = (exerciseId: string): boolean => HOLD_IDS.has(exerciseId);
+
+const longestLabel = (exerciseId: string): string => (isHoldExercise(exerciseId) ? 'longest hold' : 'longest yet');
+
 export const describeRecord = (
   pr: PersonalRecord,
   exerciseName: string,
@@ -333,7 +365,7 @@ export const describeRecord = (
       return { title: `${exerciseName} — most reps`, detail: `${pr.value} (was ${pr.previous})` };
     case 'longest_hold':
       return {
-        title: `${exerciseName} — longest hold`,
+        title: `${exerciseName} — ${longestLabel(pr.exerciseId)}`,
         detail: `${formatSeconds(pr.value)} (was ${formatSeconds(pr.previous)})`,
       };
     case 'fastest':
@@ -353,3 +385,14 @@ export const sessionVolumeKg = (
     .flatMap((b) => b.sets)
     .filter((s) => exercisesById[s.exerciseId]?.kind === 'weight')
     .reduce((sum, s) => sum + (s.weightKg ?? 0) * (s.reps ?? 0), 0);
+
+/** "Heaviest 145 lb", "Most reps 25", "Longest hold 1:30" (or "Longest 3:00" for a carry), "Fastest 7:42". */
+export const recordLines = (r: ExerciseRecord | undefined, unit: WeightUnit): string[] => {
+  if (!r) return [];
+  const lines: string[] = [];
+  if (r.heaviestKg) lines.push(`Heaviest ${formatWeight(r.heaviestKg, unit)}`);
+  if (r.maxReps) lines.push(`Most reps ${r.maxReps}`);
+  if (r.longestSec) lines.push(`${isHoldExercise(r.exerciseId) ? 'Longest hold' : 'Longest'} ${formatSeconds(r.longestSec)}`);
+  if (r.fastestSec) lines.push(`Fastest ${formatSeconds(r.fastestSec)}`);
+  return lines;
+};

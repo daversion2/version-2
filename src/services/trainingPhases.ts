@@ -14,7 +14,7 @@ import {
   WorkoutSession,
 } from '../types/workouts';
 import { toLocalDateString } from '../utils/date';
-import { DEFAULT_TARGET, formatDistance, formatSeconds, formatWeight, stepWeight } from './workoutMath';
+import { DEFAULT_TARGET, formatDistance, formatSeconds, formatWeight, isHoldExercise, stepWeight } from './workoutMath';
 
 // =============================================================================
 // TRAINING PHASES — test, train for a few weeks, retest, change one thing.
@@ -41,7 +41,6 @@ export const testTypeFor = (kind: ExerciseKind): TestType => {
   }
 };
 
-const HOLD_IDS = new Set(['plank', 'side-plank', 'wall-sit']);
 
 /** "Max reps", "Reps at 50 lb", "Longest hold", "Time for 1 mi". */
 export const testLabel = (exercise: Exercise, test: PhaseTest | undefined, unit: WeightUnit): string => {
@@ -51,7 +50,7 @@ export const testLabel = (exercise: Exercise, test: PhaseTest | undefined, unit:
     case 'reps_at_weight':
       return test?.weightKg ? `Reps at ${formatWeight(test.weightKg, unit)}` : 'Reps at a fixed weight';
     case 'longest':
-      return HOLD_IDS.has(exercise.id) ? 'Longest hold' : 'Longest time';
+      return isHoldExercise(exercise.id) ? 'Longest hold' : 'Longest time';
     case 'fastest':
       return exercise.distanceM ? `Time for ${formatDistance(exercise.distanceM)}` : 'Time for the distance';
   }

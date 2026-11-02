@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
-import { ExerciseKind, ExerciseRecord, WeightUnit } from '../../../../../types/workouts';
+import { ExerciseKind, WeightUnit } from '../../../../../types/workouts';
 import {
   describeTrend,
   formatTrendPoint,
@@ -281,16 +281,8 @@ export const BreakdownRow: React.FC<{
   );
 };
 
-/** "Heaviest 145 lb", "Most reps 25", "Longest hold 1:30", "Fastest 7:42". */
-export const recordLines = (r: ExerciseRecord | undefined, unit: WeightUnit): string[] => {
-  if (!r) return [];
-  const lines: string[] = [];
-  if (r.heaviestKg) lines.push(`Heaviest ${formatWeight(r.heaviestKg, unit)}`);
-  if (r.maxReps) lines.push(`Most reps ${r.maxReps}`);
-  if (r.longestSec) lines.push(`Longest hold ${formatSeconds(r.longestSec)}`);
-  if (r.fastestSec) lines.push(`Fastest ${formatSeconds(r.fastestSec)}`);
-  return lines;
-};
+/** Moved to services/workoutMath.ts so it's tested; re-exported for the screens. */
+export { recordLines } from '../../../../../services/workoutMath';
 
 const styles = StyleSheet.create({
   segment: {
