@@ -384,7 +384,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**The rating is called the override, and it answers back** *(2026-11-01, not yet OTA)*
+**The rating is called the override, and it answers back** *(2026-11-01, 78a24bf, live OTA)*
 The 1–3 after a session felt like paperwork: explained twice up front, then a
 bare Easy / Med / Hard that changed nothing. Now:
 - after a rating, the toast says one line back (`services/overrideEcho.ts`):
