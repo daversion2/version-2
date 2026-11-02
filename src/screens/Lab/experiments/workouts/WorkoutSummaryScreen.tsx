@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Switch, TextInput, StyleSheet
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
+import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants/theme';
 import { Workout, WorkoutsStackParamList } from '../../../../types/workouts';
 import {
   applySessionToWorkout,
@@ -28,7 +28,7 @@ import {
 import { newWorkoutId, saveFinishedSession } from '../../../../services/labWorkouts';
 import { showAlert } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
-import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
+import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutSummary'>;
 
@@ -120,60 +120,67 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
     <View style={[ws.screen, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={[ws.scroll, { paddingBottom: 170 + insets.bottom }]}>
         <View style={styles.hero}>
-          <Ionicons name="checkmark-done-circle" size={44} color={WORKOUTS_ACCENT} />
-          <Text style={styles.heroTitle}>Workout done</Text>
-          <Text style={ws.muted}>{session.workoutName}</Text>
+          <View style={styles.badge}>
+            <Ionicons name="checkmark" size={30} color={Colors.white} />
+          </View>
+          <Text style={styles.heroTitle} accessibilityRole="header">
+            Workout done
+          </Text>
+          <Text style={styles.heroSub}>{session.workoutName}</Text>
         </View>
 
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{formatSeconds(durationSec(session, new Date()))}</Text>
-            <Text style={styles.statLabel}>time</Text>
+            <Text style={styles.statLabel}>Time</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{sets}</Text>
-            <Text style={styles.statLabel}>{sets === 1 ? 'set' : 'sets'}</Text>
+            <Text style={styles.statLabel}>{sets === 1 ? 'Set' : 'Sets'}</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{volume > 0 ? formatWeight(volume, unit) : '—'}</Text>
-            <Text style={styles.statLabel}>moved</Text>
+            <Text style={styles.statLabel}>Moved</Text>
           </View>
         </View>
 
         {prs.length > 0 && (
-          <View style={[ws.card, styles.prCard]}>
-            <View style={styles.prHead}>
-              <Ionicons name="trophy" size={18} color={Colors.secondary} />
-              <Text style={styles.prTitle}>{plural(prs.length, 'new record', 'new records')}</Text>
-            </View>
+          <View style={ws.panel} accessibilityLabel={plural(prs.length, 'new record', 'new records')}>
             {prs.map((pr, i) => {
               const text = describeRecord(pr, exercise(pr.exerciseId).name, unit);
               return (
                 <View key={i} style={styles.prRow}>
-                  <Text style={ws.title}>{text.title}</Text>
-                  <Text style={ws.muted}>{text.detail}</Text>
+                  <View style={styles.prIcon}>
+                    <Ionicons name="arrow-up" size={18} color={Colors.secondary} />
+                  </View>
+                  <View style={[styles.prMain, i < prs.length - 1 && ws.separator]}>
+                    <Text style={ws.title}>{text.title}</Text>
+                    <Text style={ws.muted}>{text.detail}</Text>
+                  </View>
                 </View>
               );
             })}
           </View>
         )}
         {baselines > 0 && (
-          <Text style={ws.muted}>
+          <Text style={ws.lead}>
             First time logging {plural(baselines, 'exercise', 'exercises')} — that’s your baseline to beat next time.
           </Text>
         )}
 
         <Text style={ws.sectionLabel}>What you did</Text>
-        {session.blocks.map((block) => {
+        <View style={ws.panel}>
+        {session.blocks.map((block, bi) => {
           const multi = block.items.length > 1;
           const title = multi ? block.name || 'Circuit' : exercise(block.items[0].exerciseId).name;
           const done = roundsDone(block);
           const clock = intervalReport(block);
           return (
-            <View key={block.id} style={ws.card}>
+            <View key={block.id} style={styles.recapRow}>
+            <View style={[styles.recapMain, bi < session.blocks.length - 1 && ws.separator]}>
               <View style={styles.recapHead}>
-                <Text style={[ws.title, { flex: 1 }]}>{title}</Text>
-                <Text style={ws.muted}>
+                <Text style={[styles.recapTitle, block.sets.length === 0 && styles.recapTitleMuted]}>{title}</Text>
+                <Text style={styles.recapCount}>
                   {block.sets.length === 0
                     ? block.skipped
                       ? 'skipped'
@@ -218,8 +225,10 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               )}
             </View>
+            </View>
           );
         })}
+        </View>
 
         {workout && changes.any && (
           <View style={[ws.card, styles.toggleRow]}>
@@ -262,7 +271,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
 
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+      <View style={[ws.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
         <TouchableOpacity style={[ws.primaryBtn, saving && ws.disabled]} onPress={finish} disabled={saving}>
           {saving ? (
             <ActivityIndicator color={Colors.white} />
@@ -271,7 +280,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </TouchableOpacity>
         <Text style={[ws.muted, styles.footerNote]}>
-          Next: “How hard was it to start?” on Today, and it counts toward your week.
+          Next: rate your override on Today, and it counts toward your week.
         </Text>
         <TouchableOpacity onPress={backToSession} disabled={saving} style={styles.back}>
           <Text style={styles.backText}>Back to workout</Text>
@@ -282,57 +291,63 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', gap: 4, paddingVertical: Spacing.md },
-  heroTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xxl, color: Colors.dark },
-  stats: { flexDirection: 'row', gap: Spacing.sm },
+  hero: { alignItems: 'center', gap: 6, paddingTop: Spacing.xl },
+  badge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: WORKOUTS_ACCENT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  heroTitle: { ...TextStyles.title1, color: Colors.dark },
+  heroSub: { ...TextStyles.subhead, color: Colors.gray },
+  stats: { flexDirection: 'row', gap: 10 },
   stat: {
     flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    gap: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: Colors.cardBg,
   },
-  statNum: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: WORKOUTS_ACCENT, fontVariant: ['tabular-nums'] },
-  statLabel: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 2 },
-  prCard: { gap: Spacing.sm, borderColor: Colors.secondary + '55', backgroundColor: Colors.secondary + '0D' },
-  prHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  prTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.secondary },
-  prRow: { gap: 1 },
+  statNum: { ...TextStyles.title2, fontWeight: '600', color: Colors.dark, fontVariant: ['tabular-nums'] },
+  statLabel: { ...TextStyles.footnote, color: Colors.gray },
+  prRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingLeft: Spacing.md },
+  prIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.secondary + '1F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prMain: { flex: 1, gap: 1, paddingVertical: 14, paddingRight: Spacing.md },
+  recapRow: { paddingLeft: Spacing.md },
+  recapMain: { paddingVertical: 12, paddingRight: Spacing.md, gap: 2 },
   recapHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  recapSets: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 4, lineHeight: 18 },
+  recapTitle: { ...TextStyles.body, flex: 1, color: Colors.dark },
+  recapTitleMuted: { color: Colors.gray },
+  recapCount: { ...TextStyles.subhead, color: Colors.gray },
+  recapSets: { ...TextStyles.footnote, color: Colors.gray },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   clock: { gap: 6, marginTop: Spacing.sm },
-  clockLine: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.label2 },
-  clockTrack: { height: 6, borderRadius: 3, backgroundColor: Colors.fill, overflow: 'hidden' },
+  clockLine: { ...TextStyles.footnote, color: Colors.label2 },
+  clockTrack: { height: 4, borderRadius: 2, backgroundColor: Colors.lightGray, overflow: 'hidden' },
   clockFill: { height: '100%', backgroundColor: WORKOUTS_ACCENT },
   clockFillTight: { backgroundColor: Colors.danger },
-  clockTight: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.dark },
+  clockTight: { ...TextStyles.footnote, fontWeight: '600', color: Colors.dark },
   nameInput: {
     marginTop: Spacing.sm,
     borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
+    backgroundColor: Colors.lightGray,
+    paddingHorizontal: 12,
+    minHeight: 44,
+    ...TextStyles.body,
     color: Colors.dark,
   },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    backgroundColor: Colors.lightGray,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-  },
   footerNote: { textAlign: 'center' },
-  back: { alignItems: 'center', paddingVertical: Spacing.sm },
-  backText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  back: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  backText: { ...TextStyles.body, color: WORKOUTS_ACCENT },
 });

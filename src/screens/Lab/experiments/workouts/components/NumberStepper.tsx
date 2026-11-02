@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
+import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../../constants/theme';
 import { formatNumber } from '../../../../../services/workoutMath';
 import { WORKOUTS_ACCENT } from './workoutsStyle';
 
@@ -16,6 +16,13 @@ interface Props {
   onSubmitValue?: (value: number) => void;
   allowDecimal?: boolean;
   size?: 'large' | 'small';
+  /**
+   * 'tile' (default): label above, on a grey tile. 'row': label on the left,
+   * the controls on the right, for a row in a white panel (the set screen).
+   */
+  layout?: 'tile' | 'row';
+  /** Row layout: draw the hairline under it. */
+  separator?: boolean;
 }
 
 /**
@@ -31,6 +38,8 @@ export const NumberStepper: React.FC<Props> = ({
   onSubmitValue,
   allowDecimal = false,
   size = 'large',
+  layout = 'tile',
+  separator,
 }) => {
   const [text, setText] = useState(formatNumber(value));
   const [editing, setEditing] = useState(false);
@@ -56,13 +65,14 @@ export const NumberStepper: React.FC<Props> = ({
   };
 
   const large = size === 'large';
+  const row = layout === 'row';
 
   return (
-    <View style={[styles.wrap, !large && styles.wrapSmall]}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[row ? styles.wrapRow : styles.wrap, !row && !large && styles.wrapSmall, row && separator && styles.separator]}>
+      <Text style={row ? styles.labelRow : styles.label}>{label}</Text>
       <View style={styles.row}>
         <TouchableOpacity
-          style={[styles.btn, !large && styles.btnSmall]}
+          style={[styles.btn, row && styles.btnRow, !large && styles.btnSmall]}
           onPress={onDecrement}
           accessibilityRole="button"
           accessibilityLabel={`Decrease ${label}`}
@@ -73,7 +83,7 @@ export const NumberStepper: React.FC<Props> = ({
         <View style={styles.valueBox}>
           {onSubmitValue ? (
             <TextInput
-              style={[styles.value, !large && styles.valueSmall]}
+              style={[styles.value, row && styles.valueRow, !large && styles.valueSmall]}
               value={text}
               onChangeText={onChangeText}
               onFocus={() => setEditing(true)}
@@ -84,12 +94,12 @@ export const NumberStepper: React.FC<Props> = ({
               accessibilityLabel={label}
             />
           ) : (
-            <Text style={[styles.value, !large && styles.valueSmall]}>{formatNumber(value)}</Text>
+            <Text style={[styles.value, row && styles.valueRow, !large && styles.valueSmall]}>{formatNumber(value)}</Text>
           )}
           {!!suffix && <Text style={styles.suffix}>{suffix}</Text>}
         </View>
         <TouchableOpacity
-          style={[styles.btn, !large && styles.btnSmall]}
+          style={[styles.btn, row && styles.btnRow, !large && styles.btnSmall]}
           onPress={onIncrement}
           accessibilityRole="button"
           accessibilityLabel={`Increase ${label}`}
@@ -113,34 +123,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightGray,
   },
   wrapSmall: { flex: 0, paddingVertical: Spacing.sm, backgroundColor: 'transparent' },
-  label: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: Colors.gray,
+  wrapRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 64,
+    paddingRight: Spacing.sm,
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  separator: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator },
+  label: { ...TextStyles.footnote, fontWeight: '600', color: Colors.gray },
+  labelRow: { ...TextStyles.body, color: Colors.dark, flexShrink: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
   btn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.cardBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  btnRow: { backgroundColor: Colors.lightGray },
   btnSmall: { width: 32, height: 32, borderRadius: 16 },
-  valueBox: { minWidth: 64, alignItems: 'center' },
+  valueBox: { minWidth: 72, alignItems: 'center' },
   value: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xxl,
+    ...TextStyles.title2,
+    fontWeight: '600',
     color: Colors.dark,
     textAlign: 'center',
     minWidth: 64,
     paddingVertical: 0,
+    fontVariant: ['tabular-nums'],
   },
-  valueSmall: { fontSize: FontSizes.lg, minWidth: 44 },
-  suffix: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
+  valueRow: { minWidth: 84 },
+  valueSmall: { ...TextStyles.headline, minWidth: 44 },
+  suffix: { ...TextStyles.footnote, color: Colors.gray },
 });

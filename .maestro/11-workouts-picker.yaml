@@ -25,9 +25,9 @@ appId: com.neuronudge.neuronudge
     timeout: 5000
 - tapOn: "Workout\\. .*"
 - extendedWaitUntil:
-    visible: "YOUR WORKOUTS"
+    visible: "Start a workout"
     timeout: 20000
-- tapOn: ".*New workout.*"
+- tapOn: ".*Build a workout.*"
 - tapOn: "\\+ Circuit"
 - waitForAnimationToEnd:
     timeout: 3000
@@ -126,7 +126,7 @@ appId: com.neuronudge.neuronudge
 - tapOn: "Discard"
 - waitForAnimationToEnd:
     timeout: 3000
-- assertVisible: "YOUR WORKOUTS"
+- assertVisible: "Start a workout"
 - assertNotVisible: ".*removed natively.*"
 - takeScreenshot: 11d-discarded
 - tapOn: "Close Workouts"

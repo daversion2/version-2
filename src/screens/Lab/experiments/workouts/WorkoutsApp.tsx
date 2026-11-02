@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { RootStackParamList } from '../../../../types/navigation';
 import { WorkoutsStackParamList } from '../../../../types/workouts';
 import { useAuth } from '../../../../context/AuthContext';
@@ -59,12 +59,13 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
         screenOptions={{
           headerStyle: { backgroundColor: Colors.lightGray },
           headerTintColor: WORKOUTS_ACCENT,
-          headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
+          headerTitleStyle: { fontFamily: TextStyles.headline.fontFamily, fontSize: TextStyles.headline.fontSize, fontWeight: TextStyles.headline.fontWeight, color: Colors.dark },
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
-        <Stack.Screen name="WorkoutsHome" component={WorkoutsHomeScreen} options={{ title: 'Workouts' }} />
+        {/* Home draws its own large title ("Start a workout"). */}
+        <Stack.Screen name="WorkoutsHome" component={WorkoutsHomeScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutPreview" component={WorkoutPreviewScreen} options={{ title: '' }} />
         {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
         <Stack.Screen
@@ -115,6 +116,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     backgroundColor: Colors.lightGray,
   },
-  blockedText: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray, textAlign: 'center' },
-  blockedLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: WORKOUTS_ACCENT },
+  blockedText: { ...TextStyles.body, color: Colors.gray, textAlign: 'center' },
+  blockedLink: { ...TextStyles.headline, color: WORKOUTS_ACCENT },
 });

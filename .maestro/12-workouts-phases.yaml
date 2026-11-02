@@ -20,7 +20,7 @@ appId: com.neuronudge.neuronudge
     timeout: 5000
 - tapOn: "Workouts\\. .*"
 - extendedWaitUntil:
-    visible: "YOUR WORKOUTS"
+    visible: "Start a workout"
     timeout: 20000
 # A dev build's warning toast covers the bottom of the screen; close it by position.
 - runFlow:
@@ -182,6 +182,6 @@ appId: com.neuronudge.neuronudge
 - tapOn: "End this phase"
 - tapOn: "End phase"
 - extendedWaitUntil:
-    visible: "YOUR WORKOUTS"
+    visible: "Start a workout"
     timeout: 15000
 - takeScreenshot: 12n-home-after

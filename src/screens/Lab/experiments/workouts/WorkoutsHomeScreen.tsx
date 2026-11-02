@@ -2,14 +2,16 @@ import React, { useLayoutEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { BorderRadius, Colors, Spacing, TextStyles } from '../../../../constants/theme';
+import { LargeTitle } from '../../../../components/common/LargeTitle';
+import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import { WorkoutsStackParamList } from '../../../../types/workouts';
-import { describeBlock, durationSec, totalSetsLogged } from '../../../../services/workoutSession';
+import { durationSec, totalSetsLogged } from '../../../../services/workoutSession';
 import { formatSeconds } from '../../../../services/workoutMath';
 import { formatRelativeDay, toLocalDateString } from '../../../../utils/date';
 import { showChoice, showConfirm } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
-import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
+import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { isRetestDue, nextProgramWorkout, phaseSessions } from '../../../../services/trainingPhases';
 import { PhaseStatusCard } from './components/PhaseParts';
@@ -109,16 +111,19 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
       contentContainerStyle={ws.scroll}
       refreshControl={<RefreshControl refreshing={false} onRefresh={reload} tintColor={WORKOUTS_ACCENT} />}
     >
+      <LargeTitle title="Start a workout" />
+
       {!prefs.intro_seen && !loading && (
         <View style={[ws.card, styles.intro]}>
           <Text style={ws.title}>How Workouts works</Text>
           <Text style={ws.body}>• Pick a workout — or build one from exercises and circuits.</Text>
           <Text style={ws.body}>• Log each set as you go; the rest timer starts on its own.</Text>
           <Text style={ws.body}>
-            • Finish, and it hands back to Today: “How hard was it to start?”, and it counts toward your week.
+            • Finish, and it hands back to Today to rate your override: how hard was it to start? It counts toward
+            your week.
           </Text>
           <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
-            <Text style={styles.introBtnText}>Got it</Text>
+            <Text style={ws.link}>Got it</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -167,95 +172,35 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={[ws.card, styles.phaseIntro]}>
           {latestPhase?.status === 'complete' ? (
             <>
-              <Text style={styles.phaseEyebrow}>Phase {latestPhase.number} done</Text>
-              <Text style={ws.title}>{latestPhase.program_name}</Text>
-              <Text style={ws.body}>See what changed, then plan the next phase — or take a break.</Text>
+              <Text style={ws.eyebrow}>Phase {latestPhase.number} done</Text>
+              <Text style={styles.featureTitle}>{latestPhase.program_name}</Text>
+              <Text style={styles.featureBody}>See what changed, then plan the next phase — or take a break.</Text>
               <TouchableOpacity
-                style={ws.primaryBtn}
+                style={[ws.smallBtn, styles.featureBtn]}
                 onPress={() => navigation.navigate('PhaseResults', { phaseId: latestPhase.id })}
               >
-                <Text style={ws.primaryBtnText}>See results</Text>
+                <Text style={ws.smallBtnText}>See results</Text>
               </TouchableOpacity>
             </>
           ) : (
             <>
-              <Text style={styles.phaseEyebrow}>New</Text>
-              <Text style={ws.title}>Train in phases</Text>
-              <Text style={ws.body}>
+              <Text style={ws.eyebrow}>New</Text>
+              <Text style={styles.featureTitle}>Train in phases</Text>
+              <Text style={styles.featureBody}>
                 Test yourself, follow a program for a few weeks, then retest. You’ll see exactly what changed.
               </Text>
-              <TouchableOpacity style={ws.primaryBtn} onPress={() => navigation.navigate('PhaseSetup')}>
-                <Text style={ws.primaryBtnText}>Start a phase</Text>
+              <TouchableOpacity style={[ws.smallBtn, styles.featureBtn]} onPress={() => navigation.navigate('PhaseSetup')}>
+                <Text style={ws.smallBtnText}>Start a phase</Text>
               </TouchableOpacity>
             </>
           )}
           {phases.length > 0 && (
-            <TouchableOpacity onPress={() => navigation.navigate('Phase', { phaseId: latestPhase.id })} style={styles.pastLink}>
-              <Text style={styles.pastLinkText}>Your phases</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Phase', { phaseId: latestPhase.id })} style={styles.phasesLink}>
+              <Text style={ws.link}>Your phases</Text>
             </TouchableOpacity>
           )}
         </View>
       )}
-
-      <View style={styles.quickRow}>
-        <TouchableOpacity style={[ws.card, styles.quick]} onPress={startEmpty} accessibilityRole="button">
-          <Ionicons name="flash-outline" size={20} color={WORKOUTS_ACCENT} />
-          <Text style={ws.title}>Empty workout</Text>
-          <Text style={ws.muted}>Add exercises as you go</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[ws.card, styles.quick]}
-          onPress={() => navigation.navigate('WorkoutBuilder', {})}
-          accessibilityRole="button"
-        >
-          <Ionicons name="add-circle-outline" size={20} color={WORKOUTS_ACCENT} />
-          <Text style={ws.title}>New workout</Text>
-          <Text style={ws.muted}>Build and save a routine</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={[ws.card, styles.testCard]}
-        onPress={() => navigation.navigate('WeeklyVolume')}
-        accessibilityRole="button"
-      >
-        <Ionicons name="barbell-outline" size={20} color={WORKOUTS_ACCENT} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={ws.title}>This week</Text>
-          <Text style={ws.muted}>
-            {weekToRate
-              ? 'Today’s sets are waiting to be rated'
-              : week.totalSets > 0
-                ? `${formatVolume(week.totalVolumeKg, prefs.unit)} · ${week.totalSets} ${week.totalSets === 1 ? 'set' : 'sets'} across ${week.rows.filter((r) => r.sets > 0).length} ${week.rows.filter((r) => r.sets > 0).length === 1 ? 'exercise' : 'exercises'}`
-                : 'Track volume per exercise — add sets any time'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[ws.card, styles.testCard]}
-        onPress={() => navigation.navigate('ExerciseTest')}
-        accessibilityRole="button"
-      >
-        <Ionicons name="speedometer-outline" size={20} color={WORKOUTS_ACCENT} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={ws.title}>Test an exercise</Text>
-          <Text style={ws.muted}>See if you’re getting better — no program needed</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.pastLink}
-        onPress={() => setLoggingPast(true)}
-        accessibilityRole="button"
-      >
-        <Ionicons name="time-outline" size={16} color={WORKOUTS_ACCENT} />
-        <Text style={styles.pastLinkText}>Log a past workout</Text>
-      </TouchableOpacity>
-
-      <Text style={ws.sectionLabel}>Your workouts</Text>
 
       {loading && workouts.length === 0 && <ActivityIndicator color={WORKOUTS_ACCENT} style={{ marginTop: Spacing.lg }} />}
 
@@ -266,36 +211,63 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      {!loading && !loadError && workouts.length === 0 && (
-        <Text style={ws.muted}>No saved workouts. Build one, or start an empty workout.</Text>
+      {workouts.length > 0 ? (
+        <ListGroup title="Your workouts">
+          {workouts.map((w) => {
+            const parts = w.blocks.slice(0, 2).map((b) =>
+              b.items.length > 1 ? b.name || 'Circuit' : exercisesById[b.items[0]?.exerciseId]?.name ?? 'Exercise'
+            );
+            const more = w.blocks.length > 2 ? ` and ${w.blocks.length - 2} more` : '';
+            return (
+              <ListRow
+                key={w.id}
+                title={w.name}
+                subtitle={`${parts.join(', ')}${more} · ${lastDoneLabel(w.last_done_at)}`}
+                onPress={() => navigation.navigate('WorkoutPreview', { workoutId: w.id })}
+              />
+            );
+          })}
+        </ListGroup>
+      ) : (
+        !loading &&
+        !loadError && <Text style={ws.lead}>No saved workouts. Build one, or start an empty workout.</Text>
       )}
 
-      {workouts.map((w) => (
-        <TouchableOpacity
-          key={w.id}
-          style={ws.card}
-          onPress={() => navigation.navigate('WorkoutPreview', { workoutId: w.id })}
-          accessibilityRole="button"
-        >
-          <View style={styles.workoutHead}>
-            <Text style={[ws.title, { flex: 1, fontSize: FontSizes.lg }]}>{w.name}</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
-          </View>
-          <Text style={ws.muted}>
-            {w.blocks.length} {w.blocks.length === 1 ? 'block' : 'blocks'} · {lastDoneLabel(w.last_done_at)}
-          </Text>
-          <View style={styles.blockList}>
-            {w.blocks.slice(0, 4).map((b) => (
-              <Text key={b.id} style={styles.blockLine} numberOfLines={1}>
-                {b.items.length > 1 ? '↻ ' : '• '}
-                {b.items.length > 1 ? `${b.name || 'Circuit'}: ` : ''}
-                {describeBlock(b, exercisesById, prefs.unit)}
-              </Text>
-            ))}
-            {w.blocks.length > 4 && <Text style={styles.blockLine}>+ {w.blocks.length - 4} more</Text>}
-          </View>
-        </TouchableOpacity>
-      ))}
+      <ListGroup>
+        <ListRow
+          title="Empty workout"
+          subtitle="Add exercises as you go"
+          icon={{ name: 'add', color: WORKOUTS_ACCENT }}
+          onPress={startEmpty}
+        />
+        <ListRow
+          title="Build a workout"
+          subtitle="Build and save a routine"
+          icon={{ name: 'list', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('WorkoutBuilder', {})}
+        />
+        <ListRow
+          title="This week"
+          subtitle={weekToRate
+            ? 'Today’s sets are waiting to be rated'
+            : week.totalSets > 0
+              ? `${formatVolume(week.totalVolumeKg, prefs.unit)} · ${week.totalSets} ${week.totalSets === 1 ? 'set' : 'sets'} across ${week.rows.filter((r) => r.sets > 0).length} ${week.rows.filter((r) => r.sets > 0).length === 1 ? 'exercise' : 'exercises'}`
+              : 'Track volume per exercise — add sets any time'}
+          icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('WeeklyVolume')}
+        />
+        <ListRow
+          title="Test an exercise"
+          subtitle="See if you’re getting better — no program needed"
+          icon={{ name: 'speedometer', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('ExerciseTest')}
+        />
+      </ListGroup>
+
+      <TouchableOpacity style={styles.pastLink} onPress={() => setLoggingPast(true)} accessibilityRole="button">
+        <Text style={ws.link}>Log a past workout</Text>
+      </TouchableOpacity>
+
       <PastSessionSheet
         visible={loggingPast}
         accent={WORKOUTS_ACCENT}
@@ -312,45 +284,27 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  pastLink: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, minHeight: 44, alignSelf: 'flex-start' },
-  pastLinkText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  pastLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  intro: { gap: 6, borderColor: WORKOUTS_ACCENT + '55' },
-  introBtn: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: Spacing.sm },
-  introBtnText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  intro: { gap: 6 },
+  introBtn: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
   resume: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.md,
-    borderRadius: 14,
+    borderRadius: BorderRadius.lg,
     backgroundColor: WORKOUTS_ACCENT,
   },
-  resumeEyebrow: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: Colors.white,
-    opacity: 0.8,
-  },
-  resumeTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.white },
-  resumeMeta: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.white, opacity: 0.85 },
+  resumeEyebrow: { ...TextStyles.footnote, fontWeight: '600', color: Colors.white, opacity: 0.85 },
+  resumeTitle: { ...TextStyles.headline, color: Colors.white },
+  resumeMeta: { ...TextStyles.footnote, color: Colors.white, opacity: 0.85 },
   resumeActions: { alignItems: 'flex-end', gap: Spacing.sm },
-  resumeCta: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
-  resumeDiscard: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.white, opacity: 0.8 },
-  quickRow: { flexDirection: 'row', gap: Spacing.sm },
-  phaseIntro: { gap: Spacing.sm, backgroundColor: WORKOUTS_TINT, borderColor: 'transparent' },
-  phaseEyebrow: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: WORKOUTS_ACCENT,
-  },
-  quick: { flex: 1, gap: 4 },
-  testCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  workoutHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 2 },
-  blockList: { marginTop: Spacing.sm, gap: 3, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: WORKOUTS_TINT },
-  blockLine: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.dark },
+  resumeCta: { ...TextStyles.headline, color: Colors.white },
+  resumeDiscard: { ...TextStyles.footnote, color: Colors.white, opacity: 0.85 },
+  phaseIntro: { gap: 4, paddingVertical: 18, paddingHorizontal: 20 },
+  featureTitle: { ...TextStyles.title2, color: Colors.dark },
+  featureBody: { ...TextStyles.subhead, color: Colors.gray },
+  featureBtn: { marginTop: Spacing.sm + 4 },
+  phasesLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginBottom: -Spacing.sm },
 });

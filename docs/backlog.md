@@ -138,8 +138,7 @@ Next:
    History and Settings are grouped lists. Still old-style and shared with
    the other apps, so left for their passes: `miniapps/PastSessionSheet` and
    `miniapps/WeeklyGoalPicker`. Founder looked and approved it on screen
-   (2026-11-01); **not yet OTA** (the deploy needs the founder's explicit go).
-   **Meals is done too** (2026-11-01, not yet seen on screen or OTA), to the
+   (2026-11-01). **Meals is done too** (2026-11-01, not yet seen on screen), to the
    "Inside Meals" boards. Meals' in-app accent is now its blue
    (`AppColors.meals`), matching its ring, instead of the Fuel amber. The day
    is a large title, a white score card with an In progress / On target /
@@ -150,7 +149,25 @@ Next:
    list. The shared `Stepper` gained a `tint` prop. Wording the Maestro Meals
    flows assert was kept ("Averaged 74 · …", "Breakfast: Tap to log",
    "56 · target 70+"), but the flows that tap Save or the chips by position
-   haven't been rerun against the new layout. Next: Workouts.
+   haven't been rerun against the new layout. Meditate and Meals went out
+   OTA on 2026-11-01 (383972e).
+   **Workouts, pass 1 done** (2026-11-01, not yet seen on screen or OTA): the
+   three canvas boards plus everything they share. `workoutsStyle.ts` is the
+   redesign's text styles (accent stays teal: white on the orange fails
+   contrast); home is a large title ("Start a workout"), the phase card,
+   "Your workouts" and the actions as grouped lists; the set screen puts the
+   exercise name large on the grey, 44pt set pills, the step-up offer and the
+   weight/reps as white panels (`NumberStepper` gained `layout="row"`), the
+   plan as a grouped panel; the rest sheet has a grabber and a big light
+   countdown; the summary has a check badge, stat tiles, record rows and
+   "What you did" as a panel. Maestro flows 11, 12, 14a now wait for "Start a
+   workout" (was "YOUR WORKOUTS") and 11 taps "Build a workout" (was "New
+   workout"); not rerun. **Pass 2:** the ~25 other Workouts screens and
+   modals (history, stats, phases, builder, preview, picker, editors,
+   settings, weekly volume, tests) inherit the new `ws` look but still carry
+   their own old font styles; move them onto `TextStyles`/`ListGroup`, plus
+   `PhaseStatusCard` toward the canvas's featured card. Then
+   `miniapps/PastSessionSheet` and `miniapps/WeeklyGoalPicker`.
 4. Phase 4: sign-in, and restyling the new four-screen onboarding (built
    2026-11-01) onto the shared pieces. Sign in with Apple needs a native build.
 5. ~~Flip it on for everyone~~ (done 2026-11-01). Then delete the classic

@@ -15,7 +15,7 @@ appId: com.neuronudge.neuronudge
     timeout: 5000
 - tapOn: "Workouts?\\. .*"
 - extendedWaitUntil:
-    visible: "YOUR WORKOUTS"
+    visible: "Start a workout"
     timeout: 20000
 - runFlow:
     when:

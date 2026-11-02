@@ -5,7 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
+import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants/theme';
 import { SetValues, WorkoutsStackParamList } from '../../../../types/workouts';
 import {
   addBlock,
@@ -289,13 +289,13 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
         {pos && ex ? (
-          <View style={[ws.card, styles.current]}>
+          <View style={styles.current}>
             {isCircuit ? (
               <>
                 <Text style={styles.eyebrow}>
                   {pos.block.name || 'Circuit'} · round {pos.round + 1} of {pos.block.rounds}
                 </Text>
-                <View style={styles.circuitList}>
+                <View style={[ws.card, styles.circuitList]}>
                   {pos.block.items.map((item, i) => {
                     const done = i < pos.itemIndex;
                     const active = i === pos.itemIndex;
@@ -320,10 +320,19 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             )}
 
-            <Text style={styles.exerciseName}>{ex.name}</Text>
-            {ex.kind === 'distance' && !!ex.distanceM && (
-              <Text style={styles.lastTime}>{formatDistance(ex.distanceM)} · lower is better</Text>
-            )}
+            <View style={styles.nameBlock}>
+              <Text style={styles.exerciseName} accessibilityRole="header">
+                {ex.name}
+              </Text>
+              {ex.kind === 'distance' && !!ex.distanceM && (
+                <Text style={styles.lastTime}>{formatDistance(ex.distanceM)} · lower is better</Text>
+              )}
+              <Text style={styles.lastTime}>
+                {prefill?.last
+                  ? `Last time: ${formatSetValues(prefill.last, ex.kind, unit)}`
+                  : 'First time — today sets your baseline'}
+              </Text>
+            </View>
 
             {/* Your form cues, where you'll actually read them. Tap to edit —
                 "seat on 4" gets written down mid-set, not later. */}
@@ -422,30 +431,24 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             )}
 
-            <Text style={styles.lastTime}>
-              {prefill?.last
-                ? `Last time: ${formatSetValues(prefill.last, ex.kind, unit)}`
-                : 'First time — today sets your baseline'}
-            </Text>
-
             {stepUpOffer && (
-              <View style={styles.stepUp}>
+              <View style={[ws.card, styles.stepUp]}>
                 <Text style={styles.stepUpTitle}>{stepUpOffer.title}</Text>
                 <Text style={ws.muted}>{stepUpOffer.why}</Text>
                 <View style={styles.stepUpRow}>
                   <TouchableOpacity
-                    style={[styles.stepUpBtn, styles.stepUpBtnFill]}
+                    style={ws.smallBtn}
                     onPress={() => updateSession(answerStepUp(session, slotKey, stepUpOffer.stepUp))}
                     accessibilityRole="button"
                   >
-                    <Text style={[styles.stepUpBtnText, { color: Colors.white }]}>Use it</Text>
+                    <Text style={ws.smallBtnText}>Use it</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.stepUpBtn}
+                    style={[ws.smallBtn, ws.smallBtnQuiet]}
                     onPress={() => updateSession(answerStepUp(session, slotKey, { declined: true }))}
                     accessibilityRole="button"
                   >
-                    <Text style={styles.stepUpBtnText}>Not today</Text>
+                    <Text style={[ws.smallBtnText, ws.smallBtnQuietText]}>Not today</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -464,9 +467,11 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 onChange={(seconds) => setValues({ ...values, seconds })}
               />
             ) : (
-              <View style={styles.inputs}>
+              <View style={[ws.panel, styles.inputs]}>
                 {ex.kind === 'weight' && (
                   <NumberStepper
+                    layout="row"
+                    separator
                     label={`Weight (${unit})`}
                     value={toDisplayWeight(values.weightKg ?? 0, unit)}
                     allowDecimal
@@ -476,6 +481,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                   />
                 )}
                 <NumberStepper
+                  layout="row"
                   label="Reps"
                   value={values.reps ?? 0}
                   onDecrement={() => setValues({ ...values, reps: Math.max(1, (values.reps ?? 1) - 1) })}
@@ -513,11 +519,11 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={() => updateSession(undoLastSet(session))}
                 disabled={!session.history.length}
               >
-                <Ionicons name="arrow-undo-outline" size={16} color={session.history.length ? Colors.gray : Colors.border} />
+                <Ionicons name="arrow-undo-outline" size={16} color={session.history.length ? WORKOUTS_ACCENT : Colors.separator} />
                 <Text style={[styles.actionText, !session.history.length && styles.actionDisabled]}>Undo</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.action} onPress={() => updateSession(addRound(session, pos.blockIndex))}>
-                <Ionicons name="add" size={16} color={Colors.gray} />
+                <Ionicons name="add" size={16} color={WORKOUTS_ACCENT} />
                 <Text style={styles.actionText}>{isCircuit ? 'Round' : 'Set'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -533,13 +539,13 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                   )
                 }
               >
-                <Ionicons name="play-skip-forward-outline" size={16} color={Colors.gray} />
+                <Ionicons name="play-skip-forward-outline" size={16} color={WORKOUTS_ACCENT} />
                 <Text style={styles.actionText}>Skip</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : session.blocks.length === 0 ? (
-          <View style={[ws.card, styles.current, styles.centered]}>
+          <View style={[ws.card, styles.empty]}>
             <Ionicons name="barbell-outline" size={32} color={WORKOUTS_ACCENT} />
             <Text style={styles.exerciseName}>Add your first exercise</Text>
             <Text style={[ws.muted, { textAlign: 'center' }]}>Pick one to do straight sets, or several for a circuit.</Text>
@@ -548,7 +554,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={[ws.card, styles.current, styles.centered]}>
+          <View style={[ws.card, styles.empty]}>
             <Ionicons name="checkmark-done-circle" size={40} color={WORKOUTS_ACCENT} />
             <Text style={styles.exerciseName}>That’s every set</Text>
             <Text style={[ws.muted, { textAlign: 'center' }]}>
@@ -561,6 +567,8 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {session.blocks.length > 0 && <Text style={ws.sectionLabel}>Plan</Text>}
+        {session.blocks.length > 0 && (
+        <View style={ws.panel}>
         {session.blocks.map((block, i) => {
           const done = roundsDone(block);
           const finished = isBlockFinished(block);
@@ -571,6 +579,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               key={block.id}
               style={[styles.planRow, current && styles.planRowCurrent]}
+              activeOpacity={0.6}
               onPress={() => onPlanTap(i)}
               accessibilityRole="button"
               accessibilityHint={finished && !block.skipped ? 'Add another set' : 'Go to this one now'}
@@ -588,8 +597,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 size={20}
                 color={block.skipped ? Colors.gray : finished || current ? WORKOUTS_ACCENT : Colors.border}
               />
+              <View style={[styles.planMain, i < session.blocks.length - 1 && ws.separator]}>
               <View style={{ flex: 1 }}>
-                <Text style={[ws.title, block.skipped && styles.skippedText]}>
+                <Text style={[styles.planTitle, block.skipped && styles.skippedText]}>
                   {title}
                   {block.added ? '  · added' : ''}
                 </Text>
@@ -602,9 +612,12 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.planCount}>
                 {block.skipped ? 'skipped' : `${done}/${block.rounds}`}
               </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
+        </View>
+        )}
 
         {session.blocks.length > 0 && (
           <TouchableOpacity style={ws.secondaryBtn} onPress={() => setPicking(true)}>
@@ -661,147 +674,114 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.sm,
+    minHeight: 48,
+    backgroundColor: Colors.lightGray,
   },
-  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   topCenter: { flex: 1, alignItems: 'center' },
-  topTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
-  topClock: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, fontVariant: ['tabular-nums'] },
-  finishBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    backgroundColor: WORKOUTS_TINT,
-  },
-  finishText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  topTitle: { ...TextStyles.headline, color: Colors.dark },
+  topClock: { ...TextStyles.footnote, color: Colors.gray, fontVariant: ['tabular-nums'] },
+  finishBtn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
+  finishText: { ...TextStyles.headline, color: WORKOUTS_ACCENT },
 
-  current: { gap: Spacing.md, padding: Spacing.lg, borderColor: WORKOUTS_ACCENT + '55' },
-  centered: { alignItems: 'center' },
+  current: { gap: 18 },
+  empty: { gap: Spacing.md, padding: Spacing.lg, alignItems: 'center' },
   wide: { alignSelf: 'stretch' },
-  eyebrow: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: WORKOUTS_ACCENT,
-  },
-  circuitList: { gap: 4 },
+  eyebrow: { ...TextStyles.footnote, fontWeight: '600', color: Colors.gray, paddingHorizontal: 4, marginBottom: -Spacing.sm },
+  circuitList: { gap: 6 },
   circuitItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  circuitName: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
-  circuitNameActive: { fontFamily: Fonts.secondaryBold, color: Colors.dark },
+  circuitName: { ...TextStyles.subhead, color: Colors.gray },
+  circuitNameActive: { fontWeight: '600', color: Colors.dark },
   circuitNameDone: { textDecorationLine: 'line-through' },
-  exerciseName: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xxl, color: Colors.dark },
+  nameBlock: { gap: 4, paddingHorizontal: 4 },
+  exerciseName: { ...TextStyles.largeTitle, color: Colors.dark },
   cues: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: WORKOUTS_TINT,
-    marginTop: -Spacing.xs,
+    padding: 12,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.cardBg,
   },
-  cuesText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 19 },
-  addCues: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: -Spacing.sm },
-  addCuesText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  cuesText: { flex: 1, ...TextStyles.subhead, color: Colors.dark },
+  addCues: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', minHeight: 32, paddingHorizontal: 4, marginVertical: -Spacing.sm },
+  addCuesText: { ...TextStyles.footnote, color: Colors.gray },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 4 },
   pill: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillDone: { backgroundColor: WORKOUTS_ACCENT, borderColor: WORKOUTS_ACCENT },
-  pillActive: { borderColor: WORKOUTS_ACCENT, borderWidth: 2 },
-  pillMissed: { backgroundColor: Colors.fill, borderColor: Colors.fill },
-  pillText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xs, color: Colors.gray },
+  pillDone: { backgroundColor: WORKOUTS_ACCENT },
+  pillActive: { borderColor: WORKOUTS_ACCENT, borderWidth: 2, backgroundColor: Colors.cardBg },
+  pillMissed: { backgroundColor: Colors.fill },
+  pillText: { ...TextStyles.headline, color: Colors.gray },
   pillTextActive: { color: WORKOUTS_ACCENT },
-  lastTime: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
-  stepUp: {
-    gap: 4,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.secondary + '14',
-    borderWidth: 1,
-    borderColor: Colors.secondary + '40',
-  },
-  stepUpTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
+  lastTime: { ...TextStyles.subhead, color: Colors.label2 },
+  stepUp: { gap: Spacing.sm },
+  stepUpTitle: { ...TextStyles.headline, color: Colors.dark },
   stepUpRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.xs },
-  stepUpBtn: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 9,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: WORKOUTS_ACCENT,
-    backgroundColor: Colors.white,
-  },
-  stepUpBtnFill: { backgroundColor: WORKOUTS_ACCENT },
-  stepUpBtnText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
   lightWeek: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: WORKOUTS_TINT,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.cardBg,
   },
-  lightWeekText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark },
-  inputs: { flexDirection: 'row', gap: Spacing.sm },
-  clockPanel: { gap: Spacing.sm, padding: Spacing.md, borderRadius: BorderRadius.md, backgroundColor: WORKOUTS_TINT },
+  lightWeekText: { flex: 1, ...TextStyles.subhead, color: Colors.dark },
+  inputs: { paddingLeft: Spacing.md },
+  clockPanel: { gap: Spacing.sm, padding: Spacing.md, borderRadius: BorderRadius.lg, backgroundColor: Colors.cardBg },
   clockRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  clockTime: { fontFamily: Fonts.primaryBold, fontSize: 44, color: Colors.dark, fontVariant: ['tabular-nums'] },
+  clockTime: {
+    fontFamily: TextStyles.body.fontFamily,
+    fontSize: 48,
+    lineHeight: 56,
+    fontWeight: '300',
+    color: Colors.dark,
+    fontVariant: ['tabular-nums'],
+  },
   clockOver: { color: Colors.danger },
-  clockHint: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.label2, lineHeight: 19 },
+  clockHint: { ...TextStyles.subhead, color: Colors.label2 },
   clockBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    minHeight: 44,
+    height: 44,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: WORKOUTS_ACCENT,
-    backgroundColor: Colors.white,
+    borderRadius: 22,
+    backgroundColor: Colors.lightGray,
   },
-  clockBtnText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
-  missBtn: { alignItems: 'center', paddingVertical: 10, borderRadius: BorderRadius.full, backgroundColor: Colors.white },
-  missText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
-  actions: { flexDirection: 'row', justifyContent: 'space-around' },
-  action: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingHorizontal: Spacing.sm },
-  actionText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
-  actionDisabled: { color: Colors.border },
+  clockBtnText: { ...TextStyles.subhead, fontWeight: '600', color: WORKOUTS_ACCENT },
+  missBtn: { alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: 22, backgroundColor: Colors.lightGray },
+  missText: { ...TextStyles.subhead, fontWeight: '600', color: Colors.dark },
+  actions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: -Spacing.xs },
+  action: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44, paddingHorizontal: Spacing.sm },
+  actionText: { ...TextStyles.subhead, color: WORKOUTS_ACCENT },
+  actionDisabled: { color: Colors.separator },
 
-  planRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: 12,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
-  },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: Spacing.md },
   planRowCurrent: { backgroundColor: WORKOUTS_TINT },
-  planCount: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
+  planMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, minHeight: 52, paddingVertical: 10, paddingRight: Spacing.md },
+  planTitle: { ...TextStyles.body, color: Colors.dark },
+  planCount: { ...TextStyles.subhead, color: Colors.gray, fontVariant: ['tabular-nums'] },
   skippedText: { color: Colors.gray },
 
   toast: {
     position: 'absolute',
-    left: Spacing.lg,
-    right: Spacing.lg,
+    left: Spacing.md,
+    right: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: 12,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     backgroundColor: Colors.secondary,
   },
-  toastText: { flex: 1, fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.white },
+  toastText: { flex: 1, ...TextStyles.subhead, fontWeight: '600', color: Colors.white },
 });

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
+import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../../constants/theme';
 import { formatClock } from '../../../../../services/workoutMath';
 import { triggerTapHaptic } from '../../../../../utils/haptics';
 import { NumberStepper } from './NumberStepper';
@@ -92,30 +92,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: WORKOUTS_ACCENT,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.cardBg,
   },
-  startText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  startText: { ...TextStyles.headline, color: WORKOUTS_ACCENT },
   running: {
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: Colors.cardBg,
   },
-  clock: { fontFamily: Fonts.primaryBold, fontSize: 56, color: Colors.dark, fontVariant: ['tabular-nums'] },
+  clock: { fontFamily: TextStyles.body.fontFamily, fontSize: 64, lineHeight: 72, fontWeight: '300', color: Colors.dark, fontVariant: ['tabular-nums'] },
   clockReached: { color: WORKOUTS_ACCENT },
-  target: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
+  target: { ...TextStyles.subhead, color: Colors.gray },
   stop: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.xl,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.full,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.secondary,
   },
-  stopText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
+  stopText: { ...TextStyles.headline, color: Colors.white },
 });
