@@ -112,15 +112,15 @@ export interface RuleCtaTarget {
  * screens.
  */
 export const CTA_SCREEN_TARGETS: { value: string; label: string }[] = [
-  { value: 'StartChallenge', label: 'Start a challenge' },
   { value: 'NightlyReflection', label: 'Nightly reflection' },
   { value: 'JourneyCheckin', label: 'Journey check-in (day 14/28)' },
-  { value: 'ProgramDiscovery', label: 'Programs' },
   { value: 'Progress', label: 'Progress tab' },
   // TODO(tools-tab): re-add when the Tools tab is un-hidden.
   // { value: 'Tools', label: 'Tools tab' },
   // Removed 2026-09-06: 'ManageHabits' (the old practices screen) is archived
   // and no longer routed. See RETIRED_CTA_SCREENS.
+  // Removed 2026-11-02: 'StartChallenge' and 'ProgramDiscovery' — Challenges
+  // and Programs are archived features. Also in RETIRED_CTA_SCREENS.
 ];
 
 /** Tab-level targets that need parent-navigator handling. */
@@ -139,8 +139,12 @@ export const CTA_TAB_TARGETS = ['Progress', 'Tools'];
  * - 'ManageHabits' the practices screen is archived; the seeded "Journey day 3"
  *                  rule pointed here and the live copy in Firestore still may,
  *                  because seedDefaultRules skips rules that already exist.
+ * - 'StartChallenge', 'ProgramDiscovery'
+ *                  Challenges and Programs are archived. The screens are
+ *                  still routed, but a rule shouldn't send anyone there; a
+ *                  stored rule pointing at one leaves the person on Today.
  */
-export const RETIRED_CTA_SCREENS = ['Tools', 'ManageHabits'];
+export const RETIRED_CTA_SCREENS = ['Tools', 'ManageHabits', 'StartChallenge', 'ProgramDiscovery'];
 
 /** Can the admin editor still display, and therefore round-trip, this target? */
 export const isOfferedCtaScreen = (screen?: string): boolean =>

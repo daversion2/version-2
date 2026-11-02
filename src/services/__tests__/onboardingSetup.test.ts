@@ -13,6 +13,7 @@ import {
   describePromise,
   formatReminderTime,
   isScheduleValid,
+  needsOnboarding,
   stepAmount,
   toggleDay,
 } from '../onboardingSetup';
@@ -328,5 +329,33 @@ describe('against the real catalog', () => {
       if (draft.amount !== undefined) expect(Number.isFinite(draft.amount)).toBe(true);
       expect(describePromise(def!, draft).endsWith('.')).toBe(true);
     });
+  });
+});
+
+describe('needsOnboarding', () => {
+  it('follows the flag when it is set', () => {
+    expect(needsOnboarding({ created_at: 'x', has_completed_onboarding: false })).toBe(true);
+    expect(needsOnboarding({ created_at: 'x', has_completed_onboarding: true })).toBe(false);
+  });
+
+  it('lets an account from before the flag straight in', () => {
+    // created_at has always been written with the flag, so created_at alone
+    // means an older account — never send it back through onboarding.
+    expect(needsOnboarding({ created_at: '2025-01-01' })).toBe(false);
+  });
+
+  it('sends a doc with no base fields (made by a stray merge write) to onboarding', () => {
+    // The skip-onboarding-forever bug: Home's app_open_count write created the
+    // doc before the account was set up.
+    expect(needsOnboarding({} as any)).toBe(true);
+  });
+
+  it('never undoes a finished onboarding, base fields or not', () => {
+    expect(needsOnboarding({ has_completed_onboarding: true } as any)).toBe(false);
+  });
+
+  it('lets someone in when the profile could not be read at all', () => {
+    expect(needsOnboarding(null)).toBe(false);
+    expect(needsOnboarding(undefined)).toBe(false);
   });
 });

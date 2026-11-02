@@ -1,19 +1,32 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import * as Localization from 'expo-localization';
-import { subscribeToAuth } from '../services/auth';
+import { ensureBaseProfile, subscribeToAuth } from '../services/auth';
 import { getUserProfile, saveTimezone } from '../services/users';
 import { loadPracticeCatalog } from '../services/practiceCatalog';
+import { refreshPushToken } from '../services/notifications';
 import { User } from '../types';
 
 interface AuthContextType {
   user: FirebaseUser | null;
   userProfile: User | null;
   loading: boolean;
+  /**
+   * The signed-in user's profile has been read (or the read failed). False
+   * from every sign-in until then — RootNavigator holds the spinner meanwhile,
+   * so nothing routes on a profile that hasn't arrived.
+   */
+  profileLoaded: boolean;
   refreshProfile: () => Promise<User | null>;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, userProfile: null, loading: true, refreshProfile: async () => null });
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  userProfile: null,
+  loading: true,
+  profileLoaded: false,
+  refreshProfile: async () => null,
+});
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -21,9 +34,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
+  // Each auth change gets a number; a slower load for an earlier user (signed
+  // out mid-read) must not land on the next one.
+  const authSeq = useRef(0);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuth(async (u) => {
+      const seq = ++authSeq.current;
+      const stale = () => seq !== authSeq.current;
+      // Batched with setUser, so the navigator never sees the new user with
+      // the old (or no) profile marked as loaded.
+      setProfileLoaded(false);
+      setUserProfile(null);
       setUser(u);
       if (u) {
         try {
@@ -36,7 +60,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await new Promise((resolve) => setTimeout(resolve, 500));
             profile = await getUserProfile(u.uid);
           }
+          // Still nothing, or a doc some merge write created before the
+          // account was set up: give it its base fields (and its onboarding).
+          if (!profile?.created_at && (await ensureBaseProfile(u.uid, u.email))) {
+            profile = await getUserProfile(u.uid);
+          }
+          if (stale()) return;
           setUserProfile(profile);
+
+          // A token can change (reinstall, restore to a new phone). Only for
+          // someone who already turned notifications on; never prompts.
+          refreshPushToken(u.uid, profile?.expoPushToken);
 
           // Hydrate the practice catalog from Firestore (best-effort — the bundled
           // defaults are already live, so a failure just keeps those).
@@ -52,11 +86,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Offline or transient Firestore failure — without this catch the
           // app would stay on the boot spinner forever
           console.warn('Failed to load user profile:', err);
+          if (stale()) return;
           setUserProfile(null);
         }
       } else {
         setUserProfile(null);
       }
+      if (stale()) return;
+      setProfileLoaded(true);
       setLoading(false);
     });
     return unsubscribe;
@@ -80,8 +117,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user]);
 
   const value = useMemo(
-    () => ({ user, userProfile, loading, refreshProfile }),
-    [user, userProfile, loading, refreshProfile]
+    () => ({ user, userProfile, loading, profileLoaded, refreshProfile }),
+    [user, userProfile, loading, profileLoaded, refreshProfile]
   );
 
   return (

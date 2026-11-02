@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontFamily: Fonts.secondary,
     fontSize: FontSizes.sm,
-    color: '#D32F2F',
+    color: Colors.secondary,
     marginTop: Spacing.sm,
   },
   hintText: {

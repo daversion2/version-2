@@ -1,4 +1,5 @@
 import { HabitDefinition, getCommitmentField } from '../data/practices';
+import type { User } from '../types';
 import { defaultTimeForAnchor } from '../data/anchors';
 import { RESISTANCE_SCALE } from '../constants/resistance';
 import {
@@ -29,6 +30,27 @@ import {
 // The habit helpers further down belong to the seven-beat flow this replaced.
 // Only the archived beats in components/onboarding/_archived/ still use them.
 // =============================================================================
+
+/**
+ * Does this account go to onboarding rather than the app?
+ *
+ * - true / false on `has_completed_onboarding` decide it.
+ * - Flag missing WITH `created_at`: an account from before the flag existed.
+ *   Every creation path has always written the two together, so this can only
+ *   be an older account, and it is treated as onboarded rather than sent back.
+ * - Flag missing WITHOUT `created_at`: the doc was made by a stray merge write
+ *   (app_open_count, timezone) before the account was set up — a new user who
+ *   has not been through onboarding. AuthContext repairs the base fields.
+ * - No profile at all: it couldn't be read (offline). Let them into the app
+ *   rather than trap them in onboarding; the next launch reads it again.
+ */
+export const needsOnboarding = (
+  profile: Pick<User, 'has_completed_onboarding' | 'created_at'> | null | undefined
+): boolean => {
+  if (!profile) return false;
+  if (typeof profile.has_completed_onboarding === 'boolean') return !profile.has_completed_onboarding;
+  return !profile.created_at;
+};
 
 export type OnboardingBeatKey = 'why' | 'apps' | 'goals' | 'reminder';
 

@@ -2,8 +2,11 @@ import {
   defaultAppSetup,
   GOAL_NOUNS,
   hiddenAppsOf,
+  isSetupReplay,
   loadAppSetup,
   needsGoalSetup,
+  planOnboardingFinish,
+  reminderChange,
   resolveStartApp,
   saveAppSetup,
   setupProfilePatch,
@@ -137,5 +140,47 @@ describe('saveAppSetup', () => {
 
   it('puts the start app through the same switched-off check', () => {
     expect(setupProfilePatch({ ...defaultAppSetup(), hidden: ['meditate'] }).start_app).toBe('workouts');
+  });
+});
+
+describe('finishing onboarding', () => {
+  const chosen = { hidden: ['meals' as const], goals: { meditate: 5, workouts: 2, meals: 5 }, startApp: 'workouts' as const };
+
+  it('is a replay once an account has saved a setup', () => {
+    expect(isSetupReplay({ app_goals_set: true })).toBe(true);
+    expect(isSetupReplay({})).toBe(false);
+    expect(isSetupReplay(null)).toBe(false);
+  });
+
+  it('skipping a first run saves the defaults and no reminder', () => {
+    expect(
+      planOnboardingFinish({ replay: false, skipped: true, setup: chosen, savedReminder: null, chosenReminder: '21:00' })
+    ).toEqual({ setup: defaultAppSetup(), reminder: null });
+  });
+
+  it('skipping a replay saves nothing — the setup already there survives', () => {
+    expect(
+      planOnboardingFinish({ replay: true, skipped: true, setup: chosen, savedReminder: '21:00', chosenReminder: null })
+    ).toEqual({ setup: null, reminder: null });
+  });
+
+  it('finishing saves what was chosen', () => {
+    expect(
+      planOnboardingFinish({ replay: true, skipped: false, setup: chosen, savedReminder: null, chosenReminder: '20:00' })
+    ).toEqual({ setup: chosen, reminder: { kind: 'set', time: '20:00' } });
+  });
+
+  it('"No reminder" turns an existing reminder off', () => {
+    expect(
+      planOnboardingFinish({ replay: true, skipped: false, setup: chosen, savedReminder: '21:00', chosenReminder: null })
+        .reminder
+    ).toEqual({ kind: 'off' });
+  });
+
+  it('leaves the reminder alone when nothing about it changed', () => {
+    expect(reminderChange('21:00', '21:00')).toBeNull();
+    expect(reminderChange(null, null)).toBeNull();
+    expect(reminderChange(undefined, null)).toBeNull();
+    expect(reminderChange('21:00', '20:00')).toEqual({ kind: 'set', time: '20:00' });
   });
 });

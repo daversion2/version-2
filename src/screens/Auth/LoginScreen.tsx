@@ -14,6 +14,7 @@ import { Button } from '../../components/common/Button';
 import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
 import { signIn, resetPassword, signInWithGoogle } from '../../services/auth';
 import { showAlert } from '../../utils/alert';
+import { authErrorMessage } from '../../utils/authErrors';
 import { AuthScreenProps } from '../../types/navigation';
 
 type Props = AuthScreenProps<'Login'>;
@@ -35,7 +36,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signIn(email.trim(), password);
     } catch (e: any) {
-      setError(e.message || 'Login failed.');
+      setError(authErrorMessage(e, 'Couldn’t sign in. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -47,7 +48,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signInWithGoogle();
     } catch (e: any) {
-      setError(e.message || 'Google sign in failed.');
+      setError(authErrorMessage(e, 'Couldn’t sign in with Google. Please try again.'));
     } finally {
       setGoogleLoading(false);
     }
@@ -65,7 +66,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         'If an account exists with this email, you will receive a password reset link.'
       );
     } catch (e: any) {
-      showAlert('Error', e.message || 'Could not send reset email.');
+      showAlert('Couldn’t send the email', authErrorMessage(e, 'Please try again in a moment.'));
     }
   };
 

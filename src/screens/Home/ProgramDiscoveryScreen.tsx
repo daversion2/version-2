@@ -11,7 +11,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { getAllPrograms } from '../../services/programs';
-import { seedPrograms } from '../../utils/seedPrograms';
 import { ProgramTemplate } from '../../types';
 
 type Props = HomeScreenProps<'ProgramDiscovery'>;
@@ -23,14 +22,9 @@ export const ProgramDiscoveryScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        let data = await getAllPrograms();
-        // Auto-seed missing programs
-        if (data.length < 6) {
-          console.log('Seeding missing programs...');
-          await seedPrograms();
-          data = await getAllPrograms();
-        }
-        setPrograms(data);
+        // Read only. Seeding writes production, so it stays behind Admin's
+        // seeders — never a side effect of opening a screen.
+        setPrograms(await getAllPrograms());
       } catch (err) {
         console.error('Failed to load programs:', err);
       } finally {

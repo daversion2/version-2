@@ -1,14 +1,17 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { savePushTokenAndTimezone } from './users';
+import { savePushToken, savePushTokenAndTimezone } from './users';
 import * as Localization from 'expo-localization';
+import { isSessionBell } from './sessionBell';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
+    handleNotification: async (notification) => ({
       shouldShowAlert: true,
-      shouldPlaySound: false,
+      // Silent with the app open — except a session's end bell, which is the
+      // whole point of it (services/sessionBell.ts).
+      shouldPlaySound: isSessionBell(notification.request.content.data),
       shouldSetBadge: false,
       shouldShowBanner: true,
       shouldShowList: true,
@@ -18,29 +21,18 @@ if (Platform.OS !== 'web') {
 
 export const registerForPushNotifications = async (userId?: string): Promise<string | null> => {
   try {
-    console.log('registerForPushNotifications called with userId:', userId);
+    // Simulators can't get a push token.
+    if (Platform.OS === 'web' || !Device.isDevice) return null;
 
-    if (Platform.OS === 'web' || !Device.isDevice) {
-      console.log('Push notifications require a physical device');
-      return null;
-    }
-
-    console.log('Getting permissions...');
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-    console.log('Existing permission status:', existingStatus);
 
     if (existingStatus !== 'granted') {
-      console.log('Requesting permissions...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
-      console.log('New permission status:', status);
     }
 
-    if (finalStatus !== 'granted') {
-      console.log('Permission not granted');
-      return null;
-    }
+    if (finalStatus !== 'granted') return null;
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
@@ -49,23 +41,43 @@ export const registerForPushNotifications = async (userId?: string): Promise<str
       });
     }
 
-    console.log('Getting push token...');
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     const timezone = Localization.getCalendars()[0]?.timeZone || 'America/New_York';
 
-    console.log('Expo Push Token:', token);
-    console.log('User Timezone:', timezone);
-
     if (userId && token) {
-      console.log('Saving token and timezone to Firestore...');
       await savePushTokenAndTimezone(userId, token, timezone);
-      console.log('Token saved successfully');
     }
 
     return token;
   } catch (error) {
     console.error('Error in registerForPushNotifications:', error);
     throw error;
+  }
+};
+
+/**
+ * Once per launch: if this account has push on (a saved token) and the phone
+ * still allows it, save the device's current token when it has changed — a
+ * reinstall or a new phone issues a new one, and the old one stops delivering.
+ *
+ * Never prompts, never throws, says nothing. Returns the new token when it
+ * saved one, otherwise null.
+ */
+export const refreshPushToken = async (
+  userId: string,
+  savedToken: string | null | undefined
+): Promise<string | null> => {
+  try {
+    if (!savedToken || Platform.OS === 'web' || !Device.isDevice) return null;
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return null;
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    if (!token || token === savedToken) return null;
+    await savePushToken(userId, token);
+    return token;
+  } catch (error) {
+    console.warn('Push token refresh failed:', error);
+    return null;
   }
 };
 

@@ -244,21 +244,76 @@ export const updateUsername = async (
 // CLEAR ACCOUNT (dev/testing tool)
 // ============================================================================
 
-const USER_SUBCOLLECTIONS = [
+/**
+ * Every subcollection a user doc can hold, live and retired. Retired ones stay
+ * listed: an older account can still hold their documents, and a cleared
+ * account must not. Add a new subcollection here when you create one.
+ */
+export const USER_SUBCOLLECTIONS = [
+  // Habits era (retired features, still on older accounts)
   'habits',
   'challenges',
   'completionLogs',
   'categories',
   'reflections',
   'goals',
+  'skipLogs',
+  'skipReviews',
+  'proofPoints',
+  'worksheets',
+  'challengeStats',
+  'challengeFailureLogs',
+  'comebackLogs',
+  'cravingLogs',
+  'avoidanceTasks',
   'programEnrollments',
   'programBadges',
   'rewardMessages',
-  'challengeStats',
+  'ruleState',
   'shownTidbits',
   'tomorrowPlans',
-  'worksheets',
+  'whyProfile',
+  // The micro-apps (services/lab*.ts)
+  'lab_meditate_sessions',
+  'lab_meditate_prefs',
+  'lab_workouts',
+  'lab_workout_sessions',
+  'lab_workout_records',
+  'lab_workout_exercises',
+  'lab_workout_notes',
+  'lab_workout_prefs',
+  'lab_workout_phases',
+  'lab_workout_tests',
+  'lab_meals_days',
+  'lab_meals_prefs',
+  'lab_hotcold_sessions',
+  'lab_hotcold_prefs',
+  'lab_avoidance_tasks',
+  'lab_avoidance_prefs',
+  'lab_compose',
 ];
+
+/**
+ * Profile fields a clear keeps: who the account is, and what only an admin
+ * can grant (the rules refuse a client write that touches is_admin/is_coach).
+ * Lab switches are the admin's tools, not their data, so they stay too.
+ */
+const PRESERVED_PROFILE_FIELDS = ['id', 'email', 'created_at', 'is_admin', 'is_coach', 'lab_flags'];
+
+/**
+ * The user-doc write that makes a cleared account look like a new one: every
+ * field but the preserved ones deleted, and onboarding not done. Computed from
+ * the doc itself rather than a list of fields, so a field added later can't be
+ * left behind.
+ */
+export const clearedProfilePatch = (current: Record<string, unknown>): Record<string, unknown> => {
+  const patch: Record<string, unknown> = {};
+  for (const key of Object.keys(current)) {
+    if (!PRESERVED_PROFILE_FIELDS.includes(key)) patch[key] = deleteField();
+  }
+  patch.has_completed_onboarding = false;
+  return patch;
+};
 
 const deleteSubcollection = async (userId: string, subcollectionName: string): Promise<number> => {
   const ref = collection(db, 'users', userId, subcollectionName);
@@ -274,7 +329,10 @@ const deleteSubcollection = async (userId: string, subcollectionName: string): P
 /**
  * Clear all user data and reset to fresh state (preserves auth + email + admin status).
  * Deletes all subcollections and resets user doc fields.
- * After this, the user will see onboarding again.
+ * After this, the user will see onboarding again, as a new account does.
+ *
+ * Not cleared, because the client can't reach them: Compose's audio files in
+ * Storage and its monthly allowance (composeUsage/{uid}), both server-only.
  */
 export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: number }> => {
   let totalDeleted = 0;
@@ -285,50 +343,9 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
     totalDeleted += count;
   }
 
-  // Reset user document fields (preserve email, created_at, is_admin)
-  await setDoc(
-    doc(db, 'users', userId),
-    {
-      username: deleteField(),
-      username_lowercase: deleteField(),
-      has_completed_onboarding: false,
-      totalWillpowerPoints: 0,
-      currentStreak: 0,
-      lastActivityDate: deleteField(),
-      team_id: deleteField(),
-      inspiration_feed_opt_in: true,
-      submission_ban_until: deleteField(),
-      active_program_id: deleteField(),
-      last_reflection_date: deleteField(),
-      reflection_streak: 0,
-      home_layout: deleteField(),
-      expoPushToken: deleteField(),
-      timezone: deleteField(),
-      // Why discovery
-      has_completed_why_discovery: deleteField(),
-      why_statement: deleteField(),
-      // Onboarding
-      redirect_mantra: deleteField(),
-      mantras: deleteField(),
-      active_mantra_id: deleteField(),
-      onboarding_pattern: deleteField(),
-      onboarding_reflection: deleteField(),
-      onboarding_deferred: deleteField(),
-      onboarding_banner_dismissed: deleteField(),
-      deferred_onboarding_progress: deleteField(),
-      // Completion counters
-      totalHabitsCompleted: 0,
-      totalChallengesCompleted: 0,
-      // Intro flags
-      has_seen_points_intro: deleteField(),
-      has_dismissed_goal_prompt: deleteField(),
-      has_seen_challenges_unlock: deleteField(),
-      has_seen_training_unlock: deleteField(),
-      has_seen_craving_pointer: deleteField(),
-      app_open_count: deleteField(),
-    },
-    { merge: true }
-  );
+  const ref = doc(db, 'users', userId);
+  const snap = await getDoc(ref);
+  await setDoc(ref, clearedProfilePatch(snap.exists() ? snap.data() : {}), { merge: true });
 
   return { deletedDocs: totalDeleted };
 };
@@ -346,7 +363,10 @@ export const clearUserAccount = async (userId: string): Promise<{ deletedDocs: n
 export const deleteAccountPermanently = async (): Promise<void> => {
   const deleteAccount = httpsCallable<void, { success: boolean }>(
     getFunctions(app),
-    'deleteAccount'
+    'deleteAccount',
+    // The function is allowed 300s (a big account has a lot to purge); the
+    // client's default 70s would report a failure while the delete carried on.
+    { timeout: 300_000 }
   );
   await deleteAccount();
   await logOut();

@@ -136,3 +136,12 @@ describe('isOfferedCtaScreen', () => {
     expect(isOfferedCtaScreen(undefined)).toBe(false);
   });
 });
+
+describe('archived features', () => {
+  it('no longer offers Challenges or Programs as a destination, and ignores stored ones', () => {
+    ['StartChallenge', 'ProgramDiscovery'].forEach((screen) => {
+      expect(isOfferedCtaScreen(screen)).toBe(false);
+      expect(RETIRED_CTA_SCREENS).toContain(screen);
+    });
+  });
+});

@@ -76,7 +76,7 @@ export const SettingsScreen: React.FC = () => {
       await refreshProfile();
     } catch (error) {
       console.error('Error resetting onboarding:', error);
-      showAlert('Error', 'Failed to reset onboarding.');
+      showAlert('Couldn’t replay the intro', 'Please try again in a moment.');
     }
   };
 
@@ -121,17 +121,19 @@ export const SettingsScreen: React.FC = () => {
   const handleClearAccount = () => {
     showConfirm(
       'Clear Account',
-      'This will delete ALL your data (challenges, habits, streaks, XP, reflections, etc.) and restart from scratch. Your login stays the same. This cannot be undone.',
+      'This deletes everything in your account — sessions, ratings, streaks, XP, reflections and settings — and starts you again from the intro. Your login stays the same. This cannot be undone.',
       async () => {
         if (!user) return;
         setClearing(true);
         try {
           const result = await clearUserAccount(user.uid);
+          // The evening reminder's time went with the profile; take it off the phone too.
+          await cancelAllHabitReminders();
           await refreshProfile();
-          showAlert('Account Cleared', `Deleted ${result.deletedDocs} documents. You'll see onboarding again on next launch.`);
+          showAlert('Account cleared', `Deleted ${result.deletedDocs} documents. You’re back at the start.`);
         } catch (error) {
           console.error('Error clearing account:', error);
-          showAlert('Error', 'Failed to clear account. Try again.');
+          showAlert('Couldn’t clear the account', 'Please try again.');
         } finally {
           setClearing(false);
         }
@@ -145,7 +147,7 @@ export const SettingsScreen: React.FC = () => {
   const handleDeleteAccount = () => {
     showConfirm(
       'Delete Account',
-      'This permanently deletes your account and everything in it — challenges, habits, streaks, XP, reflections, and worksheets. You will not be able to sign back in, and none of it can be recovered.',
+      'This permanently deletes your account and everything in it — sessions, ratings, streaks, XP, reflections and settings. You will not be able to sign back in, and none of it can be recovered.',
       () => {
         showConfirm(
           'Are you sure?',
@@ -153,17 +155,16 @@ export const SettingsScreen: React.FC = () => {
           async () => {
             setDeleting(true);
             try {
-              // Before the account goes, not after: the delete function
-              // recursiveDeletes the habit documents that hold the only copy of
-              // these notification ids, and the user can never sign back in to
-              // reach them. Cancel while there is still a session to do it in.
-              await cancelAllHabitReminders();
               await deleteAccountPermanently();
+              // Only once the delete has gone through: a failed delete leaves
+              // the account, so it keeps its reminders. Clearing them is a
+              // device call (cancel everything scheduled), so it needs no session.
+              await cancelAllHabitReminders();
               // Sign-out inside the service drops us back to the auth screen,
               // so there is no post-delete UI to return to.
             } catch (error) {
               console.error('Error deleting account:', error);
-              showAlert('Error', 'Could not delete your account. Please try again.');
+              showAlert('Couldn’t delete your account', 'Please try again in a moment.');
               setDeleting(false);
             }
           },
@@ -182,6 +183,9 @@ export const SettingsScreen: React.FC = () => {
         // Local notifications are scheduled against the device, not the account,
         // so they outlive the session. Cancel before dropping it.
         await cancelAllHabitReminders();
+        // The push token is the device's, not the account's. Forget it, or this
+        // account's notifications keep arriving on a phone it has left.
+        if (user) await clearPushToken(user.uid).catch(() => {});
         await logOut();
       },
       'Sign Out'

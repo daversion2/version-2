@@ -15,6 +15,7 @@ import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
 import { signUp, signInWithGoogle } from '../../services/auth';
 import { AuthScreenProps } from '../../types/navigation';
 import { PRIVACY_POLICY_URL } from '../../constants/links';
+import { authErrorMessage } from '../../utils/authErrors';
 
 type Props = AuthScreenProps<'Signup'>;
 
@@ -44,7 +45,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signUp(email.trim(), password);
     } catch (e: any) {
-      setError(e.message || 'Signup failed.');
+      setError(authErrorMessage(e, 'Couldn’t create your account. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signInWithGoogle();
     } catch (e: any) {
-      setError(e.message || 'Google sign up failed.');
+      setError(authErrorMessage(e, 'Couldn’t sign up with Google. Please try again.'));
     } finally {
       setGoogleLoading(false);
     }

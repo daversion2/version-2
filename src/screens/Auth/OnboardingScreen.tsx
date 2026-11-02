@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,9 +8,19 @@ import { Copy } from '../../components/common/Copy';
 import { useCopy } from '../../context/CopyContext';
 import { FadeRise } from '../../components/common/FadeRise';
 import { useAuth } from '../../context/AuthContext';
-import { showAlert } from '../../utils/alert';
-import { markOnboardingComplete } from '../../services/users';
-import { AppSetup, defaultAppSetup, resolveStartApp, saveAppSetup } from '../../services/appSetup';
+import { showAlert, showConfirm } from '../../utils/alert';
+import { clearPushToken, markOnboardingComplete } from '../../services/users';
+import { logOut } from '../../services/auth';
+import { cancelAllHabitReminders } from '../../services/habitReminders';
+import {
+  AppSetup,
+  defaultAppSetup,
+  isSetupReplay,
+  loadAppSetup,
+  planOnboardingFinish,
+  resolveStartApp,
+  saveAppSetup,
+} from '../../services/appSetup';
 import { setCloseOutReminder } from '../../services/closeOutReminder';
 import { DEFAULT_CLOSEOUT_TIME, formatReminderTime } from '../../services/closeOutTimes';
 import {
@@ -42,15 +52,40 @@ import {
 // ============================================================================
 
 export const OnboardingScreen: React.FC = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, userProfile, refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const t = useCopy();
   const scrollRef = useRef<ScrollView>(null);
 
+  // Settings → Replay intro on an account that already has a setup: open on
+  // what's saved, not the defaults. Decided once, on arrival.
+  const [replay] = useState(() => isSetupReplay(userProfile));
+  const [savedReminder] = useState(() => userProfile?.closeout_reminder_time ?? null);
+
   const [beatIndex, setBeatIndex] = useState(0);
   const [setup, setSetup] = useState<AppSetup>(defaultAppSetup);
-  const [reminderTime, setReminderTime] = useState<string | null>(DEFAULT_CLOSEOUT_TIME);
+  const [reminderTime, setReminderTime] = useState<string | null>(() =>
+    replay ? savedReminder : DEFAULT_CLOSEOUT_TIME
+  );
   const [saving, setSaving] = useState(false);
+
+  // The saved setup arrives a moment after the screen; anything already
+  // changed by then wins over it.
+  const touchedRef = useRef(false);
+  useEffect(() => {
+    if (!replay || !user) return;
+    let cancelled = false;
+    loadAppSetup(user.uid, userProfile)
+      .then((saved) => {
+        if (!cancelled && !touchedRef.current) setSetup(saved);
+      })
+      .catch((e) => console.warn('Could not load the saved app setup:', e));
+    return () => {
+      cancelled = true;
+    };
+    // Once, on arrival — a later profile refresh must not reset choices.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const beat = ONBOARDING_BEATS[beatIndex];
   const isLast = beatIndex === ONBOARDING_BEATS.length - 1;
@@ -65,26 +100,55 @@ export const OnboardingScreen: React.FC = () => {
   };
 
   // Switching off the start app moves "start here" to the first app still on.
-  const setHidden = (hidden: AppSetup['hidden']) =>
+  const setHidden = (hidden: AppSetup['hidden']) => {
+    touchedRef.current = true;
     setSetup((s) => ({ ...s, hidden, startApp: resolveStartApp(s.startApp, hidden) }));
+  };
+  const changeSetup = (next: AppSetup) => {
+    touchedRef.current = true;
+    setSetup(next);
+  };
+
+  // The way out for someone signed in to the wrong account. Same steps as
+  // Settings → Sign out.
+  const signOut = () => {
+    showConfirm(
+      t('onboarding.signOut.title', 'Sign out?'),
+      t('onboarding.signOut.body', 'You can sign in with a different account.'),
+      async () => {
+        await cancelAllHabitReminders();
+        if (user) await clearPushToken(user.uid).catch(() => {});
+        await logOut().catch((e) => console.warn('Sign out failed:', e));
+      },
+      t('onboarding.signOut.confirm', 'Sign out')
+    );
+  };
 
   // --------------------------------------------------------------------------
   // Completion
   // --------------------------------------------------------------------------
 
   /**
-   * Save the setup, maybe the reminder, then flip into the app. `skipped`
-   * saves the defaults with no reminder — Today still has goals to count.
+   * Save the setup, maybe the reminder, then flip into the app. What gets
+   * written (and what a skip or a replay leaves alone) is planOnboardingFinish's
+   * call, in services/appSetup.ts.
    */
   const finish = async (skipped: boolean) => {
     if (!user || saving) return;
     setSaving(true);
     try {
-      await saveAppSetup(user.uid, skipped ? defaultAppSetup() : setup);
-      if (!skipped && reminderTime) {
+      const plan = planOnboardingFinish({
+        replay,
+        skipped,
+        setup,
+        savedReminder,
+        chosenReminder: reminderTime,
+      });
+      if (plan.setup) await saveAppSetup(user.uid, plan.setup);
+      if (plan.reminder) {
         // A refused prompt or a simulator just means no reminder — not a failure.
-        await setCloseOutReminder(user.uid, reminderTime).catch((e) =>
-          console.warn('Close-out reminder failed:', e)
+        await setCloseOutReminder(user.uid, plan.reminder.kind === 'set' ? plan.reminder.time : null).catch(
+          (e) => console.warn('Close-out reminder failed:', e)
         );
       }
       // Last: this flips RootNavigator into the app.
@@ -110,7 +174,7 @@ export const OnboardingScreen: React.FC = () => {
       case 'apps':
         return <OnboardingApps hidden={setup.hidden} onChange={setHidden} />;
       case 'goals':
-        return <OnboardingGoals setup={setup} onChange={setSetup} />;
+        return <OnboardingGoals setup={setup} onChange={changeSetup} />;
       case 'reminder':
         return <OnboardingReminder time={reminderTime} onChange={setReminderTime} />;
     }
@@ -188,6 +252,13 @@ export const OnboardingScreen: React.FC = () => {
             </Copy>
           </TouchableOpacity>
         )}
+        {beatIndex === 0 && (
+          <TouchableOpacity onPress={signOut} disabled={saving} style={styles.signOut}>
+            <Copy id="onboarding.cta.signOut" style={styles.signOutText}>
+              {'Not you? Sign out'}
+            </Copy>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -230,4 +301,6 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     textDecorationLine: 'underline',
   },
+  signOut: { alignItems: 'center', paddingTop: Spacing.sm },
+  signOutText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
 });

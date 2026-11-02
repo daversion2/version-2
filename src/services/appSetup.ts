@@ -154,3 +154,39 @@ export const saveAppSetup = async (userId: string, setup: AppSetup, { includeSta
   const { start_app, ...rest } = setupProfilePatch(setup);
   await setDoc(doc(db, 'users', userId), includeStart ? { ...rest, start_app } : rest, { merge: true });
 };
+
+// -----------------------------------------------------------------------------
+// Finishing onboarding — first run or a replay from Settings → Replay intro.
+// -----------------------------------------------------------------------------
+
+/**
+ * A replay: this account has saved a setup before (onboarding or the goals
+ * sheet). Onboarding then opens on what's saved instead of the defaults.
+ */
+export const isSetupReplay = (profile: Pick<User, 'app_goals_set'> | null | undefined): boolean =>
+  !!profile?.app_goals_set;
+
+/** What finishing does to the evening reminder: set a time, turn it off, or leave it. */
+export type ReminderChange = { kind: 'set'; time: string } | { kind: 'off' } | null;
+
+export const reminderChange = (saved: string | null | undefined, chosen: string | null): ReminderChange => {
+  if (chosen) return chosen === saved ? null : { kind: 'set', time: chosen };
+  return saved ? { kind: 'off' } : null;
+};
+
+/**
+ * What finishing onboarding writes. Skipping a first run saves the defaults
+ * (Today still has goals to count) and no reminder; skipping a replay saves
+ * nothing, so the setup the person already had survives. Finishing saves what
+ * they chose, and "No reminder" turns an existing reminder off.
+ */
+export const planOnboardingFinish = (args: {
+  replay: boolean;
+  skipped: boolean;
+  setup: AppSetup;
+  savedReminder: string | null | undefined;
+  chosenReminder: string | null;
+}): { setup: AppSetup | null; reminder: ReminderChange } => {
+  if (args.skipped) return { setup: args.replay ? null : defaultAppSetup(), reminder: null };
+  return { setup: args.setup, reminder: reminderChange(args.savedReminder, args.chosenReminder) };
+};
