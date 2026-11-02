@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import { NsdrLink } from '../../../../../types/meditate';
 import { normalizeLink } from '../../../../../services/meditateMath';
 import { MEDITATE_ACCENT, ms } from './meditateStyle';
@@ -71,9 +71,9 @@ export const NsdrLinkForm: React.FC<{
 
 const styles = StyleSheet.create({
   wrap: { gap: Spacing.sm },
-  row: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.md },
-  btn: { paddingVertical: 4, paddingHorizontal: Spacing.xs },
-  cancel: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
-  save: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
-  error: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.danger },
+  row: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
+  btn: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
+  cancel: { ...TextStyles.body, color: Colors.gray },
+  save: { ...TextStyles.headline, color: MEDITATE_ACCENT },
+  error: { ...TextStyles.footnote, color: Colors.danger },
 });

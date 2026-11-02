@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import {
   calmInsight,
@@ -69,48 +69,61 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
       navigation.popToTop();
     }, 'Discard');
 
+  // "5 min" → a big 5 and a small "min"; "40 sec" the same way.
+  const [amount, unit] = formatMinutes(preview.duration_sec).split(' ');
+
   return (
     <View style={[ms.screen, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={[ms.scroll, { paddingBottom: 170 + insets.bottom }]}>
+      <ScrollView contentContainerStyle={[ms.scroll, styles.scroll, { paddingBottom: 170 + insets.bottom }]}>
         <View style={styles.hero}>
-          <Ionicons name="checkmark-circle" size={44} color={MEDITATE_ACCENT} />
-          <Text style={styles.heroTitle}>{preview.ended_early ? 'Ended early' : DONE_TITLE[preview.mode]}</Text>
-          <Text style={styles.minutes}>{formatMinutes(preview.duration_sec)}</Text>
-          <Text style={ms.muted}>{describeSession(preview)}</Text>
+          <View style={styles.badge}>
+            <Ionicons name="checkmark" size={30} color={Colors.white} />
+          </View>
+          <Text style={styles.heroTitle} accessibilityRole="header">
+            {preview.ended_early ? 'Ended early' : DONE_TITLE[preview.mode]}
+          </Text>
+          <Text style={styles.amount}>
+            {amount}
+            <Text style={styles.unit}> {unit}</Text>
+          </Text>
+          <Text style={styles.described}>{describeSession(preview)}</Text>
           {preview.ended_early && (
-            <Text style={[ms.muted, styles.center]}>
-              Of {formatMinutes(preview.planned_sec)} planned. Showing up is the habit — this counts.
+            <Text style={[styles.described, styles.center]}>
+              Of {formatMinutes(preview.planned_sec)} planned. Showing up is what counts.
             </Text>
           )}
         </View>
 
         {records.length > 0 && (
-          <View style={[ms.card, styles.recordCard]}>
-            <View style={styles.recordHead}>
-              <Ionicons name="trophy" size={18} color={Colors.secondary} />
-              <Text style={styles.recordTitle}>{records.length === 1 ? 'New record' : 'New records'}</Text>
-            </View>
-            {records.map((r) => (
-              <View key={r.label}>
-                <Text style={ms.title}>
-                  {r.label}: {formatMinutes(r.sec)}
-                </Text>
-                <Text style={ms.muted}>Up from {formatMinutes(r.previousSec)}</Text>
+          <View style={[ms.card, styles.records]} accessibilityLabel={records.length === 1 ? 'New record' : 'New records'}>
+            {records.map((r, i) => (
+              <View key={r.label} style={[styles.record, i > 0 && styles.recordDivider]}>
+                <View style={styles.recordIcon}>
+                  <Ionicons name="arrow-up" size={18} color={MEDITATE_ACCENT} />
+                </View>
+                <View style={{ flex: 1, gap: 1 }}>
+                  <Text style={ms.title}>
+                    {r.label}: {formatMinutes(r.sec)}
+                  </Text>
+                  <Text style={ms.muted}>New record, up from {formatMinutes(r.previousSec)}</Text>
+                </View>
               </View>
             ))}
           </View>
         )}
 
         <View style={[ms.card, styles.calmCard]}>
-          <CalmScale question="How calm do you feel now?" value={calmAfter} onChange={setCalmAfter} />
-          {session.calmBefore !== undefined && (
-            <Text style={ms.muted}>You started at {session.calmBefore}.</Text>
-          )}
+          <CalmScale
+            question="How calm do you feel now?"
+            note={session.calmBefore !== undefined ? `You started at ${session.calmBefore}.` : undefined}
+            value={calmAfter}
+            onChange={setCalmAfter}
+          />
           {insight && <Text style={styles.insight}>{describeCalmInsight(insight)}</Text>}
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+      <View style={[ms.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
         <TouchableOpacity
           style={[ms.primaryBtn, saving && ms.disabled]}
           onPress={finish}
@@ -123,8 +136,8 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={ms.primaryBtnText}>Finish & rate it</Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={discard} disabled={saving} style={ms.textBtn}>
-          <Text style={ms.textBtnText}>Discard</Text>
+        <TouchableOpacity onPress={discard} disabled={saving} style={ms.textBtn} accessibilityRole="button">
+          <Text style={ms.destructiveText}>Discard</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -132,26 +145,33 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  hero: { alignItems: 'center', gap: 4, paddingVertical: Spacing.lg },
-  heroTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, color: Colors.dark },
-  minutes: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.hero, color: MEDITATE_ACCENT },
-  center: { textAlign: 'center', marginTop: Spacing.xs },
-  recordCard: { gap: Spacing.sm, borderColor: Colors.secondary + '55' },
-  recordHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  recordTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.secondary },
-  calmCard: { gap: Spacing.sm },
-  insight: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
-  habitRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  habitRowOn: { borderColor: MEDITATE_ACCENT, backgroundColor: MEDITATE_TINT },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    backgroundColor: Colors.lightGray,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+  scroll: { paddingTop: Spacing.xxl, gap: 20 },
+  hero: { alignItems: 'center', gap: 6 },
+  badge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: MEDITATE_ACCENT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
+  heroTitle: { ...TextStyles.title1, color: Colors.dark },
+  amount: { fontFamily: TextStyles.largeTitle.fontFamily, fontSize: 64, lineHeight: 72, fontWeight: '700', color: Colors.dark },
+  unit: { ...TextStyles.title2, fontWeight: '600', color: Colors.gray },
+  described: { ...TextStyles.subhead, color: Colors.gray },
+  center: { textAlign: 'center' },
+  records: { paddingVertical: 0 },
+  record: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
+  recordDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator },
+  recordIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: MEDITATE_TINT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calmCard: { gap: Spacing.md },
+  insight: { ...TextStyles.subhead, fontWeight: '600', color: MEDITATE_ACCENT },
 });

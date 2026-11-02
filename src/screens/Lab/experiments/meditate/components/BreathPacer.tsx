@@ -7,14 +7,12 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
+import { Colors, MeditateNight, Spacing, TextStyles } from '../../../../../constants/theme';
 import { BREATH_FULL, BreathPatternKey, getBreathPattern } from '../../../../../data/breathPatterns';
-import { MEDITATE_ACCENT } from './meditateStyle';
 
-const BASE_SIZE = 120; // diameter of the contracted circle
+const BASE_SIZE = 150; // diameter of the contracted circle; fully inhaled is BREATH_FULL × this
 
 // Haptics can throw on unsupported platforms — never let a buzz break the pacer.
 const haptic = (fn: () => void) => {
@@ -59,11 +57,6 @@ export const BreathPacer: React.FC<Props> = ({ pattern: patternKey, plannedSec, 
 
   const scale = useSharedValue(1);
   const circleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const glowStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value * 1.12 }],
-    opacity: 0.18 + (scale.value - 1) * 0.22,
-  }));
-
   useEffect(() => {
     activateKeepAwakeAsync('meditate-pacer');
     return () => {
@@ -111,71 +104,68 @@ export const BreathPacer: React.FC<Props> = ({ pattern: patternKey, plannedSec, 
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.meta}>
-        {pattern.label} · about {remainingMin} min left
-      </Text>
-      <View style={styles.stage}>
-        <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
-        <Animated.View style={[styles.circle, circleStyle]}>
-          <Text style={styles.count}>{count}</Text>
-        </Animated.View>
+      <View style={styles.header}>
+        <Text style={styles.title}>{pattern.label}</Text>
+        <Text style={styles.meta}>About {Math.max(1, remainingMin)} min left</Text>
       </View>
-      <Text style={styles.cue}>{paused ? 'Paused' : step.label}</Text>
+      <View style={styles.stage}>
+        <View style={styles.ring} pointerEvents="none" />
+        <Animated.View style={[styles.circle, circleStyle]} pointerEvents="none" />
+        <View style={styles.readout} accessibilityLiveRegion="polite">
+          <Text style={styles.cue}>{paused ? 'Paused' : step.label}</Text>
+          {!paused && <Text style={styles.count}>{count}</Text>}
+        </View>
+      </View>
       <TouchableOpacity
         style={styles.pause}
         onPress={() => setPaused((p) => !p)}
         accessibilityRole="button"
-        accessibilityLabel={paused ? 'Resume' : 'Pause'}
       >
-        <Ionicons name={paused ? 'play' : 'pause'} size={16} color={MEDITATE_ACCENT} />
         <Text style={styles.pauseText}>{paused ? 'Resume' : 'Pause'}</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
+const FULL = BASE_SIZE * BREATH_FULL;
+
+// Canvas "Meditate · breathing pacer": a dark teal room, a faint ring at full
+// size, and the breathing circle growing into it.
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: Spacing.lg, width: '100%' },
-  meta: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.xs,
-    color: Colors.gray,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+  wrap: { flex: 1, alignItems: 'center', width: '100%' },
+  header: { alignItems: 'center', gap: 4 },
+  title: { ...TextStyles.headline, color: Colors.white },
+  meta: { ...TextStyles.subhead, color: MeditateNight.text2 },
+  stage: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
+  ring: {
+    position: 'absolute',
+    width: FULL,
+    height: FULL,
+    borderRadius: FULL / 2,
+    borderWidth: 1,
+    borderColor: MeditateNight.veil,
   },
-  // Room for the fully-expanded circle plus its glow.
-  stage: {
-    width: BASE_SIZE * BREATH_FULL * 1.2,
-    height: BASE_SIZE * BREATH_FULL * 1.2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  glow: {
+  circle: {
     position: 'absolute',
     width: BASE_SIZE,
     height: BASE_SIZE,
     borderRadius: BASE_SIZE / 2,
-    backgroundColor: MEDITATE_ACCENT,
+    // Thin, so it stays a hairline-ish edge at full size (it scales with the circle).
+    borderWidth: 1,
+    borderColor: MeditateNight.glow,
+    backgroundColor: MeditateNight.glow + '33',
   },
-  circle: {
-    width: BASE_SIZE,
-    height: BASE_SIZE,
-    borderRadius: BASE_SIZE / 2,
+  readout: { alignItems: 'center', gap: 2 },
+  cue: { ...TextStyles.title1, fontWeight: '600', color: Colors.white },
+  count: { fontFamily: TextStyles.body.fontFamily, fontSize: 56, lineHeight: 64, fontWeight: '300', color: Colors.white },
+  pause: {
+    alignSelf: 'stretch',
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: MeditateNight.veil,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: MEDITATE_ACCENT,
+    marginBottom: Spacing.xs,
   },
-  count: { fontFamily: Fonts.primaryBold, fontSize: 40, color: Colors.white },
-  cue: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, color: MEDITATE_ACCENT },
-  pause: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm + 2,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    borderWidth: 2,
-    borderColor: MEDITATE_ACCENT,
-  },
-  pauseText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
+  pauseText: { ...TextStyles.headline, color: Colors.white },
 });

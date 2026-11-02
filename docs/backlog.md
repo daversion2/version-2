@@ -129,6 +129,15 @@ Next:
    planning moves to app sessions, so redesign it once, together with D3.
    Weekly goals are in Settings now (Apps and weekly goals, 2026-11-01).
 3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
+   **Meditate is done** (2026-11-01, not yet seen on screen or OTA): every
+   screen, to the canvas's "Inside Meditate" boards. `meditateStyle.ts` is
+   the redesign's text styles now; the start screen is a large title,
+   `SegmentedControl`, `ListGroup` choice rows with a check mark and a
+   `Stepper`, with only Begin pinned (the calm question moved into the
+   scroll); the pacer is the dark teal room (`MeditateNight` in the theme);
+   History and Settings are grouped lists. Still old-style and shared with
+   the other apps, so left for their passes: `miniapps/PastSessionSheet` and
+   `miniapps/WeeklyGoalPicker`. Next: Meals, then Workouts.
 4. Phase 4: sign-in, and restyling the new four-screen onboarding (built
    2026-11-01) onto the shared pieces. Sign in with Apple needs a native build.
 5. ~~Flip it on for everyone~~ (done 2026-11-01). Then delete the classic

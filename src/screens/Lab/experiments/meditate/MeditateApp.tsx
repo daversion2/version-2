@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { createNativeStackNavigator, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { RootStackParamList } from '../../../../types/navigation';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import { useAuth } from '../../../../context/AuthContext';
@@ -47,12 +47,13 @@ export const MeditateApp: React.FC<NativeStackScreenProps<RootStackParamList, 'M
         screenOptions={{
           headerStyle: { backgroundColor: Colors.lightGray },
           headerTintColor: MEDITATE_ACCENT,
-          headerTitleStyle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
+          headerTitleStyle: { fontFamily: TextStyles.headline.fontFamily, fontSize: TextStyles.headline.fontSize, fontWeight: TextStyles.headline.fontWeight, color: Colors.dark },
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
-        <Stack.Screen name="MeditateHome" component={MeditateHomeScreen} options={{ title: 'Meditate' }} />
+        {/* The start screen draws its own large title ("New session"). */}
+        <Stack.Screen name="MeditateHome" component={MeditateHomeScreen} options={{ title: '' }} />
         {/* No header, no swipe-back: a stray gesture mid-sit would leave the session. */}
         <Stack.Screen
           name="MeditateSession"
@@ -87,6 +88,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     backgroundColor: Colors.lightGray,
   },
-  blockedText: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray, textAlign: 'center' },
-  blockedLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: MEDITATE_ACCENT },
+  blockedText: { ...TextStyles.body, color: Colors.gray, textAlign: 'center' },
+  blockedLink: { ...TextStyles.headline, color: MEDITATE_ACCENT },
 });

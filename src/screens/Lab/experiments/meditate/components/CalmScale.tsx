@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes, BorderRadius, Spacing } from '../../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import { CALM_LEVELS } from '../../../../../services/meditateMath';
-import { MEDITATE_ACCENT, MEDITATE_TINT } from './meditateStyle';
+import { MEDITATE_ACCENT } from './meditateStyle';
 
 interface Props {
   /** "How calm do you feel?" / "How calm do you feel now?" */
   question: string;
+  /** A line under the question, e.g. "You started at 2." Defaults to "Optional". */
+  note?: string;
   value?: number;
   /** Tapping the chosen number again clears it — the answer is always optional. */
   onChange: (value: number | undefined) => void;
@@ -14,55 +16,56 @@ interface Props {
 
 /**
  * One optional row, 1 (tense) to 5 (calm). Never blocks anything: skip it and
- * the session runs and saves the same.
+ * the session runs and saves the same. Drawn to sit inside a white card.
  */
-export const CalmScale: React.FC<Props> = ({ question, value, onChange }) => (
+export const CalmScale: React.FC<Props> = ({ question, note = 'Optional', value, onChange }) => (
   <View style={styles.wrap}>
     <View style={styles.head}>
-      <Text style={styles.question}>{question}</Text>
-      <Text style={styles.optional}>Optional</Text>
+      <Text style={styles.question} accessibilityRole="header">
+        {question}
+      </Text>
+      <Text style={styles.note}>{note}</Text>
     </View>
-    <View style={styles.row}>
-      <Text style={styles.end}>Tense</Text>
+    <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={question}>
       {CALM_LEVELS.map((n) => {
         const on = value === n;
         return (
           <TouchableOpacity
             key={n}
-            style={[styles.pill, on && styles.pillOn]}
+            style={[styles.tile, on && styles.tileOn]}
             onPress={() => onChange(on ? undefined : n)}
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
             accessibilityLabel={`Calm ${n} of 5${n === 1 ? ', tense' : n === 5 ? ', calm' : ''}`}
-            hitSlop={{ top: 6, bottom: 6 }}
           >
-            <Text style={[styles.pillText, on && styles.pillTextOn]}>{n}</Text>
+            <Text style={[styles.tileText, on && styles.tileTextOn]}>{n}</Text>
           </TouchableOpacity>
         );
       })}
-      <Text style={styles.end}>Calm</Text>
+    </View>
+    <View style={styles.ends}>
+      <Text style={styles.note}>Tense</Text>
+      <Text style={styles.note}>Calm</Text>
     </View>
   </View>
 );
 
 const styles = StyleSheet.create({
-  wrap: { gap: Spacing.xs },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  question: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
-  optional: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  end: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, width: 38, textAlign: 'center' },
-  pill: {
+  wrap: { gap: Spacing.sm + 4 },
+  head: { gap: 2 },
+  question: { ...TextStyles.headline, color: Colors.dark },
+  note: { ...TextStyles.footnote, color: Colors.gray },
+  row: { flexDirection: 'row', gap: Spacing.sm },
+  tile: {
     flex: 1,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: Colors.lightGray,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillOn: { borderColor: MEDITATE_ACCENT, backgroundColor: MEDITATE_TINT },
-  pillText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.gray },
-  pillTextOn: { color: MEDITATE_ACCENT },
+  tileOn: { backgroundColor: MEDITATE_ACCENT },
+  tileText: { ...TextStyles.title3, color: Colors.dark },
+  tileTextOn: { color: Colors.white },
+  ends: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -4 },
 });

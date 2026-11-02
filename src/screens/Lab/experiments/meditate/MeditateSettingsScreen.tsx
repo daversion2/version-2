@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing } from '../../../../constants/theme';
+import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import { NsdrLink } from '../../../../types/meditate';
 import { clampWeeklyGoal } from '../../../../services/appCheckins';
 import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
@@ -11,9 +12,9 @@ import { NsdrLinkForm } from './components/NsdrLinkForm';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
 
 const BELL_STATUS = {
-  granted: 'On — the bell rings when a timed session ends, phone locked or not.',
-  denied: 'Off — notifications are blocked for Neuro-Nudge, so no bell rings. Timed sessions still run.',
-  undetermined: 'Not set yet — you’ll be asked the first time you begin a timed session.',
+  granted: 'On. The bell rings when a timed session ends, phone locked or not.',
+  denied: 'Off. Notifications are blocked for Neuro-Nudge, so no bell rings. Timed sessions still run.',
+  undetermined: 'Not set yet. You’ll be asked the first time you begin a timed session.',
 } as const;
 
 export const MeditateSettingsScreen: React.FC = () => {
@@ -46,59 +47,50 @@ export const MeditateSettingsScreen: React.FC = () => {
         Shown on Today as “2 of 5 this week”. A week that falls short gets the usual one-tap “what got in the way?”.
       </Text>
 
-      <Text style={ms.sectionLabel}>The bell</Text>
-      <View style={[ms.card, styles.bell]}>
-        <Ionicons
-          name={bellPermission === 'granted' ? 'notifications-outline' : 'notifications-off-outline'}
-          size={20}
-          color={bellPermission === 'denied' ? Colors.danger : MEDITATE_ACCENT}
+      <ListGroup
+        title="The bell"
+        footer="The bell is your phone’s notification sound. A Focus mode or Do Not Disturb can silence it."
+      >
+        <ListRow
+          title={BELL_STATUS[bellPermission]}
+          icon={{
+            name: bellPermission === 'granted' ? 'notifications' : 'notifications-off',
+            color: bellPermission === 'denied' ? Colors.danger : MEDITATE_ACCENT,
+          }}
         />
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={ms.body}>{BELL_STATUS[bellPermission]}</Text>
-          {bellPermission === 'denied' && (
-            <TouchableOpacity onPress={() => Linking.openSettings()}>
-              <Text style={styles.link}>Open Settings</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-      <Text style={ms.muted}>
-        The bell is your phone’s notification sound. A Focus mode or Do Not Disturb can silence it.
-      </Text>
+        {bellPermission === 'denied' && (
+          <ListRow title="Open Settings" tint="accent" chevron={false} onPress={() => Linking.openSettings()} />
+        )}
+      </ListGroup>
 
-      <Text style={ms.sectionLabel}>NSDR recordings</Text>
-      {prefs.nsdr_links.length === 0 && !adding && (
-        <Text style={ms.muted}>None yet. Begin on NSDR opens the one you pick.</Text>
-      )}
-      {prefs.nsdr_links.map((l) => (
-        <View key={l.id} style={[ms.card, styles.row]}>
-          <View style={{ flex: 1 }}>
-            <Text style={ms.title}>{l.title}</Text>
-            <Text style={ms.muted} numberOfLines={1}>
-              {l.url}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={() => removeRecording(l)} hitSlop={8} accessibilityLabel={`Remove ${l.title}`}>
-            <Ionicons name="trash-outline" size={20} color={Colors.gray} />
-          </TouchableOpacity>
-        </View>
-      ))}
-      {adding ? (
-        <NsdrLinkForm onAdd={addRecording} onCancel={() => setAdding(false)} />
-      ) : (
-        <TouchableOpacity onPress={() => setAdding(true)} style={styles.add}>
-          <Ionicons name="add" size={16} color={MEDITATE_ACCENT} />
-          <Text style={styles.link}>Add a recording</Text>
-        </TouchableOpacity>
-      )}
-
+      <ListGroup
+        title="NSDR recordings"
+        footer={prefs.nsdr_links.length === 0 && !adding ? 'None yet. Begin on NSDR opens the one you pick.' : undefined}
+      >
+        {prefs.nsdr_links.map((l) => (
+          <ListRow
+            key={l.id}
+            title={l.title}
+            subtitle={l.url}
+            right={
+              <TouchableOpacity
+                onPress={() => removeRecording(l)}
+                style={styles.remove}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${l.title}`}
+              >
+                <Ionicons name="trash-outline" size={20} color={Colors.gray} />
+              </TouchableOpacity>
+            }
+          />
+        ))}
+        {!adding && <ListRow title="Add a recording" tint="accent" chevron={false} onPress={() => setAdding(true)} />}
+      </ListGroup>
+      {adding && <NsdrLinkForm onAdd={addRecording} onCancel={() => setAdding(false)} />}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  bell: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  add: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 },
-  link: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
+  remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginVertical: -Spacing.sm },
 });

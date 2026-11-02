@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { StatusBar } from 'expo-status-bar';
+import { BorderRadius, Colors, MeditateNight, Spacing, TextStyles } from '../../../../constants/theme';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import { getBreathPattern } from '../../../../data/breathPatterns';
 import { addPacedSeconds, getSitTechnique, MODES } from '../../../../services/meditateMath';
@@ -12,7 +13,7 @@ import { elapsedSec, formatMinutes, isDue } from '../../../../services/sessionTi
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { BreathPacer } from './components/BreathPacer';
-import { MEDITATE_ACCENT, MEDITATE_TINT, ms } from './components/meditateStyle';
+import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateSession'>;
 
@@ -76,7 +77,7 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timedId]);
 
-  if (!session || session.endedAt) return <View style={[ms.screen, { backgroundColor: Colors.white }]} />;
+  if (!session || session.endedAt) return <View style={ms.screen} />;
 
   const endEarly = () =>
     showConfirm('End now?', 'It’s logged as the time you actually did — that still counts.', () => end(true), 'End');
@@ -89,8 +90,9 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
   // --- Paced breathing --------------------------------------------------------
   if (session.style === 'pacer') {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.md }]}>
-        <View style={styles.middle}>
+      <View style={[styles.screen, styles.night, { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + Spacing.sm }]}>
+        <StatusBar style="light" />
+        <View style={styles.pacer}>
           <BreathPacer
             pattern={session.pattern ?? 'box'}
             plannedSec={session.plannedSec}
@@ -100,7 +102,7 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
         <TouchableOpacity onPress={endEarly} style={ms.textBtn} accessibilityRole="button">
-          <Text style={ms.textBtnText}>End early</Text>
+          <Text style={[ms.textBtnText, styles.nightText]}>End</Text>
         </TouchableOpacity>
       </View>
     );
@@ -164,25 +166,21 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.white, paddingHorizontal: Spacing.lg },
+  screen: { flex: 1, backgroundColor: Colors.lightGray, paddingHorizontal: Spacing.lg },
+  night: { backgroundColor: MeditateNight.bg },
+  nightText: { color: MeditateNight.text2 },
+  pacer: { flex: 1 },
   middle: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
-  title: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xxl, color: Colors.dark, textAlign: 'center' },
-  lead: {
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.md,
-    color: Colors.gray,
-    textAlign: 'center',
-    lineHeight: 23,
-    maxWidth: 320,
-  },
+  title: { ...TextStyles.title1, color: Colors.dark, textAlign: 'center' },
+  lead: { ...TextStyles.body, color: Colors.gray, textAlign: 'center', maxWidth: 320 },
   anchor: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    borderRadius: 14,
-    backgroundColor: MEDITATE_TINT,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.cardBg,
     maxWidth: 340,
   },
-  anchorText: { fontFamily: Fonts.primary, fontSize: FontSizes.md, color: Colors.dark, textAlign: 'center', lineHeight: 23 },
-  reopen: { paddingHorizontal: Spacing.lg, marginTop: Spacing.sm },
+  anchorText: { ...TextStyles.body, color: Colors.dark, textAlign: 'center' },
+  reopen: { marginTop: Spacing.sm },
   actions: { gap: Spacing.sm },
 });

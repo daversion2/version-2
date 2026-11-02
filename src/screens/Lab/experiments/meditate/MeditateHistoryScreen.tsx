@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
+import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import { MeditateMode } from '../../../../types/meditate';
 import {
   breakdown,
@@ -133,74 +134,73 @@ export const MeditateHistoryScreen: React.FC = () => {
         </View>
       </View>
 
-      <Text style={ms.sectionLabel}>Records</Text>
-      <View style={ms.card}>
-        {MODE_ORDER.map((m: MeditateMode) => {
-          const r = records.longest[m];
-          return (
-            <View key={m} style={styles.recordRow}>
-              <Text style={[ms.body, { flex: 1 }]}>{RECORD_LABELS[m]}</Text>
-              <Text style={ms.title}>{r ? formatMinutes(r.duration_sec) : '—'}</Text>
-            </View>
-          );
-        })}
-        <View style={styles.recordRow}>
-          <Text style={[ms.body, { flex: 1 }]}>Most minutes in a week</Text>
-          <Text style={ms.title}>{records.bestWeek ? formatMinutes(records.bestWeek.sec) : '—'}</Text>
-        </View>
-      </View>
+      <ListGroup title="Records">
+        {[
+          ...MODE_ORDER.map((m: MeditateMode) => {
+            const r = records.longest[m];
+            return <ListRow key={m} title={RECORD_LABELS[m]} value={r ? formatMinutes(r.duration_sec) : '—'} />;
+          }),
+          <ListRow
+            key="week"
+            title="Most minutes in a week"
+            value={records.bestWeek ? formatMinutes(records.bestWeek.sec) : '—'}
+          />,
+        ]}
+      </ListGroup>
 
       {rows.length > 0 && (
-        <>
-          <Text style={ms.sectionLabel}>Where the minutes went</Text>
-          <View style={ms.card}>
-            {rows.map((r) => (
-              <View key={r.key} style={styles.recordRow}>
-                <Text style={[ms.body, { flex: 1 }]}>{r.label}</Text>
-                <Text style={ms.muted}>
-                  {r.sessions} {r.sessions === 1 ? 'session' : 'sessions'} ·{' '}
-                </Text>
-                <Text style={ms.title}>{formatMinutes(r.sec)}</Text>
-              </View>
-            ))}
-          </View>
-        </>
+        <ListGroup title="Where the minutes went">
+          {rows.map((r) => (
+            <ListRow
+              key={r.key}
+              title={r.label}
+              subtitle={`${r.sessions} ${r.sessions === 1 ? 'session' : 'sessions'}`}
+              value={formatMinutes(r.sec)}
+            />
+          ))}
+        </ListGroup>
       )}
 
-      {sessions.length > 0 && <Text style={ms.sectionLabel}>Sessions</Text>}
-      {sessions.slice(0, RECENT).map((s) => (
-        <View key={s.id} style={[ms.card, styles.sessionRow]}>
-          <View style={{ flex: 1 }}>
-            <Text style={ms.title}>{describeSession(s)}</Text>
-            <Text style={ms.muted}>
-              {formatRelativeDay(s.date)}
-              {s.ended_early ? ` · ended early of ${formatMinutes(s.planned_sec)}` : ''}
-              {describeCalm(s) ? ` · ${describeCalm(s)}` : ''}
-            </Text>
-          </View>
-          <Text style={ms.title}>{formatMinutes(s.duration_sec)}</Text>
-        </View>
-      ))}
-      {sessions.length > RECENT && (
-        <Text style={ms.muted}>Showing the latest {RECENT}. Every session counts in the totals above.</Text>
+      {sessions.length > 0 && (
+        <ListGroup
+          title="Sessions"
+          footer={
+            sessions.length > RECENT ? `Showing the latest ${RECENT}. Every session counts in the totals above.` : undefined
+          }
+        >
+          {sessions.slice(0, RECENT).map((s) => (
+            <ListRow
+              key={s.id}
+              title={describeSession(s)}
+              subtitle={[
+                formatRelativeDay(s.date),
+                s.ended_early ? `ended early of ${formatMinutes(s.planned_sec)}` : null,
+                describeCalm(s) || null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              value={formatMinutes(s.duration_sec)}
+            />
+          ))}
+        </ListGroup>
       )}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  tiles: { flexDirection: 'row', gap: Spacing.sm },
-  tile: { flex: 1, gap: 2, paddingVertical: Spacing.md },
-  tileValue: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, color: Colors.dark },
-  tileUnit: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
-  readout: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, marginBottom: Spacing.sm },
+  tiles: { flexDirection: 'row', gap: 10 },
+  tile: { flex: 1, gap: 2, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18 },
+  tileValue: { ...TextStyles.title2, fontWeight: '600', color: Colors.dark },
+  tileUnit: { ...TextStyles.footnote, color: Colors.gray },
+  readout: { ...TextStyles.headline, color: Colors.dark, marginBottom: Spacing.sm },
   chart: {
     height: CHART_HEIGHT,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
   barSlot: { flex: 1, height: '100%', justifyContent: 'flex-end', alignItems: 'center' },
   bar: {
@@ -210,8 +210,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 4,
   },
   axis: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs },
-  recordRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: Spacing.sm },
-  sessionRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   calmCard: { gap: 4 },
-  calmText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: MEDITATE_ACCENT },
+  calmText: { ...TextStyles.headline, color: MEDITATE_ACCENT },
 });

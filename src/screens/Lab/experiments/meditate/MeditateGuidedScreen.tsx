@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import { describeSession } from '../../../../services/meditateMath';
 import { showConfirm } from '../../../../utils/alert';
@@ -87,13 +87,7 @@ export const MeditateGuidedScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   screen: { paddingHorizontal: Spacing.lg, justifyContent: 'space-between' },
   middle: { flex: 1, justifyContent: 'center', gap: Spacing.md, alignItems: 'stretch' },
-  title: {
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.xl,
-    color: Colors.dark,
-    textAlign: 'center',
-    alignSelf: 'center',
-  },
+  title: { ...TextStyles.title2, color: Colors.dark, textAlign: 'center', alignSelf: 'center' },
   center: { textAlign: 'center' },
   player: { paddingVertical: Spacing.lg },
 });

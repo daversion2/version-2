@@ -11,9 +11,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
+import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants/theme';
+import { LargeTitle } from '../../../../components/common/LargeTitle';
+import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
+import { SegmentedControl } from '../../../../components/common/SegmentedControl';
+import { Stepper } from '../../../../components/common/Stepper';
 import { GuidedRecording, MeditateMode, MeditateStackParamList, NsdrLink } from '../../../../types/meditate';
-import { BREATH_PATTERNS, getBreathPattern } from '../../../../data/breathPatterns';
+import { BREATH_PATTERNS } from '../../../../data/breathPatterns';
 import {
   clampMinutes,
   describeSession,
@@ -31,7 +35,7 @@ import { showAlert, showChoice, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { NsdrLinkForm } from './components/NsdrLinkForm';
 import { CalmScale } from './components/CalmScale';
-import { MEDITATE_ACCENT, MEDITATE_TINT, ms } from './components/meditateStyle';
+import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { newMeditateId, saveMeditateSession } from '../../../../services/labMeditate';
 
@@ -227,29 +231,40 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     ]);
   };
 
+  // A row in a choice list: tap to pick, a check mark on the chosen one.
+  const choiceRow = (key: string, title: string, subtitle: string | undefined, on: boolean, onPress: () => void) => (
+    <ListRow
+      key={key}
+      title={title}
+      subtitle={subtitle}
+      onPress={onPress}
+      chevron={false}
+      right={on ? <Ionicons name="checkmark" size={20} color={MEDITATE_ACCENT} /> : undefined}
+      accessibilityLabel={`${title}${subtitle ? `, ${subtitle}` : ''}${on ? ', selected' : ''}`}
+    />
+  );
+
   return (
     <View style={ms.screen}>
-      <ScrollView contentContainerStyle={[ms.scroll, { paddingBottom: 220 + insets.bottom }]}>
+      <ScrollView contentContainerStyle={[ms.scroll, { paddingBottom: 120 + insets.bottom }]}>
+        <LargeTitle title="New session" />
+
         {!prefs.intro_seen && !loading && (
           <View style={[ms.card, styles.intro]}>
             <Text style={ms.title}>How Meditate works</Text>
-            <Text style={ms.body}>• Pick Sit, Breathe or NSDR, and how long.</Text>
-            <Text style={ms.body}>
+            <Text style={styles.introLine}>• Pick Sit, Breathe or NSDR, and how long.</Text>
+            <Text style={styles.introLine}>
               • Tap Begin and lock your phone. A bell rings at the end — no screen glowing at you while you sit.
             </Text>
-            <Text style={ms.body}>
-              • Finish, and it hands back to Today: “How hard was it to start?”, and it counts toward your week.
+            <Text style={styles.introLine}>
+              • Finish, and it hands back to Today to rate your override: how hard was it to start? It counts toward
+              your week.
             </Text>
             <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
-              <Text style={styles.introBtnText}>Got it</Text>
+              <Text style={ms.link}>Got it</Text>
             </TouchableOpacity>
           </View>
         )}
-
-        <TouchableOpacity style={styles.pastLink} onPress={() => setLoggingPast(true)} accessibilityRole="button">
-          <Ionicons name="time-outline" size={16} color={MEDITATE_ACCENT} />
-          <Text style={styles.pastLinkText}>Log a past session</Text>
-        </TouchableOpacity>
 
         {session && (
           <TouchableOpacity style={styles.resume} onPress={resume} accessibilityRole="button">
@@ -285,144 +300,82 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {/* Mode */}
-        <View style={styles.modes} accessibilityRole="tablist">
-          {MODE_ORDER.map((m) => {
-            const on = m === mode;
-            return (
-              <TouchableOpacity
-                key={m}
-                style={[styles.mode, on && styles.modeOn]}
-                onPress={() => {
-                  set({ mode: m });
-                  setShowSteps(false);
-                }}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: on }}
-              >
-                <Ionicons name={MODES[m].icon as any} size={20} color={on ? Colors.white : MEDITATE_ACCENT} />
-                <Text style={[styles.modeText, on && styles.modeTextOn]}>{MODES[m].label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <Text style={ms.muted}>{config.blurb}</Text>
+        <SegmentedControl
+          options={MODE_ORDER.map((m) => ({ value: m, label: MODES[m].label }))}
+          value={mode}
+          onChange={(m) => {
+            set({ mode: m });
+            setShowSteps(false);
+          }}
+          accessibilityLabel="Kind of session"
+        />
+        <Text style={[ms.lead, styles.blurb]}>{config.blurb}</Text>
 
         {/* What you'll do */}
         {mode === 'sit' && (
           <>
-            <Text style={ms.sectionLabel}>Technique</Text>
-            <View style={ms.chipRow}>
-              {SIT_TECHNIQUES.map((t) => {
-                const on = t.key === choices.technique;
-                return (
-                  <TouchableOpacity
-                    key={t.key}
-                    style={[ms.chip, on && ms.chipActive]}
-                    onPress={() => set({ technique: t.key })}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
-                  >
-                    <Text style={[ms.chipText, on && ms.chipTextActive]}>{t.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <View style={[ms.card, styles.cueCard]}>
-              <Text style={styles.cue}>{technique.cue}</Text>
-              <TouchableOpacity onPress={() => setShowSteps((s) => !s)} style={styles.stepsToggle}>
-                <Text style={styles.stepsToggleText}>{showSteps ? 'Hide the steps' : 'See the steps'}</Text>
-                <Ionicons name={showSteps ? 'chevron-up' : 'chevron-down'} size={14} color={MEDITATE_ACCENT} />
-              </TouchableOpacity>
-              {showSteps &&
-                techniqueSteps(technique.key).map((step, i) => (
-                  <Text key={i} style={ms.body}>
-                    {i + 1}. {step}
+            <ListGroup title="Technique">
+              {SIT_TECHNIQUES.map((t) =>
+                choiceRow(t.key, t.label, t.cue, t.key === choices.technique, () => set({ technique: t.key }))
+              )}
+            </ListGroup>
+            {techniqueSteps(technique.key).length > 0 && (
+              <>
+                <TouchableOpacity onPress={() => setShowSteps((s) => !s)} style={styles.stepsToggle}>
+                  <Text style={ms.link}>
+                    {showSteps ? 'Hide the steps' : `See the steps for ${technique.label.toLowerCase()}`}
                   </Text>
-                ))}
-            </View>
+                  <Ionicons name={showSteps ? 'chevron-up' : 'chevron-down'} size={14} color={MEDITATE_ACCENT} />
+                </TouchableOpacity>
+                {showSteps && (
+                  <View style={[ms.card, styles.steps]}>
+                    {techniqueSteps(technique.key).map((step, i) => (
+                      <Text key={i} style={styles.stepText}>
+                        {i + 1}. {step}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
           </>
         )}
 
         {mode === 'breathe' && (
           <>
-            <Text style={ms.sectionLabel}>Pattern</Text>
-            <View style={ms.chipRow}>
-              {BREATH_PATTERNS.map((p) => {
-                const on = p.key === choices.pattern;
-                return (
-                  <TouchableOpacity
-                    key={p.key}
-                    style={[ms.chip, on && ms.chipActive]}
-                    onPress={() => set({ pattern: p.key })}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
-                  >
-                    <Text style={[ms.chipText, on && ms.chipTextActive]}>{p.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Text style={ms.muted}>{getBreathPattern(choices.pattern).blurb}</Text>
-
-            {!useGuided && <Text style={ms.sectionLabel}>How</Text>}
-            {!useGuided && <View style={styles.styleRow}>
-              {(
-                [
-                  { key: 'pacer', title: 'Follow the pacer', detail: 'A circle on screen sets the rhythm' },
-                  { key: 'timer', title: 'Just time it', detail: 'Lock your phone, bell at the end' },
-                ] as const
-              ).map((o) => {
-                const on = choices.breatheStyle === o.key;
-                return (
-                  <TouchableOpacity
-                    key={o.key}
-                    style={[ms.card, styles.styleCard, on && styles.styleCardOn]}
-                    onPress={() => set({ breatheStyle: o.key })}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
-                  >
-                    <Text style={[ms.title, { fontSize: FontSizes.sm }]}>{o.title}</Text>
-                    <Text style={ms.muted}>{o.detail}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>}
+            <ListGroup title="Pattern">
+              {BREATH_PATTERNS.map((p) =>
+                choiceRow(p.key, p.label, p.blurb, p.key === choices.pattern, () => set({ pattern: p.key }))
+              )}
+            </ListGroup>
+            {!useGuided && (
+              <ListGroup title="How">
+                {choiceRow('pacer', 'Follow the pacer', 'A circle on screen sets the rhythm', choices.breatheStyle === 'pacer', () =>
+                  set({ breatheStyle: 'pacer' })
+                )}
+                {choiceRow('timer', 'Just time it', 'Lock your phone, bell at the end', choices.breatheStyle === 'timer', () =>
+                  set({ breatheStyle: 'timer' })
+                )}
+              </ListGroup>
+            )}
           </>
         )}
 
         {mode === 'nsdr' && !useGuided && (
           <>
-            <Text style={ms.sectionLabel}>Recording</Text>
+            {prefs.nsdr_links.length > 0 && (
+              <ListGroup title="Recording">
+                {prefs.nsdr_links.map((l) =>
+                  choiceRow(l.id, l.title, l.url, l.id === nsdrLink?.id, () => set({ nsdrLinkId: l.id }))
+                )}
+              </ListGroup>
+            )}
             {prefs.nsdr_links.length === 0 && !addingLink && (
-              <Text style={ms.muted}>
+              <Text style={ms.lead}>
                 NSDR follows a recording — a yoga nidra or NSDR track you like. Save one and Begin opens it, with the
                 bell set for the end.
               </Text>
             )}
-            {prefs.nsdr_links.map((l) => {
-              const on = l.id === nsdrLink?.id;
-              return (
-                <TouchableOpacity
-                  key={l.id}
-                  style={[ms.card, styles.linkRow, on && styles.styleCardOn]}
-                  onPress={() => set({ nsdrLinkId: l.id })}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: on }}
-                >
-                  <Ionicons
-                    name={on ? 'radio-button-on' : 'radio-button-off'}
-                    size={20}
-                    color={on ? MEDITATE_ACCENT : Colors.gray}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={ms.title}>{l.title}</Text>
-                    <Text style={ms.muted} numberOfLines={1}>
-                      {l.url}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
             {addingLink || prefs.nsdr_links.length === 0 ? (
               <NsdrLinkForm
                 onAdd={addLink}
@@ -430,8 +383,8 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
               />
             ) : (
               <TouchableOpacity onPress={() => setAddingLink(true)} style={styles.addLink}>
-                <Ionicons name="add" size={16} color={MEDITATE_ACCENT} />
-                <Text style={styles.addLinkText}>Add a recording</Text>
+                <Ionicons name="add" size={18} color={MEDITATE_ACCENT} />
+                <Text style={ms.link}>Add a recording</Text>
               </TouchableOpacity>
             )}
           </>
@@ -439,95 +392,62 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Timer or guided — only where a recording exists */}
         {options.length > 0 && (
-          <>
-            <Text style={ms.sectionLabel}>Guidance</Text>
-            <View style={styles.styleRow}>
-              {(
-                [
-                  { on: false, title: 'On my own', detail: timedDetail(mode) },
-                  { on: true, title: 'Guided', detail: 'A voice leads you through it' },
-                ] as const
-              ).map((o) => {
-                const on = useGuided === o.on;
-                return (
-                  <TouchableOpacity
-                    key={o.title}
-                    style={[ms.card, styles.styleCard, on && styles.styleCardOn]}
-                    onPress={() => setGuidedOn((g) => ({ ...g, [mode]: o.on }))}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: on }}
-                  >
-                    <Text style={[ms.title, { fontSize: FontSizes.sm }]}>{o.title}</Text>
-                    <Text style={ms.muted}>{o.detail}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </>
+          <SegmentedControl
+            options={[
+              { value: 'own', label: 'On my own' },
+              { value: 'guided', label: 'Guided' },
+            ]}
+            value={useGuided ? 'guided' : 'own'}
+            onChange={(v) => setGuidedOn((g) => ({ ...g, [mode]: v === 'guided' }))}
+            accessibilityLabel="Guidance"
+          />
         )}
 
         {/* How long */}
-        <Text style={ms.sectionLabel}>How long</Text>
         {recording ? (
-          <View style={ms.chipRow}>
-            {options.map((r) => {
-              const on = r.id === recording.id;
-              return (
-                <TouchableOpacity
-                  key={r.id}
-                  style={[ms.chip, on && ms.chipActive]}
-                  onPress={() => setGuidedPick(r.id)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: on }}
-                  accessibilityLabel={`${r.length_min} minutes, read by ${r.voice}`}
-                >
-                  <Text style={[ms.chipText, on && ms.chipTextActive]}>
-                    {r.length_min} min · {r.voice}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <ListGroup title="Recording">
+            {options.map((r) =>
+              choiceRow(r.id, `${r.length_min} min`, `Read by ${r.voice}`, r.id === recording.id, () => setGuidedPick(r.id))
+            )}
+          </ListGroup>
         ) : (
-        <View style={[ms.card, styles.stepper]}>
-          <TouchableOpacity
-            onPress={() => setMinutes(minutes - config.stepMin)}
-            disabled={minutes <= config.minMin}
-            style={[styles.stepBtn, minutes <= config.minMin && ms.disabled]}
-            accessibilityLabel="Less time"
-          >
-            <Ionicons name="remove" size={22} color={MEDITATE_ACCENT} />
-          </TouchableOpacity>
-          <View style={styles.stepValue}>
-            <Text style={styles.stepNum}>{minutes}</Text>
-            <Text style={ms.muted}>min</Text>
+          <View style={[ms.card, styles.length]}>
+            <Text style={ms.body}>How long</Text>
+            <Stepper
+              value={minutes}
+              onChange={setMinutes}
+              min={config.minMin}
+              max={config.maxMin}
+              step={config.stepMin}
+              format={(n) => `${n} min`}
+              accessibilityLabel="Session length"
+            />
           </View>
-          <TouchableOpacity
-            onPress={() => setMinutes(minutes + config.stepMin)}
-            disabled={minutes >= config.maxMin}
-            style={[styles.stepBtn, minutes >= config.maxMin && ms.disabled]}
-            accessibilityLabel="More time"
-          >
-            <Ionicons name="add" size={22} color={MEDITATE_ACCENT} />
-          </TouchableOpacity>
-        </View>
         )}
 
         {timed && bellPermission === 'denied' && (
           <View style={[ms.card, styles.warn]}>
-            <Ionicons name="notifications-off-outline" size={18} color={Colors.danger} />
+            <Ionicons name="notifications-off-outline" size={20} color={Colors.danger} />
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={ms.title}>No bell will ring</Text>
               <Text style={ms.muted}>
                 Notifications are off for Neuro-Nudge, so nothing tells you when time’s up. Turn them on, or check
                 back yourself.
               </Text>
-              <TouchableOpacity onPress={() => Linking.openSettings()}>
-                <Text style={styles.warnLink}>Open Settings</Text>
+              <TouchableOpacity onPress={() => Linking.openSettings()} style={styles.warnLink}>
+                <Text style={ms.link}>Open Settings</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
+
+        <View style={ms.card}>
+          <CalmScale question="How calm do you feel?" value={calmBefore} onChange={setCalmBefore} />
+        </View>
+
+        <TouchableOpacity style={styles.pastLink} onPress={() => setLoggingPast(true)} accessibilityRole="button">
+          <Text style={ms.link}>Log a past session</Text>
+        </TouchableOpacity>
       </ScrollView>
       <PastSessionSheet
         visible={loggingPast}
@@ -539,8 +459,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         onSave={logPast}
       />
 
-      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
-        <CalmScale question="How calm do you feel?" value={calmBefore} onChange={setCalmBefore} />
+      <View style={[ms.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
           style={[ms.primaryBtn, (starting || needsLink) && ms.disabled]}
           onPress={onBegin}
@@ -564,86 +483,46 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-/** What "On my own" means in each mode. */
-const timedDetail = (mode: MeditateMode): string =>
-  mode === 'breathe' ? 'The pacer, or just a timer' : mode === 'nsdr' ? 'Your saved recording, timed' : 'Lock your phone, bell at the end';
-
 const styles = StyleSheet.create({
-  pastLink: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, minHeight: 44, alignSelf: 'flex-start' },
-  pastLinkText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
   center: { alignItems: 'center', justifyContent: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  intro: { gap: 6, borderColor: MEDITATE_ACCENT + '55' },
-  introBtn: { alignSelf: 'flex-end', paddingVertical: 4, paddingHorizontal: Spacing.sm },
-  introBtnText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
+  intro: { gap: 6 },
+  introLine: { ...TextStyles.subhead, color: Colors.dark },
+  introBtn: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
   resume: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.md,
-    borderRadius: 14,
+    borderRadius: BorderRadius.lg,
     backgroundColor: MEDITATE_ACCENT,
   },
-  resumeEyebrow: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: Colors.white,
-    opacity: 0.8,
-  },
-  resumeTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.white },
+  resumeEyebrow: { ...TextStyles.footnote, fontWeight: '600', color: Colors.white, opacity: 0.85 },
+  resumeTitle: { ...TextStyles.headline, color: Colors.white },
   resumeActions: { alignItems: 'flex-end', gap: Spacing.sm },
-  resumeCta: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
-  resumeDiscard: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.white, opacity: 0.8 },
-  modes: { flexDirection: 'row', gap: Spacing.sm },
-  mode: {
-    flex: 1,
+  resumeCta: { ...TextStyles.headline, color: Colors.white },
+  resumeDiscard: { ...TextStyles.footnote, color: Colors.white, opacity: 0.85 },
+  blurb: { marginTop: -(Spacing.md - 4) },
+  stepsToggle: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 14,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    paddingHorizontal: 4,
+    marginVertical: -Spacing.sm,
   },
-  modeOn: { backgroundColor: MEDITATE_ACCENT, borderColor: MEDITATE_ACCENT },
-  modeText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.dark },
-  modeTextOn: { color: Colors.white },
-  cueCard: { gap: Spacing.sm, backgroundColor: MEDITATE_TINT, borderColor: MEDITATE_ACCENT + '33' },
-  cue: { fontFamily: Fonts.primary, fontSize: FontSizes.md, color: Colors.dark, lineHeight: 23 },
-  stepsToggle: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
-  stepsToggleText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: MEDITATE_ACCENT },
-  styleRow: { flexDirection: 'row', gap: Spacing.sm },
-  styleCard: { flex: 1, gap: 2 },
-  styleCardOn: { borderColor: MEDITATE_ACCENT, borderWidth: 1.5, backgroundColor: MEDITATE_TINT },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  addLink: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 },
-  addLinkText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
-  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  stepBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: MEDITATE_ACCENT,
+  steps: { gap: Spacing.sm },
+  stepText: { ...TextStyles.subhead, color: Colors.dark },
+  addLink: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 4 },
+  length: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    paddingRight: Spacing.sm,
   },
-  stepValue: { alignItems: 'center' },
-  stepNum: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.hero, color: Colors.dark },
-  warn: { flexDirection: 'row', gap: Spacing.md, borderColor: Colors.danger + '55' },
-  warnLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEDITATE_ACCENT },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    gap: Spacing.md,
-    backgroundColor: Colors.lightGray,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
+  warn: { flexDirection: 'row', gap: Spacing.md },
+  warnLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  pastLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
 });

@@ -35,6 +35,18 @@ export const AppColors = {
   hotcold: '#2A8BB5',
 };
 
+// Meditate's breathing pacer (redesign canvas "Meditate · breathing pacer"):
+// a dark teal room so the circle is the only bright thing on screen.
+export const MeditateNight = {
+  bg: '#0C2328',
+  /** Secondary text on the dark ground. */
+  text2: '#A9C3C7',
+  /** The circle's outline and glow. */
+  glow: '#5FC4C9',
+  /** The faint outer ring and the Pause button's fill. */
+  veil: 'rgba(255,255,255,0.14)',
+};
+
 // Hot & Cold's two kinds, so a cold row and a heat row never read alike.
 export const ThermalColors = {
   cold: '#2A8BB5',
