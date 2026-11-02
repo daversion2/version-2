@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import type { FoodGroupId } from '../../../../types/meals';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../data/mealGroups';
 import { describeGroups, scorePlate } from '../../../../services/mealsMath';
@@ -84,10 +84,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingVertical: Spacing.sm + 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.separator,
   },
   last: { borderBottomWidth: 0 },
-  result: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
+  result: { ...TextStyles.headline },
 });

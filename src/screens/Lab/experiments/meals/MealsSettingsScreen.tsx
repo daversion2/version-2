@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, Switch, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
+import { Stepper as SharedStepper } from '../../../../components/common/Stepper';
+import { SegmentedControl } from '../../../../components/common/SegmentedControl';
 import type {
   CustomFoodGroup,
   GroupGoal,
@@ -38,6 +40,7 @@ import { MEALS_ACCENT, NUTRIENT_COLOR, mls } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsSettings'>;
 
+/** The shared − value + control, in Meals' accent. */
 const Stepper: React.FC<{
   value: number;
   onChange: (n: number) => void;
@@ -45,27 +48,7 @@ const Stepper: React.FC<{
   max: number;
   step?: number;
   label: string;
-}> = ({ value, onChange, min, max, step = 1, label }) => (
-  <View style={styles.stepper}>
-    <TouchableOpacity
-      style={[styles.stepBtn, value <= min && mls.disabled]}
-      onPress={() => onChange(Math.max(min, value - step))}
-      disabled={value <= min}
-      accessibilityLabel={`Fewer ${label}`}
-    >
-      <Ionicons name="remove" size={16} color={Colors.dark} />
-    </TouchableOpacity>
-    <Text style={styles.stepValue}>{value}</Text>
-    <TouchableOpacity
-      style={[styles.stepBtn, value >= max && mls.disabled]}
-      onPress={() => onChange(Math.min(max, value + step))}
-      disabled={value >= max}
-      accessibilityLabel={`More ${label}`}
-    >
-      <Ionicons name="add" size={16} color={Colors.dark} />
-    </TouchableOpacity>
-  </View>
-);
+}> = ({ label, ...rest }) => <SharedStepper {...rest} accessibilityLabel={label} tint={MEALS_ACCENT} />;
 
 /** A meal's name, saved when you leave the field — not on every keystroke. Arrows move it up or down. */
 const SlotRow: React.FC<{
@@ -412,21 +395,16 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
               label="times"
               onChange={(count) => changeGoal(goal.id, { count })}
             />
-            <View style={styles.period}>
-              {(['day', 'week'] as const).map((p) => (
-                <TouchableOpacity
-                  key={p}
-                  style={[styles.periodBtn, goal.period === p && styles.periodBtnOn]}
-                  onPress={() => changeGoal(goal.id, { period: p })}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: goal.period === p }}
-                >
-                  <Text style={[styles.periodText, goal.period === p && styles.periodTextOn]}>
-                    {p === 'day' ? 'Per day' : 'Per week'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <SegmentedControl
+              options={[
+                { value: 'day', label: 'Per day' },
+                { value: 'week', label: 'Per week' },
+              ]}
+              value={goal.period}
+              onChange={(period) => changeGoal(goal.id, { period })}
+              accessibilityLabel="How often"
+              style={styles.period}
+            />
             <TouchableOpacity onPress={() => setChoosingFor(choosingFor === goal.id ? null : goal.id)}>
               <Text style={mls.link}>{choosingFor === goal.id ? 'Done' : 'Change food'}</Text>
             </TouchableOpacity>
@@ -469,27 +447,11 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   moves: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  slotInput: { flex: 1, fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark, paddingVertical: 2 },
-  add: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 },
+  slotInput: { flex: 1, ...TextStyles.body, color: Colors.dark, paddingVertical: 2 },
+  add: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 4 },
   goal: { gap: Spacing.sm },
-  goalLine: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flexWrap: 'wrap' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  stepBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.lightGray,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepValue: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark, minWidth: 22, textAlign: 'center' },
+  goalLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, flexWrap: 'wrap' },
   goalCard: { gap: Spacing.md },
   goalControls: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flexWrap: 'wrap' },
-  period: { flexDirection: 'row', borderWidth: 1, borderColor: Colors.border, borderRadius: BorderRadius.sm, overflow: 'hidden' },
-  periodBtn: { paddingHorizontal: 10, paddingVertical: 6, backgroundColor: Colors.lightGray },
-  periodBtnOn: { backgroundColor: MEALS_ACCENT },
-  periodText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
-  periodTextOn: { color: Colors.white },
+  period: { minWidth: 170 },
 });

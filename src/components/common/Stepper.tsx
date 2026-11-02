@@ -17,7 +17,9 @@ export const Stepper: React.FC<{
   format?: (value: number) => string;
   /** What's being changed, for VoiceOver: "Session length". */
   accessibilityLabel: string;
-}> = ({ value, onChange, min, max, step = 1, format = String, accessibilityLabel }) => {
+  /** Colour of the − and + signs; a mini-app passes its accent. */
+  tint?: string;
+}> = ({ value, onChange, min, max, step = 1, format = String, accessibilityLabel, tint }) => {
   const set = (next: number) => {
     const clamped = Math.max(min, Math.min(max, next));
     if (clamped === value) return;
@@ -38,11 +40,11 @@ export const Stepper: React.FC<{
       onAccessibilityAction={(e) => set(e.nativeEvent.actionName === 'increment' ? value + step : value - step)}
     >
       <TouchableOpacity style={styles.button} onPress={() => set(value - step)} disabled={atMin}>
-        <Text style={[styles.sign, atMin && styles.signOff]}>−</Text>
+        <Text style={[styles.sign, tint && { color: tint }, atMin && styles.signOff]}>−</Text>
       </TouchableOpacity>
       <Text style={styles.value}>{format(value)}</Text>
       <TouchableOpacity style={styles.button} onPress={() => set(value + step)} disabled={atMax}>
-        <Text style={[styles.sign, atMax && styles.signOff]}>+</Text>
+        <Text style={[styles.sign, tint && { color: tint }, atMax && styles.signOff]}>+</Text>
       </TouchableOpacity>
     </View>
   );

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
+import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants/theme';
 import type { MealsStackParamList } from '../../../../types/meals';
 import {
   ScoredItem,
@@ -82,7 +82,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll}>
-      <View>
+      <View style={styles.head}>
         <Text style={styles.big}>{week.averageScore ?? '–'}</Text>
         <Text style={mls.muted}>
           average plate score this week · {week.platesLogged} {week.platesLogged === 1 ? 'plate' : 'plates'} logged
@@ -318,11 +318,12 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  big: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.hero, color: Colors.dark },
+  head: { paddingHorizontal: 4, gap: 2 },
+  big: { fontFamily: TextStyles.largeTitle.fontFamily, fontSize: 48, lineHeight: 54, fontWeight: '700', color: Colors.dark },
   gridRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  rowLabel: { width: 74, fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
+  rowLabel: { width: 74, ...TextStyles.caption, fontWeight: '600', color: Colors.gray },
   colHead: { flex: 1, alignItems: 'center', paddingVertical: 2 },
-  colHeadText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.gray },
+  colHeadText: { ...TextStyles.caption, fontWeight: '600', color: Colors.gray },
   cellWrap: { flex: 1 },
   cell: {
     aspectRatio: 1,
@@ -330,28 +331,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cellEmpty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.border },
+  cellEmpty: { borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.separator },
   cellSkipped: { backgroundColor: Colors.lightGray },
   cellToday: { borderWidth: 2, borderStyle: 'solid', borderColor: MEALS_ACCENT },
-  cellText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.white },
+  cellText: { ...TextStyles.caption, fontWeight: '600', color: Colors.white },
   dayDot: { width: 12, height: 12, borderRadius: 6, alignSelf: 'center' },
-  dayDotEmpty: { borderWidth: 1.5, borderColor: Colors.border },
-  insight: { backgroundColor: MEALS_TINT, borderColor: MEALS_ACCENT + '55', gap: 4 },
-  insightLabel: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: MEALS_ACCENT,
-  },
+  dayDotEmpty: { borderWidth: 1, borderColor: Colors.separator },
+  insight: { backgroundColor: MEALS_TINT, gap: 4 },
+  insightLabel: { ...TextStyles.footnote, fontWeight: '600', color: MEALS_ACCENT },
   bars: { flexDirection: 'row', gap: 6, marginTop: Spacing.sm },
   barCol: { flex: 1, alignItems: 'center', gap: 4 },
   bar: { alignSelf: 'stretch', height: 22, borderRadius: 5, backgroundColor: Colors.lightGray },
-  barLabel: { fontFamily: Fonts.secondary, fontSize: 10, color: Colors.gray },
+  barLabel: { ...TextStyles.caption, color: Colors.gray },
   weeklyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: Spacing.md },
-  weeklyCount: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.gray },
+  weeklyCount: { ...TextStyles.subhead, color: Colors.gray },
   track: { height: 8, borderRadius: 4, backgroundColor: Colors.lightGray, marginTop: Spacing.sm, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: PASS_COLOR, borderRadius: 4 },
+  fill: { height: '100%', backgroundColor: MEALS_ACCENT, borderRadius: 4 },
   nutrientCard: { gap: 2 },
   center: { textAlign: 'center' },
   nutrientTotal: { marginTop: Spacing.sm },

@@ -1,225 +1,207 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableHighlight, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
+import { BorderRadius, Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import { DayScore, NutrientCoverage, ScoredItem, describeGroups } from '../../../../../services/mealsMath';
 import { NUTRIENTS, groupLabel } from '../../../../../data/mealGroups';
 import type { NutrientId } from '../../../../../types/meals';
-import { FAIL_COLOR, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, itemColor, mls } from './mealsStyle';
+import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, scoreColor } from './mealsStyle';
 import { useMeals } from '../MealsContext';
 
-/** "2 of 3 meals logged · averaging 64 so far". */
+/**
+ * "2 of 3 meals logged · target 70+" while the day is open; once it's decided,
+ * "Averaged 74 · at or above your target of 70" (Maestro's Meals flows assert
+ * that wording).
+ */
 const statusLine = (score: DayScore, threshold: number): string => {
   const meals = score.items.filter((i) => i.kind === 'meal');
   const logged = meals.filter((i) => i.state !== 'pending').length;
-  if (score.average === null) return `${logged} of ${meals.length} meals logged`;
-  if (score.status === 'pending') return `${logged} of ${meals.length} meals logged · averaging ${score.average} so far`;
+  if (score.status === 'pending') return `${logged} of ${meals.length} meals logged · target ${threshold}+`;
   return score.status === 'on'
     ? `Averaged ${score.average} · at or above your target of ${threshold}`
     : `Averaged ${score.average} · below your target of ${threshold}`;
 };
 
+/** A small rounded tag: filled when it's there, a dashed outline when it isn't. */
+const Tag: React.FC<{ label: string; color: string; on: boolean; accessibilityLabel?: string }> = ({
+  label,
+  color,
+  on,
+  accessibilityLabel,
+}) => (
+  <View style={[styles.tag, on ? { backgroundColor: color + '1A' } : styles.tagOff]} accessibilityLabel={accessibilityLabel}>
+    <Text style={[styles.tagText, on ? { color } : styles.tagTextOff]}>{label}</Text>
+  </View>
+);
+
 /**
  * Protein · Fiber · Healthy fats for one plate. With `showMissing`, the ones it
- * lacks are struck through, so the gap is as visible as what's there.
+ * lacks show as dashed outlines, so the gap is as visible as what's there.
  */
 export const NutrientTags: React.FC<{ have: NutrientId[]; showMissing?: boolean }> = ({ have, showMissing }) => {
   const shown = NUTRIENTS.filter((n) => showMissing || have.includes(n.id));
   if (shown.length === 0) return null;
   return (
     <View style={styles.tagRow}>
-      {shown.map((n) => {
-        const on = have.includes(n.id);
-        const color = NUTRIENT_COLOR[n.id];
-        return (
-          <View key={n.id} style={[styles.tag, on ? { backgroundColor: color + '18' } : styles.tagOff]}>
-            <Text style={[styles.tagText, on ? { color } : styles.tagTextOff]}>{n.label}</Text>
-          </View>
-        );
-      })}
+      {shown.map((n) => (
+        <Tag key={n.id} label={n.label} color={NUTRIENT_COLOR[n.id]} on={have.includes(n.id)} />
+      ))}
     </View>
   );
 };
 
-/** "Protein 2/4" with a segment per plate — the day's coverage, on the status card. */
-const CoverageRow: React.FC<{ coverage: NutrientCoverage[]; onTone: boolean }> = ({ coverage, onTone }) => {
+/** "Protein 2/4" per nutrient: how many of the day's plates had it. */
+const CoverageTags: React.FC<{ coverage: NutrientCoverage[] }> = ({ coverage }) => {
   if (!coverage.length || coverage[0].of === 0) return null;
   return (
-    <View style={styles.coverage}>
+    <View style={styles.tagRow}>
       {coverage.map((c) => {
         const label = NUTRIENTS.find((n) => n.id === c.nutrient)?.label ?? c.nutrient;
-        const color = onTone ? Colors.white : NUTRIENT_COLOR[c.nutrient];
         return (
-          <View
+          <Tag
             key={c.nutrient}
-            style={[styles.covCell, onTone ? styles.covCellOnTone : { backgroundColor: NUTRIENT_COLOR[c.nutrient] + '12' }]}
+            label={`${label} ${c.have}/${c.of}`}
+            color={NUTRIENT_COLOR[c.nutrient]}
+            on={c.have > 0}
             accessibilityLabel={`${label}: ${c.have} of ${c.of} plates`}
-          >
-            <Text style={[styles.covLabel, { color }]} numberOfLines={1}>
-              {label}
-            </Text>
-            <Text style={[styles.covValue, { color }]}>
-              {c.have}/{c.of}
-            </Text>
-            <View style={styles.segs}>
-              {Array.from({ length: c.of }, (_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.seg,
-                    { backgroundColor: color + (i < c.have ? 'FF' : '40') },
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
+          />
         );
       })}
     </View>
   );
 };
 
-/** The day at a glance: on target, off target or in progress, plus the daily goals. */
-export const DayStatusCard: React.FC<{ score: DayScore; dateLabel: string; threshold: number }> = ({
-  score,
-  dateLabel,
-  threshold,
-}) => {
-  const tone = score.status === 'on' ? PASS_COLOR : score.status === 'off' ? FAIL_COLOR : null;
+const BADGE: Record<DayScore['status'], { bg: string; text: string }> = {
+  pending: { bg: Colors.lightGray, text: Colors.label2 },
+  on: { bg: PASS_COLOR + '1F', text: PASS_COLOR },
+  off: { bg: FAIL_COLOR + '1F', text: FAIL_COLOR },
+};
+
+/** The day at a glance: its score, on target / off target / in progress, and the daily goals. */
+export const DayStatusCard: React.FC<{ score: DayScore; threshold: number }> = ({ score, threshold }) => {
+  const badge = BADGE[score.status];
   return (
-    <View style={[styles.status, tone ? { backgroundColor: tone, borderColor: tone } : null]}>
+    <View style={styles.status} accessibilityLabel="So far today">
       <View style={styles.statusTop}>
-        <View style={styles.statusTitleRow}>
-          <Text style={[styles.statusScore, tone && styles.onTone]}>{score.average ?? '–'}</Text>
-          <Text style={[styles.statusTitle, tone && styles.onTone]}>{STATUS_TITLE[score.status]}</Text>
+        <Text style={styles.statusScore}>{score.average ?? '–'}</Text>
+        <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+          <Text style={[styles.badgeText, { color: badge.text }]}>{STATUS_TITLE[score.status]}</Text>
         </View>
-        <Text style={[styles.statusDate, tone && styles.onTone]}>{dateLabel}</Text>
       </View>
-      <Text style={[mls.muted, tone && styles.onTone]}>{statusLine(score, threshold)}</Text>
+      <Text style={styles.statusLine}>{statusLine(score, threshold)}</Text>
       {score.groupGoals.length > 0 && (
-        <View style={styles.goalRow}>
+        <View style={styles.tagRow}>
           {score.groupGoals.map((g) => (
-            <View
+            <Tag
               key={g.goal.id}
-              style={[styles.goalPill, tone && styles.goalPillOnTone, g.met && !tone && styles.goalPillMet]}
-            >
-              <Text style={[styles.goalPillText, (tone || g.met) && styles.onTone]}>
-                {groupLabel(g.goal.group)} {Math.min(g.have, g.goal.count)}/{g.goal.count}
-                {g.met ? ' ✓' : ''}
-              </Text>
-            </View>
+              label={`${groupLabel(g.goal.group)} ${Math.min(g.have, g.goal.count)}/${g.goal.count}${g.met ? ' ✓' : ''}`}
+              color={MEALS_ACCENT}
+              on={g.met}
+            />
           ))}
         </View>
       )}
-      <CoverageRow coverage={score.nutrients} onTone={!!tone} />
+      <CoverageTags coverage={score.nutrients} />
     </View>
   );
 };
 
-/** One logged (or not yet logged) meal or extra. */
+/**
+ * One meal or extra, as a row in a grouped list (ListGroup passes `separator`).
+ * Logged: what was on the plate, and its score on the right. Not yet: "Add".
+ */
 export const PlateRow: React.FC<{
   item: ScoredItem;
   onPress?: () => void;
-  compact?: boolean;
-}> = ({ item, onPress, compact }) => {
+  separator?: boolean;
+}> = ({ item, onPress, separator }) => {
   // Removed foods are only archived, so the current list names every one ever logged.
   const custom = useMeals().prefs.custom_groups;
   const line =
-    item.state === 'pending'
-      ? 'Tap to log'
+    item.state === 'scored'
+      ? describeGroups(item.groups, custom)
       : item.state === 'skipped'
-        ? 'Didn’t eat — doesn’t count'
-        : describeGroups(item.groups, custom);
+        ? 'Didn’t eat · doesn’t count'
+        : null;
+
+  const right =
+    item.state === 'scored' ? (
+      <Text style={[styles.score, { color: scoreColor(item.score) }]}>{item.score}</Text>
+    ) : item.state === 'skipped' ? (
+      <Text style={[styles.score, styles.scoreMuted]}>–</Text>
+    ) : onPress ? (
+      <View style={styles.add}>
+        <Ionicons name="add" size={18} color={MEALS_ACCENT} />
+        <Text style={styles.addText}>Add</Text>
+      </View>
+    ) : (
+      <Text style={styles.scoreMuted}>Not logged</Text>
+    );
+
   const content = (
-    <>
-      <View
-        style={[
-          mls.dot,
-          compact && styles.dotSmall,
-          { backgroundColor: itemColor(item.state, item.score) },
-          item.state === 'pending' && styles.dotPending,
-        ]}
-      >
-        <Text style={[mls.dotText, compact && styles.dotTextSmall]}>
-          {item.state === 'scored' ? item.score : item.state === 'skipped' ? '–' : ''}
-        </Text>
+    <View style={styles.row}>
+      <View style={[styles.rowMain, separator && styles.separator]}>
+        <View style={styles.rowText}>
+          <Text style={styles.name}>{item.name}</Text>
+          {line ? (
+            <Text style={styles.line} numberOfLines={2}>
+              {line}
+            </Text>
+          ) : null}
+        </View>
+        {right}
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={compact ? styles.compactName : mls.title}>{item.name}</Text>
-        <Text style={[mls.muted, item.state === 'pending' && mls.link]} numberOfLines={2}>
-          {line}
-        </Text>
-      </View>
-      {onPress && <Ionicons name="chevron-forward" size={18} color={Colors.border} />}
-    </>
+    </View>
   );
-  const style = [compact ? styles.compactRow : mls.card, styles.row];
+
   return onPress ? (
-    <TouchableOpacity style={style} onPress={onPress} accessibilityRole="button" accessibilityLabel={`${item.name}: ${line}`}>
+    <TouchableHighlight
+      onPress={onPress}
+      underlayColor={Colors.fill}
+      accessibilityRole="button"
+      // "Breakfast: Eggs · Fruit" / "Breakfast: Tap to log": Maestro's Meals flows select rows by this.
+      accessibilityLabel={`${item.name}: ${line ?? 'Tap to log'}`}
+    >
       {content}
-    </TouchableOpacity>
+    </TouchableHighlight>
   ) : (
-    <View style={style}>{content}</View>
+    content
   );
 };
 
 const styles = StyleSheet.create({
   status: {
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
-    padding: Spacing.md,
-    gap: 6,
+    backgroundColor: Colors.cardBg,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    gap: Spacing.sm + 4,
   },
-  statusTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  statusTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.sm },
-  statusScore: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.hero, color: Colors.dark },
-  statusTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
-  statusDate: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: Colors.gray,
-  },
-  onTone: { color: Colors.white },
-  goalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: 2 },
-  goalPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.lightGray,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  goalPillMet: { backgroundColor: PASS_COLOR, borderColor: PASS_COLOR },
-  goalPillOnTone: { backgroundColor: Colors.white + '2E', borderColor: Colors.white + '59' },
-  goalPillText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.dark },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  dotPending: { backgroundColor: Colors.lightGray, borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.border },
-  compactRow: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: Colors.border,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-  },
-  dotSmall: { width: 22, height: 22, borderRadius: 11 },
-  dotTextSmall: { fontSize: FontSizes.xs },
-  compactName: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  statusTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  statusScore: { fontFamily: TextStyles.largeTitle.fontFamily, fontSize: 48, lineHeight: 54, fontWeight: '700', color: Colors.dark },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, marginBottom: 6 },
+  badgeText: { ...TextStyles.footnote, fontWeight: '600' },
+  statusLine: { ...TextStyles.subhead, color: Colors.label2, marginTop: -6 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tag: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: BorderRadius.full, borderWidth: 1, borderColor: 'transparent' },
-  tagOff: { backgroundColor: Colors.white, borderColor: Colors.border },
-  tagText: { fontFamily: Fonts.secondaryBold, fontSize: 11 },
-  tagTextOff: { color: Colors.border, textDecorationLine: 'line-through' },
-  coverage: { flexDirection: 'row', gap: 6, marginTop: 4 },
-  covCell: { flex: 1, borderRadius: BorderRadius.sm, paddingHorizontal: 8, paddingVertical: 7, gap: 3 },
-  covCellOnTone: { backgroundColor: Colors.white + '26' },
-  covLabel: { fontFamily: Fonts.secondaryBold, fontSize: 10.5 },
-  covValue: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md },
-  segs: { flexDirection: 'row', gap: 3 },
-  seg: { flex: 1, height: 5, borderRadius: 3 },
+  tag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: 'transparent' },
+  tagOff: { borderStyle: 'dashed', borderColor: Colors.separator },
+  tagText: { ...TextStyles.footnote, fontWeight: '600' },
+  tagTextOff: { color: Colors.gray, fontWeight: '500' },
+  row: { paddingLeft: Spacing.md },
+  rowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 56,
+    paddingVertical: 12,
+    paddingRight: Spacing.md,
+  },
+  separator: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.separator },
+  rowText: { flex: 1, gap: 1 },
+  name: { ...TextStyles.body, color: Colors.dark },
+  line: { ...TextStyles.footnote, color: Colors.gray },
+  score: { ...TextStyles.headline, color: Colors.dark },
+  scoreMuted: { ...TextStyles.body, color: Colors.gray },
+  add: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  addText: { ...TextStyles.body, color: MEALS_ACCENT },
 });

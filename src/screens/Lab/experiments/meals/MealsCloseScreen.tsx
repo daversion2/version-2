@@ -3,7 +3,9 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
+import { LargeTitle } from '../../../../components/common/LargeTitle';
+import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
 import { activeCustomGroups, closeDay, scoreDay, withMeal } from '../../../../services/mealsMath';
 import { MEAL_OFF_REASONS, groupLabel } from '../../../../data/mealGroups';
@@ -12,7 +14,7 @@ import { showAlert } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
 import { MealPickerModal, PickerTarget } from './components/MealPickerModal';
 import { PlateRow } from './components/MealsParts';
-import { FAIL_COLOR, MEALS_ACCENT, MEALS_TINT, PASS_COLOR, scoreColor, mls } from './components/mealsStyle';
+import { FAIL_COLOR, MEALS_ACCENT, PASS_COLOR, scoreColor, mls } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsClose'>;
 
@@ -22,8 +24,8 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
 
 /**
  * Close out today. First catch up any meal not logged yet, then the result:
- *   - On target: pick the habit it checks off and hand it back to Today, which
- *     asks "How hard was it to start?" and runs the celebration. Meals never awards XP.
+ *   - On target: hand it back to Today, which asks for the override ("How hard
+ *     was it to start?") and runs the celebration. Meals never awards XP.
  *   - Off target: one optional "what got in the way?" — then it's closed. No
  *     check-in is written; the meals still count toward the week.
  */
@@ -76,20 +78,22 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <View style={mls.screen}>
         <ScrollView contentContainerStyle={mls.scroll}>
-          <Text style={mls.title}>Catch up first</Text>
-          <Text style={mls.body}>
+          <LargeTitle title="Catch up first" />
+          <Text style={mls.lead}>
             {pendingMeals.length === 1 ? 'One meal isn’t' : `${pendingMeals.length} meals aren’t`} logged yet. Log
             it, or mark it “didn’t eat” — a skipped meal never counts against you.
           </Text>
-          {pendingMeals.map((item) => (
-            <PlateRow
-              key={item.key}
-              item={item}
-              onPress={() =>
-                setEditing({ kind: 'meal', slotId: item.key, title: item.name, groups: [], existing: false })
-              }
-            />
-          ))}
+          <ListGroup>
+            {pendingMeals.map((item) => (
+              <PlateRow
+                key={item.key}
+                item={item}
+                onPress={() =>
+                  setEditing({ kind: 'meal', slotId: item.key, title: item.name, groups: [], existing: false })
+                }
+              />
+            ))}
+          </ListGroup>
         </ScrollView>
         <MealPickerModal
           target={editing}
@@ -105,14 +109,16 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const tone = on ? PASS_COLOR : FAIL_COLOR;
-
   return (
     <View style={mls.screen}>
-      <ScrollView contentContainerStyle={[mls.scroll, { paddingBottom: 150 + insets.bottom }]}>
-        <View style={[styles.hero, { backgroundColor: tone }]}>
-          <Ionicons name={on ? 'checkmark-circle' : 'close-circle'} size={40} color={Colors.white} />
-          <Text style={styles.heroTitle}>{on ? 'On target' : 'Off target'}</Text>
+      <ScrollView contentContainerStyle={[mls.scroll, styles.scroll, { paddingBottom: 120 + insets.bottom }]}>
+        <View style={styles.hero}>
+          <View style={[styles.badge, { backgroundColor: on ? MEALS_ACCENT : FAIL_COLOR }]}>
+            <Ionicons name={on ? 'checkmark' : 'close'} size={30} color={Colors.white} />
+          </View>
+          <Text style={styles.heroTitle} accessibilityRole="header">
+            {on ? 'On target' : 'Off target'}
+          </Text>
           <Text style={styles.heroSub}>
             {on
               ? `Your day scored ${score.average}, at or above your target of ${rules.scoring.on_target_threshold}.`
@@ -120,33 +126,50 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        <View style={mls.card}>
-          {score.items.map((item) => (
-            <View key={item.key} style={styles.line}>
-              <Text style={mls.body}>{item.name}</Text>
-              <Text style={[styles.lineValue, item.state === 'scored' && { color: scoreColor(item.score) }]}>
-                {item.state === 'scored' ? item.score : 'Didn’t eat'}
-              </Text>
-            </View>
-          ))}
-          {score.groupGoals.map((g) => (
-            <View key={g.goal.id} style={styles.line}>
-              <Text style={mls.body}>{groupLabel(g.goal.group)} goal</Text>
-              <Text style={[styles.lineValue, { color: g.met ? PASS_COLOR : FAIL_COLOR }]}>
-                {g.have} of {g.goal.count}
-              </Text>
-            </View>
-          ))}
-          <View style={[styles.line, styles.lastLine]}>
-            <Text style={mls.body}>Day score</Text>
-            <Text style={[styles.lineValue, { color: scoreColor(score.average) }]}>
-              {score.average} · target {rules.scoring.on_target_threshold}+
-            </Text>
-          </View>
-        </View>
+        <ListGroup title="Plates">
+          {[
+            ...score.items.map((item) => (
+              <ListRow
+                key={item.key}
+                title={item.name}
+                right={
+                  <Text style={[styles.value, item.state === 'scored' && { color: scoreColor(item.score) }]}>
+                    {item.state === 'scored' ? item.score : 'Didn’t eat'}
+                  </Text>
+                }
+              />
+            )),
+            <ListRow
+              key="day"
+              title="Day score"
+              right={
+                <Text style={styles.total}>
+                  {score.average} · target {rules.scoring.on_target_threshold}+
+                </Text>
+              }
+            />,
+          ]}
+        </ListGroup>
+
+        {score.groupGoals.length > 0 && (
+          <ListGroup title="Goals">
+            {score.groupGoals.map((g) => (
+              <ListRow
+                key={g.goal.id}
+                title={groupLabel(g.goal.group)}
+                right={
+                  <Text style={[styles.value, { color: g.met ? PASS_COLOR : Colors.gray }]}>
+                    {g.have} of {g.goal.count}
+                    {g.met ? ' ✓' : ''}
+                  </Text>
+                }
+              />
+            ))}
+          </ListGroup>
+        )}
 
         {on ? (
-          <Text style={mls.muted}>On target. Close the day and rate it on Today: “How hard was it to start?”.</Text>
+          <Text style={mls.lead}>Close the day, then rate your override on Today: how hard was it to start?</Text>
         ) : (
           <>
             <Text style={mls.sectionLabel}>What got in the way? (optional)</Text>
@@ -175,7 +198,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+      <View style={[mls.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
           style={[mls.primaryBtn, saving && mls.disabled]}
           onPress={finish}
@@ -194,32 +217,19 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  hero: { borderRadius: 18, padding: Spacing.lg, alignItems: 'center', gap: 6 },
-  heroTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xl, color: Colors.white },
-  heroSub: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.white, textAlign: 'center', lineHeight: 20 },
-  line: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  scroll: { paddingTop: Spacing.xl, gap: 24 },
+  hero: { alignItems: 'center', gap: 6 },
+  badge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: Spacing.md,
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
-  lastLine: { borderBottomWidth: 0 },
-  lineValue: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.gray, flexShrink: 1, textAlign: 'right' },
-  habitRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  habitRowOn: { borderColor: MEALS_ACCENT, backgroundColor: MEALS_TINT },
-  reasonGroup: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    backgroundColor: Colors.lightGray,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
+  heroTitle: { ...TextStyles.largeTitle, color: Colors.dark },
+  heroSub: { ...TextStyles.body, color: Colors.label2, textAlign: 'center', maxWidth: 300 },
+  value: { ...TextStyles.body, color: Colors.gray },
+  total: { ...TextStyles.headline, color: Colors.dark },
+  reasonGroup: { ...TextStyles.subhead, fontWeight: '600', color: Colors.dark, paddingHorizontal: 4 },
 });

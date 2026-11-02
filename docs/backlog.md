@@ -129,7 +129,7 @@ Next:
    planning moves to app sessions, so redesign it once, together with D3.
    Weekly goals are in Settings now (Apps and weekly goals, 2026-11-01).
 3. Phase 3: restyle Meditate, Workouts and Meals onto the shared pieces.
-   **Meditate is done** (2026-11-01, not yet seen on screen or OTA): every
+   **Meditate is done** (2026-11-01): every
    screen, to the canvas's "Inside Meditate" boards. `meditateStyle.ts` is
    the redesign's text styles now; the start screen is a large title,
    `SegmentedControl`, `ListGroup` choice rows with a check mark and a
@@ -137,7 +137,20 @@ Next:
    scroll); the pacer is the dark teal room (`MeditateNight` in the theme);
    History and Settings are grouped lists. Still old-style and shared with
    the other apps, so left for their passes: `miniapps/PastSessionSheet` and
-   `miniapps/WeeklyGoalPicker`. Next: Meals, then Workouts.
+   `miniapps/WeeklyGoalPicker`. Founder looked and approved it on screen
+   (2026-11-01); **not yet OTA** (the deploy needs the founder's explicit go).
+   **Meals is done too** (2026-11-01, not yet seen on screen or OTA), to the
+   "Inside Meals" boards. Meals' in-app accent is now its blue
+   (`AppColors.meals`), matching its ring, instead of the Fuel amber. The day
+   is a large title, a white score card with an In progress / On target /
+   Off target badge and dashed-or-filled tags, and plates as grouped-list rows
+   (score on the right, "+ Add" when empty); Close out the day is pinned. The
+   picker has Cancel / title / Save in its header, pill chips, and a white
+   verdict footer with "Didn't eat"; Clear / Delete moved to the bottom of the
+   list. The shared `Stepper` gained a `tint` prop. Wording the Maestro Meals
+   flows assert was kept ("Averaged 74 · …", "Breakfast: Tap to log",
+   "56 · target 70+"), but the flows that tap Save or the chips by position
+   haven't been rerun against the new layout. Next: Workouts.
 4. Phase 4: sign-in, and restyling the new four-screen onboarding (built
    2026-11-01) onto the shared pieces. Sign in with Apple needs a native build.
 5. ~~Flip it on for everyone~~ (done 2026-11-01). Then delete the classic

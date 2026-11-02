@@ -1,11 +1,14 @@
 import { StyleSheet } from 'react-native';
-import { CategoryColors, Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
-import { MINI_APPS } from '../../../../../services/miniApps';
+import { AppColors, BorderRadius, CategoryColors, Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import type { ItemState, DayStatus } from '../../../../../services/mealsMath';
 import type { NutrientId } from '../../../../../types/meals';
 
-/** The one colour the Meals app overrides (its manifest accent: the Fuel category's). */
-export const MEALS_ACCENT = MINI_APPS.meals.accent;
+/**
+ * The one colour the Meals app overrides. Meals' blue since the Apple-style
+ * redesign (2026-11-01), so the app matches its ring on Today; it was the Fuel
+ * category's amber (still the manifest accent, MINI_APPS.meals.accent).
+ */
+export const MEALS_ACCENT = AppColors.meals;
 export const MEALS_TINT = MEALS_ACCENT + '14';
 
 export const PASS_COLOR = Colors.success;
@@ -47,74 +50,87 @@ export const STATUS_TITLE: Record<DayStatus, string> = {
   pending: 'In progress',
 };
 
-/** Shared bits of the Meals look — the app's own light theme, one accent. */
+/**
+ * Shared bits of the Meals look, in the Apple-style redesign (canvas "Inside
+ * Meals", 2026-10-31): white rounded panels on iOS grey, Apple's text styles
+ * in the brand font, one accent. Grouped lists, the segmented control and the
+ * stepper come from components/common.
+ */
 export const mls = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.lightGray },
-  scroll: { padding: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.md },
+  scroll: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.xxl, gap: Spacing.md },
+  /** A small grey header sitting just above a panel, like ListGroup's title. */
   sectionLabel: {
-    fontFamily: Fonts.secondaryBold,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    ...TextStyles.footnote,
     color: Colors.gray,
-    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginBottom: -(Spacing.md - 6),
   },
   card: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.cardBg,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
   },
-  title: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.dark },
-  body: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, lineHeight: 20 },
-  muted: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, lineHeight: 17 },
+  title: { ...TextStyles.headline, color: Colors.dark },
+  body: { ...TextStyles.body, color: Colors.dark },
+  muted: { ...TextStyles.footnote, color: Colors.gray },
+  /** A plain line of explanation between panels. */
+  lead: { ...TextStyles.subhead, color: Colors.label2, paddingHorizontal: 4 },
   primaryBtn: {
     backgroundColor: MEALS_ACCENT,
-    borderRadius: BorderRadius.full,
-    paddingVertical: 15,
+    borderRadius: 26,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryBtnText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md, color: Colors.white },
+  primaryBtnText: { ...TextStyles.headline, color: Colors.white },
   secondaryBtn: {
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: MEALS_ACCENT,
-    backgroundColor: Colors.white,
-    paddingVertical: 13,
+    borderRadius: 26,
+    height: 52,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.cardBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryBtnText: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: MEALS_ACCENT },
-  textBtn: { alignSelf: 'center', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
-  textBtnText: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
-  link: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: MEALS_ACCENT },
+  secondaryBtnText: { ...TextStyles.headline, color: MEALS_ACCENT },
+  textBtn: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.md },
+  textBtnText: { ...TextStyles.body, color: Colors.gray },
+  link: { ...TextStyles.subhead, color: MEALS_ACCENT },
+  /** A centred accent link standing on its own, e.g. "What counts as what?". */
+  linkBtn: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
+  destructiveText: { ...TextStyles.body, color: Colors.danger },
   disabled: { opacity: 0.45 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    paddingHorizontal: 14,
+    minHeight: 40,
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: Colors.cardBg,
   },
-  chipActive: { borderColor: MEALS_ACCENT, backgroundColor: MEALS_ACCENT },
-  chipText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: Colors.dark },
-  chipTextActive: { color: Colors.white },
+  chipActive: { backgroundColor: MEALS_ACCENT },
+  chipText: { ...TextStyles.subhead, color: Colors.dark },
+  chipTextActive: { color: Colors.white, fontWeight: '600' },
   input: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: Colors.cardBg,
+    borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    fontFamily: Fonts.secondary,
-    fontSize: FontSizes.sm,
+    minHeight: 48,
+    ...TextStyles.body,
     color: Colors.dark,
   },
   headerIconBtn: { paddingHorizontal: 6, paddingVertical: 4 },
+  /** The pinned bottom area holding a screen's main button. */
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    gap: Spacing.xs,
+    backgroundColor: Colors.lightGray,
+  },
   dot: {
     width: 28,
     height: 28,
@@ -122,5 +138,5 @@ export const mls = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dotText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.white },
+  dotText: { ...TextStyles.footnote, fontWeight: '600', color: Colors.white },
 });

@@ -2,7 +2,10 @@ import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Colors, Spacing } from '../../../../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
+import { LargeTitle } from '../../../../components/common/LargeTitle';
+import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
 import {
   activeCustomGroups,
@@ -25,11 +28,6 @@ type Props = NativeStackScreenProps<MealsStackParamList, 'MealsDay'>;
 
 type Editing = PickerTarget & { slotId?: string; extraId?: string };
 
-const dayLabel = (date: string, today: string): string => {
-  if (date === today) return 'Today';
-  return new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long' });
-};
-
 /**
  * One day of meals — today by default, or a past day of this week opened from
  * the week view. Tap a meal to log what was on the plate; add a snack or drink
@@ -38,6 +36,7 @@ const dayLabel = (date: string, today: string): string => {
 export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const { loading, loadError, reload, today, prefs, rules, updatePrefs, dayFor, saveDay, newId, closeApp } =
     useMeals();
+  const insets = useSafeAreaInsets();
   const date = route.params?.date ?? today;
   const isToday = date === today;
   const isRoot = !route.params?.date;
@@ -51,7 +50,8 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: isToday ? 'Meals' : dayLabel(date, today),
+      // The screen draws its own large title (the day).
+      title: '',
       headerLeft: isRoot
         ? () => (
             <TouchableOpacity onPress={closeApp} style={mls.headerIconBtn} accessibilityLabel="Close Meals">
@@ -146,9 +146,14 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const extras = score.items.filter((i) => i.kind === 'extra');
   const reason = MEAL_OFF_REASONS.find((r) => r.id === day.off_reason_id);
 
+  const weekday = new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long' });
+  const showClose = isToday && !closed;
+
   return (
     <View style={mls.screen}>
-      <ScrollView contentContainerStyle={mls.scroll}>
+      <ScrollView contentContainerStyle={[mls.scroll, showClose && { paddingBottom: 120 + insets.bottom }]}>
+        <LargeTitle title={weekday} eyebrow={isToday ? 'Today' : undefined} />
+
         {!!loadError && (
           <TouchableOpacity style={mls.card} onPress={reload}>
             <Text style={mls.body}>Couldn’t load your meals. Tap to try again.</Text>
@@ -158,39 +163,39 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
         {isRoot && !prefs.intro_seen && (
           <View style={[mls.card, styles.intro]}>
             <Text style={mls.title}>How Meals works</Text>
-            <Text style={mls.body}>
+            <Text style={styles.introText}>
               Tap a meal and pick the food groups that were on the plate. Each plate scores 0 to 100 — mostly
               whole food scores high, and anything Processed costs points on top of that.
             </Text>
-            <Text style={mls.body}>
+            <Text style={styles.introText}>
               Your day is on target once your plates average {prefs.scoring.on_target_threshold} or more.
             </Text>
             <View style={styles.introRow}>
-              <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true })}>
+              <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true })} style={styles.introBtn}>
                 <Text style={mls.link}>Got it</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('MealsSettings')}>
+              <TouchableOpacity onPress={() => navigation.navigate('MealsSettings')} style={styles.introBtn}>
                 <Text style={mls.link}>Set my goal</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')}>
+              <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')} style={styles.introBtn}>
                 <Text style={mls.link}>What counts</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
-        <DayStatusCard score={score} dateLabel={dayLabel(date, today)} threshold={dayRules.scoring.on_target_threshold} />
+        <DayStatusCard score={score} threshold={dayRules.scoring.on_target_threshold} />
 
         {closed && (
           <View style={[mls.card, styles.closed]}>
             <Ionicons name="lock-closed-outline" size={18} color={Colors.gray} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={mls.body}>
+              <Text style={styles.introText}>
                 {day.habit_id ? 'Closed and checked off.' : 'Closed.'}
                 {reason ? ` What got in the way: ${reason.label.toLowerCase()}.` : ''}
               </Text>
               {canReopen(day) && isToday && (
-                <TouchableOpacity onPress={reopen}>
+                <TouchableOpacity onPress={reopen} style={styles.introBtn}>
                   <Text style={mls.link}>Reopen today</Text>
                 </TouchableOpacity>
               )}
@@ -198,42 +203,60 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
 
-        <Text style={mls.sectionLabel}>{isToday ? 'Today’s meals' : 'Meals'}</Text>
-        {meals.map((item) => (
-          <PlateRow
-            key={item.key}
-            item={item}
-            onPress={locked ? undefined : () => openMeal(item.key, item.name)}
-          />
-        ))}
+        <ListGroup title={isToday ? 'Today’s meals' : 'Meals'}>
+          {meals.map((item) => (
+            <PlateRow
+              key={item.key}
+              item={item}
+              onPress={locked ? undefined : () => openMeal(item.key, item.name)}
+            />
+          ))}
+        </ListGroup>
 
-        <Text style={mls.sectionLabel}>Something additional</Text>
-        {extras.length === 0 && <Text style={mls.muted}>Snacks and drinks on top of your meals go here.</Text>}
-        {extras.map((item) => (
-          <PlateRow key={item.key} item={item} compact onPress={locked ? undefined : () => openExtra(item.key)} />
-        ))}
-        {!locked && (
-          <TouchableOpacity style={styles.addExtra} onPress={() => openExtra()} accessibilityRole="button">
-            <Ionicons name="add" size={18} color={MEALS_ACCENT} />
-            <Text style={mls.link}>Add something</Text>
-          </TouchableOpacity>
-        )}
+        <ListGroup title="Something extra" footer="Snacks and drinks on top of your meals.">
+          {[
+            ...extras.map((item) => (
+              <PlateRow key={item.key} item={item} onPress={locked ? undefined : () => openExtra(item.key)} />
+            )),
+            ...(locked
+              ? extras.length === 0
+                ? [<ListRow key="none" title="Nothing extra" />]
+                : []
+              : [
+                  <ListRow
+                    key="add"
+                    title="Add something"
+                    tint="accent"
+                    chevron={false}
+                    right={<Ionicons name="add" size={20} color={MEALS_ACCENT} />}
+                    onPress={() => openExtra()}
+                  />,
+                ]),
+          ]}
+        </ListGroup>
 
-        {isToday && !closed && (
-          <TouchableOpacity
-            style={[mls.primaryBtn, styles.closeBtn]}
-            onPress={() => navigation.navigate('MealsClose')}
-            accessibilityRole="button"
-          >
-            <Text style={mls.primaryBtnText}>Close out the day</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')} style={mls.linkBtn}>
+          <Text style={mls.link}>What counts as what?</Text>
+        </TouchableOpacity>
+
         {!isToday && !closed && (
           <Text style={[mls.muted, styles.centerText]}>
             Past days count toward your week. Only today can be closed out and checked off.
           </Text>
         )}
       </ScrollView>
+
+      {showClose && (
+        <View style={[mls.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+          <TouchableOpacity
+            style={mls.secondaryBtn}
+            onPress={() => navigation.navigate('MealsClose')}
+            accessibilityRole="button"
+          >
+            <Text style={mls.secondaryBtnText}>Close out the day</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <MealPickerModal
         target={editing}
@@ -255,8 +278,8 @@ const styles = StyleSheet.create({
   centerText: { textAlign: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   intro: { gap: Spacing.sm },
-  introRow: { flexDirection: 'row', gap: Spacing.lg, marginTop: 2 },
+  introText: { ...TextStyles.subhead, color: Colors.dark },
+  introRow: { flexDirection: 'row', gap: Spacing.lg },
+  introBtn: { minHeight: 44, justifyContent: 'center' },
   closed: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
-  addExtra: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 },
-  closeBtn: { marginTop: Spacing.md },
 });

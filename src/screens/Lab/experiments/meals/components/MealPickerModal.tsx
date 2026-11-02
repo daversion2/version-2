@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
+import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../../data/mealGroups';
 import type { CustomFoodGroup, FoodGroupId, MealsScoringWeights } from '../../../../../types/meals';
 import { plateNutrients, scoreVerdict } from '../../../../../services/mealsMath';
-import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, scoreColor, mls } from './mealsStyle';
+import { MEALS_ACCENT, scoreColor, mls } from './mealsStyle';
 import { NutrientTags } from './MealsParts';
 
 export interface PickerTarget {
@@ -77,58 +77,52 @@ export const MealPickerModal: React.FC<Props> = ({
     ...custom.filter((c) => groups.includes(c.id) && !offered.some((o) => o.id === c.id)),
   ];
 
-  const renderChip = (group: Pick<FoodGroup, 'id' | 'label' | 'nutrients'>, color: string, score?: number) => {
+  const renderChip = (group: Pick<FoodGroup, 'id' | 'label'>, score?: number) => {
     const on = groups.includes(group.id);
     return (
       <TouchableOpacity
         key={group.id}
         testID={`meal-chip-${group.id}`}
-        style={[styles.chip, on && { borderColor: color, backgroundColor: color + '14' }]}
+        style={[mls.chip, on && mls.chipActive]}
         onPress={() => toggle(group.id)}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: on }}
-        accessibilityLabel={group.label}
+        accessibilityLabel={score !== undefined ? `${group.label}, scores ${score}` : group.label}
       >
-        <View style={[styles.tick, on && { backgroundColor: color, borderColor: color }]}>
-          {on && <Ionicons name="checkmark" size={12} color={Colors.white} />}
-        </View>
-        <Text style={styles.chipText} numberOfLines={2}>
+        <Text style={[mls.chipText, on && mls.chipTextActive]}>
           {group.label}
+          {score !== undefined ? ` · ${score}` : ''}
         </Text>
-        {score !== undefined && <Text style={[styles.chipScore, { color: scoreColor(score) }]}>{score}</Text>}
-        {/* What this group adds — the same colours as the tags below. */}
-        <View style={styles.chipDots}>
-          {group.nutrients.map((n) => (
-            <View key={n} style={[styles.chipDot, { backgroundColor: NUTRIENT_COLOR[n] }]} />
-          ))}
-        </View>
       </TouchableOpacity>
     );
   };
+
+  const canSave = groups.length > 0;
+  const save = () => onSave(groups, isExtra ? name.trim() || undefined : undefined);
 
   return (
     <Modal visible={!!target} animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}>
       <View style={styles.sheet}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onCancel} hitSlop={8}>
-            <Text style={styles.cancel}>Cancel</Text>
+          <TouchableOpacity onPress={onCancel} style={styles.headerBtn} accessibilityRole="button">
+            <Text style={styles.headerAction}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <Text style={styles.headerTitle} numberOfLines={1} accessibilityRole="header">
             {target?.title}
           </Text>
-          {/* Top right, not at the bottom of the list: with the name field on an
-              extra, a button down there sits below the fold. */}
-          {target?.existing && onRemove ? (
-            <TouchableOpacity onPress={onRemove} hitSlop={8} style={styles.headerSpacer}>
-              <Text style={styles.remove}>{isExtra ? 'Delete' : 'Clear'}</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.headerSpacer} />
-          )}
+          <TouchableOpacity
+            onPress={save}
+            disabled={!canSave}
+            style={[styles.headerBtn, styles.headerBtnRight]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canSave }}
+          >
+            <Text style={[styles.headerAction, styles.headerSave, !canSave && styles.headerActionOff]}>Save</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Text style={mls.body}>
+          <Text style={mls.lead}>
             {isExtra ? 'A snack or drink on top of your meals. What was in it?' : 'What was on the plate? Tap all that apply.'}
           </Text>
 
@@ -141,65 +135,68 @@ export const MealPickerModal: React.FC<Props> = ({
               placeholderTextColor={Colors.gray}
               maxLength={40}
               returnKeyType="done"
+              accessibilityLabel="What was it?"
             />
           )}
 
-          <Text style={mls.sectionLabel}>Whole food</Text>
-          <View style={styles.grid}>{WHOLE_GROUPS.map((g) => renderChip(g, PASS_COLOR))}</View>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Whole food</Text>
+            <View style={mls.chipRow}>{WHOLE_GROUPS.map((g) => renderChip(g))}</View>
+          </View>
 
-          <Text style={mls.sectionLabel}>Processed</Text>
-          <View style={styles.grid}>{PROCESSED_GROUPS.map((g) => renderChip(g, FAIL_COLOR))}</View>
-          <Text style={mls.muted}>
-            {PROCESSED_GROUPS.map((g) => `${g.label}: ${g.examples}.`).join(' ')}
-          </Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Processed</Text>
+            <View style={mls.chipRow}>{PROCESSED_GROUPS.map((g) => renderChip(g))}</View>
+            <Text style={mls.muted}>{PROCESSED_GROUPS.map((g) => `${g.label}: ${g.examples}.`).join(' ')}</Text>
+          </View>
 
           {myFoods.length > 0 && (
-            <>
-              <Text style={mls.sectionLabel}>My foods</Text>
-              <View style={styles.grid}>{myFoods.map((g) => renderChip(g, MEALS_ACCENT, g.score))}</View>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>My foods</Text>
+              <View style={mls.chipRow}>{myFoods.map((g) => renderChip(g, g.score))}</View>
               <Text style={mls.muted}>Each scores what you gave it in settings, as one share of the plate.</Text>
-            </>
+            </View>
           )}
 
           <TouchableOpacity onPress={() => setShowRules((v) => !v)} style={styles.rulesToggle}>
-            <Ionicons name={showRules ? 'chevron-up' : 'information-circle-outline'} size={16} color={MEALS_ACCENT} />
             <Text style={mls.link}>{showRules ? 'Hide the rules' : 'What counts as what?'}</Text>
+            <Ionicons name={showRules ? 'chevron-up' : 'chevron-down'} size={14} color={MEALS_ACCENT} />
           </TouchableOpacity>
           {showRules && (
             <View style={[mls.card, styles.rules]}>
               {MEAL_GUIDE_RULES.map((rule) => (
-                <Text key={rule} style={mls.body}>
+                <Text key={rule} style={styles.rule}>
                   • {rule}
                 </Text>
               ))}
             </View>
           )}
 
+          {/* Out of the way at the bottom: the header holds Save. */}
+          {target?.existing && onRemove && (
+            <TouchableOpacity onPress={onRemove} style={mls.textBtn} accessibilityRole="button">
+              <Text style={mls.destructiveText}>{isExtra ? 'Delete this' : 'Clear this meal'}</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
 
-        <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
-          <View style={[styles.verdict, verdict.score !== null && { backgroundColor: scoreColor(verdict.score) + '14' }]}>
-            <Text style={[styles.verdictTitle, { color: verdict.score !== null ? scoreColor(verdict.score) : Colors.gray }]}>
-              {verdict.score !== null ? verdict.score : 'Nothing picked yet'}
-            </Text>
-            <Text style={mls.muted}>{verdict.why}</Text>
-            {groups.length > 0 && <NutrientTags have={plateNutrients(groups, custom)} showMissing />}
-          </View>
-          <View style={styles.footerRow}>
+        <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]} accessibilityLiveRegion="polite">
+          <View style={styles.verdictRow}>
+            <View style={{ flex: 1, gap: 1 }}>
+              <Text
+                style={[styles.verdictTitle, verdict.score !== null && { color: scoreColor(verdict.score) }]}
+              >
+                {verdict.score !== null ? `Scores ${verdict.score}` : 'Nothing picked yet'}
+              </Text>
+              <Text style={styles.verdictWhy}>{verdict.why}</Text>
+            </View>
             {!isExtra && onSkip && (
-              <TouchableOpacity style={[mls.secondaryBtn, styles.footerBtn]} onPress={onSkip}>
-                <Text style={mls.secondaryBtnText}>Didn’t eat</Text>
+              <TouchableOpacity onPress={onSkip} style={styles.skip} accessibilityRole="button">
+                <Text style={mls.link}>Didn’t eat</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              style={[mls.primaryBtn, styles.footerBtn, groups.length === 0 && mls.disabled]}
-              onPress={() => onSave(groups, isExtra ? name.trim() || undefined : undefined)}
-              disabled={groups.length === 0}
-              accessibilityRole="button"
-            >
-              <Text style={mls.primaryBtnText}>Save</Text>
-            </TouchableOpacity>
           </View>
+          {groups.length > 0 && <NutrientTags have={plateNutrients(groups, custom)} showMissing />}
         </View>
       </View>
     </Modal>
@@ -211,66 +208,32 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-    gap: Spacing.md,
-  },
-  cancel: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: MEALS_ACCENT, minWidth: 60 },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: Fonts.primaryBold,
-    fontSize: FontSizes.lg,
-    color: Colors.dark,
-  },
-  headerSpacer: { minWidth: 60, alignItems: 'flex-end' },
-  remove: { fontFamily: Fonts.secondary, fontSize: FontSizes.md, color: Colors.gray },
-  body: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  chip: {
-    width: '48.5%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: 12,
     paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.white,
+    paddingTop: Spacing.sm,
+    minHeight: 56,
   },
-  tick: {
-    width: 18,
-    height: 18,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipText: { flex: 1, fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
-  chipScore: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.xs },
-  chipDots: { flexDirection: 'row', gap: 3 },
-  chipDot: { width: 7, height: 7, borderRadius: 4 },
-  recentList: { gap: Spacing.sm },
-  rulesToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: Spacing.sm },
+  headerBtn: { minWidth: 72, minHeight: 44, justifyContent: 'center' },
+  headerBtnRight: { alignItems: 'flex-end' },
+  headerAction: { ...TextStyles.body, color: MEALS_ACCENT },
+  headerSave: { fontWeight: '600' },
+  headerActionOff: { color: Colors.separator },
+  headerTitle: { ...TextStyles.headline, flex: 1, textAlign: 'center', color: Colors.dark },
+  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.xl, gap: 20 },
+  section: { gap: 10 },
+  sectionTitle: { ...TextStyles.footnote, fontWeight: '600', color: Colors.gray, paddingHorizontal: 4 },
+  rulesToggle: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 4, marginVertical: -Spacing.sm },
   rules: { gap: Spacing.sm },
+  rule: { ...TextStyles.subhead, color: Colors.dark },
   footer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    gap: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    backgroundColor: Colors.lightGray,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
+    backgroundColor: Colors.cardBg,
   },
-  verdict: {
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    backgroundColor: Colors.white,
-    gap: 4,
-  },
-  verdictTitle: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.md },
-  footerRow: { flexDirection: 'row', gap: Spacing.sm },
-  footerBtn: { flex: 1 },
+  verdictRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  verdictTitle: { ...TextStyles.title3, fontWeight: '700', color: Colors.dark },
+  verdictWhy: { ...TextStyles.subhead, color: Colors.gray },
+  skip: { minHeight: 44, justifyContent: 'center' },
 });
