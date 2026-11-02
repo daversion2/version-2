@@ -98,7 +98,7 @@ it survives a locked phone) and the bell rings at your target. Tap **Done**
 |---|---|---|
 | Home (log + today) | `HotColdHome` | **Cold** and **Heat** buttons, **Time it**, this week (sessions vs goal, minutes per kind, streak), today's sessions. Tapping a session edits it. |
 | Timer | `HotColdTimer` | Big count-up clock, target and bell, Done / Cancel. |
-| History | `HotColdHistory` | Records (longest cold, coldest cold, longest heat), then sessions grouped by day for the last 12 weeks. Tap to edit or delete. |
+| History | `HotColdHistory` | Records (longest cold, coldest cold, longest heat), then sessions grouped by day for the last 12 weeks. Records and the streak use all history. Tap to edit or delete. |
 | Settings | `HotColdSettings` | Unit °C/°F, weekly goal, cold timer target. |
 
 The log sheet is a `BottomSheet` on Home and History, not a screen.
@@ -140,7 +140,7 @@ The in-progress timer is kept in `miniAppDrafts` so a killed app resumes it.
   that round-trips (stored to one decimal).
 - `defaultUnit(locale)`: °F for US regions.
 - `clampTemp(kind, c)` and `clampDuration(sec)`: sane bounds (cold −2 to 25 °C,
-  heat 40 to 120 °C, 5 s to 2 h).
+  heat 40 to 120 °C, 5 s to 30 min for cold, 5 s to 2 h for heat).
 - `prefillFor(kind, sessions)`: the last session of that kind, else the
   defaults.
 - `weekSummary(sessions, today, goal)`: Monday-start week, with sessions,

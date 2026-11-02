@@ -17,6 +17,7 @@ const statusLine = (score: DayScore, threshold: number): string => {
   const meals = score.items.filter((i) => i.kind === 'meal');
   const logged = meals.filter((i) => i.state !== 'pending').length;
   if (score.status === 'pending') return `${logged} of ${meals.length} meals logged · target ${threshold}+`;
+  if (score.status === 'none') return 'Every meal was “didn’t eat” · counts neither way';
   return score.status === 'on'
     ? `Averaged ${score.average} · at or above your target of ${threshold}`
     : `Averaged ${score.average} · below your target of ${threshold}`;
@@ -73,6 +74,7 @@ const CoverageTags: React.FC<{ coverage: NutrientCoverage[] }> = ({ coverage }) 
 
 const BADGE: Record<DayScore['status'], { bg: string; text: string }> = {
   pending: { bg: Colors.lightGray, text: Colors.label2 },
+  none: { bg: Colors.lightGray, text: Colors.label2 },
   on: { bg: PASS_COLOR + '1F', text: PASS_COLOR },
   off: { bg: FAIL_COLOR + '1F', text: FAIL_COLOR },
 };

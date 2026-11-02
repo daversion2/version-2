@@ -7,7 +7,11 @@ import {
   newCustomGroup,
   updateCustomGroup,
   canReopen,
+  clampOnTargetThreshold,
   closeDay,
+  closeHandsOff,
+  handoffDate,
+  pickerFoods,
   emptyDay,
   pastWeeks,
   daysOnTarget,
@@ -419,6 +423,97 @@ describe('editing a day', () => {
     expect(reopened.closed_at).toBeUndefined();
     expect(reopened.result).toBeUndefined();
     expect(reopened.meals).toEqual(full.meals);
+  });
+
+  it('hands an on-target day to Today once — reopened and closed again, it is not rated twice', () => {
+    const full = { ...base, meals: { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') } };
+    expect(closeHandsOff(full, rules())).toBe(true);
+    const closed = closeDay(full, rules(), { now: new Date(at) });
+    expect(closed.handed_off_at).toBe(at);
+    expect(canReopen(closed)).toBe(true);
+
+    const reopened = reopenDay(closed);
+    expect(reopened.handed_off_at).toBe(at);
+    expect(closeHandsOff(reopened, rules())).toBe(false);
+    const again = closeDay(reopened, rules(), { now: new Date('2026-10-15T20:00:00.000Z') });
+    expect(again.result).toBe('on');
+    expect(again.handed_off_at).toBe(at);
+  });
+
+  it('an on-target day closed before handoffs were stamped counts as handed off once reopened', () => {
+    const full = { ...base, meals: { breakfast: plate('eggs'), lunch: plate('fish'), dinner: plate('beef') } };
+    const legacy: MealsDay = { ...full, closed_at: at, result: 'on' };
+    expect(reopenDay(legacy).handed_off_at).toBe(at);
+    expect(closeHandsOff(reopenDay(legacy), rules())).toBe(false);
+    // An off-target close was never handed off.
+    expect(reopenDay({ ...full, closed_at: at, result: 'off' }).handed_off_at).toBeUndefined();
+  });
+
+  it('never hands off an off-target day, and an off close leaves no handoff stamp', () => {
+    const full = { ...base, meals: { breakfast: plate('processed'), lunch: plate('fish'), dinner: plate('beef') } };
+    expect(closeHandsOff(full, rules())).toBe(false);
+    expect(closeDay(full, rules(), { now: new Date(at) }).handed_off_at).toBeUndefined();
+  });
+
+  it('a day of only "didn’t eat" closes neither on nor off, and hands nothing off', () => {
+    const none = { ...base, meals: { breakfast: skipped, lunch: skipped, dinner: skipped } };
+    const s = scoreDay(none, rules());
+    expect(s.status).toBe('none');
+    expect(s.complete).toBe(true);
+    expect(s.average).toBeNull();
+    expect(closeHandsOff(none, rules())).toBe(false);
+    const closed = closeDay(none, rules(), { now: new Date(at), reasonId: 'stress' });
+    expect(closed.closed_at).toBe(at);
+    expect(closed.result).toBeUndefined();
+    expect(closed.off_reason_id).toBeUndefined();
+    expect(closed.handed_off_at).toBeUndefined();
+  });
+
+  it('a skipped meal plus an extra is scored by the extra', () => {
+    const d = { ...base, meals: { breakfast: skipped, lunch: skipped, dinner: skipped }, extras: [extra('x', 'fruit')] };
+    expect(scoreDay(d, rules()).status).toBe('on');
+  });
+});
+
+describe('handoffDate', () => {
+  it('is absent for today, and names the day when the clock has passed midnight', () => {
+    const late = new Date(2026, 9, 15, 23, 59);
+    const pastMidnight = new Date(2026, 9, 16, 0, 5);
+    expect(handoffDate('2026-10-15', late)).toBeUndefined();
+    expect(handoffDate('2026-10-15', pastMidnight)).toBe('2026-10-15');
+  });
+});
+
+describe('pickerFoods', () => {
+  const food = (id: string, score: number, archived = false): CustomFoodGroup => ({
+    id: `custom_${id}`,
+    label: id,
+    score,
+    nutrients: [],
+    ...(archived ? { archived } : {}),
+  });
+
+  it('labels a chip with the score the plate is scored with, not today’s', () => {
+    const offered = [food('carb', 90), food('new', 40)];
+    const savedOnDay = [food('carb', 60)];
+    expect(pickerFoods(offered, savedOnDay, []).map((f) => [f.id, f.score])).toEqual([
+      ['custom_carb', 60],
+      ['custom_new', 40],
+    ]);
+  });
+
+  it('keeps a removed food that is already on the plate, so it can be taken off', () => {
+    const gone = food('gone', 50, true);
+    expect(pickerFoods([], [gone], ['custom_gone']).map((f) => f.id)).toEqual(['custom_gone']);
+    expect(pickerFoods([], [gone], [])).toEqual([]);
+  });
+});
+
+describe('clampOnTargetThreshold', () => {
+  it('never lets the target drop below 50, or past 100', () => {
+    expect(clampOnTargetThreshold(0)).toBe(50);
+    expect(clampOnTargetThreshold(65)).toBe(65);
+    expect(clampOnTargetThreshold(120)).toBe(100);
   });
 });
 

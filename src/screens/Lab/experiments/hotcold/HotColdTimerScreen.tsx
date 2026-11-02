@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, AppState } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, Spacing } from '../../../../constants/theme';
 import type { HotColdStackParamList, ThermalKind } from '../../../../types/hotcold';
 import { KIND_LABEL } from '../../../../data/hotcold';
-import { formatClock, formatDuration } from '../../../../services/hotcoldMath';
+import { clampDuration, formatClock, formatDuration, looksForgotten } from '../../../../services/hotcoldMath';
 import { elapsedSec } from '../../../../services/sessionTimer';
 import { Stepper } from '../../../../components/common/Stepper';
 import { SegmentedControl } from '../../../../components/common/SegmentedControl';
-import { showConfirm } from '../../../../utils/alert';
+import { showChoice, showConfirm } from '../../../../utils/alert';
 import { useHotCold } from './HotColdContext';
 import { hcs, KIND_COLOR } from './components/hotcoldStyle';
 
@@ -25,6 +25,8 @@ export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
   const [kind, setKind] = useState<ThermalKind>(route.params?.kind ?? 'cold');
   const [targetSec, setTargetSec] = useState(prefs.cold_target_sec);
   const [starting, setStarting] = useState(false);
+  // State lags a fast double tap; a ref doesn't — one Start, one bell.
+  const startingRef = useRef(false);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -40,17 +42,50 @@ export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [timer]);
 
   const start = async () => {
+    if (startingRef.current || timer) return;
+    startingRef.current = true;
     setStarting(true);
-    if (kind === 'cold' && targetSec !== prefs.cold_target_sec) updatePrefs({ cold_target_sec: targetSec });
-    // Heat gets no bell: the phone is usually outside the sauna.
-    await startTimer(kind, kind === 'cold' ? targetSec : undefined);
-    setNow(new Date());
-    setStarting(false);
+    try {
+      if (kind === 'cold' && targetSec !== prefs.cold_target_sec) updatePrefs({ cold_target_sec: targetSec });
+      // Heat gets no bell: the phone is usually outside the sauna.
+      await startTimer(kind, kind === 'cold' ? targetSec : undefined);
+      setNow(new Date());
+    } finally {
+      startingRef.current = false;
+      setStarting(false);
+    }
   };
 
-  const done = () => {
-    stopTimer();
+  const finish = (durationSec?: number) => {
+    stopTimer(durationSec);
     navigation.goBack();
+  };
+
+  // A clock far past the bell was probably left running: ask before logging it.
+  const done = () => {
+    if (!timer) return;
+    const elapsed = elapsedSec({ startedAt: timer.startedAt, plannedSec: 0 }, new Date());
+    if (!looksForgotten(timer.kind, elapsed, timer.targetSec)) return finish();
+    const kept = clampDuration(elapsed, timer.kind);
+    const keepLabel = `Log ${formatDuration(kept)}`;
+    if (timer.targetSec === undefined) {
+      showConfirm(
+        'Still timing?',
+        `The clock says ${formatDuration(elapsed)}. If it kept running after you got out, set the real time on the next screen.`,
+        () => finish(),
+        'Log it'
+      );
+      return;
+    }
+    const bell = timer.targetSec;
+    showChoice(
+      'Still in the cold?',
+      `The clock says ${formatDuration(elapsed)}, well past your ${formatDuration(bell)} bell. If it kept running after you got out, log your bell time and fix it on the next screen.`,
+      [
+        { label: `Log ${formatDuration(bell)}`, onPress: () => finish(bell) },
+        { label: keepLabel, onPress: () => finish() },
+      ]
+    );
   };
 
   const cancel = () =>

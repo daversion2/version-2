@@ -13,17 +13,14 @@ import {
   saveHotColdSession,
 } from '../../../../services/labHotCold';
 import { newRecords, RecordId } from '../../../../services/hotcoldMath';
-import { addDays } from '../../../../services/habitSchedule';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../../services/miniAppDrafts';
 import { cancelBell, getBellPermission, requestBellPermission, scheduleBell } from '../../../../services/sessionBell';
 import { elapsedSec } from '../../../../services/sessionTimer';
-import { formatDuration } from '../../../../services/hotcoldMath';
+import { clampDuration, formatDuration } from '../../../../services/hotcoldMath';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
 
 const APP = 'hotcold' as const;
-/** How far back History looks; also enough weeks for the streak. */
-const HISTORY_DAYS = 12 * 7;
 
 /** What the timer hands to the log sheet when it stops. */
 export interface TimedResult {
@@ -42,7 +39,7 @@ interface HotColdContextValue {
   prefs: HotColdPrefs;
   updatePrefs: (changes: Partial<HotColdPrefs>) => Promise<void>;
 
-  /** The last 12 weeks, any order. */
+  /** Every session, any order — records and the streak need them all. History lists the last 12 weeks. */
   sessions: HotColdSession[];
   /**
    * Shown at once, written in the background; a failed write puts things back
@@ -55,12 +52,19 @@ interface HotColdContextValue {
   /** The running timer, if any — survives a killed app (miniAppDrafts). */
   timer: HotColdTimerDraft | null;
   startTimer: (kind: ThermalKind, targetSec?: number) => Promise<void>;
-  /** Stops it and returns what to log. */
-  stopTimer: () => TimedResult | null;
+  /** Stops it and returns what to log. `durationSec` replaces the clock's time (a forgotten timer). */
+  stopTimer: (durationSec?: number) => TimedResult | null;
   cancelTimer: () => Promise<void>;
   /** A stopped timer waiting for Home to open the log sheet. */
   pendingLog: TimedResult | null;
   takePendingLog: () => TimedResult | null;
+  /**
+   * A timed session not logged yet — kept on the phone until it's saved or
+   * discarded (HotColdTimerDraft.stoppedSec).
+   */
+  unlogged: TimedResult | null;
+  /** The timed session was saved, or the user chose to discard it. */
+  clearUnlogged: () => void;
 
   closeApp: () => void;
 }
@@ -98,6 +102,7 @@ export const HotColdProvider: React.FC<{
   const [timer, setTimer] = useState<HotColdTimerDraft | null>(null);
   const timerRef = useRef<HotColdTimerDraft | null>(null);
   const [pendingLog, setPendingLog] = useState<TimedResult | null>(null);
+  const [unlogged, setUnlogged] = useState<TimedResult | null>(null);
 
   // Left open past midnight, "today" has to move on with the clock.
   useEffect(() => {
@@ -107,11 +112,16 @@ export const HotColdProvider: React.FC<{
     return () => sub.remove();
   }, []);
 
-  // A timer started before the app was killed is still running.
+  // A timer started before the app was killed is still running — or was
+  // stopped and never logged.
   useEffect(() => {
     loadSessionDraft<HotColdTimerDraft>(APP, userId)
       .then((draft) => {
         if (!draft || timerRef.current) return;
+        if (draft.data.stoppedSec !== undefined) {
+          setUnlogged((u) => u ?? { kind: draft.data.kind, duration_sec: draft.data.stoppedSec as number });
+          return;
+        }
         timerRef.current = draft.data;
         setTimer(draft.data);
       })
@@ -124,7 +134,7 @@ export const HotColdProvider: React.FC<{
     try {
       const [p, s] = await Promise.all([
         getHotColdPrefs(userId, phoneLocale()),
-        listHotColdSessions(userId, addDays(today, -HISTORY_DAYS)),
+        listHotColdSessions(userId),
       ]);
       setPrefs(p);
       setSessions(s);
@@ -217,18 +227,37 @@ export const HotColdProvider: React.FC<{
     [setTimerState]
   );
 
-  const stopTimer = useCallback((): TimedResult | null => {
-    const current = timerRef.current;
-    if (!current) return null;
-    cancelBell(current.bellId);
-    const result = {
-      kind: current.kind,
-      duration_sec: elapsedSec({ startedAt: current.startedAt, plannedSec: 0 }, new Date()),
-    };
-    setTimerState(null);
-    setPendingLog(result);
-    return result;
-  }, [setTimerState]);
+  const stopTimer = useCallback(
+    (durationSec?: number): TimedResult | null => {
+      const current = timerRef.current;
+      if (!current) return null;
+      cancelBell(current.bellId);
+      const result = {
+        kind: current.kind,
+        duration_sec: clampDuration(
+          durationSec ?? elapsedSec({ startedAt: current.startedAt, plannedSec: 0 }, new Date()),
+          current.kind
+        ),
+      };
+      // The clock stops, but the draft stays until the log is saved (clearUnlogged).
+      timerRef.current = null;
+      setTimer(null);
+      saveSessionDraft(APP, userId, { ...current, bellId: undefined, stoppedSec: result.duration_sec }).catch((e) =>
+        console.warn('Hot & Cold: could not keep the timed session:', e)
+      );
+      setUnlogged(result);
+      setPendingLog(result);
+      return result;
+    },
+    [userId]
+  );
+
+  const clearUnlogged = useCallback(() => {
+    setUnlogged(null);
+    // Never clear a timer that's running now — only the stopped one.
+    if (timerRef.current) return;
+    clearSessionDraft(APP, userId).catch((e) => console.warn('Hot & Cold: could not clear the timed session:', e));
+  }, [userId]);
 
   const cancelTimer = useCallback(async () => {
     cancelBell(timerRef.current?.bellId);
@@ -261,6 +290,8 @@ export const HotColdProvider: React.FC<{
     cancelTimer,
     pendingLog,
     takePendingLog,
+    unlogged,
+    clearUnlogged,
     closeApp,
   };
 

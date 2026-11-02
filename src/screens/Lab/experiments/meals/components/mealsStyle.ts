@@ -48,6 +48,7 @@ export const STATUS_TITLE: Record<DayStatus, string> = {
   on: 'On target',
   off: 'Off target',
   pending: 'In progress',
+  none: 'No plates',
 };
 
 /**

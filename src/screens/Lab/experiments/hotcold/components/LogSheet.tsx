@@ -45,7 +45,7 @@ export const LogSheet: React.FC<{
   /** After a save: a short line for Home, e.g. "New record: longest cold". */
   onSaved?: (note: string) => void;
 }> = ({ target, onClose, onSaved }) => {
-  const { prefs, sessions, today, saveSession, deleteSession, newId } = useHotCold();
+  const { prefs, sessions, today, saveSession, deleteSession, newId, clearUnlogged } = useHotCold();
   const unit = prefs.unit;
 
   const editing = target?.mode === 'edit' ? target.session : undefined;
@@ -54,7 +54,7 @@ export const LogSheet: React.FC<{
   const startSec =
     editing?.duration_sec ?? (target?.mode === 'new' ? target.duration_sec : undefined) ?? prefill.duration_sec;
 
-  const [durationSec, setDurationSec] = useState(() => clampDuration(startSec));
+  const [durationSec, setDurationSec] = useState(() => clampDuration(startSec, kind));
   const [temp, setTemp] = useState(() => displayTemp(editing?.temp_c ?? prefill.temp_c, unit));
   const [day, setDay] = useState<Day>(editing && editing.date !== today ? 'yesterday' : 'today');
 
@@ -64,6 +64,23 @@ export const LogSheet: React.FC<{
   const color = KIND_COLOR[kind];
   // An edit can't move a session older than yesterday; it just keeps its day.
   const canPickDay = !editing || editing.date === today || editing.date === addDays(today, -1);
+  // From the timer: the time is only on the phone until this sheet saves it.
+  const fromTimer = target.mode === 'new' && !!target.timed;
+
+  // Tapping away from a timed session asks first — it can't be timed again.
+  const dismiss = () => {
+    if (!fromTimer) return onClose();
+    showConfirm(
+      'Discard this session?',
+      `Your timed ${KIND_LABEL[kind].toLowerCase()} (${formatDuration(durationSec)}) won’t be saved.`,
+      () => {
+        clearUnlogged();
+        onClose();
+      },
+      'Discard',
+      'Keep it'
+    );
+  };
 
   const save = async (resistance?: 1 | 2 | 3) => {
     const session: HotColdSession = {
@@ -71,7 +88,7 @@ export const LogSheet: React.FC<{
       kind,
       date: canPickDay ? (day === 'today' ? today : addDays(today, -1)) : editing!.date,
       logged_at: editing?.logged_at ?? new Date().toISOString(),
-      duration_sec: clampDuration(durationSec),
+      duration_sec: clampDuration(durationSec, kind),
       temp_c: clampTemp(kind, storedTemp(temp, unit)),
       timed: editing?.timed ?? (target.mode === 'new' ? target.timed : undefined),
       // "Save changes" on an edit keeps the rating it had.
@@ -80,7 +97,9 @@ export const LogSheet: React.FC<{
     };
     onClose();
     const broke = await saveSession(session);
+    // A failed save keeps a timed session on the phone; Home offers it again.
     if (broke === null) return;
+    if (fromTimer) clearUnlogged();
     onSaved?.(
       broke.length
         ? `New record: ${broke.map((r) => RECORD_LABEL[r].toLowerCase()).join(' and ')}.`
@@ -100,7 +119,7 @@ export const LogSheet: React.FC<{
     );
 
   return (
-    <BottomSheet visible onClose={onClose} title={editing ? `Edit ${KIND_LABEL[kind].toLowerCase()}` : KIND_LABEL[kind]}>
+    <BottomSheet visible onClose={dismiss} title={editing ? `Edit ${KIND_LABEL[kind].toLowerCase()}` : KIND_LABEL[kind]}>
       <View style={styles.body}>
         {canPickDay ? (
           <SegmentedControl<Day>
@@ -122,7 +141,7 @@ export const LogSheet: React.FC<{
             value={durationSec}
             onChange={setDurationSec}
             min={MIN_DURATION_SEC}
-            max={MAX_DURATION_SEC}
+            max={MAX_DURATION_SEC[kind]}
             step={durationStep(kind)}
             format={formatDuration}
             accessibilityLabel="How long"

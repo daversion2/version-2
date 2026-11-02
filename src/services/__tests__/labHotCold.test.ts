@@ -43,6 +43,9 @@ describe('labHotCold sessions', () => {
     const listed = await listHotColdSessions('u1', '2026-10-15');
     expect(listed).toEqual([session('b', '2026-10-30', { duration_sec: 150 })]);
 
+    // No date: every session, for records and the streak.
+    expect((await listHotColdSessions('u1')).map((x) => x.id).sort()).toEqual(['a', 'b']);
+
     await deleteHotColdSession('u1', 'b');
     expect(await listHotColdSessions('u1', '2026-01-01')).toEqual([session('a', '2026-10-01')]);
   });

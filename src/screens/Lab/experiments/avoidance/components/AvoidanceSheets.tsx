@@ -125,8 +125,12 @@ export const TaskSheet: React.FC<{
         <TouchableOpacity
           style={[avs.primaryBtn, styles.didIt]}
           onPress={() => {
+            // Unsaved edits go with it: saved now, so a skipped rating keeps them,
+            // and cleared as edited. A blanked name keeps the old one.
+            const edited: AvoidanceTask = { ...task, text: cleanTaskText(text) ?? task.text, forecast };
             onClose();
-            onDidIt(task);
+            if (changed) updateTask(edited);
+            onDidIt(edited);
           }}
         >
           <Text style={avs.primaryBtnText}>Did it</Text>

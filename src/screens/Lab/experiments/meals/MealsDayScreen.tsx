@@ -140,7 +140,14 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const reopen = () =>
-    showConfirm('Reopen today?', 'You can change your meals, then close it out again.', () => saveDay(reopenDay(day)), 'Reopen');
+    showConfirm(
+      'Reopen today?',
+      day.handed_off_at
+        ? 'You can change your meals, then close it out again. Today’s already rated, so it won’t be rated twice.'
+        : 'You can change your meals, then close it out again.',
+      () => saveDay(reopenDay(day)),
+      'Reopen'
+    );
 
   const meals = score.items.filter((i) => i.kind === 'meal');
   const extras = score.items.filter((i) => i.kind === 'extra');

@@ -4,14 +4,14 @@ import type { CustomFoodGroup, CustomGroupId, FoodGroupId, MealsPrefs, MealsScor
 // MEALS — the food groups a plate is described with, and what each one covers.
 //
 // The user never decides what counts as whole or processed: they say what was
-// on the plate, and services/mealsMath.ts works out pass or fail. So the
+// on the plate, and services/mealsMath.ts works out the 0-100 score. So the
 // examples here ARE the rules a user sees — keep them concrete.
 //
 // Two rules the guide states outright (founder, 2026-10-17):
 //   - Ready-made food is one chip. A frozen pizza is Processed, not
 //     Grains + Dairy + Veggies.
 //   - Bacon, sausage, ham and deli meat are Processed, not Pork.
-// Dairy is semi-processed for pass/fail by the founder's call — stricter than
+// Dairy is semi-processed for scoring by the founder's call — stricter than
 // the NOVA research, where plain milk and yogurt count as minimally processed.
 // Say so if the guide ever cites NOVA. It has its own chip (2026-10-19) so its
 // protein isn't lost among the bread and pasta.

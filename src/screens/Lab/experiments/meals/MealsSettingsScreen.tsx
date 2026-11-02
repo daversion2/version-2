@@ -25,6 +25,8 @@ import {
   activeCustomGroups,
   addSlot,
   archiveCustomGroup,
+  clampOnTargetThreshold,
+  MIN_ON_TARGET_THRESHOLD,
   describeGroupGoal,
   moveSlot,
   newCustomGroup,
@@ -35,6 +37,7 @@ import {
 import { showConfirm } from '../../../../utils/alert';
 import { clampWeeklyGoal } from '../../../../services/appCheckins';
 import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
+import { useAuth } from '../../../../context/AuthContext';
 import { useMeals } from './MealsContext';
 import { MEALS_ACCENT, NUTRIENT_COLOR, mls } from './components/mealsStyle';
 
@@ -179,6 +182,8 @@ const CustomFoodRow: React.FC<{
 
 export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const { prefs, updatePrefs, habits, newId } = useMeals();
+  // The scoring weights are for tuning the app, not for users (types/meals.ts MealsScoringWeights).
+  const isAdmin = useAuth().userProfile?.is_admin === true;
   const [choosingFor, setChoosingFor] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const customGroups = prefs.custom_groups ?? [];
@@ -287,8 +292,8 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.goalLine}>
           <Text style={mls.title}>On target at</Text>
           <Stepper
-            value={prefs.scoring.on_target_threshold}
-            min={0}
+            value={clampOnTargetThreshold(prefs.scoring.on_target_threshold)}
+            min={MIN_ON_TARGET_THRESHOLD}
             max={100}
             step={5}
             label="on-target threshold"
@@ -297,65 +302,69 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
         <Text style={mls.muted}>Your day is on target once your plates average this score or more.</Text>
       </View>
-      <View style={[mls.card, styles.goal]}>
-        <View style={styles.goalLine}>
-          <Text style={mls.title}>Whole-food ratio</Text>
-          <Stepper
-            value={prefs.scoring.ratio_points}
-            min={0}
-            max={100}
-            step={5}
-            label="whole-food ratio points"
-            onChange={(n) => setWeight('ratio_points', n)}
-          />
-        </View>
-        <Text style={mls.muted}>How much of a plate's score comes from how much of it was whole food.</Text>
-      </View>
-      <View style={[mls.card, styles.goal]}>
-        <View style={styles.goalLine}>
-          <Text style={mls.title}>Nutrient bonus</Text>
-          <Stepper
-            value={prefs.scoring.nutrient_bonus}
-            min={0}
-            max={20}
-            label="nutrient bonus"
-            onChange={(n) => setWeight('nutrient_bonus', n)}
-          />
-        </View>
-        <Text style={mls.muted}>Added per nutrient (protein, fiber, healthy fats) the plate hits — up to 3.</Text>
-      </View>
-      <View style={[mls.card, styles.goal]}>
-        <View style={styles.goalLine}>
-          <Text style={mls.title}>Processed penalty</Text>
-          <Stepper
-            value={prefs.scoring.processed_penalty}
-            min={0}
-            max={100}
-            step={5}
-            label="processed penalty"
-            onChange={(n) => setWeight('processed_penalty', n)}
-          />
-        </View>
-        <Text style={mls.muted}>Subtracted when Processed is on the plate, on top of what it already costs the ratio.</Text>
-      </View>
-      <View style={[mls.card, styles.goal]}>
-        <View style={styles.goalLine}>
-          <Text style={mls.title}>Strict penalty</Text>
-          <Stepper
-            value={prefs.scoring.strict_penalty}
-            min={0}
-            max={50}
-            step={5}
-            label="strict penalty"
-            onChange={(n) => setWeight('strict_penalty', n)}
-          />
-        </View>
-        <Text style={mls.muted}>Strict mode only: subtracted when Dairy, Semi-processed or Protein shake are on the plate.</Text>
-      </View>
-      <TouchableOpacity onPress={() => updatePrefs({ scoring: DEFAULT_MEALS_SCORING })} style={styles.add}>
-        <Ionicons name="refresh" size={16} color={MEALS_ACCENT} />
-        <Text style={mls.link}>Reset scoring to defaults</Text>
-      </TouchableOpacity>
+      {isAdmin && (
+        <>
+          <View style={[mls.card, styles.goal]}>
+            <View style={styles.goalLine}>
+              <Text style={mls.title}>Whole-food ratio</Text>
+              <Stepper
+                value={prefs.scoring.ratio_points}
+                min={0}
+                max={100}
+                step={5}
+                label="whole-food ratio points"
+                onChange={(n) => setWeight('ratio_points', n)}
+              />
+            </View>
+            <Text style={mls.muted}>How much of a plate's score comes from how much of it was whole food.</Text>
+          </View>
+          <View style={[mls.card, styles.goal]}>
+            <View style={styles.goalLine}>
+              <Text style={mls.title}>Nutrient bonus</Text>
+              <Stepper
+                value={prefs.scoring.nutrient_bonus}
+                min={0}
+                max={20}
+                label="nutrient bonus"
+                onChange={(n) => setWeight('nutrient_bonus', n)}
+              />
+            </View>
+            <Text style={mls.muted}>Added per nutrient (protein, fiber, healthy fats) the plate hits — up to 3.</Text>
+          </View>
+          <View style={[mls.card, styles.goal]}>
+            <View style={styles.goalLine}>
+              <Text style={mls.title}>Processed penalty</Text>
+              <Stepper
+                value={prefs.scoring.processed_penalty}
+                min={0}
+                max={100}
+                step={5}
+                label="processed penalty"
+                onChange={(n) => setWeight('processed_penalty', n)}
+              />
+            </View>
+            <Text style={mls.muted}>Subtracted when Processed is on the plate, on top of what it already costs the ratio.</Text>
+          </View>
+          <View style={[mls.card, styles.goal]}>
+            <View style={styles.goalLine}>
+              <Text style={mls.title}>Strict penalty</Text>
+              <Stepper
+                value={prefs.scoring.strict_penalty}
+                min={0}
+                max={50}
+                step={5}
+                label="strict penalty"
+                onChange={(n) => setWeight('strict_penalty', n)}
+              />
+            </View>
+            <Text style={mls.muted}>Strict mode only: subtracted when Dairy, Semi-processed or Protein shake are on the plate.</Text>
+          </View>
+          <TouchableOpacity onPress={() => updatePrefs({ scoring: DEFAULT_MEALS_SCORING })} style={styles.add}>
+            <Ionicons name="refresh" size={16} color={MEALS_ACCENT} />
+            <Text style={mls.link}>Reset scoring to defaults</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       <View style={[mls.card, styles.row]}>
         <View style={{ flex: 1, gap: 2 }}>

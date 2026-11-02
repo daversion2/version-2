@@ -33,9 +33,13 @@ export const saveHotColdPrefs = async (userId: string, changes: Partial<HotColdP
   await setDoc(ref(userId, COL.prefs, PREFS_DOC), stripUndefined(changes), { merge: true });
 };
 
-/** Sessions on or after `from` (YYYY-MM-DD). One field, so no composite index. */
-export const listHotColdSessions = async (userId: string, from: string): Promise<HotColdSession[]> => {
-  const snap = await getDocs(query(col(userId, COL.sessions), where('date', '>=', from)));
+/**
+ * Sessions on or after `from` (YYYY-MM-DD) — every session without it, which
+ * records and the streak need. One field, so no composite index.
+ */
+export const listHotColdSessions = async (userId: string, from?: string): Promise<HotColdSession[]> => {
+  const sessions = col(userId, COL.sessions);
+  const snap = await getDocs(from ? query(sessions, where('date', '>=', from)) : sessions);
   return snap.docs.map((d) => ({ ...(d.data() as HotColdSession), id: d.id }));
 };
 

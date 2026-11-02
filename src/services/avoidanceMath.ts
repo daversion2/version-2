@@ -119,6 +119,27 @@ export const cleanTaskText = (text: string): string | null => {
 // --- The old Avoidance Training (archived Training tab) ----------------------
 
 /**
+ * Every old id already brought over: the ones remembered in prefs, plus any a
+ * task still carries (brought over before prefs remembered them).
+ */
+export const importedIds = (tasks: AvoidanceTask[], remembered: string[] = []): string[] => [
+  ...new Set([...remembered, ...tasks.flatMap((t) => (t.imported_from ? [t.imported_from] : []))]),
+];
+
+/**
+ * The old list's open tasks not brought over yet. Once brought over, a task
+ * never comes back — not even after it's deleted here.
+ */
+export const notYetImported = (
+  old: OldAvoidanceTask[],
+  tasks: AvoidanceTask[],
+  remembered: string[] = []
+): OldAvoidanceTask[] => {
+  const done = new Set(importedIds(tasks, remembered));
+  return old.filter((o) => o.status === 'active' && !done.has(o.id) && cleanTaskText(o.text));
+};
+
+/**
  * The old list's open tasks that haven't been brought over yet, as new tasks
  * that keep their original added date — how long you've avoided them is the
  * point. Its cleared ones have no ratings, so they stay behind.
@@ -127,25 +148,23 @@ export const importable = (
   old: OldAvoidanceTask[],
   tasks: AvoidanceTask[],
   newId: () => string,
-  now: Date = new Date()
-): AvoidanceTask[] => {
-  const done = new Set(tasks.map((t) => t.imported_from).filter(Boolean));
-  return old
-    .filter((o) => o.status === 'active' && !done.has(o.id) && cleanTaskText(o.text))
-    .map((o) => {
-      // A missing or unreadable date counts from now, rather than as "NaN days".
-      const added = new Date(o.createdAt);
-      const when = Number.isNaN(added.getTime()) ? now : added;
-      return {
-        id: newId(),
-        text: cleanTaskText(o.text)!,
-        created_at: when.toISOString(),
-        created_date: toLocalDateString(when),
-        status: 'open' as const,
-        imported_from: o.id,
-      };
-    });
-};
+  now: Date = new Date(),
+  /** prefs.imported_ids. */
+  remembered: string[] = []
+): AvoidanceTask[] =>
+  notYetImported(old, tasks, remembered).map((o) => {
+    // A missing or unreadable date counts from now, rather than as "NaN days".
+    const added = new Date(o.createdAt);
+    const when = Number.isNaN(added.getTime()) ? now : added;
+    return {
+      id: newId(),
+      text: cleanTaskText(o.text)!,
+      created_at: when.toISOString(),
+      created_date: toLocalDateString(when),
+      status: 'open' as const,
+      imported_from: o.id,
+    };
+  });
 
 /** "Today", "Yesterday", or "Mon 27 Oct": when something was cleared. */
 export const dayLabel = (date: string, today: string): string => {

@@ -7,7 +7,7 @@ import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { LargeTitle } from '../../../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
-import { activeCustomGroups, closeDay, scoreDay, withMeal } from '../../../../services/mealsMath';
+import { activeCustomGroups, closeDay, closeHandsOff, scoreDay, withMeal } from '../../../../services/mealsMath';
 import { MEAL_OFF_REASONS, groupLabel } from '../../../../data/mealGroups';
 import { saveMealsDay } from '../../../../services/labMeals';
 import { showAlert } from '../../../../utils/alert';
@@ -26,8 +26,11 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
  * Close out today. First catch up any meal not logged yet, then the result:
  *   - On target: hand it back to Today, which asks for the override ("How hard
  *     was it to start?") and runs the celebration. Meals never awards XP.
+ *     Only the first on-target close of a day does this: reopened and closed
+ *     again, it was already rated (closeHandsOff).
  *   - Off target: one optional "what got in the way?" — then it's closed. No
  *     check-in is written; the meals still count toward the week.
+ *   - Every meal "didn't eat": nothing to score, so it closes neither on nor off.
  */
 export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -41,6 +44,8 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
 
   const pendingMeals = score.items.filter((i) => i.kind === 'meal' && i.state === 'pending');
   const on = score.status === 'on';
+  const none = score.status === 'none';
+  const handsOff = closeHandsOff(day, rules);
 
   const logMeal = (groups: FoodGroupId[]) => {
     if (editing) saveDay(withMeal(day, editing.slotId, { groups, logged_at: new Date().toISOString() }));
@@ -70,7 +75,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     saveDay(closed);
-    if (on) closeAndCheckOff();
+    if (handsOff) closeAndCheckOff(closed.date);
     else navigation.goBack();
   };
 
@@ -113,16 +118,18 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
     <View style={mls.screen}>
       <ScrollView contentContainerStyle={[mls.scroll, styles.scroll, { paddingBottom: 120 + insets.bottom }]}>
         <View style={styles.hero}>
-          <View style={[styles.badge, { backgroundColor: on ? MEALS_ACCENT : FAIL_COLOR }]}>
-            <Ionicons name={on ? 'checkmark' : 'close'} size={30} color={Colors.white} />
+          <View style={[styles.badge, { backgroundColor: on ? MEALS_ACCENT : none ? Colors.gray : FAIL_COLOR }]}>
+            <Ionicons name={on ? 'checkmark' : none ? 'remove' : 'close'} size={30} color={Colors.white} />
           </View>
           <Text style={styles.heroTitle} accessibilityRole="header">
-            {on ? 'On target' : 'Off target'}
+            {on ? 'On target' : none ? 'Nothing to score' : 'Off target'}
           </Text>
           <Text style={styles.heroSub}>
             {on
               ? `Your day scored ${score.average}, at or above your target of ${rules.scoring.on_target_threshold}.`
-              : 'Not this time. Every meal you logged still counts toward your week.'}
+              : none
+                ? 'Every meal was “didn’t eat”. A skipped meal never counts against you, so today counts neither way.'
+                : 'Not this time. Every meal you logged still counts toward your week.'}
           </Text>
         </View>
 
@@ -144,7 +151,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
               title="Day score"
               right={
                 <Text style={styles.total}>
-                  {score.average} · target {rules.scoring.on_target_threshold}+
+                  {score.average ?? '–'} · target {rules.scoring.on_target_threshold}+
                 </Text>
               }
             />,
@@ -169,8 +176,12 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {on ? (
-          <Text style={mls.lead}>Close the day, then rate your override on Today: how hard was it to start?</Text>
-        ) : (
+          <Text style={mls.lead}>
+            {handsOff
+              ? 'Close the day, then rate your override on Today: how hard was it to start?'
+              : 'You’ve already rated today. Closing it again just saves your changes.'}
+          </Text>
+        ) : none ? null : (
           <>
             <Text style={mls.sectionLabel}>What got in the way? (optional)</Text>
             {(['internal', 'external'] as const).map((kind) => (
@@ -208,7 +219,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={mls.primaryBtnText}>{on ? 'Close & rate it' : 'Close the day'}</Text>
+            <Text style={mls.primaryBtnText}>{handsOff ? 'Close & rate it' : 'Close the day'}</Text>
           )}
         </TouchableOpacity>
       </View>

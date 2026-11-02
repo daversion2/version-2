@@ -7,6 +7,8 @@ import {
   describeAvoided,
   dreadVsReality,
   importable,
+  importedIds,
+  notYetImported,
   openTasks,
   outcome,
   streakWeeks,
@@ -170,6 +172,27 @@ describe('importable', () => {
     const [t] = importable([old({ createdAt: '' })], [], newId, now);
     expect(t.created_at).toBe('2026-11-01T10:00:00.000Z');
     expect(t.created_date).toBe('2026-11-01');
+  });
+
+  it('never offers a brought-over task again, even after it was deleted here', () => {
+    const [brought] = importable([old({})], [], newId);
+    const remembered = importedIds([brought]);
+    expect(remembered).toEqual(['o1']);
+    // Deleted from the new list: the task is gone, but prefs remember it.
+    expect(importable([old({})], [], newId, new Date(), remembered)).toEqual([]);
+    expect(notYetImported([old({})], [], remembered)).toEqual([]);
+    // Without the remembered ids it would have come back.
+    expect(notYetImported([old({})], [])).toHaveLength(1);
+  });
+
+  it('remembers ids from prefs and from tasks that still carry them, once each', () => {
+    const t = task({ imported_from: 'o2' });
+    expect(importedIds([t, task({})], ['o1', 'o2']).sort()).toEqual(['o1', 'o2']);
+  });
+
+  it('offers only what it would actually bring over — not a blank or cleared old task', () => {
+    const list = [old({}), old({ id: 'o2', text: '  ' }), old({ id: 'o3', status: 'done' })];
+    expect(notYetImported(list, []).map((o) => o.id)).toEqual(['o1']);
   });
 });
 

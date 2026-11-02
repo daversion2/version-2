@@ -44,7 +44,8 @@ import { toLocalDateString } from '../utils/date';
 // progress readout only — they don't gate on/off (founder, 2026-10-26). A day
 // is 'on' once every meal is logged/skipped and the average is at or above
 // scoring.on_target_threshold, 'off' if it's below, 'pending' until
-// complete — no early mid-day verdict.
+// complete — no early mid-day verdict. A complete day with no plates at all
+// (every meal "didn't eat") is 'none': neither on nor off.
 // =============================================================================
 
 /** Dairy, Semi-processed and Supplements — what strict mode's extra penalty applies to. 'processed' has its own penalty. */
@@ -168,7 +169,8 @@ export interface GroupGoalProgress {
   met: boolean;
 }
 
-export type DayStatus = 'on' | 'off' | 'pending';
+/** 'none': every meal marked "didn't eat" — nothing to score, so it counts neither way. */
+export type DayStatus = 'on' | 'off' | 'pending' | 'none';
 
 // --- Nutrients -----------------------------------------------------------------
 // Inferred from the groups on a plate (data/mealGroups.ts): a plate "had
@@ -223,7 +225,7 @@ export interface DayScore {
   groupGoals: GroupGoalProgress[];
   /** How many of the day's plates had each nutrient. Never decides the day. */
   nutrients: NutrientCoverage[];
-  /** 'pending' until every meal is logged/skipped, then 'on' or 'off' from the average. */
+  /** 'pending' until every meal is logged/skipped, then 'on' or 'off' from the average ('none' with no plates). */
   status: DayStatus;
 }
 
@@ -266,7 +268,7 @@ export const scoreDay = (day: Pick<MealsDay, 'meals' | 'extras'> | undefined, ru
     });
 
   let status: DayStatus = 'pending';
-  if (complete && average !== null) status = average >= weights.on_target_threshold ? 'on' : 'off';
+  if (complete) status = average === null ? 'none' : average >= weights.on_target_threshold ? 'on' : 'off';
 
   return { items, average, scoredCount: scored.length, pending, complete, groupGoals, nutrients: nutrientCoverage(items, custom), status };
 };
@@ -512,31 +514,80 @@ export const withoutExtra = (day: MealsDay, extraId: string): MealsDay => ({
   extras: day.extras.filter((e) => e.id !== extraId),
 });
 
+/** The close result a day's status gives: none for a day with no plates — it counts neither way. */
+const resultOf = (status: DayStatus): MealsDay['result'] =>
+  status === 'on' ? 'on' : status === 'none' ? undefined : 'off';
+
+/**
+ * Does closing this day now hand it to Today for its rating? Only an on-target
+ * day, and only once per date: a day reopened and closed again was already
+ * rated, so the rating (and its XP) can't be earned twice.
+ */
+export const closeHandsOff = (day: MealsDay, rules: MealsRules): boolean =>
+  scoreDay(day, rules).status === 'on' && !day.handed_off_at;
+
 /**
  * Close the day under the rules it was scored by. Only a finished day closes,
- * so its result is final: 'on' or 'off', never "in progress".
+ * so its result is final: 'on' or 'off', never "in progress" — or none at all
+ * for a day of only "didn't eat". An on-target close not yet handed off is
+ * stamped `handed_off_at`; see closeHandsOff.
  */
 export const closeDay = (
   day: MealsDay,
   rules: MealsRules,
   close: { now: Date; reasonId?: string; habitId?: string }
 ): MealsDay => {
-  const score = scoreDay(day, rules);
-  const result = score.status === 'on' ? 'on' : 'off';
+  const handsOff = closeHandsOff(day, rules);
+  const result = resultOf(scoreDay(day, rules).status);
+  const stamp = close.now.toISOString();
   return {
     ...day,
     rules,
-    closed_at: close.now.toISOString(),
+    closed_at: stamp,
     result,
     off_reason_id: result === 'off' ? close.reasonId : undefined,
     habit_id: result === 'on' ? close.habitId : undefined,
+    handed_off_at: handsOff ? stamp : day.handed_off_at,
   };
 };
 
-/** A day that checked a habit off stays closed — the check-in can't be taken back from here. */
+/** A day that checked a habit off (before ratings moved to the app) stays closed — that check-in can't be taken back from here. */
 export const canReopen = (day: MealsDay | undefined): boolean => !!day?.closed_at && !day.habit_id;
 
+/**
+ * Open for editing again. `handed_off_at` stays, so closing it again never
+ * rates it twice — and an on-target close from before it existed counts as
+ * handed off, since every on-target close was.
+ */
 export const reopenDay = (day: MealsDay): MealsDay => {
   const { closed_at, result, off_reason_id, habit_id, ...rest } = day;
-  return rest;
+  const handed_off_at = day.handed_off_at ?? (result === 'on' ? closed_at : undefined);
+  return handed_off_at ? { ...rest, handed_off_at } : rest;
 };
+
+/**
+ * The `date` for the finish handoff: absent when the day closed is today, the
+ * day's own date when it isn't — a close left open past midnight rates the day
+ * it closed, not the new one.
+ */
+export const handoffDate = (dayDate: string, now: Date): string | undefined =>
+  dayDate === toLocalDateString(now) ? undefined : dayDate;
+
+/**
+ * The user's own foods to offer as chips on a plate. Each shows the version
+ * the plate is scored with — a past day's saved score, not today's — and a
+ * removed food already on the plate stays, so it can be taken off.
+ */
+export const pickerFoods = (
+  offered: CustomFoodGroup[],
+  scoredWith: CustomFoodGroup[],
+  onPlate: FoodGroupId[]
+): CustomFoodGroup[] => [
+  ...offered.map((o) => scoredWith.find((c) => c.id === o.id) ?? o),
+  ...scoredWith.filter((c) => onPlate.includes(c.id) && !offered.some((o) => o.id === c.id)),
+];
+
+/** The lowest "On target at" a user can set: below it, almost any plate would pass. */
+export const MIN_ON_TARGET_THRESHOLD = 50;
+
+export const clampOnTargetThreshold = (n: number): number => Math.max(MIN_ON_TARGET_THRESHOLD, Math.min(100, Math.round(n)));

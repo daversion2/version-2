@@ -38,6 +38,12 @@ export interface HotColdTimerDraft {
   /** Bell time in seconds; absent = no bell. */
   targetSec?: number;
   bellId?: string;
+  /**
+   * Set when Done is tapped: the time to log. The draft stays until that log
+   * is saved or the user chooses to discard it, so a dismissed sheet, a failed
+   * save or a killed app never loses a timed session.
+   */
+  stoppedSec?: number;
 }
 
 export type HotColdStackParamList = {

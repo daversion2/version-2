@@ -52,10 +52,30 @@ export const clampTemp = (kind: ThermalKind, c: number): number =>
 // --- Duration ----------------------------------------------------------------
 
 export const MIN_DURATION_SEC = 5;
-export const MAX_DURATION_SEC = 2 * 60 * 60;
+/**
+ * The longest session that can be logged. Cold stops at 30 min: past that it's
+ * a timer left running, not a plunge — a forgotten clock used to log up to 2 h
+ * of cold and take the record with it.
+ */
+export const MAX_DURATION_SEC: Record<ThermalKind, number> = { cold: 30 * 60, heat: 2 * 60 * 60 };
 
-export const clampDuration = (sec: number): number =>
-  Math.min(MAX_DURATION_SEC, Math.max(MIN_DURATION_SEC, Math.round(sec)));
+export const clampDuration = (sec: number, kind: ThermalKind): number =>
+  Math.min(MAX_DURATION_SEC[kind], Math.max(MIN_DURATION_SEC, Math.round(sec)));
+
+/** How far past the bell a cold clock can run before it looks forgotten. */
+export const FORGOTTEN_PAST_BELL_SEC = 10 * 60;
+/** A heat clock (no bell) this long looks forgotten. */
+export const FORGOTTEN_HEAT_SEC = 60 * 60;
+
+/**
+ * Did the timer probably keep running after they got out? Cold: well past the
+ * bell, or past the cold limit. Heat: over an hour. Done asks before logging it.
+ */
+export const looksForgotten = (kind: ThermalKind, elapsed: number, targetSec?: number): boolean => {
+  if (kind === 'heat') return elapsed > FORGOTTEN_HEAT_SEC;
+  if (elapsed > MAX_DURATION_SEC.cold) return true;
+  return targetSec !== undefined && elapsed > targetSec + FORGOTTEN_PAST_BELL_SEC;
+};
 
 /** The duration stepper's step: cold moves in 15 s, heat in whole minutes. */
 export const durationStep = (kind: ThermalKind): number => (kind === 'cold' ? 15 : 60);
@@ -81,6 +101,15 @@ export const formatClock = (sec: number): string => {
 export const totalMinutes = (sec: number): number => (sec <= 0 ? 0 : Math.max(1, Math.round(sec / 60)));
 
 // --- Sessions ----------------------------------------------------------------
+
+/** How far back History lists sessions. Records and the streak use every session. */
+export const HISTORY_WEEKS = 12;
+
+/** The sessions History lists: the last HISTORY_WEEKS weeks. */
+export const recentSessions = (sessions: HotColdSession[], today: string): HotColdSession[] => {
+  const from = addDays(today, -HISTORY_WEEKS * 7);
+  return sessions.filter((s) => s.date >= from);
+};
 
 const newestFirst = (a: HotColdSession, b: HotColdSession): number =>
   b.date.localeCompare(a.date) || b.logged_at.localeCompare(a.logged_at);

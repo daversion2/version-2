@@ -15,7 +15,7 @@ import {
   saveAvoidanceTasks,
 } from '../../../../services/labAvoidance';
 import { getAvoidanceTasks as getOldAvoidanceTasks } from '../../../../services/avoidanceTasks';
-import { cleanTaskText, importable } from '../../../../services/avoidanceMath';
+import { cleanTaskText, importable, importedIds, notYetImported } from '../../../../services/avoidanceMath';
 import { RESISTANCE_SCALE } from '../../../../constants/resistance';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
@@ -42,7 +42,9 @@ interface AvoidanceContextValue {
 
   /** Open tasks in the old Avoidance Training not brought over yet. */
   oldToImport: OldAvoidanceTask[];
+  /** Brings them over once; a second call while one is running does nothing. */
   importOld: () => Promise<number>;
+  importing: boolean;
 
   closeApp: () => void;
 }
@@ -71,6 +73,11 @@ export const AvoidanceProvider: React.FC<{
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
   const [oldTasks, setOldTasks] = useState<OldAvoidanceTask[]>([]);
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
+  // A ref, not just state: a fast double tap on Bring lands before a re-render.
+  const importingRef = useRef(false);
+  const [importing, setImporting] = useState(false);
 
   // Left open past midnight, "today" has to move on with the clock.
   useEffect(() => {
@@ -196,20 +203,35 @@ export const AvoidanceProvider: React.FC<{
     [userId]
   );
 
-  const oldToImport = oldTasks.filter((o) => o.status === 'active' && !tasks.some((t) => t.imported_from === o.id));
+  const oldToImport = notYetImported(oldTasks, tasks, prefs.imported_ids);
 
   const importOld = useCallback(async () => {
-    const incoming = importable(oldTasks, tasksRef.current, () => newAvoidanceId(userId));
+    if (importingRef.current) return 0;
+    const remembered = prefsRef.current.imported_ids;
+    const incoming = importable(oldTasks, tasksRef.current, () => newAvoidanceId(userId), new Date(), remembered);
     if (incoming.length === 0) return 0;
+    importingRef.current = true;
+    setImporting(true);
     try {
       await saveAvoidanceTasks(userId, incoming);
       setTasks((list) => [...list, ...incoming]);
-      return incoming.length;
     } catch (e) {
       console.warn('Avoidance: import failed:', e);
       saveFailed();
       return 0;
+    } finally {
+      importingRef.current = false;
+      setImporting(false);
     }
+    // Remember what came over, so deleting one later doesn't offer it again.
+    // The tasks are saved either way; if this write fails they still carry
+    // imported_from, which is what counted before.
+    const imported_ids = importedIds([...tasksRef.current, ...incoming], remembered);
+    setPrefs((p) => ({ ...p, imported_ids }));
+    saveAvoidancePrefs(userId, { imported_ids }).catch((e) =>
+      console.warn('Avoidance: imported ids not saved:', e)
+    );
+    return incoming.length;
   }, [userId, oldTasks]);
 
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
@@ -229,6 +251,7 @@ export const AvoidanceProvider: React.FC<{
     deleteTask,
     oldToImport,
     importOld,
+    importing,
     closeApp,
   };
 

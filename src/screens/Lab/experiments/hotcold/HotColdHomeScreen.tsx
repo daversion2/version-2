@@ -27,7 +27,7 @@ type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdHome'>;
  * to start — logged. Below: this week against the goal, and today's sessions.
  */
 export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { loading, loadError, reload, today, prefs, sessions, timer, pendingLog, takePendingLog, closeApp } =
+  const { loading, loadError, reload, today, prefs, sessions, timer, pendingLog, takePendingLog, unlogged, closeApp } =
     useHotCold();
   const [target, setTarget] = useState<LogTarget | null>(null);
   const [sheetKey, setSheetKey] = useState(0);
@@ -129,10 +129,24 @@ export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         ) : null}
 
+        {unlogged && !target ? (
+          <TouchableOpacity
+            style={[hcs.card, styles.timerBanner]}
+            onPress={() => open({ mode: 'new', kind: unlogged.kind, duration_sec: unlogged.duration_sec, timed: true })}
+          >
+            <Ionicons name="timer-outline" size={22} color={KIND_COLOR[unlogged.kind]} />
+            <Text style={[hcs.body, styles.flex]}>
+              Timed {KIND_LABEL[unlogged.kind].toLowerCase()} · {formatDuration(unlogged.duration_sec)} not logged yet
+            </Text>
+            <Text style={hcs.link}>Log it</Text>
+          </TouchableOpacity>
+        ) : null}
+
         <View style={styles.tiles}>{(['cold', 'heat'] as const).map(tile)}</View>
         <Text style={[hcs.muted, styles.centerText]}>Tap one to log it. It starts from your last time.</Text>
 
-        {!timer ? (
+        {/* One timer draft at a time: log or discard the last timed session first. */}
+        {!timer && !unlogged ? (
           <TouchableOpacity
             style={hcs.secondaryBtn}
             onPress={() => navigation.navigate('HotColdTimer', { kind: 'cold' })}

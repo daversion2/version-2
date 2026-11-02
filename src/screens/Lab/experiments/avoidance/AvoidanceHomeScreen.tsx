@@ -29,7 +29,7 @@ type Props = NativeStackScreenProps<AvoidanceStackParamList, 'AvoidanceHome'>;
  * next, and tomorrow starts over from the oldest.
  */
 export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { loading, loadError, reload, today, prefs, tasks, addTask, clearTask, oldToImport, importOld, closeApp } =
+  const { loading, loadError, reload, today, prefs, tasks, addTask, clearTask, oldToImport, importOld, importing, closeApp } =
     useAvoidance();
   const [text, setText] = useState('');
   const [example] = useState(() => ADD_EXAMPLES[Math.floor(Math.random() * ADD_EXAMPLES.length)]);
@@ -183,7 +183,12 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {oldToImport.length > 0 ? (
-          <TouchableOpacity style={[avs.card, styles.import]} onPress={brought}>
+          <TouchableOpacity
+            style={[avs.card, styles.import, importing && styles.dim]}
+            onPress={brought}
+            disabled={importing}
+            accessibilityState={{ disabled: importing }}
+          >
             <Ionicons name="download-outline" size={20} color={AVOIDANCE_ACCENT} />
             <Text style={[avs.body, styles.flex]}>
               Bring over {oldToImport.length} from the old Avoidance Training
@@ -248,6 +253,7 @@ const styles = StyleSheet.create({
   rep: { borderColor: AVOIDANCE_ACCENT, backgroundColor: AVOIDANCE_TINT },
   repBtn: { marginTop: Spacing.xs },
   import: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  dim: { opacity: 0.5 },
   week: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   ringWrap: { alignItems: 'center', justifyContent: 'center' },
   ringText: { position: 'absolute', fontFamily: Fonts.primaryBold, fontSize: FontSizes.sm, color: Colors.dark },

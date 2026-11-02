@@ -10,6 +10,7 @@ import {
   groupByDay,
   RECORD_LABEL,
   RecordId,
+  recentSessions,
   records,
 } from '../../../../services/hotcoldMath';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
@@ -21,14 +22,14 @@ type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdHistory'>;
 
 const RECORD_ORDER: RecordId[] = ['longestCold', 'coldest', 'longestHeat'];
 
-/** Records, then every session of the last 12 weeks by day. Tap one to edit or delete it. */
+/** Records from every session, then the last 12 weeks by day. Tap one to edit or delete it. */
 export const HotColdHistoryScreen: React.FC<Props> = () => {
   const { sessions, today, prefs } = useHotCold();
   const [target, setTarget] = useState<LogTarget | null>(null);
   const [sheetKey, setSheetKey] = useState(0);
 
   const best = useMemo(() => records(sessions), [sessions]);
-  const days = useMemo(() => groupByDay(sessions), [sessions]);
+  const days = useMemo(() => groupByDay(recentSessions(sessions, today)), [sessions, today]);
 
   const edit = (session: HotColdSession) => {
     setSheetKey((k) => k + 1);

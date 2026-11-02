@@ -97,7 +97,7 @@ export const LAB_EXPERIMENTS = [
     id: 'meals',
     title: 'Meals',
     description:
-      'Rate each meal by tapping the food groups on the plate; it works out pass or fail against your own daily goal.',
+      'Rate each meal by tapping the food groups on the plate; it scores 0 to 100, and your day is on target once your plates average your own target.',
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
   },

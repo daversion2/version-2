@@ -6,7 +6,7 @@ import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../../data/mealGroups';
 import type { CustomFoodGroup, FoodGroupId, MealsScoringWeights } from '../../../../../types/meals';
-import { plateNutrients, scoreVerdict } from '../../../../../services/mealsMath';
+import { pickerFoods, plateNutrients, scoreVerdict } from '../../../../../services/mealsMath';
 import { MEALS_ACCENT, scoreColor, mls } from './mealsStyle';
 import { NutrientTags } from './MealsParts';
 
@@ -71,11 +71,9 @@ export const MealPickerModal: React.FC<Props> = ({
 
   const verdict = scoreVerdict(groups, strict, weights, custom);
   const isExtra = target?.kind === 'extra';
-  // A removed food already on this plate stays tappable, so it can be taken off.
-  const myFoods = [
-    ...offered,
-    ...custom.filter((c) => groups.includes(c.id) && !offered.some((o) => o.id === c.id)),
-  ];
+  // Labelled with the score this plate uses (a past day's saved one), and a
+  // removed food already on the plate stays tappable, so it can be taken off.
+  const myFoods = pickerFoods(offered, custom, groups);
 
   const renderChip = (group: Pick<FoodGroup, 'id' | 'label'>, score?: number) => {
     const on = groups.includes(group.id);

@@ -1,6 +1,6 @@
 // =============================================================================
 // Meals (Lab mini-app) — rate each meal by tapping the food groups on the plate;
-// the app works out pass or fail. Stored under users/{uid}/lab_meals_*. See
+// the app scores it 0-100. Stored under users/{uid}/lab_meals_*. See
 // services/labMeals.ts (storage) and services/mealsMath.ts (the rules).
 // =============================================================================
 
@@ -18,7 +18,7 @@ export type WholeGroupId =
 
 /**
  * Dairy and Supplements are their own chips so their protein can be told apart
- * from bread and pasta, but for pass/fail they are semi-processed (founder,
+ * from bread and pasta, but for scoring they are semi-processed (founder,
  * 2026-10-19 for dairy; 2026-10-24 for supplements).
  */
 export type ProcessedGroupId = 'dairy' | 'supplements' | 'semi' | 'processed';
@@ -65,9 +65,9 @@ export interface GroupGoal {
 
 /**
  * How a plate's 0-100 score is built, and what counts as "on target" for a
- * day. Admin-tunable from Meals Settings — the whole app is already
- * admin-only, so these live right alongside the rest of MealsPrefs rather
- * than behind a separate permission layer.
+ * day. The weights are admin-tunable from Meals Settings (shown to is_admin
+ * accounts only, now the app is live for everyone); `on_target_threshold` is
+ * the user's own, never below MIN_ON_TARGET_THRESHOLD (services/mealsMath.ts).
  */
 export interface MealsScoringWeights {
   /** wholeFoodRatio (whole groups ÷ all groups tapped) * this. The dominant term. */
@@ -123,11 +123,17 @@ export interface MealsDay {
   rules?: MealsRules;
   /** Set by "Close out the day". */
   closed_at?: string;
+  /** Absent on a closed day of only "didn't eat" — it counts neither way. */
   result?: 'on' | 'off';
   /** MEAL_OFF_REASONS id, when an off-target day said why. */
   off_reason_id?: string;
   /** The habit an on-target close checked off. */
   habit_id?: string;
+  /**
+   * When an on-target close handed this day to Today for its rating. Set once
+   * and kept through a reopen, so a day is only ever rated once.
+   */
+  handed_off_at?: string;
 }
 
 export type MealsStackParamList = {

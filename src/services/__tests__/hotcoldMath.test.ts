@@ -9,8 +9,10 @@ import {
   formatTemp,
   fromC,
   groupByDay,
+  looksForgotten,
   newRecords,
   prefillFor,
+  recentSessions,
   records,
   storedTemp,
   streakWeeks,
@@ -94,9 +96,27 @@ describe('duration', () => {
   });
 
   it('clamps', () => {
-    expect(clampDuration(0)).toBe(5);
-    expect(clampDuration(99999)).toBe(7200);
-    expect(clampDuration(90.4)).toBe(90);
+    expect(clampDuration(0, 'cold')).toBe(5);
+    expect(clampDuration(99999, 'heat')).toBe(7200);
+    expect(clampDuration(90.4, 'cold')).toBe(90);
+  });
+
+  it('caps cold at 30 min — a forgotten timer can’t log two hours of cold', () => {
+    expect(clampDuration(2 * 60 * 60, 'cold')).toBe(30 * 60);
+    expect(clampDuration(45 * 60, 'heat')).toBe(45 * 60);
+  });
+
+  it('spots a timer left running after they got out', () => {
+    // Cold, bell at 3 min: a little over is a real plunge; ten minutes past it isn't.
+    expect(looksForgotten('cold', 4 * 60, 180)).toBe(false);
+    expect(looksForgotten('cold', 180 + 10 * 60, 180)).toBe(false);
+    expect(looksForgotten('cold', 180 + 10 * 60 + 1, 180)).toBe(true);
+    // Past the cold limit, bell or no bell.
+    expect(looksForgotten('cold', 31 * 60)).toBe(true);
+    expect(looksForgotten('cold', 12 * 60)).toBe(false);
+    // Heat has no bell: over an hour.
+    expect(looksForgotten('heat', 20 * 60)).toBe(false);
+    expect(looksForgotten('heat', 61 * 60)).toBe(true);
   });
 
   it('shows any time at all as at least a minute', () => {
@@ -209,6 +229,17 @@ describe('newRecords', () => {
     const before = [s({ kind: 'heat', duration_sec: 900, temp_c: 80 })];
     expect(newRecords(s({ kind: 'heat', duration_sec: 600, temp_c: 110 }), before)).toEqual([]);
     expect(newRecords(s({ kind: 'heat', duration_sec: 960 }), before)).toEqual(['longestHeat']);
+  });
+});
+
+describe('recentSessions', () => {
+  it('lists the last 12 weeks; anything older stays out of the list (but not out of records)', () => {
+    const today = '2026-10-29';
+    const old = s({ date: '2026-08-05' }); // 12 weeks before = 2026-08-06
+    const edge = s({ date: '2026-08-06' });
+    const recent = s({ date: '2026-10-28' });
+    expect(recentSessions([old, edge, recent], today).map((x) => x.id)).toEqual([edge.id, recent.id]);
+    expect(records([old, edge, recent]).longestCold).not.toBeNull();
   });
 });
 

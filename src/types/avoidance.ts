@@ -29,6 +29,11 @@ export interface AvoidanceTask {
 export interface AvoidancePrefs {
   /** Tasks cleared a week. */
   weekly_goal: number;
+  /**
+   * Old avoidanceTasks ids already brought over. Kept apart from the tasks'
+   * own `imported_from`, so deleting a brought-over task doesn't offer it again.
+   */
+  imported_ids?: string[];
 }
 
 export type AvoidanceStackParamList = {
