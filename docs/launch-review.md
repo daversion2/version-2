@@ -6,7 +6,11 @@ without you: it needs a decision, a store build, a deploy, or a large rework.
 
 Most important first.
 
-## 1. Deploy what this pass changed
+## 1. Deploy what this pass changed — done 2026-11-02
+
+Deployed by the founder (rules, functions, hosting; the two Challenges
+functions are gone from production, the privacy pages are live) and the app
+fixes went out OTA from 7049a31. Kept below for the record.
 
 These are committed but do nothing until deployed. They're safe to run, but
 they're yours to run.
