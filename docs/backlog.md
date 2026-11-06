@@ -466,7 +466,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Meals: servings shown as a treemap** *(2026-11-05, not yet seen on screen, not OTA'd)*
+**Meals: servings shown as a treemap** *(2026-11-05, live OTA fd527c87, not yet seen on screen)*
 The equal-squares "darker = more" grid on Today's Meals card and the Meals
 app page is now a treemap (founder picked Option A from the Meals Servings
 Views mockup, https://claude.ai/artifact/K9fs9VA2e3iCYXE87ytUNK): each
