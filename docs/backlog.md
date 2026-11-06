@@ -466,7 +466,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Admin → Meals scoring: tune the scoring model for everyone from the app** *(2026-11-05, not yet seen on screen, not OTA'd)*
+**Admin → Meals scoring: tune the scoring model for everyone from the app** *(2026-11-05, live OTA e0e07596, not yet seen on screen)*
 Admins can edit each goal's weights, the base score, the four processing
 caps and every food group's ratings, preview how the 23 sample plates move
 (and how many stay on target), then save for everyone, discard, or reset to
@@ -480,7 +480,7 @@ days keep their snapshotted chip scores. Users' own score overrides sit on
 top of whatever model is live. Logic in `services/mealsModel.ts` and
 `services/mealsMath.ts` (tested); screen `AdminMealsScoringScreen`.
 
-**Meals: chip scores worked out from food profiles and goal weights** *(2026-11-05, not yet seen on screen, not OTA'd)*
+**Meals: chip scores worked out from food profiles and goal weights** *(2026-11-05, live OTA e0e07596, not yet seen on screen)*
 Founder: replace the hand-picked chip scores with a model. Each food group
 has a profile, rated 0-3 for the typical food in it: protein, fiber,
 vitamins & minerals, healthy fats (add points), refined sugar or flour,
@@ -517,7 +517,7 @@ which started one. Reviewed as a mockup first and approved as drawn.
 - Workouts' volume per session is a bar chart from zero (`BarTrend`), the
   latest bar solid and labelled; it was dots scaled min-to-max.
 
-**Meals: a score per food group, set by your goal** *(2026-11-05, not yet seen on screen, not OTA'd)*
+**Meals: a score per food group, set by your goal** *(2026-11-05, live OTA e0e07596, not yet seen on screen)*
 Founder: replace the formula (whole-food ratio, nutrient bonus, processed and
 strict penalties, the shake rule) with a score on every chip; a plate scores
 the average of its chips. The processed side is split into named chips —
@@ -538,7 +538,7 @@ mode and the admin formula steppers are gone. Prefs now save with
 (founder, 2026-11-05). Logic in `services/mealsMath.ts` and
 `data/mealGroups.ts` (tested).
 
-**Meals: no set-up meals — log a meal whenever you eat** *(2026-11-05, not yet seen on screen, not OTA'd)*
+**Meals: no set-up meals — log a meal whenever you eat** *(2026-11-05, live OTA e0e07596, not yet seen on screen)*
 Founder: setting up Breakfast / Lunch / Dinner didn't fit how people eat. Now
 the user taps "Log a meal", picks the food groups, optionally names it, and
 saves; each plate keeps the time it was logged and the day lists plates in
