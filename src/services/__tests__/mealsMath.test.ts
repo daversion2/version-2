@@ -20,8 +20,12 @@ import {
   plateNutrients,
   reopenDay,
   rulesForDay,
+  chipBreakdown,
+  chipReason,
   chipScore,
+  goalScores,
   groupScoresFor,
+  profileBreakdown,
   overrideCount,
   rulesOf,
   scoreByFormula,
@@ -39,7 +43,7 @@ import {
   withPlate,
   withoutPlate,
 } from '../mealsMath';
-import { DEFAULT_MEALS_PREFS, DEFAULT_MEALS_SCORING, FOOD_GROUPS, MEAL_GOALS, sectionGroups } from '../../data/mealGroups';
+import { DEFAULT_MEALS_PREFS, DEFAULT_MEALS_SCORING, FOOD_GROUPS, MEAL_GOALS, sectionGroups, WHOLE_GROUPS } from '../../data/mealGroups';
 import type { CustomFoodGroup, FoodGroupId, GroupGoal, MealPlate, MealsDay, MealsRules } from '../../types/meals';
 
 // How days were saved before 2026-11-05: named meals, filled in by slot id.
@@ -68,24 +72,84 @@ const day = (date: string, plates: MealPlate[]): MealsDay => ({ date, plates });
 /** Scored as a finished day: closed out, or past midnight. */
 const settledScore = (d: MealsDay | undefined, r: MealsRules) => scoreDay(d, r, true);
 
+describe('a chip’s score, from its profile and the goal', () => {
+  it('starts at 50, adds rating × weight, subtracts the penalties', () => {
+    // Legumes under Balanced: protein 2 × 5 + fiber 3 × 5 + vitamins & minerals 3 × 7.
+    expect(chipBreakdown('legumes', 'balanced')).toEqual({
+      lines: [
+        { quality: 'protein', rating: 2, weight: 5, points: 10 },
+        { quality: 'fiber', rating: 3, weight: 5, points: 15 },
+        { quality: 'micros', rating: 3, weight: 7, points: 21 },
+      ],
+      raw: 96,
+      ceiling: 100,
+      score: 96,
+      capped: false,
+    });
+    // Bread under Balanced: 50 + fiber 5 + vitamins 7 − refined 6 − processing 20.
+    expect(chipBreakdown('bread', 'balanced').score).toBe(36);
+  });
+
+  it('caps a processed food at its ceiling, whatever its protein', () => {
+    // Processed meat under Build muscle: 50 + 2 × 10 − 3 × 8 = 46, capped at 30.
+    expect(chipBreakdown('processed_meat', 'muscle')).toMatchObject({ raw: 46, ceiling: 30, score: 30, capped: true });
+  });
+
+  it('never goes below 0 or above 100', () => {
+    expect(chipBreakdown('fish', 'muscle').score).toBe(99);
+    expect(profileBreakdown({ protein: 3, fiber: 3, micros: 3, fats: 3, refined: 0, processing: 0, animal: 0 }, 'muscle').score).toBe(100);
+    expect(profileBreakdown({ protein: 0, fiber: 0, micros: 0, fats: 0, refined: 3, processing: 3, animal: 2 }, 'plant').score).toBe(0);
+  });
+
+  it('ultra-processed food stays at 30 or under in every goal', () => {
+    for (const g of FOOD_GROUPS.filter((x) => x.profile.processing === 3)) {
+      for (const goal of MEAL_GOALS) expect(goalScores(goal.id)[g.id]).toBeLessThanOrEqual(30);
+    }
+  });
+
+  it('scores every chip in every goal', () => {
+    for (const goal of MEAL_GOALS) {
+      for (const g of FOOD_GROUPS) expect(goalScores(goal.id)[g.id]).toEqual(expect.any(Number));
+    }
+  });
+
+  it('explains a chip in one line from its profile', () => {
+    expect(chipReason('legumes')).toBe('Good protein, high fiber, rich in vitamins & minerals.');
+    expect(chipReason('fish')).toBe('Lots of protein, good vitamins & minerals, healthy fats.');
+    expect(chipReason('sugary_drinks')).toBe('Added sugar, ultra-processed.');
+  });
+
+  it('the whole-food chips are the ones with no processing', () => {
+    expect(WHOLE_GROUPS.map((g) => g.id).sort()).toEqual(
+      ['beef', 'chicken', 'eggs', 'fish', 'fruit', 'grains', 'legumes', 'nuts', 'pork', 'veggies'].sort()
+    );
+  });
+
+  it('groups the picker by plate portion; processed food sits where its macros put it', () => {
+    expect(sectionGroups('protein').map((g) => g.id)).toContain('processed_meat');
+    expect(sectionGroups('carbs').map((g) => g.id)).toEqual(['grains', 'bread', 'snacks', 'sweets', 'sugary_drinks']);
+    expect(sectionGroups('mixed').map((g) => g.id)).toEqual(['fast_food', 'ready_meals']);
+  });
+});
+
 describe('chip scores — a plate scores the average of its chips', () => {
   const balanced = rulesOf(DEFAULT_MEALS_PREFS);
 
   it('today’s rules carry the goal’s scores', () => {
     expect(balanced.goal).toBe('balanced');
     expect(usesChipScores(balanced)).toBe(true);
-    expect(balanced.group_scores).toEqual(MEAL_GOALS[0].scores);
+    expect(balanced.group_scores).toEqual(goalScores('balanced'));
   });
 
   it('averages the chips, each counted once', () => {
-    // Chicken 80, Veggies 90, Whole grains 75 → 81.67 → 82
-    expect(scorePlate(['chicken', 'veggies', 'grains'], balanced)).toBe(82);
-    expect(scorePlate(['veggies', 'veggies', 'fish'], balanced)).toBe(88); // (90 + 85) / 2 = 87.5
-    expect(scorePlate(['fast_food', 'sugary_drinks'], balanced)).toBe(10);
+    // Chicken 72, Veggies 86, Whole grains 79 → 79
+    expect(scorePlate(['chicken', 'veggies', 'grains'], balanced)).toBe(79);
+    expect(scorePlate(['veggies', 'veggies', 'fish'], balanced)).toBe(89); // (86 + 91) / 2 = 88.5
+    expect(scorePlate(['fast_food', 'sugary_drinks'], balanced)).toBe(8); // (13 + 2) / 2 = 7.5
   });
 
   it('a protein shake on its own is just its chip score', () => {
-    expect(scorePlate(['supplements'], balanced)).toBe(70);
+    expect(scorePlate(['supplements'], balanced)).toBe(62);
   });
 
   it('is null for an empty plate', () => {
@@ -96,23 +160,28 @@ describe('chip scores — a plate scores the average of its chips', () => {
   it('your own food is a chip at the score you gave it; a removed one is left out', () => {
     const custom: CustomFoodGroup[] = [{ id: 'custom_gel', label: 'Gel', score: 40, nutrients: [] }];
     const r = { ...balanced, custom_groups: custom };
-    expect(scorePlate(['custom_gel', 'veggies'], r)).toBe(65);
-    expect(scorePlate(['custom_gone', 'veggies'], r)).toBe(90);
+    expect(scorePlate(['custom_gel', 'veggies'], r)).toBe(63);
+    expect(scorePlate(['custom_gone', 'veggies'], r)).toBe(86);
   });
 
-  it('reads a chip the saved scores don’t know at its Balanced default', () => {
-    const { sauces: _, ...older } = MEAL_GOALS[0].scores;
-    expect(chipScore('sauces', { group_scores: older as typeof MEAL_GOALS[0]['scores'] })).toBe(40);
+  it('reads a chip the saved scores don’t know at its Balanced score', () => {
+    const { sauces: _, ...older } = goalScores('balanced');
+    expect(chipScore('sauces', { group_scores: older as ReturnType<typeof goalScores> })).toBe(28);
+  });
+
+  it('a day keeps the chip scores it was saved with', () => {
+    const saved = { ...balanced, group_scores: { ...goalScores('balanced'), veggies: 50 } };
+    expect(scorePlate(['veggies'], saved)).toBe(50);
   });
 
   it('still scores the retired Semi-processed and Processed chips on old plates', () => {
-    expect(scorePlate(['semi'], balanced)).toBe(45);
-    expect(scorePlate(['processed'], balanced)).toBe(15);
+    expect(scorePlate(['semi'], balanced)).toBe(36);
+    expect(scorePlate(['processed'], balanced)).toBe(8);
   });
 
   it('says how the score was made', () => {
-    expect(scoreVerdict(['eggs'], balanced)).toEqual({ score: 80, why: 'Eggs scores 80.' });
-    expect(scoreVerdict(['eggs', 'fruit'], balanced).why).toBe('The average of Eggs 80, Fruit 80.');
+    expect(scoreVerdict(['eggs'], balanced)).toEqual({ score: 83, why: 'Eggs scores 83.' });
+    expect(scoreVerdict(['eggs', 'fruit'], balanced).why).toBe('The average of Eggs 83, Fruit 81.');
     expect(scoreVerdict([], balanced)).toEqual({ score: null, why: 'Tap what was on the plate.' });
   });
 
@@ -124,49 +193,33 @@ describe('chip scores — a plate scores the average of its chips', () => {
 });
 
 describe('goals', () => {
-  const PROCESSED = FOOD_GROUPS.filter((g) => g.section === 'processed').map((g) => g.id);
-
-  it('every goal scores every chip', () => {
-    for (const goal of MEAL_GOALS) {
-      for (const g of FOOD_GROUPS) expect(typeof goal.scores[g.id]).toBe('number');
-    }
-  });
-
-  it('processed food scores the same, and low, in every goal', () => {
-    for (const id of PROCESSED) {
-      const scores = MEAL_GOALS.map((g) => g.scores[id]);
-      expect(new Set(scores).size).toBe(1);
-      expect(scores[0]).toBeLessThanOrEqual(30);
-    }
-  });
-
   it('Build muscle scores protein higher; Plant-forward scores plants higher and meat lower', () => {
-    const [balanced, muscle, plant] = MEAL_GOALS.map((g) => g.scores);
+    const [balanced, muscle, plant] = MEAL_GOALS.map((g) => goalScores(g.id));
     expect(muscle.chicken).toBeGreaterThan(balanced.chicken);
     expect(muscle.supplements).toBeGreaterThan(balanced.supplements);
-    expect(muscle.legumes).toBeGreaterThan(balanced.legumes);
-    expect(muscle.nuts).toBeGreaterThan(balanced.nuts);
+    expect(muscle.dairy).toBeGreaterThan(balanced.dairy);
     expect(plant.legumes).toBeGreaterThan(balanced.legumes);
+    expect(plant.veggies).toBeGreaterThan(balanced.veggies);
     expect(plant.beef).toBeLessThan(balanced.beef);
   });
 
   it('the same plate scores differently by goal', () => {
     const plate = ['beef', 'veggies'] as FoodGroupId[];
     const score = (goal: 'balanced' | 'muscle' | 'plant') => scorePlate(plate, rulesOf({ ...DEFAULT_MEALS_PREFS, goal }));
-    expect(score('balanced')).toBe(83); // (75 + 90) / 2 = 82.5
-    expect(score('muscle')).toBe(85);
-    expect(score('plant')).toBe(75);
+    expect(score('balanced')).toBe(83); // (79 + 86) / 2 = 82.5
+    expect(score('muscle')).toBe(82); // (90 + 74) / 2
+    expect(score('plant')).toBe(74); // (56 + 92) / 2
   });
 
   it('an unknown goal reads as Balanced', () => {
-    expect(groupScoresFor('nope' as never)).toEqual(MEAL_GOALS[0].scores);
+    expect(groupScoresFor('nope' as never)).toEqual(goalScores('balanced'));
   });
 });
 
 describe('customizing scores', () => {
   it('your changes sit on top of the goal', () => {
     expect(groupScoresFor('balanced', { veggies: 100 }).veggies).toBe(100);
-    expect(groupScoresFor('balanced', { veggies: 100 }).fruit).toBe(80);
+    expect(groupScoresFor('balanced', { veggies: 100 }).fruit).toBe(81);
     expect(rulesOf({ ...DEFAULT_MEALS_PREFS, score_overrides: { bread: 60 } }).group_scores?.bread).toBe(60);
   });
 
@@ -174,21 +227,21 @@ describe('customizing scores', () => {
     expect(groupScoresFor('balanced', { veggies: 140, fruit: -5, eggs: 72.4 })).toMatchObject({ veggies: 100, fruit: 0, eggs: 72 });
   });
 
-  it('only saves real changes: a score set back to the default drops out', () => {
+  it('only saves real changes: a score set back to the goal’s drops out', () => {
     const one = setScoreOverride('balanced', {}, 'veggies', 95);
     expect(one).toEqual({ veggies: 95 });
-    expect(setScoreOverride('balanced', one, 'veggies', 90)).toEqual({});
-    expect(setScoreOverride('muscle', {}, 'chicken', 90)).toEqual({}); // already Build muscle’s default
+    expect(setScoreOverride('balanced', one, 'veggies', 86)).toEqual({});
+    expect(setScoreOverride('muscle', {}, 'chicken', 85)).toEqual({}); // already Build muscle’s score
   });
 
   it('counts the changed scores', () => {
     expect(overrideCount('balanced', {})).toBe(0);
-    expect(overrideCount('balanced', { veggies: 95, fruit: 80 })).toBe(1); // fruit is the default anyway
+    expect(overrideCount('balanced', { veggies: 95, fruit: 81 })).toBe(1); // fruit is the goal’s score anyway
   });
 
   it('a retired chip is offered only while it’s on the plate', () => {
-    expect(sectionGroups('processed').map((g) => g.id)).not.toContain('processed');
-    expect(sectionGroups('processed', ['processed']).map((g) => g.id)).toContain('processed');
+    expect(sectionGroups('mixed').map((g) => g.id)).not.toContain('processed');
+    expect(sectionGroups('mixed', ['processed']).map((g) => g.id)).toContain('processed');
   });
 });
 

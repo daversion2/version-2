@@ -186,7 +186,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       <Text style={mls.sectionLabel}>What you’re eating for</Text>
-      <Text style={mls.muted}>Your goal sets each food group’s score. Processed food scores low in every goal.</Text>
+      <Text style={mls.muted}>Your goal decides what counts most in each food group’s score. Ultra-processed food stays at 30 or under in every goal.</Text>
       <View style={[mls.card, styles.goalList]}>
         {MEAL_GOALS.map((g, i) => {
           const active = goalId === g.id;

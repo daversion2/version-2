@@ -408,14 +408,19 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
   labelled `<name or Meal>: <time> · <groups>`; the add row is "Log a meal".
   `18b` (reorder meals) was deleted with the feature. Chip scoring (see Done)
   also changed the picker: chips are labelled `<group>, scores <n>`, the
-  Processed/Semi-processed chips are gone, and `16a`'s formula numbers,
+  Processed/Semi-processed chips are gone, the picker sections are now
+  Protein / Veggies & fruit / Carbs / Fats / Takeout & ready meals, and
+  `16a`'s formula numbers,
   strict mode and admin weight steppers no longer exist. Ask before running.
-- **Tune the goal scores.** The Balanced / Build muscle / Plant-forward
-  numbers in `data/mealGroups.ts` (`MEAL_GOALS`) are a first draft, and the
-  on-target line (70) wasn't rechecked against them. Tune them in the Meals
-  Score Tuner (https://claude.ai/artifact/CtrSoXKCaxstBHaVL1jVG7): it saves
-  to its own `tuning/scores` doc, which Claude reads back to update
-  `MEAL_GOALS`.
+- **Tune the scoring model.** The food-group profiles and goal weights in
+  `data/mealGroups.ts` are a first draft, and the on-target line (70) wasn't
+  rechecked against them. Two things looked off at approval: Veggies score
+  74 under Build muscle (below Balanced's 86), and a protein shake alone is
+  62 under Balanced, so no longer on target. Tune in the Meals Scoring Model
+  (https://claude.ai/artifact/L42C47AuSGJGUjuDwxR2wW): it saves to its own
+  `model/draft` doc, which Claude reads back into `FOOD_GROUPS` profiles,
+  `MEAL_GOALS` weights and `PROCESSING_CEILINGS`. (The older per-chip Meals
+  Score Tuner artifact is superseded.)
 - **Alcohol chip?** Open founder question (2026-11-05): a real part of many
   days, but a values call. Not added.
 - **Change a plate's time.** A plate keeps the time it was first logged, so a
@@ -461,6 +466,24 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Meals: chip scores worked out from food profiles and goal weights** *(2026-11-05, not yet seen on screen, not OTA'd)*
+Founder: replace the hand-picked chip scores with a model. Each food group
+has a profile, rated 0-3 for the typical food in it: protein, fiber,
+vitamins & minerals, healthy fats (add points), refined sugar or flour,
+processing, animal food (0-2) (take points away). A goal is a set of
+weights; a chip scores 50 + Σ rating × weight − penalties, clamped, then
+capped by processing (whole 100, lightly 90, processed 60, ultra 30 — so
+ultra-processed food stays ≤ 30 in every goal). Plate = average of chips,
+unchanged. Each chip explains itself with a line generated from its profile
+(`chipReason`), shown in the guide and on the Scores screen; the guide also
+lists the goal's weights. The picker groups by plate portion: Protein ·
+Veggies & fruit · Carbs · Fats · Takeout & ready meals — processed food sits
+where its macros put it. Whole-food chips are now "processing 0" (same ten
+as before). Users still pick a goal and can change any chip's final score;
+ratings and weights are ours. Snapshots and old days unchanged. Logic in
+`services/mealsMath.ts` (`profileBreakdown`, `goalScores`) and
+`data/mealGroups.ts` (tested).
 
 **Workouts: Start starts a workout** *(2026-11-05, on main, not OTA'd, not yet seen on screen)*
 Founder, testing: "Start a workout" opened a menu of nine options, none of

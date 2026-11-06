@@ -1,5 +1,6 @@
 import type {
   BuiltInGroupId,
+  ChipProfile,
   CustomFoodGroup,
   FoodGroupId,
   GroupGoal,
@@ -11,11 +12,13 @@ import type {
   MealsRules,
   MealsScoringWeights,
   NutrientId,
+  QualityId,
   WholeGroupId,
 } from '../types/meals';
 import {
   DEFAULT_MEAL_GOAL,
   DEFAULT_MEALS_SCORING,
+  FOOD_GROUPS,
   findCustomGroup,
   groupLabel,
   groupNutrients,
@@ -25,7 +28,10 @@ import {
   MAX_GROUP_GOALS,
   mealGoal,
   NUTRIENTS,
-  sectionOf,
+  PROCESSING_CEILINGS,
+  processingOf,
+  QUALITIES,
+  SCORE_BASE,
   WHOLE_GROUPS,
 } from '../data/mealGroups';
 import { toLocalDateString } from '../utils/date';
@@ -34,9 +40,10 @@ import { toLocalDateString } from '../utils/date';
 // MEALS — the rules. Pure functions, no I/O (storage is services/labMeals.ts).
 //
 // Each plate scores 0-100 (null if nothing's been tapped yet): the average of
-// its chips' scores (founder, 2026-11-05). Every built-in chip's score comes
-// from the user's goal plus any they changed (groupScoresFor); the user's own
-// foods carry the score they gave them. See scorePlate().
+// its chips' scores (founder, 2026-11-05). A built-in chip's score is worked
+// out from its profile and the user's goal's weights (chipBreakdown), with any
+// the user changed on top (groupScoresFor); the user's own foods carry the
+// score they gave them. See scorePlate().
 //
 // Days saved before chip scores have no `group_scores` in their rules and are
 // still scored by the formula they were saved under (scoreByFormula), so
@@ -51,16 +58,99 @@ import { toLocalDateString } from '../utils/date';
 // mid-day verdict. A settled day with no plates is 'none': neither on nor off.
 // =============================================================================
 
-// --- Chip scores (since 2026-11-05) ----------------------------------------------
+// --- A chip's score, from its profile and the goal -----------------------------------
 
 const clampScore = (n: number): number => Math.max(0, Math.min(100, n));
 
 /** A chip score as settings store it: a whole number from 0 to 100. */
 export const clampChipScore = (n: number): number => clampScore(Math.round(n));
 
-/** Every built-in chip's score: the goal's defaults with the user's changes on top. */
+export interface BreakdownLine {
+  quality: QualityId;
+  rating: number;
+  weight: number;
+  /** Positive or negative: rating × weight, signed by the quality's kind. */
+  points: number;
+}
+
+export interface ChipBreakdown {
+  /** Every quality that moved the score, in QUALITIES order. */
+  lines: BreakdownLine[];
+  /** Before the processing ceiling, clamped to 0-100. */
+  raw: number;
+  ceiling: number;
+  score: number;
+  capped: boolean;
+}
+
+/**
+ * How a profile scores under a goal: start at SCORE_BASE, add rating × weight
+ * for each positive quality, subtract it for each penalty, clamp to 0-100,
+ * then cap at the processing level's ceiling.
+ */
+export const profileBreakdown = (profile: ChipProfile, goal: MealGoalId | undefined): ChipBreakdown => {
+  const weights = mealGoal(goal).weights;
+  const lines: BreakdownLine[] = [];
+  let total = SCORE_BASE;
+  for (const q of QUALITIES) {
+    const points = (q.kind === 'plus' ? 1 : -1) * profile[q.id] * weights[q.id];
+    if (points !== 0) lines.push({ quality: q.id, rating: profile[q.id], weight: weights[q.id], points });
+    total += points;
+  }
+  const raw = clampChipScore(total);
+  const ceiling = PROCESSING_CEILINGS[profile.processing] ?? 100;
+  return { lines, raw, ceiling, score: Math.min(raw, ceiling), capped: raw > ceiling };
+};
+
+const profileOf = (id: BuiltInGroupId): ChipProfile => {
+  const group = FOOD_GROUPS.find((g) => g.id === id);
+  if (!group) throw new Error(`Unknown food group: ${id}`);
+  return group.profile;
+};
+
+export const chipBreakdown = (id: BuiltInGroupId, goal: MealGoalId | undefined): ChipBreakdown =>
+  profileBreakdown(profileOf(id), goal);
+
+const goalScoresCache = new Map<MealGoalId, GroupScores>();
+
+/** Every built-in chip's score under a goal, before any the user changed. */
+export const goalScores = (goal: MealGoalId | undefined): GroupScores => {
+  const id = mealGoal(goal).id;
+  const cached = goalScoresCache.get(id);
+  if (cached) return cached;
+  const scores = Object.fromEntries(FOOD_GROUPS.map((g) => [g.id, profileBreakdown(g.profile, id).score])) as GroupScores;
+  goalScoresCache.set(id, scores);
+  return scores;
+};
+
+/**
+ * The one line a chip explains itself with, from its profile — "Lots of
+ * protein, good vitamins & minerals." No hand-written copy per chip.
+ */
+export const chipReason = (id: BuiltInGroupId): string => {
+  const p = profileOf(id);
+  const bits: string[] = [];
+  if (p.protein >= 3) bits.push('lots of protein');
+  else if (p.protein === 2) bits.push('good protein');
+  if (p.fiber >= 3) bits.push('high fiber');
+  else if (p.fiber === 2) bits.push('some fiber');
+  if (p.micros >= 3) bits.push('rich in vitamins & minerals');
+  else if (p.micros === 2) bits.push('good vitamins & minerals');
+  if (p.fats >= 2) bits.push('healthy fats');
+  if (p.refined >= 3) bits.push('added sugar');
+  else if (p.refined >= 1) bits.push('refined flour or sugar');
+  if (p.processing >= 3) bits.push('ultra-processed');
+  else if (p.processing === 2) bits.push('processed');
+  if (!bits.length) return 'Not much either way.';
+  const text = bits.join(', ');
+  return text[0].toUpperCase() + text.slice(1) + '.';
+};
+
+// --- Chip scores with the user's changes ------------------------------------------
+
+/** Every built-in chip's score: the goal's, with the user's changes on top. */
 export const groupScoresFor = (goal: MealGoalId | undefined, overrides: Partial<GroupScores> = {}): GroupScores => {
-  const scores = { ...mealGoal(goal).scores };
+  const scores = { ...goalScores(goal) };
   for (const [id, score] of Object.entries(overrides)) {
     if (typeof score === 'number') scores[id as BuiltInGroupId] = clampChipScore(score);
   }
@@ -79,12 +169,12 @@ export const setScoreOverride = (
 ): Partial<GroupScores> => {
   const { [id]: _, ...rest } = overrides;
   const value = clampChipScore(score);
-  return value === mealGoal(goal).scores[id] ? rest : { ...rest, [id]: value };
+  return value === goalScores(goal)[id] ? rest : { ...rest, [id]: value };
 };
 
 /** How many chips the user scored differently from their goal. */
 export const overrideCount = (goal: MealGoalId | undefined, overrides: Partial<GroupScores> = {}): number => {
-  const defaults = mealGoal(goal).scores;
+  const defaults = goalScores(goal);
   return Object.entries(overrides).filter(
     ([id, score]) => typeof score === 'number' && clampChipScore(score) !== defaults[id as BuiltInGroupId]
   ).length;
@@ -103,7 +193,7 @@ export const chipScore = (
     const own = findCustomGroup(id, rules.custom_groups);
     return own ? clampScore(own.score) : null;
   }
-  return rules.group_scores?.[id] ?? mealGoal(DEFAULT_MEAL_GOAL).scores[id] ?? null;
+  return rules.group_scores?.[id] ?? goalScores(DEFAULT_MEAL_GOAL)[id] ?? null;
 };
 
 /** The average of the chips' scores — each chip once, however it was tapped. Null with none. */
@@ -144,8 +234,9 @@ export const scoreVerdict = (groups: FoodGroupId[], rules: PlateRules): PlateSco
 // Whole-food ratio × ratio_points, a bonus per Protein/Fiber/Healthy fats tag,
 // a penalty for processed food (and, strict, for the in-between chips), a lone
 // protein shake exactly on target, and the user's own foods as a share each.
-// A chip added since is read by its section: a processed one costs the
-// processed penalty, an in-between one counts as semi-processed.
+// A chip added since is read by its processing rating: an ultra-processed one
+// costs the processed penalty, a lightly processed or processed one counts as
+// semi-processed — the same split the old Processed / Semi-processed chips had.
 
 /**
  * A plate that's only a protein shake/bar — a shake-for-lunch. It scores
@@ -161,8 +252,12 @@ const BONUS_NUTRIENTS = new Set(NUTRIENTS.filter((n) => n.bonus).map((n) => n.id
 const ownFoods = (groups: FoodGroupId[], custom: CustomFoodGroup[]): CustomFoodGroup[] =>
   groups.filter(isCustomGroup).flatMap((id) => findCustomGroup(id, custom) ?? []);
 
-const hasProcessed = (groups: FoodGroupId[]): boolean => groups.some((g) => sectionOf(g) === 'processed');
-const hasInBetween = (groups: FoodGroupId[]): boolean => groups.some((g) => sectionOf(g) === 'between');
+const hasProcessed = (groups: FoodGroupId[]): boolean => groups.some((g) => (processingOf(g) ?? 0) >= 3);
+const hasInBetween = (groups: FoodGroupId[]): boolean =>
+  groups.some((g) => {
+    const level = processingOf(g) ?? 0;
+    return level === 1 || level === 2;
+  });
 
 /** The built-in groups' score, unrounded: ratio, bonus, penalties, and the shake-only rule. */
 const formulaBuiltIn = (groups: FoodGroupId[], strict: boolean, weights: MealsScoringWeights): number => {

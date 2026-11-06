@@ -6,7 +6,7 @@ import { Colors, Spacing } from '../../../../constants/theme';
 import { Stepper } from '../../../../components/common/Stepper';
 import type { BuiltInGroupId, MealsStackParamList } from '../../../../types/meals';
 import { DEFAULT_MEAL_GOAL, FOOD_SECTIONS, mealGoal, sectionGroups } from '../../../../data/mealGroups';
-import { groupScoresFor, overrideCount, setScoreOverride } from '../../../../services/mealsMath';
+import { chipReason, goalScores, groupScoresFor, overrideCount, setScoreOverride } from '../../../../services/mealsMath';
 import { showConfirm } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
 import { MEALS_ACCENT, mls } from './components/mealsStyle';
@@ -14,14 +14,16 @@ import { MEALS_ACCENT, mls } from './components/mealsStyle';
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsScores'>;
 
 /**
- * Every food group's score, by section, starting from the goal's defaults. A
- * changed one says what the goal had. Only the changes are saved, so a goal
- * retuned in a later update still reaches the rest (types/meals.ts).
+ * Every food group's score, by section, starting from the goal's — each with
+ * the one line its score comes from. A changed one says what the goal had.
+ * Only the changes are saved, so a goal retuned in a later update still
+ * reaches the rest (types/meals.ts).
  */
 export const MealsScoresScreen: React.FC<Props> = () => {
   const { prefs, updatePrefs } = useMeals();
   const goal = mealGoal(prefs.goal ?? DEFAULT_MEAL_GOAL);
   const overrides = prefs.score_overrides ?? {};
+  const defaults = goalScores(goal.id);
   const scores = groupScoresFor(goal.id, overrides);
   const changed = overrideCount(goal.id, overrides);
 
@@ -39,8 +41,8 @@ export const MealsScoresScreen: React.FC<Props> = () => {
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll}>
       <Text style={mls.muted}>
-        Starting from {goal.label}. A plate scores the average of its food groups. Changes apply from today; days
-        already logged keep their scores.
+        Starting from {goal.label}: each score comes from what the food brings and what your goal counts most. A
+        plate scores the average of its food groups. Changes apply from today; days already logged keep their scores.
       </Text>
 
       {FOOD_SECTIONS.map((section) => (
@@ -48,16 +50,15 @@ export const MealsScoresScreen: React.FC<Props> = () => {
           <Text style={mls.sectionLabel}>{section.label}</Text>
           <View style={[mls.card, styles.list]}>
             {sectionGroups(section.id).map((g, i) => {
-              const isChanged = scores[g.id] !== goal.scores[g.id];
+              const isChanged = scores[g.id] !== defaults[g.id];
               return (
                 <View key={g.id} style={[styles.row, i > 0 && styles.divider]}>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={mls.body}>{g.label}</Text>
-                    {isChanged && (
-                      <Text style={mls.muted}>
-                        {goal.label}: {goal.scores[g.id]}
-                      </Text>
-                    )}
+                    <Text style={mls.muted}>
+                      {isChanged ? `${goal.label}: ${defaults[g.id]}. ` : ''}
+                      {chipReason(g.id)}
+                    </Text>
                   </View>
                   <Stepper
                     value={scores[g.id]}
