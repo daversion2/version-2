@@ -248,6 +248,19 @@ export const isShakeOnly = (groups: FoodGroupId[]): boolean =>
 /** Nutrients that earn the bonus — Carbs is shown but never scored. */
 const BONUS_NUTRIENTS = new Set(NUTRIENTS.filter((n) => n.bonus).map((n) => n.id));
 
+/**
+ * Tags a chip carried when old days were scored and has since lost — Dairy's
+ * Protein (dropped 2026-11-05). The formula still counts them, so an old day
+ * keeps the score it had.
+ */
+const FORMULA_TAGS: Partial<Record<FoodGroupId, NutrientId[]>> = { dairy: ['protein'] };
+
+/** The bonus tags a plate earned under the formula. */
+const formulaNutrients = (groups: FoodGroupId[]): NutrientId[] =>
+  [...new Set([...plateNutrients(groups), ...groups.flatMap((g) => FORMULA_TAGS[g] ?? [])])].filter((n) =>
+    BONUS_NUTRIENTS.has(n)
+  );
+
 /** The user's own foods on a plate. A custom id with no definition is left out. */
 const ownFoods = (groups: FoodGroupId[], custom: CustomFoodGroup[]): CustomFoodGroup[] =>
   groups.filter(isCustomGroup).flatMap((id) => findCustomGroup(id, custom) ?? []);
@@ -264,7 +277,7 @@ const formulaBuiltIn = (groups: FoodGroupId[], strict: boolean, weights: MealsSc
   if (isShakeOnly(groups)) return clampScore(weights.on_target_threshold);
   const wholeFoodRatio = groups.filter(isWholeGroup).length / groups.length;
   const ratioPoints = wholeFoodRatio * weights.ratio_points;
-  const nutrientBonus = plateNutrients(groups).filter((n) => BONUS_NUTRIENTS.has(n)).length * weights.nutrient_bonus;
+  const nutrientBonus = formulaNutrients(groups).length * weights.nutrient_bonus;
   const processedPenalty = hasProcessed(groups) ? weights.processed_penalty : 0;
   const strictPenalty = strict && hasInBetween(groups) ? weights.strict_penalty : 0;
   return clampScore(ratioPoints + nutrientBonus - processedPenalty - strictPenalty);

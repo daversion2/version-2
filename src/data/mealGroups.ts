@@ -119,8 +119,8 @@ export const FOOD_GROUPS: FoodGroup<BuiltInGroupId>[] = [
     nutrients: ['fiber', 'fats'],
     profile: P(1, 2, 2, 3, 0, 0, 0),
   },
-  // Not a high-protein food: under Fats, protein 1 (founder, 2026-11-05).
-  { id: 'dairy', label: 'Dairy', section: 'fats', examples: 'milk, yogurt, cheese, cottage cheese', nutrients: ['protein'], profile: P(1, 0, 2, 0, 0, 1, 1) },
+  // Not a high-protein food: under Fats, protein 1, vitamins & minerals 1, no tags (founder, 2026-11-05).
+  { id: 'dairy', label: 'Dairy', section: 'fats', examples: 'milk, yogurt, cheese, cottage cheese', nutrients: [], profile: P(1, 0, 1, 0, 0, 1, 1) },
   { id: 'sauces', label: 'Sauces & dressings', section: 'fats', examples: 'jarred sauce, ketchup, mayo, bottled dressing', nutrients: [], profile: P(0, 0, 0, 1, 1, 2, 0) },
   { id: 'fast_food', label: 'Fast food & fried', section: 'mixed', examples: 'burgers and fries, fried chicken, takeout pizza', nutrients: [], profile: P(1, 0, 0, 0, 2, 3, 1) },
   {

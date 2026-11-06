@@ -134,10 +134,11 @@ describe('a chip’s score, from its profile and the goal', () => {
   });
 
   it('dairy is not a high-protein food', () => {
-    // 50 + protein 1 × 5 + vitamins & minerals 2 × 7 − processing 1 × 10
-    expect(goalScores('balanced').dairy).toBe(59);
-    expect(goalScores('muscle').dairy).toBe(62);
-    expect(goalScores('plant').dairy).toBe(48);
+    // 50 + protein 1 × 5 + vitamins & minerals 1 × 7 − processing 1 × 10
+    expect(goalScores('balanced').dairy).toBe(52);
+    expect(goalScores('muscle').dairy).toBe(57);
+    expect(goalScores('plant').dairy).toBe(41);
+    expect(plateNutrients(['dairy'])).toEqual([]);
   });
 });
 
@@ -741,7 +742,7 @@ describe('clampOnTargetThreshold', () => {
 });
 
 describe('dairy', () => {
-  it('dilutes the ratio like any non-whole group, but isn’t penalized unless strict', () => {
+  it('old days still score dairy with the protein tag it had then', () => {
     expect(scoreByFormula(['fruit', 'dairy'], false, weights)).toBe(45); // ratio 0.5 (35) + protein+fiber (10)
     expect(scoreByFormula(['dairy'], false, weights)).toBe(5); // 0 ratio + protein (5), no processed penalty
   });
@@ -754,7 +755,7 @@ describe('dairy', () => {
 });
 
 describe('supplements', () => {
-  it('dilutes the ratio like any non-whole group, but isn’t penalized unless strict', () => {
+  it('old days still score dairy with the protein tag it had then', () => {
     expect(scoreByFormula(['fruit', 'supplements'], false, weights)).toBe(45);
   });
 
@@ -784,7 +785,7 @@ describe('nutrient tags', () => {
     expect(plateNutrients(['nuts'])).toEqual(['fiber', 'fats']);
     expect(plateNutrients(['grains'])).toEqual(['fiber', 'carbs']);
     expect(plateNutrients(['fruit'])).toEqual(['fiber', 'carbs']);
-    expect(plateNutrients(['dairy'])).toEqual(['protein']);
+    expect(plateNutrients(['dairy'])).toEqual([]); // no tags since 2026-11-05
     expect(plateNutrients(['supplements'])).toEqual(['protein']);
   });
 
@@ -825,7 +826,7 @@ describe('nutrient tags', () => {
       },
       rules()
     );
-    expect(w.nutrients.find((n) => n.nutrient === 'protein')).toEqual({ nutrient: 'protein', have: 3, of: 4 });
+    expect(w.nutrients.find((n) => n.nutrient === 'protein')).toEqual({ nutrient: 'protein', have: 2, of: 4 }); // dairy has no tags
   });
 });
 
