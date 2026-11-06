@@ -249,10 +249,10 @@ export const MEAL_GOALS: MealGoal[] = [
   {
     id: 'muscle',
     label: 'Build muscle',
-    blurb: 'Protein scores higher: meat, fish, eggs, dairy and shakes.',
+    blurb: 'Protein scores higher: meat, fish, eggs, legumes, nuts, dairy and shakes.',
     scores: {
-      chicken: 90, beef: 85, pork: 85, eggs: 90, fish: 90, legumes: 85,
-      veggies: 85, fruit: 75, nuts: 80, grains: 80,
+      chicken: 90, beef: 85, pork: 85, eggs: 90, fish: 90, legumes: 90,
+      veggies: 85, fruit: 75, nuts: 85, grains: 80,
       dairy: 75, supplements: 85, bread: 50,
       ...SHARED_SCORES,
     },

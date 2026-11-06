@@ -144,6 +144,8 @@ describe('goals', () => {
     const [balanced, muscle, plant] = MEAL_GOALS.map((g) => g.scores);
     expect(muscle.chicken).toBeGreaterThan(balanced.chicken);
     expect(muscle.supplements).toBeGreaterThan(balanced.supplements);
+    expect(muscle.legumes).toBeGreaterThan(balanced.legumes);
+    expect(muscle.nuts).toBeGreaterThan(balanced.nuts);
     expect(plant.legumes).toBeGreaterThan(balanced.legumes);
     expect(plant.beef).toBeLessThan(balanced.beef);
   });

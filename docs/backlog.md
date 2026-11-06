@@ -407,8 +407,10 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
   strict mode and admin weight steppers no longer exist. Ask before running.
 - **Tune the goal scores.** The Balanced / Build muscle / Plant-forward
   numbers in `data/mealGroups.ts` (`MEAL_GOALS`) are a first draft, and the
-  on-target line (70) wasn't rechecked against them. A page of realistic
-  plates with a slider per chip would make this quick.
+  on-target line (70) wasn't rechecked against them. Tune them in the Meals
+  Score Tuner (https://claude.ai/artifact/CtrSoXKCaxstBHaVL1jVG7): it saves
+  to its own `tuning/scores` doc, which Claude reads back to update
+  `MEAL_GOALS`.
 - **Alcohol chip?** Open founder question (2026-11-05): a real part of many
   days, but a values call. Not added.
 - **Change a plate's time.** A plate keeps the time it was first logged, so a
