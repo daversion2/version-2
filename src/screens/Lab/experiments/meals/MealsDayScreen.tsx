@@ -18,7 +18,7 @@ import {
   withPlate,
   withoutPlate,
 } from '../../../../services/mealsMath';
-import { MEAL_OFF_REASONS } from '../../../../data/mealGroups';
+import { MEAL_GOALS, MEAL_OFF_REASONS } from '../../../../data/mealGroups';
 import { showConfirm } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
 import { MealPickerModal, PickerTarget } from './components/MealPickerModal';
@@ -149,9 +149,26 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={[mls.card, styles.intro]}>
             <Text style={mls.title}>How Meals works</Text>
             <Text style={styles.introText}>
-              Whenever you eat, log it and tap the food groups that were on the plate. Each plate scores 0 to
-              100: mostly whole food scores high, and anything Processed costs points on top of that.
+              Whenever you eat, log it and tap the food groups that were on the plate. Every food group has a
+              score, and a plate scores their average.
             </Text>
+            <Text style={styles.introText}>What are you eating for? It sets the scores. You can change it later.</Text>
+            <View style={mls.chipRow}>
+              {MEAL_GOALS.map((g) => {
+                const active = (prefs.goal ?? 'balanced') === g.id;
+                return (
+                  <TouchableOpacity
+                    key={g.id}
+                    style={[mls.chip, active && mls.chipActive]}
+                    onPress={() => updatePrefs({ goal: g.id, score_overrides: {} })}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: active }}
+                  >
+                    <Text style={[mls.chipText, active && mls.chipTextActive]}>{g.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
             <Text style={styles.introText}>
               Your day is on target if your plates average {prefs.scoring.on_target_threshold} or more. Close it
               out at night, or it closes on its own at midnight.
@@ -161,7 +178,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={mls.link}>Got it</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('MealsSettings')} style={styles.introBtn}>
-                <Text style={mls.link}>Set my goal</Text>
+                <Text style={mls.link}>Settings</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')} style={styles.introBtn}>
                 <Text style={mls.link}>What counts</Text>
@@ -239,9 +256,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <MealPickerModal
         target={editing}
-        strict={dayRules.strict}
-        weights={dayRules.scoring}
-        custom={dayRules.custom_groups}
+        rules={dayRules}
         offered={activeCustomGroups(prefs.custom_groups)}
         onCancel={() => setEditing(null)}
         onSave={save}

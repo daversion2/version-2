@@ -37,9 +37,14 @@ export const getMealsPrefs = async (userId: string): Promise<MealsPrefs> => {
   };
 };
 
-/** Merged at the top level; an array field (goals, custom foods) is replaced whole. */
+/**
+ * Merged at the top level: each field sent replaces that field whole — a map
+ * included, so a chip score reset out of `score_overrides` is really gone (a
+ * plain merge would deep-merge the map and keep it). Fields not sent stay.
+ */
 export const saveMealsPrefs = async (userId: string, changes: Partial<MealsPrefs>): Promise<void> => {
-  await setDoc(ref(userId, COL.prefs, PREFS_DOC), stripUndefined(changes), { merge: true });
+  const data = stripUndefined(changes);
+  await setDoc(ref(userId, COL.prefs, PREFS_DOC), data, { mergeFields: Object.keys(data) });
 };
 
 /**

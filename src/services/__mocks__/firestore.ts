@@ -149,25 +149,35 @@ export const addDoc = jest.fn(async (collectionRef: any, data: Record<string, an
   return { id: docId };
 });
 
-export const setDoc = jest.fn(async (docRef: any, data: Record<string, any>, options?: { merge?: boolean }) => {
-  const pathParts = docRef._path.split('/');
-  const docId = pathParts.pop() as string;
-  const collectionPath = pathParts.join('/');
+export const setDoc = jest.fn(
+  async (docRef: any, data: Record<string, any>, options?: { merge?: boolean; mergeFields?: string[] }) => {
+    const pathParts = docRef._path.split('/');
+    const docId = pathParts.pop() as string;
+    const collectionPath = pathParts.join('/');
 
-  if (!mockDB[collectionPath]) {
-    mockDB[collectionPath] = {};
-  }
+    if (!mockDB[collectionPath]) {
+      mockDB[collectionPath] = {};
+    }
 
-  if (options?.merge && mockDB[collectionPath][docId]) {
-    mockDB[collectionPath][docId].data = mergeDeep(mockDB[collectionPath][docId].data, data);
-  } else {
-    mockDB[collectionPath][docId] = {
-      id: docId,
-      data: applyFieldValues({}, data).resolved,
-      ref: { id: docId, path: `${collectionPath}/${docId}` },
-    };
+    // mergeFields (top-level names only here): each listed field is replaced
+    // whole — a nested map included — and every other field is kept.
+    if (options?.mergeFields && mockDB[collectionPath][docId]) {
+      const next = { ...mockDB[collectionPath][docId].data };
+      for (const field of options.mergeFields) {
+        if (field in data) next[field] = data[field];
+      }
+      mockDB[collectionPath][docId].data = next;
+    } else if (options?.merge && mockDB[collectionPath][docId]) {
+      mockDB[collectionPath][docId].data = mergeDeep(mockDB[collectionPath][docId].data, data);
+    } else {
+      mockDB[collectionPath][docId] = {
+        id: docId,
+        data: applyFieldValues({}, data).resolved,
+        ref: { id: docId, path: `${collectionPath}/${docId}` },
+      };
+    }
   }
-});
+);
 
 // Sentinel produced by increment(); resolved against the existing value when
 // the write is applied, the same way the real FieldValue does.

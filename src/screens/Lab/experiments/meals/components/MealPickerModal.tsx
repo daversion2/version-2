@@ -4,9 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import type { FoodGroup } from '../../../../../data/mealGroups';
-import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../../data/mealGroups';
-import type { CustomFoodGroup, FoodGroupId, MealsScoringWeights } from '../../../../../types/meals';
-import { pickerFoods, plateNutrients, scoreVerdict } from '../../../../../services/mealsMath';
+import { FOOD_SECTIONS, MEAL_GUIDE_RULES, isCustomGroup, sectionGroups } from '../../../../../data/mealGroups';
+import type { CustomFoodGroup, FoodGroupId, MealsRules } from '../../../../../types/meals';
+import { chipScore, pickerFoods, plateNutrients, scoreVerdict, usesChipScores } from '../../../../../services/mealsMath';
 import { MEALS_ACCENT, scoreColor, mls } from './mealsStyle';
 import { NutrientTags, plateTime } from './MealsParts';
 
@@ -21,10 +21,8 @@ export interface PickerTarget {
 
 interface Props {
   target: PickerTarget | null;
-  strict: boolean;
-  weights: MealsScoringWeights;
-  /** Every one of the user's foods this plate is scored with, archived ones included. */
-  custom?: CustomFoodGroup[];
+  /** The rules this plate is scored with: today's, or a past day's own. */
+  rules: MealsRules;
   /** The user's foods to offer as chips — the ones not removed. */
   offered?: CustomFoodGroup[];
   onCancel: () => void;
@@ -34,15 +32,13 @@ interface Props {
 }
 
 /**
- * What was on the plate. Tap every group that applies; the score is worked out
- * as you go, so you see it before saving. The user never chooses the score —
- * only the groups.
+ * What was on the plate. Tap every group that applies; each chip shows its
+ * score and the plate's average is worked out as you go, so you see it before
+ * saving. Scores are changed in settings, never here.
  */
 export const MealPickerModal: React.FC<Props> = ({
   target,
-  strict,
-  weights,
-  custom = [],
+  rules,
   offered = [],
   onCancel,
   onSave,
@@ -64,14 +60,18 @@ export const MealPickerModal: React.FC<Props> = ({
   const toggle = (id: FoodGroupId) =>
     setGroups((list) => (list.includes(id) ? list.filter((g) => g !== id) : [...list, id]));
 
-  const verdict = scoreVerdict(groups, strict, weights, custom);
+  const custom = rules.custom_groups ?? [];
+  const verdict = scoreVerdict(groups, rules);
   const existing = !!target?.loggedAt;
   // Labelled with the score this plate uses (a past day's saved one), and a
   // removed food already on the plate stays tappable, so it can be taken off.
   const myFoods = pickerFoods(offered, custom, groups);
+  // A day saved before chip scores is scored by the old formula: no per-chip number to show.
+  const showScores = usesChipScores(rules);
 
-  const renderChip = (group: Pick<FoodGroup, 'id' | 'label'>, score?: number) => {
+  const renderChip = (group: Pick<FoodGroup, 'id' | 'label'>) => {
     const on = groups.includes(group.id);
+    const score = showScores || isCustomGroup(group.id) ? (chipScore(group.id, rules) ?? undefined) : undefined;
     return (
       <TouchableOpacity
         key={group.id}
@@ -132,22 +132,17 @@ export const MealPickerModal: React.FC<Props> = ({
             accessibilityLabel="Meal name"
           />
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Whole food</Text>
-            <View style={mls.chipRow}>{WHOLE_GROUPS.map((g) => renderChip(g))}</View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Processed</Text>
-            <View style={mls.chipRow}>{PROCESSED_GROUPS.map((g) => renderChip(g))}</View>
-            <Text style={mls.muted}>{PROCESSED_GROUPS.map((g) => `${g.label}: ${g.examples}.`).join(' ')}</Text>
-          </View>
+          {FOOD_SECTIONS.map((section) => (
+            <View key={section.id} style={styles.section}>
+              <Text style={styles.sectionTitle}>{section.label}</Text>
+              <View style={mls.chipRow}>{sectionGroups(section.id, groups).map((g) => renderChip(g))}</View>
+            </View>
+          ))}
 
           {myFoods.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>My foods</Text>
-              <View style={mls.chipRow}>{myFoods.map((g) => renderChip(g, g.score))}</View>
-              <Text style={mls.muted}>Each scores what you gave it in settings, as one share of the plate.</Text>
+              <View style={mls.chipRow}>{myFoods.map((g) => renderChip(g))}</View>
             </View>
           )}
 

@@ -1,17 +1,20 @@
 import type {
+  BuiltInGroupId,
   CustomFoodGroup,
   FoodGroupId,
   GroupGoal,
+  GroupScores,
+  MealGoalId,
   MealPlate,
   MealsDay,
   MealsPrefs,
   MealsRules,
   MealsScoringWeights,
   NutrientId,
-  ProcessedGroupId,
   WholeGroupId,
 } from '../types/meals';
 import {
+  DEFAULT_MEAL_GOAL,
   DEFAULT_MEALS_SCORING,
   findCustomGroup,
   groupLabel,
@@ -20,7 +23,9 @@ import {
   isWholeGroup,
   MAX_CUSTOM_GROUPS,
   MAX_GROUP_GOALS,
+  mealGoal,
   NUTRIENTS,
+  sectionOf,
   WHOLE_GROUPS,
 } from '../data/mealGroups';
 import { toLocalDateString } from '../utils/date';
@@ -28,12 +33,14 @@ import { toLocalDateString } from '../utils/date';
 // =============================================================================
 // MEALS — the rules. Pure functions, no I/O (storage is services/labMeals.ts).
 //
-// Each plate scores 0-100 (null if nothing's been tapped yet): mostly whole
-// food scores high; Processed, and (in strict mode) Dairy/Semi-processed/
-// Supplements, cost points on top of what diluting the whole-food ratio
-// already costs. A protein shake on its own scores exactly on target. The
-// user's own foods carry their own score: each is one share of the plate at
-// that score (founder, 2026-11-01). See scorePlate().
+// Each plate scores 0-100 (null if nothing's been tapped yet): the average of
+// its chips' scores (founder, 2026-11-05). Every built-in chip's score comes
+// from the user's goal plus any they changed (groupScoresFor); the user's own
+// foods carry the score they gave them. See scorePlate().
+//
+// Days saved before chip scores have no `group_scores` in their rules and are
+// still scored by the formula they were saved under (scoreByFormula), so
+// history never moves.
 //
 // A day is just the plates logged on it — no meals to set up or fill in
 // (founder, 2026-11-05). Its score is the plain average of every plate,
@@ -44,19 +51,108 @@ import { toLocalDateString } from '../utils/date';
 // mid-day verdict. A settled day with no plates is 'none': neither on nor off.
 // =============================================================================
 
-/** Dairy, Semi-processed and Supplements — what strict mode's extra penalty applies to. 'processed' has its own penalty. */
-const SEMI_TIER_GROUPS: ProcessedGroupId[] = ['dairy', 'supplements', 'semi'];
+// --- Chip scores (since 2026-11-05) ----------------------------------------------
+
+const clampScore = (n: number): number => Math.max(0, Math.min(100, n));
+
+/** A chip score as settings store it: a whole number from 0 to 100. */
+export const clampChipScore = (n: number): number => clampScore(Math.round(n));
+
+/** Every built-in chip's score: the goal's defaults with the user's changes on top. */
+export const groupScoresFor = (goal: MealGoalId | undefined, overrides: Partial<GroupScores> = {}): GroupScores => {
+  const scores = { ...mealGoal(goal).scores };
+  for (const [id, score] of Object.entries(overrides)) {
+    if (typeof score === 'number') scores[id as BuiltInGroupId] = clampChipScore(score);
+  }
+  return scores;
+};
+
+/**
+ * Change one chip's score. A score set back to the goal's default drops out of
+ * the overrides, so they only ever hold real changes.
+ */
+export const setScoreOverride = (
+  goal: MealGoalId | undefined,
+  overrides: Partial<GroupScores> = {},
+  id: BuiltInGroupId,
+  score: number
+): Partial<GroupScores> => {
+  const { [id]: _, ...rest } = overrides;
+  const value = clampChipScore(score);
+  return value === mealGoal(goal).scores[id] ? rest : { ...rest, [id]: value };
+};
+
+/** How many chips the user scored differently from their goal. */
+export const overrideCount = (goal: MealGoalId | undefined, overrides: Partial<GroupScores> = {}): number => {
+  const defaults = mealGoal(goal).scores;
+  return Object.entries(overrides).filter(
+    ([id, score]) => typeof score === 'number' && clampChipScore(score) !== defaults[id as BuiltInGroupId]
+  ).length;
+};
+
+/**
+ * One chip's score under these rules: the user's food's own score, or the
+ * built-in chip's. A chip a saved day doesn't know (added since) reads its
+ * Balanced default. Null for a removed food with no definition.
+ */
+export const chipScore = (
+  id: FoodGroupId,
+  rules: Pick<MealsRules, 'group_scores' | 'custom_groups'>
+): number | null => {
+  if (isCustomGroup(id)) {
+    const own = findCustomGroup(id, rules.custom_groups);
+    return own ? clampScore(own.score) : null;
+  }
+  return rules.group_scores?.[id] ?? mealGoal(DEFAULT_MEAL_GOAL).scores[id] ?? null;
+};
+
+/** The average of the chips' scores — each chip once, however it was tapped. Null with none. */
+const scoreByChips = (groups: FoodGroupId[], rules: Pick<MealsRules, 'group_scores' | 'custom_groups'>): number | null => {
+  const scores = [...new Set(groups)].flatMap((g) => chipScore(g, rules) ?? []);
+  return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+};
+
+/** The rules a plate is scored with. */
+export type PlateRules = Pick<MealsRules, 'group_scores' | 'custom_groups' | 'strict' | 'scoring'>;
+
+/** Scored by chip scores, or — a day saved before them — by the formula. */
+export const usesChipScores = (rules: Pick<MealsRules, 'group_scores'>): boolean => !!rules.group_scores;
+
+/** 0-100, or null for an empty plate (nothing chosen yet). */
+export const scorePlate = (groups: FoodGroupId[] | undefined, rules: PlateRules): number | null => {
+  if (!groups || groups.length === 0) return null;
+  if (usesChipScores(rules)) return scoreByChips(groups, rules);
+  return scoreByFormula(groups, !!rules.strict, rules.scoring, rules.custom_groups);
+};
+
+export interface PlateScore {
+  score: number | null;
+  why: string;
+}
+
+/** The score and the one-line reason the picker shows under the chips. */
+export const scoreVerdict = (groups: FoodGroupId[], rules: PlateRules): PlateScore => {
+  if (!usesChipScores(rules)) return verdictByFormula(groups, !!rules.strict, rules.scoring, rules.custom_groups);
+  const score = scorePlate(groups, rules);
+  if (score === null) return { score, why: 'Tap what was on the plate.' };
+  const chips = [...new Set(groups)].filter((g) => chipScore(g, rules) !== null);
+  if (chips.length === 1) return { score, why: `${groupLabel(chips[0], rules.custom_groups)} scores ${score}.` };
+  return { score, why: `The average of ${chips.map((g) => `${groupLabel(g, rules.custom_groups)} ${chipScore(g, rules)}`).join(', ')}.` };
+};
+
+// --- The formula, for days saved before chip scores ----------------------------
+// Whole-food ratio × ratio_points, a bonus per Protein/Fiber/Healthy fats tag,
+// a penalty for processed food (and, strict, for the in-between chips), a lone
+// protein shake exactly on target, and the user's own foods as a share each.
+// A chip added since is read by its section: a processed one costs the
+// processed penalty, an in-between one counts as semi-processed.
 
 /**
  * A plate that's only a protein shake/bar — a shake-for-lunch. It scores
- * exactly the on-target line, strict mode or not, so it counts as a real meal
- * without lifting or sinking the day (founder, 2026-11-01). Mixed with food,
- * the chip scores like any semi-processed group.
+ * exactly the on-target line, strict mode or not (founder, 2026-11-01).
  */
 export const isShakeOnly = (groups: FoodGroupId[]): boolean =>
   groups.length > 0 && groups.every((g) => g === 'supplements');
-
-const clampScore = (n: number): number => Math.max(0, Math.min(100, n));
 
 /** Nutrients that earn the bonus — Carbs is shown but never scored. */
 const BONUS_NUTRIENTS = new Set(NUTRIENTS.filter((n) => n.bonus).map((n) => n.id));
@@ -65,25 +161,26 @@ const BONUS_NUTRIENTS = new Set(NUTRIENTS.filter((n) => n.bonus).map((n) => n.id
 const ownFoods = (groups: FoodGroupId[], custom: CustomFoodGroup[]): CustomFoodGroup[] =>
   groups.filter(isCustomGroup).flatMap((id) => findCustomGroup(id, custom) ?? []);
 
+const hasProcessed = (groups: FoodGroupId[]): boolean => groups.some((g) => sectionOf(g) === 'processed');
+const hasInBetween = (groups: FoodGroupId[]): boolean => groups.some((g) => sectionOf(g) === 'between');
+
 /** The built-in groups' score, unrounded: ratio, bonus, penalties, and the shake-only rule. */
-const scoreBuiltIn = (groups: FoodGroupId[], strict: boolean, weights: MealsScoringWeights): number => {
+const formulaBuiltIn = (groups: FoodGroupId[], strict: boolean, weights: MealsScoringWeights): number => {
   if (isShakeOnly(groups)) return clampScore(weights.on_target_threshold);
   const wholeFoodRatio = groups.filter(isWholeGroup).length / groups.length;
   const ratioPoints = wholeFoodRatio * weights.ratio_points;
   const nutrientBonus = plateNutrients(groups).filter((n) => BONUS_NUTRIENTS.has(n)).length * weights.nutrient_bonus;
-  const processedPenalty = groups.includes('processed') ? weights.processed_penalty : 0;
-  const hasSemiTier = groups.some((g) => SEMI_TIER_GROUPS.includes(g as ProcessedGroupId));
-  const strictPenalty = strict && hasSemiTier ? weights.strict_penalty : 0;
+  const processedPenalty = hasProcessed(groups) ? weights.processed_penalty : 0;
+  const strictPenalty = strict && hasInBetween(groups) ? weights.strict_penalty : 0;
   return clampScore(ratioPoints + nutrientBonus - processedPenalty - strictPenalty);
 };
 
 /**
- * 0-100, or null for an empty plate (nothing chosen yet). The built-in groups
- * score together as before; each of the user's own foods is one more share at
- * its own score. Chicken + Rice (80) with a 60 supplement: (80×2 + 60) / 3 = 73.
- * A plate of only your own food scores what you gave it.
+ * The formula score: the built-in groups score together; each of the user's
+ * own foods is one more share at its own score. Chicken + Rice (80) with a 60
+ * supplement: (80×2 + 60) / 3 = 73.
  */
-export const scorePlate = (
+export const scoreByFormula = (
   groups: FoodGroupId[] | undefined,
   strict: boolean,
   weights: MealsScoringWeights,
@@ -94,24 +191,19 @@ export const scorePlate = (
   const builtIn = groups.filter((g) => !isCustomGroup(g));
   const shares = builtIn.length + own.length;
   if (shares === 0) return null;
-  const builtInPoints = builtIn.length > 0 ? scoreBuiltIn(builtIn, strict, weights) * builtIn.length : 0;
+  const builtInPoints = builtIn.length > 0 ? formulaBuiltIn(builtIn, strict, weights) * builtIn.length : 0;
   const ownPoints = own.reduce((sum, g) => sum + clampScore(g.score), 0);
   return Math.round((builtInPoints + ownPoints) / shares);
 };
 
-export interface PlateScore {
-  score: number | null;
-  why: string;
-}
-
-/** The score and the one-line reason the picker shows under the chips. */
-export const scoreVerdict = (
+/** The formula's score and reason. */
+export const verdictByFormula = (
   groups: FoodGroupId[],
   strict: boolean,
   weights: MealsScoringWeights,
   custom: CustomFoodGroup[] = []
 ): PlateScore => {
-  const score = scorePlate(groups, strict, weights, custom);
+  const score = scoreByFormula(groups, strict, weights, custom);
   if (score === null) return { score, why: 'Tap what was on the plate.' };
   const notes: string[] = [];
   const own = ownFoods(groups, custom);
@@ -123,10 +215,8 @@ export const scoreVerdict = (
   } else if (isShakeOnly(groups)) {
     return { score, why: 'A protein shake on its own counts as on target.' };
   }
-  if (groups.includes('processed')) notes.push(`Processed on the plate (−${weights.processed_penalty})`);
-  if (strict && groups.some((g) => SEMI_TIER_GROUPS.includes(g as ProcessedGroupId))) {
-    notes.push(`strict mode (−${weights.strict_penalty})`);
-  }
+  if (hasProcessed(groups)) notes.push(`Processed on the plate (−${weights.processed_penalty})`);
+  if (strict && hasInBetween(groups)) notes.push(`strict mode (−${weights.strict_penalty})`);
   if (own.length > 0) return { score, why: notes.join(' · ') + '.' };
   if (notes.length > 0) return { score, why: notes.join(' · ') };
   return { score, why: groups.every(isWholeGroup) ? 'All whole food.' : 'Real food, with a little semi-processed.' };
@@ -137,7 +227,8 @@ export const describeGroups = (groups: FoodGroupId[], custom: CustomFoodGroup[] 
   groups.map((g) => groupLabel(g, custom)).join(' · ');
 
 export const rulesOf = (prefs: MealsPrefs): MealsRules => ({
-  strict: prefs.strict,
+  goal: prefs.goal ?? DEFAULT_MEAL_GOAL,
+  group_scores: groupScoresFor(prefs.goal, prefs.score_overrides),
   group_goals: prefs.group_goals,
   scoring: prefs.scoring,
   custom_groups: prefs.custom_groups ?? [],
@@ -265,7 +356,7 @@ export const scoreDay = (
   const weights = rules.scoring;
   const custom = rules.custom_groups ?? [];
   const items: ScoredItem[] = platesOf(day).flatMap((plate) => {
-    const score = scorePlate(plate.groups, rules.strict, weights, custom);
+    const score = scorePlate(plate.groups, rules);
     return score === null
       ? []
       : [{ key: plate.id, name: plate.name, groups: plate.groups, score, logged_at: plate.logged_at }];

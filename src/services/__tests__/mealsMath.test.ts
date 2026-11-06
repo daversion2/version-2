@@ -20,9 +20,17 @@ import {
   plateNutrients,
   reopenDay,
   rulesForDay,
+  chipScore,
+  groupScoresFor,
+  overrideCount,
+  rulesOf,
+  scoreByFormula,
   scoreDay,
   scorePlate,
   scoreVerdict,
+  setScoreOverride,
+  usesChipScores,
+  verdictByFormula,
   summarizeWeek,
   dailyGoalOnDay,
   describeGroupGoal,
@@ -31,7 +39,7 @@ import {
   withPlate,
   withoutPlate,
 } from '../mealsMath';
-import { DEFAULT_MEALS_SCORING } from '../../data/mealGroups';
+import { DEFAULT_MEALS_PREFS, DEFAULT_MEALS_SCORING, FOOD_GROUPS, MEAL_GOALS, sectionGroups } from '../../data/mealGroups';
 import type { CustomFoodGroup, FoodGroupId, GroupGoal, MealPlate, MealsDay, MealsRules } from '../../types/meals';
 
 // How days were saved before 2026-11-05: named meals, filled in by slot id.
@@ -60,59 +68,181 @@ const day = (date: string, plates: MealPlate[]): MealsDay => ({ date, plates });
 /** Scored as a finished day: closed out, or past midnight. */
 const settledScore = (d: MealsDay | undefined, r: MealsRules) => scoreDay(d, r, true);
 
-describe('scorePlate', () => {
-  it('is dominated by the whole-food ratio', () => {
-    expect(scorePlate(['eggs', 'fruit'], false, weights)).toBe(80); // ratio 1.0 (70) + protein+fiber (10)
-    expect(scorePlate(['chicken', 'veggies', 'grains', 'semi'], false, weights)).toBe(63); // ratio 0.75 (52.5) + protein+fiber (10)
+describe('chip scores — a plate scores the average of its chips', () => {
+  const balanced = rulesOf(DEFAULT_MEALS_PREFS);
+
+  it('today’s rules carry the goal’s scores', () => {
+    expect(balanced.goal).toBe('balanced');
+    expect(usesChipScores(balanced)).toBe(true);
+    expect(balanced.group_scores).toEqual(MEAL_GOALS[0].scores);
   });
 
-  it('adds a bonus per nutrient tag the plate hits, equally weighted, up to three', () => {
-    expect(scorePlate(['grains'], false, weights)).toBe(75); // ratio 70 + fiber only (5)
-    expect(scorePlate(['fish'], false, weights)).toBe(80); // ratio 70 + protein+fats (10)
+  it('averages the chips, each counted once', () => {
+    // Chicken 80, Veggies 90, Whole grains 75 → 81.67 → 82
+    expect(scorePlate(['chicken', 'veggies', 'grains'], balanced)).toBe(82);
+    expect(scorePlate(['veggies', 'veggies', 'fish'], balanced)).toBe(88); // (90 + 85) / 2 = 87.5
+    expect(scorePlate(['fast_food', 'sugary_drinks'], balanced)).toBe(10);
   });
 
-  it('costs Processed a flat penalty on top of the ratio dilution it already causes', () => {
-    expect(scorePlate(['processed'], false, weights)).toBe(0); // 0 ratio, 0 nutrients, -30, clamped
-    expect(scorePlate(['processed', 'veggies'], false, weights)).toBe(10); // ratio 0.5 (35) + fiber (5) - 30
-  });
-
-  it('strict mode costs dairy/semi/supplements extra — processed is unaffected, it already has its own penalty', () => {
-    expect(scorePlate(['chicken', 'veggies', 'semi'], false, weights)).toBe(57);
-    expect(scorePlate(['chicken', 'veggies', 'semi'], true, weights)).toBe(47); // 57 - strict_penalty (10)
-    expect(scorePlate(['processed', 'veggies'], true, weights)).toBe(10); // unchanged: 'processed' isn't semi-tier
+  it('a protein shake on its own is just its chip score', () => {
+    expect(scorePlate(['supplements'], balanced)).toBe(70);
   });
 
   it('is null for an empty plate', () => {
-    expect(scorePlate([], false, weights)).toBeNull();
-    expect(scorePlate(undefined, false, weights)).toBeNull();
+    expect(scorePlate([], balanced)).toBeNull();
+    expect(scorePlate(undefined, balanced)).toBeNull();
+  });
+
+  it('your own food is a chip at the score you gave it; a removed one is left out', () => {
+    const custom: CustomFoodGroup[] = [{ id: 'custom_gel', label: 'Gel', score: 40, nutrients: [] }];
+    const r = { ...balanced, custom_groups: custom };
+    expect(scorePlate(['custom_gel', 'veggies'], r)).toBe(65);
+    expect(scorePlate(['custom_gone', 'veggies'], r)).toBe(90);
+  });
+
+  it('reads a chip the saved scores don’t know at its Balanced default', () => {
+    const { sauces: _, ...older } = MEAL_GOALS[0].scores;
+    expect(chipScore('sauces', { group_scores: older as typeof MEAL_GOALS[0]['scores'] })).toBe(40);
+  });
+
+  it('still scores the retired Semi-processed and Processed chips on old plates', () => {
+    expect(scorePlate(['semi'], balanced)).toBe(45);
+    expect(scorePlate(['processed'], balanced)).toBe(15);
+  });
+
+  it('says how the score was made', () => {
+    expect(scoreVerdict(['eggs'], balanced)).toEqual({ score: 80, why: 'Eggs scores 80.' });
+    expect(scoreVerdict(['eggs', 'fruit'], balanced).why).toBe('The average of Eggs 80, Fruit 80.');
+    expect(scoreVerdict([], balanced)).toEqual({ score: null, why: 'Tap what was on the plate.' });
+  });
+
+  it('a day saved without chip scores keeps the formula', () => {
+    expect(usesChipScores(rules())).toBe(false);
+    expect(scorePlate(['eggs', 'fruit'], rules())).toBe(80); // the formula: 70 + protein + fiber
+    expect(scorePlate(['supplements'], rules())).toBe(70);
+  });
+});
+
+describe('goals', () => {
+  const PROCESSED = FOOD_GROUPS.filter((g) => g.section === 'processed').map((g) => g.id);
+
+  it('every goal scores every chip', () => {
+    for (const goal of MEAL_GOALS) {
+      for (const g of FOOD_GROUPS) expect(typeof goal.scores[g.id]).toBe('number');
+    }
+  });
+
+  it('processed food scores the same, and low, in every goal', () => {
+    for (const id of PROCESSED) {
+      const scores = MEAL_GOALS.map((g) => g.scores[id]);
+      expect(new Set(scores).size).toBe(1);
+      expect(scores[0]).toBeLessThanOrEqual(30);
+    }
+  });
+
+  it('Build muscle scores protein higher; Plant-forward scores plants higher and meat lower', () => {
+    const [balanced, muscle, plant] = MEAL_GOALS.map((g) => g.scores);
+    expect(muscle.chicken).toBeGreaterThan(balanced.chicken);
+    expect(muscle.supplements).toBeGreaterThan(balanced.supplements);
+    expect(plant.legumes).toBeGreaterThan(balanced.legumes);
+    expect(plant.beef).toBeLessThan(balanced.beef);
+  });
+
+  it('the same plate scores differently by goal', () => {
+    const plate = ['beef', 'veggies'] as FoodGroupId[];
+    const score = (goal: 'balanced' | 'muscle' | 'plant') => scorePlate(plate, rulesOf({ ...DEFAULT_MEALS_PREFS, goal }));
+    expect(score('balanced')).toBe(83); // (75 + 90) / 2 = 82.5
+    expect(score('muscle')).toBe(85);
+    expect(score('plant')).toBe(75);
+  });
+
+  it('an unknown goal reads as Balanced', () => {
+    expect(groupScoresFor('nope' as never)).toEqual(MEAL_GOALS[0].scores);
+  });
+});
+
+describe('customizing scores', () => {
+  it('your changes sit on top of the goal', () => {
+    expect(groupScoresFor('balanced', { veggies: 100 }).veggies).toBe(100);
+    expect(groupScoresFor('balanced', { veggies: 100 }).fruit).toBe(80);
+    expect(rulesOf({ ...DEFAULT_MEALS_PREFS, score_overrides: { bread: 60 } }).group_scores?.bread).toBe(60);
+  });
+
+  it('keeps a score a whole number from 0 to 100', () => {
+    expect(groupScoresFor('balanced', { veggies: 140, fruit: -5, eggs: 72.4 })).toMatchObject({ veggies: 100, fruit: 0, eggs: 72 });
+  });
+
+  it('only saves real changes: a score set back to the default drops out', () => {
+    const one = setScoreOverride('balanced', {}, 'veggies', 95);
+    expect(one).toEqual({ veggies: 95 });
+    expect(setScoreOverride('balanced', one, 'veggies', 90)).toEqual({});
+    expect(setScoreOverride('muscle', {}, 'chicken', 90)).toEqual({}); // already Build muscle’s default
+  });
+
+  it('counts the changed scores', () => {
+    expect(overrideCount('balanced', {})).toBe(0);
+    expect(overrideCount('balanced', { veggies: 95, fruit: 80 })).toBe(1); // fruit is the default anyway
+  });
+
+  it('a retired chip is offered only while it’s on the plate', () => {
+    expect(sectionGroups('processed').map((g) => g.id)).not.toContain('processed');
+    expect(sectionGroups('processed', ['processed']).map((g) => g.id)).toContain('processed');
+  });
+});
+
+describe('scoreByFormula — days saved before chip scores', () => {
+  it('is dominated by the whole-food ratio', () => {
+    expect(scoreByFormula(['eggs', 'fruit'], false, weights)).toBe(80); // ratio 1.0 (70) + protein+fiber (10)
+    expect(scoreByFormula(['chicken', 'veggies', 'grains', 'semi'], false, weights)).toBe(63); // ratio 0.75 (52.5) + protein+fiber (10)
+  });
+
+  it('adds a bonus per nutrient tag the plate hits, equally weighted, up to three', () => {
+    expect(scoreByFormula(['grains'], false, weights)).toBe(75); // ratio 70 + fiber only (5)
+    expect(scoreByFormula(['fish'], false, weights)).toBe(80); // ratio 70 + protein+fats (10)
+  });
+
+  it('costs Processed a flat penalty on top of the ratio dilution it already causes', () => {
+    expect(scoreByFormula(['processed'], false, weights)).toBe(0); // 0 ratio, 0 nutrients, -30, clamped
+    expect(scoreByFormula(['processed', 'veggies'], false, weights)).toBe(10); // ratio 0.5 (35) + fiber (5) - 30
+  });
+
+  it('strict mode costs dairy/semi/supplements extra — processed is unaffected, it already has its own penalty', () => {
+    expect(scoreByFormula(['chicken', 'veggies', 'semi'], false, weights)).toBe(57);
+    expect(scoreByFormula(['chicken', 'veggies', 'semi'], true, weights)).toBe(47); // 57 - strict_penalty (10)
+    expect(scoreByFormula(['processed', 'veggies'], true, weights)).toBe(10); // unchanged: 'processed' isn't semi-tier
+  });
+
+  it('is null for an empty plate', () => {
+    expect(scoreByFormula([], false, weights)).toBeNull();
+    expect(scoreByFormula(undefined, false, weights)).toBeNull();
   });
 
   it('never goes below 0', () => {
-    expect(scorePlate(['semi'], true, weights)).toBe(0); // 0 ratio + nothing - strict_penalty (10), clamped
+    expect(scoreByFormula(['semi'], true, weights)).toBe(0); // 0 ratio + nothing - strict_penalty (10), clamped
   });
 
   it('never goes above 100, even with custom weights pushing the raw total over', () => {
     const big = { ...weights, ratio_points: 100, nutrient_bonus: 10 };
-    expect(scorePlate(['fish'], false, big)).toBe(100); // 100 ratio + 20 (protein+fats) would be 120
+    expect(scoreByFormula(['fish'], false, big)).toBe(100); // 100 ratio + 20 (protein+fats) would be 120
   });
 });
 
-describe('scoreVerdict', () => {
+describe('verdictByFormula', () => {
   it('names the penalty that applied', () => {
-    expect(scoreVerdict(['processed', 'veggies'], false, weights)).toEqual({
+    expect(verdictByFormula(['processed', 'veggies'], false, weights)).toEqual({
       score: 10,
       why: 'Processed on the plate (−30)',
     });
-    expect(scoreVerdict(['eggs', 'semi'], true, weights).why).toBe('strict mode (−10)');
+    expect(verdictByFormula(['eggs', 'semi'], true, weights).why).toBe('strict mode (−10)');
   });
 
   it('describes a clean plate', () => {
-    expect(scoreVerdict(['eggs', 'fruit'], false, weights).why).toBe('All whole food.');
-    expect(scoreVerdict(['eggs', 'semi'], false, weights).why).toBe('Real food, with a little semi-processed.');
+    expect(verdictByFormula(['eggs', 'fruit'], false, weights).why).toBe('All whole food.');
+    expect(verdictByFormula(['eggs', 'semi'], false, weights).why).toBe('Real food, with a little semi-processed.');
   });
 
   it('an empty plate has no score yet', () => {
-    expect(scoreVerdict([], false, weights)).toEqual({ score: null, why: 'Tap what was on the plate.' });
+    expect(verdictByFormula([], false, weights)).toEqual({ score: null, why: 'Tap what was on the plate.' });
   });
 });
 
@@ -548,27 +678,27 @@ describe('clampOnTargetThreshold', () => {
 
 describe('dairy', () => {
   it('dilutes the ratio like any non-whole group, but isn’t penalized unless strict', () => {
-    expect(scorePlate(['fruit', 'dairy'], false, weights)).toBe(45); // ratio 0.5 (35) + protein+fiber (10)
-    expect(scorePlate(['dairy'], false, weights)).toBe(5); // 0 ratio + protein (5), no processed penalty
+    expect(scoreByFormula(['fruit', 'dairy'], false, weights)).toBe(45); // ratio 0.5 (35) + protein+fiber (10)
+    expect(scoreByFormula(['dairy'], false, weights)).toBe(5); // 0 ratio + protein (5), no processed penalty
   });
 
   it('costs the strict penalty like semi-processed does', () => {
-    expect(scorePlate(['fruit', 'dairy'], true, weights)).toBe(35); // 45 - strict_penalty (10)
-    expect(scoreVerdict(['eggs', 'dairy'], true, weights).why).toBe('strict mode (−10)');
-    expect(scoreVerdict(['eggs', 'dairy'], false, weights).why).toBe('Real food, with a little semi-processed.');
+    expect(scoreByFormula(['fruit', 'dairy'], true, weights)).toBe(35); // 45 - strict_penalty (10)
+    expect(verdictByFormula(['eggs', 'dairy'], true, weights).why).toBe('strict mode (−10)');
+    expect(verdictByFormula(['eggs', 'dairy'], false, weights).why).toBe('Real food, with a little semi-processed.');
   });
 });
 
 describe('supplements', () => {
   it('dilutes the ratio like any non-whole group, but isn’t penalized unless strict', () => {
-    expect(scorePlate(['fruit', 'supplements'], false, weights)).toBe(45);
+    expect(scoreByFormula(['fruit', 'supplements'], false, weights)).toBe(45);
   });
 
   it('a shake on its own scores exactly on target, strict or not', () => {
-    expect(scorePlate(['supplements'], false, weights)).toBe(weights.on_target_threshold);
-    expect(scorePlate(['supplements'], true, weights)).toBe(weights.on_target_threshold);
-    expect(scorePlate(['supplements'], false, { ...weights, on_target_threshold: 80 })).toBe(80);
-    expect(scoreVerdict(['supplements'], true, weights).why).toBe('A protein shake on its own counts as on target.');
+    expect(scoreByFormula(['supplements'], false, weights)).toBe(weights.on_target_threshold);
+    expect(scoreByFormula(['supplements'], true, weights)).toBe(weights.on_target_threshold);
+    expect(scoreByFormula(['supplements'], false, { ...weights, on_target_threshold: 80 })).toBe(80);
+    expect(verdictByFormula(['supplements'], true, weights).why).toBe('A protein shake on its own counts as on target.');
   });
 
   it('still tags a shake-only plate as protein', () => {
@@ -576,9 +706,9 @@ describe('supplements', () => {
   });
 
   it('costs the strict penalty like semi-processed does', () => {
-    expect(scorePlate(['fruit', 'supplements'], true, weights)).toBe(35);
-    expect(scoreVerdict(['eggs', 'supplements'], true, weights).why).toBe('strict mode (−10)');
-    expect(scoreVerdict(['eggs', 'supplements'], false, weights).why).toBe('Real food, with a little semi-processed.');
+    expect(scoreByFormula(['fruit', 'supplements'], true, weights)).toBe(35);
+    expect(verdictByFormula(['eggs', 'supplements'], true, weights).why).toBe('strict mode (−10)');
+    expect(verdictByFormula(['eggs', 'supplements'], false, weights).why).toBe('Real food, with a little semi-processed.');
   });
 });
 
@@ -600,8 +730,8 @@ describe('nutrient tags', () => {
   });
 
   it('Carbs is shown but earns no bonus, so it never changes a score', () => {
-    expect(scorePlate(['grains'], false, weights)).toBe(75); // ratio 1.0 (70) + fiber (5); carbs adds nothing
-    expect(scorePlate(['legumes'], false, weights)).toBe(80); // protein + fiber, not carbs
+    expect(scoreByFormula(['grains'], false, weights)).toBe(75); // ratio 1.0 (70) + fiber (5); carbs adds nothing
+    expect(scoreByFormula(['legumes'], false, weights)).toBe(80); // protein + fiber, not carbs
   });
 
   it('counts plates — meals and snacks alike', () => {
@@ -678,42 +808,42 @@ describe('your own foods', () => {
   const custom = [carb, bar];
 
   it('on its own, a plate scores what you gave the food', () => {
-    expect(scorePlate(['custom_carb'], false, weights, custom)).toBe(80);
-    expect(scorePlate(['custom_carb'], true, weights, custom)).toBe(80); // strict mode doesn't touch it
+    expect(scoreByFormula(['custom_carb'], false, weights, custom)).toBe(80);
+    expect(scoreByFormula(['custom_carb'], true, weights, custom)).toBe(80); // strict mode doesn't touch it
   });
 
   it('two of your own foods alone average out', () => {
-    expect(scorePlate(['custom_carb', 'custom_bar'], false, weights, custom)).toBe(60);
+    expect(scoreByFormula(['custom_carb', 'custom_bar'], false, weights, custom)).toBe(60);
   });
 
   it('mixed with food, it is one share of the plate at its score', () => {
     // Eggs + Fruit score 80 as two shares; the bar is a third at 40.
-    expect(scorePlate(['eggs', 'fruit'], false, weights)).toBe(80);
-    expect(scorePlate(['eggs', 'fruit', 'custom_bar'], false, weights, custom)).toBe(67); // (160 + 40) / 3
+    expect(scoreByFormula(['eggs', 'fruit'], false, weights)).toBe(80);
+    expect(scoreByFormula(['eggs', 'fruit', 'custom_bar'], false, weights, custom)).toBe(67); // (160 + 40) / 3
   });
 
   it('its tags show on the plate but never add a bonus — its score is already yours', () => {
     expect(plateNutrients(['custom_bar'], custom)).toEqual(['protein']);
-    expect(scorePlate(['custom_bar'], false, weights, custom)).toBe(40);
+    expect(scoreByFormula(['custom_bar'], false, weights, custom)).toBe(40);
   });
 
   it('a protein shake with your own food: each keeps its own score', () => {
     // Shake alone = the on-target line (70); with the 80 supplement, (70 + 80) / 2.
-    expect(scorePlate(['supplements', 'custom_carb'], false, weights, custom)).toBe(75);
+    expect(scoreByFormula(['supplements', 'custom_carb'], false, weights, custom)).toBe(75);
   });
 
   it('a food with no definition is left out of the score', () => {
-    expect(scorePlate(['eggs', 'fruit', 'custom_gone'], false, weights, custom)).toBe(80);
-    expect(scorePlate(['custom_gone'], false, weights, custom)).toBeNull();
+    expect(scoreByFormula(['eggs', 'fruit', 'custom_gone'], false, weights, custom)).toBe(80);
+    expect(scoreByFormula(['custom_gone'], false, weights, custom)).toBeNull();
   });
 
   it('says why in the picker', () => {
-    expect(scoreVerdict(['custom_carb'], false, weights, custom).why).toBe('Your own food: Carb supplement 80.');
-    expect(scoreVerdict(['eggs', 'custom_carb'], false, weights, custom).why).toBe(
+    expect(verdictByFormula(['custom_carb'], false, weights, custom).why).toBe('Your own food: Carb supplement 80.');
+    expect(verdictByFormula(['eggs', 'custom_carb'], false, weights, custom).why).toBe(
       'Your own food (Carb supplement 80) counts as one share of the plate.'
     );
     // A penalty on the rest of the plate is still named.
-    expect(scoreVerdict(['processed', 'custom_carb'], false, weights, custom)).toEqual({
+    expect(verdictByFormula(['processed', 'custom_carb'], false, weights, custom)).toEqual({
       score: 40,
       why: 'Your own food (Carb supplement 80) counts as one share of the plate · Processed on the plate (−30).',
     });

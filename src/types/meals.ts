@@ -1,7 +1,8 @@
 // =============================================================================
 // Meals (Lab mini-app) — rate each meal by tapping the food groups on the plate;
-// the app scores it 0-100. Stored under users/{uid}/lab_meals_*. See
-// services/labMeals.ts (storage) and services/mealsMath.ts (the rules).
+// every chip has a score and the plate scores their average. Stored under
+// users/{uid}/lab_meals_*. See services/labMeals.ts (storage),
+// services/mealsMath.ts (the rules) and data/mealGroups.ts (chips and scores).
 // =============================================================================
 
 export type WholeGroupId =
@@ -16,17 +17,34 @@ export type WholeGroupId =
   | 'nuts'
   | 'grains';
 
+/** Real food with some processing. 'supplements' is the Protein shake / bar chip. */
+export type InBetweenGroupId = 'dairy' | 'supplements' | 'bread' | 'sauces';
+
+/** Processed food, one chip per kind, so the user names what they ate rather than judging it. */
+export type ProcessedGroupId = 'ready_meals' | 'processed_meat' | 'snacks' | 'fast_food' | 'sweets' | 'sugary_drinks';
+
 /**
- * Dairy and Supplements are their own chips so their protein can be told apart
- * from bread and pasta, but for scoring they are semi-processed (founder,
- * 2026-10-19 for dairy; 2026-10-24 for supplements).
+ * Semi-processed and Processed, retired 2026-11-05 when the processed side
+ * split into its own chips. No longer offered, but still read on old plates.
  */
-export type ProcessedGroupId = 'dairy' | 'supplements' | 'semi' | 'processed';
+export type RetiredGroupId = 'semi' | 'processed';
+
+export type BuiltInGroupId = WholeGroupId | InBetweenGroupId | ProcessedGroupId | RetiredGroupId;
 
 /** One of the user's own foods (see CustomFoodGroup). The prefix keeps it apart from the built-in ids. */
 export type CustomGroupId = `custom_${string}`;
 
-export type FoodGroupId = WholeGroupId | ProcessedGroupId | CustomGroupId;
+export type FoodGroupId = BuiltInGroupId | CustomGroupId;
+
+/** Every built-in chip's 0-100 score. */
+export type GroupScores = Record<BuiltInGroupId, number>;
+
+/**
+ * What the user eats for. Each goal is a set of default chip scores
+ * (data/mealGroups.ts MEAL_GOALS); processed chips score the same in all of
+ * them (founder, 2026-11-05). Named as eating styles, not health outcomes.
+ */
+export type MealGoalId = 'balanced' | 'muscle' | 'plant';
 
 /**
  * What a plate can be tagged with, inferred from its food groups — never grams.
@@ -68,10 +86,10 @@ export interface GroupGoal {
 }
 
 /**
- * How a plate's 0-100 score is built, and what counts as "on target" for a
- * day. The weights are admin-tunable from Meals Settings (shown to is_admin
- * accounts only, now the app is live for everyone); `on_target_threshold` is
- * the user's own, never below MIN_ON_TARGET_THRESHOLD (services/mealsMath.ts).
+ * What counts as "on target" for a day: `on_target_threshold`, the user's own,
+ * never below MIN_ON_TARGET_THRESHOLD (services/mealsMath.ts). The other four
+ * are the formula plates were scored by before chip scores (2026-11-05); only
+ * days saved back then still use them.
  */
 export interface MealsScoringWeights {
   /** wholeFoodRatio (whole groups ÷ all groups tapped) * this. The dominant term. */
@@ -88,10 +106,17 @@ export interface MealsScoringWeights {
 
 /** What a day is scored against. Snapshotted onto each day so editing settings never rescores the past. */
 export interface MealsRules {
+  /**
+   * Each chip's score: the goal's defaults with the user's own changes on top.
+   * Absent on days saved before 2026-11-05, which are scored by the formula.
+   */
+  group_scores?: GroupScores;
+  /** The goal those scores came from. */
+  goal?: MealGoalId;
   /** Legacy: only on days saved before 2026-11-05 — see MealSlot. */
   slots?: MealSlot[];
-  /** Strict: dairy/semi/supplements cost `scoring.strict_penalty` instead of only diluting the ratio. */
-  strict: boolean;
+  /** Legacy formula only: dairy/semi/supplements cost `scoring.strict_penalty`. */
+  strict?: boolean;
   group_goals: GroupGoal[];
   scoring: MealsScoringWeights;
   /** The user's own foods, archived ones included. Missing on days saved before they existed. */
@@ -99,6 +124,10 @@ export interface MealsRules {
 }
 
 export interface MealsPrefs extends MealsRules {
+  /** Absent = 'balanced'. */
+  goal?: MealGoalId;
+  /** Only the chips the user changed from their goal's defaults, so a retuned goal still reaches the rest. */
+  score_overrides?: Partial<GroupScores>;
   linked_habit_ids: string[];
   intro_seen?: boolean;
   /** Days logged a week, the ring on Today. Absent = DEFAULT_APP_WEEKLY_GOALS. */
@@ -158,5 +187,6 @@ export type MealsStackParamList = {
   MealsWeek: undefined;
   MealsClose: undefined;
   MealsSettings: undefined;
+  MealsScores: undefined;
   MealsGuide: undefined;
 };

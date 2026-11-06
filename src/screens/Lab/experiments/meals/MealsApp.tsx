@@ -11,14 +11,15 @@ import { MealsDayScreen } from './MealsDayScreen';
 import { MealsWeekScreen } from './MealsWeekScreen';
 import { MealsCloseScreen } from './MealsCloseScreen';
 import { MealsSettingsScreen } from './MealsSettingsScreen';
+import { MealsScoresScreen } from './MealsScoresScreen';
 import { MealsGuideScreen } from './MealsGuideScreen';
 import { MEALS_ACCENT } from './components/mealsStyle';
 
 const Stack = createNativeStackNavigator<MealsStackParamList>();
 
 /**
- * The Meals mini-app: rate each meal by the food groups on the plate, against
- * your own daily goal. Full screen over the whole app, the app's own light look
+ * The Meals mini-app: log each meal by the food groups on the plate, each
+ * scored for what you're eating for. Full screen over the whole app, the app's own light look
  * with Meals' blue. Opened from a linked habit on Today (route param
  * habitId) or from Admin → Lab. Loaded with getComponent + require in
  * RootNavigator, so none of this runs at app start.
@@ -53,6 +54,7 @@ export const MealsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'Meal
         <Stack.Screen name="MealsWeek" component={MealsWeekScreen} options={{ title: 'This week' }} />
         <Stack.Screen name="MealsClose" component={MealsCloseScreen} options={{ title: 'Close out the day' }} />
         <Stack.Screen name="MealsSettings" component={MealsSettingsScreen} options={{ title: 'Settings' }} />
+        <Stack.Screen name="MealsScores" component={MealsScoresScreen} options={{ title: 'Scores' }} />
         <Stack.Screen name="MealsGuide" component={MealsGuideScreen} options={{ title: 'What counts' }} />
       </Stack.Navigator>
     </MealsProvider>

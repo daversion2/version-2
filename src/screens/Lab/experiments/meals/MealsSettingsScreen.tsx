@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, Switch, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
@@ -8,16 +8,19 @@ import { SegmentedControl } from '../../../../components/common/SegmentedControl
 import type {
   CustomFoodGroup,
   GroupGoal,
+  MealGoalId,
   MealsScoringWeights,
   MealsStackParamList,
   NutrientId,
 } from '../../../../types/meals';
 import {
-  DEFAULT_MEALS_SCORING,
+  DEFAULT_MEAL_GOAL,
   MAX_CUSTOM_GROUPS,
   MAX_GROUP_GOALS,
+  MEAL_GOALS,
   NUTRIENTS,
   WHOLE_GROUPS,
+  mealGoal,
 } from '../../../../data/mealGroups';
 import {
   activeCustomGroups,
@@ -27,12 +30,12 @@ import {
   describeGroupGoal,
   newCustomGroup,
   newGroupGoal,
+  overrideCount,
   updateCustomGroup,
 } from '../../../../services/mealsMath';
 import { showConfirm } from '../../../../utils/alert';
 import { clampWeeklyGoal } from '../../../../services/appCheckins';
 import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
-import { useAuth } from '../../../../context/AuthContext';
 import { useMeals } from './MealsContext';
 import { MEALS_ACCENT, NUTRIENT_COLOR, mls } from './components/mealsStyle';
 
@@ -123,8 +126,6 @@ const CustomFoodRow: React.FC<{
 
 export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const { prefs, updatePrefs, habits, newId } = useMeals();
-  // The scoring weights are for tuning the app, not for users (types/meals.ts MealsScoringWeights).
-  const isAdmin = useAuth().userProfile?.is_admin === true;
   const [choosingFor, setChoosingFor] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const customGroups = prefs.custom_groups ?? [];
@@ -132,6 +133,20 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 
   const setWeight = (key: keyof MealsScoringWeights, n: number) =>
     updatePrefs({ scoring: { ...prefs.scoring, [key]: n } });
+
+  const goalId = prefs.goal ?? DEFAULT_MEAL_GOAL;
+  const changed = overrideCount(goalId, prefs.score_overrides);
+  // A new goal brings its own scores, so changes made to the old one go.
+  const chooseGoal = (id: MealGoalId) => {
+    if (id === goalId) return;
+    if (changed === 0) return updatePrefs({ goal: id, score_overrides: {} });
+    showConfirm(
+      `Switch to ${mealGoal(id).label}?`,
+      `Your ${changed} changed ${changed === 1 ? 'score goes' : 'scores go'} back to the ${mealGoal(id).label} defaults. Days already logged keep their scores.`,
+      () => updatePrefs({ goal: id, score_overrides: {} }),
+      'Switch'
+    );
+  };
 
   const setGoals = (goals: GroupGoal[]) => updatePrefs({ group_goals: goals });
   const changeGoal = (id: string, changes: Partial<GroupGoal>) =>
@@ -170,10 +185,48 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         onChange={(n) => updatePrefs({ weekly_goal: n })}
       />
 
+      <Text style={mls.sectionLabel}>What you’re eating for</Text>
+      <Text style={mls.muted}>Your goal sets each food group’s score. Processed food scores low in every goal.</Text>
+      <View style={[mls.card, styles.goalList]}>
+        {MEAL_GOALS.map((g, i) => {
+          const active = goalId === g.id;
+          return (
+            <TouchableOpacity
+              key={g.id}
+              style={[styles.goalOption, i > 0 && styles.goalOptionDivider]}
+              onPress={() => chooseGoal(g.id)}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: active }}
+            >
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={mls.title}>{g.label}</Text>
+                <Text style={mls.muted}>{g.blurb}</Text>
+              </View>
+              {active && <Ionicons name="checkmark" size={20} color={MEALS_ACCENT} />}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <TouchableOpacity
+        style={[mls.card, styles.row]}
+        onPress={() => navigation.navigate('MealsScores')}
+        accessibilityRole="button"
+      >
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={mls.title}>Customize scores</Text>
+          <Text style={mls.muted}>
+            {changed === 0
+              ? `Using the ${mealGoal(goalId).label} scores.`
+              : `${changed} ${changed === 1 ? 'score' : 'scores'} changed from ${mealGoal(goalId).label}.`}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+      </TouchableOpacity>
+
       <Text style={mls.sectionLabel}>My foods</Text>
       <Text style={mls.muted}>
-        Foods the groups don’t fit, like a carb supplement. On its own, a plate scores what you give the food. With other
-        food, it’s one share of the plate at that score. Tags show on the plate but add no points.
+        Foods the groups don’t fit, like a carb supplement. Each scores what you give it, like any other food group.
+        Tags show on the plate but add no points.
       </Text>
       {myFoods.map((food) => (
         <CustomFoodRow
@@ -206,84 +259,6 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
         <Text style={mls.muted}>Your day is on target once your plates average this score or more.</Text>
       </View>
-      {isAdmin && (
-        <>
-          <View style={[mls.card, styles.goal]}>
-            <View style={styles.goalLine}>
-              <Text style={mls.title}>Whole-food ratio</Text>
-              <Stepper
-                value={prefs.scoring.ratio_points}
-                min={0}
-                max={100}
-                step={5}
-                label="whole-food ratio points"
-                onChange={(n) => setWeight('ratio_points', n)}
-              />
-            </View>
-            <Text style={mls.muted}>How much of a plate's score comes from how much of it was whole food.</Text>
-          </View>
-          <View style={[mls.card, styles.goal]}>
-            <View style={styles.goalLine}>
-              <Text style={mls.title}>Nutrient bonus</Text>
-              <Stepper
-                value={prefs.scoring.nutrient_bonus}
-                min={0}
-                max={20}
-                label="nutrient bonus"
-                onChange={(n) => setWeight('nutrient_bonus', n)}
-              />
-            </View>
-            <Text style={mls.muted}>Added per nutrient (protein, fiber, healthy fats) the plate hits — up to 3.</Text>
-          </View>
-          <View style={[mls.card, styles.goal]}>
-            <View style={styles.goalLine}>
-              <Text style={mls.title}>Processed penalty</Text>
-              <Stepper
-                value={prefs.scoring.processed_penalty}
-                min={0}
-                max={100}
-                step={5}
-                label="processed penalty"
-                onChange={(n) => setWeight('processed_penalty', n)}
-              />
-            </View>
-            <Text style={mls.muted}>Subtracted when Processed is on the plate, on top of what it already costs the ratio.</Text>
-          </View>
-          <View style={[mls.card, styles.goal]}>
-            <View style={styles.goalLine}>
-              <Text style={mls.title}>Strict penalty</Text>
-              <Stepper
-                value={prefs.scoring.strict_penalty}
-                min={0}
-                max={50}
-                step={5}
-                label="strict penalty"
-                onChange={(n) => setWeight('strict_penalty', n)}
-              />
-            </View>
-            <Text style={mls.muted}>Strict mode only: subtracted when Dairy, Semi-processed or Protein shake are on the plate.</Text>
-          </View>
-          <TouchableOpacity onPress={() => updatePrefs({ scoring: DEFAULT_MEALS_SCORING })} style={styles.add}>
-            <Ionicons name="refresh" size={16} color={MEALS_ACCENT} />
-            <Text style={mls.link}>Reset scoring to defaults</Text>
-          </TouchableOpacity>
-        </>
-      )}
-
-      <View style={[mls.card, styles.row]}>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={mls.title}>Strict mode</Text>
-          <Text style={mls.muted}>
-            Dairy, Semi-processed and Protein shake (mixed with food) cost −{prefs.scoring.strict_penalty} instead of only diluting your ratio.
-          </Text>
-        </View>
-        <Switch
-          value={prefs.strict}
-          onValueChange={(strict) => updatePrefs({ strict })}
-          trackColor={{ true: MEALS_ACCENT }}
-        />
-      </View>
-
       <Text style={mls.sectionLabel}>Food-group goals</Text>
       <Text style={mls.muted}>
         Up to {MAX_GROUP_GOALS}. A progress readout, not a gate — it doesn't change whether the day is on target.
@@ -366,4 +341,7 @@ const styles = StyleSheet.create({
   goalCard: { gap: Spacing.md },
   goalControls: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flexWrap: 'wrap' },
   period: { minWidth: 170 },
+  goalList: { paddingVertical: 0 },
+  goalOption: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, minHeight: 44 },
+  goalOptionDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator },
 });

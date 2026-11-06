@@ -401,7 +401,16 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
   `18c`–`18e` still select slot rows ("Breakfast: Tap to log"), the
   "MY MEALS" settings header, "Didn't eat" and "Add something". Rows are now
   labelled `<name or Meal>: <time> · <groups>`; the add row is "Log a meal".
-  `18b` (reorder meals) was deleted with the feature. Ask before running.
+  `18b` (reorder meals) was deleted with the feature. Chip scoring (see Done)
+  also changed the picker: chips are labelled `<group>, scores <n>`, the
+  Processed/Semi-processed chips are gone, and `16a`'s formula numbers,
+  strict mode and admin weight steppers no longer exist. Ask before running.
+- **Tune the goal scores.** The Balanced / Build muscle / Plant-forward
+  numbers in `data/mealGroups.ts` (`MEAL_GOALS`) are a first draft, and the
+  on-target line (70) wasn't rechecked against them. A page of realistic
+  plates with a slider per chip would make this quick.
+- **Alcohol chip?** Open founder question (2026-11-05): a real part of many
+  days, but a values call. Not added.
 - **Change a plate's time.** A plate keeps the time it was first logged, so a
   lunch logged at 8pm reads 8pm, and one added to a past day carries today's
   time. A time picker in the meal sheet would fix both.
@@ -445,6 +454,27 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Meals: a score per food group, set by your goal** *(2026-11-05, not yet seen on screen, not OTA'd)*
+Founder: replace the formula (whole-food ratio, nutrient bonus, processed and
+strict penalties, the shake rule) with a score on every chip; a plate scores
+the average of its chips. The processed side is split into named chips —
+In between: Dairy, Protein shake / bar, Bread, pasta & tortillas, Sauces &
+dressings; Processed: Frozen & ready meals, Processed meat, Chips &
+crackers, Fast food & fried, Sweets & desserts, Sugary drinks — so the user
+names what they ate instead of judging how processed it was. Old
+Semi-processed / Processed chips are retired (still scored on old plates).
+A goal sets the scores: Balanced (default), Build muscle, Plant-forward,
+named as eating styles rather than health outcomes. Processed chips score
+the same in every goal. Chosen in the first-run intro card or Settings;
+Settings → Customize scores changes any chip (only changes are saved, as
+`score_overrides`, so a retuned goal still reaches the rest). Each day's
+rules snapshot now carries the chip scores, so switching goal never rescores
+history; days saved before this keep the formula (`scoreByFormula`). Strict
+mode and the admin formula steppers are gone. Prefs now save with
+`mergeFields`, so a reset score is really removed. No protein bonus for now
+(founder, 2026-11-05). Logic in `services/mealsMath.ts` and
+`data/mealGroups.ts` (tested).
 
 **Meals: no set-up meals — log a meal whenever you eat** *(2026-11-05, not yet seen on screen, not OTA'd)*
 Founder: setting up Breakfast / Lunch / Dinner didn't fit how people eat. Now

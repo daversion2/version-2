@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import type { FoodGroupId } from '../../../../types/meals';
-import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../data/mealGroups';
-import { describeGroups, scorePlate } from '../../../../services/mealsMath';
+import { FOOD_SECTIONS, MEAL_GUIDE_RULES, mealGoal, sectionGroups } from '../../../../data/mealGroups';
+import { chipScore, describeGroups, scorePlate } from '../../../../services/mealsMath';
 import { useMeals } from './MealsContext';
 import { scoreColor, mls } from './components/mealsStyle';
 import { NutrientTags } from './components/MealsParts';
@@ -11,16 +11,16 @@ import { NutrientTags } from './components/MealsParts';
 /** Worked examples, scored live by the same rule the app uses — so they can't drift from it. */
 const EXAMPLES: { meal: string; groups: FoodGroupId[] }[] = [
   { meal: 'Eggs and berries', groups: ['eggs', 'fruit'] },
-  { meal: 'Chicken stir-fry with bottled sauce', groups: ['chicken', 'veggies', 'grains', 'semi'] },
+  { meal: 'Chicken stir-fry with bottled sauce', groups: ['chicken', 'veggies', 'grains', 'sauces'] },
+  { meal: 'Salmon, rice and greens', groups: ['fish', 'bread', 'veggies'] },
   { meal: 'Greek yogurt with berries', groups: ['fruit', 'dairy'] },
-  { meal: 'Greek yogurt on its own', groups: ['dairy'] },
   { meal: 'Protein shake for lunch', groups: ['supplements'] },
-  { meal: 'Protein shake with a banana', groups: ['fruit', 'supplements'] },
-  { meal: 'Frozen pizza with a side salad', groups: ['processed', 'veggies'] },
-  { meal: 'Drive-through combo', groups: ['processed'] },
+  { meal: 'Turkey sandwich', groups: ['chicken', 'bread'] },
+  { meal: 'Frozen pizza with a side salad', groups: ['ready_meals', 'veggies'] },
+  { meal: 'Drive-through combo and a soda', groups: ['fast_food', 'sugary_drinks'] },
 ];
 
-/** What each chip covers and how a plate is scored. The user never has to decide what's processed. */
+/** What each chip covers, its score under your goal, and how a plate is scored. */
 export const MealsGuideScreen: React.FC = () => {
   const { rules } = useMeals();
 
@@ -33,13 +33,12 @@ export const MealsGuideScreen: React.FC = () => {
             • {rule}
           </Text>
         ))}
-        <Text style={mls.body}>• Strict mode (in settings): a meal passes on whole food only.</Text>
       </View>
 
-      <Text style={mls.sectionLabel}>Examples{rules.strict ? ' — strict mode is on' : ''}</Text>
+      <Text style={mls.sectionLabel}>Examples · {mealGoal(rules.goal).label}</Text>
       <View style={mls.card}>
         {EXAMPLES.map((ex, i) => {
-          const score = scorePlate(ex.groups, rules.strict, rules.scoring);
+          const score = scorePlate(ex.groups, rules);
           return (
             <View key={ex.meal} style={[styles.example, i === EXAMPLES.length - 1 && styles.last]}>
               <View style={{ flex: 1 }}>
@@ -52,27 +51,25 @@ export const MealsGuideScreen: React.FC = () => {
         })}
       </View>
 
-      <Text style={mls.sectionLabel}>Whole food</Text>
-      <View style={[mls.card, styles.list]}>
-        {WHOLE_GROUPS.map((g) => (
-          <View key={g.id} style={styles.group}>
-            <Text style={mls.title}>{g.label}</Text>
-            <Text style={mls.muted}>{g.examples}</Text>
-            <NutrientTags have={g.nutrients} />
+      {FOOD_SECTIONS.map((section) => (
+        <React.Fragment key={section.id}>
+          <Text style={mls.sectionLabel}>{section.label}</Text>
+          <View style={[mls.card, styles.list]}>
+            {sectionGroups(section.id).map((g) => (
+              <View key={g.id} style={styles.group}>
+                <View style={styles.groupTop}>
+                  <Text style={[mls.title, { flex: 1 }]}>{g.label}</Text>
+                  <Text style={[styles.result, { color: scoreColor(chipScore(g.id, rules)) }]}>
+                    {chipScore(g.id, rules)}
+                  </Text>
+                </View>
+                <Text style={mls.muted}>{g.examples}</Text>
+                <NutrientTags have={g.nutrients} />
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
-
-      <Text style={mls.sectionLabel}>Processed</Text>
-      <View style={[mls.card, styles.list]}>
-        {PROCESSED_GROUPS.map((g) => (
-          <View key={g.id} style={styles.group}>
-            <Text style={mls.title}>{g.label}</Text>
-            <Text style={mls.muted}>{g.examples}</Text>
-            <NutrientTags have={g.nutrients} />
-          </View>
-        ))}
-      </View>
+        </React.Fragment>
+      ))}
     </ScrollView>
   );
 };
@@ -80,6 +77,7 @@ export const MealsGuideScreen: React.FC = () => {
 const styles = StyleSheet.create({
   list: { gap: Spacing.md },
   group: { gap: 4 },
+  groupTop: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.md },
   example: {
     flexDirection: 'row',
     alignItems: 'center',
