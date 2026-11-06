@@ -89,7 +89,6 @@ export const FOOD_GROUPS: FoodGroup<BuiltInGroupId>[] = [
   { id: 'eggs', label: 'Eggs', section: 'protein', examples: 'any way you cook them', nutrients: ['protein'], profile: P(3, 0, 2, 1, 0, 0, 1) },
   // Under Protein, where a muscle-focused or vegetarian user looks; they bring carbs and fiber too.
   { id: 'legumes', label: 'Legumes', section: 'protein', examples: 'beans, lentils, chickpeas, tofu', nutrients: ['protein', 'fiber', 'carbs'], profile: P(2, 3, 3, 0, 0, 0, 0) },
-  { id: 'dairy', label: 'Dairy', section: 'protein', examples: 'milk, yogurt, cheese, cottage cheese', nutrients: ['protein'], profile: P(2, 0, 2, 0, 0, 1, 1) },
   {
     id: 'supplements',
     label: 'Protein shake / bar',
@@ -120,6 +119,8 @@ export const FOOD_GROUPS: FoodGroup<BuiltInGroupId>[] = [
     nutrients: ['fiber', 'fats'],
     profile: P(1, 2, 2, 3, 0, 0, 0),
   },
+  // Not a high-protein food: under Fats, protein 1 (founder, 2026-11-05).
+  { id: 'dairy', label: 'Dairy', section: 'fats', examples: 'milk, yogurt, cheese, cottage cheese', nutrients: ['protein'], profile: P(1, 0, 2, 0, 0, 1, 1) },
   { id: 'sauces', label: 'Sauces & dressings', section: 'fats', examples: 'jarred sauce, ketchup, mayo, bottled dressing', nutrients: [], profile: P(0, 0, 0, 1, 1, 2, 0) },
   { id: 'fast_food', label: 'Fast food & fried', section: 'mixed', examples: 'burgers and fries, fried chicken, takeout pizza', nutrients: [], profile: P(1, 0, 0, 0, 2, 3, 1) },
   {

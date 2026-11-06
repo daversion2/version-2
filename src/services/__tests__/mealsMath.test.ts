@@ -129,6 +129,15 @@ describe('a chip’s score, from its profile and the goal', () => {
     expect(sectionGroups('protein').map((g) => g.id)).toContain('processed_meat');
     expect(sectionGroups('carbs').map((g) => g.id)).toEqual(['grains', 'bread', 'snacks', 'sweets', 'sugary_drinks']);
     expect(sectionGroups('mixed').map((g) => g.id)).toEqual(['fast_food', 'ready_meals']);
+    expect(sectionGroups('fats').map((g) => g.id)).toEqual(['nuts', 'dairy', 'sauces']);
+    expect(sectionGroups('protein').map((g) => g.id)).not.toContain('dairy');
+  });
+
+  it('dairy is not a high-protein food', () => {
+    // 50 + protein 1 × 5 + vitamins & minerals 2 × 7 − processing 1 × 10
+    expect(goalScores('balanced').dairy).toBe(59);
+    expect(goalScores('muscle').dairy).toBe(62);
+    expect(goalScores('plant').dairy).toBe(48);
   });
 });
 
