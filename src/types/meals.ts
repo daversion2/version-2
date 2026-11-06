@@ -40,11 +40,27 @@ export type FoodGroupId = BuiltInGroupId | CustomGroupId;
 export type GroupScores = Record<BuiltInGroupId, number>;
 
 /**
- * What the user eats for. Each goal is a set of default chip scores
- * (data/mealGroups.ts MEAL_GOALS); processed chips score the same in all of
- * them (founder, 2026-11-05). Named as eating styles, not health outcomes.
+ * What the user eats for. Each goal is a set of weights over the food groups'
+ * profiles (data/mealGroups.ts MEAL_GOALS), from which every chip's score is
+ * worked out (services/mealsMath.ts goalScores). Named as eating styles, not
+ * health outcomes (founder, 2026-11-05).
  */
 export type MealGoalId = 'balanced' | 'muscle' | 'plant';
+
+/**
+ * What a food group's profile rates. The first four add points, the last
+ * three take them away. Each is rated for the TYPICAL food in the group.
+ */
+export type QualityId = 'protein' | 'fiber' | 'micros' | 'fats' | 'refined' | 'processing' | 'animal';
+
+/**
+ * A food group's profile: 0-3 per quality ('animal' 0-2). Processing:
+ * 0 whole · 1 lightly processed · 2 processed · 3 ultra-processed.
+ */
+export type ChipProfile = Record<QualityId, number>;
+
+/** Points per rating point, per quality: added for the first four, subtracted for the rest. */
+export type GoalWeights = Record<QualityId, number>;
 
 /**
  * What a plate can be tagged with, inferred from its food groups — never grams.

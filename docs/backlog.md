@@ -370,9 +370,8 @@ build is already happening for another reason).
 
 ### Workouts *(added 2026-10-24)*
 
-- **Start flow: check on screen, then merge** *(added 2026-11-05)*. Built on
-  branch `workouts-start-flow` (see Done). Not merged to main, not OTA'd, not
-  seen in the simulator. Flows 11, 12 and 14a were updated to the new home
+- **Start flow: check on screen, then OTA** *(added 2026-11-05)*. On main
+  (see Done). Not OTA'd, not seen in the simulator. Flows 11, 12 and 14a were updated to the new home
   but not rerun. Old Today's dashboard button (`HomeDashboardView`) still
   opens Workouts' home, unchanged.
 
@@ -463,7 +462,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: Start starts a workout** *(2026-11-05, branch `workouts-start-flow`, not merged)*
+**Workouts: Start starts a workout** *(2026-11-05, on main, not OTA'd, not yet seen on screen)*
 Founder, testing: "Start a workout" opened a menu of nine options, none of
 which started one. Reviewed as a mockup first and approved as drawn.
 - The Workouts page's button names the workout and opens it ("Start Pull
