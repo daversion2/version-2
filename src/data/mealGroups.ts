@@ -158,7 +158,6 @@ export const MEAL_OFF_REASONS: MealOffReason[] = [
 // --- Defaults ------------------------------------------------------------------
 
 export const MAX_GROUP_GOALS = 3;
-export const MAX_SLOTS = 8;
 export const MAX_CUSTOM_GROUPS = 12;
 
 export const DEFAULT_MEALS_SCORING: MealsScoringWeights = {
@@ -170,11 +169,6 @@ export const DEFAULT_MEALS_SCORING: MealsScoringWeights = {
 };
 
 export const DEFAULT_MEALS_PREFS: MealsPrefs = {
-  slots: [
-    { id: 'breakfast', name: 'Breakfast' },
-    { id: 'lunch', name: 'Lunch' },
-    { id: 'dinner', name: 'Dinner' },
-  ],
   strict: false,
   group_goals: [],
   scoring: DEFAULT_MEALS_SCORING,

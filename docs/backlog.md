@@ -396,6 +396,18 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
 
 ### Meals *(added 2026-10-24)*
 
+- **Rewrite the Meals Maestro flows for plates** *(added 2026-11-05)*. Meals
+  no longer has set-up meals (see Done), and `10a`–`10d`, `14b`, `16a`, `18a`,
+  `18c`–`18e` still select slot rows ("Breakfast: Tap to log"), the
+  "MY MEALS" settings header, "Didn't eat" and "Add something". Rows are now
+  labelled `<name or Meal>: <time> · <groups>`; the add row is "Log a meal".
+  `18b` (reorder meals) was deleted with the feature. Ask before running.
+- **Change a plate's time.** A plate keeps the time it was first logged, so a
+  lunch logged at 8pm reads 8pm, and one added to a past day carries today's
+  time. A time picker in the meal sheet would fix both.
+- **Which part of the day slips.** The Week screen's "Lunch is the one
+  slipping" card went with the set-up meals. Grouping plates by time of day
+  (morning / midday / evening) could bring it back.
 - **Named meal templates.** Save a plate under a name ("my usual lunch").
   Only if the Recent plates row (shipped, see Done) turns out not to be
   enough.
@@ -433,6 +445,22 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Meals: no set-up meals — log a meal whenever you eat** *(2026-11-05, not yet seen on screen, not OTA'd)*
+Founder: setting up Breakfast / Lunch / Dinner didn't fit how people eat. Now
+the user taps "Log a meal", picks the food groups, optionally names it, and
+saves; each plate keeps the time it was logged and the day lists plates in
+that order. Snacks and drinks are just plates ("something extra" and "didn't
+eat" are gone, and so is Settings → My meals). A day is pending until it's
+closed out, or it closes on its own at midnight (founder, 2026-11-05): worked
+out from the date, nothing is written, so a day nobody closes gets no rating
+or "why". Closing needs no catch-up step. Past days of the week can still
+take a forgotten meal. Old days (meals by slot + extras) are read as plates
+(`platesOf`/`normalizeDay`, slot name kept, "didn't eat" dropped) and saved
+in the new shape the next time they're edited, never migrated in bulk; Today,
+Progress and the dashboard read both. Week screen: a Score row and a Meals
+count row replace the per-slot rows. Logic in `services/mealsMath.ts`
+(tested). Maestro flows still describe the old layout — see Features → Meals.
 
 **App-wide launch review: the small fixes** *(2026-11-02, not yet seen on screen, not deployed or OTA'd)*
 Eight reviewers went through the app; everything small was fixed and tested.

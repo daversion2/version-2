@@ -23,7 +23,7 @@ const lift = (date: string) => {
 };
 
 const closedDay = (date: string, result: 'on' | 'off'): MealsDay =>
-  ({ date, meals: {}, extras: [], result }) as unknown as MealsDay;
+  ({ date, plates: [], result }) as MealsDay;
 
 const input = (over: Partial<AppHistoryInput> = {}): AppHistoryInput => ({
   today: TODAY,

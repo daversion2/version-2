@@ -20,6 +20,7 @@ import { appIdFromCheckinId, TodayAppId } from './appCheckins';
 import { MINI_APPS } from './miniApps';
 import { ratingDates, sessionsByDay } from './homeDashboard';
 import type { HomeAppData } from './homeDashboardLoad';
+import { platesOf } from './mealsMath';
 
 export interface EnrichedCompletionLog extends CompletionLog {
   name: string;
@@ -524,7 +525,7 @@ export const appSessionsByDay = (apps: HomeAppData, logs: CompletionLog[]): Map<
     workouts: sessionsByDay(apps.workoutSessions.map((s) => workoutDate(s.started_at)), ratingDates(logs, 'workouts')),
     meals: new Map(
       Object.entries(apps.mealsDays)
-        .filter(([, day]) => Object.keys(day.meals ?? {}).length > 0 || (day.extras ?? []).length > 0)
+        .filter(([, day]) => platesOf(day).length > 0)
         .map(([date]) => [date, 1] as [string, number])
     ),
   };

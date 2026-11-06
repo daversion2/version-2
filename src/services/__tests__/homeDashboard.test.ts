@@ -24,7 +24,7 @@ import {
 import type { CompletionLog } from '../../types';
 import type { CompletedMeditateSession } from '../../types/meditate';
 import type { CompletedWorkoutSession, Exercise, LoggedSet, TrainingPhase } from '../../types/workouts';
-import type { FoodGroupId, MealsDay, MealsRules } from '../../types/meals';
+import type { FoodGroupId, MealPlate, MealsDay, MealsRules } from '../../types/meals';
 import { DEFAULT_MEALS_SCORING } from '../../data/mealGroups';
 
 // A Saturday. The window is Sun 18th – Sat 24th; the one before, 11th – 17th.
@@ -70,21 +70,17 @@ const EXERCISES: Record<string, Exercise> = {
 };
 
 const RULES: MealsRules = {
-  slots: [
-    { id: 'lunch', name: 'Lunch' },
-    { id: 'dinner', name: 'Dinner' },
-  ],
   strict: false,
   group_goals: [],
   scoring: DEFAULT_MEALS_SCORING,
 };
 
-const plate = (...groups: FoodGroupId[]) => ({ groups, logged_at: '' });
+let plateId = 0;
+const plate = (...groups: FoodGroupId[]): MealPlate => ({ id: `p${++plateId}`, groups, logged_at: '' });
 
 const mealsDay = (date: string, over: Partial<MealsDay> = {}): MealsDay => ({
   date,
-  meals: { lunch: plate('veggies', 'chicken'), dinner: plate('veggies', 'grains') },
-  extras: [],
+  plates: [plate('veggies', 'chicken'), plate('veggies', 'grains')],
   ...over,
 });
 
@@ -323,8 +319,15 @@ describe('meals', () => {
     expect(mealsDayState('2026-10-20', mealsDay('2026-10-20', { result: 'off' }), RULES, TODAY)).toBe('off');
   });
 
-  it('scores an unclosed day', () => {
+  it('scores a past day nobody closed — it closed on its own at midnight', () => {
     expect(mealsDayState('2026-10-20', mealsDay('2026-10-20'), RULES, TODAY)).toBe('on');
+    const low = mealsDay('2026-10-20', { plates: [plate('processed')] });
+    expect(mealsDayState('2026-10-20', low, RULES, TODAY)).toBe('off');
+  });
+
+  it('today stays pending until it is closed out', () => {
+    expect(mealsDayState(TODAY, mealsDay(TODAY), RULES, TODAY)).toBe('pending');
+    expect(mealsDayState(TODAY, mealsDay(TODAY, { closed_at: 'x', result: 'on' }), RULES, TODAY)).toBe('on');
   });
 
   it('a past day with nothing logged is empty, today is pending', () => {
@@ -332,25 +335,21 @@ describe('meals', () => {
     expect(mealsDayState(TODAY, undefined, RULES, TODAY)).toBe('pending');
   });
 
-  it('a past day left half-logged is not off target, just not logged; today is still pending', () => {
-    const half = (date: string) => mealsDay(date, { meals: { lunch: plate('veggies') } });
-    expect(mealsDayState('2026-10-20', half('2026-10-20'), RULES, TODAY)).toBe('empty');
-    expect(mealsDayState(TODAY, half(TODAY), RULES, TODAY)).toBe('pending');
-  });
-
-  it('a day of only "didn\'t eat" is never off — even one closed off before that rule', () => {
-    const skipped = { skipped: true as const, logged_at: '' };
-    const none = (over: Partial<MealsDay> = {}) =>
-      mealsDay('2026-10-20', { meals: { lunch: skipped, dinner: skipped }, ...over });
-    expect(mealsDayState('2026-10-20', none(), RULES, TODAY)).toBe('empty');
-    expect(mealsDayState('2026-10-20', none({ closed_at: 'x', result: 'off' }), RULES, TODAY)).toBe('empty');
-  });
-
-  it('counts one serving per plate, extras included, skipped meals not', () => {
-    const day = mealsDay('2026-10-20', {
-      meals: { lunch: plate('veggies', 'veggies', 'chicken'), dinner: { skipped: true, logged_at: '' } },
+  it('reads a day saved by meal slot, before plates', () => {
+    const legacy = {
+      date: '2026-10-20',
+      meals: {
+        lunch: { groups: ['veggies', 'chicken'], logged_at: '' },
+        dinner: { skipped: true, logged_at: '' },
+      },
       extras: [{ id: 'x', groups: ['veggies', 'fruit'], logged_at: '' }],
-    });
+    } as unknown as MealsDay;
+    expect(mealsDayState('2026-10-20', legacy, RULES, TODAY)).toBe('on');
+    expect(countServings([legacy])).toEqual({ veggies: 2, chicken: 1, fruit: 1 });
+  });
+
+  it('counts one serving per plate', () => {
+    const day = mealsDay('2026-10-20', { plates: [plate('veggies', 'veggies', 'chicken'), plate('veggies', 'fruit')] });
     expect(countServings([day])).toEqual({ veggies: 2, chicken: 1, fruit: 1 });
   });
 
@@ -361,12 +360,13 @@ describe('meals', () => {
       '2026-10-15': mealsDay('2026-10-15'),
     };
     const d = mealsDashboard(days, RULES, TODAY, Object.keys(days));
-    expect(d.onTarget).toBe(2);
+    // Today is still open, so only yesterday is on target yet.
+    expect(d.onTarget).toBe(1);
     expect(d.priorOnTarget).toBe(1);
     expect(d.servings[0]).toEqual({ group: 'veggies', count: 4 });
     expect(d.servings.find((s) => s.group === 'pork')).toEqual({ group: 'pork', count: 0 });
     expect(d.streakDays).toBe(2);
-    expect(d.days.map((x) => x.state).slice(4)).toEqual(['empty', 'on', 'on']);
+    expect(d.days.map((x) => x.state).slice(4)).toEqual(['empty', 'on', 'pending']);
   });
 });
 
@@ -374,10 +374,10 @@ describe('meals: showing up', () => {
   // Founder Q2: any meal logged counts as showing up. Since 2026-11-01 the ring
   // counts those logged days too, against the Meals goal (default 5).
   const low = (date: string) =>
-    mealsDay(date, { meals: { lunch: plate('veggies', 'chicken'), dinner: plate('veggies', 'processed') } });
+    mealsDay(date, { plates: [plate('veggies', 'chicken'), plate('veggies', 'processed')] });
 
   it('counts a logged day that missed the target', () => {
-    const days = { '2026-10-23': low('2026-10-23'), '2026-10-24': mealsDay('2026-10-24') };
+    const days = { '2026-10-23': low('2026-10-23'), '2026-10-24': mealsDay('2026-10-24', { closed_at: 'x', result: 'on' }) };
     const d = mealsDashboard(days, RULES, TODAY, Object.keys(days));
     expect(d.onTarget).toBe(1);
     expect(d.loggedDates).toEqual(['2026-10-23', '2026-10-24']);
@@ -423,8 +423,8 @@ describe('meals scores', () => {
   it('averages every plate in the window, and the window before', () => {
     const days = {
       '2026-10-23': mealsDay('2026-10-23'),
-      '2026-10-24': mealsDay('2026-10-24', { meals: { lunch: plate('veggies', 'chicken') }, extras: [] }),
-      '2026-10-15': mealsDay('2026-10-15', { meals: { lunch: plate('veggies', 'grains') } }),
+      '2026-10-24': mealsDay('2026-10-24', { plates: [plate('veggies', 'chicken')] }),
+      '2026-10-15': mealsDay('2026-10-15', { plates: [plate('veggies', 'grains')] }),
     };
     const d = mealsDashboard(days, RULES, TODAY, Object.keys(days));
     expect(d.averageScore).toBe(78); // 80, 75, 80
@@ -432,7 +432,7 @@ describe('meals scores', () => {
   });
 
   it('a day averaging under the threshold is off target, with its score', () => {
-    const low = mealsDay('2026-10-23', { meals: { lunch: plate('veggies', 'chicken'), dinner: plate('veggies', 'processed') } });
+    const low = mealsDay('2026-10-23', { plates: [plate('veggies', 'chicken'), plate('veggies', 'processed')] });
     const d = mealsDashboard({ '2026-10-23': low }, RULES, TODAY, ['2026-10-23']);
     expect(d.days[5]).toEqual({ date: '2026-10-23', state: 'off', score: 45 }); // (80 + 10) / 2
     expect(d.onTarget).toBe(0);

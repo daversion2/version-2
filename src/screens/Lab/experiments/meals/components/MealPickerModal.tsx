@@ -8,17 +8,15 @@ import { MEAL_GUIDE_RULES, PROCESSED_GROUPS, WHOLE_GROUPS } from '../../../../..
 import type { CustomFoodGroup, FoodGroupId, MealsScoringWeights } from '../../../../../types/meals';
 import { pickerFoods, plateNutrients, scoreVerdict } from '../../../../../services/mealsMath';
 import { MEALS_ACCENT, scoreColor, mls } from './mealsStyle';
-import { NutrientTags } from './MealsParts';
+import { NutrientTags, plateTime } from './MealsParts';
 
 export interface PickerTarget {
-  kind: 'meal' | 'extra';
-  /** "Lunch", or "Something additional". */
+  /** "Log a meal", or the plate's name. */
   title: string;
   groups: FoodGroupId[];
-  /** Extras only. */
   name?: string;
-  /** Something is already logged — offer to clear it (meal) or delete it (extra). */
-  existing: boolean;
+  /** When an existing plate was logged. Absent for a new one. */
+  loggedAt?: string;
 }
 
 interface Props {
@@ -31,9 +29,7 @@ interface Props {
   offered?: CustomFoodGroup[];
   onCancel: () => void;
   onSave: (groups: FoodGroupId[], name?: string) => void;
-  /** Meals only: "Didn't eat" — never counts against the day. */
-  onSkip?: () => void;
-  /** Clear a meal back to not logged, or delete an extra. */
+  /** Delete a plate already logged. */
   onRemove?: () => void;
 }
 
@@ -50,7 +46,6 @@ export const MealPickerModal: React.FC<Props> = ({
   offered = [],
   onCancel,
   onSave,
-  onSkip,
   onRemove,
 }) => {
   const insets = useSafeAreaInsets();
@@ -70,7 +65,7 @@ export const MealPickerModal: React.FC<Props> = ({
     setGroups((list) => (list.includes(id) ? list.filter((g) => g !== id) : [...list, id]));
 
   const verdict = scoreVerdict(groups, strict, weights, custom);
-  const isExtra = target?.kind === 'extra';
+  const existing = !!target?.loggedAt;
   // Labelled with the score this plate uses (a past day's saved one), and a
   // removed food already on the plate stays tappable, so it can be taken off.
   const myFoods = pickerFoods(offered, custom, groups);
@@ -96,7 +91,7 @@ export const MealPickerModal: React.FC<Props> = ({
   };
 
   const canSave = groups.length > 0;
-  const save = () => onSave(groups, isExtra ? name.trim() || undefined : undefined);
+  const save = () => onSave(groups, name.trim() || undefined);
 
   return (
     <Modal visible={!!target} animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}>
@@ -121,21 +116,21 @@ export const MealPickerModal: React.FC<Props> = ({
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={mls.lead}>
-            {isExtra ? 'A snack or drink on top of your meals. What was in it?' : 'What was on the plate? Tap all that apply.'}
+            {target?.loggedAt
+              ? `Logged at ${plateTime(target.loggedAt)}. What was on the plate?`
+              : 'What was on the plate? Tap all that apply.'}
           </Text>
 
-          {isExtra && (
-            <TextInput
-              style={mls.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="What was it? (optional)"
-              placeholderTextColor={Colors.gray}
-              maxLength={40}
-              returnKeyType="done"
-              accessibilityLabel="What was it?"
-            />
-          )}
+          <TextInput
+            style={mls.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Name it (optional), like Breakfast"
+            placeholderTextColor={Colors.gray}
+            maxLength={40}
+            returnKeyType="done"
+            accessibilityLabel="Meal name"
+          />
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Whole food</Text>
@@ -171,28 +166,19 @@ export const MealPickerModal: React.FC<Props> = ({
           )}
 
           {/* Out of the way at the bottom: the header holds Save. */}
-          {target?.existing && onRemove && (
+          {existing && onRemove && (
             <TouchableOpacity onPress={onRemove} style={mls.textBtn} accessibilityRole="button">
-              <Text style={mls.destructiveText}>{isExtra ? 'Delete this' : 'Clear this meal'}</Text>
+              <Text style={mls.destructiveText}>Delete this meal</Text>
             </TouchableOpacity>
           )}
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]} accessibilityLiveRegion="polite">
-          <View style={styles.verdictRow}>
-            <View style={{ flex: 1, gap: 1 }}>
-              <Text
-                style={[styles.verdictTitle, verdict.score !== null && { color: scoreColor(verdict.score) }]}
-              >
-                {verdict.score !== null ? `Scores ${verdict.score}` : 'Nothing picked yet'}
-              </Text>
-              <Text style={styles.verdictWhy}>{verdict.why}</Text>
-            </View>
-            {!isExtra && onSkip && (
-              <TouchableOpacity onPress={onSkip} style={styles.skip} accessibilityRole="button">
-                <Text style={mls.link}>Didn’t eat</Text>
-              </TouchableOpacity>
-            )}
+          <View style={{ gap: 1 }}>
+            <Text style={[styles.verdictTitle, verdict.score !== null && { color: scoreColor(verdict.score) }]}>
+              {verdict.score !== null ? `Scores ${verdict.score}` : 'Nothing picked yet'}
+            </Text>
+            <Text style={styles.verdictWhy}>{verdict.why}</Text>
           </View>
           {groups.length > 0 && <NutrientTags have={plateNutrients(groups, custom)} showMissing />}
         </View>
@@ -230,8 +216,6 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.separator,
     backgroundColor: Colors.cardBg,
   },
-  verdictRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   verdictTitle: { ...TextStyles.title3, fontWeight: '700', color: Colors.dark },
   verdictWhy: { ...TextStyles.subhead, color: Colors.gray },
-  skip: { minHeight: 44, justifyContent: 'center' },
 });

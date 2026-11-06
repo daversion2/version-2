@@ -1,4 +1,4 @@
-# Meals (Lab): open Meals settings and record the meal order before 18b
+# Meals (Lab): open Meals settings and record the settings before the custom-food flows
 # changes it. Writes nothing. Starts with Meals open or the Today card visible.
 appId: com.neuronudge.neuronudge
 ---

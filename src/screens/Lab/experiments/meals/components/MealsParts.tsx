@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableHighlight, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import { DayScore, NutrientCoverage, ScoredItem, describeGroups } from '../../../../../services/mealsMath';
 import { NUTRIENTS, groupLabel } from '../../../../../data/mealGroups';
@@ -9,15 +8,16 @@ import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, sco
 import { useMeals } from '../MealsContext';
 
 /**
- * "2 of 3 meals logged · target 70+" while the day is open; once it's decided,
+ * "2 meals logged · target 70+" while the day is open; once it's decided,
  * "Averaged 74 · at or above your target of 70" (Maestro's Meals flows assert
  * that wording).
  */
 const statusLine = (score: DayScore, threshold: number): string => {
-  const meals = score.items.filter((i) => i.kind === 'meal');
-  const logged = meals.filter((i) => i.state !== 'pending').length;
-  if (score.status === 'pending') return `${logged} of ${meals.length} meals logged · target ${threshold}+`;
-  if (score.status === 'none') return 'Every meal was “didn’t eat” · counts neither way';
+  const n = score.scoredCount;
+  if (score.status === 'pending') {
+    return `${n === 0 ? 'Nothing' : n} ${n === 1 ? 'meal' : 'meals'} logged · target ${threshold}+`;
+  }
+  if (score.status === 'none') return 'Nothing logged · counts neither way';
   return score.status === 'on'
     ? `Averaged ${score.average} · at or above your target of ${threshold}`
     : `Averaged ${score.average} · below your target of ${threshold}`;
@@ -108,9 +108,16 @@ export const DayStatusCard: React.FC<{ score: DayScore; threshold: number }> = (
   );
 };
 
+/** "12:40 PM". */
+export const plateTime = (loggedAt: string): string =>
+  new Date(loggedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+/** A plate's title: its name, or "Meal" when it has none. */
+export const plateTitle = (name?: string): string => name || 'Meal';
+
 /**
- * One meal or extra, as a row in a grouped list (ListGroup passes `separator`).
- * Logged: what was on the plate, and its score on the right. Not yet: "Add".
+ * One plate, as a row in a grouped list (ListGroup passes `separator`): its
+ * name, when it was logged and what was on it, and its score on the right.
  */
 export const PlateRow: React.FC<{
   item: ScoredItem;
@@ -119,39 +126,19 @@ export const PlateRow: React.FC<{
 }> = ({ item, onPress, separator }) => {
   // Removed foods are only archived, so the current list names every one ever logged.
   const custom = useMeals().prefs.custom_groups;
-  const line =
-    item.state === 'scored'
-      ? describeGroups(item.groups, custom)
-      : item.state === 'skipped'
-        ? 'Didn’t eat · doesn’t count'
-        : null;
-
-  const right =
-    item.state === 'scored' ? (
-      <Text style={[styles.score, { color: scoreColor(item.score) }]}>{item.score}</Text>
-    ) : item.state === 'skipped' ? (
-      <Text style={[styles.score, styles.scoreMuted]}>–</Text>
-    ) : onPress ? (
-      <View style={styles.add}>
-        <Ionicons name="add" size={18} color={MEALS_ACCENT} />
-        <Text style={styles.addText}>Add</Text>
-      </View>
-    ) : (
-      <Text style={styles.scoreMuted}>Not logged</Text>
-    );
+  const title = plateTitle(item.name);
+  const line = `${plateTime(item.logged_at)} · ${describeGroups(item.groups, custom)}`;
 
   const content = (
     <View style={styles.row}>
       <View style={[styles.rowMain, separator && styles.separator]}>
         <View style={styles.rowText}>
-          <Text style={styles.name}>{item.name}</Text>
-          {line ? (
-            <Text style={styles.line} numberOfLines={2}>
-              {line}
-            </Text>
-          ) : null}
+          <Text style={styles.name}>{title}</Text>
+          <Text style={styles.line} numberOfLines={2}>
+            {line}
+          </Text>
         </View>
-        {right}
+        <Text style={[styles.score, { color: scoreColor(item.score) }]}>{item.score}</Text>
       </View>
     </View>
   );
@@ -161,8 +148,8 @@ export const PlateRow: React.FC<{
       onPress={onPress}
       underlayColor={Colors.fill}
       accessibilityRole="button"
-      // "Breakfast: Eggs · Fruit" / "Breakfast: Tap to log": Maestro's Meals flows select rows by this.
-      accessibilityLabel={`${item.name}: ${line ?? 'Tap to log'}`}
+      // "Breakfast: 8:05 AM · Eggs · Fruit": Maestro's Meals flows select rows by this.
+      accessibilityLabel={`${title}: ${line}`}
     >
       {content}
     </TouchableHighlight>
@@ -203,7 +190,4 @@ const styles = StyleSheet.create({
   name: { ...TextStyles.body, color: Colors.dark },
   line: { ...TextStyles.footnote, color: Colors.gray },
   score: { ...TextStyles.headline, color: Colors.dark },
-  scoreMuted: { ...TextStyles.body, color: Colors.gray },
-  add: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  addText: { ...TextStyles.body, color: MEALS_ACCENT },
 });

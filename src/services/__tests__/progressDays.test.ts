@@ -47,7 +47,6 @@ const workout = (date: string): CompletedWorkoutSession =>
   }) as unknown as CompletedWorkoutSession;
 
 const RULES: MealsRules = {
-  slots: [{ id: 'lunch', name: 'Lunch' }],
   strict: false,
   group_goals: [],
   scoring: DEFAULT_MEALS_SCORING,
@@ -55,8 +54,7 @@ const RULES: MealsRules = {
 
 const mealsDay = (date: string, over: Partial<MealsDay> = {}): MealsDay => ({
   date,
-  meals: { lunch: { groups: ['veggies'], logged_at: '' } },
-  extras: [],
+  plates: [{ id: 'lunch', groups: ['veggies'], logged_at: '' }],
   ...over,
 });
 
@@ -86,7 +84,7 @@ describe('appSessionsByDay', () => {
 
   it('counts a day with meals logged, and not an empty one', () => {
     const byDay = appSessionsByDay(
-      apps({ mealsDays: { '2026-10-21': mealsDay('2026-10-21'), '2026-10-22': mealsDay('2026-10-22', { meals: {} }) } }),
+      apps({ mealsDays: { '2026-10-21': mealsDay('2026-10-21'), '2026-10-22': mealsDay('2026-10-22', { plates: [] }) } }),
       []
     );
     expect(byDay.get('2026-10-21')).toEqual({ meals: 1 });
@@ -107,7 +105,7 @@ describe('appSessionsByDay', () => {
     const data = apps({
       meditateSessions: [sit('2026-10-24'), sit('2026-10-10')],
       workoutSessions: [workout('2026-10-23')],
-      mealsDays: { '2026-10-22': mealsDay('2026-10-22'), '2026-10-18': mealsDay('2026-10-18', { meals: {} }) },
+      mealsDays: { '2026-10-22': mealsDay('2026-10-22'), '2026-10-18': mealsDay('2026-10-18', { plates: [] }) },
     });
     const logs = [rating('workouts', '2026-10-15'), rating('meals', '2026-10-12')];
     const dashboard = buildHomeDashboard({ ...data, logs });

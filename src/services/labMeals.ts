@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { MealsDay, MealsPrefs } from '../types/meals';
 import { DEFAULT_MEALS_PREFS, DEFAULT_MEALS_SCORING } from '../data/mealGroups';
 import { stripUndefined } from './labWorkouts';
-import { clampOnTargetThreshold } from './mealsMath';
+import { clampOnTargetThreshold, normalizeDay } from './mealsMath';
 
 // =============================================================================
 // Meals (Lab) storage, in the user's own users/{uid}/lab_meals_* subcollections
@@ -37,19 +37,23 @@ export const getMealsPrefs = async (userId: string): Promise<MealsPrefs> => {
   };
 };
 
-/** Merged at the top level; an array field (slots, goals) is replaced whole. */
+/** Merged at the top level; an array field (goals, custom foods) is replaced whole. */
 export const saveMealsPrefs = async (userId: string, changes: Partial<MealsPrefs>): Promise<void> => {
   await setDoc(ref(userId, COL.prefs, PREFS_DOC), stripUndefined(changes), { merge: true });
 };
 
-/** Days from `from` to `to` inclusive (YYYY-MM-DD), keyed by date. */
+/**
+ * Days from `from` to `to` inclusive (YYYY-MM-DD), keyed by date. A day saved
+ * before plates (named meals + extras) comes back as plates; it's written in
+ * the new shape the next time it's saved, never migrated in bulk.
+ */
 export const listMealsDays = async (userId: string, from: string, to: string): Promise<Record<string, MealsDay>> => {
   // One field, two bounds: a single-field index, so no composite index needed.
   const snap = await getDocs(query(col(userId, COL.days), where('date', '>=', from), where('date', '<=', to)));
   const out: Record<string, MealsDay> = {};
   for (const d of snap.docs) {
     const day = d.data() as MealsDay;
-    out[day.date] = { ...day, meals: day.meals ?? {}, extras: day.extras ?? [] };
+    out[day.date] = normalizeDay(day);
   }
   return out;
 };
@@ -59,5 +63,5 @@ export const saveMealsDay = async (userId: string, day: MealsDay): Promise<void>
   await setDoc(ref(userId, COL.days, day.date), stripUndefined(day));
 };
 
-/** A fresh id for an extra, a meal or a goal. */
+/** A fresh id for a plate, a food or a goal. */
 export const newMealsId = (userId: string): string => doc(col(userId, COL.days)).id;

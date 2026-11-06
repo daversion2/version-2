@@ -49,7 +49,11 @@ export interface CustomFoodGroup {
   archived?: boolean;
 }
 
-/** One of the user's own meals ("Breakfast", "Pre-workout"). The id never changes. */
+/**
+ * Before 2026-11-05 the user set up named meals ("Breakfast", "Pre-workout")
+ * and a day was done once each was logged. Only read now, to name the plates
+ * of days saved back then (mealsMath.ts platesOf).
+ */
 export interface MealSlot {
   id: string;
   name: string;
@@ -84,7 +88,8 @@ export interface MealsScoringWeights {
 
 /** What a day is scored against. Snapshotted onto each day so editing settings never rescores the past. */
 export interface MealsRules {
-  slots: MealSlot[];
+  /** Legacy: only on days saved before 2026-11-05 — see MealSlot. */
+  slots?: MealSlot[];
   /** Strict: dairy/semi/supplements cost `scoring.strict_penalty` instead of only diluting the ratio. */
   strict: boolean;
   group_goals: GroupGoal[];
@@ -100,30 +105,41 @@ export interface MealsPrefs extends MealsRules {
   weekly_goal?: number;
 }
 
-/** A logged meal: the groups on the plate, or "didn't eat" (never counts against the day). */
+/**
+ * One plate: a meal, a snack or a drink. There is no list of meals to fill in;
+ * the user logs what they ate, when they ate it (founder, 2026-11-05).
+ */
+export interface MealPlate {
+  id: string;
+  /** "Breakfast", "Pre-workout shake". Optional. */
+  name?: string;
+  groups: FoodGroupId[];
+  /** When it was first logged. Editing the plate keeps it. */
+  logged_at: string;
+}
+
+/** Legacy: a slot's entry on a day saved before 2026-11-05. */
 export type MealEntry =
   | { groups: FoodGroupId[]; logged_at: string; skipped?: undefined }
   | { skipped: true; logged_at: string; groups?: undefined };
 
-/** "Something additional" — a snack or drink on top of the day's meals. */
-export interface MealExtra {
-  id: string;
-  name?: string;
-  groups: FoodGroupId[];
-  logged_at: string;
-}
-
-/** One calendar day. Doc id = the local date. */
+/**
+ * One calendar day. Doc id = the local date. A day is settled once it's
+ * closed out, or on its own at midnight (mealsMath.ts isSettled).
+ */
 export interface MealsDay {
   date: string;
-  /** By slot id. A slot with no entry is not logged yet. */
-  meals: Record<string, MealEntry>;
-  extras: MealExtra[];
+  /** In the order they were logged. */
+  plates: MealPlate[];
+  /** Legacy, by slot id: days saved before 2026-11-05. Read through platesOf, never written. */
+  meals?: Record<string, MealEntry>;
+  /** Legacy snacks and drinks: days saved before 2026-11-05. Read through platesOf, never written. */
+  extras?: MealPlate[];
   /** The rules this day is scored under — written with every save. */
   rules?: MealsRules;
-  /** Set by "Close out the day". */
+  /** Set by "Close out the day". A day nobody closes settles at midnight without it. */
   closed_at?: string;
-  /** Absent on a closed day of only "didn't eat" — it counts neither way. */
+  /** Absent on a closed day with no plates — it counts neither way. */
   result?: 'on' | 'off';
   /** MEAL_OFF_REASONS id, when an off-target day said why. */
   off_reason_id?: string;

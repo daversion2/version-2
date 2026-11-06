@@ -8,7 +8,6 @@ import { SegmentedControl } from '../../../../components/common/SegmentedControl
 import type {
   CustomFoodGroup,
   GroupGoal,
-  MealSlot,
   MealsScoringWeights,
   MealsStackParamList,
   NutrientId,
@@ -17,21 +16,17 @@ import {
   DEFAULT_MEALS_SCORING,
   MAX_CUSTOM_GROUPS,
   MAX_GROUP_GOALS,
-  MAX_SLOTS,
   NUTRIENTS,
   WHOLE_GROUPS,
 } from '../../../../data/mealGroups';
 import {
   activeCustomGroups,
-  addSlot,
   archiveCustomGroup,
   clampOnTargetThreshold,
   MIN_ON_TARGET_THRESHOLD,
   describeGroupGoal,
-  moveSlot,
   newCustomGroup,
   newGroupGoal,
-  removeSlot,
   updateCustomGroup,
 } from '../../../../services/mealsMath';
 import { showConfirm } from '../../../../utils/alert';
@@ -43,6 +38,9 @@ import { MEALS_ACCENT, NUTRIENT_COLOR, mls } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsSettings'>;
 
+/** The most meals a day a daily food-group goal can ask for. */
+const MAX_DAILY_GOAL_COUNT = 6;
+
 /** The shared − value + control, in Meals' accent. */
 const Stepper: React.FC<{
   value: number;
@@ -52,63 +50,6 @@ const Stepper: React.FC<{
   step?: number;
   label: string;
 }> = ({ label, ...rest }) => <SharedStepper {...rest} accessibilityLabel={label} tint={MEALS_ACCENT} />;
-
-/** A meal's name, saved when you leave the field — not on every keystroke. Arrows move it up or down. */
-const SlotRow: React.FC<{
-  slot: MealSlot;
-  canRemove: boolean;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
-  onRename: (name: string) => void;
-  onRemove: () => void;
-  onMove: (by: -1 | 1) => void;
-}> = ({ slot, canRemove, canMoveUp, canMoveDown, onRename, onRemove, onMove }) => {
-  const [name, setName] = useState(slot.name);
-  useEffect(() => setName(slot.name), [slot.name]);
-  const commit = () => {
-    const trimmed = name.trim();
-    if (!trimmed) setName(slot.name);
-    else if (trimmed !== slot.name) onRename(trimmed);
-  };
-  return (
-    <View style={[mls.card, styles.row]}>
-      <TextInput
-        style={[styles.slotInput]}
-        value={name}
-        onChangeText={setName}
-        onEndEditing={commit}
-        maxLength={24}
-        returnKeyType="done"
-        accessibilityLabel={`Rename ${slot.name}`}
-      />
-      <View style={styles.moves}>
-        <TouchableOpacity
-          onPress={() => onMove(-1)}
-          disabled={!canMoveUp}
-          style={!canMoveUp && mls.disabled}
-          hitSlop={6}
-          accessibilityLabel={`Move ${slot.name} up`}
-        >
-          <Ionicons name="chevron-up" size={20} color={Colors.gray} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => onMove(1)}
-          disabled={!canMoveDown}
-          style={!canMoveDown && mls.disabled}
-          hitSlop={6}
-          accessibilityLabel={`Move ${slot.name} down`}
-        >
-          <Ionicons name="chevron-down" size={20} color={Colors.gray} />
-        </TouchableOpacity>
-      </View>
-      {canRemove && (
-        <TouchableOpacity onPress={onRemove} hitSlop={8} accessibilityLabel={`Remove ${slot.name}`}>
-          <Ionicons name="trash-outline" size={20} color={Colors.gray} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-};
 
 /**
  * One of your own foods: its name (saved on leaving the field), its score and
@@ -133,7 +74,7 @@ const CustomFoodRow: React.FC<{
     <View style={[mls.card, styles.goalCard]}>
       <View style={styles.row}>
         <TextInput
-          style={styles.slotInput}
+          style={styles.nameInput}
           value={name}
           onChangeText={setName}
           onEndEditing={commit}
@@ -196,22 +137,6 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
   const changeGoal = (id: string, changes: Partial<GroupGoal>) =>
     setGoals(prefs.group_goals.map((g) => (g.id === id ? { ...g, ...changes } : g)));
 
-  const addMeal = () =>
-    updatePrefs(addSlot(prefs, { id: newId(), name: prefs.slots.length === 3 ? 'Snack' : `Meal ${prefs.slots.length + 1}` }));
-
-  const removeMeal = (slot: MealSlot) =>
-    showConfirm(
-      `Remove ${slot.name}?`,
-      'Days already logged keep it. From today on, the day is scored without it.',
-      () => updatePrefs(removeSlot(prefs, slot.id)),
-      'Remove'
-    );
-
-  const renameMeal = (slotId: string, name: string) =>
-    updatePrefs({ slots: prefs.slots.map((s) => (s.id === slotId ? { ...s, name } : s)) });
-
-  const moveMeal = (slotId: string, by: -1 | 1) => updatePrefs(moveSlot(prefs, slotId, by));
-
   const addFood = () => {
     const food = newCustomGroup(customGroups, newId(), prefs.scoring.on_target_threshold);
     if (!food) return;
@@ -244,27 +169,6 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         accent={MEALS_ACCENT}
         onChange={(n) => updatePrefs({ weekly_goal: n })}
       />
-
-      <Text style={mls.sectionLabel}>My meals</Text>
-      {prefs.slots.map((slot, i) => (
-        <SlotRow
-          key={slot.id}
-          slot={slot}
-          canRemove={prefs.slots.length > 1}
-          canMoveUp={i > 0}
-          canMoveDown={i < prefs.slots.length - 1}
-          onRename={(name) => renameMeal(slot.id, name)}
-          onRemove={() => removeMeal(slot)}
-          onMove={(by) => moveMeal(slot.id, by)}
-        />
-      ))}
-      {prefs.slots.length < MAX_SLOTS && (
-        <TouchableOpacity onPress={addMeal} style={styles.add}>
-          <Ionicons name="add" size={16} color={MEALS_ACCENT} />
-          <Text style={mls.link}>Add a meal</Text>
-        </TouchableOpacity>
-      )}
-      <Text style={mls.muted}>Snacks and drinks between meals don’t need a meal — add them as “something additional”.</Text>
 
       <Text style={mls.sectionLabel}>My foods</Text>
       <Text style={mls.muted}>
@@ -400,7 +304,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
             <Stepper
               value={goal.count}
               min={1}
-              max={goal.period === 'day' ? Math.max(1, prefs.slots.length + 3) : 21}
+              max={goal.period === 'day' ? MAX_DAILY_GOAL_COUNT : 21}
               label="times"
               onChange={(count) => changeGoal(goal.id, { count })}
             />
@@ -455,8 +359,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  moves: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  slotInput: { flex: 1, ...TextStyles.body, color: Colors.dark, paddingVertical: 2 },
+  nameInput: { flex: 1, ...TextStyles.body, color: Colors.dark, paddingVertical: 2 },
   add: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 4 },
   goal: { gap: Spacing.sm },
   goalLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, flexWrap: 'wrap' },

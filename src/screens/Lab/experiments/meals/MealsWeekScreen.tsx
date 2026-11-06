@@ -4,7 +4,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants/theme';
 import type { MealsStackParamList } from '../../../../types/meals';
 import {
-  ScoredItem,
   dailyGoalOnDay,
   daysOnTarget,
   describeGroupGoal,
@@ -18,23 +17,15 @@ import { useMeals } from './MealsContext';
 import {
   FAIL_COLOR,
   MEALS_ACCENT,
-  MEALS_TINT,
   NUTRIENT_COLOR,
   PASS_COLOR,
-  itemColor,
+  scoreColor,
   mls,
 } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsWeek'>;
 
 const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-/** The lowest-scoring extra among a day's extras, or null when there were none scored. */
-const worstExtra = (day: WeekDay): ScoredItem | null => {
-  const extras = day.score?.items.filter((i) => i.kind === 'extra' && i.state === 'scored') ?? [];
-  if (extras.length === 0) return null;
-  return extras.reduce((worst, item) => ((item.score ?? 0) < (worst.score ?? 0) ? item : worst));
-};
 
 /** "Oct 5 – 11". */
 const weekRange = (w: WeekSummary): string => {
@@ -44,8 +35,8 @@ const weekRange = (w: WeekSummary): string => {
 };
 
 /**
- * This week, Monday to today: one cell per meal per day, the meal that slips
- * most, and the food-group goals. Tap a day to open it.
+ * This week, Monday to today: each day's score and how many meals it had, what
+ * the plates gave you, and the food-group goals. Tap a day to open it.
  */
 export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
   const { today, days, pastDays, rules } = useMeals();
@@ -57,23 +48,15 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
     navigation.push('MealsDay', { date: day.date });
   };
 
-  const cell = (day: WeekDay, item: ScoredItem | null | undefined) => {
+  /** A filled cell, or a dashed empty one for a day with nothing logged. */
+  const cell = (day: WeekDay, text: string | number | null, color: string) => {
     const isToday = day.date === today;
-    if (day.future || item == null || item.state === 'pending') {
+    if (day.future || text === null) {
       return <View style={[styles.cell, styles.cellEmpty, isToday && styles.cellToday]} />;
     }
     return (
-      <View
-        style={[
-          styles.cell,
-          { backgroundColor: itemColor(item.state, item.score) },
-          item.state === 'skipped' && styles.cellSkipped,
-          isToday && styles.cellToday,
-        ]}
-      >
-        <Text style={[styles.cellText, item.state === 'skipped' && { color: Colors.gray }]}>
-          {item.state === 'scored' ? item.score : '–'}
-        </Text>
+      <View style={[styles.cell, { backgroundColor: color }, isToday && styles.cellToday]}>
+        <Text style={styles.cellText}>{text}</Text>
       </View>
     );
   };
@@ -122,38 +105,23 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
           })}
         </View>
 
-        {rules.slots.map((slot) => (
-          <View key={slot.id} style={styles.gridRow}>
-            <Text style={styles.rowLabel} numberOfLines={1}>
-              {slot.name}
-            </Text>
-            {week.days.map((d) => (
-              <TouchableOpacity key={d.date} style={styles.cellWrap} onPress={() => openDay(d)} disabled={d.future}>
-                {cell(d, d.score?.items.find((i) => i.kind === 'meal' && i.key === slot.id))}
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
-
         <View style={styles.gridRow}>
-          <Text style={styles.rowLabel}>Extras</Text>
+          <Text style={styles.rowLabel}>Score</Text>
           {week.days.map((d) => (
             <TouchableOpacity key={d.date} style={styles.cellWrap} onPress={() => openDay(d)} disabled={d.future}>
-              {cell(d, worstExtra(d))}
+              {cell(d, d.score?.average ?? null, scoreColor(d.score?.average ?? null))}
             </TouchableOpacity>
           ))}
         </View>
-      </View>
 
-      <View style={[mls.card, styles.insight]}>
-        <Text style={styles.insightLabel}>Worth a look</Text>
-        <Text style={mls.body}>
-          {week.slipping
-            ? `${week.slipping.name} is the one slipping — it's averaging ${week.slipping.average}, under your target.`
-            : week.platesLogged > 0
-              ? 'No meal is slipping below target this week.'
-              : 'Log a few meals and this is where you’ll see which one slips most.'}
-        </Text>
+        <View style={styles.gridRow}>
+          <Text style={styles.rowLabel}>Meals</Text>
+          {week.days.map((d) => (
+            <TouchableOpacity key={d.date} style={styles.cellWrap} onPress={() => openDay(d)} disabled={d.future}>
+              {cell(d, d.score?.scoredCount || null, MEALS_ACCENT)}
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {week.nutrients[0]?.of > 0 && (
@@ -292,7 +260,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
                                 ? { backgroundColor: FAIL_COLOR }
                                 : styles.dayDotEmpty,
                           ]}
-                          accessibilityLabel={`${d.date}: ${status === 'on' ? 'on target' : status === 'off' ? 'off target' : 'not finished'}`}
+                          accessibilityLabel={`${d.date}: ${status === 'on' ? 'on target' : status === 'off' ? 'off target' : 'nothing logged'}`}
                         />
                         <Text style={styles.barLabel}>{DAY_LETTERS[i]}</Text>
                       </View>
@@ -332,13 +300,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellEmpty: { borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.separator },
-  cellSkipped: { backgroundColor: Colors.lightGray },
   cellToday: { borderWidth: 2, borderStyle: 'solid', borderColor: MEALS_ACCENT },
   cellText: { ...TextStyles.caption, fontWeight: '600', color: Colors.white },
   dayDot: { width: 12, height: 12, borderRadius: 6, alignSelf: 'center' },
   dayDotEmpty: { borderWidth: 1, borderColor: Colors.separator },
-  insight: { backgroundColor: MEALS_TINT, gap: 4 },
-  insightLabel: { ...TextStyles.footnote, fontWeight: '600', color: MEALS_ACCENT },
   bars: { flexDirection: 'row', gap: 6, marginTop: Spacing.sm },
   barCol: { flex: 1, alignItems: 'center', gap: 4 },
   bar: { alignSelf: 'stretch', height: 22, borderRadius: 5, backgroundColor: Colors.lightGray },

@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { AppColors, BorderRadius, CategoryColors, Colors, Spacing, TextStyles } from '../../../../../constants/theme';
-import type { ItemState, DayStatus } from '../../../../../services/mealsMath';
+import type { DayStatus } from '../../../../../services/mealsMath';
 import type { NutrientId } from '../../../../../types/meals';
 
 /**
@@ -39,10 +39,6 @@ export const scoreColor = (score: number | null): string => {
   const [r2, g2, b2] = hexToRgb(PASS_COLOR);
   return `#${toHex(r1 + (r2 - r1) * t)}${toHex(g1 + (g2 - g1) * t)}${toHex(b1 + (b2 - b1) * t)}`;
 };
-
-/** Fill for a plate's dot. */
-export const itemColor = (state: ItemState, score: number | null): string =>
-  state === 'scored' ? scoreColor(score) : state === 'skipped' ? Colors.lightGray : Colors.border;
 
 export const STATUS_TITLE: Record<DayStatus, string> = {
   on: 'On target',

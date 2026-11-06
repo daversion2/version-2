@@ -2,13 +2,11 @@ import type {
   CustomFoodGroup,
   FoodGroupId,
   GroupGoal,
-  MealEntry,
-  MealExtra,
+  MealPlate,
   MealsDay,
   MealsPrefs,
   MealsRules,
   MealsScoringWeights,
-  MealSlot,
   NutrientId,
   ProcessedGroupId,
   WholeGroupId,
@@ -22,7 +20,6 @@ import {
   isWholeGroup,
   MAX_CUSTOM_GROUPS,
   MAX_GROUP_GOALS,
-  MAX_SLOTS,
   NUTRIENTS,
   WHOLE_GROUPS,
 } from '../data/mealGroups';
@@ -38,14 +35,13 @@ import { toLocalDateString } from '../utils/date';
 // user's own foods carry their own score: each is one share of the plate at
 // that score (founder, 2026-11-01). See scorePlate().
 //
-// A day's score is the plain average of every scored plate (meals + extras
-// together, unweighted). A meal marked "didn't eat" never counts against the
-// day — it's simply not part of it. Daily and weekly food-group goals are a
-// progress readout only — they don't gate on/off (founder, 2026-10-26). A day
-// is 'on' once every meal is logged/skipped and the average is at or above
-// scoring.on_target_threshold, 'off' if it's below, 'pending' until
-// complete — no early mid-day verdict. A complete day with no plates at all
-// (every meal "didn't eat") is 'none': neither on nor off.
+// A day is just the plates logged on it — no meals to set up or fill in
+// (founder, 2026-11-05). Its score is the plain average of every plate,
+// unweighted. Daily and weekly food-group goals are a progress readout only —
+// they don't gate on/off (founder, 2026-10-26). A day is 'pending' until it
+// settles — closed out by hand, or on its own at midnight — then 'on' if the
+// average is at or above scoring.on_target_threshold, 'off' if below: no early
+// mid-day verdict. A settled day with no plates is 'none': neither on nor off.
 // =============================================================================
 
 /** Dairy, Semi-processed and Supplements — what strict mode's extra penalty applies to. 'processed' has its own penalty. */
@@ -141,26 +137,55 @@ export const describeGroups = (groups: FoodGroupId[], custom: CustomFoodGroup[] 
   groups.map((g) => groupLabel(g, custom)).join(' · ');
 
 export const rulesOf = (prefs: MealsPrefs): MealsRules => ({
-  slots: prefs.slots,
   strict: prefs.strict,
   group_goals: prefs.group_goals,
   scoring: prefs.scoring,
   custom_groups: prefs.custom_groups ?? [],
 });
 
+// --- A day's plates -------------------------------------------------------------
+
+const byLoggedAt = (a: MealPlate, b: MealPlate): number => a.logged_at.localeCompare(b.logged_at);
+
+/**
+ * A day's plates in the order they were logged. A day saved before
+ * 2026-11-05 held named meals plus extras instead: each meal becomes a plate
+ * under its meal's name, and a "didn't eat" leaves nothing — it never counted.
+ */
+export const platesOf = (day: Partial<Pick<MealsDay, 'plates' | 'meals' | 'extras' | 'rules'>> | undefined): MealPlate[] => {
+  if (!day) return [];
+  if (day.plates) return day.plates;
+  const slots = day.rules?.slots ?? [];
+  const meals: MealPlate[] = Object.entries(day.meals ?? {}).flatMap(([id, entry]) =>
+    entry.skipped || !entry.groups?.length
+      ? []
+      : [{ id, name: slots.find((s) => s.id === id)?.name, groups: entry.groups, logged_at: entry.logged_at }]
+  );
+  return [...meals, ...(day.extras ?? [])].sort(byLoggedAt);
+};
+
+/** A day as the app works with it: its plates in one list, the old meals/extras fields gone. */
+export const normalizeDay = (day: MealsDay): MealsDay => {
+  const { meals, extras, ...rest } = day;
+  return { ...rest, plates: platesOf(day) };
+};
+
+/**
+ * Is the day decided? Once closed out, or once midnight has passed — a day
+ * nobody closes closes on its own (founder, 2026-11-05).
+ */
+export const isSettled = (date: string, today: string, day: Pick<MealsDay, 'closed_at'> | undefined): boolean =>
+  !!day?.closed_at || date < today;
+
 // --- Scoring a day -------------------------------------------------------------
 
-export type ItemState = 'scored' | 'skipped' | 'pending';
-
 export interface ScoredItem {
-  /** Slot id for a meal, extra id for an extra. */
+  /** The plate's id. */
   key: string;
-  kind: 'meal' | 'extra';
-  name: string;
-  state: ItemState;
+  name?: string;
   groups: FoodGroupId[];
-  /** Non-null iff state === 'scored'. */
-  score: number | null;
+  score: number;
+  logged_at: string;
 }
 
 export interface GroupGoalProgress {
@@ -169,7 +194,7 @@ export interface GroupGoalProgress {
   met: boolean;
 }
 
-/** 'none': every meal marked "didn't eat" — nothing to score, so it counts neither way. */
+/** 'none': settled with no plates — nothing to score, so it counts neither way. */
 export type DayStatus = 'on' | 'off' | 'pending' | 'none';
 
 // --- Nutrients -----------------------------------------------------------------
@@ -185,15 +210,14 @@ export interface NutrientCoverage {
   nutrient: NutrientId;
   /** Plates that had it. */
   have: number;
-  /** Plates logged — skipped and unlogged meals aren't plates. */
+  /** Plates logged. */
   of: number;
 }
 
 export const nutrientCoverage = (
-  items: Pick<ScoredItem, 'state' | 'groups'>[],
+  plates: Pick<ScoredItem, 'groups'>[],
   custom: CustomFoodGroup[] = []
 ): NutrientCoverage[] => {
-  const plates = items.filter((i) => i.state === 'scored');
   return NUTRIENTS.map((n) => ({
     nutrient: n.id,
     have: plates.filter((p) => plateNutrients(p.groups, custom).includes(n.id)).length,
@@ -213,53 +237,41 @@ const sumCoverage = (days: NutrientCoverage[][]): NutrientCoverage[] =>
   });
 
 export interface DayScore {
+  /** Every scored plate, in the order logged. A plate with nothing tapped isn't one. */
   items: ScoredItem[];
-  /** Plain average of every scored item's score. Null if nothing's scored yet. */
+  /** Plain average of every plate's score. Null if nothing's logged yet. */
   average: number | null;
   scoredCount: number;
-  /** Meals not logged yet. */
-  pending: number;
-  /** Every meal logged or marked "didn't eat". */
-  complete: boolean;
+  /** Closed out, or past midnight — see isSettled. */
+  settled: boolean;
   /** Daily goals only — a progress readout, never decides status. */
   groupGoals: GroupGoalProgress[];
   /** How many of the day's plates had each nutrient. Never decides the day. */
   nutrients: NutrientCoverage[];
-  /** 'pending' until every meal is logged/skipped, then 'on' or 'off' from the average ('none' with no plates). */
+  /** 'pending' until the day settles, then 'on' or 'off' from the average ('none' with no plates). */
   status: DayStatus;
 }
 
-/** How many of the scored plates carry this group. A plate counts once however much was on it. */
+/** How many of the plates carry this group. A plate counts once however much was on it. */
 const countGroup = (items: ScoredItem[], group: WholeGroupId): number =>
-  items.filter((i) => i.state === 'scored' && i.groups.includes(group)).length;
+  items.filter((i) => i.groups.includes(group)).length;
 
-export const scoreDay = (day: Pick<MealsDay, 'meals' | 'extras'> | undefined, rules: MealsRules): DayScore => {
+/** `settled` defaults to whether the day was closed out; callers that know the date pass isSettled. */
+export const scoreDay = (
+  day: Partial<Pick<MealsDay, 'plates' | 'meals' | 'extras' | 'rules' | 'closed_at'>> | undefined,
+  rules: MealsRules,
+  settled: boolean = !!day?.closed_at
+): DayScore => {
   const weights = rules.scoring;
   const custom = rules.custom_groups ?? [];
-  const items: ScoredItem[] = rules.slots.map((slot) => {
-    const entry = day?.meals[slot.id];
-    if (!entry) return { key: slot.id, kind: 'meal', name: slot.name, state: 'pending', groups: [], score: null };
-    if (entry.skipped) return { key: slot.id, kind: 'meal', name: slot.name, state: 'skipped', groups: [], score: null };
-    const score = scorePlate(entry.groups, rules.strict, weights, custom);
-    return {
-      key: slot.id,
-      kind: 'meal',
-      name: slot.name,
-      state: score === null ? 'pending' : 'scored',
-      groups: entry.groups,
-      score,
-    };
+  const items: ScoredItem[] = platesOf(day).flatMap((plate) => {
+    const score = scorePlate(plate.groups, rules.strict, weights, custom);
+    return score === null
+      ? []
+      : [{ key: plate.id, name: plate.name, groups: plate.groups, score, logged_at: plate.logged_at }];
   });
-  for (const extra of day?.extras ?? []) {
-    const score = scorePlate(extra.groups, rules.strict, weights, custom);
-    if (score === null) continue;
-    items.push({ key: extra.id, kind: 'extra', name: extra.name || 'Something extra', state: 'scored', groups: extra.groups, score });
-  }
 
-  const scored = items.filter((i) => i.state === 'scored');
-  const average = scored.length > 0 ? Math.round(scored.reduce((sum, i) => sum + (i.score ?? 0), 0) / scored.length) : null;
-  const pending = items.filter((i) => i.state === 'pending').length;
-  const complete = pending === 0;
+  const average = items.length > 0 ? Math.round(items.reduce((sum, i) => sum + i.score, 0) / items.length) : null;
   const groupGoals = rules.group_goals
     .filter((g) => g.period === 'day')
     .map((goal) => {
@@ -268,9 +280,9 @@ export const scoreDay = (day: Pick<MealsDay, 'meals' | 'extras'> | undefined, ru
     });
 
   let status: DayStatus = 'pending';
-  if (complete) status = average === null ? 'none' : average >= weights.on_target_threshold ? 'on' : 'off';
+  if (settled) status = average === null ? 'none' : average >= weights.on_target_threshold ? 'on' : 'off';
 
-  return { items, average, scoredCount: scored.length, pending, complete, groupGoals, nutrients: nutrientCoverage(items, custom), status };
+  return { items, average, scoredCount: items.length, settled, groupGoals, nutrients: nutrientCoverage(items, custom), status };
 };
 
 /**
@@ -329,12 +341,10 @@ export interface WeekDay {
 
 export interface WeekSummary {
   days: WeekDay[];
-  /** Average score across every scored plate (meals + extras) so far this week. Null if none. */
+  /** Average score across every plate so far this week. Null if none. */
   averageScore: number | null;
-  /** How many plates have been scored so far this week. */
+  /** How many plates have been logged so far this week. */
   platesLogged: number;
-  /** The meal slipping furthest below target, if any slot's average is under it. */
-  slipping: { slotId: string; name: string; average: number; logged: number } | null;
   /** Weekly goals, counted across the week so far. */
   weeklyGoals: { goal: GroupGoal; have: number }[];
   /** Nutrient coverage across every plate so far this week. */
@@ -351,36 +361,12 @@ export const summarizeWeek = (
   const week: WeekDay[] = weekDates(weekOf).map((date) => {
     const rules = rulesForDay(date, today, days[date], current);
     const future = date > today;
-    return { date, future, rules, score: future ? null : scoreDay(days[date], rules) };
+    return { date, future, rules, score: future ? null : scoreDay(days[date], rules, isSettled(date, today, days[date])) };
   });
 
-  let sum = 0;
-  let platesLogged = 0;
-  const bySlot = new Map<string, { name: string; sum: number; logged: number }>();
-  for (const { score } of week) {
-    if (!score) continue;
-    for (const item of score.items) {
-      if (item.state !== 'scored') continue;
-      platesLogged += 1;
-      sum += item.score as number;
-      if (item.kind !== 'meal') continue;
-      // Grouped by the CURRENT slot's name, so a renamed meal reads as itself.
-      const name = current.slots.find((s) => s.id === item.key)?.name ?? item.name;
-      const row = bySlot.get(item.key) ?? { name, sum: 0, logged: 0 };
-      row.logged += 1;
-      row.sum += item.score as number;
-      bySlot.set(item.key, row);
-    }
-  }
-  const averageScore = platesLogged > 0 ? Math.round(sum / platesLogged) : null;
-
-  let slipping: WeekSummary['slipping'] = null;
-  for (const [slotId, row] of bySlot) {
-    const average = Math.round(row.sum / row.logged);
-    if (average >= current.scoring.on_target_threshold) continue;
-    const better = !slipping || average < slipping.average || (average === slipping.average && row.logged > slipping.logged);
-    if (better) slipping = { slotId, name: row.name, average, logged: row.logged };
-  }
+  const scores = week.flatMap(({ score }) => score?.items.map((i) => i.score) ?? []);
+  const platesLogged = scores.length;
+  const averageScore = platesLogged > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / platesLogged) : null;
 
   const weeklyGoals = current.group_goals
     .filter((g) => g.period === 'week')
@@ -391,12 +377,11 @@ export const summarizeWeek = (
 
   const nutrients = sumCoverage(week.map((d) => d.score?.nutrients ?? []));
 
-  return { days: week, averageScore, platesLogged, slipping, weeklyGoals, nutrients };
+  return { days: week, averageScore, platesLogged, weeklyGoals, nutrients };
 };
 
-/** Something was logged that week: a plate, or a meal marked "didn't eat". */
-const anythingLogged = (w: WeekSummary): boolean =>
-  w.days.some((d) => d.score?.items.some((i) => i.state !== 'pending'));
+/** A plate was logged that week. */
+const anythingLogged = (w: WeekSummary): boolean => w.platesLogged > 0;
 
 /**
  * The `count` weeks before this one, newest first, each scored under the
@@ -420,29 +405,7 @@ export const dailyGoalOnDay = (day: WeekDay, group: WholeGroupId, count: number)
   if (!day.score) return 'none';
   const have = countGroup(day.score.items, group);
   if (have >= count) return 'hit';
-  return day.score.complete ? 'miss' : 'none';
-};
-
-// --- Settings ------------------------------------------------------------------
-
-export const addSlot = (prefs: Pick<MealsPrefs, 'slots'>, slot: MealSlot): Pick<MealsPrefs, 'slots'> => {
-  if (prefs.slots.length >= MAX_SLOTS) return prefs;
-  return { slots: [...prefs.slots, slot] };
-};
-
-export const removeSlot = (prefs: Pick<MealsPrefs, 'slots'>, slotId: string): Pick<MealsPrefs, 'slots'> => {
-  if (prefs.slots.length <= 1) return prefs;
-  return { slots: prefs.slots.filter((s) => s.id !== slotId) };
-};
-
-/** Move a meal one place up (-1) or down (+1). Past the ends it stays put. */
-export const moveSlot = (prefs: Pick<MealsPrefs, 'slots'>, slotId: string, by: -1 | 1): Pick<MealsPrefs, 'slots'> => {
-  const from = prefs.slots.findIndex((s) => s.id === slotId);
-  const to = from + by;
-  if (from === -1 || to < 0 || to >= prefs.slots.length) return prefs;
-  const slots = [...prefs.slots];
-  [slots[from], slots[to]] = [slots[to], slots[from]];
-  return { slots };
+  return day.score.settled ? 'miss' : 'none';
 };
 
 // --- Your own foods ------------------------------------------------------------
@@ -493,25 +456,21 @@ export const describeGroupGoal = (goal: GroupGoal): string => {
 
 // --- Editing a day -------------------------------------------------------------
 
-export const emptyDay = (date: string): MealsDay => ({ date, meals: {}, extras: [] });
+export const emptyDay = (date: string): MealsDay => ({ date, plates: [] });
 
-/** Set a meal's entry, or clear it back to "not logged" with null. */
-export const withMeal = (day: MealsDay, slotId: string, entry: MealEntry | null): MealsDay => {
-  const meals = { ...day.meals };
-  if (entry) meals[slotId] = entry;
-  else delete meals[slotId];
-  return { ...day, meals };
+/** Add a plate, or replace the one with the same id. Kept in the order logged. */
+export const withPlate = (day: MealsDay, plate: MealPlate): MealsDay => {
+  const plates = platesOf(day);
+  const exists = plates.some((p) => p.id === plate.id);
+  return {
+    ...normalizeDay(day),
+    plates: (exists ? plates.map((p) => (p.id === plate.id ? plate : p)) : [...plates, plate]).sort(byLoggedAt),
+  };
 };
 
-/** Add an extra, or replace the one with the same id. */
-export const withExtra = (day: MealsDay, extra: MealExtra): MealsDay => {
-  const exists = day.extras.some((e) => e.id === extra.id);
-  return { ...day, extras: exists ? day.extras.map((e) => (e.id === extra.id ? extra : e)) : [...day.extras, extra] };
-};
-
-export const withoutExtra = (day: MealsDay, extraId: string): MealsDay => ({
-  ...day,
-  extras: day.extras.filter((e) => e.id !== extraId),
+export const withoutPlate = (day: MealsDay, plateId: string): MealsDay => ({
+  ...normalizeDay(day),
+  plates: platesOf(day).filter((p) => p.id !== plateId),
 });
 
 /** The close result a day's status gives: none for a day with no plates — it counts neither way. */
@@ -524,13 +483,13 @@ const resultOf = (status: DayStatus): MealsDay['result'] =>
  * rated, so the rating (and its XP) can't be earned twice.
  */
 export const closeHandsOff = (day: MealsDay, rules: MealsRules): boolean =>
-  scoreDay(day, rules).status === 'on' && !day.handed_off_at;
+  scoreDay(day, rules, true).status === 'on' && !day.handed_off_at;
 
 /**
- * Close the day under the rules it was scored by. Only a finished day closes,
- * so its result is final: 'on' or 'off', never "in progress" — or none at all
- * for a day of only "didn't eat". An on-target close not yet handed off is
- * stamped `handed_off_at`; see closeHandsOff.
+ * Close the day under the rules it was scored by. Its result is final: 'on' or
+ * 'off', never "in progress" — or none at all for a day with no plates. An
+ * on-target close not yet handed off is stamped `handed_off_at`; see
+ * closeHandsOff. A day nobody closes settles at midnight without this.
  */
 export const closeDay = (
   day: MealsDay,
@@ -538,10 +497,10 @@ export const closeDay = (
   close: { now: Date; reasonId?: string; habitId?: string }
 ): MealsDay => {
   const handsOff = closeHandsOff(day, rules);
-  const result = resultOf(scoreDay(day, rules).status);
+  const result = resultOf(scoreDay(day, rules, true).status);
   const stamp = close.now.toISOString();
   return {
-    ...day,
+    ...normalizeDay(day),
     rules,
     closed_at: stamp,
     result,

@@ -4,7 +4,7 @@ import type { CompletedWorkoutSession, Exercise, TrainingPhase, WeightUnit } fro
 import type { FoodGroupId, MealsDay, MealsRules, WholeGroupId } from '../types/meals';
 import { WHOLE_GROUPS } from '../data/mealGroups';
 import { logResistance, RESISTANCE_MAX } from '../constants/resistance';
-import { rulesForDay, scoreDay } from './mealsMath';
+import { isSettled, platesOf, rulesForDay, scoreDay } from './mealsMath';
 import { bestSetTrend, describeTrend, lowerIsBetter } from './workoutStats';
 import { phaseWeek } from './trainingPhases';
 import { appCheckinId, clampWeeklyGoal, TodayAppId } from './appCheckins';
@@ -367,8 +367,7 @@ export interface MealsDashboard {
   loggedDates: string[];
 }
 
-const hasAnything = (day: MealsDay | undefined): boolean =>
-  !!day && (Object.keys(day.meals).length > 0 || day.extras.length > 0);
+const hasAnything = (day: MealsDay | undefined): boolean => platesOf(day).length > 0;
 
 export const mealsDayState = (
   date: string,
@@ -377,29 +376,23 @@ export const mealsDayState = (
   today: string
 ): MealsDayState => {
   if (!hasAnything(day)) return day?.result ?? (date === today ? 'pending' : 'empty');
-  const status = scoreDay(day, rulesForDay(date, today, day, current)).status;
-  // Every meal "didn't eat" counts neither way — even a day closed 'off' before that rule.
+  const status = scoreDay(day, rulesForDay(date, today, day, current), isSettled(date, today, day)).status;
   if (status === 'none') return 'empty';
   if (day?.result) return day.result;
-  // Unfinished: still open today; once past, just not logged in full — never 'off'
-  // (Meals' own week grid shows no dot for it either).
-  if (status === 'pending') return date === today ? 'pending' : 'empty';
+  // 'pending' only while today is still open: a past day settled at midnight
+  // on whatever was logged.
   return status;
 };
 
 /**
- * One serving = one plate (a meal or an extra) with that group's chip on it
- * (founder, 2026-10-24). Tapping Veggies at lunch and again at dinner is two.
+ * One serving = one plate with that group's chip on it (founder, 2026-10-24).
+ * Tapping Veggies at lunch and again at dinner is two.
  */
 export const countServings = (days: (MealsDay | undefined)[]): Partial<Record<FoodGroupId, number>> => {
   const out: Partial<Record<FoodGroupId, number>> = {};
   for (const day of days) {
     if (!day) continue;
-    const plates = [
-      ...Object.values(day.meals).flatMap((m) => (m.skipped ? [] : [m.groups])),
-      ...day.extras.map((e) => e.groups),
-    ];
-    for (const groups of plates) {
+    for (const { groups } of platesOf(day)) {
       for (const g of new Set(groups)) out[g] = (out[g] ?? 0) + 1;
     }
   }
@@ -419,8 +412,7 @@ export const averagePlateScore = (
   const scores = dates.flatMap(
     (d) =>
       dayScore(d, daysByDate[d], current, today)
-        ?.items.filter((i) => i.state === 'scored')
-        .map((i) => i.score as number) ?? []
+        ?.items.map((i) => i.score) ?? []
   );
   return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
 };

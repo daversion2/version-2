@@ -10,28 +10,30 @@ import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
 import {
   activeCustomGroups,
   canReopen,
+  isSettled,
+  platesOf,
   reopenDay,
   rulesForDay,
   scoreDay,
-  withExtra,
-  withMeal,
-  withoutExtra,
+  withPlate,
+  withoutPlate,
 } from '../../../../services/mealsMath';
 import { MEAL_OFF_REASONS } from '../../../../data/mealGroups';
 import { showConfirm } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
 import { MealPickerModal, PickerTarget } from './components/MealPickerModal';
-import { DayStatusCard, PlateRow } from './components/MealsParts';
+import { DayStatusCard, PlateRow, plateTitle } from './components/MealsParts';
 import { MEALS_ACCENT, mls } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsDay'>;
 
-type Editing = PickerTarget & { slotId?: string; extraId?: string };
+type Editing = PickerTarget & { plateId?: string };
 
 /**
  * One day of meals — today by default, or a past day of this week opened from
- * the week view. Tap a meal to log what was on the plate; add a snack or drink
- * as "something additional"; close out today when the eating's done.
+ * the week view. Log a meal (or a snack, or a drink) whenever you eat: tap
+ * what was on the plate, and it's saved with the time. Close out today when
+ * the eating's done, or it closes on its own at midnight.
  */
 export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const { loading, loadError, reload, today, prefs, rules, updatePrefs, dayFor, saveDay, newId, closeApp } =
@@ -44,7 +46,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const day = dayFor(date);
   const dayRules = rulesForDay(date, today, day, rules);
-  const score = useMemo(() => scoreDay(day, dayRules), [day, dayRules]);
+  const score = useMemo(() => scoreDay(day, dayRules, isSettled(date, today, day)), [day, dayRules, date, today]);
   const closed = !!day.closed_at;
   const locked = closed;
 
@@ -92,50 +94,28 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const stamp = () => new Date().toISOString();
 
-  const openMeal = (slotId: string, name: string) => {
+  /** A new plate with no id, or the one logged under `plateId`. */
+  const openPlate = (plateId?: string) => {
     if (locked) return;
-    const entry = day.meals[slotId];
+    const plate = plateId ? platesOf(day).find((p) => p.id === plateId) : undefined;
     setEditing({
-      kind: 'meal',
-      slotId,
-      title: name,
-      groups: entry?.groups ?? [],
-      existing: !!entry,
+      plateId: plate?.id,
+      title: plate ? plateTitle(plate.name) : 'Log a meal',
+      groups: plate?.groups ?? [],
+      name: plate?.name,
+      loggedAt: plate?.logged_at,
     });
   };
 
-  const openExtra = (extraId?: string) => {
-    if (locked) return;
-    const extra = extraId ? day.extras.find((e) => e.id === extraId) : undefined;
-    setEditing({
-      kind: 'extra',
-      extraId: extra?.id,
-      title: extra?.name || 'Something additional',
-      groups: extra?.groups ?? [],
-      name: extra?.name,
-      existing: !!extra,
-    });
-  };
-
+  // An edited plate keeps the time it was first logged.
   const save = (groups: FoodGroupId[], name?: string) => {
     if (!editing) return;
-    if (editing.kind === 'meal' && editing.slotId) {
-      saveDay(withMeal(day, editing.slotId, { groups, logged_at: stamp() }));
-    } else {
-      saveDay(withExtra(day, { id: editing.extraId ?? newId(), name, groups, logged_at: stamp() }));
-    }
-    setEditing(null);
-  };
-
-  const skip = () => {
-    if (editing?.slotId) saveDay(withMeal(day, editing.slotId, { skipped: true, logged_at: stamp() }));
+    saveDay(withPlate(day, { id: editing.plateId ?? newId(), name, groups, logged_at: editing.loggedAt ?? stamp() }));
     setEditing(null);
   };
 
   const remove = () => {
-    if (!editing) return;
-    if (editing.kind === 'meal' && editing.slotId) saveDay(withMeal(day, editing.slotId, null));
-    if (editing.kind === 'extra' && editing.extraId) saveDay(withoutExtra(day, editing.extraId));
+    if (editing?.plateId) saveDay(withoutPlate(day, editing.plateId));
     setEditing(null);
   };
 
@@ -149,12 +129,10 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
       'Reopen'
     );
 
-  const meals = score.items.filter((i) => i.kind === 'meal');
-  const extras = score.items.filter((i) => i.kind === 'extra');
   const reason = MEAL_OFF_REASONS.find((r) => r.id === day.off_reason_id);
 
   const weekday = new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long' });
-  const showClose = isToday && !closed;
+  const showClose = isToday && !closed && score.scoredCount > 0;
 
   return (
     <View style={mls.screen}>
@@ -171,11 +149,12 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={[mls.card, styles.intro]}>
             <Text style={mls.title}>How Meals works</Text>
             <Text style={styles.introText}>
-              Tap a meal and pick the food groups that were on the plate. Each plate scores 0 to 100 — mostly
-              whole food scores high, and anything Processed costs points on top of that.
+              Whenever you eat, log it and tap the food groups that were on the plate. Each plate scores 0 to
+              100: mostly whole food scores high, and anything Processed costs points on top of that.
             </Text>
             <Text style={styles.introText}>
-              Your day is on target once your plates average {prefs.scoring.on_target_threshold} or more.
+              Your day is on target if your plates average {prefs.scoring.on_target_threshold} or more. Close it
+              out at night, or it closes on its own at midnight.
             </Text>
             <View style={styles.introRow}>
               <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true })} style={styles.introBtn}>
@@ -210,33 +189,26 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         )}
 
-        <ListGroup title={isToday ? 'Today’s meals' : 'Meals'}>
-          {meals.map((item) => (
-            <PlateRow
-              key={item.key}
-              item={item}
-              onPress={locked ? undefined : () => openMeal(item.key, item.name)}
-            />
-          ))}
-        </ListGroup>
-
-        <ListGroup title="Something extra" footer="Snacks and drinks on top of your meals.">
+        <ListGroup
+          title={isToday ? 'Today’s meals' : 'Meals'}
+          footer={locked ? undefined : 'Snacks and drinks too. Each one is saved with the time.'}
+        >
           {[
-            ...extras.map((item) => (
-              <PlateRow key={item.key} item={item} onPress={locked ? undefined : () => openExtra(item.key)} />
+            ...score.items.map((item) => (
+              <PlateRow key={item.key} item={item} onPress={locked ? undefined : () => openPlate(item.key)} />
             )),
             ...(locked
-              ? extras.length === 0
-                ? [<ListRow key="none" title="Nothing extra" />]
+              ? score.items.length === 0
+                ? [<ListRow key="none" title="Nothing logged" />]
                 : []
               : [
                   <ListRow
                     key="add"
-                    title="Add something"
+                    title="Log a meal"
                     tint="accent"
                     chevron={false}
                     right={<Ionicons name="add" size={20} color={MEALS_ACCENT} />}
-                    onPress={() => openExtra()}
+                    onPress={() => openPlate()}
                   />,
                 ]),
           ]}
@@ -248,7 +220,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {!isToday && !closed && (
           <Text style={[mls.muted, styles.centerText]}>
-            Past days count toward your week. Only today can be closed out and checked off.
+            This day closed at midnight. You can still add a meal you forgot; it counts toward your week.
           </Text>
         )}
       </ScrollView>
@@ -273,7 +245,6 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
         offered={activeCustomGroups(prefs.custom_groups)}
         onCancel={() => setEditing(null)}
         onSave={save}
-        onSkip={editing?.kind === 'meal' ? skip : undefined}
         onRemove={remove}
       />
     </View>

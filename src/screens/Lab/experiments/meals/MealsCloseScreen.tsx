@@ -6,14 +6,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { LargeTitle } from '../../../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
-import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
-import { activeCustomGroups, closeDay, closeHandsOff, scoreDay, withMeal } from '../../../../services/mealsMath';
+import type { MealsStackParamList } from '../../../../types/meals';
+import { closeDay, closeHandsOff, scoreDay } from '../../../../services/mealsMath';
 import { MEAL_OFF_REASONS, groupLabel } from '../../../../data/mealGroups';
 import { saveMealsDay } from '../../../../services/labMeals';
 import { showAlert } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
-import { MealPickerModal, PickerTarget } from './components/MealPickerModal';
-import { PlateRow } from './components/MealsParts';
+import { plateTitle } from './components/MealsParts';
 import { FAIL_COLOR, MEALS_ACCENT, PASS_COLOR, scoreColor, mls } from './components/mealsStyle';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsClose'>;
@@ -23,38 +22,29 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
   Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
 
 /**
- * Close out today. First catch up any meal not logged yet, then the result:
+ * Close out today, on what's logged so far. A day nobody closes closes on its
+ * own at midnight, without the rating or the "why". The result:
  *   - On target: hand it back to Today, which asks for the override ("How hard
  *     was it to start?") and runs the celebration. Meals never awards XP.
  *     Only the first on-target close of a day does this: reopened and closed
  *     again, it was already rated (closeHandsOff).
  *   - Off target: one optional "what got in the way?" — then it's closed. No
  *     check-in is written; the meals still count toward the week.
- *   - Every meal "didn't eat": nothing to score, so it closes neither on nor off.
+ *   - Nothing logged: nothing to score, so it closes neither on nor off.
  */
 export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { userId, today, prefs, rules, dayFor, saveDay, closeAndCheckOff } = useMeals();
+  const { userId, today, rules, dayFor, saveDay, closeAndCheckOff } = useMeals();
   const day = dayFor(today);
-  const score = useMemo(() => scoreDay(day, rules), [day, rules]);
+  // Scored as it will close: settled.
+  const score = useMemo(() => scoreDay(day, rules, true), [day, rules]);
 
-  const [editing, setEditing] = useState<(PickerTarget & { slotId: string }) | null>(null);
   const [reasonId, setReasonId] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
 
-  const pendingMeals = score.items.filter((i) => i.kind === 'meal' && i.state === 'pending');
   const on = score.status === 'on';
   const none = score.status === 'none';
   const handsOff = closeHandsOff(day, rules);
-
-  const logMeal = (groups: FoodGroupId[]) => {
-    if (editing) saveDay(withMeal(day, editing.slotId, { groups, logged_at: new Date().toISOString() }));
-    setEditing(null);
-  };
-  const skipMeal = () => {
-    if (editing) saveDay(withMeal(day, editing.slotId, { skipped: true, logged_at: new Date().toISOString() }));
-    setEditing(null);
-  };
 
   const finish = async () => {
     setSaving(true);
@@ -79,41 +69,6 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
     else navigation.goBack();
   };
 
-  if (pendingMeals.length > 0) {
-    return (
-      <View style={mls.screen}>
-        <ScrollView contentContainerStyle={mls.scroll}>
-          <LargeTitle title="Catch up first" />
-          <Text style={mls.lead}>
-            {pendingMeals.length === 1 ? 'One meal isn’t' : `${pendingMeals.length} meals aren’t`} logged yet. Log
-            it, or mark it “didn’t eat” — a skipped meal never counts against you.
-          </Text>
-          <ListGroup>
-            {pendingMeals.map((item) => (
-              <PlateRow
-                key={item.key}
-                item={item}
-                onPress={() =>
-                  setEditing({ kind: 'meal', slotId: item.key, title: item.name, groups: [], existing: false })
-                }
-              />
-            ))}
-          </ListGroup>
-        </ScrollView>
-        <MealPickerModal
-          target={editing}
-          strict={rules.strict}
-          weights={rules.scoring}
-          custom={rules.custom_groups}
-          offered={activeCustomGroups(prefs.custom_groups)}
-          onCancel={() => setEditing(null)}
-          onSave={logMeal}
-          onSkip={skipMeal}
-        />
-      </View>
-    );
-  }
-
   return (
     <View style={mls.screen}>
       <ScrollView contentContainerStyle={[mls.scroll, styles.scroll, { paddingBottom: 120 + insets.bottom }]}>
@@ -128,7 +83,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
             {on
               ? `Your day scored ${score.average}, at or above your target of ${rules.scoring.on_target_threshold}.`
               : none
-                ? 'Every meal was “didn’t eat”. A skipped meal never counts against you, so today counts neither way.'
+                ? 'Nothing’s logged today, so it counts neither way.'
                 : 'Not this time. Every meal you logged still counts toward your week.'}
           </Text>
         </View>
@@ -138,12 +93,8 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
             ...score.items.map((item) => (
               <ListRow
                 key={item.key}
-                title={item.name}
-                right={
-                  <Text style={[styles.value, item.state === 'scored' && { color: scoreColor(item.score) }]}>
-                    {item.state === 'scored' ? item.score : 'Didn’t eat'}
-                  </Text>
-                }
+                title={plateTitle(item.name)}
+                right={<Text style={[styles.value, { color: scoreColor(item.score) }]}>{item.score}</Text>}
               />
             )),
             <ListRow
