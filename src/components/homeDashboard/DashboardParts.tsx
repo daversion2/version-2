@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { formatShortDay } from '../../utils/date';
 import type { WeekGrid as WeekGridData, MealsDayState, Serving } from '../../services/homeDashboard';
 import type { TodayAppId } from '../../services/appCheckins';
-import { groupLabel } from '../../data/mealGroups';
+import { groupLabel, groupShortLabel } from '../../data/mealGroups';
+import { squarify } from '../../utils/treemap';
+import { scoreColor } from '../../utils/scoreColor';
 
 export const TINT = Colors.primary + '1A';
 
@@ -200,29 +202,67 @@ export const WeekGrid: React.FC<{ grid: WeekGridData; apps?: TodayAppId[] }> = (
 
 // --- Meals ---------------------------------------------------------------------
 
-/** One cell per whole-food group, darker with more servings. */
-export const ServingsHeatmap: React.FC<{ servings: Serving[] }> = ({ servings }) => {
-  const max = Math.max(1, ...servings.map((s) => s.count));
+/** Gap between tiles, so neighbours of a similar colour stay apart. */
+const TILE_GAP = 3;
+
+/**
+ * The last 7 days of food groups as a treemap (founder, 2026-11-05): each
+ * tile's AREA is how many plates had that group, its COLOUR the group's score
+ * for the user's goal (orange low → teal high, as on the chips). A big orange
+ * tile is the week's story. Small tiles drop their label, then their number.
+ */
+export const ServingsTreemap: React.FC<{ servings: Serving[] }> = ({ servings }) => {
+  const [width, setWidth] = useState(0);
+  const eaten = servings.filter((s) => s.count > 0);
+  if (eaten.length === 0) {
+    return <Text style={styles.caption}>No plates logged in the last 7 days.</Text>;
+  }
+  const height = Math.round(width * 0.75);
+  const tiles = width > 0 ? squarify(eaten.map((s) => ({ id: s.group, value: s.count })), width, height) : [];
+  const byGroup = new Map(eaten.map((s) => [s.group, s]));
+  const summary = eaten.map((s) => `${groupLabel(s.group)} ${s.count}, scores ${s.score}`).join('; ');
   return (
     <View>
-      <View style={styles.heat}>
-        {servings.map((s) => (
-          <View key={s.group} style={styles.heatItem}>
+      <View
+        style={[styles.tree, { height }]}
+        onLayout={(e) => setWidth(Math.round(e.nativeEvent.layout.width))}
+        accessible
+        accessibilityLabel={`What you ate in the last 7 days, by servings: ${summary}.`}
+      >
+        {tiles.map((t) => {
+          const s = byGroup.get(t.id as Serving['group'])!;
+          const w = t.w - TILE_GAP;
+          const h = t.h - TILE_GAP;
+          const showCount = w >= 26 && h >= 22;
+          const showLabel = w >= 58 && h >= 40;
+          return (
             <View
-              style={[
-                styles.heatCell,
-                { backgroundColor: Colors.primary, opacity: s.count === 0 ? 1 : 0.15 + 0.85 * (s.count / max) },
-                s.count === 0 && styles.heatEmpty,
-              ]}
-            />
-            <Text style={styles.heatLabel} numberOfLines={1}>
-              {groupLabel(s.group)}
-            </Text>
-            <Text style={styles.heatCount}>{s.count}</Text>
+              key={t.id}
+              style={[styles.tile, { left: t.x, top: t.y, width: w, height: h, backgroundColor: scoreColor(s.score) }]}
+            >
+              {showLabel && (
+                <Text style={styles.tileLabel} numberOfLines={2}>
+                  {groupShortLabel(s.group)}
+                </Text>
+              )}
+              {showCount && <Text style={[styles.tileCount, !showLabel && styles.tileCountSmall]}>{s.count}</Text>}
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.treeKey}>
+        {[
+          { label: 'Low score', score: 10 },
+          { label: 'Middling', score: 50 },
+          { label: 'High score', score: 90 },
+        ].map((k) => (
+          <View key={k.label} style={styles.treeKeyItem}>
+            <View style={[styles.treeSwatch, { backgroundColor: scoreColor(k.score) }]} />
+            <Text style={styles.treeKeyText}>{k.label}</Text>
           </View>
         ))}
       </View>
-      <Text style={styles.caption}>Servings in the last 7 days · one plate with the chip = one serving</Text>
+      <Text style={styles.caption}>Last 7 days · bigger = more plates had it · colour = its score for your goal</Text>
     </View>
   );
 };
@@ -357,12 +397,15 @@ const styles = StyleSheet.create({
   cellOff: { borderWidth: 1.5, borderColor: Colors.border },
   cellToday: { borderWidth: 2, borderColor: Colors.secondary },
 
-  heat: { flexDirection: 'row', flexWrap: 'wrap', rowGap: Spacing.sm },
-  heatItem: { width: '20%', alignItems: 'center', gap: 2 },
-  heatCell: { width: 40, height: 40, borderRadius: 8 },
-  heatEmpty: { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border },
-  heatLabel: { fontFamily: Fonts.secondary, fontSize: 10, color: Colors.gray },
-  heatCount: { fontFamily: Fonts.secondaryBold, fontSize: 11, color: Colors.dark },
+  tree: { width: '100%', position: 'relative' },
+  tile: { position: 'absolute', borderRadius: 6, padding: 6, justifyContent: 'space-between', overflow: 'hidden' },
+  tileLabel: { fontFamily: Fonts.secondaryBold, fontSize: 12, lineHeight: 14, color: Colors.white },
+  tileCount: { fontFamily: Fonts.secondaryBold, fontSize: 18, color: Colors.white },
+  tileCountSmall: { fontSize: 13 },
+  treeKey: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.sm, flexWrap: 'wrap' },
+  treeKeyItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  treeSwatch: { width: 10, height: 10, borderRadius: 3 },
+  treeKeyText: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray },
 
   dayRow: { flexDirection: 'row', gap: 6 },
   dayItem: { alignItems: 'center', gap: 3 },

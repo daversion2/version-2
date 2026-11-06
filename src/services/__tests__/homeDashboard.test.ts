@@ -25,6 +25,7 @@ import type { CompletionLog } from '../../types';
 import type { CompletedMeditateSession } from '../../types/meditate';
 import type { CompletedWorkoutSession, Exercise, LoggedSet, TrainingPhase } from '../../types/workouts';
 import type { FoodGroupId, MealPlate, MealsDay, MealsRules } from '../../types/meals';
+import { goalScores } from '../mealsMath';
 import { DEFAULT_MEALS_SCORING } from '../../data/mealGroups';
 
 // A Saturday. The window is Sun 18th – Sat 24th; the one before, 11th – 17th.
@@ -353,7 +354,7 @@ describe('meals', () => {
     expect(countServings([day])).toEqual({ veggies: 2, chicken: 1, fruit: 1 });
   });
 
-  it('lists whole-food servings, most first, and counts days on target', () => {
+  it('lists servings, most first, and counts days on target', () => {
     const days: Record<string, MealsDay> = {
       '2026-10-23': mealsDay('2026-10-23'),
       '2026-10-24': mealsDay('2026-10-24'),
@@ -363,10 +364,29 @@ describe('meals', () => {
     // Today is still open, so only yesterday is on target yet.
     expect(d.onTarget).toBe(1);
     expect(d.priorOnTarget).toBe(1);
-    expect(d.servings[0]).toEqual({ group: 'veggies', count: 4 });
-    expect(d.servings.find((s) => s.group === 'pork')).toEqual({ group: 'pork', count: 0 });
+    expect(d.servings[0]).toEqual({ group: 'veggies', count: 4, score: 86 });
+    expect(d.servings.find((s) => s.group === 'pork')).toEqual({ group: 'pork', count: 0, score: 72 });
     expect(d.streakDays).toBe(2);
     expect(d.days.map((x) => x.state).slice(4)).toEqual(['empty', 'on', 'pending']);
+  });
+});
+
+describe('meals: servings for the treemap', () => {
+  it('counts every food group, processed ones too, with its score for the goal', () => {
+    const days = { '2026-10-24': mealsDay('2026-10-24', { plates: [plate('fast_food', 'sugary_drinks'), plate('fast_food')] }) };
+    const muscle = { ...RULES, group_scores: goalScores('muscle'), goal: 'muscle' as const };
+    const d = mealsDashboard(days, muscle, TODAY, Object.keys(days));
+    expect(d.servings.slice(0, 2)).toEqual([
+      { group: 'fast_food', count: 2, score: 24 },
+      { group: 'sugary_drinks', count: 1, score: 8 },
+    ]);
+  });
+
+  it('lists a retired group only when an old plate still has it', () => {
+    const none = mealsDashboard({}, RULES, TODAY, []);
+    expect(none.servings.map((s) => s.group)).not.toContain('semi');
+    const old = { '2026-10-24': mealsDay('2026-10-24', { plates: [plate('semi')] }) };
+    expect(mealsDashboard(old, RULES, TODAY, Object.keys(old)).servings[0]).toMatchObject({ group: 'semi', count: 1 });
   });
 });
 

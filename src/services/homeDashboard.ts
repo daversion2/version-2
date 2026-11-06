@@ -1,10 +1,10 @@
 import type { CompletionLog } from '../types';
 import type { CompletedMeditateSession, MeditateMode } from '../types/meditate';
 import type { CompletedWorkoutSession, Exercise, TrainingPhase, WeightUnit } from '../types/workouts';
-import type { FoodGroupId, MealsDay, MealsRules, WholeGroupId } from '../types/meals';
-import { WHOLE_GROUPS } from '../data/mealGroups';
+import type { BuiltInGroupId, FoodGroupId, MealsDay, MealsRules } from '../types/meals';
+import { FOOD_GROUPS } from '../data/mealGroups';
 import { logResistance, RESISTANCE_MAX } from '../constants/resistance';
-import { isSettled, platesOf, rulesForDay, scoreDay } from './mealsMath';
+import { chipScore, isSettled, platesOf, rulesForDay, scoreDay } from './mealsMath';
 import { bestSetTrend, describeTrend, lowerIsBetter } from './workoutStats';
 import { phaseWeek } from './trainingPhases';
 import { appCheckinId, clampWeeklyGoal, TodayAppId } from './appCheckins';
@@ -341,9 +341,11 @@ export const workoutsDashboard = (
 /** 'empty' = a past day not logged in full, or with no plates at all; 'pending' = today, still open. */
 export type MealsDayState = 'on' | 'off' | 'pending' | 'empty';
 
+/** One food group's last 7 days: how many plates had it, and what it scores for the user's goal now. */
 export interface Serving {
-  group: WholeGroupId;
+  group: BuiltInGroupId;
   count: number;
+  score: number;
 }
 
 export interface MealsDashboard {
@@ -358,7 +360,11 @@ export interface MealsDashboard {
   priorOnTarget: number;
   /** Days logged a week — the ring counts `loggedDates` against it (founder, 2026-11-01). */
   goal: number;
-  /** Whole-food groups, most servings first. */
+  /**
+   * Every food group, processed ones included, most servings first — the
+   * servings treemap sizes each by count and colours it by score. A retired
+   * group is only listed when an old plate still has it.
+   */
   servings: Serving[];
   /** Days in a row with a meal logged — showing up, not hitting the target (Q2). */
   streakDays: number;
@@ -432,9 +438,9 @@ export const mealsDashboard = (
   }));
   const priorOn = windowDates(today, 1).filter((d) => mealsDayState(d, daysByDate[d], current, today) === 'on');
   const counts = countServings(dates.map((d) => daysByDate[d]));
-  const servings = WHOLE_GROUPS.map((g) => ({ group: g.id, count: counts[g.id] ?? 0 })).sort(
-    (a, b) => b.count - a.count
-  );
+  const servings: Serving[] = FOOD_GROUPS.filter((g) => !g.retired || (counts[g.id] ?? 0) > 0)
+    .map((g) => ({ group: g.id as BuiltInGroupId, count: counts[g.id] ?? 0, score: chipScore(g.id, current) ?? 0 }))
+    .sort((a, b) => b.count - a.count || b.score - a.score);
   const loggedAll = new Set(streakFrom.filter((d) => hasAnything(daysByDate[d])));
   const onDates = days.filter((d) => d.state === 'on').map((d) => d.date);
   return {

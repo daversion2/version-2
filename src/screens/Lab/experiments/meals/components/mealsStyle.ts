@@ -25,20 +25,8 @@ export const NUTRIENT_COLOR: Record<NutrientId, string> = {
   carbs: CategoryColors.fuel,
 };
 
-const hexToRgb = (hex: string): [number, number, number] => {
-  const n = parseInt(hex.replace('#', ''), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-};
-const toHex = (n: number): string => Math.round(n).toString(16).padStart(2, '0');
-
-/** Linear blend from FAIL_COLOR (0) to PASS_COLOR (100). Colors.border for null (not yet scored). */
-export const scoreColor = (score: number | null): string => {
-  if (score == null) return Colors.border;
-  const t = Math.max(0, Math.min(100, score)) / 100;
-  const [r1, g1, b1] = hexToRgb(FAIL_COLOR);
-  const [r2, g2, b2] = hexToRgb(PASS_COLOR);
-  return `#${toHex(r1 + (r2 - r1) * t)}${toHex(g1 + (g2 - g1) * t)}${toHex(b1 + (b2 - b1) * t)}`;
-};
+/** Lives in utils so Today's servings treemap can use it without loading the Lab. */
+export { scoreColor } from '../../../../../utils/scoreColor';
 
 export const STATUS_TITLE: Record<DayStatus, string> = {
   on: 'On target',

@@ -466,6 +466,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Meals: servings shown as a treemap** *(2026-11-05, not yet seen on screen, not OTA'd)*
+The equal-squares "darker = more" grid on Today's Meals card and the Meals
+app page is now a treemap (founder picked Option A from the Meals Servings
+Views mockup, https://claude.ai/artifact/K9fs9VA2e3iCYXE87ytUNK): each
+tile's area is how many plates had that group in the last 7 days, its
+colour the group's score for the user's goal (the chips' orange → teal).
+It now counts every food group, processed ones included — the old grid
+counted only the 10 whole foods. Small tiles drop the label, then the
+number; a key shows low / middling / high, and the whole map reads as one
+accessibility label. Layout in `utils/treemap.ts` (squarified, tested);
+`scoreColor` moved to `utils/scoreColor.ts` so Today can use it without
+loading the Lab.
+
 **Admin → Meals scoring: tune the scoring model for everyone from the app** *(2026-11-05, live OTA e0e07596, not yet seen on screen)*
 Admins can edit each goal's weights, the base score, the four processing
 caps and every food group's ratings, preview how the 23 sample plates move

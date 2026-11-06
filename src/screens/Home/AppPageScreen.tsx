@@ -26,7 +26,7 @@ import { StartAction, workoutStartAction } from '../../services/workoutUpNext';
 import type { WorkoutSession, WorkoutsLaunch } from '../../types/workouts';
 import { ListGroup, ListRow } from '../../components/common/ListGroup';
 import { TopScrim } from '../../components/common/TopScrim';
-import { BarTrend, DayDots, DotTrend, ServingsHeatmap } from '../../components/homeDashboard/DashboardParts';
+import { BarTrend, DayDots, DotTrend, ServingsTreemap } from '../../components/homeDashboard/DashboardParts';
 import { APP_TITLES } from '../../components/homeRedesign/TodayView';
 import { LoadError } from '../../components/homeRedesign/LoadError';
 import { getTodayString } from '../../utils/date';
@@ -211,7 +211,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
         />
         <View style={styles.card}>
           <Text style={styles.cardLabel}>What you ate</Text>
-          <ServingsHeatmap servings={m.servings} />
+          <ServingsTreemap servings={m.servings} />
         </View>
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Day by day</Text>

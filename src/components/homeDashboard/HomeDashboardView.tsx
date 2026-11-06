@@ -38,7 +38,7 @@ import {
   ListRow,
   Ring,
   SectionLabel,
-  ServingsHeatmap,
+  ServingsTreemap,
   StartButton,
   TINT,
   WeekGrid,
@@ -408,7 +408,7 @@ export const HomeDashboardView: React.FC<Props> = ({
                   'none the week before'}
               </Text>
               <SectionLabel>What you ate</SectionLabel>
-              <ServingsHeatmap servings={d.meals.servings} />
+              <ServingsTreemap servings={d.meals.servings} />
               <SectionLabel>Day by day</SectionLabel>
               <DayDots days={d.meals.days} threshold={d.meals.threshold} />
               <View style={styles.chips}>

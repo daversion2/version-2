@@ -137,10 +137,38 @@ export const FOOD_GROUPS: FoodGroup<BuiltInGroupId>[] = [
 ];
 
 /**
- * The whole-food chips: nothing processed about them. Food-group goals and
- * the servings heatmap use only these.
+ * The whole-food chips: nothing processed about them. Food-group goals use
+ * only these.
  */
 export const WHOLE_GROUPS = FOOD_GROUPS.filter((g): g is FoodGroup<WholeGroupId> => g.profile.processing === 0);
+
+/** Labels short enough for a small tile (the servings treemap). */
+const SHORT_LABELS: Record<BuiltInGroupId, string> = {
+  veggies: 'Veggies',
+  fruit: 'Fruit',
+  chicken: 'Chicken',
+  beef: 'Beef',
+  pork: 'Pork',
+  fish: 'Fish',
+  eggs: 'Eggs',
+  legumes: 'Legumes',
+  supplements: 'Shakes',
+  processed_meat: 'Processed meat',
+  grains: 'Whole grains',
+  bread: 'Bread & pasta',
+  snacks: 'Chips',
+  sweets: 'Sweets',
+  sugary_drinks: 'Sugary drinks',
+  nuts: 'Nuts & seeds',
+  dairy: 'Dairy',
+  sauces: 'Sauces',
+  fast_food: 'Fast food',
+  ready_meals: 'Ready meals',
+  semi: 'Semi-processed',
+  processed: 'Processed',
+};
+
+export const groupShortLabel = (id: BuiltInGroupId): string => SHORT_LABELS[id];
 
 /** The chips offered in a section. A retired one shows only while it's on the plate, so it can be taken off. */
 export const sectionGroups = (section: FoodSection, onPlate: FoodGroupId[] = []): FoodGroup<BuiltInGroupId>[] =>
