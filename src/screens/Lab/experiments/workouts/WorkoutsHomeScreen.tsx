@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,17 +6,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { LargeTitle } from '../../../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
-import { WorkoutsStackParamList } from '../../../../types/workouts';
-import { durationSec, totalSetsLogged } from '../../../../services/workoutSession';
-import { formatSeconds } from '../../../../services/workoutMath';
+import { Workout, WorkoutsStackParamList } from '../../../../types/workouts';
+import { blockTitle, durationSec, totalSetsLogged } from '../../../../services/workoutSession';
+import { formatSeconds, formatSetValues, lastSetsFor } from '../../../../services/workoutMath';
 import { formatRelativeDay, toLocalDateString } from '../../../../utils/date';
 import { showChoice, showConfirm } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
-import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { isRetestDue, nextProgramWorkout, phaseSessions } from '../../../../services/trainingPhases';
+import { upNextWorkout } from '../../../../services/workoutUpNext';
 import { PhaseStatusCard } from './components/PhaseParts';
-import { checkinPending, describeWeekTotals, weekSummary } from '../../../../services/weeklyVolume';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
@@ -27,7 +26,13 @@ export const lastDoneLabel = (iso?: string): string => {
   return `Last done ${day === 'Today' || day === 'Yesterday' ? day.toLowerCase() : day}`;
 };
 
-export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
+/**
+ * Workouts' home is for starting one: a workout left open, else the up-next
+ * pick (the phase card while in a phase), your workouts, an empty workout.
+ * Phases, tests, the week's volume and past workouts are one row away under
+ * More. Opened from the Workouts page's Start, it goes on to what that named.
+ */
+export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
   const {
     loading,
     loadError,
@@ -39,20 +44,14 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
     beginSession,
     discardSession,
     closeApp,
-    closeAndCheckOff,
     updatePrefs,
-    phases,
     currentPhase,
     sessions,
   } = useWorkouts();
   const today = toLocalDateString(new Date());
-  const week = weekSummary({ sessions, exercisesById, targets: prefs.weekly_targets, now: new Date() });
-  const weekToRate = checkinPending(sessions, new Date());
-  const latestPhase = phases[0];
   const nextInPhase = currentPhase ? nextProgramWorkout(currentPhase, workouts, sessions) : undefined;
-  // A workout done without the app, or forgotten: credit only comes through
-  // the app, so it's entered here and rated on Today.
-  const [loggingPast, setLoggingPast] = useState(false);
+  // Outside a phase, the next workout in rotation gets its own card — not while one's in progress.
+  const upNext = !currentPhase && !session ? upNextWorkout({ workouts, sessions, today }) : undefined;
 
   // Opened with no signal: try again each time Workouts' home comes back into view.
   useFocusEffect(
@@ -118,13 +117,44 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate('WorkoutSession');
     });
 
+  const startWorkout = (workout: Workout) =>
+    guardStart(() => {
+      beginSession(workout);
+      navigation.navigate('WorkoutSession');
+    });
+
+  // Opened from the Workouts page's Start: go on to what it named, once. A
+  // resume or phase test waits for the draft or the phase to load; if it
+  // never turns up, home is where you stay.
+  const launch = route.params?.launch;
+  const launchDone = useRef(false);
+  useEffect(() => {
+    if (!launch || launchDone.current) return;
+    let handled = true;
+    if (launch.kind === 'workout') {
+      navigation.navigate('WorkoutPreview', { workoutId: launch.workoutId });
+    } else if (launch.kind === 'resume') {
+      if (session) resume();
+      else handled = !loading;
+    } else if (launch.kind === 'phaseTest') {
+      if (currentPhase) navigation.navigate('PhaseTest', { phaseId: currentPhase.id, mode: launch.mode });
+      else handled = !loading;
+    }
+    if (!handled) return;
+    launchDone.current = true;
+    navigation.setParams({ launch: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [launch, session, loading, currentPhase]);
+
+  const listed = upNext ? workouts.filter((w) => w.id !== upNext.workout.id) : workouts;
+
   return (
     <ScrollView
       style={ws.screen}
       contentContainerStyle={ws.scroll}
       refreshControl={<RefreshControl refreshing={false} onRefresh={reload} tintColor={WORKOUTS_ACCENT} />}
     >
-      <LargeTitle title="Start a workout" />
+      <LargeTitle title="Workouts" />
 
       {!prefs.intro_seen && !loading && (
         <View style={[ws.card, styles.intro]}>
@@ -181,38 +211,13 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
         />
       )}
 
-      {!loading && !loadError && !currentPhase && (
-        <View style={[ws.card, styles.phaseIntro]}>
-          {latestPhase?.status === 'complete' ? (
-            <>
-              <Text style={ws.eyebrow}>Phase {latestPhase.number} done</Text>
-              <Text style={styles.featureTitle}>{latestPhase.program_name}</Text>
-              <Text style={styles.featureBody}>See what changed, then plan the next phase — or take a break.</Text>
-              <TouchableOpacity
-                style={[ws.smallBtn, styles.featureBtn]}
-                onPress={() => navigation.navigate('PhaseResults', { phaseId: latestPhase.id })}
-              >
-                <Text style={ws.smallBtnText}>See results</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <Text style={ws.eyebrow}>New</Text>
-              <Text style={styles.featureTitle}>Train in phases</Text>
-              <Text style={styles.featureBody}>
-                Test yourself, follow a program for a few weeks, then retest. You’ll see exactly what changed.
-              </Text>
-              <TouchableOpacity style={[ws.smallBtn, styles.featureBtn]} onPress={() => navigation.navigate('PhaseSetup')}>
-                <Text style={ws.smallBtnText}>Start a phase</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          {phases.length > 0 && (
-            <TouchableOpacity onPress={() => navigation.navigate('Phase', { phaseId: latestPhase.id })} style={styles.phasesLink}>
-              <Text style={ws.link}>Your phases</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      {!loading && upNext && (
+        <UpNextCard
+          workout={upNext.workout}
+          why={upNext.why}
+          onOpen={() => navigation.navigate('WorkoutPreview', { workoutId: upNext.workout.id })}
+          onStart={() => startWorkout(upNext.workout)}
+        />
       )}
 
       {loading && workouts.length === 0 && <ActivityIndicator color={WORKOUTS_ACCENT} style={{ marginTop: Spacing.lg }} />}
@@ -224,9 +229,17 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      {workouts.length > 0 ? (
-        <ListGroup title="Your workouts">
-          {workouts.map((w) => {
+      {listed.length > 0 ? (
+        <ListGroup
+          title={upNext ? 'Other workouts' : 'Your workouts'}
+          action={{
+            icon: 'add',
+            color: WORKOUTS_ACCENT,
+            onPress: () => navigation.navigate('WorkoutBuilder', {}),
+            accessibilityLabel: 'Build a workout',
+          }}
+        >
+          {listed.map((w) => {
             const parts = w.blocks.slice(0, 2).map((b) =>
               b.items.length > 1 ? b.name || 'Circuit' : exercisesById[b.items[0]?.exerciseId]?.name ?? 'Exercise'
             );
@@ -242,8 +255,18 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           })}
         </ListGroup>
       ) : (
+        // Nothing else to list (no workouts, or the only one is up next): the + has nowhere to sit.
         !loading &&
-        !loadError && <Text style={ws.lead}>No saved workouts. Build one, or start an empty workout.</Text>
+        !loadError && (
+          <ListGroup>
+            <ListRow
+              title="Build a workout"
+              subtitle="Build and save a routine"
+              icon={{ name: 'list', color: WORKOUTS_ACCENT }}
+              onPress={() => navigation.navigate('WorkoutBuilder', {})}
+            />
+          </ListGroup>
+        )
       )}
 
       <ListGroup>
@@ -254,50 +277,58 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation }) => {
           onPress={startEmpty}
         />
         <ListRow
-          title="Build a workout"
-          subtitle="Build and save a routine"
-          icon={{ name: 'list', color: WORKOUTS_ACCENT }}
-          onPress={() => navigation.navigate('WorkoutBuilder', {})}
-        />
-        <ListRow
-          title="This week"
-          subtitle={weekToRate
-            ? 'Today’s sets are waiting to be rated'
-            : week.totalSets > 0
-              ? describeWeekTotals(week, prefs.unit)
-              : 'Track volume per exercise — add sets any time'}
-          icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}
-          onPress={() => navigation.navigate('WeeklyVolume')}
-        />
-        <ListRow
-          title="Test an exercise"
-          subtitle="See if you’re getting better — no program needed"
-          icon={{ name: 'speedometer', color: WORKOUTS_ACCENT }}
-          onPress={() => navigation.navigate('ExerciseTest')}
+          title="More"
+          subtitle="This week, tests, phases, past workouts"
+          icon={{ name: 'ellipsis-horizontal', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('WorkoutMore')}
         />
       </ListGroup>
-
-      <TouchableOpacity style={styles.pastLink} onPress={() => setLoggingPast(true)} accessibilityRole="button">
-        <Text style={ws.link}>Log a past workout</Text>
-      </TouchableOpacity>
-
-      <PastSessionSheet
-        visible={loggingPast}
-        accent={WORKOUTS_ACCENT}
-        title="Log a past workout"
-        minutes={{ min: 5, max: 180, step: 5, initial: 45 }}
-        onCancel={() => setLoggingPast(false)}
-        onSave={({ date, minutes }) => {
-          setLoggingPast(false);
-          closeAndCheckOff(minutes * 60, date);
-        }}
-      />
     </ScrollView>
   );
 };
 
+/** The workout to do next, with last time's numbers for its first few exercises. */
+const UpNextCard: React.FC<{ workout: Workout; why: string; onOpen: () => void; onStart: () => void }> = ({
+  workout,
+  why,
+  onOpen,
+  onStart,
+}) => {
+  const { exercise, exercisesById, sessions, prefs } = useWorkouts();
+  const count = workout.blocks.reduce((n, b) => n + b.items.length, 0);
+  return (
+    <TouchableOpacity style={[ws.card, styles.upNext]} onPress={onOpen} accessibilityRole="button">
+      <View style={styles.upNextHead}>
+        <Text style={ws.eyebrow}>{why}</Text>
+        <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
+      </View>
+      <Text style={styles.featureTitle}>{workout.name}</Text>
+      <Text style={ws.muted}>
+        {count} {count === 1 ? 'exercise' : 'exercises'} · {lastDoneLabel(workout.last_done_at)}
+      </Text>
+      <View style={styles.lastList}>
+        {workout.blocks.slice(0, 3).map((block) => {
+          const item = block.items[0];
+          const ex = exercise(item.exerciseId);
+          const last = lastSetsFor(sessions, item.exerciseId)[0];
+          return (
+            <View key={block.id} style={styles.lastRow}>
+              <Text style={[ws.body, styles.lastName]} numberOfLines={1}>
+                {block.items.length > 1 ? blockTitle(block, exercisesById) : ex.name}
+              </Text>
+              <Text style={ws.muted}>{last ? formatSetValues(last, ex.kind, prefs.unit) : 'New'}</Text>
+            </View>
+          );
+        })}
+      </View>
+      <TouchableOpacity style={[ws.primaryBtn, styles.upNextBtn]} onPress={onStart} accessibilityRole="button">
+        <Text style={ws.primaryBtnText}>Start</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
-  pastLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   intro: { gap: 6 },
   introBtn: { alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
@@ -315,9 +346,17 @@ const styles = StyleSheet.create({
   resumeActions: { alignItems: 'flex-end', gap: Spacing.sm },
   resumeCta: { ...TextStyles.headline, color: Colors.white },
   resumeDiscard: { ...TextStyles.footnote, color: Colors.white, opacity: 0.85 },
-  phaseIntro: { gap: 4, paddingVertical: 18, paddingHorizontal: 20 },
   featureTitle: { ...TextStyles.title2, color: Colors.dark },
-  featureBody: { ...TextStyles.subhead, color: Colors.gray },
-  featureBtn: { marginTop: Spacing.sm + 4 },
-  phasesLink: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginBottom: -Spacing.sm },
+  upNext: { gap: 4, paddingVertical: 18, paddingHorizontal: 20 },
+  upNextHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  lastList: {
+    gap: 6,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.separator,
+  },
+  lastRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  lastName: { flex: 1 },
+  upNextBtn: { marginTop: Spacing.sm + 4 },
 });

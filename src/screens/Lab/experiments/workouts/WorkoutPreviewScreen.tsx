@@ -1,5 +1,5 @@
 import React, { useLayoutEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
@@ -22,7 +22,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutPreview'>;
 
 export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  const { workouts, exercise, exercisesById, prefs, sessions, session, beginSession, discardSession } = useWorkouts();
+  const { loading, workouts, exercise, exercisesById, prefs, sessions, session, beginSession, discardSession } = useWorkouts();
   const workout = workouts.find((w) => w.id === route.params.workoutId);
 
   useLayoutEffect(() => {
@@ -41,6 +41,14 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
   }, [navigation, workout]);
 
   if (!workout) {
+    // Opened straight from the Workouts page's Start, before the list has loaded.
+    if (loading) {
+      return (
+        <View style={[ws.screen, styles.center]}>
+          <ActivityIndicator color={WORKOUTS_ACCENT} />
+        </View>
+      );
+    }
     return (
       <View style={[ws.screen, styles.center]}>
         <Text style={ws.muted}>This workout no longer exists.</Text>

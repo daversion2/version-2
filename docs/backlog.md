@@ -370,6 +370,12 @@ build is already happening for another reason).
 
 ### Workouts *(added 2026-10-24)*
 
+- **Start flow: check on screen, then merge** *(added 2026-11-05)*. Built on
+  branch `workouts-start-flow` (see Done). Not merged to main, not OTA'd, not
+  seen in the simulator. Flows 11, 12 and 14a were updated to the new home
+  but not rerun. Old Today's dashboard button (`HomeDashboardView`) still
+  opens Workouts' home, unchanged.
+
 - **Warm-up sets.** A per-set toggle; warm-ups log but don't count toward PRs
   or weekly volume. Bigger than it looks: a set's position in the workout is
   counted from logged sets (`services/workoutSession.ts`), so warm-ups also
@@ -456,6 +462,23 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workouts: Start starts a workout** *(2026-11-05, branch `workouts-start-flow`, not merged)*
+Founder, testing: "Start a workout" opened a menu of nine options, none of
+which started one. Reviewed as a mockup first and approved as drawn.
+- The Workouts page's button names the workout and opens it ("Start Pull
+  Day", then the preview), with "Choose another" under it. It says "Resume
+  …" for a workout left open, "Start the test" / "Retest now" when a phase
+  needs one, and just opens Workouts when there's nothing to suggest.
+- The pick (`services/workoutUpNext.ts`, Jest-tested): the phase's next
+  workout while training, else saved workouts take turns, oldest first
+  (Push → Pull → Legs → Push…), after the one done last.
+- Workouts' home is titled "Workouts": a workout in progress, else the phase
+  card or an Up next card (last time's numbers, Start), then Other workouts
+  with a + to build one, Empty workout, and More.
+- More (`WorkoutMoreScreen`) holds Phases, Test an exercise, This week and
+  Log a past workout. The "Train in phases" promo card is gone from home.
+- `ListGroup` takes an optional header `action` (the +).
 
 **Meals: a score per food group, set by your goal** *(2026-11-05, not yet seen on screen, not OTA'd)*
 Founder: replace the formula (whole-food ratio, nutrient bonus, processed and

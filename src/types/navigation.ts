@@ -13,6 +13,7 @@ import type {
   MicroExerciseDefinition,
 } from './microExercise';
 import type { MicroExerciseTrigger } from './worksheets';
+import type { WorkoutsLaunch } from './workouts';
 import type { TodayAppId } from '../services/appCheckins';
 
 // ============================================================================
@@ -27,7 +28,7 @@ export type RootStackParamList = {
    * The Workouts mini-app (Lab), full screen over the tabs. `habitId` = opened
    * from that habit's Start on Today, so finishing checks it off.
    */
-  WorkoutsApp: { habitId?: string } | undefined;
+  WorkoutsApp: { habitId?: string; launch?: WorkoutsLaunch } | undefined;
   /** The Meditate mini-app (Lab) — same shape as WorkoutsApp. */
   MeditateApp: { habitId?: string } | undefined;
   /** Compose (Lab): guided sessions written and voiced on request. */

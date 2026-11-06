@@ -25,14 +25,16 @@ import { PhaseResultsScreen } from './PhaseResultsScreen';
 import { PhaseNextScreen } from './PhaseNextScreen';
 import { WeeklyVolumeScreen } from './WeeklyVolumeScreen';
 import { WeeklyVolumeExerciseScreen } from './WeeklyVolumeExerciseScreen';
+import { WorkoutMoreScreen } from './WorkoutMoreScreen';
 import { WORKOUTS_ACCENT } from './components/workoutsStyle';
 
 const Stack = createNativeStackNavigator<WorkoutsStackParamList>();
 
 /**
  * The Workouts mini-app: full screen over the whole app, its own navigation,
- * the app's fonts and building blocks with one accent. Opened from a habit's
- * Start on Today (route param habitId) or from Admin → Lab. Loaded with
+ * the app's fonts and building blocks with one accent. Opened from the
+ * Workouts page's Start (route param launch: what to go straight to), a
+ * habit's Start on Today (habitId) or from Admin → Lab. Loaded with
  * getComponent + require in RootNavigator, so none of this runs at app start.
  */
 export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'WorkoutsApp'>> = ({
@@ -64,8 +66,14 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
-        {/* Home draws its own large title ("Start a workout"). */}
-        <Stack.Screen name="WorkoutsHome" component={WorkoutsHomeScreen} options={{ title: '' }} />
+        {/* Home draws its own large title ("Workouts"). */}
+        <Stack.Screen
+          name="WorkoutsHome"
+          component={WorkoutsHomeScreen}
+          options={{ title: '' }}
+          initialParams={{ launch: route.params?.launch }}
+        />
+        <Stack.Screen name="WorkoutMore" component={WorkoutMoreScreen} options={{ title: 'More' }} />
         <Stack.Screen name="WorkoutPreview" component={WorkoutPreviewScreen} options={{ title: '' }} />
         {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
         <Stack.Screen

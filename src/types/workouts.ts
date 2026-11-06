@@ -316,8 +316,18 @@ export interface ExerciseTest {
 /** A reporting span. Weeks start Monday. */
 export type StatsRange = 'week' | 'month' | 'year' | 'all';
 
+/** What opening Workouts goes straight to (services/workoutUpNext.ts). */
+export type WorkoutsLaunch =
+  | { kind: 'home' }
+  | { kind: 'resume' }
+  | { kind: 'workout'; workoutId: string }
+  | { kind: 'phaseTest'; mode: 'baseline' | 'retest' };
+
 export type WorkoutsStackParamList = {
-  WorkoutsHome: undefined;
+  /** `launch`: opened from the Workouts page's start button — go on to that, once. */
+  WorkoutsHome: { launch?: WorkoutsLaunch } | undefined;
+  /** This week, tests, phases and past workouts — everything that isn't starting one. */
+  WorkoutMore: undefined;
   /** Every exercise done this week, with sets added straight from here. */
   WeeklyVolume: undefined;
   WeeklyVolumeExercise: { exerciseId: string };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableHighlight, View, ViewStyle } from 'react-native';
+import { StyleSheet, Text, TouchableHighlight, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 
@@ -17,19 +17,34 @@ import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme
 
 interface ListGroupProps {
   title?: string;
+  /** A small button at the right of the header, e.g. a + that adds a row. */
+  action?: { icon: keyof typeof Ionicons.glyphMap; color: string; onPress: () => void; accessibilityLabel: string };
   footer?: string;
   children: React.ReactNode;
   style?: ViewStyle;
 }
 
-export const ListGroup: React.FC<ListGroupProps> = ({ title, footer, children, style }) => {
+export const ListGroup: React.FC<ListGroupProps> = ({ title, action, footer, children, style }) => {
   const rows = React.Children.toArray(children).filter(React.isValidElement);
   return (
     <View style={[styles.group, style]}>
-      {title ? (
-        <Text style={styles.header} accessibilityRole="header">
-          {title}
-        </Text>
+      {title || action ? (
+        <View style={styles.headerRow}>
+          <Text style={styles.header} accessibilityRole="header">
+            {title}
+          </Text>
+          {action ? (
+            <TouchableOpacity
+              onPress={action.onPress}
+              style={styles.headerAction}
+              accessibilityRole="button"
+              accessibilityLabel={action.accessibilityLabel}
+              hitSlop={8}
+            >
+              <Ionicons name={action.icon} size={22} color={action.color} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
       <View style={styles.panel}>
         {rows.map((row, i) =>
@@ -110,7 +125,9 @@ export const ListRow: React.FC<ListRowProps> = ({
 
 const styles = StyleSheet.create({
   group: { gap: 6 },
-  header: { ...TextStyles.footnote, color: Colors.gray, paddingHorizontal: Spacing.md },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  header: { ...TextStyles.footnote, color: Colors.gray, paddingHorizontal: Spacing.md, flex: 1 },
+  headerAction: { paddingHorizontal: Spacing.sm, marginBottom: -2 },
   footer: { ...TextStyles.footnote, color: Colors.gray, paddingHorizontal: Spacing.md },
   panel: { backgroundColor: Colors.cardBg, borderRadius: BorderRadius.lg, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', paddingLeft: Spacing.md, minHeight: 44, gap: 14 },

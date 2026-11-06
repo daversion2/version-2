@@ -4,8 +4,8 @@
 #
 # WRITES to the signed-in account: two phase docs (phase 1 complete, phase 2
 # ended) and, the first time, the Full Body A / B template workouts.
-# Needs the Workouts card on Today and the "Train in phases" card on Workouts
-# home: no phase under way, and the latest one not "done" (ended is fine).
+# Needs the Workouts card on Today, and no phase under way with the latest one
+# not "done" (ended is fine), so Workouts → More → Phases opens phase setup.
 #
 # Steppers are tapped `below:` their exercise's name. A bare index once hit a
 # stepper hidden under the footer, and the tap landed on "See results".
@@ -20,7 +20,7 @@ appId: com.neuronudge.neuronudge
     timeout: 5000
 - tapOn: "Workouts\\. .*"
 - extendedWaitUntil:
-    visible: "Start a workout"
+    visible: "Empty workout.*"
     timeout: 20000
 # A dev build's warning toast covers the bottom of the screen; close it by position.
 - runFlow:
@@ -29,9 +29,10 @@ appId: com.neuronudge.neuronudge
     commands:
       - tapOn:
           point: "92%,93%"
-- assertVisible: "Train in phases"
-- takeScreenshot: 12a-home-card
-- tapOn: ".*Start a phase.*"
+- tapOn: "More, .*"
+- assertVisible: "Phases, Test yourself.*"
+- takeScreenshot: 12a-more-phases
+- tapOn: "Phases, .*"
 
 # Step 1 — program
 - extendedWaitUntil:
@@ -182,6 +183,6 @@ appId: com.neuronudge.neuronudge
 - tapOn: "End this phase"
 - tapOn: "End phase"
 - extendedWaitUntil:
-    visible: "Start a workout"
+    visible: "Empty workout.*"
     timeout: 15000
 - takeScreenshot: 12n-home-after
