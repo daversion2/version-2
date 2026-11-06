@@ -20,6 +20,7 @@ import { AdminMicroExerciseEditScreen } from '../screens/Admin/AdminMicroExercis
 import { AdminPracticesScreen } from '../screens/Admin/AdminPracticesScreen';
 import { AdminPracticeEditScreen } from '../screens/Admin/AdminPracticeEditScreen';
 import { AdminCopyScreen } from '../screens/Admin/AdminCopyScreen';
+import { AdminMealsScoringScreen } from '../screens/Admin/AdminMealsScoringScreen';
 import { Colors } from '../constants/theme';
 import { stackHeaderOptions } from './headerOptions';
 import { HEADER_BUTTON_SIZE } from '../components/common/ScreenIntro';
@@ -130,6 +131,11 @@ export const AdminStack: React.FC = () => (
       name="AdminCopy"
       component={AdminCopyScreen}
       options={{ title: 'All Wording' }}
+    />
+    <Stack.Screen
+      name="AdminMealsScoring"
+      component={AdminMealsScoringScreen}
+      options={{ title: 'Meals Scoring' }}
     />
     {/* The Lab loads on first open (getComponent + require), not with the rest
         of this stack at app start — keep it that way, and never import from

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import type { FoodGroupId } from '../../../../types/meals';
-import { FOOD_SECTIONS, MEAL_GUIDE_RULES, PROCESSING_CEILINGS, QUALITIES, SCORE_BASE, mealGoal, sectionGroups } from '../../../../data/mealGroups';
+import { FOOD_SECTIONS, MEAL_GUIDE_RULES, QUALITIES, mealGoal, sectionGroups } from '../../../../data/mealGroups';
 import { chipReason, chipScore, describeGroups, scorePlate } from '../../../../services/mealsMath';
 import { useMeals } from './MealsContext';
 import { scoreColor, mls } from './components/mealsStyle';
@@ -22,8 +22,9 @@ const EXAMPLES: { meal: string; groups: FoodGroupId[] }[] = [
 
 /** What each chip covers, its score under your goal and why, and how a plate is scored. */
 export const MealsGuideScreen: React.FC = () => {
-  const { rules } = useMeals();
+  const { rules, model } = useMeals();
   const goal = mealGoal(rules.goal);
+  const weights = model.weights[goal.id];
 
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll}>
@@ -39,16 +40,15 @@ export const MealsGuideScreen: React.FC = () => {
       <Text style={mls.sectionLabel}>How scores are built · {goal.label}</Text>
       <View style={[mls.card, styles.list]}>
         <Text style={mls.body}>
-          Every food group starts at {SCORE_BASE}. Each point it has of a quality below adds or takes away that many
-          points. Ultra-processed food is then capped at {PROCESSING_CEILINGS[3]}, processed food at{' '}
-          {PROCESSING_CEILINGS[2]}.
+          Every food group starts at {model.base}. Each point it has of a quality below adds or takes away that many
+          points. Ultra-processed food is then capped at {model.ceilings[3]}, processed food at {model.ceilings[2]}.
         </Text>
-        {QUALITIES.filter((q) => goal.weights[q.id] > 0).map((q) => (
+        {QUALITIES.filter((q) => weights[q.id] > 0).map((q) => (
           <View key={q.id} style={styles.groupTop}>
             <Text style={[mls.body, { flex: 1 }]}>{q.label}</Text>
             <Text style={styles.result}>
               {q.kind === 'plus' ? '+' : '−'}
-              {goal.weights[q.id]}
+              {weights[q.id]}
             </Text>
           </View>
         ))}
@@ -82,7 +82,7 @@ export const MealsGuideScreen: React.FC = () => {
                     {chipScore(g.id, rules)}
                   </Text>
                 </View>
-                <Text style={mls.body}>{chipReason(g.id)}</Text>
+                <Text style={mls.body}>{chipReason(g.id, model)}</Text>
                 <Text style={mls.muted}>{g.examples}</Text>
                 <NutrientTags have={g.nutrients} />
               </View>

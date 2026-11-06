@@ -416,11 +416,10 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
   `data/mealGroups.ts` are a first draft, and the on-target line (70) wasn't
   rechecked against them. Two things looked off at approval: Veggies score
   74 under Build muscle (below Balanced's 86), and a protein shake alone is
-  62 under Balanced, so no longer on target. Tune in the Meals Scoring Model
-  (https://claude.ai/artifact/L42C47AuSGJGUjuDwxR2wW): it saves to its own
-  `model/draft` doc, which Claude reads back into `FOOD_GROUPS` profiles,
-  `MEAL_GOALS` weights and `PROCESSING_CEILINGS`. (The older per-chip Meals
-  Score Tuner artifact is superseded.)
+  62 under Balanced, so no longer on target. Tune live from **Admin → Meals
+  scoring** (saves `config/mealsModel` for everyone), or in the Meals
+  Scoring Model page (https://claude.ai/artifact/L42C47AuSGJGUjuDwxR2wW,
+  `model/draft` doc) and have Claude copy it into the built-in model.
 - **Alcohol chip?** Open founder question (2026-11-05): a real part of many
   days, but a values call. Not added.
 - **Change a plate's time.** A plate keeps the time it was first logged, so a
@@ -466,6 +465,20 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Admin → Meals scoring: tune the scoring model for everyone from the app** *(2026-11-05, not yet seen on screen, not OTA'd)*
+Admins can edit each goal's weights, the base score, the four processing
+caps and every food group's ratings, preview how the 23 sample plates move
+(and how many stay on target), then save for everyone, discard, or reset to
+the built-in model. Saved at `config/mealsModel`, which the existing
+`config/{docId}` rule already lets every signed-in user read and only
+admins write — no rules change or deploy. Meals and Today load it with a
+3-second timeout and fall back to the built-in model
+(`BUILT_IN_MEALS_MODEL`) when it's missing, slow or unreadable; every
+document is sanitized into range. A saved model changes today onward only —
+days keep their snapshotted chip scores. Users' own score overrides sit on
+top of whatever model is live. Logic in `services/mealsModel.ts` and
+`services/mealsMath.ts` (tested); screen `AdminMealsScoringScreen`.
 
 **Meals: chip scores worked out from food profiles and goal weights** *(2026-11-05, not yet seen on screen, not OTA'd)*
 Founder: replace the hand-picked chip scores with a model. Each food group

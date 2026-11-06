@@ -125,7 +125,7 @@ const CustomFoodRow: React.FC<{
 };
 
 export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
-  const { prefs, updatePrefs, habits, newId } = useMeals();
+  const { prefs, model, updatePrefs, habits, newId } = useMeals();
   const [choosingFor, setChoosingFor] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const customGroups = prefs.custom_groups ?? [];
@@ -135,7 +135,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
     updatePrefs({ scoring: { ...prefs.scoring, [key]: n } });
 
   const goalId = prefs.goal ?? DEFAULT_MEAL_GOAL;
-  const changed = overrideCount(goalId, prefs.score_overrides);
+  const changed = overrideCount(goalId, prefs.score_overrides, model);
   // A new goal brings its own scores, so changes made to the old one go.
   const chooseGoal = (id: MealGoalId) => {
     if (id === goalId) return;
@@ -186,7 +186,7 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       <Text style={mls.sectionLabel}>What you’re eating for</Text>
-      <Text style={mls.muted}>Your goal decides what counts most in each food group’s score. Ultra-processed food stays at 30 or under in every goal.</Text>
+      <Text style={mls.muted}>Your goal decides what counts most in each food group’s score. Ultra-processed food stays at {model.ceilings[3]} or under in every goal.</Text>
       <View style={[mls.card, styles.goalList]}>
         {MEAL_GOALS.map((g, i) => {
           const active = goalId === g.id;

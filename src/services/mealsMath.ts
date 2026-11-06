@@ -8,6 +8,7 @@ import type {
   MealGoalId,
   MealPlate,
   MealsDay,
+  MealsModel,
   MealsPrefs,
   MealsRules,
   MealsScoringWeights,
@@ -16,6 +17,7 @@ import type {
   WholeGroupId,
 } from '../types/meals';
 import {
+  BUILT_IN_MEALS_MODEL,
   DEFAULT_MEAL_GOAL,
   DEFAULT_MEALS_SCORING,
   FOOD_GROUPS,
@@ -28,10 +30,8 @@ import {
   MAX_GROUP_GOALS,
   mealGoal,
   NUTRIENTS,
-  PROCESSING_CEILINGS,
   processingOf,
   QUALITIES,
-  SCORE_BASE,
   WHOLE_GROUPS,
 } from '../data/mealGroups';
 import { toLocalDateString } from '../utils/date';
@@ -84,42 +84,54 @@ export interface ChipBreakdown {
 }
 
 /**
- * How a profile scores under a goal: start at SCORE_BASE, add rating × weight
- * for each positive quality, subtract it for each penalty, clamp to 0-100,
- * then cap at the processing level's ceiling.
+ * How a profile scores under a goal: start at the model's base, add rating ×
+ * weight for each positive quality, subtract it for each penalty, clamp to
+ * 0-100, then cap at the processing level's ceiling. Every function here takes
+ * the model to score with — the one an admin saved (services/mealsModel.ts),
+ * or by default the one the app ships with.
  */
-export const profileBreakdown = (profile: ChipProfile, goal: MealGoalId | undefined): ChipBreakdown => {
-  const weights = mealGoal(goal).weights;
+export const profileBreakdown = (
+  profile: ChipProfile,
+  goal: MealGoalId | undefined,
+  model: MealsModel = BUILT_IN_MEALS_MODEL
+): ChipBreakdown => {
+  const weights = model.weights[mealGoal(goal).id];
   const lines: BreakdownLine[] = [];
-  let total = SCORE_BASE;
+  let total = model.base;
   for (const q of QUALITIES) {
     const points = (q.kind === 'plus' ? 1 : -1) * profile[q.id] * weights[q.id];
     if (points !== 0) lines.push({ quality: q.id, rating: profile[q.id], weight: weights[q.id], points });
     total += points;
   }
   const raw = clampChipScore(total);
-  const ceiling = PROCESSING_CEILINGS[profile.processing] ?? 100;
+  const ceiling = model.ceilings[profile.processing] ?? 100;
   return { lines, raw, ceiling, score: Math.min(raw, ceiling), capped: raw > ceiling };
 };
 
-const profileOf = (id: BuiltInGroupId): ChipProfile => {
-  const group = FOOD_GROUPS.find((g) => g.id === id);
-  if (!group) throw new Error(`Unknown food group: ${id}`);
-  return group.profile;
+const profileOf = (id: BuiltInGroupId, model: MealsModel): ChipProfile => {
+  const profile = model.profiles[id] ?? BUILT_IN_MEALS_MODEL.profiles[id];
+  if (!profile) throw new Error(`Unknown food group: ${id}`);
+  return profile;
 };
 
-export const chipBreakdown = (id: BuiltInGroupId, goal: MealGoalId | undefined): ChipBreakdown =>
-  profileBreakdown(profileOf(id), goal);
+export const chipBreakdown = (
+  id: BuiltInGroupId,
+  goal: MealGoalId | undefined,
+  model: MealsModel = BUILT_IN_MEALS_MODEL
+): ChipBreakdown => profileBreakdown(profileOf(id, model), goal, model);
 
-const goalScoresCache = new Map<MealGoalId, GroupScores>();
+// Per model object, so a saved model gets its own scores; models are never mutated.
+const goalScoresCache = new WeakMap<MealsModel, Map<MealGoalId, GroupScores>>();
 
 /** Every built-in chip's score under a goal, before any the user changed. */
-export const goalScores = (goal: MealGoalId | undefined): GroupScores => {
+export const goalScores = (goal: MealGoalId | undefined, model: MealsModel = BUILT_IN_MEALS_MODEL): GroupScores => {
   const id = mealGoal(goal).id;
-  const cached = goalScoresCache.get(id);
+  let byGoal = goalScoresCache.get(model);
+  if (!byGoal) goalScoresCache.set(model, (byGoal = new Map()));
+  const cached = byGoal.get(id);
   if (cached) return cached;
-  const scores = Object.fromEntries(FOOD_GROUPS.map((g) => [g.id, profileBreakdown(g.profile, id).score])) as GroupScores;
-  goalScoresCache.set(id, scores);
+  const scores = Object.fromEntries(FOOD_GROUPS.map((g) => [g.id, chipBreakdown(g.id, id, model).score])) as GroupScores;
+  byGoal.set(id, scores);
   return scores;
 };
 
@@ -127,8 +139,8 @@ export const goalScores = (goal: MealGoalId | undefined): GroupScores => {
  * The one line a chip explains itself with, from its profile — "Lots of
  * protein, good vitamins & minerals." No hand-written copy per chip.
  */
-export const chipReason = (id: BuiltInGroupId): string => {
-  const p = profileOf(id);
+export const chipReason = (id: BuiltInGroupId, model: MealsModel = BUILT_IN_MEALS_MODEL): string => {
+  const p = profileOf(id, model);
   const bits: string[] = [];
   if (p.protein >= 3) bits.push('lots of protein');
   else if (p.protein === 2) bits.push('good protein');
@@ -149,8 +161,12 @@ export const chipReason = (id: BuiltInGroupId): string => {
 // --- Chip scores with the user's changes ------------------------------------------
 
 /** Every built-in chip's score: the goal's, with the user's changes on top. */
-export const groupScoresFor = (goal: MealGoalId | undefined, overrides: Partial<GroupScores> = {}): GroupScores => {
-  const scores = { ...goalScores(goal) };
+export const groupScoresFor = (
+  goal: MealGoalId | undefined,
+  overrides: Partial<GroupScores> = {},
+  model: MealsModel = BUILT_IN_MEALS_MODEL
+): GroupScores => {
+  const scores = { ...goalScores(goal, model) };
   for (const [id, score] of Object.entries(overrides)) {
     if (typeof score === 'number') scores[id as BuiltInGroupId] = clampChipScore(score);
   }
@@ -165,16 +181,21 @@ export const setScoreOverride = (
   goal: MealGoalId | undefined,
   overrides: Partial<GroupScores> = {},
   id: BuiltInGroupId,
-  score: number
+  score: number,
+  model: MealsModel = BUILT_IN_MEALS_MODEL
 ): Partial<GroupScores> => {
   const { [id]: _, ...rest } = overrides;
   const value = clampChipScore(score);
-  return value === goalScores(goal)[id] ? rest : { ...rest, [id]: value };
+  return value === goalScores(goal, model)[id] ? rest : { ...rest, [id]: value };
 };
 
 /** How many chips the user scored differently from their goal. */
-export const overrideCount = (goal: MealGoalId | undefined, overrides: Partial<GroupScores> = {}): number => {
-  const defaults = goalScores(goal);
+export const overrideCount = (
+  goal: MealGoalId | undefined,
+  overrides: Partial<GroupScores> = {},
+  model: MealsModel = BUILT_IN_MEALS_MODEL
+): number => {
+  const defaults = goalScores(goal, model);
   return Object.entries(overrides).filter(
     ([id, score]) => typeof score === 'number' && clampChipScore(score) !== defaults[id as BuiltInGroupId]
   ).length;
@@ -334,9 +355,9 @@ export const verdictByFormula = (
 export const describeGroups = (groups: FoodGroupId[], custom: CustomFoodGroup[] = []): string =>
   groups.map((g) => groupLabel(g, custom)).join(' · ');
 
-export const rulesOf = (prefs: MealsPrefs): MealsRules => ({
+export const rulesOf = (prefs: MealsPrefs, model: MealsModel = BUILT_IN_MEALS_MODEL): MealsRules => ({
   goal: prefs.goal ?? DEFAULT_MEAL_GOAL,
-  group_scores: groupScoresFor(prefs.goal, prefs.score_overrides),
+  group_scores: groupScoresFor(prefs.goal, prefs.score_overrides, model),
   group_goals: prefs.group_goals,
   scoring: prefs.scoring,
   custom_groups: prefs.custom_groups ?? [],

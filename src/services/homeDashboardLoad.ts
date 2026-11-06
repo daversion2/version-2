@@ -7,6 +7,7 @@ import { getMeditatePrefs, listMeditateSessions } from './labMeditate';
 import { getWorkoutPrefs, listCustomExercises, listPhases, listSessions, mergeExerciseLibrary } from './labWorkouts';
 import { getMealsPrefs, listMealsDays } from './labMeals';
 import { rulesOf } from './mealsMath';
+import { getMealsModelWithTimeout } from './mealsModel';
 import { currentPhase } from './trainingPhases';
 import { getTodayString } from '../utils/date';
 
@@ -32,7 +33,7 @@ export interface HomeAppData {
 /** `mealsDays`: how many days of Meals to read, today included. Today needs 90; Progress's 6-month history 180. */
 export const loadHomeAppData = async (uid: string, { mealsDays: mealsSpan = 90 } = {}): Promise<HomeAppData> => {
   const today = getTodayString();
-  const [medSessions, medPrefs, wSessions, wPrefs, custom, phases, mealsPrefs, mealsDays] = await Promise.all([
+  const [medSessions, medPrefs, wSessions, wPrefs, custom, phases, mealsPrefs, mealsDays, mealsModel] = await Promise.all([
     listMeditateSessions(uid, 1000),
     getMeditatePrefs(uid),
     listSessions(uid, 300),
@@ -41,6 +42,8 @@ export const loadHomeAppData = async (uid: string, { mealsDays: mealsSpan = 90 }
     listPhases(uid),
     getMealsPrefs(uid),
     listMealsDays(uid, addDays(today, -(mealsSpan - 1)), today),
+    // Never fails: a missing or slow model is the built-in one.
+    getMealsModelWithTimeout(),
   ]);
   return {
     today,
@@ -52,7 +55,7 @@ export const loadHomeAppData = async (uid: string, { mealsDays: mealsSpan = 90 }
     unit: wPrefs.unit,
     phase: currentPhase(phases),
     mealsDays,
-    mealsRules: rulesOf(mealsPrefs),
+    mealsRules: rulesOf(mealsPrefs, mealsModel),
     mealsGoal: clampWeeklyGoal(mealsPrefs.weekly_goal, 'meals'),
   };
 };

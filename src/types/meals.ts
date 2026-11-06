@@ -63,6 +63,21 @@ export type ChipProfile = Record<QualityId, number>;
 export type GoalWeights = Record<QualityId, number>;
 
 /**
+ * Everything a chip's score is worked out from. The app ships one
+ * (data/mealGroups.ts BUILT_IN_MEALS_MODEL); an admin can replace it for
+ * everyone from Admin → Meals scoring, stored at config/mealsModel
+ * (services/mealsModel.ts).
+ */
+export interface MealsModel {
+  /** Where every chip starts. */
+  base: number;
+  /** The most a chip can score at processing 0, 1, 2 and 3. */
+  ceilings: [number, number, number, number];
+  weights: Record<MealGoalId, GoalWeights>;
+  profiles: Record<BuiltInGroupId, ChipProfile>;
+}
+
+/**
  * What a plate can be tagged with, inferred from its food groups — never grams.
  * Carbs is information only: it adds no points (founder, 2026-11-01).
  */

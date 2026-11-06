@@ -3,9 +3,10 @@ import { AppState } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../../types/navigation';
 import type { PracticeInstance } from '../../../../types';
-import type { MealsDay, MealsPrefs, MealsRules } from '../../../../types/meals';
-import { DEFAULT_MEALS_PREFS } from '../../../../data/mealGroups';
+import type { MealsDay, MealsModel, MealsPrefs, MealsRules } from '../../../../types/meals';
+import { BUILT_IN_MEALS_MODEL, DEFAULT_MEALS_PREFS } from '../../../../data/mealGroups';
 import { getMealsPrefs, listMealsDays, newMealsId, saveMealsDay, saveMealsPrefs } from '../../../../services/labMeals';
+import { getMealsModelWithTimeout } from '../../../../services/mealsModel';
 import { addDays } from '../../../../services/habitSchedule';
 import { emptyDay, handoffDate, mergeCustomGroups, rulesOf, weekDates } from '../../../../services/mealsMath';
 import { finishSession } from '../../../../services/miniApps';
@@ -27,6 +28,8 @@ interface MealsContextValue {
   today: string;
 
   prefs: MealsPrefs;
+  /** What chip scores are worked out from: the one an admin saved, or the built-in one. */
+  model: MealsModel;
   rules: MealsRules;
   updatePrefs: (changes: Partial<MealsPrefs>) => Promise<void>;
 
@@ -76,6 +79,7 @@ export const MealsProvider: React.FC<{
   const [loadError, setLoadError] = useState<string | null>(null);
   const [today, setToday] = useState(() => toLocalDateString(new Date()));
   const [prefs, setPrefs] = useState<MealsPrefs>(DEFAULT_MEALS_PREFS);
+  const [model, setModel] = useState<MealsModel>(BUILT_IN_MEALS_MODEL);
   const [days, setDays] = useState<Record<string, MealsDay>>({});
   // Before this week: read once per load, never edited here.
   const [pastDays, setPastDays] = useState<Record<string, MealsDay>>({});
@@ -96,7 +100,7 @@ export const MealsProvider: React.FC<{
     setLoadError(null);
     try {
       const week = weekDates(today);
-      const [p, d, h, past] = await Promise.all([
+      const [p, d, h, past, m] = await Promise.all([
         getMealsPrefs(userId),
         listMealsDays(userId, week[0], week[6]),
         getActiveHabits(userId),
@@ -104,8 +108,11 @@ export const MealsProvider: React.FC<{
         listMealsDays(userId, addDays(week[0], -RECENT_WEEKS * 7), addDays(week[0], -1)).catch(
           () => ({}) as Record<string, MealsDay>
         ),
+        // Never fails: a missing or slow model is the built-in one.
+        getMealsModelWithTimeout(),
       ]);
       setPrefs(p);
+      setModel(m);
       setDays(d);
       setPastDays(past);
       setHabits(h.filter((habit) => !habit.archived_at));
@@ -121,7 +128,7 @@ export const MealsProvider: React.FC<{
     reload();
   }, [reload]);
 
-  const rules = useMemo(() => rulesOf(prefs), [prefs]);
+  const rules = useMemo(() => rulesOf(prefs, model), [prefs, model]);
 
 
   const updatePrefs = useCallback(
@@ -196,6 +203,7 @@ export const MealsProvider: React.FC<{
     reload,
     today,
     prefs,
+    model,
     rules,
     updatePrefs,
     days,

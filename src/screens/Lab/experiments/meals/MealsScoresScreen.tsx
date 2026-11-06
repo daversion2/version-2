@@ -20,15 +20,15 @@ type Props = NativeStackScreenProps<MealsStackParamList, 'MealsScores'>;
  * reaches the rest (types/meals.ts).
  */
 export const MealsScoresScreen: React.FC<Props> = () => {
-  const { prefs, updatePrefs } = useMeals();
+  const { prefs, model, updatePrefs } = useMeals();
   const goal = mealGoal(prefs.goal ?? DEFAULT_MEAL_GOAL);
   const overrides = prefs.score_overrides ?? {};
-  const defaults = goalScores(goal.id);
-  const scores = groupScoresFor(goal.id, overrides);
-  const changed = overrideCount(goal.id, overrides);
+  const defaults = goalScores(goal.id, model);
+  const scores = groupScoresFor(goal.id, overrides, model);
+  const changed = overrideCount(goal.id, overrides, model);
 
   const setScore = (id: BuiltInGroupId, score: number) =>
-    updatePrefs({ score_overrides: setScoreOverride(goal.id, overrides, id, score) });
+    updatePrefs({ score_overrides: setScoreOverride(goal.id, overrides, id, score, model) });
 
   const reset = () =>
     showConfirm(
@@ -57,7 +57,7 @@ export const MealsScoresScreen: React.FC<Props> = () => {
                     <Text style={mls.body}>{g.label}</Text>
                     <Text style={mls.muted}>
                       {isChanged ? `${goal.label}: ${defaults[g.id]}. ` : ''}
-                      {chipReason(g.id)}
+                      {chipReason(g.id, model)}
                     </Text>
                   </View>
                   <Stepper

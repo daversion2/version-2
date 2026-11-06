@@ -6,6 +6,7 @@ import type {
   FoodGroupId,
   GoalWeights,
   MealGoalId,
+  MealsModel,
   QualityId,
   MealsPrefs,
   MealsScoringWeights,
@@ -194,7 +195,7 @@ export const MEAL_GUIDE_RULES: string[] = [
   'Cooking basics don’t need a chip: oil, butter, salt, spices.',
   'Every chip has a score, shown on the chip. A plate scores the average of its chips.',
   'A chip’s score comes from what that food brings: protein, fiber, vitamins & minerals and healthy fats add points; refined sugar or flour and processing take them away.',
-  'Your goal (in settings) decides how much each counts. Ultra-processed food never scores above 30, in any goal.',
+  'Your goal (in settings) decides how much each counts. Ultra-processed food is capped low in every goal.',
   'You can change any chip’s score in settings, and add your own foods with their own score.',
 ];
 
@@ -295,6 +296,45 @@ export const MEAL_GOALS: MealGoal[] = [
     blurb: 'Fiber and vitamins & minerals count most; animal food costs points.',
     weights: { protein: 4, fiber: 7, micros: 7, fats: 4, refined: 6, processing: 10, animal: 10 },
   },
+];
+
+/**
+ * The model the app ships with: the profiles, weights, start and caps above.
+ * Admin → Meals scoring can replace it for everyone (services/mealsModel.ts);
+ * this is the fallback and the "Reset to built-in" source.
+ */
+export const BUILT_IN_MEALS_MODEL: MealsModel = {
+  base: SCORE_BASE,
+  ceilings: [...PROCESSING_CEILINGS],
+  weights: Object.fromEntries(MEAL_GOALS.map((g) => [g.id, g.weights])) as Record<MealGoalId, GoalWeights>,
+  profiles: Object.fromEntries(FOOD_GROUPS.map((g) => [g.id, g.profile])) as MealsModel['profiles'],
+};
+
+/** Realistic plates for previewing a change to the model (Admin → Meals scoring). */
+export const SAMPLE_PLATES: { name: string; groups: BuiltInGroupId[] }[] = [
+  { name: 'Eggs and berries', groups: ['eggs', 'fruit'] },
+  { name: 'Oatmeal with berries and walnuts', groups: ['grains', 'fruit', 'nuts'] },
+  { name: 'Greek yogurt with berries', groups: ['dairy', 'fruit'] },
+  { name: 'Bagel with cream cheese', groups: ['bread', 'dairy'] },
+  { name: 'Bacon and eggs', groups: ['processed_meat', 'eggs'] },
+  { name: 'Protein shake', groups: ['supplements'] },
+  { name: 'Protein shake with a banana', groups: ['supplements', 'fruit'] },
+  { name: 'Turkey sandwich', groups: ['chicken', 'bread'] },
+  { name: 'Chicken salad with dressing', groups: ['chicken', 'veggies', 'sauces'] },
+  { name: 'Burrito bowl', groups: ['chicken', 'legumes', 'grains', 'veggies'] },
+  { name: 'Salmon, white rice and greens', groups: ['fish', 'bread', 'veggies'] },
+  { name: 'Steak and potatoes', groups: ['beef', 'grains'] },
+  { name: 'Steak, potatoes and broccoli', groups: ['beef', 'grains', 'veggies'] },
+  { name: 'Pork chop with veggies', groups: ['pork', 'veggies'] },
+  { name: 'Lentil curry with brown rice', groups: ['legumes', 'veggies', 'grains'] },
+  { name: 'Tofu stir-fry with bottled sauce', groups: ['legumes', 'veggies', 'grains', 'sauces'] },
+  { name: 'Spaghetti with meat sauce', groups: ['bread', 'beef', 'sauces'] },
+  { name: 'Apple and peanut butter', groups: ['fruit', 'nuts'] },
+  { name: 'Cheese and crackers', groups: ['dairy', 'snacks'] },
+  { name: 'Frozen pizza with a side salad', groups: ['ready_meals', 'veggies'] },
+  { name: 'Drive-through combo and a soda', groups: ['fast_food', 'sugary_drinks'] },
+  { name: 'Bag of chips', groups: ['snacks'] },
+  { name: 'Ice cream', groups: ['sweets'] },
 ];
 
 export const DEFAULT_MEAL_GOAL: MealGoalId = 'balanced';
