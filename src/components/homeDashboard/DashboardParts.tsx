@@ -120,6 +120,47 @@ export const DotTrend: React.FC<{ values: number[]; label: string; empty: string
   );
 };
 
+// --- Bar trend -----------------------------------------------------------------
+
+const BAR_H = 72;
+/** Room above the bars for the latest value. */
+const BAR_LABEL_H = 18;
+
+/**
+ * One bar per session, oldest on the left, measured from zero so heights
+ * compare honestly. The latest is solid and carries its value; the rest are
+ * lighter. A session with nothing to measure still gets a stub.
+ */
+export const BarTrend: React.FC<{
+  values: number[];
+  label: string;
+  empty: string;
+  formatValue: (v: number) => string;
+}> = ({ values, label, empty, formatValue }) => {
+  if (values.length === 0) return <Text style={styles.muted}>{empty}</Text>;
+  const hi = Math.max(...values);
+  const h = (v: number) => Math.max(2, hi > 0 ? (v / hi) * BAR_H : 0);
+  const last = values.length - 1;
+  return (
+    <View accessible accessibilityLabel={`${label}: ${values.map(formatValue).join(', ')}`}>
+      <View style={styles.bars}>
+        <View style={styles.barsBase} />
+        {values.map((v, i) => (
+          <View key={i} style={styles.barSlot}>
+            {i === last && (
+              <Text style={[styles.barValue, { bottom: h(v) + 3 }]} numberOfLines={1}>
+                {formatValue(v)}
+              </Text>
+            )}
+            <View style={[styles.bar, { height: h(v) }, i === last && styles.barLast]} />
+          </View>
+        ))}
+      </View>
+      <Text style={styles.caption}>{label}</Text>
+    </View>
+  );
+};
+
 // --- Week at a glance ----------------------------------------------------------
 
 const CELL = 32;
@@ -275,6 +316,24 @@ const styles = StyleSheet.create({
   muted: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray },
   caption: { fontFamily: Fonts.secondary, fontSize: FontSizes.xs, color: Colors.gray, marginTop: 6 },
 
+  bars: { height: BAR_H + BAR_LABEL_H, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+  barsBase: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 1, backgroundColor: Colors.border },
+  barSlot: { flex: 1, height: '100%', justifyContent: 'flex-end', alignItems: 'center' },
+  bar: {
+    width: '100%',
+    maxWidth: 24,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    backgroundColor: Colors.primary + '59',
+  },
+  barLast: { backgroundColor: Colors.primary },
+  barValue: {
+    position: 'absolute',
+    right: 0,
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.dark,
+  },
   trend: { height: TREND_H, flexDirection: 'row' },
   trendBase: { position: 'absolute', left: 0, right: 0, bottom: DOT / 2, height: 1, backgroundColor: Colors.border },
   trendSlot: { flex: 1, alignItems: 'center' },

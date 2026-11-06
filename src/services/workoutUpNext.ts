@@ -72,7 +72,7 @@ export interface StartAction {
   /** One quiet line under the button. */
   meta: string;
   launch: WorkoutsLaunch;
-  /** Offer "Choose another" (opens Workouts' home). Off when a workout is already under way. */
+  /** Offer "Something else" (opens Workouts' home). Off when a workout is already under way. */
   canChoose: boolean;
 }
 

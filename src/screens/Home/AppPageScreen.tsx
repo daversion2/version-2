@@ -26,7 +26,7 @@ import { StartAction, workoutStartAction } from '../../services/workoutUpNext';
 import type { WorkoutSession, WorkoutsLaunch } from '../../types/workouts';
 import { ListGroup, ListRow } from '../../components/common/ListGroup';
 import { TopScrim } from '../../components/common/TopScrim';
-import { DayDots, DotTrend, ServingsHeatmap } from '../../components/homeDashboard/DashboardParts';
+import { BarTrend, DayDots, DotTrend, ServingsHeatmap } from '../../components/homeDashboard/DashboardParts';
 import { APP_TITLES } from '../../components/homeRedesign/TodayView';
 import { LoadError } from '../../components/homeRedesign/LoadError';
 import { getTodayString } from '../../utils/date';
@@ -40,14 +40,14 @@ import { getTodayString } from '../../utils/date';
 // Start goes back to Today before opening the app, so the session's hand-back
 // (the rating sheet, services/miniApps.ts) lands on Today as it always has.
 // On Workouts, Start names the workout it opens (services/workoutUpNext.ts)
-// and "Choose another" opens Workouts' home instead.
+// and "Something else" opens Workouts' home instead.
 // =============================================================================
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'AppPage'>;
 
 /** The docked start bar: the 52pt button plus its padding above and below. */
 const START_BAR_HEIGHT = 52 + Spacing.sm * 2;
-/** The line under Workouts' button ("Phase 2, week 3 of 6 · Choose another"). */
+/** The line under Workouts' button ("Phase 2, week 3 of 6 · Something else"). */
 const START_META_HEIGHT = 32;
 
 const START_LABEL = { meditate: 'Start a session', workouts: 'Start a workout', meals: 'Log a meal' } as const;
@@ -170,7 +170,12 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
           />
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Volume per session</Text>
-            <DotTrend values={w.series} label="Your last 8 sessions" empty="No sessions yet." />
+            <BarTrend
+              values={w.series}
+              label="Your last 8 sessions"
+              empty="No sessions yet."
+              formatValue={(kg) => formatVolume(kg, data.app.unit)}
+            />
           </View>
           <ListGroup title="Last 7 days">
             <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
@@ -264,7 +269,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             </Text>
             {workoutStart.canChoose && (
               <TouchableOpacity onPress={() => start({ kind: 'home' })} accessibilityRole="button" hitSlop={8}>
-                <Text style={styles.startMetaLink}>Choose another</Text>
+                <Text style={styles.startMetaLink}>Something else</Text>
               </TouchableOpacity>
             )}
           </View>

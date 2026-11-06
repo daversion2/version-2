@@ -489,7 +489,7 @@ ratings and weights are ours. Snapshots and old days unchanged. Logic in
 Founder, testing: "Start a workout" opened a menu of nine options, none of
 which started one. Reviewed as a mockup first and approved as drawn.
 - The Workouts page's button names the workout and opens it ("Start Pull
-  Day", then the preview), with "Choose another" under it. It says "Resume
+  Day", then the preview), with "Something else" under it. It says "Resume
   …" for a workout left open, "Start the test" / "Retest now" when a phase
   needs one, and just opens Workouts when there's nothing to suggest.
 - The pick (`services/workoutUpNext.ts`, Jest-tested): the phase's next
@@ -501,6 +501,8 @@ which started one. Reviewed as a mockup first and approved as drawn.
 - More (`WorkoutMoreScreen`) holds Phases, Test an exercise, This week and
   Log a past workout. The "Train in phases" promo card is gone from home.
 - `ListGroup` takes an optional header `action` (the +).
+- Workouts' volume per session is a bar chart from zero (`BarTrend`), the
+  latest bar solid and labelled; it was dots scaled min-to-max.
 
 **Meals: a score per food group, set by your goal** *(2026-11-05, not yet seen on screen, not OTA'd)*
 Founder: replace the formula (whole-food ratio, nutrient bonus, processed and

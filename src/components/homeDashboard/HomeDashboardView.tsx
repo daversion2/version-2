@@ -33,6 +33,7 @@ import {
   APP_ICONS,
   Chip,
   DayDots,
+  BarTrend,
   DotTrend,
   ListRow,
   Ring,
@@ -360,7 +361,12 @@ export const HomeDashboardView: React.FC<Props> = ({
                 </Text>
               )}
               <SectionLabel>Volume per session</SectionLabel>
-              <DotTrend values={d.workouts.series} label="Your last 8 sessions" empty="No sessions yet." />
+              <BarTrend
+                values={d.workouts.series}
+                label="Your last 8 sessions"
+                empty="No sessions yet."
+                formatValue={(kg) => formatVolume(kg, unit)}
+              />
               <View style={styles.chips}>
                 <Chip text={`${d.workouts.streakWeeks}-week streak`} />
                 <Chip text={`${d.workouts.sessions} of ${d.workouts.goal} sessions`} />
