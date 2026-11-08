@@ -140,6 +140,8 @@ interface WorkoutsContextValue {
   session: WorkoutSession | null;
   updateSession: (next: WorkoutSession) => void;
   beginSession: (workout?: Workout) => WorkoutSession;
+  /** A fresh session for `workout`, phase and light week applied, not made the current one (Done it). */
+  buildSession: (workout: Workout) => WorkoutSession;
   discardSession: () => Promise<void>;
   /** After a successful save: fold it into what's on screen and drop the draft. */
   recordFinished: (input: {
@@ -448,7 +450,7 @@ export const WorkoutsProvider: React.FC<{
 
   // A program workout started while its phase is training counts toward
   // that phase, from wherever it was started — and runs light in a light week.
-  const beginSession = useCallback(
+  const buildSession = useCallback(
     (workout?: Workout) => {
       const now = new Date();
       const phase =
@@ -466,10 +468,18 @@ export const WorkoutsProvider: React.FC<{
         now,
       });
       if (phase && isLighterWeek(phase, toLocalDateString(now))) next = lightenSession(next);
+      return next;
+    },
+    [launchHabitId, currentPhase]
+  );
+
+  const beginSession = useCallback(
+    (workout?: Workout) => {
+      const next = buildSession(workout);
       updateSession(next);
       return next;
     },
-    [launchHabitId, updateSession, currentPhase]
+    [buildSession, updateSession]
   );
 
   const discardSession = useCallback(async () => {
@@ -486,6 +496,8 @@ export const WorkoutsProvider: React.FC<{
         const stamped = { ...workout, last_done_at: completed.finished_at };
         setWorkouts((list) => sortWorkouts([...list.filter((w) => w.id !== workout.id), stamped]));
       }
+      // A Done-it save leaves a live workout that's still in progress alone.
+      if (sessionRef.current && sessionRef.current.id !== completed.id) return;
       sessionRef.current = null;
       setSession(null);
       clearSessionDraft(APP, userId).catch((e) => console.warn('Workouts: draft not cleared:', e));
@@ -617,6 +629,7 @@ export const WorkoutsProvider: React.FC<{
     session,
     updateSession,
     beginSession,
+    buildSession,
     discardSession,
     recordFinished,
     logSets,

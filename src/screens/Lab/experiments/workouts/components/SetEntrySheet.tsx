@@ -24,7 +24,7 @@ interface Props {
 
 const SECONDS_STEP = 5;
 
-/** Weight × reps (or reps, or seconds) for This week — adding sets, or fixing one. */
+/** Weight × reps (or reps, or seconds) for This week — adding sets, or fixing one — and Done it's sets. */
 export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, mode, initial, note, onSave, onDelete, onCancel }) => {
   const insets = useSafeAreaInsets();
   const [values, setValues] = useState<SetValues>(initial);
@@ -42,7 +42,8 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, mode, 
 
   if (!exercise) return null;
   const kind = exercise.kind;
-  const ok = isLoggableSet(kind, values);
+  // This week leaves distance out; a Done-it set can still be one (its time).
+  const ok = kind === 'distance' ? (values.seconds ?? 0) > 0 : isLoggableSet(kind, values);
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
@@ -85,9 +86,9 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, mode, 
                 onSubmitValue={(n) => setValues((v) => ({ ...v, reps: Math.round(n) }))}
               />
             )}
-            {kind === 'time' && (
+            {(kind === 'time' || kind === 'distance') && (
               <NumberStepper
-                label="Seconds"
+                label={kind === 'distance' ? 'Time (seconds)' : 'Seconds'}
                 value={seconds}
                 onDecrement={() => setValues((v) => ({ ...v, seconds: Math.max(0, (v.seconds ?? 0) - SECONDS_STEP) }))}
                 onIncrement={() => setValues((v) => ({ ...v, seconds: (v.seconds ?? 0) + SECONDS_STEP }))}

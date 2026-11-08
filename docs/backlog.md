@@ -466,6 +466,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Workouts: "Do it" or "Done it" on a workout** *(2026-11-07, committed, not yet OTA'd or seen on screen)*
+A workout's preview now has two buttons. **Do it** is the old Start (live
+run). **Done it** logs a workout already done: every planned set filled in
+as prescribed (the plan's numbers, last time's weight where the plan names
+none), a sets/rounds stepper per block (0 = not done), tap any set to change
+it, pick the day (this week) and how long (estimated from the plan). It saves
+through the same path as a live finish (`components/useFinishWorkout.ts`),
+so history, records, stats and Today's rating treat it the same. It's never
+the app's draft, so a live workout in progress is left alone. Saved sessions
+carry `logged_after: true`. Logic in `services/workoutSession.ts`
+(`fillAsPrescribed`, `setRoundsDone`, `editLoggedSet`, `withLoggedTimes`),
+tested. Not shown: the summary's new-record list (records are still saved).
+
 **Meals: servings shown as a treemap** *(2026-11-05, live OTA fd527c87, not yet seen on screen)*
 The equal-squares "darker = more" grid on Today's Meals card and the Meals
 app page is now a treemap (founder picked Option A from the Meals Servings

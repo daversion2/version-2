@@ -56,6 +56,8 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
     );
   }
 
+  const empty = workout.blocks.length === 0;
+
   const start = () => {
     const go = () => {
       beginSession(workout);
@@ -125,13 +127,23 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
           );
         })}
       </ScrollView>
+      {/* Do it runs the workout live; Done it logs one already done, as prescribed. */}
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
-          style={[ws.primaryBtn, workout.blocks.length === 0 && ws.disabled]}
-          onPress={start}
-          disabled={workout.blocks.length === 0}
+          style={[ws.secondaryBtn, styles.footerBtn, empty && ws.disabled]}
+          onPress={() => navigation.navigate('WorkoutDoneIt', { workoutId: workout.id })}
+          disabled={empty}
+          accessibilityHint="Log this workout as already done"
         >
-          <Text style={ws.primaryBtnText}>Start workout</Text>
+          <Text style={ws.secondaryBtnText}>Done it</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[ws.primaryBtn, styles.footerBtn, empty && ws.disabled]}
+          onPress={start}
+          disabled={empty}
+          accessibilityHint="Start this workout now"
+        >
+          <Text style={ws.primaryBtnText}>Do it</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -157,6 +169,8 @@ const styles = StyleSheet.create({
   items: { marginTop: Spacing.sm, gap: 6, paddingLeft: 34 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   footer: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
     position: 'absolute',
     left: 0,
     right: 0,
@@ -165,4 +179,5 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     backgroundColor: Colors.lightGray,
   },
+  footerBtn: { flex: 1 },
 });

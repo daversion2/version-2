@@ -161,6 +161,8 @@ export interface WorkoutSession {
   unit?: WeightUnit;
   /** A Finish timed out — the queued save may still land once back online. */
   saveTimedOutAt?: string;
+  /** "Done it": filled in after the fact as prescribed, not run live (fillAsPrescribed). */
+  loggedAfter?: true;
 }
 
 export interface ExerciseRecord {
@@ -198,6 +200,8 @@ export interface CompletedWorkoutSession {
   blocks: SessionBlock[];
   prs: PersonalRecord[];
   phase_id?: string;
+  /** Logged with "Done it" after the fact rather than run live in the app. */
+  logged_after?: true;
   /** Seeded by Admin → demo data; removed when demo mode is turned off. */
   is_demo?: boolean;
   /**
@@ -335,6 +339,8 @@ export type WorkoutsStackParamList = {
   WorkoutBuilder: { workoutId?: string };
   WorkoutSession: undefined;
   WorkoutSummary: undefined;
+  /** "Done it": log a workout already done, filled in as prescribed. */
+  WorkoutDoneIt: { workoutId: string };
   WorkoutHistory: undefined;
   WorkoutSettings: undefined;
   WorkoutExercises: undefined;

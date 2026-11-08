@@ -12,6 +12,7 @@ import { WorkoutPreviewScreen } from './WorkoutPreviewScreen';
 import { WorkoutBuilderScreen } from './WorkoutBuilderScreen';
 import { WorkoutSessionScreen } from './WorkoutSessionScreen';
 import { WorkoutSummaryScreen } from './WorkoutSummaryScreen';
+import { WorkoutDoneItScreen } from './WorkoutDoneItScreen';
 import { WorkoutHistoryScreen } from './WorkoutHistoryScreen';
 import { WorkoutSettingsScreen } from './WorkoutSettingsScreen';
 import { WorkoutExercisesScreen } from './WorkoutExercisesScreen';
@@ -92,6 +93,7 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           component={WorkoutSummaryScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        <Stack.Screen name="WorkoutDoneIt" component={WorkoutDoneItScreen} options={{ title: '' }} />
         <Stack.Screen name="WeeklyVolume" component={WeeklyVolumeScreen} options={{ title: 'This week' }} />
         <Stack.Screen name="WeeklyVolumeExercise" component={WeeklyVolumeExerciseScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'History' }} />

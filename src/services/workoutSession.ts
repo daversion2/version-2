@@ -13,7 +13,15 @@ import {
   WorkoutSession,
 } from '../types/workouts';
 import { DEFAULT_REST_SEC } from '../data/workoutExercises';
-import { formatClock, formatSeconds, formatTarget, sessionVolumeKg } from './workoutMath';
+import {
+  DEFAULT_TARGET,
+  formatClock,
+  formatSeconds,
+  formatTarget,
+  lastSetsFor,
+  lastSlotSetsFor,
+  sessionVolumeKg,
+} from './workoutMath';
 
 // =============================================================================
 // THE SESSION ENGINE — pure functions over WorkoutSession, no I/O.
@@ -683,6 +691,7 @@ export const toCompletedSession = (
   workout_name: session.workoutName,
   ...(session.habitId ? { habit_id: session.habitId } : {}),
   ...(session.phaseId ? { phase_id: session.phaseId } : {}),
+  ...(session.loggedAfter ? { logged_after: true as const } : {}),
   started_at: session.startedAt,
   // Finish's time, not the save's: a save retried tomorrow is still today's workout.
   finished_at: (session.endedAt ? new Date(session.endedAt) : sessionEndAt(session, opts.now)).toISOString(),
@@ -693,3 +702,190 @@ export const toCompletedSession = (
   blocks: session.blocks.filter((b) => b.sets.length > 0),
   prs: opts.prs,
 });
+
+// --- Done it: a workout logged after the fact ---------------------------------
+//
+// "Done it" on a workout's preview skips the live run. Every planned set is
+// filled in as prescribed — the plan's numbers, last time's weight where the
+// plan names none — and the user fixes whatever went differently, picks the
+// day and how long it took, and saves. It saves exactly like a finished live
+// workout, so history, records, stats and Today's rating all treat it the same.
+
+/** Bounds of "How long?" on Done it, in minutes. */
+export const DONE_IT_MINUTES = { min: 5, max: 180, step: 5 } as const;
+
+const fitMinutes = (min: number): number =>
+  Math.min(DONE_IT_MINUTES.max, Math.max(DONE_IT_MINUTES.min, Math.round(min / DONE_IT_MINUTES.step) * DONE_IT_MINUTES.step));
+
+/** Rough work time for one item when the plan gives no seconds. */
+const WORK_SEC_PER_ITEM = 40;
+
+/**
+ * About how long a workout takes as planned, in minutes on DONE_IT_MINUTES's
+ * steps: each round's work plus its rest (or its interval), no rest after a
+ * block's last round. A starting guess for "How long?", nothing more.
+ */
+export const estimateWorkoutMinutes = (workout: Workout, exercisesById: Record<string, Exercise>): number => {
+  let sec = 0;
+  for (const block of workout.blocks) {
+    const rounds = Math.max(1, block.rounds);
+    const work = block.items.reduce((s, item) => {
+      const kind = exercisesById[item.exerciseId]?.kind;
+      return s + (kind === 'time' || kind === 'distance' ? item.target.seconds ?? WORK_SEC_PER_ITEM : WORK_SEC_PER_ITEM);
+    }, 0);
+    sec += block.intervalSec
+      ? rounds * Math.max(block.intervalSec, work)
+      : rounds * work + (rounds - 1) * Math.max(0, block.restSec);
+  }
+  return fitMinutes(sec / 60);
+};
+
+/**
+ * What a set "as prescribed" was: the plan's numbers first — that's what was
+ * asked for — then last time's for anything the plan leaves out (most plans
+ * name reps but no weight), then the default.
+ */
+export const prescribedValues = (kind: Exercise['kind'], target: SetValues, last?: SetValues): SetValues => {
+  const fallback = DEFAULT_TARGET[kind];
+  switch (kind) {
+    case 'weight':
+      return {
+        reps: target.reps ?? last?.reps ?? fallback.reps,
+        weightKg: target.weightKg ?? last?.weightKg ?? fallback.weightKg,
+      };
+    case 'reps':
+      return { reps: target.reps ?? last?.reps ?? fallback.reps };
+    case 'time':
+    case 'distance':
+      return { seconds: target.seconds ?? last?.seconds ?? fallback.seconds };
+  }
+};
+
+/** One round of a block, as prescribed. `round` is 0-based; `at` is set later by withLoggedTimes. */
+const prescribedRound = (
+  block: SessionBlock,
+  round: number,
+  exercisesById: Record<string, Exercise>,
+  sessions: CompletedWorkoutSession[]
+): LoggedSet[] =>
+  block.items.map((item, itemIndex) => {
+    const kind = exercisesById[item.exerciseId]?.kind ?? 'weight';
+    const last = repeatsInBlock(block, itemIndex)
+      ? lastSlotSetsFor(sessions, { blockId: block.id, itemIndex, exerciseId: item.exerciseId })
+      : lastSetsFor(sessions, item.exerciseId);
+    return {
+      exerciseId: item.exerciseId,
+      round,
+      ...cleanValues(prescribedValues(kind, item.target, last[round] ?? last[last.length - 1])),
+      at: '',
+    };
+  });
+
+/** Log order, rebuilt: every set of block 0, then block 1, … — what Undo would walk. */
+const historyInBlockOrder = (blocks: SessionBlock[]): number[] =>
+  blocks.flatMap((b, i) => b.sets.map(() => i));
+
+/**
+ * The day and length of a Done-it session: it started `durationSec` before
+ * `end`, and its sets are spread evenly in between — so the saved duration
+ * (workedDurationSec, which ignores gaps over STALE_GAP_SEC) comes out as
+ * exactly what was entered.
+ */
+export const withLoggedTimes = (session: WorkoutSession, end: Date, durationSec: number): WorkoutSession => {
+  const endMs = end.getTime();
+  const startMs = endMs - Math.max(0, Math.round(durationSec)) * 1000;
+  const total = totalSetsLogged(session);
+  let i = 0;
+  const blocks = session.blocks.map((b) => ({
+    ...b,
+    sets: b.sets.map((s) => {
+      i += 1;
+      return { ...s, at: new Date(startMs + Math.round(((endMs - startMs) * i) / (total + 1))).toISOString() };
+    }),
+  }));
+  return { ...session, blocks, startedAt: new Date(startMs).toISOString(), endedAt: new Date(endMs).toISOString() };
+};
+
+/**
+ * When a Done-it workout ended: now for today; for an earlier day ("Yesterday"),
+ * that day at this same time of day. `date` is a local YYYY-MM-DD.
+ */
+export const doneItEnd = (date: string, now: Date): Date => {
+  const [y, m, d] = date.split('-').map(Number);
+  const end = new Date(now);
+  end.setFullYear(y, m - 1, d);
+  return end.getTime() > now.getTime() ? now : end;
+};
+
+/**
+ * A session for Done it: every planned round logged as prescribed, already on
+ * the summary step, timed to end at `end` and last `durationSec`.
+ */
+export const fillAsPrescribed = (
+  session: WorkoutSession,
+  opts: { exercisesById: Record<string, Exercise>; sessions: CompletedWorkoutSession[]; end: Date; durationSec: number }
+): WorkoutSession => {
+  const blocks = session.blocks.map((block) => ({
+    ...block,
+    sets: Array.from({ length: block.rounds }, (_, r) => prescribedRound(block, r, opts.exercisesById, opts.sessions)).flat(),
+  }));
+  const next: WorkoutSession = {
+    ...session,
+    blocks,
+    history: historyInBlockOrder(blocks),
+    cursor: 0,
+    phase: 'summary',
+    loggedAfter: true,
+  };
+  delete next.rest;
+  delete next.clock;
+  return withLoggedTimes(next, opts.end, opts.durationSec);
+};
+
+/** Done it: one set's numbers changed. Its time stays. */
+export const editLoggedSet = (
+  session: WorkoutSession,
+  blockIndex: number,
+  setIndex: number,
+  values: SetValues
+): WorkoutSession => {
+  const block = session.blocks[blockIndex];
+  const set = block?.sets[setIndex];
+  if (!set) return session;
+  const edited: LoggedSet = { exerciseId: set.exerciseId, round: set.round, ...cleanValues(values), at: set.at };
+  return { ...session, blocks: replaceAt(session.blocks, blockIndex, { ...block, sets: replaceAt(block.sets, setIndex, edited) }) };
+};
+
+/**
+ * Done it: how many rounds of a block were done. Fewer drops rounds off the
+ * end; more repeats the last round's numbers (or the prescribed ones, from
+ * none). 0 is "didn't do this one". Times are re-spread across the session.
+ */
+export const setRoundsDone = (
+  session: WorkoutSession,
+  blockIndex: number,
+  rounds: number,
+  opts: { exercisesById: Record<string, Exercise>; sessions: CompletedWorkoutSession[] }
+): WorkoutSession => {
+  const block = session.blocks[blockIndex];
+  if (!block) return session;
+  const want = Math.max(0, Math.round(rounds));
+  const per = block.items.length;
+  const have = roundsDone(block);
+  let sets = block.sets.slice(0, Math.min(have, want) * per);
+  for (let r = have; r < want; r++) {
+    const previous = sets.slice(-per);
+    sets = [
+      ...sets,
+      ...(previous.length === per
+        ? previous.map((s) => ({ ...s, round: r }))
+        : prescribedRound(block, r, opts.exercisesById, opts.sessions)),
+    ];
+  }
+  const nextBlock: SessionBlock = { ...block, sets, rounds: Math.max(block.plannedRounds, want, 1), skipped: want === 0 };
+  const blocks = replaceAt(session.blocks, blockIndex, nextBlock);
+  const next = { ...session, blocks, history: historyInBlockOrder(blocks) };
+  const startMs = new Date(session.startedAt).getTime();
+  const endMs = session.endedAt ? new Date(session.endedAt).getTime() : startMs;
+  return withLoggedTimes(next, new Date(endMs), (endMs - startMs) / 1000);
+};

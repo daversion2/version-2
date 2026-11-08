@@ -37,8 +37,16 @@ import {
   toCompletedSession,
   undoLastSet,
   workoutFromSession,
+  doneItEnd,
+  editLoggedSet,
+  estimateWorkoutMinutes,
+  fillAsPrescribed,
+  prescribedValues,
+  setRoundsDone,
+  withLoggedTimes,
 } from '../workoutSession';
-import { Exercise, Workout, WorkoutSession } from '../../types/workouts';
+import { computeSessionRecords } from '../workoutMath';
+import { CompletedWorkoutSession, Exercise, Workout, WorkoutSession } from '../../types/workouts';
 
 const T0 = new Date('2026-10-17T10:00:00.000Z');
 const at = (sec: number) => new Date(T0.getTime() + sec * 1000);
@@ -640,5 +648,132 @@ describe('defaultIntervalSec', () => {
     expect(defaultIntervalSec(WORKOUT.blocks[0])).toBe(150); // 90 + 40
     expect(defaultIntervalSec(WORKOUT.blocks[1])).toBe(180); // 60 + 120
     expect(defaultIntervalSec({ ...WORKOUT.blocks[0], restSec: 0 })).toBe(60);
+  });
+});
+
+describe('Done it: logging a workout after the fact', () => {
+  const END = at(3600);
+  const HALF_HOUR = 30 * 60;
+  const lastBench: CompletedWorkoutSession = {
+    id: 'old',
+    workout_name: 'Push Day',
+    started_at: T0.toISOString(),
+    finished_at: T0.toISOString(),
+    duration_sec: 600,
+    total_sets: 2,
+    total_volume_kg: 0,
+    prs: [],
+    blocks: [
+      {
+        ...WORKOUT.blocks[0],
+        plannedRounds: 2,
+        skipped: false,
+        added: false,
+        sets: [
+          { exerciseId: 'bench', round: 0, reps: 6, weightKg: 60, at: T0.toISOString() },
+          { exerciseId: 'bench', round: 1, reps: 5, weightKg: 62.5, at: T0.toISOString() },
+        ],
+      },
+    ],
+  };
+  const fill = (sessions: CompletedWorkoutSession[] = []) =>
+    fillAsPrescribed(start(), { exercisesById: EXERCISES, sessions, end: END, durationSec: HALF_HOUR });
+
+  it('takes the plan first, then last time, then the default', () => {
+    expect(prescribedValues('weight', { reps: 8 }, { reps: 5, weightKg: 60 })).toEqual({ reps: 8, weightKg: 60 });
+    expect(prescribedValues('weight', { reps: 8, weightKg: 50 }, { reps: 5, weightKg: 60 })).toEqual({ reps: 8, weightKg: 50 });
+    expect(prescribedValues('weight', {}, undefined)).toEqual({ reps: 10, weightKg: 0 });
+    expect(prescribedValues('time', { seconds: 45 }, { seconds: 60 })).toEqual({ seconds: 45 });
+    expect(prescribedValues('reps', {}, { reps: 9 })).toEqual({ reps: 9 });
+  });
+
+  it('logs every planned round as prescribed, on the summary step', () => {
+    const s = fill([lastBench]);
+    expect(s.phase).toBe('summary');
+    expect(s.loggedAfter).toBe(true);
+    expect(s.blocks.map((b) => b.sets.length)).toEqual([2, 6]);
+    // The plan's reps, last time's weight — set by set.
+    expect(s.blocks[0].sets.map((x) => [x.reps, x.weightKg])).toEqual([
+      [8, 60],
+      [8, 62.5],
+    ]);
+    expect(s.blocks[1].sets.slice(0, 3).map((x) => [x.exerciseId, x.round, x.reps ?? x.seconds])).toEqual([
+      ['dip', 0, 12],
+      ['pushup', 0, 15],
+      ['plank', 0, 45],
+    ]);
+    expect(s.history).toEqual([0, 0, 1, 1, 1, 1, 1, 1]);
+    expect(isSessionComplete(s)).toBe(true);
+  });
+
+  it('saves with exactly the entered day and duration', () => {
+    const s = fill();
+    expect(s.endedAt).toBe(END.toISOString());
+    expect(s.startedAt).toBe(at(3600 - HALF_HOUR).toISOString());
+    const done = toCompletedSession(s, { now: at(99999), prs: [], exercisesById: EXERCISES });
+    expect(done.finished_at).toBe(END.toISOString());
+    expect(done.duration_sec).toBe(HALF_HOUR);
+    expect(done.total_sets).toBe(8);
+    expect(done.logged_after).toBe(true);
+    // Every set sits inside the session, in order.
+    const times = s.blocks.flatMap((b) => b.sets.map((x) => new Date(x.at).getTime()));
+    expect([...times].sort((a, b) => a - b)).toEqual(times);
+    expect(times[0]).toBeGreaterThan(new Date(s.startedAt).getTime());
+    expect(times[times.length - 1]).toBeLessThan(END.getTime());
+  });
+
+  it('moves to another day and length without touching the numbers', () => {
+    const s = withLoggedTimes(fill(), at(-86400), 3 * 60 * 60);
+    const done = toCompletedSession(s, { now: at(99999), prs: [], exercisesById: EXERCISES });
+    expect(done.finished_at).toBe(at(-86400).toISOString());
+    expect(done.duration_sec).toBe(3 * 60 * 60);
+    expect(s.blocks[0].sets.map((x) => x.reps)).toEqual([8, 8]);
+  });
+
+  it('edits one set and its records follow', () => {
+    const s = editLoggedSet(fill([lastBench]), 0, 1, { reps: 8, weightKg: 70 });
+    expect(s.blocks[0].sets[1]).toMatchObject({ reps: 8, weightKg: 70, round: 1, exerciseId: 'bench' });
+    expect(s.blocks[0].sets[0]).toMatchObject({ reps: 8, weightKg: 60 });
+    const { prs } = computeSessionRecords(s, EXERCISES, { bench: { exerciseId: 'bench', heaviestKg: 62.5 } });
+    expect(prs.some((p) => p.type === 'heaviest' && p.value === 70)).toBe(true);
+    expect(editLoggedSet(s, 5, 0, { reps: 1 })).toBe(s);
+  });
+
+  it('drops rounds, repeats the last one, and 0 means not done', () => {
+    const opts = { exercisesById: EXERCISES, sessions: [] };
+    let s = editLoggedSet(fill(), 1, 4, { reps: 20 }); // round 2's push-ups
+    s = setRoundsDone(s, 1, 1, opts);
+    expect(s.blocks[1].sets).toHaveLength(3);
+    expect(s.blocks[1].rounds).toBe(2); // still "1 of 2"
+    s = setRoundsDone(s, 1, 3, opts);
+    expect(s.blocks[1].sets.map((x) => x.round)).toEqual([0, 0, 0, 1, 1, 1, 2, 2, 2]);
+    expect(s.blocks[1].sets[4].reps).toBe(15); // copied from round 1, not the dropped edit
+    expect(s.blocks[1].rounds).toBe(3);
+    s = setRoundsDone(s, 0, 0, opts);
+    expect(s.blocks[0]).toMatchObject({ sets: [], skipped: true });
+    expect(s.history).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    const done = toCompletedSession(s, { now: at(99999), prs: [], exercisesById: EXERCISES });
+    expect(done.blocks.map((b) => b.id)).toEqual(['b2']);
+    expect(done.duration_sec).toBe(HALF_HOUR);
+    // Back from none: the prescribed numbers again.
+    s = setRoundsDone(s, 0, 1, opts);
+    expect(s.blocks[0]).toMatchObject({ skipped: false, sets: [{ reps: 8, weightKg: 0, round: 0 }] });
+  });
+
+  it('ends today now, and an earlier day at the same time of day', () => {
+    const now = new Date(2026, 10, 7, 18, 30);
+    expect(doneItEnd('2026-11-07', now)).toEqual(now);
+    expect(doneItEnd('2026-11-05', now)).toEqual(new Date(2026, 10, 5, 18, 30));
+    expect(doneItEnd('2026-10-31', now)).toEqual(new Date(2026, 9, 31, 18, 30));
+    expect(doneItEnd('2026-11-09', now)).toEqual(now); // never in the future
+  });
+
+  it('estimates how long the plan takes, in 5-minute steps', () => {
+    // Bench: 2×40s + 90s rest; circuit: 2×(40+40+45)s + 60s rest = 560s ≈ 9 min → 10.
+    expect(estimateWorkoutMinutes(WORKOUT, EXERCISES)).toBe(10);
+    const tiny: Workout = { ...WORKOUT, blocks: [WORKOUT.blocks[0]] };
+    expect(estimateWorkoutMinutes(tiny, EXERCISES)).toBe(5);
+    const huge: Workout = { ...WORKOUT, blocks: [{ ...WORKOUT.blocks[0], rounds: 100, restSec: 300 }] };
+    expect(estimateWorkoutMinutes(huge, EXERCISES)).toBe(180);
   });
 });
