@@ -466,7 +466,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: "Do it" or "Done it" on a workout** *(2026-11-07, committed, not yet OTA'd or seen on screen)*
+**Workouts: "Do it" or "Done it" on a workout** *(2026-11-07, live OTA 970e6b8f, not yet seen on screen)*
 A workout's preview now has two buttons. **Do it** is the old Start (live
 run). **Done it** logs a workout already done: every planned set filled in
 as prescribed (the plan's numbers, last time's weight where the plan names
