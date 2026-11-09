@@ -69,12 +69,6 @@ export const zoneInLine = (zone: CardioZone): string => {
   return /^[A-Z][a-z]/.test(label) ? label.charAt(0).toLowerCase() + label.slice(1) : label;
 };
 
-/** "40 min below VT1 · 15 min VT1 – VT2 · 5 min above VT2", leaving out empty zones. */
-export const describeCardioSplit = (week: Pick<CardioWeek, 'minutesByZone'>): string =>
-  CARDIO_ZONE_ORDER.filter((z) => Math.round(week.minutesByZone[z]) > 0)
-    .map((z) => `${Math.round(week.minutesByZone[z])} min ${zoneInLine(z)}`)
-    .join(' · ');
-
 /** "below 142 bpm", "142–168 bpm", "above 168 bpm" — only with the thresholds it needs. */
 export const zoneHeartRate = (zone: CardioZone, vt1?: number, vt2?: number): string | null => {
   if (zone === 1) return vt1 ? `below ${vt1} bpm` : null;

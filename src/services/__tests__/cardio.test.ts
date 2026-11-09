@@ -1,4 +1,4 @@
-import { cardioWeek, describeCardioCredit, describeCardioSplit, validThresholds, zoneHeartRate } from '../cardio';
+import { cardioWeek, describeCardioCredit, validThresholds, zoneHeartRate, zoneInLine } from '../cardio';
 import {
   applySetsToRecord,
   describeRecord,
@@ -67,12 +67,10 @@ describe('cardio this week', () => {
   it('is empty with no cardio', () => {
     const w = cardioWeek({ sessions: [], exercisesById: EX, now: NOW });
     expect(w).toMatchObject({ totalMin: 0, creditMin: 0, easyShare: 0 });
-    expect(describeCardioSplit(w)).toBe('');
   });
 
-  it('describes the split, leaving out empty zones', () => {
-    expect(describeCardioSplit({ minutesByZone: { 1: 40, 2: 0, 3: 5.2 } })).toBe('40 min below VT1 · 5 min above VT2');
-    expect(describeCardioSplit({ minutesByZone: { 1: 0, 2: 15, 3: 0 } })).toBe('15 min VT1 – VT2');
+  it('names a zone mid-sentence', () => {
+    expect([1, 2, 3].map((z) => zoneInLine(z as 1 | 2 | 3))).toEqual(['below VT1', 'VT1 – VT2', 'above VT2']);
   });
 
   it('shows heart-rate ranges only when the thresholds are known', () => {

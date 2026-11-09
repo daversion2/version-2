@@ -482,8 +482,8 @@ Settings show each zone's bpm range. Nine built-ins (Run, Walk, Hike,
 Cycling, Indoor Bike, Rowing Machine, Elliptical, Stair Climber, Swim).
 Works in a live workout, Done it, the block editor (minutes + planned zone),
 your own exercises, and This week's + Add. Records: longest and farthest.
-**Cardio this week** (This week screen card, and a row under More): minutes
-by zone, and minutes toward 150 with above-VT1 minutes counting double
+**Cardio this week** (a card on the This week screen, which More's "This
+week" row opens): minutes in each of the three zones (always all three), and minutes toward 150 with above-VT1 minutes counting double
 (WHO). A timed distance (Mile Run) counts as above VT2. Logic in
 `services/cardio.ts` and `data/cardioZones.ts`, tested. Follow-ups are under
 Features.

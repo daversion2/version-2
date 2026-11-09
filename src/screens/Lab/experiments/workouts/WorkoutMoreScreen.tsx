@@ -7,7 +7,7 @@ import { WorkoutsStackParamList } from '../../../../types/workouts';
 import { phaseWeek } from '../../../../services/trainingPhases';
 import { checkinPending, describeWeekTotals, weekSummary } from '../../../../services/weeklyVolume';
 import { toLocalDateString } from '../../../../utils/date';
-import { cardioWeek, describeCardioCredit, describeCardioSplit } from '../../../../services/cardio';
+import { cardioWeek, describeCardioCredit } from '../../../../services/cardio';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
@@ -69,20 +69,12 @@ export const WorkoutMoreScreen: React.FC<Props> = ({ navigation }) => {
             weekToRate
               ? 'Today’s sets are waiting to be rated'
               : week.totalSets > 0
-                ? describeWeekTotals(week, prefs.unit)
-                : 'Track volume per exercise — add sets any time'
+                ? [describeWeekTotals(week, prefs.unit), cardio.totalMin > 0 ? `cardio ${describeCardioCredit(cardio)}` : null]
+                    .filter(Boolean)
+                    .join(' · ')
+                : 'Volume per exercise and cardio by zone — add any time'
           }
           icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}
-          onPress={() => navigation.navigate('WeeklyVolume')}
-        />
-        <ListRow
-          title="Cardio this week"
-          subtitle={
-            cardio.totalMin > 0
-              ? `${describeCardioCredit(cardio)} · ${describeCardioSplit(cardio)}`
-              : 'Minutes by zone (VT1 / VT2), toward 150 a week'
-          }
-          icon={{ name: 'heart', color: WORKOUTS_ACCENT }}
           onPress={() => navigation.navigate('WeeklyVolume')}
         />
         <ListRow
