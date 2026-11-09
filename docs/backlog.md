@@ -473,7 +473,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: cardio, by VT1 / VT2** *(2026-11-08, committed, not yet OTA'd or seen on screen)*
+**Workouts: cardio, by VT1 / VT2** *(2026-11-08, live OTA 87038f09, not yet seen on screen)*
 A new `cardio` exercise type: minutes, an optional distance (miles for lb,
 km for kg, with pace), and a zone by ventilatory threshold — below VT1 /
 VT1–VT2 / above VT2, picked by the talk test (full sentences / short
