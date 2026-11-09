@@ -8,8 +8,23 @@ import { WeightUnit, WorkoutsStackParamList } from '../../../../types/workouts';
 import { clampWeeklyGoal } from '../../../../services/appCheckins';
 import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
 import { showAlert } from '../../../../utils/alert';
+import { validThresholds } from '../../../../services/cardio';
 import { useWorkouts } from './WorkoutsContext';
+import { NumberStepper } from './components/NumberStepper';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
+
+/** A tap up from "not set" starts here: typical-ish adult thresholds, quick to adjust. */
+const VT_START = { vt1_bpm: 140, vt2_bpm: 165 } as const;
+const MIN_BPM = 60;
+const MAX_BPM = 230;
+
+/** 0 = not set. Below MIN_BPM steps down to not set; up from not set starts at a typical value. */
+const stepBpm = (bpm: number, dir: 1 | -1, start: number): number => {
+  if (!bpm) return dir > 0 ? start : 0;
+  const next = bpm + dir;
+  return next < MIN_BPM ? 0 : Math.min(MAX_BPM, next);
+};
+const typedBpm = (n: number): number => (n < MIN_BPM ? 0 : Math.min(MAX_BPM, Math.round(n)));
 
 const UNITS: { value: WeightUnit; label: string }[] = [
   { value: 'lb', label: 'Pounds (lb)' },
@@ -86,6 +101,32 @@ export const WorkoutSettingsScreen: React.FC = () => {
       <Text style={ws.muted}>
         Shown on Today as “1 of 3 this week”. A week that falls short gets the usual one-tap “what got in the way?”.
       </Text>
+
+      <Text style={ws.sectionLabel}>Cardio thresholds (optional)</Text>
+      <View style={styles.bpmRow}>
+        {(['vt1_bpm', 'vt2_bpm'] as const).map((key) => {
+          const bpm = prefs[key] ?? 0;
+          return (
+            <NumberStepper
+              key={key}
+              label={`${key === 'vt1_bpm' ? 'VT1' : 'VT2'} heart rate`}
+              value={bpm}
+              suffix={bpm ? 'bpm' : undefined}
+              onDecrement={() => save({ [key]: stepBpm(bpm, -1, VT_START[key]) })}
+              onIncrement={() => save({ [key]: stepBpm(bpm, 1, VT_START[key]) })}
+              onSubmitValue={(n) => save({ [key]: typedBpm(n) })}
+            />
+          );
+        })}
+      </View>
+      {!validThresholds(prefs.vt1_bpm, prefs.vt2_bpm) && (
+        <Text style={styles.warn}>VT2 should be higher than VT1.</Text>
+      )}
+      <Text style={ws.muted}>
+        VT1 is where your breathing first picks up — the top of easy. VT2 is where it turns hard and ragged. Cardio is
+        logged by the talk test either way; if you know your heart rate at each (from a lab or field test), each zone
+        shows its range too. Leave at 0 if you don’t.
+      </Text>
     </ScrollView>
   );
 };
@@ -105,4 +146,6 @@ const styles = StyleSheet.create({
   unitText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
   unitTextOn: { color: Colors.white },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  bpmRow: { flexDirection: 'row', gap: Spacing.sm },
+  warn: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.danger },
 });

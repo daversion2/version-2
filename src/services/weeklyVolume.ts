@@ -12,6 +12,7 @@ import type {
 import { getWeekStart, toLocalDateString } from '../utils/date';
 import {
   applySetsToRecord,
+  formatCardioTime,
   formatCount,
   formatSeconds,
   formatVolume,
@@ -45,9 +46,9 @@ export const LOG_SESSION_NAME = 'Logged sets';
 /** Sets added on This week can be these kinds. Distance (a timed mile) can't. */
 export const canLogKind = (kind: ExerciseKind): boolean => kind !== 'distance';
 
-/** Weight and reps exercises count reps toward a target; holds count seconds. */
+/** Weight and reps exercises count reps toward a target; holds and cardio count seconds. */
 export const targetUnit = (kind: ExerciseKind): 'reps' | 'sec' | null =>
-  kind === 'weight' || kind === 'reps' ? 'reps' : kind === 'time' ? 'sec' : null;
+  kind === 'weight' || kind === 'reps' ? 'reps' : kind === 'time' || kind === 'cardio' ? 'sec' : null;
 
 export const logSessionId = (date: string): string => `log_${date}`;
 
@@ -145,7 +146,7 @@ const tally = (entries: WeekEntry[], kind: ExerciseKind) => {
   let volumeKg = 0;
   for (const { set } of entries) {
     if (kind === 'weight' || kind === 'reps') reps += set.reps ?? 0;
-    if (kind === 'time' || kind === 'distance') seconds += set.seconds ?? 0;
+    if (kind === 'time' || kind === 'distance' || kind === 'cardio') seconds += set.seconds ?? 0;
     if (kind === 'weight') volumeKg += (set.weightKg ?? 0) * (set.reps ?? 0);
   }
   const progress = targetUnit(kind) === 'sec' ? seconds : reps;
@@ -271,6 +272,8 @@ export const describeWeekRow = (row: ExerciseWeek, unit: WeightUnit): string => 
       return `${formatSeconds(row.seconds)} held · ${sets}`;
     case 'distance':
       return sets;
+    case 'cardio':
+      return `${formatCardioTime(row.seconds)} · ${row.sets === 1 ? 'once' : `${row.sets} times`}`;
   }
 };
 
@@ -306,6 +309,13 @@ export const prefillFrom = (
     }
   }
   if (exercise.kind === 'time') return { seconds: latest?.seconds || 30 };
+  if (exercise.kind === 'cardio') {
+    return {
+      seconds: latest?.seconds || 1800,
+      ...(latest?.distanceM ? { distanceM: latest.distanceM } : {}),
+      zone: latest?.zone ?? 1,
+    };
+  }
   if (exercise.kind === 'reps') return { reps: latest?.reps || 10 };
   return { weightKg: latest?.weightKg ?? 0, reps: latest?.reps || 10 };
 };
@@ -316,7 +326,7 @@ export const prefillFrom = (
 export const isLoggableSet = (kind: ExerciseKind, v: SetValues): boolean => {
   if (kind === 'weight') return (v.reps ?? 0) > 0 && (v.weightKg ?? -1) >= 0;
   if (kind === 'reps') return (v.reps ?? 0) > 0;
-  if (kind === 'time') return (v.seconds ?? 0) > 0;
+  if (kind === 'time' || kind === 'cardio') return (v.seconds ?? 0) > 0;
   return false;
 };
 
@@ -324,6 +334,13 @@ export const isLoggableSet = (kind: ExerciseKind, v: SetValues): boolean => {
 export const cleanValues = (kind: ExerciseKind, v: SetValues): SetValues => {
   if (kind === 'weight') return { reps: Math.round(v.reps ?? 0), weightKg: Math.max(0, v.weightKg ?? 0) };
   if (kind === 'reps') return { reps: Math.round(v.reps ?? 0) };
+  if (kind === 'cardio') {
+    return {
+      seconds: Math.round(v.seconds ?? 0),
+      ...(v.distanceM && v.distanceM > 0 ? { distanceM: Math.round(v.distanceM) } : {}),
+      zone: v.zone ?? 1,
+    };
+  }
   return { seconds: Math.round(v.seconds ?? 0) };
 };
 

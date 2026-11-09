@@ -9,6 +9,7 @@ import {
   WeightUnit,
   WorkoutSession,
 } from '../types/workouts';
+import { CARDIO_ZONES } from '../data/cardioZones';
 
 // =============================================================================
 // Units — kilograms are the only stored unit, so flipping lb/kg in settings
@@ -84,6 +85,52 @@ export const formatDistance = (metres: number): string => {
   return `${formatNumber(Math.round(metres / 100) / 10)} km`;
 };
 
+// --- Cardio --------------------------------------------------------------------
+// Distance goes with the weight unit: lb → miles, kg → kilometres.
+
+const METRES_PER_MILE = 1609.344;
+
+export const cardioDistanceUnit = (unit: WeightUnit): 'mi' | 'km' => (unit === 'kg' ? 'km' : 'mi');
+
+/** Metres as the number the user types: 5000 → 5 (km) or 3.1 (mi), to 0.1. */
+export const toDisplayDistance = (metres: number, unit: WeightUnit): number =>
+  Math.round((metres / (unit === 'kg' ? 1000 : METRES_PER_MILE)) * 10) / 10;
+
+/** One stepper tap on a distance: half a km or mile, snapped to the half. */
+export const stepDistance = (metres: number, unit: WeightUnit, direction: 1 | -1): number => {
+  const halves = (toDisplayDistance(metres, unit) * 2);
+  const next = direction > 0 ? Math.floor(halves + 1e-9) + 1 : Math.ceil(halves - 1e-9) - 1;
+  return fromDisplayDistance(Math.max(0, next / 2), unit);
+};
+
+export const fromDisplayDistance = (value: number, unit: WeightUnit): number =>
+  value * (unit === 'kg' ? 1000 : METRES_PER_MILE);
+
+/** 5000 → "5 km" or "3.1 mi". */
+export const formatCardioDistance = (metres: number, unit: WeightUnit): string =>
+  `${toDisplayDistance(metres, unit)} ${cardioDistanceUnit(unit)}`;
+
+/** 1800 → "30 min", 1830 → "30:30", 45 → "45s". */
+export const formatCardioTime = (seconds: number): string =>
+  seconds >= 60 && Math.round(seconds) % 60 === 0 ? `${Math.round(seconds / 60)} min` : formatSeconds(seconds);
+
+/** Per km or per mile, as m:ss — only when both were logged. */
+export const formatPace = (seconds: number, metres: number, unit: WeightUnit): string | null => {
+  const per = toDisplayDistance(metres, unit);
+  if (!(seconds > 0) || !(per > 0)) return null;
+  return `${formatClock(seconds / per)} /${cardioDistanceUnit(unit)}`;
+};
+
+/** "30 min · 5 km · Below VT1". */
+export const formatCardio = (values: SetValues, unit: WeightUnit): string =>
+  [
+    formatCardioTime(values.seconds ?? 0),
+    values.distanceM ? formatCardioDistance(values.distanceM, unit) : null,
+    values.zone ? CARDIO_ZONES[values.zone].label : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
 export const formatSetValues = (values: SetValues, kind: ExerciseKind, unit: WeightUnit): string => {
   switch (kind) {
     case 'weight':
@@ -95,11 +142,14 @@ export const formatSetValues = (values: SetValues, kind: ExerciseKind, unit: Wei
     case 'time':
     case 'distance':
       return formatSeconds(values.seconds ?? 0);
+    case 'cardio':
+      return formatCardio(values, unit);
   }
 };
 
 /** A planned item: "8 reps", "135 lb × 8", "45s". */
 export const formatTarget = (target: SetValues, kind: ExerciseKind, unit: WeightUnit): string => {
+  if (kind === 'cardio') return formatCardio({ ...DEFAULT_TARGET.cardio, ...target }, unit);
   if (kind === 'time' || kind === 'distance') return formatSeconds(target.seconds ?? DEFAULT_TARGET[kind].seconds!);
   const reps = target.reps ?? DEFAULT_TARGET[kind].reps;
   return kind === 'weight' && target.weightKg
@@ -116,6 +166,7 @@ export const DEFAULT_TARGET: Record<ExerciseKind, SetValues> = {
   reps: { reps: 10 },
   time: { seconds: 30 },
   distance: { seconds: 600 },
+  cardio: { seconds: 1800, zone: 1 },
 };
 
 /** The sets of one exercise from the most recent session that included it, in log order. */
@@ -187,6 +238,17 @@ export const prefillFor = (
     case 'time':
     case 'distance':
       return { last, values: { seconds: last?.seconds ?? target.seconds ?? fallback.seconds } };
+    case 'cardio':
+      // The plan's zone is the point of the session (an easy day stays easy);
+      // time and distance come from last time, like any other set.
+      return {
+        last,
+        values: {
+          seconds: last?.seconds ?? target.seconds ?? fallback.seconds,
+          ...(last?.distanceM ? { distanceM: last.distanceM } : {}),
+          zone: target.zone ?? last?.zone ?? fallback.zone,
+        },
+      };
   }
 };
 
@@ -258,6 +320,26 @@ export const applySetsToRecord = (
       prs.push({ exerciseId, type: 'fastest', value: fastest, previous: existing.fastestSec });
     }
     record.fastestSec = existing?.fastestSec !== undefined ? Math.min(existing.fastestSec, fastest) : fastest;
+    return { record, prs };
+  }
+
+  if (kind === 'cardio') {
+    const times = sets.map((s) => s.seconds ?? 0).filter((sec) => sec > 0);
+    if (times.length) {
+      const longest = Math.max(...times);
+      if (existing?.longestSec !== undefined && longest > existing.longestSec) {
+        prs.push({ exerciseId, type: 'longest_hold', value: longest, previous: existing.longestSec });
+      }
+      record.longestSec = Math.max(existing?.longestSec ?? 0, longest);
+    }
+    const distances = sets.map((s) => s.distanceM ?? 0).filter((m) => m > 0);
+    if (distances.length) {
+      const farthest = Math.max(...distances);
+      if (existing?.farthestM !== undefined && farthest > existing.farthestM + EPSILON) {
+        prs.push({ exerciseId, type: 'farthest', value: farthest, previous: existing.farthestM });
+      }
+      record.farthestM = Math.max(existing?.farthestM ?? 0, farthest);
+    }
     return { record, prs };
   }
 
@@ -373,6 +455,11 @@ export const describeRecord = (
         title: `${exerciseName} — fastest yet`,
         detail: `${formatSeconds(pr.value)} (was ${formatSeconds(pr.previous)})`,
       };
+    case 'farthest':
+      return {
+        title: `${exerciseName} — farthest yet`,
+        detail: `${formatCardioDistance(pr.value, unit)} (was ${formatCardioDistance(pr.previous, unit)})`,
+      };
   }
 };
 
@@ -394,5 +481,6 @@ export const recordLines = (r: ExerciseRecord | undefined, unit: WeightUnit): st
   if (r.maxReps) lines.push(`Most reps ${r.maxReps}`);
   if (r.longestSec) lines.push(`${isHoldExercise(r.exerciseId) ? 'Longest hold' : 'Longest'} ${formatSeconds(r.longestSec)}`);
   if (r.fastestSec) lines.push(`Fastest ${formatSeconds(r.fastestSec)}`);
+  if (r.farthestM) lines.push(`Farthest ${formatCardioDistance(r.farthestM, unit)}`);
   return lines;
 };

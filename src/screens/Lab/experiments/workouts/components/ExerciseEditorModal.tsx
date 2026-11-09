@@ -207,7 +207,7 @@ export const ExerciseEditorModal: React.FC<Props> = ({
 
               <Text style={ws.sectionLabel}>How it’s logged</Text>
               <ChipRow
-                options={['weight', 'reps', 'time', 'distance'] as ExerciseKind[]}
+                options={['weight', 'reps', 'time', 'distance', 'cardio'] as ExerciseKind[]}
                 labels={KIND_LABELS}
                 value={kind}
                 onChange={(v) => v && setKind(v)}

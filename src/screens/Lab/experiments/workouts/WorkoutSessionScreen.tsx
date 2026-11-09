@@ -22,6 +22,7 @@ import {
   logSet,
   makeId,
   missRound,
+  newBlockShape,
   pauseClock,
   Position,
   repeatsInBlock,
@@ -57,6 +58,7 @@ import { useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { HoldTimer } from './components/HoldTimer';
 import { TimeEntry } from './components/TimeEntry';
+import { CardioEntry } from './components/CardioEntry';
 import { RestSheet, REST_SHEET_HEIGHT } from './components/RestSheet';
 import { useRestBell } from './useRestBell';
 import { ExercisePickerModal } from './components/ExercisePickerModal';
@@ -257,7 +259,14 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
 
   const isCircuit = !!pos && pos.block.items.length > 1;
   const isLastInRound = !!pos && pos.itemIndex === pos.block.items.length - 1;
-  const logLabel = !isCircuit ? `Log set ${(pos?.round ?? 0) + 1}` : isLastInRound ? 'Log & finish round' : 'Log & next';
+  // A run is "Log it", not "Log set 1"; cardio intervals count as "2 of 6".
+  const cardioLabel =
+    ex?.kind === 'cardio' && pos ? (pos.block.rounds > 1 ? `Log ${pos.round + 1} of ${pos.block.rounds}` : 'Log it') : null;
+  const logLabel = !isCircuit
+    ? cardioLabel ?? `Log set ${(pos?.round ?? 0) + 1}`
+    : isLastInRound
+      ? 'Log & finish round'
+      : 'Log & next';
   const clockReady = clock?.phase === 'ready';
   const clockPaused = clock?.phase === 'paused';
   // Out of time from the moment the clock reads 0:00, so the panel doesn't shift a second later.
@@ -471,6 +480,15 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 onChange={(seconds) => setValues({ ...values, seconds })}
                 onRunningChange={setHoldRunning}
               />
+            ) : ex.kind === 'cardio' ? (
+              <CardioEntry
+                layout="row"
+                values={values}
+                onChange={setValues}
+                unit={unit}
+                vt1={prefs.vt1_bpm}
+                vt2={prefs.vt2_bpm}
+              />
             ) : ex.kind === 'distance' ? (
               <TimeEntry
                 seconds={values.seconds ?? DEFAULT_TARGET.distance.seconds!}
@@ -671,7 +689,11 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
             addBlock(
               session,
               picked.map((e) => ({ exerciseId: e.id, target: { ...DEFAULT_TARGET[e.kind] } })),
-              { id: makeId('block'), ...(picked.length > 1 ? { name: 'Circuit' } : {}) }
+              {
+                id: makeId('block'),
+                ...newBlockShape(picked.map((e) => e.kind)),
+                ...(picked.length > 1 ? { name: 'Circuit' } : {}),
+              }
             )
           );
         }}

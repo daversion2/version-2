@@ -239,7 +239,8 @@ const bestOf = (sets: LoggedSet[], kind: ExerciseKind): Omit<TrendPoint, 'sessio
       const reps = sets.map((x) => x.reps ?? 0).filter((n) => n > 0);
       return reps.length ? { value: Math.max(...reps) } : null;
     }
-    case 'time': {
+    case 'time':
+    case 'cardio': {
       const secs = sets.map((x) => x.seconds ?? 0).filter((n) => n > 0);
       return secs.length ? { value: Math.max(...secs) } : null;
     }
@@ -307,6 +308,7 @@ export const describeTrend = (points: TrendPoint[], kind: ExerciseKind, unit: We
     case 'reps':
       return `${better ? 'Up' : 'Down'} ${size} ${size === 1 ? 'rep' : 'reps'} ${over}`;
     case 'time':
+    case 'cardio':
       return `${formatSeconds(size)} ${better ? 'longer' : 'shorter'} ${over}`;
     case 'distance':
       return `${formatSeconds(size)} ${better ? 'faster' : 'slower'} ${over}`;

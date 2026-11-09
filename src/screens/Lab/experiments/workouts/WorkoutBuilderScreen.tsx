@@ -5,9 +5,8 @@ import { usePreventRemove } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
 import { Exercise, Workout, WorkoutBlock, WorkoutsStackParamList } from '../../../../types/workouts';
-import { DEFAULT_REST_SEC } from '../../../../data/workoutExercises';
 import { DEFAULT_TARGET } from '../../../../services/workoutMath';
-import { blockTitle, describeBlock, makeId } from '../../../../services/workoutSession';
+import { blockTitle, describeBlock, makeId, newBlockShape } from '../../../../services/workoutSession';
 import { newWorkoutId } from '../../../../services/labWorkouts';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
@@ -22,8 +21,7 @@ const blockFrom = (picked: Exercise[]): WorkoutBlock => ({
   type: picked.length > 1 ? 'circuit' : 'single',
   ...(picked.length > 1 ? { name: 'Circuit' } : {}),
   items: picked.map((e) => ({ exerciseId: e.id, target: { ...DEFAULT_TARGET[e.kind] } })),
-  rounds: 3,
-  restSec: DEFAULT_REST_SEC,
+  ...newBlockShape(picked.map((e) => e.kind)),
 });
 
 export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => {

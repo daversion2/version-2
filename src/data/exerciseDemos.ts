@@ -44,7 +44,20 @@ export interface ExerciseDemo {
 export type DemoImages = { start?: ImageSourcePropType; end?: ImageSourcePropType };
 
 /** Built-ins that get no demo: a run needs no picture of how to run. */
-export const NO_DEMO = ['run-400m', 'run-mile', 'run-5k'];
+export const NO_DEMO = [
+  'run-400m',
+  'run-mile',
+  'run-5k',
+  'cardio-run',
+  'cardio-walk',
+  'cardio-hike',
+  'cardio-cycle',
+  'cardio-indoor-bike',
+  'cardio-row',
+  'cardio-elliptical',
+  'cardio-stairs',
+  'cardio-swim',
+];
 
 /** The first batch: easy and hard moves, before the rest are generated. */
 export const PILOT_IDS = [

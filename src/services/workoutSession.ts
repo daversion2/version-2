@@ -56,6 +56,8 @@ const cleanValues = (values: SetValues): SetValues => {
   if (typeof values.reps === 'number') out.reps = values.reps;
   if (typeof values.weightKg === 'number') out.weightKg = values.weightKg;
   if (typeof values.seconds === 'number') out.seconds = values.seconds;
+  if (typeof values.distanceM === 'number' && values.distanceM > 0) out.distanceM = values.distanceM;
+  if (values.zone) out.zone = values.zone;
   return out;
 };
 
@@ -482,6 +484,13 @@ export const addRound = (session: WorkoutSession, blockIndex: number): WorkoutSe
 };
 
 /**
+ * Sets and rest for a newly added block: 3 × 90s rest for lifting; one go and
+ * no rest for a single cardio exercise — a run is one run, not three.
+ */
+export const newBlockShape = (kinds: Exercise['kind'][]): { rounds: number; restSec: number } =>
+  kinds.length === 1 && kinds[0] === 'cardio' ? { rounds: 1, restSec: 0 } : { rounds: 3, restSec: DEFAULT_REST_SEC };
+
+/**
  * Adds an exercise (one item) or a circuit (several) right after the block
  * you're on, so it comes up next. Indexes in `history` are shifted to match.
  */
@@ -731,7 +740,8 @@ export const estimateWorkoutMinutes = (workout: Workout, exercisesById: Record<s
     const rounds = Math.max(1, block.rounds);
     const work = block.items.reduce((s, item) => {
       const kind = exercisesById[item.exerciseId]?.kind;
-      return s + (kind === 'time' || kind === 'distance' ? item.target.seconds ?? WORK_SEC_PER_ITEM : WORK_SEC_PER_ITEM);
+      const timed = kind === 'time' || kind === 'distance' || kind === 'cardio';
+      return s + (timed ? item.target.seconds ?? (kind === 'cardio' ? DEFAULT_TARGET.cardio.seconds! : WORK_SEC_PER_ITEM) : WORK_SEC_PER_ITEM);
     }, 0);
     sec += block.intervalSec
       ? rounds * Math.max(block.intervalSec, work)
@@ -758,6 +768,12 @@ export const prescribedValues = (kind: Exercise['kind'], target: SetValues, last
     case 'time':
     case 'distance':
       return { seconds: target.seconds ?? last?.seconds ?? fallback.seconds };
+    case 'cardio':
+      return {
+        seconds: target.seconds ?? last?.seconds ?? fallback.seconds,
+        ...(target.distanceM ?? last?.distanceM ? { distanceM: target.distanceM ?? last?.distanceM } : {}),
+        zone: target.zone ?? last?.zone ?? fallback.zone,
+      };
   }
 };
 

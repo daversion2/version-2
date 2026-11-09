@@ -205,6 +205,8 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
         visible={adding}
         exercise={exercise}
         unit={prefs.unit}
+        vt1={prefs.vt1_bpm}
+        vt2={prefs.vt2_bpm}
         mode="add"
         initial={prefillFrom(sessions, exercise)}
         onCancel={() => setAdding(false)}
@@ -217,6 +219,8 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
         visible={!!editing}
         exercise={exercise}
         unit={prefs.unit}
+        vt1={prefs.vt1_bpm}
+        vt2={prefs.vt2_bpm}
         mode="edit"
         initial={editing?.set ?? {}}
         note={

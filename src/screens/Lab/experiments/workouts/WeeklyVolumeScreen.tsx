@@ -19,6 +19,8 @@ import { showAlert } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
 import { ExercisePickerModal } from './components/ExercisePickerModal';
 import { SetEntrySheet } from './components/SetEntrySheet';
+import { CardioWeekCard } from './components/CardioWeekCard';
+import { cardioWeek } from '../../../../services/cardio';
 import { ProgressBar } from './components/PhaseParts';
 import { useLogSets } from './components/useLogSets';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
@@ -38,6 +40,7 @@ export const WeeklyVolumeScreen: React.FC<Props> = ({ navigation }) => {
     [sessions, exercisesById, prefs.weekly_targets]
   );
   const pending = checkinPending(sessions, now);
+  const cardio = useMemo(() => cardioWeek({ sessions, exercisesById, now: new Date() }), [sessions, exercisesById]);
   const [picking, setPicking] = useState(false);
   const [adding, setAdding] = useState<{ exercise: Exercise; initial: SetValues } | null>(null);
   const logSets = useLogSets();
@@ -73,6 +76,8 @@ export const WeeklyVolumeScreen: React.FC<Props> = ({ navigation }) => {
           {change !== null ? ` · ${change >= 0 ? 'up' : 'down'} ${Math.abs(change)}% on last week` : ''}
         </Text>
       </View>
+
+      <CardioWeekCard week={cardio} />
 
       {pending && (
         <View style={[ws.card, styles.rate]}>
@@ -162,6 +167,8 @@ export const WeeklyVolumeScreen: React.FC<Props> = ({ navigation }) => {
         visible={!!adding}
         exercise={adding?.exercise}
         unit={prefs.unit}
+        vt1={prefs.vt1_bpm}
+        vt2={prefs.vt2_bpm}
         mode="add"
         initial={adding?.initial ?? {}}
         onCancel={() => setAdding(null)}

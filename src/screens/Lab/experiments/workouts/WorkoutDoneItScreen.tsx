@@ -181,6 +181,8 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
         visible={!!editingSet}
         exercise={editingSet ? exercise(editingSet.exerciseId) : undefined}
         unit={unit}
+        vt1={prefs.vt1_bpm}
+        vt2={prefs.vt2_bpm}
         mode="edit"
         initial={editingSet ?? {}}
         onSave={async (values) => {

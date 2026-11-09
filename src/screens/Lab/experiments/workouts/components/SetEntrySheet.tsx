@@ -6,12 +6,16 @@ import type { Exercise, SetValues, WeightUnit } from '../../../../../types/worko
 import { fromDisplayWeight, stepWeight, toDisplayWeight } from '../../../../../services/workoutMath';
 import { isLoggableSet } from '../../../../../services/weeklyVolume';
 import { NumberStepper } from './NumberStepper';
+import { CardioEntry } from './CardioEntry';
 import { ws } from './workoutsStyle';
 
 interface Props {
   visible: boolean;
   exercise?: Exercise;
   unit: WeightUnit;
+  /** Threshold heart rates, shown beside cardio zones when known. */
+  vt1?: number;
+  vt2?: number;
   /** add: weight, reps and how many sets. edit: one set's numbers, plus delete. */
   mode: 'add' | 'edit';
   initial: SetValues;
@@ -25,7 +29,7 @@ interface Props {
 const SECONDS_STEP = 5;
 
 /** Weight × reps (or reps, or seconds) for This week — adding sets, or fixing one — and Done it's sets. */
-export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, mode, initial, note, onSave, onDelete, onCancel }) => {
+export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, vt2, mode, initial, note, onSave, onDelete, onCancel }) => {
   const insets = useSafeAreaInsets();
   const [values, setValues] = useState<SetValues>(initial);
   const [count, setCount] = useState(1);
@@ -66,6 +70,7 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, mode, 
           <Text style={styles.title}>{exercise.name}</Text>
           {!!note && <Text style={ws.muted}>{note}</Text>}
 
+          {kind === 'cardio' && <CardioEntry values={values} onChange={setValues} unit={unit} vt1={vt1} vt2={vt2} />}
           <View style={styles.row}>
             {kind === 'weight' && (
               <NumberStepper
@@ -97,7 +102,7 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, mode, 
             )}
           </View>
 
-          {mode === 'add' && (
+          {mode === 'add' && kind !== 'cardio' && (
             <View style={styles.row}>
               <NumberStepper
                 label="Sets"
@@ -119,7 +124,7 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, mode, 
               <ActivityIndicator color={Colors.white} />
             ) : (
               <Text style={ws.primaryBtnText}>
-                {mode === 'edit' ? 'Save' : count > 1 ? `Add ${count} sets` : 'Add set'}
+                {mode === 'edit' ? 'Save' : kind === 'cardio' ? 'Add' : count > 1 ? `Add ${count} sets` : 'Add set'}
               </Text>
             )}
           </TouchableOpacity>

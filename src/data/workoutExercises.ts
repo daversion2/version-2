@@ -67,6 +67,16 @@ export const CORE_EXERCISES: Exercise[] = [
   { id: 'run-mile', name: 'Mile Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: METRES_PER_MILE },
   { id: 'run-5k', name: '5K Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: 5000 },
   { id: 'row-2000m', name: '2,000 m Row', kind: 'distance', muscle: 'full_body', equipment: 'machine', distanceM: 2000 },
+  // Cardio — minutes, an optional distance, and a zone by VT1 / VT2
+  { id: 'cardio-run', name: 'Run', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
+  { id: 'cardio-walk', name: 'Walk', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
+  { id: 'cardio-hike', name: 'Hike', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
+  { id: 'cardio-cycle', name: 'Cycling', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
+  { id: 'cardio-indoor-bike', name: 'Indoor Bike', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
+  { id: 'cardio-row', name: 'Rowing Machine', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
+  { id: 'cardio-elliptical', name: 'Elliptical', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
+  { id: 'cardio-stairs', name: 'Stair Climber', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
+  { id: 'cardio-swim', name: 'Swim', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
 ];
 
 /**
@@ -104,6 +114,7 @@ export const KIND_LABELS: Record<ExerciseKind, string> = {
   reps: 'Bodyweight',
   time: 'Timed',
   distance: 'Distance',
+  cardio: 'Cardio',
 };
 
 export const KIND_HINTS: Record<ExerciseKind, string> = {
@@ -111,6 +122,7 @@ export const KIND_HINTS: Record<ExerciseKind, string> = {
   reps: 'Reps only',
   time: 'A hold, in seconds',
   distance: 'Your time for a set distance — lower is better',
+  cardio: 'Minutes, an optional distance, and how hard (by VT1 / VT2)',
 };
 
 /** The distances offered when making a distance exercise. */

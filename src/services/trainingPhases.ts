@@ -35,6 +35,7 @@ export const testTypeFor = (kind: ExerciseKind): TestType => {
     case 'reps':
       return 'max_reps';
     case 'time':
+    case 'cardio':
       return 'longest';
     case 'distance':
       return 'fastest';

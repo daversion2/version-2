@@ -1,8 +1,19 @@
 // Workouts mini-app (Lab). Kept out of types/index.ts so retiring the
 // experiment is a file delete. Stored under users/{uid}/lab_workout_* only.
 
-/** `distance` is a time for a fixed distance (a mile run): lower is better. */
-export type ExerciseKind = 'weight' | 'reps' | 'time' | 'distance';
+/**
+ * `distance` is a time for a fixed distance (a mile run): lower is better.
+ * `cardio` is steady or interval work logged as minutes, an optional distance
+ * and an intensity zone (CardioZone) — a run, a ride, a row.
+ */
+export type ExerciseKind = 'weight' | 'reps' | 'time' | 'distance' | 'cardio';
+
+/**
+ * Intensity by ventilatory threshold, the three-zone model: 1 below VT1 (can
+ * talk in full sentences), 2 between VT1 and VT2 (short phrases), 3 above VT2
+ * (a word or two). Labels and the talk test live in data/cardioZones.ts.
+ */
+export type CardioZone = 1 | 2 | 3;
 
 export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'core' | 'full_body';
 
@@ -51,6 +62,10 @@ export interface SetValues {
   reps?: number;
   weightKg?: number;
   seconds?: number;
+  /** `cardio` only: how far, when it was measured. */
+  distanceM?: number;
+  /** `cardio` only: the intensity it was mostly done at. */
+  zone?: CardioZone;
 }
 
 export interface BlockItem {
@@ -174,9 +189,11 @@ export interface ExerciseRecord {
   longestSec?: number;
   /** `distance` exercises: the best (lowest) time. */
   fastestSec?: number;
+  /** `cardio` exercises: the furthest in one go. (Their longest goes in longestSec.) */
+  farthestM?: number;
 }
 
-export type RecordType = 'heaviest' | 'reps_at_weight' | 'max_reps' | 'longest_hold' | 'fastest';
+export type RecordType = 'heaviest' | 'reps_at_weight' | 'max_reps' | 'longest_hold' | 'fastest' | 'farthest';
 
 export interface PersonalRecord {
   exerciseId: string;
@@ -236,6 +253,13 @@ export interface WorkoutPrefs {
    * already use one are untouched. Settings → Hidden exercises brings one back.
    */
   hidden_exercise_ids?: string[];
+  /**
+   * Heart rate at VT1 and VT2, if known (a lab test, or a field estimate).
+   * Optional: zones work by the talk test without them; with them, the zone
+   * picker shows each zone's heart-rate range too.
+   */
+  vt1_bpm?: number;
+  vt2_bpm?: number;
 }
 
 /**

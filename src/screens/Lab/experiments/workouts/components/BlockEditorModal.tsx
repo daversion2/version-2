@@ -17,6 +17,7 @@ import { showConfirm } from '../../../../../utils/alert';
 import { useWorkouts } from '../WorkoutsContext';
 import { NumberStepper } from './NumberStepper';
 import { TimeEntry } from './TimeEntry';
+import { CardioZonePicker } from './CardioEntry';
 import { ExercisePickerModal } from './ExercisePickerModal';
 import { ExercisePhotos } from './ExerciseDemoCard';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
@@ -40,6 +41,22 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
   const kind = exercise(item.exerciseId).kind;
   const t = { ...DEFAULT_TARGET[kind], ...item.target };
 
+  if (kind === 'cardio') {
+    const minutes = Math.round((t.seconds ?? DEFAULT_TARGET.cardio.seconds!) / 60);
+    return (
+      <View style={styles.cardioTarget}>
+        <NumberStepper
+          size="small"
+          label="Minutes"
+          value={minutes}
+          onDecrement={() => onChange({ ...t, seconds: clamp(minutes - 1, 1, 600) * 60 })}
+          onIncrement={() => onChange({ ...t, seconds: clamp(minutes + 1, 1, 600) * 60 })}
+          onSubmitValue={(v) => onChange({ ...t, seconds: clamp(Math.round(v), 1, 600) * 60 })}
+        />
+        <CardioZonePicker compact value={t.zone ?? 1} onChange={(zone) => onChange({ ...t, zone })} />
+      </View>
+    );
+  }
   if (kind === 'distance') {
     return (
       <TimeEntry
@@ -268,6 +285,7 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
 };
 
 const styles = StyleSheet.create({
+  cardioTarget: { gap: Spacing.sm },
   photos: { marginTop: Spacing.sm },
   sheet: { flex: 1, backgroundColor: Colors.lightGray },
   header: {

@@ -7,6 +7,7 @@ import { WorkoutsStackParamList } from '../../../../types/workouts';
 import { phaseWeek } from '../../../../services/trainingPhases';
 import { checkinPending, describeWeekTotals, weekSummary } from '../../../../services/weeklyVolume';
 import { toLocalDateString } from '../../../../utils/date';
+import { cardioWeek, describeCardioCredit, describeCardioSplit } from '../../../../services/cardio';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
@@ -24,6 +25,7 @@ export const WorkoutMoreScreen: React.FC<Props> = ({ navigation }) => {
   const latestPhase = phases[0];
   const week = weekSummary({ sessions, exercisesById, targets: prefs.weekly_targets, now: new Date() });
   const weekToRate = checkinPending(sessions, new Date());
+  const cardio = cardioWeek({ sessions, exercisesById, now: new Date() });
 
   const phaseRow = currentPhase
     ? {
@@ -71,6 +73,16 @@ export const WorkoutMoreScreen: React.FC<Props> = ({ navigation }) => {
                 : 'Track volume per exercise — add sets any time'
           }
           icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('WeeklyVolume')}
+        />
+        <ListRow
+          title="Cardio this week"
+          subtitle={
+            cardio.totalMin > 0
+              ? `${describeCardioCredit(cardio)} · ${describeCardioSplit(cardio)}`
+              : 'Minutes by zone (VT1 / VT2), toward 150 a week'
+          }
+          icon={{ name: 'heart', color: WORKOUTS_ACCENT }}
           onPress={() => navigation.navigate('WeeklyVolume')}
         />
         <ListRow

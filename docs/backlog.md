@@ -277,6 +277,13 @@ users when profiles went owner-only.
 
 ## Features
 
+**Cardio, next steps** *(added 2026-11-08)*
+After cardio v1 (see Done): the weekly cardio number on Today's Workouts card
+and in Progress (needs the Progress-screen spec updated: it says Workouts =
+volume + best lift); a few starter cardio workouts (Zone 2 30 min, 4×4
+intervals, mile test → phase → retest); Apple Health import feeding Done it
+(native module, so the next store build). Live GPS deliberately left out.
+
 New capabilities, not required for launch. The founder adds items here as
 they come up in conversation; Claude can add one too when an idea surfaces
 mid-task, instead of letting it evaporate. Same format as above: bold title,
@@ -465,6 +472,21 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workouts: cardio, by VT1 / VT2** *(2026-11-08, committed, not yet OTA'd or seen on screen)*
+A new `cardio` exercise type: minutes, an optional distance (miles for lb,
+km for kg, with pace), and a zone by ventilatory threshold — below VT1 /
+VT1–VT2 / above VT2, picked by the talk test (full sentences / short
+phrases / a word or two). Optional VT1 and VT2 heart rates in Workouts →
+Settings show each zone's bpm range. Nine built-ins (Run, Walk, Hike,
+Cycling, Indoor Bike, Rowing Machine, Elliptical, Stair Climber, Swim).
+Works in a live workout, Done it, the block editor (minutes + planned zone),
+your own exercises, and This week's + Add. Records: longest and farthest.
+**Cardio this week** (This week screen card, and a row under More): minutes
+by zone, and minutes toward 150 with above-VT1 minutes counting double
+(WHO). A timed distance (Mile Run) counts as above VT2. Logic in
+`services/cardio.ts` and `data/cardioZones.ts`, tested. Follow-ups are under
+Features.
 
 **Workouts: "Do it" or "Done it" on a workout** *(2026-11-07, live OTA 970e6b8f, not yet seen on screen)*
 A workout's preview now has two buttons. **Do it** is the old Start (live
