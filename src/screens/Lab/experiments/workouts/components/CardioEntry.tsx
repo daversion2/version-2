@@ -13,6 +13,7 @@ import {
   toDisplayDistance,
 } from '../../../../../services/workoutMath';
 import { NumberStepper } from './NumberStepper';
+import { CardioZonesInfo } from './CardioZonesInfo';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 const MAX_MIN = 24 * 60;
@@ -137,7 +138,10 @@ export const CardioEntry: React.FC<{
       <Text style={[ws.muted, styles.hint]}>
         {pace ? `Pace ${pace}` : 'Distance is optional — leave it at 0 if you didn’t measure it.'}
       </Text>
-      <Text style={[ws.sectionLabel, styles.zoneLabel]}>How hard?</Text>
+      <View style={styles.zoneHead}>
+        <Text style={[ws.sectionLabel, styles.zoneLabel]}>How hard?</Text>
+        <CardioZonesInfo size={18} />
+      </View>
       <View style={ws.panel}>
         <CardioZonePicker value={values.zone ?? 1} onChange={(zone) => onChange({ ...values, zone })} vt1={vt1} vt2={vt2} />
       </View>
@@ -149,7 +153,8 @@ const styles = StyleSheet.create({
   wrap: { gap: Spacing.xs },
   tiles: { flexDirection: 'row', gap: Spacing.sm },
   hint: { paddingHorizontal: Spacing.md, paddingVertical: 2 },
-  zoneLabel: { marginBottom: 0, marginTop: Spacing.xs },
+  zoneHead: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: Spacing.xs },
+  zoneLabel: { marginBottom: 0, paddingRight: 0 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   zoneRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: 10, minHeight: 52 },
   zoneTitle: { ...TextStyles.body, color: Colors.dark },

@@ -11,6 +11,7 @@ import { showAlert } from '../../../../utils/alert';
 import { validThresholds } from '../../../../services/cardio';
 import { useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
+import { CardioZonesInfo } from './components/CardioZonesInfo';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
 /** A tap up from "not set" starts here: typical-ish adult thresholds, quick to adjust. */
@@ -102,7 +103,10 @@ export const WorkoutSettingsScreen: React.FC = () => {
         Shown on Today as “1 of 3 this week”. A week that falls short gets the usual one-tap “what got in the way?”.
       </Text>
 
-      <Text style={ws.sectionLabel}>Cardio thresholds (optional)</Text>
+      <View style={styles.sectionHead}>
+        <Text style={[ws.sectionLabel, styles.sectionHeadLabel]}>Cardio thresholds (optional)</Text>
+        <CardioZonesInfo size={18} />
+      </View>
       <View style={styles.bpmRow}>
         {(['vt1_bpm', 'vt2_bpm'] as const).map((key) => {
           const bpm = prefs[key] ?? 0;
@@ -147,5 +151,7 @@ const styles = StyleSheet.create({
   unitTextOn: { color: Colors.white },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   bpmRow: { flexDirection: 'row', gap: Spacing.sm },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: -(Spacing.md - 6) },
+  sectionHeadLabel: { marginBottom: 0, paddingRight: 0 },
   warn: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.danger },
 });

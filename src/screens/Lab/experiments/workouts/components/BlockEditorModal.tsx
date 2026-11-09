@@ -18,6 +18,7 @@ import { useWorkouts } from '../WorkoutsContext';
 import { NumberStepper } from './NumberStepper';
 import { TimeEntry } from './TimeEntry';
 import { CardioZonePicker } from './CardioEntry';
+import { CardioZonesInfo } from './CardioZonesInfo';
 import { ExercisePickerModal } from './ExercisePickerModal';
 import { ExercisePhotos } from './ExerciseDemoCard';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
@@ -53,6 +54,10 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
           onIncrement={() => onChange({ ...t, seconds: clamp(minutes + 1, 1, 600) * 60 })}
           onSubmitValue={(v) => onChange({ ...t, seconds: clamp(Math.round(v), 1, 600) * 60 })}
         />
+        <View style={styles.zoneHead}>
+          <Text style={ws.muted}>How hard</Text>
+          <CardioZonesInfo size={18} />
+        </View>
         <CardioZonePicker compact value={t.zone ?? 1} onChange={(zone) => onChange({ ...t, zone })} />
       </View>
     );
@@ -286,6 +291,7 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
 
 const styles = StyleSheet.create({
   cardioTarget: { gap: Spacing.sm },
+  zoneHead: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   photos: { marginTop: Spacing.sm },
   sheet: { flex: 1, backgroundColor: Colors.lightGray },
   header: {
