@@ -15,7 +15,7 @@ export type ExerciseKind = 'weight' | 'reps' | 'time' | 'distance' | 'cardio';
  */
 export type CardioZone = 1 | 2 | 3;
 
-export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'core' | 'full_body';
+export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'core' | 'full_body' | 'cardio';
 
 export type WeightUnit = 'lb' | 'kg';
 

@@ -210,7 +210,13 @@ export const ExerciseEditorModal: React.FC<Props> = ({
                 options={['weight', 'reps', 'time', 'distance', 'cardio'] as ExerciseKind[]}
                 labels={KIND_LABELS}
                 value={kind}
-                onChange={(v) => v && setKind(v)}
+                onChange={(v) => {
+                  if (!v) return;
+                  setKind(v);
+                  // Cardio goes under Cardio, and back to Full body if changed away again.
+                  if (v === 'cardio') setMuscle('cardio');
+                  else if (muscle === 'cardio') setMuscle('full_body');
+                }}
                 disabled={kindLocked}
               />
               <Text style={ws.muted}>

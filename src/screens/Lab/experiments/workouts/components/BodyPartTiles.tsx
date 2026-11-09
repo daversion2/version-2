@@ -14,6 +14,7 @@ const ICONS: Record<MuscleGroup, React.ComponentProps<typeof MaterialCommunityIc
   arms: 'arm-flex',
   core: 'yoga',
   full_body: 'human',
+  cardio: 'heart-pulse',
 };
 
 interface Props {

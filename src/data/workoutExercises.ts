@@ -62,21 +62,21 @@ export const CORE_EXERCISES: Exercise[] = [
   { id: 'mountain-climber', name: 'Mountain Climbers', kind: 'time', muscle: 'full_body', equipment: 'bodyweight' },
   { id: 'jump-rope', name: 'Jump Rope', kind: 'time', muscle: 'full_body', equipment: 'other' },
   { id: 'farmers-carry', name: "Farmer's Carry", kind: 'time', muscle: 'full_body', equipment: 'dumbbell' },
-  // Time for a distance — lower is better
-  { id: 'run-400m', name: '400 m Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: 400 },
-  { id: 'run-mile', name: 'Mile Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: METRES_PER_MILE },
-  { id: 'run-5k', name: '5K Run', kind: 'distance', muscle: 'full_body', equipment: 'other', distanceM: 5000 },
-  { id: 'row-2000m', name: '2,000 m Row', kind: 'distance', muscle: 'full_body', equipment: 'machine', distanceM: 2000 },
+  // Cardio. Time for a distance — lower is better
+  { id: 'run-400m', name: '400 m Run', kind: 'distance', muscle: 'cardio', equipment: 'other', distanceM: 400 },
+  { id: 'run-mile', name: 'Mile Run', kind: 'distance', muscle: 'cardio', equipment: 'other', distanceM: METRES_PER_MILE },
+  { id: 'run-5k', name: '5K Run', kind: 'distance', muscle: 'cardio', equipment: 'other', distanceM: 5000 },
+  { id: 'row-2000m', name: '2,000 m Row', kind: 'distance', muscle: 'cardio', equipment: 'machine', distanceM: 2000 },
   // Cardio — minutes, an optional distance, and a zone by VT1 / VT2
-  { id: 'cardio-run', name: 'Run', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
-  { id: 'cardio-walk', name: 'Walk', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
-  { id: 'cardio-hike', name: 'Hike', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
-  { id: 'cardio-cycle', name: 'Cycling', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
-  { id: 'cardio-indoor-bike', name: 'Indoor Bike', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
-  { id: 'cardio-row', name: 'Rowing Machine', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
-  { id: 'cardio-elliptical', name: 'Elliptical', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
-  { id: 'cardio-stairs', name: 'Stair Climber', kind: 'cardio', muscle: 'full_body', equipment: 'machine' },
-  { id: 'cardio-swim', name: 'Swim', kind: 'cardio', muscle: 'full_body', equipment: 'other' },
+  { id: 'cardio-run', name: 'Run', kind: 'cardio', muscle: 'cardio', equipment: 'other' },
+  { id: 'cardio-walk', name: 'Walk', kind: 'cardio', muscle: 'cardio', equipment: 'other' },
+  { id: 'cardio-hike', name: 'Hike', kind: 'cardio', muscle: 'cardio', equipment: 'other' },
+  { id: 'cardio-cycle', name: 'Cycling', kind: 'cardio', muscle: 'cardio', equipment: 'other' },
+  { id: 'cardio-indoor-bike', name: 'Indoor Bike', kind: 'cardio', muscle: 'cardio', equipment: 'machine' },
+  { id: 'cardio-row', name: 'Rowing Machine', kind: 'cardio', muscle: 'cardio', equipment: 'machine' },
+  { id: 'cardio-elliptical', name: 'Elliptical', kind: 'cardio', muscle: 'cardio', equipment: 'machine' },
+  { id: 'cardio-stairs', name: 'Stair Climber', kind: 'cardio', muscle: 'cardio', equipment: 'machine' },
+  { id: 'cardio-swim', name: 'Swim', kind: 'cardio', muscle: 'cardio', equipment: 'other' },
 ];
 
 /**
@@ -96,6 +96,7 @@ export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {
   arms: 'Arms',
   core: 'Core',
   full_body: 'Full body',
+  cardio: 'Cardio',
 };
 
 export const MUSCLE_GROUP_ORDER: MuscleGroup[] = [
@@ -106,6 +107,7 @@ export const MUSCLE_GROUP_ORDER: MuscleGroup[] = [
   'arms',
   'core',
   'full_body',
+  'cardio',
 ];
 
 /** How an exercise is logged, in the words the screens use. */
