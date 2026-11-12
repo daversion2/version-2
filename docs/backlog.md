@@ -510,7 +510,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Explaining override and push: the ⓘ screen and onboarding** *(2026-11-11, not yet seen on screen, not pushed OTA)*
+**Explaining override and push: the ⓘ screen and onboarding** *(2026-11-11, live OTA 88cde86b, not yet seen on screen)*
 The ⓘ (now on the Start sheet and the rating sheet) explains both ratings:
 discipline is two skills, the car analogy (override = the engine turning
 over, push = the accelerator), which way each should move, Meals as the
