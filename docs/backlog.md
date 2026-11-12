@@ -24,7 +24,7 @@ How to use it:
 ## Now
 
 **Check Workouts' Log on screen** *(added 2026-11-11)*
-Built and green in jest, not yet seen running (Maestro needs a yes first, and
+Live (OTA 2ee549fe), not yet seen running (Maestro needs a yes first, and
 a real check needs a real save). On the Workouts page: Log beside Start opens
 "Log to this week" with what you usually log (last time's numbers, Same on the
 top one) and search; a row opens the entry sheet filled in; saving lands on
@@ -510,7 +510,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: Log, beside Start on the Workouts page** *(2026-11-11, not yet seen on screen, not pushed OTA)*
+**Workouts: Log, beside Start on the Workouts page** *(2026-11-11, live OTA 2ee549fe, not yet seen on screen)*
 Logging something already done was nine taps (Workouts → Something else →
 More → This week → + Add → …). Now: Log → pick → Add, then both ratings on
 Today; or Log → Same for a repeat. The sheet leads with the four exercises
