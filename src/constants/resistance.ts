@@ -48,6 +48,71 @@ export const RESISTANCE_LEVELS: ResistanceLevel[] = [
   { value: 3, label: 'Took everything I had', sublabel: 'Nearly didn’t', anchor: 'Nearly didn’t' },
 ];
 
+// =============================================================================
+// TWO RATINGS (2026-11-11). The override above is "how hard was it to START" —
+// getting from a cold stop to going. A session now also gets PUSH: once in
+// motion, how hard did you push yourself? A hard start and an easy workout is
+// a 3 then a 1, and the two say different things, so they are never added.
+//
+// WHEN EACH IS ASKED:
+//   - Started in the app (Workouts, Meditate): the override on the Start
+//     buttons themselves, while the resistance is there to feel; push at the
+//     end. Logs say `override_rated: 'start'`.
+//   - Done it / a past session: both at the end, back to back, the override in
+//     the past tense. `override_rated: 'after'` — a remembered start may read
+//     easier than one rated in the moment, so the two stay tellable apart.
+//   - Meals: no single start, so one rating per logged day, at close:
+//     `day_rating`, kept out of both the override and push lines.
+//
+// "Suck factor" was the working name for push; on screen it is "Push", and
+// every word below can be changed in the copy editor.
+// =============================================================================
+
+/** The override, asked as the session starts — present tense. */
+export const START_LEVELS: ResistanceLevel[] = [
+  { value: 1, label: 'Easy start', sublabel: 'Barely thinking about it', anchor: 'Barely thinking about it' },
+  { value: 2, label: 'Have to push', sublabel: 'Talking myself into it', anchor: 'Talking myself into it' },
+  { value: 3, label: 'Took everything', sublabel: 'Almost talked myself out of it', anchor: 'Almost talked myself out of it' },
+];
+
+/** Which app's words push uses. */
+export type PushApp = 'workouts' | 'meditate';
+
+export const PUSH_QUESTION: Record<PushApp, string> = {
+  workouts: 'How hard did you push?',
+  meditate: 'How hard was it to stay with it?',
+};
+
+/** Push, after the session. For Meditate, pushing is staying with it when your mind pulls away. */
+export const PUSH_LEVELS: Record<PushApp, ResistanceLevel[]> = {
+  workouts: [
+    { value: 1, label: 'Cruised', sublabel: 'Had plenty left', anchor: 'Had plenty left' },
+    { value: 2, label: 'Worked', sublabel: 'Pushed, a little left', anchor: 'Pushed, a little left' },
+    { value: 3, label: 'Emptied the tank', sublabel: 'Nothing left at the end', anchor: 'Nothing left at the end' },
+  ],
+  meditate: [
+    { value: 1, label: 'Settled in', sublabel: 'Mind mostly stayed put', anchor: 'Mind mostly stayed put' },
+    { value: 2, label: 'Kept coming back', sublabel: 'Wandered, I brought it back', anchor: 'Wandered, I brought it back' },
+    { value: 3, label: 'Fought it', sublabel: 'Restless the whole time', anchor: 'Restless the whole time' },
+  ],
+};
+
+export const MEALS_DAY_QUESTION = 'How hard was it to eat this way today?';
+
+/** Meals' one rating a day: the pull of the day's choices, not a start. */
+export const MEALS_DAY_LEVELS: ResistanceLevel[] = [
+  { value: 1, label: 'Didn’t think about it', sublabel: 'An easy day', anchor: 'An easy day' },
+  { value: 2, label: 'Said no a few times', sublabel: 'Some pull, I held', anchor: 'Some pull, I held' },
+  { value: 3, label: 'Fought it all day', sublabel: 'Cravings the whole way', anchor: 'Cravings the whole way' },
+];
+
+/** Where an override came from: rated live at the start, or remembered afterwards. */
+export type OverrideRated = 'start' | 'after';
+
+/** A 1–3 rating, or undefined for anything else. */
+export const asLevel = (value: unknown): 1 | 2 | 3 | undefined =>
+  value === 1 || value === 2 || value === 3 ? value : undefined;
+
 /** Above this, a check-in counts as "challenging" for the legacy binary field. */
 export const CHALLENGING_THRESHOLD = 2;
 

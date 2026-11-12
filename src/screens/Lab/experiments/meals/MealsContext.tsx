@@ -52,11 +52,11 @@ interface MealsContextValue {
 
   closeApp: () => void;
   /**
-   * Close the app and hand the on-target day back to Today, which rates it as
+   * Close the app and hand the closed day back to Today, which rates it as
    * the Meals check-in (services/appCheckins.ts) — for that day, even when the
    * clock has passed midnight since.
    */
-  closeAndCheckOff: (date: string) => void;
+  closeAndCheckOff: (date: string, onTarget: boolean) => void;
 }
 
 const MealsContext = createContext<MealsContextValue | null>(null);
@@ -186,9 +186,9 @@ export const MealsProvider: React.FC<{
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
-    (date: string) => {
+    (date: string, onTarget: boolean) => {
       const forDay = handoffDate(date, new Date());
-      finishSession({ appId: APP, ...(forDay ? { date: forDay } : {}) });
+      finishSession({ appId: APP, onTarget, ...(forDay ? { date: forDay } : {}) });
       // Land on Today, where the rating and the celebration live — from its
       // card or from the Lab alike. One action, so nothing runs from a closed screen.
       rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });

@@ -11,6 +11,7 @@ import {
   clampOnTargetThreshold,
   closeDay,
   closeHandsOff,
+  needsMealsCatchUp,
   handoffDate,
   pickerFoods,
   emptyDay,
@@ -683,10 +684,15 @@ describe('editing a day', () => {
     expect(reopenDay({ ...full, closed_at: at, result: 'off' }).handed_off_at).toBeUndefined();
   });
 
-  it('never hands off an off-target day, and an off close leaves no handoff stamp', () => {
+  it('hands an off-target day to Today too, once (2026-11-11)', () => {
     const full = offDay();
-    expect(closeHandsOff(full, rules())).toBe(false);
-    expect(closeDay(full, rules(), { now: new Date(at) }).handed_off_at).toBeUndefined();
+    expect(closeHandsOff(full, rules())).toBe(true);
+    const closed = closeDay(full, rules(), { now: new Date(at), reasonId: 'ate_out' });
+    expect(closed.result).toBe('off');
+    expect(closed.handed_off_at).toBe(at);
+    const reopened = reopenDay(closed);
+    expect(reopened.handed_off_at).toBe(at);
+    expect(closeHandsOff(reopened, rules())).toBe(false);
   });
 
   it('a day with nothing logged closes neither on nor off, and hands nothing off', () => {
@@ -948,5 +954,22 @@ describe('your own foods', () => {
     const after = archiveCustomGroup(custom, 'custom_carb');
     expect(after).toHaveLength(2);
     expect(activeCustomGroups(after).map((g) => g.id)).toEqual(['custom_bar']);
+  });
+});
+
+describe('needsMealsCatchUp', () => {
+  const day = (over: Partial<MealsDay> = {}): MealsDay => ({ date: '2026-11-10', plates: [plate('eggs')], ...over });
+
+  it('asks for a day with plates that was never handed off or rated', () => {
+    expect(needsMealsCatchUp(day(), false)).toBe(true);
+    // Closed off target before off days were rated: still never rated.
+    expect(needsMealsCatchUp(day({ closed_at: at, result: 'off' }), false)).toBe(true);
+  });
+
+  it('never asks twice, for a rated day, or for a day with nothing on it', () => {
+    expect(needsMealsCatchUp(day({ handed_off_at: at }), false)).toBe(false);
+    expect(needsMealsCatchUp(day(), true)).toBe(false);
+    expect(needsMealsCatchUp(day({ plates: [] }), false)).toBe(false);
+    expect(needsMealsCatchUp(undefined, false)).toBe(false);
   });
 });

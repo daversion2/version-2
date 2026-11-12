@@ -378,6 +378,23 @@ export interface CompletionLog {
    * stored 2 is uninterpretable without knowing which scale produced it.
    */
   resistance_scale?: number;
+  /**
+   * When the override (`resistance`) was given: 'start' = live, on the Start
+   * buttons; 'after' = remembered at the end (Done it, a past session). Absent
+   * on logs from before 2026-11-11, which were all rated at the end.
+   */
+  override_rated?: 'start' | 'after';
+  /**
+   * Push, 1–3: once in motion, how hard did you push? Workouts and Meditate
+   * since 2026-11-11. Never added to `resistance` — see constants/resistance.ts.
+   */
+  push?: number;
+  /**
+   * Meals' one rating a day, 1–3: how hard it was to eat that way. Kept out of
+   * the override and push lines; a log carrying it has no `resistance` and
+   * `difficulty: 0`, so it reads as unrated everywhere the override is read.
+   */
+  day_rating?: number;
   date: string;
   completed_at?: string; // ISO 8601 timestamp
   notes?: string; // Optional notes for this completion — the free-text "I did XYZ"
@@ -547,6 +564,12 @@ export interface PracticeCompletionInput {
   logged_via?: 'quick' | 'capture';
   /** `metrics` came from the habit's commitment, not from the user typing it. */
   metrics_assumed?: boolean;
+  /** When `resistance` was given — see CompletionLog.override_rated. */
+  override_rated?: 'start' | 'after';
+  /** Push, 1–3 — see CompletionLog.push. */
+  push?: number;
+  /** Meals' daily rating, 1–3, in place of `resistance` — see CompletionLog.day_rating. */
+  day_rating?: number;
 }
 
 // =============================================================================

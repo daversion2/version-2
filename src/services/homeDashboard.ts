@@ -3,7 +3,7 @@ import type { CompletedMeditateSession, MeditateMode } from '../types/meditate';
 import type { CompletedWorkoutSession, Exercise, TrainingPhase, WeightUnit } from '../types/workouts';
 import type { BuiltInGroupId, FoodGroupId, MealsDay, MealsRules } from '../types/meals';
 import { FOOD_GROUPS } from '../data/mealGroups';
-import { logResistance, RESISTANCE_MAX } from '../constants/resistance';
+import { asLevel, logResistance, RESISTANCE_MAX } from '../constants/resistance';
 import { chipScore, isSettled, platesOf, rulesForDay, scoreDay } from './mealsMath';
 import { bestSetTrend, describeTrend, lowerIsBetter } from './workoutStats';
 import { phaseWeek } from './trainingPhases';
@@ -468,17 +468,38 @@ export interface FrictionSummary {
 
 const average = (xs: number[]): number | null => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
-/** "How hard was it to start?" for one app, from its `app:<id>` check-ins. */
-export const appFriction = (logs: CompletionLog[], appId: TodayAppId, today: string): FrictionSummary => {
+/** One rating's average for an app this window and the one before, from its `app:<id>` check-ins. */
+const appRating = (
+  logs: CompletionLog[],
+  appId: TodayAppId,
+  today: string,
+  read: (log: CompletionLog) => number | undefined
+): FrictionSummary => {
   const ref = appCheckinId(appId);
   const rated = (offset: number) =>
     logs
       .filter((l) => l.reference_id === ref && inWindow(l.date, today, offset))
-      .map((l) => logResistance(l))
+      .map(read)
       .filter((v): v is number => typeof v === 'number');
   const current = rated(0);
   return { avg: average(current), priorAvg: average(rated(1)), count: current.length };
 };
+
+/** "How hard was it to start?" for one app. */
+export const appFriction = (logs: CompletionLog[], appId: TodayAppId, today: string): FrictionSummary =>
+  appRating(logs, appId, today, logResistance);
+
+/** Push — "How hard did you push?" — for Workouts or Meditate (since 2026-11-11). */
+export const appPush = (logs: CompletionLog[], appId: TodayAppId, today: string): FrictionSummary =>
+  appRating(logs, appId, today, (l) => asLevel(l.push));
+
+/**
+ * Meals' one rating a day. Before 2026-11-11 a Meals day was rated in
+ * `resistance` ("how hard was it to start?"), the nearest thing it had, so
+ * those older logs read through as the day's rating.
+ */
+export const mealsDayRating = (logs: CompletionLog[], today: string): FrictionSummary =>
+  appRating(logs, 'meals', today, (l) => asLevel(l.day_rating) ?? logResistance(l));
 
 /** The level an average sits nearest, in words a person would use. */
 export const frictionWord = (avg: number): string => {
@@ -636,7 +657,10 @@ export interface HomeDashboard {
   meditate: MeditateDashboard;
   workouts: WorkoutsDashboard;
   meals: MealsDashboard;
+  /** The override per app. Meals' falls away as its days move to `mealsDay`. */
   friction: Record<TodayAppId, FrictionSummary>;
+  push: Record<'meditate' | 'workouts', FrictionSummary>;
+  mealsDay: FrictionSummary;
   rings: AppProgress[];
   combinedStreak: number;
   insight: string | null;
@@ -673,6 +697,11 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
     workouts: appFriction(input.logs, 'workouts', today),
     meals: appFriction(input.logs, 'meals', today),
   };
+  const push = {
+    meditate: appPush(input.logs, 'meditate', today),
+    workouts: appPush(input.logs, 'workouts', today),
+  };
+  const mealsDay = mealsDayRating(input.logs, today);
   const rings = [
     progressOf('meditate', meditate.sessions, meditate.goal),
     progressOf('workouts', workouts.sessions, workouts.goal),
@@ -713,6 +742,8 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
     workouts,
     meals,
     friction,
+    push,
+    mealsDay,
     rings,
     combinedStreak: dayStreak(everyDay, today),
     insight: describeInsight(rings, friction),

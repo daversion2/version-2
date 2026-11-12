@@ -366,6 +366,12 @@ export interface CompletionExtras {
   sessionId?: string;
   /** Write the log under this id instead of a new one (see appRatingLogId). */
   logId?: string;
+  /** When `resistance` was given: live at the start, or afterwards. */
+  overrideRated?: 'start' | 'after';
+  /** Push, 1–3: how hard they pushed once going. */
+  push?: number;
+  /** Meals' daily rating, 1–3. Without a `resistance` the log is written unrated (difficulty 0). */
+  dayRating?: number;
 }
 
 /**
@@ -393,7 +399,10 @@ export const logHabitCompletion = async (
   notes?: string,
   extras?: CompletionExtras,
 ) => {
-  const points = difficulty === 'easy' ? 1 : 2;
+  // A Meals day rating stands in for the override: the log carries it, and
+  // difficulty 0 keeps it out of everything that reads the override.
+  const dayOnly = typeof extras?.dayRating === 'number' && typeof extras?.resistance !== 'number';
+  const points = dayOnly ? extras!.dayRating! : difficulty === 'easy' ? 1 : 2;
   const now = new Date();
   const logDate = date || toLocalDateString(now);
 
@@ -402,7 +411,7 @@ export const logHabitCompletion = async (
     type: 'nudge',
     reference_id: habitId,
     points,
-    difficulty: points,
+    difficulty: dayOnly ? 0 : points,
     date: logDate,
     completed_at: now.toISOString(), // Actual time logged
   };
@@ -437,6 +446,9 @@ export const logHabitCompletion = async (
   }
   if (extras?.appId) logData.app_id = extras.appId;
   if (extras?.sessionId) logData.session_id = extras.sessionId;
+  if (typeof extras?.resistance === 'number' && extras.overrideRated) logData.override_rated = extras.overrideRated;
+  if (typeof extras?.push === 'number') logData.push = extras.push;
+  if (dayOnly) logData.day_rating = extras!.dayRating;
 
   let logId: string;
   if (extras?.logId) {
@@ -556,7 +568,7 @@ export const completePractice = async (
   input: PracticeCompletionInput,
   link?: Pick<CompletionExtras, 'appId' | 'sessionId'>,
 ): Promise<CompletePracticeResult> => {
-  const { difficulty, resistance, notes, metrics, hitHardMoment, tactics, reflection, mindTags } =
+  const { difficulty, resistance, notes, metrics, hitHardMoment, tactics, reflection, mindTags, push, override_rated, day_rating } =
     input;
   const today = getTodayString();
   const date = input.date || today;
@@ -567,9 +579,11 @@ export const completePractice = async (
   const pointsEarned =
     typeof resistance === 'number'
       ? normalizeResistance(resistance, RESISTANCE_SCALE)
-      : difficulty === 'easy'
-        ? 1
-        : 2;
+      : typeof day_rating === 'number'
+        ? normalizeResistance(day_rating, RESISTANCE_SCALE)
+        : difficulty === 'easy'
+          ? 1
+          : 2;
 
   // An app session's rating has a fixed id. If it's already there, an earlier
   // try got through and only its reply was lost: report it, award nothing again.
@@ -614,6 +628,9 @@ export const completePractice = async (
     mindTags,
     ...link,
     ...(fixedId ? { logId: fixedId } : {}),
+    ...(override_rated ? { overrideRated: override_rated } : {}),
+    ...(typeof push === 'number' ? { push } : {}),
+    ...(typeof day_rating === 'number' ? { dayRating: day_rating } : {}),
   });
 
   // From here the rating is saved, so nothing below may throw: a failure

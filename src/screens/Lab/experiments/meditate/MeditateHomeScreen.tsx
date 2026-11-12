@@ -43,6 +43,7 @@ import { PastSessionSheet } from '../../../../components/miniapps/PastSessionShe
 import { newMeditateId, saveMeditateSession } from '../../../../services/labMeditate';
 import { remainingSec } from '../../../../services/sessionTimer';
 import { withTimeout } from '../../../../utils/withTimeout';
+import { useOverrideStart } from '../../../../components/checkin/OverrideStartSheet';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateHome'>;
 
@@ -73,6 +74,8 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     recordFinished,
     closeAndCheckOff,
   } = useMeditate();
+  // Begin asks the override first; its answer is what starts the session.
+  const overrideStart = useOverrideStart('Meditate', MEDITATE_ACCENT);
   // A sit done without the app, or forgotten: credit only comes through the
   // app, so it's entered here — saved to history, then rated on Today.
   const [loggingPast, setLoggingPast] = useState(false);
@@ -218,7 +221,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
       session?.endedAt ? 'MeditateDone' : session?.style === 'guided' ? 'MeditateGuided' : 'MeditateSession',
     );
 
-  const start = async () => {
+  const start = async (override: number) => {
     if (needsLink) return;
     setStarting(true);
     try {
@@ -231,6 +234,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         nsdrLink: mode === 'nsdr' && !recording ? nsdrLink : undefined,
         guided: recording,
         calmBefore,
+        override,
       });
       setCalmBefore(undefined);
       if (recording) {
@@ -253,14 +257,17 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
 
   /** Starting while a session is saved asks first — never silently throws it away. */
   const onBegin = () => {
-    if (!session) return start();
+    if (needsLink) return;
+    // The override first; its answer is what starts the session.
+    const go = () => overrideStart.ask((override) => start(override));
+    if (!session) return go();
     showChoice('A session is still open', 'Pick it back up, or throw it away and start this one?', [
       { label: 'Resume it', onPress: resume },
       {
         label: 'Discard and start',
         onPress: async () => {
           await discardSession();
-          start();
+          go();
         },
       },
     ]);
@@ -297,8 +304,8 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             )}
             <Text style={styles.introLine}>
-              • Finish, and it hands back to Today to rate your override: how hard was it to start? It counts toward
-              your week.
+              • Begin asks how hard it is to start. Finish asks how hard it was to stay with it. It counts toward your
+              week.
             </Text>
             <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
               <Text style={ms.link}>Got it</Text>
@@ -503,6 +510,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         onCancel={() => !savingPast && setLoggingPast(false)}
         onSave={logPast}
       />
+      {overrideStart.sheet}
 
       <View style={[ms.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity

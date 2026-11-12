@@ -471,3 +471,20 @@ describe('pastSession ranges', () => {
     expect(at('sit', 12)).toBe(12);
   });
 });
+
+describe('the override tapped on Start', () => {
+  const start = new Date('2026-11-11T07:00:00.000Z');
+
+  it('rides from the session to the saved sit', () => {
+    const s = startSession({ id: 'x', mode: 'sit', minutes: 10, now: start, override: 2 });
+    expect(s.override).toBe(2);
+    const done = toCompletedSession(s, new Date(start.getTime() + 600_000));
+    expect(done.override).toBe(2);
+  });
+
+  it('is left off without one', () => {
+    const s = startSession({ id: 'x', mode: 'sit', minutes: 10, now: start });
+    expect('override' in s).toBe(false);
+    expect('override' in toCompletedSession(s, new Date(start.getTime() + 600_000))).toBe(false);
+  });
+});

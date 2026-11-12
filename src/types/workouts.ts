@@ -178,6 +178,8 @@ export interface WorkoutSession {
   saveTimedOutAt?: string;
   /** "Done it": filled in after the fact as prescribed, not run live (fillAsPrescribed). */
   loggedAfter?: true;
+  /** The override, 1–3, tapped on Start. Absent on Done it, which asks it at the end. */
+  override?: number;
 }
 
 export interface ExerciseRecord {
@@ -219,6 +221,8 @@ export interface CompletedWorkoutSession {
   phase_id?: string;
   /** Logged with "Done it" after the fact rather than run live in the app. */
   logged_after?: true;
+  /** The override, 1–3, tapped on Start. Absent when it was rated afterwards. */
+  override?: number;
   /** Seeded by Admin → demo data; removed when demo mode is turned off. */
   is_demo?: boolean;
   /**

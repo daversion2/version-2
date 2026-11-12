@@ -17,6 +17,7 @@ import { showChoice } from '../../../../utils/alert';
 import { useWorkouts } from './WorkoutsContext';
 import { lastDoneLabel } from './WorkoutsHomeScreen';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
+import { useOverrideStart } from '../../../../components/checkin/OverrideStartSheet';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutPreview'>;
 
@@ -24,6 +25,8 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
   const insets = useSafeAreaInsets();
   const { loading, workouts, exercise, exercisesById, prefs, sessions, session, beginSession, discardSession } = useWorkouts();
   const workout = workouts.find((w) => w.id === route.params.workoutId);
+  // Start asks the override; its answer is what starts the workout.
+  const overrideStart = useOverrideStart('Workouts', WORKOUTS_ACCENT);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -59,10 +62,11 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
   const empty = workout.blocks.length === 0;
 
   const start = () => {
-    const go = () => {
-      beginSession(workout);
-      navigation.navigate('WorkoutSession');
-    };
+    const go = () =>
+      overrideStart.ask((override) => {
+        beginSession(workout, override);
+        navigation.navigate('WorkoutSession');
+      });
     if (!session) return go();
     showChoice(`${session.workoutName} is still in progress`, 'Resume it, or discard it and start this one?', [
       { label: 'Resume it', onPress: () => navigation.navigate(session.phase === 'summary' ? 'WorkoutSummary' : 'WorkoutSession') },
@@ -146,6 +150,7 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
           <Text style={ws.primaryBtnText}>Do it</Text>
         </TouchableOpacity>
       </View>
+      {overrideStart.sheet}
     </View>
   );
 };

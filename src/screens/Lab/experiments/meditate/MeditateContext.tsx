@@ -14,6 +14,7 @@ import {
 } from '../../../../services/labMeditate';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../../services/miniAppDrafts';
 import { finishSession } from '../../../../services/miniApps';
+import { recordAbandonedStart } from '../../../../services/overrideStarts';
 import { toLocalDateString } from '../../../../utils/date';
 import { getActiveHabits } from '../../../../services/practices';
 import { checkinChoices, endSession, startSession } from '../../../../services/meditateMath';
@@ -268,6 +269,8 @@ export const MeditateProvider: React.FC<{
 
   const discardSession = useCallback(async () => {
     cancelBell(sessionRef.current?.bellId);
+    // Started, then thrown away: the start still happened (services/overrideStarts.ts).
+    recordAbandonedStart(userId, APP, sessionRef.current);
     sessionRef.current = null;
     setSession(null);
     await clearSessionDraft(APP, userId);
@@ -293,6 +296,8 @@ export const MeditateProvider: React.FC<{
         choices: checkinChoices(completed),
         mode: completed.mode,
         sessionId: completed.id,
+        // Tapped on Start; a past session has none, so Today asks it before push.
+        ...(completed.override ? { override: completed.override } : {}),
         ...(completed.date !== toLocalDateString(new Date()) ? { date: completed.date } : {}),
       });
       // Land on Today, where the rating and the celebration live — from its

@@ -777,3 +777,16 @@ describe('Done it: logging a workout after the fact', () => {
     expect(estimateWorkoutMinutes(huge, EXERCISES)).toBe(180);
   });
 });
+
+describe('the override tapped on Start', () => {
+  it('rides from the session to the saved workout', () => {
+    const s = startSession({ id: 's', workout: WORKOUT, override: 3, now: T0 });
+    expect(s.override).toBe(3);
+    expect(toCompletedSession(s, { now: at(600), prs: [], exercisesById: EXERCISES }).override).toBe(3);
+  });
+
+  it('is left off when there is none, or it is not a level', () => {
+    expect('override' in startSession({ id: 's', workout: WORKOUT, now: T0 })).toBe(false);
+    expect('override' in startSession({ id: 's', workout: WORKOUT, override: 5, now: T0 })).toBe(false);
+  });
+});

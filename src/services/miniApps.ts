@@ -105,6 +105,14 @@ export interface SessionHandoff {
    * used, so a mini-app serving several habits can't prefill nonsense.
    */
   choices?: Record<string, string>;
+  /**
+   * The override, 1–3, when it was tapped on the app's Start (constants/
+   * resistance.ts, "TWO RATINGS"). Absent = Done it or a past session, so
+   * Today asks it at the end, before push.
+   */
+  override?: number;
+  /** Meals: whether the day closed on target, for the line said back. */
+  onTarget?: boolean;
 }
 
 // In memory on purpose: the handoff lives for one navigation — the mini-app

@@ -698,17 +698,30 @@ const resultOf = (status: DayStatus): MealsDay['result'] =>
   status === 'on' ? 'on' : status === 'none' ? undefined : 'off';
 
 /**
- * Does closing this day now hand it to Today for its rating? Only an on-target
- * day, and only once per date: a day reopened and closed again was already
- * rated, so the rating (and its XP) can't be earned twice.
+ * Does closing this day now hand it to Today for its rating? Any day with
+ * plates, on target or off — since 2026-11-11 an off-target day is rated too,
+ * because the days you fought for and missed are the ones worth knowing about
+ * (constants/resistance.ts, "TWO RATINGS"). Only once per date: a day reopened
+ * and closed again was already rated, so the rating (and its XP) can't be
+ * earned twice.
  */
-export const closeHandsOff = (day: MealsDay, rules: MealsRules): boolean =>
-  scoreDay(day, rules, true).status === 'on' && !day.handed_off_at;
+export const closeHandsOff = (day: MealsDay, rules: MealsRules): boolean => {
+  const status = scoreDay(day, rules, true).status;
+  return (status === 'on' || status === 'off') && !day.handed_off_at;
+};
+
+/**
+ * A day nobody closed settles at midnight with no rating. Today asks for it
+ * once, the next time it opens: the day had plates, was never handed off, and
+ * has no Meals rating yet (`alreadyRated`, from the logs).
+ */
+export const needsMealsCatchUp = (day: MealsDay | undefined, alreadyRated: boolean): boolean =>
+  !!day && platesOf(day).length > 0 && !day.handed_off_at && !alreadyRated;
 
 /**
  * Close the day under the rules it was scored by. Its result is final: 'on' or
- * 'off', never "in progress" — or none at all for a day with no plates. An
- * on-target close not yet handed off is stamped `handed_off_at`; see
+ * 'off', never "in progress" — or none at all for a day with no plates. A
+ * close with plates not yet handed off is stamped `handed_off_at`; see
  * closeHandsOff. A day nobody closes settles at midnight without this.
  */
 export const closeDay = (

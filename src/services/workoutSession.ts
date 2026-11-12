@@ -1,3 +1,4 @@
+import { asLevel } from '../constants/resistance';
 import {
   BlockItem,
   CompletedWorkoutSession,
@@ -87,6 +88,8 @@ export const startSession = (opts: {
   phaseId?: string;
   /** The unit weights are entered in — kept with the draft (see WorkoutSession.unit). */
   unit?: WeightUnit;
+  /** The override tapped on Start, 1–3. */
+  override?: number;
   now: Date;
 }): WorkoutSession => ({
   id: opts.id,
@@ -95,6 +98,7 @@ export const startSession = (opts: {
   ...(opts.habitId ? { habitId: opts.habitId } : {}),
   ...(opts.phaseId ? { phaseId: opts.phaseId } : {}),
   ...(opts.unit ? { unit: opts.unit } : {}),
+  ...(asLevel(opts.override) ? { override: opts.override } : {}),
   startedAt: opts.now.toISOString(),
   blocks: (opts.workout?.blocks ?? []).map((b) => toSessionBlock(b)),
   cursor: 0,
@@ -701,6 +705,7 @@ export const toCompletedSession = (
   ...(session.habitId ? { habit_id: session.habitId } : {}),
   ...(session.phaseId ? { phase_id: session.phaseId } : {}),
   ...(session.loggedAfter ? { logged_after: true as const } : {}),
+  ...(asLevel(session.override) ? { override: session.override } : {}),
   started_at: session.startedAt,
   // Finish's time, not the save's: a save retried tomorrow is still today's workout.
   finished_at: (session.endedAt ? new Date(session.endedAt) : sessionEndAt(session, opts.now)).toISOString(),

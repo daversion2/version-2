@@ -23,6 +23,16 @@ How to use it:
 
 ## Now
 
+**Check the two ratings on screen** *(added 2026-11-11)*
+Built and green in jest, not yet seen running (Maestro needs a yes first).
+Look at: every Start in Workouts (Up next, a workout's Do it, Empty workout)
+and Meditate's Begin opening "How hard is it to start?", with the answer
+starting the session; Finish asking only push; Done it and a past session
+asking both, back to back, with "Change" going back; a discarded session
+writing `overrideStarts`; closing an off-target Meals day asking "How hard
+was it to eat this way today?"; yesterday's unclosed Meals day asked once on
+the next open; the Push and Eating well chips on Home and the app pages.
+
 **Work through `docs/launch-review.md`** *(added 2026-11-02)*
 The app-wide launch review fixed everything small (see Done). What's left is
 there, most important first: deploy rules, functions and hosting; **Sign in
@@ -333,6 +343,25 @@ removed, the Library tab is removed.
 Came up while reviewing Meditate/Workouts/Meals feature-by-feature. Both are
 bigger, not yet scoped — discuss before building either.
 
+- **Two ratings: what's left** *(added 2026-11-11)*. Follow-ups to the
+  override-on-Start + push change (see Done):
+  - **Name for push.** "Suck factor" was the working name; the screen says
+    "Push". All the words are copy keys (`start.override.*`,
+    `today.rate.*`) and the level wording is in `constants/resistance.ts`.
+  - **Push on Progress.** The friction chart is still override-only. Push
+    should be its own line (it should hold up or rise while the override
+    falls), never added to the override.
+  - **XP.** Still equal to the override. Options: follow push (rewards
+    choosing hard work) or flat per session (can't be gamed).
+  - **Where Meals' day rating goes.** Saved as `day_rating` and kept out of
+    both lines for now; decide whether it joins push.
+  - **Use the discarded starts.** `users/{uid}/overrideStarts` is written but
+    nothing reads it yet.
+  - **"Heading out now".** A one-tap live override for people who don't run
+    the session in the app, logged with Done it later.
+  - **Rated live vs after.** Once there's data, check whether
+    `override_rated: 'after'` ratings skew easier, and weigh them if so.
+
 - **Surface streaks more clearly on Progress.** Streaks stay owned by
   Progress, not duplicated inside each mini-app (decided when discussing a
   per-app streak counter for Meditate) — but Progress itself likely needs a
@@ -472,6 +501,20 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Two ratings: the override on Start, push at Finish** *(2026-11-11, not yet seen on screen, not pushed OTA)*
+Workouts and Meditate ask "How hard is it to start?" on every Start, and the
+answer starts the session (`components/checkin/OverrideStartSheet`); the
+override rides on the session to Finish, where Today's sheet asks only push
+("How hard did you push?" / "How hard was it to stay with it?"). Done it
+and past sessions ask both, back to back. Logs carry `push` and
+`override_rated` ('start' / 'after'). A session discarded after Start keeps
+its override in `overrideStarts`. Meals: one rating per logged day, on
+target or off, saved as `day_rating` (out of the override and push lines);
+a day nobody closed is asked once on the next open. Home and the app pages
+show Push and Eating well. The classic-look QuickLogSheet is gone; both
+looks use RateSheet. Logic in `services/checkinRating.ts`,
+`services/overrideStarts.ts`, `overrideEcho.pairEcho`, tested.
 
 **Workouts: cardio, by VT1 / VT2** *(2026-11-08, live OTA 87038f09, not yet seen on screen)*
 A new `cardio` exercise type: minutes, an optional distance (miles for lb,

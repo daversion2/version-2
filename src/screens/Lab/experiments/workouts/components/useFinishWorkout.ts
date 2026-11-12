@@ -102,7 +102,8 @@ export const useFinishWorkout = () => {
     recordFinished({ completed, records: toSave, workout: toWrite });
     // A session finished (or logged) for another day is rated as that day's.
     const day = toLocalDateString(new Date(completed.finished_at));
-    closeAndCheckOff(completed.duration_sec, day !== toLocalDateString(now) ? day : undefined, completed.id);
+    // Started live, the override was tapped on Start; Done it has none, so Today asks it.
+    closeAndCheckOff(completed.duration_sec, day !== toLocalDateString(now) ? day : undefined, completed.id, completed.override);
   };
 
   return { saving, finish };

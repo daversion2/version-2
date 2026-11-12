@@ -16,6 +16,7 @@ import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { isRetestDue, nextProgramWorkout, phaseSessions } from '../../../../services/trainingPhases';
 import { upNextWorkout } from '../../../../services/workoutUpNext';
 import { PhaseStatusCard } from './components/PhaseParts';
+import { useOverrideStart } from '../../../../components/checkin/OverrideStartSheet';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
@@ -49,6 +50,8 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
     sessions,
   } = useWorkouts();
   const today = toLocalDateString(new Date());
+  // Every Start asks the override first; its answer is what starts the workout.
+  const overrideStart = useOverrideStart('Workouts', WORKOUTS_ACCENT);
   const nextInPhase = currentPhase ? nextProgramWorkout(currentPhase, workouts, sessions) : undefined;
   // Outside a phase, the next workout in rotation gets its own card — not while one's in progress.
   const upNext = !currentPhase && !session ? upNextWorkout({ workouts, sessions, today }) : undefined;
@@ -112,16 +115,20 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const startEmpty = () =>
-    guardStart(() => {
-      beginSession();
-      navigation.navigate('WorkoutSession');
-    });
+    guardStart(() =>
+      overrideStart.ask((override) => {
+        beginSession(undefined, override);
+        navigation.navigate('WorkoutSession');
+      })
+    );
 
   const startWorkout = (workout: Workout) =>
-    guardStart(() => {
-      beginSession(workout);
-      navigation.navigate('WorkoutSession');
-    });
+    guardStart(() =>
+      overrideStart.ask((override) => {
+        beginSession(workout, override);
+        navigation.navigate('WorkoutSession');
+      })
+    );
 
   // Opened from the Workouts page's Start: go on to what it named, once. A
   // resume or phase test waits for the draft or the phase to load; if it
@@ -162,8 +169,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={ws.body}>• Pick a workout — or build one from exercises and circuits.</Text>
           <Text style={ws.body}>• Log each set as you go; the rest timer starts on its own.</Text>
           <Text style={ws.body}>
-            • Finish, and it hands back to Today to rate your override: how hard was it to start? It counts toward
-            your week.
+            • Start asks how hard it is to start. Finish asks how hard you pushed. It counts toward your week.
           </Text>
           <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
             <Text style={ws.link}>Got it</Text>
@@ -283,6 +289,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress={() => navigation.navigate('WorkoutMore')}
         />
       </ListGroup>
+      {overrideStart.sheet}
     </ScrollView>
   );
 };

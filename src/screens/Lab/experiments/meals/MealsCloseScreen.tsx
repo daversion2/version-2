@@ -23,13 +23,13 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
 
 /**
  * Close out today, on what's logged so far. A day nobody closes closes on its
- * own at midnight, without the rating or the "why". The result:
- *   - On target: hand it back to Today, which asks for the override ("How hard
- *     was it to start?") and runs the celebration. Meals never awards XP.
- *     Only the first on-target close of a day does this: reopened and closed
- *     again, it was already rated (closeHandsOff).
- *   - Off target: one optional "what got in the way?" — then it's closed. No
- *     check-in is written; the meals still count toward the week.
+ * own at midnight, without the "why" — Today asks its rating the next time it
+ * opens (mealsMath.needsMealsCatchUp). The result:
+ *   - On target or off: hand it back to Today, which asks the day's one rating
+ *     ("How hard was it to eat this way today?") and runs the celebration. Off
+ *     target first gets an optional "what got in the way?". Only the first
+ *     close of a day hands off: reopened and closed again, it was already
+ *     rated (closeHandsOff).
  *   - Nothing logged: nothing to score, so it closes neither on nor off.
  */
 export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
@@ -65,7 +65,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     saveDay(closed);
-    if (handsOff) closeAndCheckOff(closed.date);
+    if (handsOff) closeAndCheckOff(closed.date, on);
     else navigation.goBack();
   };
 
@@ -126,13 +126,14 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           </ListGroup>
         )}
 
-        {on ? (
+        {!none && (
           <Text style={mls.lead}>
             {handsOff
-              ? 'Close the day, then rate your override on Today: how hard was it to start?'
+              ? 'Close the day, then rate it on Today: how hard was it to eat this way?'
               : 'You’ve already rated today. Closing it again just saves your changes.'}
           </Text>
-        ) : none ? null : (
+        )}
+        {on || none ? null : (
           <>
             <Text style={mls.sectionLabel}>What got in the way? (optional)</Text>
             {(['internal', 'external'] as const).map((kind) => (

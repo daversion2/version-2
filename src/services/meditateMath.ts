@@ -10,6 +10,7 @@ import {
   SitTechnique,
 } from '../types/meditate';
 import { getWeekStart, toLocalDateString } from '../utils/date';
+import { asLevel } from '../constants/resistance';
 import { isDue, loggedSec } from './sessionTimer';
 
 // =============================================================================
@@ -215,6 +216,8 @@ export const startSession = (input: {
   habitId?: string;
   /** The start screen's optional "How calm do you feel?" (1–5). */
   calmBefore?: number;
+  /** The override tapped on Start, 1–3. */
+  override?: number;
 }): MeditateSession => {
   const { id, mode, minutes, now, habitId, guided } = input;
   const session: MeditateSession = {
@@ -236,6 +239,7 @@ export const startSession = (input: {
   }
   if (habitId) session.habitId = habitId;
   if (isCalm(input.calmBefore)) session.calmBefore = input.calmBefore;
+  if (asLevel(input.override)) session.override = input.override;
   return session;
 };
 
@@ -312,6 +316,7 @@ export const toCompletedSession = (
   if (ended.habitId) completed.habit_id = ended.habitId;
   if (isCalm(ended.calmBefore)) completed.calm_before = ended.calmBefore;
   if (isCalm(calmAfter)) completed.calm_after = calmAfter;
+  if (asLevel(ended.override)) completed.override = ended.override;
   return completed;
 };
 

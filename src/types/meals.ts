@@ -206,8 +206,9 @@ export interface MealsDay {
   /** The habit an on-target close checked off. */
   habit_id?: string;
   /**
-   * When an on-target close handed this day to Today for its rating. Set once
-   * and kept through a reopen, so a day is only ever rated once.
+   * When this day was handed to Today for its rating — a close (on target or
+   * off, since 2026-11-11), or Today's next-day catch-up for a day nobody
+   * closed. Set once and kept through a reopen, so a day is only ever rated once.
    */
   handed_off_at?: string;
 }

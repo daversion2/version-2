@@ -107,3 +107,47 @@ export const overrideEcho = (args: {
   const lines = LEVEL_LINES[level];
   return lines[args.history.length % lines.length];
 };
+
+// --- Two ratings, read together (2026-11-11) ------------------------------------
+//
+// A session now carries the override AND push (constants/resistance.ts). The
+// pair says more than either: a 3 then a 1 is "getting there was the win", a 1
+// then a 3 is effort put where it counts. The override trend still wins when
+// it's true — falling starts are the payoff the product promises.
+
+/** The line for a session rated on both. */
+export const pairEcho = (args: {
+  override: number;
+  push: number;
+  appName: string;
+  history: RatedDay[];
+  date: string;
+  today: string;
+}): string => {
+  const override = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(args.override)));
+  const push = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(args.push)));
+  const trend = overrideTrend(args.history, { date: args.date, resistance: override }, args.today);
+  if (trend && trend.first - trend.recent >= MEANINGFUL_RESISTANCE_CHANGE) {
+    return `Your ${args.appName} override: ${oneDecimal(trend.first)} of ${RESISTANCE_MAX} your first two weeks, ${oneDecimal(trend.recent)} this week.`;
+  }
+  if (override === 3 && push === 3) return 'Nearly didn’t start, then gave it everything. That’s the whole point.';
+  const hardStart = override >= 2;
+  const pushed = push >= 2;
+  if (hardStart && pushed) return 'Hard to start, and you still pushed once you were in. Both muscles, one session.';
+  if (hardStart) return 'Getting started was the win today. Next time, see if you can push once you’re going.';
+  if (pushed) return 'Easy start, real effort. When starting stops costing much, this is where the work goes.';
+  return 'Easy in, easy through. Fine for a recovery day. Raise the bar when you’re ready.';
+};
+
+/** The line for a Meals day's rating. An off-target day is still a day you showed up for. */
+export const mealsDayEcho = (rating: number, onTarget?: boolean): string => {
+  const level = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(rating)));
+  if (onTarget === false) {
+    return level >= 2
+      ? 'Off target, but you fought for it. A hard day you showed up for still counts.'
+      : 'Off target without much of a fight. Worth a look at what made it easy to drift.';
+  }
+  if (level === 3) return 'A day full of pull, and you held. That’s the hard version, done.';
+  if (level === 2) return 'You said no when it mattered.';
+  return 'An easy day of eating well. That’s it settling in.';
+};

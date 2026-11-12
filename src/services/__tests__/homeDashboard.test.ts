@@ -1,6 +1,8 @@
 import {
   addDays,
   appFriction,
+  appPush,
+  mealsDayRating,
   buildHomeDashboard,
   countServings,
   dayStreak,
@@ -661,5 +663,26 @@ describe('the user doc', () => {
       sessions_completed: 10,
       apps_tried: 2,
     });
+  });
+});
+
+describe('push and the Meals day rating', () => {
+  const withPush = (date: string, push: number): CompletionLog =>
+    ({ ...log('app:workouts', date, 2), id: `p-${date}`, push }) as CompletionLog;
+
+  it('averages push on its own, never mixed with the override', () => {
+    const logs = [withPush('2026-10-24', 3), withPush('2026-10-22', 2), withPush('2026-10-15', 1)];
+    const p = appPush(logs, 'workouts', TODAY);
+    expect(p.avg).toBeCloseTo(2.5);
+    expect(p.priorAvg).toBe(1);
+    expect(appFriction(logs, 'workouts', TODAY).avg).toBe(2);
+  });
+
+  it('reads a Meals day from day_rating, and older Meals logs from resistance', () => {
+    const dayRated = { ...log('app:meals', '2026-10-24', undefined), id: 'm1', day_rating: 3 } as CompletionLog;
+    const legacy = log('app:meals', '2026-10-23', 1);
+    expect(mealsDayRating([dayRated, legacy], TODAY).avg).toBe(2);
+    // The day rating stays out of the override.
+    expect(appFriction([dayRated], 'meals', TODAY).avg).toBeNull();
   });
 });

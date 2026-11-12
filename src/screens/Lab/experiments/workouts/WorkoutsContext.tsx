@@ -41,6 +41,7 @@ import {
 } from '../../../../services/labWorkouts';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../../services/miniAppDrafts';
 import { finishSession } from '../../../../services/miniApps';
+import { recordAbandonedStart } from '../../../../services/overrideStarts';
 import { getActiveHabits } from '../../../../services/practices';
 import { makeId, startSession } from '../../../../services/workoutSession';
 import {
@@ -139,7 +140,8 @@ interface WorkoutsContextValue {
 
   session: WorkoutSession | null;
   updateSession: (next: WorkoutSession) => void;
-  beginSession: (workout?: Workout) => WorkoutSession;
+  /** `override` is the 1–3 tapped on Start (components/checkin/OverrideStartSheet). */
+  beginSession: (workout?: Workout, override?: number) => WorkoutSession;
   /** A fresh session for `workout`, phase and light week applied, not made the current one (Done it). */
   buildSession: (workout: Workout) => WorkoutSession;
   discardSession: () => Promise<void>;
@@ -167,7 +169,8 @@ interface WorkoutsContextValue {
    * Workouts check-in (services/appCheckins.ts). `date` for a past session.
    */
   /** `sessionId`: the saved session, for a finished workout; absent for a past session. */
-  closeAndCheckOff: (durationSec: number, date?: string, sessionId?: string) => void;
+  /** `override`: the one tapped on Start; absent = Today asks it before push. */
+  closeAndCheckOff: (durationSec: number, date?: string, sessionId?: string, override?: number) => void;
 }
 
 const WorkoutsContext = createContext<WorkoutsContextValue | null>(null);
@@ -451,7 +454,7 @@ export const WorkoutsProvider: React.FC<{
   // A program workout started while its phase is training counts toward
   // that phase, from wherever it was started — and runs light in a light week.
   const buildSession = useCallback(
-    (workout?: Workout) => {
+    (workout?: Workout, override?: number) => {
       const now = new Date();
       const phase =
         workout && currentPhase?.status === 'training' && currentPhase.workout_ids.includes(workout.id)
@@ -465,6 +468,7 @@ export const WorkoutsProvider: React.FC<{
         phaseId: phase?.id,
         // Only a unit that loaded; otherwise screens fall back to prefs once they do.
         unit: loadedRef.current ? prefsRef.current.unit : undefined,
+        override,
         now,
       });
       if (phase && isLighterWeek(phase, toLocalDateString(now))) next = lightenSession(next);
@@ -474,8 +478,8 @@ export const WorkoutsProvider: React.FC<{
   );
 
   const beginSession = useCallback(
-    (workout?: Workout) => {
-      const next = buildSession(workout);
+    (workout?: Workout, override?: number) => {
+      const next = buildSession(workout, override);
       updateSession(next);
       return next;
     },
@@ -483,6 +487,8 @@ export const WorkoutsProvider: React.FC<{
   );
 
   const discardSession = useCallback(async () => {
+    // Started, then thrown away: the start still happened (services/overrideStarts.ts).
+    recordAbandonedStart(userId, APP, sessionRef.current);
     sessionRef.current = null;
     setSession(null);
     await clearSessionDraft(APP, userId);
@@ -562,8 +568,14 @@ export const WorkoutsProvider: React.FC<{
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
-    (durationSec: number, date?: string, sessionId?: string) => {
-      finishSession({ appId: APP, durationSec, ...(date ? { date } : {}), ...(sessionId ? { sessionId } : {}) });
+    (durationSec: number, date?: string, sessionId?: string, override?: number) => {
+      finishSession({
+        appId: APP,
+        durationSec,
+        ...(date ? { date } : {}),
+        ...(sessionId ? { sessionId } : {}),
+        ...(override ? { override } : {}),
+      });
       // Land on Today, where the rating and the celebration live — from its
       // card or from the Lab alike. One action, so nothing runs from a closed screen.
       rootNavigation.popTo('Main', { screen: 'Home', params: { screen: 'HomeScreen', pop: true } });

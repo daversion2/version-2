@@ -1,5 +1,5 @@
 import type { CompletionLog } from '../../types';
-import { appRatedDays, overrideEcho, overrideTrend, RatedDay } from '../overrideEcho';
+import { appRatedDays, mealsDayEcho, overrideEcho, overrideTrend, pairEcho, RatedDay } from '../overrideEcho';
 
 const TODAY = '2026-11-01';
 const day = (n: number) => {
@@ -91,5 +91,45 @@ describe('appRatedDays', () => {
       log('d', {}),
     ];
     expect(appRatedDays(logs, 'workouts', 'b')).toEqual([{ date: TODAY, resistance: 2 }]);
+  });
+});
+
+describe('pairEcho', () => {
+  const base = { appName: 'Workouts', history: [] as RatedDay[], date: '2026-11-11', today: '2026-11-11' };
+
+  it('reads a hard start and an easy session as getting started being the win', () => {
+    expect(pairEcho({ ...base, override: 3, push: 1 })).toMatch(/Getting started was the win/);
+  });
+
+  it('gives each pairing its own line', () => {
+    const lines = new Set([
+      pairEcho({ ...base, override: 3, push: 3 }),
+      pairEcho({ ...base, override: 2, push: 2 }),
+      pairEcho({ ...base, override: 2, push: 1 }),
+      pairEcho({ ...base, override: 1, push: 3 }),
+      pairEcho({ ...base, override: 1, push: 1 }),
+    ]);
+    expect(lines.size).toBe(5);
+  });
+
+  it('still leads with a falling override when there is one', () => {
+    const history: RatedDay[] = [
+      { date: '2026-10-01', resistance: 3 },
+      { date: '2026-10-03', resistance: 3 },
+      { date: '2026-10-05', resistance: 3 },
+      { date: '2026-11-09', resistance: 1 },
+    ];
+    expect(pairEcho({ ...base, history, override: 1, push: 2 })).toMatch(/^Your Workouts override: 3\.0 of 3/);
+  });
+});
+
+describe('mealsDayEcho', () => {
+  it('credits an off-target day that was fought for', () => {
+    expect(mealsDayEcho(3, false)).toMatch(/fought for it/);
+    expect(mealsDayEcho(1, false)).toMatch(/Off target/);
+  });
+
+  it('has a line for each on-target level', () => {
+    expect(new Set([mealsDayEcho(1, true), mealsDayEcho(2, true), mealsDayEcho(3)]).size).toBe(3);
   });
 });

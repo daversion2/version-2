@@ -45,15 +45,15 @@ import { hasReflectedToday, getReflection } from '../../services/reflections';
 import { PlanDraft, getPlanForToday, isPlanDone, formatPlan } from '../../services/nightlyClose';
 import { markPointsIntroSeen, incrementAppOpenCount, markScreenIntroSeen } from '../../services/users';
 import { syncProfileActivity } from '../../services/appActivity';
-import { HomeDashboard, ProfileActivity, profileActivityPatch } from '../../services/homeDashboard';
+import { addDays, HomeDashboard, ProfileActivity, profileActivityPatch } from '../../services/homeDashboard';
 import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
 import { PushOptInModal } from '../../components/common/PushOptInModal';
 import { registerForPushNotifications } from '../../services/notifications';
-import { appRatedDays, overrideEcho } from '../../services/overrideEcho';
-import { QuickLogSheet } from '../../components/home/QuickLogSheet';
+import { appRatedDays, mealsDayEcho, overrideEcho, pairEcho } from '../../services/overrideEcho';
+import { buildCheckinInput, CheckinMode, CheckinRating, checkinModeFor } from '../../services/checkinRating';
 import { LogToast, LogToastContent } from '../../components/home/LogToast';
-import { buildQuickSheetInput, formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
+import { formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
 import { displayStreak } from '../../services/streakDisplay';
 import { getHabitSection } from '../../data/habitSections';
 import { RESISTANCE_SCALE, TACTIC_GATE_RESISTANCE } from '../../constants/resistance';
@@ -83,7 +83,8 @@ import {
 } from '../../services/miniApps';
 import { getWorkoutPrefs } from '../../services/labWorkouts';
 import { getMeditatePrefs } from '../../services/labMeditate';
-import { getMealsPrefs } from '../../services/labMeals';
+import { getMealsPrefs, listMealsDays, saveMealsDay } from '../../services/labMeals';
+import { needsMealsCatchUp, scoreDay } from '../../services/mealsMath';
 import { hiddenAppsOf, needsGoalSetup, shouldExplainRating, startAppOf, startHereLine } from '../../services/appSetup';
 import { syncCloseOutReminder } from '../../services/closeOutReminder';
 import { AppGoalsSheet } from '../../components/appSetup/AppGoalsSheet';
@@ -126,6 +127,12 @@ interface QuickLogTarget {
   date?: string;
   /** The saved session this rating is for, when there is one. */
   sessionId?: string;
+  /** What the sheet still has to ask (services/checkinRating.ts). */
+  mode: CheckinMode;
+  /** The override tapped on the app's Start, when it was. */
+  override?: number;
+  /** Meals: whether the day closed on target. */
+  onTarget?: boolean;
 }
 
 /** Mind, Movement or Meals — for the quick sheet's heading and colour. */
@@ -564,11 +571,39 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         extraMetrics: Object.keys(extra).length ? extra : undefined,
         date: pendingFinish.date,
         sessionId: pendingFinish.sessionId,
+        mode: checkinModeFor(appId, pendingFinish.override),
+        override: pendingFinish.override,
+        onTarget: pendingFinish.onTarget,
       });
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingFinish, userProfile]);
+
+  // A Meals day nobody closed settled at midnight unrated: ask for it once,
+  // the next time Today opens (mealsMath.needsMealsCatchUp). Checked once a day.
+  const mealsCatchUpDayRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user || !logsReady || !userProfile) return;
+    if (hiddenApps.includes('meals') || !canOpenMiniApp('meals', userProfile)) return;
+    const today = getTodayString();
+    if (mealsCatchUpDayRef.current === today) return;
+    mealsCatchUpDayRef.current = today;
+    const yesterday = addDays(today, -1);
+    const rated = nudgeLogs.some((l) => l.reference_id === appCheckinId('meals') && l.date === yesterday);
+    listMealsDays(user.uid, yesterday, yesterday)
+      .then(async (days) => {
+        const day = days[yesterday];
+        if (!day || !needsMealsCatchUp(day, rated)) return;
+        // Stamped before asking: asked once, answered or not.
+        await saveMealsDay(user.uid, { ...day, handed_off_at: new Date().toISOString() });
+        const onTarget = day.rules ? scoreDay(day, day.rules, true).status === 'on' : undefined;
+        setPendingFinish(
+          (current) => current ?? { appId: 'meals', date: yesterday, ...(onTarget !== undefined ? { onTarget } : {}) }
+        );
+      })
+      .catch((err) => console.warn('Meals catch-up check failed:', err));
+  }, [user, logsReady, userProfile, hiddenApps, nudgeLogs]);
 
   // Track app opens (once per session)
   useEffect(() => {
@@ -589,7 +624,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
    * quick sheet. XP, streak, the celebration, the tidbit and the hard-session
    * reflection offer all start here.
    */
-  const handleAppRated = async (input: PracticeCompletionInput, appId: TodayAppId, sessionId?: string) => {
+  const handleAppRated = async (
+    input: PracticeCompletionInput,
+    appId: TodayAppId,
+    sessionId?: string,
+    onTarget?: boolean
+  ) => {
     if (!user) return;
     const { difficulty } = input;
     const refId = appCheckinId(appId);
@@ -622,9 +662,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           app_id: appId,
           ...(sessionId ? { session_id: sessionId } : {}),
           points: pointsEarned,
-          difficulty: difficulty === 'easy' ? 1 : 2,
-          resistance: input.resistance,
-          resistance_scale: RESISTANCE_SCALE,
+          // A Meals day rating is kept out of the override (practices.logHabitCompletion).
+          ...(typeof input.day_rating === 'number' && typeof input.resistance !== 'number'
+            ? { difficulty: 0, day_rating: input.day_rating }
+            : {
+                difficulty: difficulty === 'easy' ? 1 : 2,
+                resistance: input.resistance,
+                resistance_scale: RESISTANCE_SCALE,
+                ...(input.override_rated ? { override_rated: input.override_rated } : {}),
+              }),
+          ...(typeof input.push === 'number' ? { push: input.push } : {}),
           // So the next quick sheet fills in what was just logged.
           metrics: input.metrics,
           completed_at: new Date().toISOString(),
@@ -697,27 +744,42 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         const level =
           typeof input.resistance === 'number'
             ? t('today.toast.override', 'Override {level}', { level: input.resistance })
-            : undefined;
+            : typeof input.day_rating === 'number'
+              ? t('today.toast.mealsDay', 'Rated {level}', { level: input.day_rating })
+              : undefined;
+        const push =
+          typeof input.push === 'number' ? t('today.toast.push', 'Push {level}', { level: input.push }) : undefined;
         const amounts = APP_TRACKING[appId]
           .filter((f) => isNumericField(f) && typeof input.metrics?.[f.key] === 'number')
           .map((f) => formatMetricValue(f, input.metrics![f.key] as number));
         setToast({
           key: Date.now(),
           points: pointsEarned,
-          text: [appName, ...amounts, level].filter(Boolean).join(' · '),
+          text: [appName, ...amounts, level, push].filter(Boolean).join(' · '),
           context: backdated
             ? t('today.celebration.loggedFor', 'Logged for {day}', { day: formatRelativeDay(date) })
             : null,
           echo:
-            typeof input.resistance === 'number'
-              ? overrideEcho({
-                  level: input.resistance,
+            typeof input.resistance === 'number' && typeof input.push === 'number'
+              ? pairEcho({
+                  override: input.resistance,
+                  push: input.push,
                   appName,
                   history: appRatedDays(nudgeLogs, appId, logId),
                   date,
                   today: getTodayString(),
                 })
-              : null,
+              : typeof input.resistance === 'number'
+                ? overrideEcho({
+                    level: input.resistance,
+                    appName,
+                    history: appRatedDays(nudgeLogs, appId, logId),
+                    date,
+                    today: getTodayString(),
+                  })
+                : typeof input.day_rating === 'number'
+                  ? mealsDayEcho(input.day_rating, onTarget)
+                  : null,
           canAddNote: wasHard,
         });
         return;
@@ -827,14 +889,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // already have app ratings know the question, so they never see it.
   const explainRating = logsReady && shouldExplainRating(userProfile, nudgeLogs);
 
-  // The rating is the save, from either sheet (QuickLogSheet, or RateSheet in the redesign).
-  const rateQuickLog = async (resistance: number, values: Record<string, number>) => {
+  // The sheet's last answer is the save (components/homeRedesign/RateSheet, services/checkinRating).
+  const rateQuickLog = async (answers: CheckinRating, values: Record<string, number>) => {
     if (!quickLog) return;
-    const input = buildQuickSheetInput(resistance, values, quickLog.initialValues, quickLog.date);
+    // Started in the app: the override came back with the session.
+    const rating = quickLog.mode === 'push' ? { ...answers, override: quickLog.override } : answers;
+    const input = buildCheckinInput(quickLog.mode, rating, values, quickLog.initialValues, quickLog.date);
     if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
     try {
-      await handleAppRated(input, quickLog.appId, quickLog.sessionId);
-      if (explainRating && user) {
+      await handleAppRated(input, quickLog.appId, quickLog.sessionId, quickLog.onTarget);
+      // The explainer is about the session ratings; a Meals day doesn't use it up.
+      if (explainRating && quickLog.mode !== 'meals' && user) {
         markScreenIntroSeen(user.uid, 'rating')
           .then(refreshProfile)
           .catch((err) => console.warn('Saving rating intro seen failed:', err));
@@ -1045,36 +1110,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }}
       />
 
-      {redesign ? (
-        <RateSheet
-          visible={!!quickLog}
-          habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
-          appColor={quickLog ? AppColors[quickLog.appId] : Colors.primary}
-          fields={quickLog?.fields ?? []}
-          initialValues={quickLog?.initialValues ?? {}}
-          note={quickLog?.note}
-          explain={explainRating}
-          onRate={rateQuickLog}
-          onCancel={() => setQuickLog(null)}
-        />
-      ) : (
-        <QuickLogSheet
-          visible={!!quickLog}
-          habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
-          sectionName={
-            quickLog
-              ? t(`today.section.name.${sectionOfApp(quickLog.appId)}`, getHabitSection(sectionOfApp(quickLog.appId)).name)
-              : ''
-          }
-          sectionColor={quickLog ? getHabitSection(sectionOfApp(quickLog.appId)).color : Colors.primary}
-          fields={quickLog?.fields ?? []}
-          initialValues={quickLog?.initialValues ?? {}}
-          note={quickLog?.note}
-          explain={explainRating}
-          onRate={rateQuickLog}
-          onCancel={() => setQuickLog(null)}
-        />
-      )}
+      {/* One rating sheet in both looks (the classic look is an admin-only escape hatch). */}
+      <RateSheet
+        visible={!!quickLog}
+        habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
+        appColor={quickLog ? AppColors[quickLog.appId] : Colors.primary}
+        mode={quickLog?.mode ?? 'both'}
+        pushApp={quickLog?.appId === 'meditate' ? 'meditate' : 'workouts'}
+        fields={quickLog?.fields ?? []}
+        initialValues={quickLog?.initialValues ?? {}}
+        note={quickLog?.note}
+        explain={explainRating}
+        onRate={rateQuickLog}
+        onCancel={() => setQuickLog(null)}
+      />
       <LogToast
         toast={toast}
         onHide={() => setToast(null)}
