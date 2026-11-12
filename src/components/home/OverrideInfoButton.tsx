@@ -6,12 +6,19 @@ import { FeatureInfoModal } from '../common/FeatureInfoModal';
 import { useCopy } from '../../context/CopyContext';
 
 /**
- * The ⓘ on the rating sheet: what the override is, and why it's the one
- * question the app asks. Always there, unlike RatingExplainer, which shows
- * once. The modal renders inside the sheet's own Modal so it stacks above it.
+ * The ⓘ on the Start sheet and the rating sheet: the two ratings, what each
+ * measures, and which way each should move. Always there, unlike
+ * RatingExplainer, which shows once. The modal renders inside the sheet's own
+ * Modal so it stacks above it.
  *
- * Vocabulary (founder, 2026-11-01): FRICTION is what makes starting hard;
- * your OVERRIDE is what it took to start anyway, the 1–3.
+ * Vocabulary (founder, 2026-11-01 and 2026-11-11): FRICTION is what makes
+ * starting hard; your OVERRIDE is what it took to start anyway (asked on
+ * Start); PUSH is how hard you went once you were going (asked at the end).
+ * Discipline is the two together. The override should fall, push should hold
+ * up — say so wherever the two numbers appear.
+ *
+ * Copy lives under `override.ratings.*`. The older `override.info.*` keys
+ * described a single after-session rating and are no longer read.
  */
 export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Colors.gray }) => {
   const t = useCopy();
@@ -23,7 +30,7 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
         style={styles.button}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={t('override.info.open', 'What is the override?')}
+        accessibilityLabel={t('override.ratings.open', 'How the ratings work')}
       >
         <Ionicons name="information-circle-outline" size={22} color={color} />
       </TouchableOpacity>
@@ -31,21 +38,29 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
         visible={open}
         onDismiss={() => setOpen(false)}
         icon="flash-outline"
-        copyPrefix="override.info"
-        title="Your override"
-        intro="Friction is what makes starting hard. Your override is what it took to start anyway: the 1, 2 or 3 you pick after every session."
+        copyPrefix="override.ratings"
+        title="Override and push"
+        intro="Discipline is two skills: getting yourself to start, and pushing once you’re going. The app asks about each one, separately. Think of a car on a cold morning: your override is getting the engine to turn over, push is how hard you press the accelerator."
         points={[
           {
-            label: 'Rate the start, not the session',
-            text: '1: you barely thought about it. 2: you had to push, but were never in doubt. 3: you nearly didn’t. A brutal workout you walked straight into is a 1.',
+            label: 'Override, as you start',
+            text: 'How hard is it to start? 1: barely thinking about it. 2: talking yourself into it. 3: it took everything. Rate the start, not the session: a brutal workout you walked straight into is a 1.',
+          },
+          {
+            label: 'Push, when you finish',
+            text: 'How hard did you push? 1: cruised. 2: worked, with a little left. 3: emptied the tank. In Meditate it’s how hard it was to stay with it.',
+          },
+          {
+            label: 'They move in opposite directions',
+            text: 'Your override should fall: starting gets easier as it becomes automatic. Your push should hold up: once you’re going, you keep choosing hard work. A low push week after week means it’s time to raise the bar.',
           },
           {
             label: 'Be honest',
-            text: 'A 3 isn’t a bad mark. The hard starts are the ones doing the training, and an honest 3 today is what makes next month’s 1 mean something.',
+            text: 'A 3 is never a bad mark, on either. Honest numbers today are what make next month’s trend mean something.',
           },
           {
-            label: 'Watch it fall',
-            text: 'After you rate, the app tells you how your override is moving. Each app’s page shows the trend, and Progress shows how much friction you can handle. The same session needing less override is the progress.',
+            label: 'Meals is the exception',
+            text: 'Eating has no single start, so Meals asks once a day: how hard was it to eat this way? It’s counted on its own.',
           },
         ]}
         science={[
@@ -55,7 +70,11 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
           },
           {
             label: 'Pushing through is the exercise',
-            text: 'Doing something you’d rather avoid engages the anterior mid-cingulate cortex, a region studies link to tenacity and willpower. The hard starts are where it’s working hardest.',
+            text: 'Doing something you’d rather avoid engages the anterior mid-cingulate cortex, a region studies link to tenacity and willpower. The hard starts, and the hard last minutes, are where it’s working hardest.',
+          },
+          {
+            label: 'Effort can be learned',
+            text: 'In “learned industriousness” research, people rewarded for working hard come to find effort itself less aversive, and work harder at new tasks too. Choosing to push is a habit of its own.',
           },
         ]}
       />

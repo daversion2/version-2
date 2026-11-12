@@ -33,6 +33,7 @@ import {
   OnboardingGoals,
   OnboardingReminder,
   OnboardingWhy,
+  OnboardingRatings,
 } from '../../components/onboarding/OnboardingSetupBeats';
 
 // ============================================================================
@@ -171,6 +172,8 @@ export const OnboardingScreen: React.FC = () => {
     switch (key) {
       case 'why':
         return <OnboardingWhy />;
+      case 'ratings':
+        return <OnboardingRatings />;
       case 'apps':
         return <OnboardingApps hidden={setup.hidden} onChange={setHidden} />;
       case 'goals':

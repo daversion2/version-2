@@ -11,20 +11,23 @@ import {
 } from './habitSchedule';
 
 // =============================================================================
-// ONBOARDING SETUP — the logic behind the four-screen first-run flow.
+// ONBOARDING SETUP — the logic behind the five-screen first-run flow.
 //
 // Pure functions only, no Firestore. The screen renders these and writes the
 // result; everything that can be got wrong lives here where jest can see it.
 // The screen itself is untestable (jest's testMatch excludes .tsx).
 //
-//   1 why        the friction is the training — one screen, not three
-//   2 apps       Meditate, Workouts, Meals: all on, switch off any you won't use
-//   3 goals      a weekly goal each (3 / 3 / 5) and one app to start with
-//   4 reminder   an evening close-out nudge; picking a time is what asks iOS
+//   1 why        discipline is two skills: starting, and pushing once going
+//   2 ratings    the two questions — override as you start, push when you
+//                finish — and which way each should move (2026-11-11)
+//   3 apps       Meditate, Workouts, Meals: all on, switch off any you won't use
+//   4 goals      a weekly goal each (3 / 3 / 5) and one app to start with
+//   5 reminder   an evening close-out nudge; picking a time is what asks iOS
 //
 // Decided 2026-11-01 (pivot decision D4, then the founder's interview): no
 // habit is created, the rating is not demoed here (it explains itself the
-// first time it opens for real), and nothing personal is asked. The app setup
+// first time it opens for real), and nothing personal is asked. The ratings
+// screen explains the two questions without asking them. The app setup
 // itself lives in services/appSetup.ts, the reminder in closeOutReminder.ts.
 //
 // The habit helpers further down belong to the seven-beat flow this replaced.
@@ -52,7 +55,7 @@ export const needsOnboarding = (
   return !profile.created_at;
 };
 
-export type OnboardingBeatKey = 'why' | 'apps' | 'goals' | 'reminder';
+export type OnboardingBeatKey = 'why' | 'ratings' | 'apps' | 'goals' | 'reminder';
 
 export interface OnboardingBeat {
   key: OnboardingBeatKey;
@@ -61,7 +64,8 @@ export interface OnboardingBeat {
 }
 
 export const ONBOARDING_BEATS: OnboardingBeat[] = [
-  { key: 'why', cta: 'Show me the apps →' },
+  { key: 'why', cta: 'How it’s measured →' },
+  { key: 'ratings', cta: 'Show me the apps →' },
   { key: 'apps', cta: 'Set my goals →' },
   { key: 'goals', cta: 'Next →' },
   { key: 'reminder', cta: 'Start' },

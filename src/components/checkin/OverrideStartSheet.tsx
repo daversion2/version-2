@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, TextStyles } from '../../constants/theme';
 import { START_LEVELS } from '../../constants/resistance';
 import { useCopy } from '../../context/CopyContext';
+import { OverrideInfoButton } from '../home/OverrideInfoButton';
 
 // =============================================================================
 // THE OVERRIDE, ON START (constants/resistance.ts, "TWO RATINGS").
@@ -38,6 +39,9 @@ export const OverrideStartSheet: React.FC<Props> = ({ visible, appName, accent, 
           accessibilityViewIsModal
         >
           <View style={styles.grabber} />
+          <View style={styles.info}>
+            <OverrideInfoButton />
+          </View>
           <View style={styles.head}>
             <Text style={[styles.kicker, { color: accent }]}>
               {t('start.override.kicker', 'Override')} · {appName}
@@ -124,6 +128,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: Colors.separator },
+  info: { position: 'absolute', top: Spacing.md, right: Spacing.md, zIndex: 1 },
   head: { gap: Spacing.xs, paddingTop: Spacing.xs },
   kicker: { ...TextStyles.footnote, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
   question: { ...TextStyles.title2, color: Colors.dark },

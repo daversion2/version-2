@@ -13,9 +13,10 @@ import { AppGoalRows, AppToggleList } from '../appSetup/AppSetupParts';
 import { ob } from './onboardingStyles';
 
 // ============================================================================
-// THE FOUR ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
+// THE FIVE ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
 //
-//   why       the friction is the training, in one screen
+//   why       discipline is two skills, and the friction is the training
+//   ratings   the two questions: override as you start, push when you finish
 //   apps      the three apps, all on; switch off any you won't use
 //   goals     a weekly goal each, and the app to start with
 //   reminder  an evening close-out nudge, or none
@@ -24,7 +25,7 @@ import { ob } from './onboardingStyles';
 // and writes them when the last screen is done.
 // ============================================================================
 
-/** 1 — why. Replaces the old premise / neurons / thesis screens. */
+/** 1 — why: discipline is two skills, and the app measures both. */
 export const OnboardingWhy: React.FC = () => (
   <View style={styles.center}>
     <FadeRise>
@@ -38,22 +39,86 @@ export const OnboardingWhy: React.FC = () => (
       <Copy id="onboarding.why.eyebrow" style={ob.eyebrow}>
         {'How it works'}
       </Copy>
-      <Copy id="onboarding.why.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
-        {'The friction is **the training.**'}
+      <Copy id="onboarding.why.headlineTwoSkills" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'Discipline is **two skills.**'}
       </Copy>
     </FadeRise>
     <FadeRise delay={400}>
-      <Copy id="onboarding.why.bodyTwoRatings" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'Three apps: Meditate, Workouts and Meals. As you start a session you rate your **override**, from 1 to 3: how hard is it to start? When you finish, you rate how hard you **pushed**.'}
+      <Copy id="onboarding.why.bodyTwoSkills" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Getting yourself to start**, and **pushing once you’re going.** Most apps only ask whether you did it. Neuro-Nudge measures both, across three apps: Meditate, Workouts and Meals.'}
       </Copy>
-      <Copy id="onboarding.why.body2" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'The hard days are the ones doing the work. Keep showing up and you’ll watch them get easier. **That’s the capacity you’re building.**'}
+      <Copy id="onboarding.why.bodyTraining" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'The friction is the training. **The hard days are the ones doing the work.**'}
       </Copy>
     </FadeRise>
   </View>
 );
 
-/** 2 — apps. */
+/**
+ * 2 — the two ratings: when each is asked and which way it should move. Shown,
+ * not asked: the first real rating explains itself (RatingExplainer).
+ */
+export const OnboardingRatings: React.FC = () => (
+  <View style={styles.center}>
+    <FadeRise>
+      <Copy id="onboarding.ratings.eyebrow" style={ob.eyebrow}>
+        {'Two questions'}
+      </Copy>
+      <Copy id="onboarding.ratings.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'One as you start, **one when you finish.**'}
+      </Copy>
+    </FadeRise>
+    <FadeRise delay={250}>
+      <RatingCard
+        copyKey="override"
+        when="As you start · Override"
+        question="How hard is it to start?"
+        icon="trending-down"
+        direction="Watch it fall. Starting gets easier as it becomes automatic."
+      />
+      <RatingCard
+        copyKey="push"
+        when="When you finish · Push"
+        question="How hard did you push?"
+        icon="trending-up"
+        direction="Keep it high. Once you’re going, keep choosing hard work."
+      />
+    </FadeRise>
+    <FadeRise delay={500}>
+      <Copy id="onboarding.ratings.car" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Like a car on a cold morning: your **override** is getting the engine to turn over, **push** is how hard you press the accelerator.'}
+      </Copy>
+      <Copy id="onboarding.ratings.helper" style={ob.helper}>
+        {'Each one is 1 to 3. Be honest: a 3 is never a bad mark.'}
+      </Copy>
+    </FadeRise>
+  </View>
+);
+
+const RatingCard: React.FC<{
+  copyKey: 'override' | 'push';
+  when: string;
+  question: string;
+  icon: 'trending-down' | 'trending-up';
+  direction: string;
+}> = ({ copyKey, when, question, icon, direction }) => (
+  <View style={styles.ratingCard}>
+    <Copy id={`onboarding.ratings.${copyKey}.when`} style={styles.ratingWhen}>
+      {when}
+    </Copy>
+    <Copy id={`onboarding.ratings.${copyKey}.question`} style={styles.ratingQuestion}>
+      {question}
+    </Copy>
+    <View style={styles.ratingDirection}>
+      <Ionicons name={icon} size={18} color={Colors.primary} />
+      <Copy id={`onboarding.ratings.${copyKey}.direction`} style={styles.ratingDirectionText}>
+        {direction}
+      </Copy>
+    </View>
+  </View>
+);
+
+/** 3 — apps. */
 export const OnboardingApps: React.FC<{ hidden: TodayAppId[]; onChange: (hidden: TodayAppId[]) => void }> = ({
   hidden,
   onChange,
@@ -76,7 +141,7 @@ export const OnboardingApps: React.FC<{ hidden: TodayAppId[]; onChange: (hidden:
   </View>
 );
 
-/** 3 — goals, and where to start. */
+/** 4 — goals, and where to start. */
 export const OnboardingGoals: React.FC<{ setup: AppSetup; onChange: (setup: AppSetup) => void }> = ({
   setup,
   onChange,
@@ -108,7 +173,7 @@ export const OnboardingGoals: React.FC<{ setup: AppSetup; onChange: (setup: AppS
   </View>
 );
 
-/** 4 — the close-out reminder. Null = no reminder. */
+/** 5 — the close-out reminder. Null = no reminder. */
 export const OnboardingReminder: React.FC<{ time: string | null; onChange: (time: string | null) => void }> = ({
   time,
   onChange,
@@ -170,4 +235,20 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: Colors.dark },
   chipTextOn: { color: Colors.primary },
   helperGap: { marginTop: Spacing.md },
+  ratingCard: {
+    ...ob.choice,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm + 4,
+    gap: 4,
+  },
+  ratingWhen: {
+    fontFamily: Fonts.secondaryBold,
+    fontSize: FontSizes.xs,
+    color: Colors.primary,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  ratingQuestion: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
+  ratingDirection: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, marginTop: 2 },
+  ratingDirectionText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, lineHeight: 20 },
 });

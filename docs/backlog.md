@@ -510,6 +510,16 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Explaining override and push: the ⓘ screen and onboarding** *(2026-11-11, not yet seen on screen, not pushed OTA)*
+The ⓘ (now on the Start sheet and the rating sheet) explains both ratings:
+discipline is two skills, the car analogy (override = the engine turning
+over, push = the accelerator), which way each should move, Meals as the
+exception, and the science (copy under `override.ratings.*`). Onboarding is
+five screens: "Discipline is two skills", then a new "Two questions" screen
+with a card per rating and its direction. Today's screen intro updated too.
+Still to do: direction words on the app-page rows ("getting easier" /
+"holding strong") and the push line on Progress.
+
 **Workouts: Log, beside Start on the Workouts page** *(2026-11-11, live OTA 2ee549fe, not yet seen on screen)*
 Logging something already done was nine taps (Workouts → Something else →
 More → This week → + Add → …). Now: Log → pick → Add, then both ratings on
