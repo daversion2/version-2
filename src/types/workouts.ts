@@ -234,6 +234,8 @@ export interface CompletedWorkoutSession {
   checkin_asked_at?: string;
   /** This day's logged sets were handed to Today to be rated. */
   checkin_sent_at?: string;
+  /** Logged with Log on the Workouts page: one exercise, its own session, rated on its own (services/workoutQuickLog.ts). */
+  quick_log?: true;
 }
 
 export interface WorkoutPrefs {

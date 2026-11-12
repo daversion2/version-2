@@ -22,8 +22,10 @@ import { MODES } from '../../services/meditateMath';
 import { formatVolume } from '../../services/workoutMath';
 import { listWorkouts } from '../../services/labWorkouts';
 import { loadSessionDraft } from '../../services/miniAppDrafts';
+import { finishSession } from '../../services/miniApps';
 import { StartAction, workoutStartAction } from '../../services/workoutUpNext';
 import type { WorkoutSession, WorkoutsLaunch } from '../../types/workouts';
+import type { WorkoutLogSheetProps } from '../Lab/experiments/workouts/components/WorkoutLogSheet';
 import { ListGroup, ListRow } from '../../components/common/ListGroup';
 import { TopScrim } from '../../components/common/TopScrim';
 import { BarTrend, DayDots, DotTrend, ServingsTreemap } from '../../components/homeDashboard/DashboardParts';
@@ -114,6 +116,25 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
     if (target) navigation.dispatch(CommonActions.navigate({ name: target, params: launch ? { launch } : undefined }));
   };
   const startBarHeight = START_BAR_HEIGHT + (workoutStart ? START_META_HEIGHT : 0);
+
+  // Log, beside Start: something already done, straight into the week
+  // (services/workoutQuickLog.ts). The sheet is part of the Workouts app, so
+  // it's required on first use, never at start-up.
+  const [logOpen, setLogOpen] = useState(false);
+  const [LogSheet, setLogSheet] = useState<React.ComponentType<WorkoutLogSheetProps> | null>(null);
+  const openLog = () => {
+    if (!LogSheet) {
+      const { WorkoutLogSheet } = require('../Lab/experiments/workouts/components/WorkoutLogSheet');
+      setLogSheet(() => WorkoutLogSheet);
+    }
+    setLogOpen(true);
+  };
+  const onLogged = ({ sessionId, durationSec }: { sessionId: string; durationSec: number }) => {
+    setLogOpen(false);
+    // Today asks both ratings (it happened before it was logged) and runs the celebration.
+    finishSession({ appId: 'workouts', sessionId, ...(durationSec ? { durationSec } : {}) });
+    navigation.goBack();
+  };
 
   const today = data?.app.today ?? '';
   const friction = d ? describeFriction(d.friction[appId]) ?? 'Not rated yet' : '';
@@ -260,11 +281,24 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
       {/* Docked on the tab bar, solid, so the list never shows around the button.
           The tab bar isn't translucent, so this screen already ends at its top. */}
       <View style={styles.startBar}>
-        <TouchableOpacity style={styles.start} onPress={() => start(workoutStart?.launch)} accessibilityRole="button">
-          <Text style={styles.startText} numberOfLines={1}>
-            {workoutStart?.label ?? START_LABEL[appId]}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.startRow}>
+          <TouchableOpacity style={[styles.start, styles.startGrow]} onPress={() => start(workoutStart?.launch)} accessibilityRole="button">
+            <Text style={styles.startText} numberOfLines={1}>
+              {workoutStart?.label ?? START_LABEL[appId]}
+            </Text>
+          </TouchableOpacity>
+          {appId === 'workouts' && data && (
+            <TouchableOpacity
+              style={styles.log}
+              onPress={openLog}
+              accessibilityRole="button"
+              accessibilityLabel="Log"
+              accessibilityHint="Add something you’ve already done to this week"
+            >
+              <Text style={styles.logText}>Log</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         {workoutStart && (
           <View style={styles.startMeta}>
             <Text style={styles.startMetaText} numberOfLines={1}>
@@ -280,6 +314,19 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
         )}
       </View>
       <TopScrim />
+      {LogSheet && data && user && (
+        <LogSheet
+          visible={logOpen}
+          userId={user.uid}
+          sessions={data.app.workoutSessions}
+          exercisesById={data.app.exercisesById}
+          unit={data.app.unit}
+          vt1={data.app.vt1}
+          vt2={data.app.vt2}
+          onLogged={onLogged}
+          onCancel={() => setLogOpen(false)}
+        />
+      )}
     </View>
   );
 };
@@ -335,6 +382,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   startText: { ...TextStyles.headline, color: Colors.white, paddingHorizontal: Spacing.md },
+  startRow: { flexDirection: 'row', gap: Spacing.sm + 2 },
+  startGrow: { flex: 1 },
+  log: {
+    height: 52,
+    minWidth: 96,
+    borderRadius: 26,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.cardBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logText: { ...TextStyles.headline, color: Colors.primary },
   startMeta: {
     height: START_META_HEIGHT,
     flexDirection: 'row',

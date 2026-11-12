@@ -24,6 +24,9 @@ export interface HomeAppData {
   workoutsGoal: number;
   exercisesById: Record<string, Exercise>;
   unit: WeightUnit;
+  /** Workouts' threshold heart rates, shown beside cardio zones when known. */
+  vt1?: number;
+  vt2?: number;
   phase: TrainingPhase | undefined;
   mealsDays: Record<string, MealsDay>;
   mealsRules: MealsRules;
@@ -53,6 +56,8 @@ export const loadHomeAppData = async (uid: string, { mealsDays: mealsSpan = 90 }
     workoutsGoal: clampWeeklyGoal(wPrefs.weekly_goal, 'workouts'),
     exercisesById: Object.fromEntries(mergeExerciseLibrary(custom).map((e) => [e.id, e])),
     unit: wPrefs.unit,
+    ...(wPrefs.vt1_bpm ? { vt1: wPrefs.vt1_bpm } : {}),
+    ...(wPrefs.vt2_bpm ? { vt2: wPrefs.vt2_bpm } : {}),
     phase: currentPhase(phases),
     mealsDays,
     mealsRules: rulesOf(mealsPrefs, mealsModel),

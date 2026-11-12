@@ -23,6 +23,13 @@ How to use it:
 
 ## Now
 
+**Check Workouts' Log on screen** *(added 2026-11-11)*
+Built and green in jest, not yet seen running (Maestro needs a yes first, and
+a real check needs a real save). On the Workouts page: Log beside Start opens
+"Log to this week" with what you usually log (last time's numbers, Same on the
+top one) and search; a row opens the entry sheet filled in; saving lands on
+Today with both ratings; the session shows on This week and in History.
+
 **Check the two ratings on screen** *(added 2026-11-11)*
 Live (OTA a218c201). Maestro flows 19a–19d checked the start sheets (Cancel)
 and the app pages without writing. Still unseen — each needs a real save:
@@ -502,6 +509,18 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workouts: Log, beside Start on the Workouts page** *(2026-11-11, not yet seen on screen, not pushed OTA)*
+Logging something already done was nine taps (Workouts → Something else →
+More → This week → + Add → …). Now: Log → pick → Add, then both ratings on
+Today; or Log → Same for a repeat. The sheet leads with the four exercises
+done on the most days in the last 30, each with last time's numbers; Same
+(top row only) saves it exactly as last time; search covers everything else.
+Each log is its own session (`quick_log`, `logged_sets`, already marked
+handed off), rated on its own. Only on the Workouts page, not Today
+(founder: keep Home uncluttered). Logic in `services/workoutQuickLog.ts`,
+tested; the sheet is `workouts/components/WorkoutLogSheet.tsx`, required
+lazily from `AppPageScreen`.
 
 **Two ratings: the override on Start, push at Finish** *(2026-11-11, live OTA a218c201; start sheets and app pages checked on screen, the post-session sheet not yet)*
 Workouts and Meditate ask "How hard is it to start?" on every Start, and the
