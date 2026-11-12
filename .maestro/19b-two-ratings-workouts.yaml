@@ -1,0 +1,97 @@
+# Two ratings (9211b7d), Workouts: every Start asks "How hard is it to start?".
+# WRITES NOTHING: opens the sheet and Cancels each time; opens Done it and
+# backs out without saving. Needs no workout in progress (asserted).
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "Your apps"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible: ".*Open debugger to view warnings.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+- tapOn: "Workouts"
+- extendedWaitUntil:
+    visible: "Something else"
+    timeout: 20000
+- tapOn: "Something else"
+- extendedWaitUntil:
+    visible: "Empty workout.*"
+    timeout: 20000
+- waitForAnimationToEnd
+- assertNotVisible: ".*In progress.*"
+- takeScreenshot: 19b-01-workouts-home
+
+# 1. Empty workout -> the sheet -> Cancel
+- tapOn: "Empty workout.*"
+- extendedWaitUntil:
+    visible: "How hard is it to start\\?"
+    timeout: 10000
+- waitForAnimationToEnd
+- assertVisible: "Override · Workouts|OVERRIDE · WORKOUTS"
+- assertVisible: "1, Easy start\\. Barely thinking about it\\. Starts\\."
+- assertVisible: "2, Have to push\\. Talking myself into it\\. Starts\\."
+- assertVisible: "3, Took everything\\. Almost talked myself out of it\\. Starts\\."
+- assertVisible: "Tap one to start\\."
+- takeScreenshot: 19b-02-empty-sheet
+- tapOn:
+    text: "Cancel"
+    below: "Tap one to start\\."
+- waitForAnimationToEnd
+- assertNotVisible: "How hard is it to start\\?"
+- assertVisible: "Empty workout.*"
+- assertNotVisible: ".*In progress.*"
+- takeScreenshot: 19b-03-after-cancel
+
+# Up next card's Start -> the sheet -> Cancel
+- tapOn:
+    point: "50%,40%"
+- extendedWaitUntil:
+    visible: "How hard is it to start\\?"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 19b-04-upnext-sheet
+- tapOn:
+    text: "Cancel"
+    below: "Tap one to start\\."
+- waitForAnimationToEnd
+- assertNotVisible: "How hard is it to start\\?"
+- assertNotVisible: ".*In progress.*"
+
+# 2. Preview (Full body A) -> Do it -> the sheet -> Cancel
+- tapOn: "Full body A, .*"
+- extendedWaitUntil:
+    visible: "Do it"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 19b-05-preview
+- tapOn: "Do it"
+- extendedWaitUntil:
+    visible: "How hard is it to start\\?"
+    timeout: 10000
+- waitForAnimationToEnd
+- assertVisible: "Override · Workouts|OVERRIDE · WORKOUTS"
+- takeScreenshot: 19b-06-preview-sheet
+- tapOn:
+    text: "Cancel"
+    below: "Tap one to start\\."
+- waitForAnimationToEnd
+- assertNotVisible: "How hard is it to start\\?"
+- assertVisible: "Do it"
+- takeScreenshot: 19b-07-preview-after-cancel
+# Done it screen: screenshot only, never Save
+- tapOn: "Done it"
+- extendedWaitUntil:
+    visible: ".*Save & rate it.*"
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 19b-08-done-it

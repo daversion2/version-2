@@ -136,7 +136,7 @@ export const PastSessionSheet: React.FC<Props> = ({
           >
             {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.saveText}>Save & rate it</Text>}
           </TouchableOpacity>
-          <Text style={styles.hint}>Next, on Today: how hard it was to start, then how hard you pushed.</Text>
+          <Text style={styles.hint}>Next, on Today: two quick ratings, the start and the session.</Text>
         </View>
       </View>
     </Modal>

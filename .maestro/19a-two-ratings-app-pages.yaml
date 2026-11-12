@@ -1,0 +1,82 @@
+# Two ratings (9211b7d): app pages show "Your override" + "Your push"
+# (Meditate/Workouts) and "Eating well" (Meals). READ-ONLY: never taps Start/Log.
+# Assumes the redesign Today ("Your apps" list) — the dashboard chips live only
+# in the non-redesign HomeDashboardView.
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "Your apps"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 19a-01-today
+- runFlow:
+    when:
+      visible: ".*Open debugger to view warnings.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+# Meditate app page
+- tapOn: "Meditate"
+- extendedWaitUntil:
+    visible: ".*Your push.*"
+    timeout: 20000
+- takeScreenshot: 19a-02-meditate-page
+- swipe:
+    start: "50%,75%"
+    end: "50%,35%"
+- takeScreenshot: 19a-03-meditate-page-scrolled
+- swipe:
+    start: "50%,30%"
+    end: "50%,85%"
+- swipe:
+    start: "50%,30%"
+    end: "50%,85%"
+- waitForAnimationToEnd
+- tapOn: "Back to Today"
+- extendedWaitUntil:
+    visible: "Your apps"
+    timeout: 15000
+# Workouts app page
+- tapOn: "Workouts"
+- extendedWaitUntil:
+    visible: ".*Your push.*"
+    timeout: 20000
+- takeScreenshot: 19a-04-workouts-page
+- swipe:
+    start: "50%,75%"
+    end: "50%,35%"
+- takeScreenshot: 19a-05-workouts-page-scrolled
+- swipe:
+    start: "50%,30%"
+    end: "50%,85%"
+- swipe:
+    start: "50%,30%"
+    end: "50%,85%"
+- waitForAnimationToEnd
+- tapOn: "Back to Today"
+- extendedWaitUntil:
+    visible: "Your apps"
+    timeout: 15000
+# Meals app page
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Log a meal"
+    timeout: 20000
+- takeScreenshot: 19a-06-meals-page
+- scrollUntilVisible:
+    element: ".*Eating well.*"
+    direction: DOWN
+    timeout: 15000
+- swipe:
+    start: "50%,75%"
+    end: "50%,45%"
+- waitForAnimationToEnd
+- assertVisible: ".*Eating well.*"
+- assertNotVisible: ".*Your override.*"
+- takeScreenshot: 19a-07-meals-page-scrolled

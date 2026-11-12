@@ -1,0 +1,28 @@
+# Two ratings (9211b7d), Meals: the close screen's new lead. WRITES NOTHING:
+# opens Close out the day and screenshots it; never taps the close button.
+# The lead only shows if today has a plate logged (else nothing to score).
+appId: com.neuronudge.neuronudge
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "Your apps"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible: ".*Open debugger to view warnings.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+- tapOn: "Meals"
+- extendedWaitUntil:
+    visible: "Log a meal"
+    timeout: 20000
+- tapOn: "Log a meal"
+- waitForAnimationToEnd
+- takeScreenshot: 19d-01-meals-app
