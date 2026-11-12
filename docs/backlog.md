@@ -24,7 +24,8 @@ How to use it:
 ## Now
 
 **Check the two ratings on screen** *(added 2026-11-11)*
-Built and green in jest, not yet seen running (Maestro needs a yes first).
+Live (OTA a218c201). Maestro flows 19a–19d checked the start sheets (Cancel)
+and the app pages without writing. Still unseen — each needs a real save:
 Look at: every Start in Workouts (Up next, a workout's Do it, Empty workout)
 and Meditate's Begin opening "How hard is it to start?", with the answer
 starting the session; Finish asking only push; Done it and a past session
@@ -502,7 +503,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Two ratings: the override on Start, push at Finish** *(2026-11-11, not yet seen on screen, not pushed OTA)*
+**Two ratings: the override on Start, push at Finish** *(2026-11-11, live OTA a218c201; start sheets and app pages checked on screen, the post-session sheet not yet)*
 Workouts and Meditate ask "How hard is it to start?" on every Start, and the
 answer starts the session (`components/checkin/OverrideStartSheet`); the
 override rides on the session to Finish, where Today's sheet asks only push
