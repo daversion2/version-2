@@ -334,8 +334,8 @@ export const HomeDashboardView: React.FC<Props> = ({
               <View style={styles.chips}>
                 <Chip text={`${d.meditate.streakDays}-day streak`} />
                 <Chip text={`${d.meditate.sessions} of ${d.meditate.goal} sessions`} />
-                <Chip text={`Start: ${describeFriction(d.friction.meditate) ?? 'not rated yet'}`} />
-                <Chip text={`Keep going: ${describeFriction(d.keepGoing.meditate) ?? 'not rated yet'}`} />
+                <Chip text={`Getting started: ${describeFriction(d.friction.meditate) ?? 'not rated yet'}`} />
+                <Chip text={`Staying with it: ${describeFriction(d.keepGoing.meditate) ?? 'not rated yet'}`} />
               </View>
               {d.meditate.recent.length > 0 && <SectionLabel>Recent sessions</SectionLabel>}
               {d.meditate.recent.map((s, i) => (
@@ -372,8 +372,8 @@ export const HomeDashboardView: React.FC<Props> = ({
                 <Chip text={`${d.workouts.streakWeeks}-week streak`} />
                 <Chip text={`${d.workouts.sessions} of ${d.workouts.goal} sessions`} />
                 <Chip text={`${d.workouts.priorSessions} last week`} />
-                <Chip text={`Start: ${describeFriction(d.friction.workouts) ?? 'not rated yet'}`} />
-                <Chip text={`Keep going: ${describeFriction(d.keepGoing.workouts) ?? 'not rated yet'}`} />
+                <Chip text={`Getting started: ${describeFriction(d.friction.workouts) ?? 'not rated yet'}`} />
+                <Chip text={`Staying with it: ${describeFriction(d.keepGoing.workouts) ?? 'not rated yet'}`} />
               </View>
               {(d.workouts.week.length > 0 || d.workouts.phaseLine) && (
                 <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>

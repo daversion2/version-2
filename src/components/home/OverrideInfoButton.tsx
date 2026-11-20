@@ -40,19 +40,19 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
         icon="flash-outline"
         copyPrefix="override.twice"
         title="Your override, twice"
-        intro="Discipline is one skill, used twice. You override the urge not to start, and once you’re going, you override the urge to stop. The app asks about each one separately."
+        intro="Before anything hard, your brain predicts what it will cost, and you feel that prediction as resistance. Acting against it is your override. You use it twice: getting started, and staying with it."
         points={[
           {
-            label: 'As you start',
+            label: 'Getting started, as you start',
             text: 'How hard is it to start? 1: barely thought about it. 2: had to talk yourself into it. 3: almost didn’t. Rate the start, not the session: a brutal workout you walked straight into is a 1.',
           },
           {
-            label: 'When you finish',
+            label: 'Staying with it, when you finish',
             text: 'How hard was it to keep going? In a workout it’s the “this sucks, stop” voice; in Meditate it’s the “I’ll stop a little early” one. 1: it barely showed up. 2: you talked yourself through it. 3: you wanted to quit and kept going.',
           },
           {
             label: 'Both should fall',
-            text: 'As the override gets stronger, starting takes less and so does staying in. A heavy week can push keep going up for a while: that’s the training, not a step back.',
+            text: 'As the override gets stronger, getting started takes less and so does staying with it. A heavy week can push staying with it up for a while: that’s the training, not a step back.',
           },
           {
             label: 'Be honest',
@@ -65,16 +65,16 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
         ]}
         science={[
           {
-            label: 'Starting is what gets trained',
-            text: 'Repetition makes the start automatic, not the work. The session stays as demanding while the effort to begin it drops, and that drop is the clearest sign something is bedding in.',
+            label: 'Getting started gets automatic',
+            text: 'Repetition hands the start to your brain’s habit system, so it takes less deciding. The session stays as demanding while the effort to begin it drops, and that drop is the clearest sign something is bedding in.',
           },
           {
-            label: 'Staying in is the exercise',
+            label: 'Staying with it is the exercise',
             text: 'Doing something you’d rather avoid engages the anterior mid-cingulate cortex, a region studies link to tenacity and willpower. The hard starts, and the hard last minutes, are where it’s working hardest.',
           },
           {
             label: 'Effort can be learned',
-            text: 'In “learned industriousness” research, people rewarded for working hard come to find effort itself less aversive, and work harder at new tasks too. Keeping going is a habit of its own.',
+            text: 'In “learned industriousness” research, people rewarded for working hard come to find effort itself less aversive, and work harder at new tasks too. Staying with it is a habit of its own.',
           },
         ]}
       />

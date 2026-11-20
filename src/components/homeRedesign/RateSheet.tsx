@@ -120,9 +120,9 @@ export const RateSheet: React.FC<Props> = ({
     step === 'override' ? START_LEVELS : step === 'keepGoing' ? KEEP_GOING_LEVELS[keepGoingApp] : MEALS_DAY_LEVELS;
   const kicker =
     step === 'override'
-      ? t('today.rate.start.kicker', 'Override · Start')
+      ? t('today.rate.start.kicker', 'Getting started')
       : step === 'keepGoing'
-        ? t('today.rate.keepGoing.kicker', 'Override · Keep going')
+        ? t('today.rate.keepGoing.kicker', 'Staying with it')
         : t('today.rate.meals.kicker', 'Today’s rating');
   const question =
     step === 'override'
@@ -167,10 +167,10 @@ export const RateSheet: React.FC<Props> = ({
               onPress={() => setStep('override')}
               disabled={saving !== null}
               accessibilityRole="button"
-              accessibilityLabel={t('today.rate.change', 'Change your start, {level}', { level: String(chosen.value) })}
+              accessibilityLabel={t('today.rate.change', 'Change getting started, {level}', { level: String(chosen.value) })}
             >
               <Text style={styles.chosenText} numberOfLines={1}>
-                {t('today.rate.start.short', 'Start')} {chosen.value} ·{' '}
+                {t('today.rate.start.short', 'Getting started')} {chosen.value} ·{' '}
                 {t(`today.rate.start.${chosen.value}`, chosen.anchor)}
               </Text>
               <Text style={[styles.chosenChange, { color: appColor }]}>{t('today.rate.changeShort', 'Change')}</Text>

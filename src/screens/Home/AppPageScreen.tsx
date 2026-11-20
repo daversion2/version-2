@@ -176,8 +176,8 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
           </ListGroup>
           <ListGroup title="Your override · last 7 days">
-            <ListRow title="To start" subtitle={friction} />
-            <ListRow title="To keep going" subtitle={keepGoing} />
+            <ListRow title="Getting started" subtitle={friction} />
+            <ListRow title="Staying with it" subtitle={keepGoing} />
           </ListGroup>
           {m.recent.length > 0 && (
             <ListGroup title="Recent">
@@ -222,8 +222,8 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
           </ListGroup>
           <ListGroup title="Your override · last 7 days">
-            <ListRow title="To start" subtitle={friction} />
-            <ListRow title="To keep going" subtitle={keepGoing} />
+            <ListRow title="Getting started" subtitle={friction} />
+            <ListRow title="Staying with it" subtitle={keepGoing} />
           </ListGroup>
           {(w.week.length > 0 || w.phaseLine) && (
             <ListGroup title={w.phaseLine ? `Sessions · ${w.phaseLine}` : 'Sessions'}>

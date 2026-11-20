@@ -1,22 +1,24 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AppColors, BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { FadeRise } from '../common/FadeRise';
 import { Copy } from '../common/Copy';
 import { useCopy } from '../../context/CopyContext';
 import type { TodayAppId } from '../../services/appCheckins';
-import { ALL_APPS, AppSetup } from '../../services/appSetup';
+import { AppSetup } from '../../services/appSetup';
 import { CLOSEOUT_TIMES, formatReminderTime } from '../../services/closeOutTimes';
-import { APP_ICONS } from '../homeDashboard/DashboardParts';
 import { AppGoalRows, AppToggleList } from '../appSetup/AppSetupParts';
 import { ob } from './onboardingStyles';
+import { BothFall, PredictionMeter, TwoMoments } from './OverrideIllustrations';
 
 // ============================================================================
-// THE FIVE ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
+// THE SEVEN ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
 //
-//   why       discipline is one skill used twice, and the friction is the training
-//   ratings   the two questions: the override to start, and to keep going
+//   why       resistance is a prediction; acting against it is the override
+//   twice     the override used twice: getting started, staying with it
+//   practice  why both get easier (habit system; tenacity, learned effort)
+//   ratings   the two questions that make it visible, and that both should fall
 //   apps      the three apps, all on; switch off any you won't use
 //   goals     a weekly goal each, and the app to start with
 //   reminder  an evening close-out nudge, or none
@@ -25,92 +27,144 @@ import { ob } from './onboardingStyles';
 // and writes them when the last screen is done.
 // ============================================================================
 
-/** 1 — why: discipline is one skill used twice, and the app measures both. */
+// The first four beats are the science, in order (founder's pick, 2026-11-20):
+// where resistance comes from and what the override is; the two moments it's
+// used; why both get easier; and the two ratings that show it. One idea per
+// screen: a bold headline that carries it alone, a picture, two short lines.
+// The names are the founder's: "Getting started" and "Staying with it".
+
+/** 1 — why: resistance is a prediction, and acting against it is the override. */
 export const OnboardingWhy: React.FC = () => (
   <View style={styles.center}>
     <FadeRise>
-      <View style={styles.tiles} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        {ALL_APPS.map((id) => (
-          <View key={id} style={[styles.tile, { backgroundColor: AppColors[id] }]}>
-            <Ionicons name={APP_ICONS[id] as never} size={26} color={Colors.white} />
-          </View>
-        ))}
-      </View>
-      <Copy id="onboarding.why.eyebrow" style={ob.eyebrow}>
-        {'How it works'}
+      <PredictionMeter />
+      <Copy id="onboarding.science.source.eyebrow" style={ob.eyebrow}>
+        {'The science'}
       </Copy>
-      <Copy id="onboarding.why.headlineOneSkill" style={ob.headline} boldStyle={ob.headlineAccent}>
-        {'Discipline is **one skill, used twice.**'}
+      <Copy id="onboarding.science.source.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'That “I don’t want to” has **a source.**'}
       </Copy>
     </FadeRise>
     <FadeRise delay={400}>
-      <Copy id="onboarding.why.bodyOneSkill" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'Overriding the urge **not to start**, and the urge **to stop once you have.** Most apps only ask whether you did it. Neuro-Nudge measures both, across three apps: Meditate, Workouts and Meals.'}
+      <Copy id="onboarding.science.source.body" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Before anything hard, your brain predicts what it will cost. The resistance you feel is that prediction.'}
       </Copy>
-      <Copy id="onboarding.why.bodyTraining" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'The friction is the training. **The hard days are the ones doing the work.**'}
+      <Copy id="onboarding.science.source.override" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'You can act against it. **That’s your override.**'}
+      </Copy>
+    </FadeRise>
+  </View>
+);
+
+/** 2 — twice: getting started, and staying with it. */
+export const OnboardingTwice: React.FC = () => (
+  <View style={styles.center}>
+    <FadeRise>
+      <TwoMoments />
+      <Copy id="onboarding.science.twice.eyebrow" style={ob.eyebrow}>
+        {'One skill, two moments'}
+      </Copy>
+      <Copy id="onboarding.science.twice.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'You use it **twice.**'}
+      </Copy>
+    </FadeRise>
+    <FadeRise delay={400}>
+      <Copy id="onboarding.science.twice.start" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Getting started:** overriding the urge not to begin.'}
+      </Copy>
+      <Copy id="onboarding.science.twice.stay" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Staying with it:** overriding the urge to stop. The “this sucks” halfway through a workout. The “I’ll stop early” in a meditation.'}
+      </Copy>
+    </FadeRise>
+  </View>
+);
+
+/** 3 — practice: why each one gets easier. */
+export const OnboardingPractice: React.FC = () => (
+  <View style={styles.center}>
+    <FadeRise>
+      <BothFall />
+      <Copy id="onboarding.science.practice.eyebrow" style={ob.eyebrow}>
+        {'What practice changes'}
+      </Copy>
+      <Copy id="onboarding.science.practice.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'Both get **easier with practice.**'}
+      </Copy>
+    </FadeRise>
+    <FadeRise delay={400}>
+      <Copy id="onboarding.science.practice.start" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Getting started:** repetition hands the start to your brain’s habit system, so it takes less deciding.'}
+      </Copy>
+      <Copy id="onboarding.science.practice.stay" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Staying with it:** keeping going works a brain region linked to tenacity, and with practice, effort itself feels less unpleasant.'}
+      </Copy>
+      <Copy id="onboarding.science.practice.helper" style={ob.helper}>
+        {'The region is the anterior mid-cingulate cortex. Studies find a start takes weeks to months to become automatic, so the hard days are the ones doing the work.'}
       </Copy>
     </FadeRise>
   </View>
 );
 
 /**
- * 2 — the two ratings: when each is asked and which way it should move. Shown,
+ * 4 — the two ratings: when each is asked, and that both should fall. Shown,
  * not asked: the first real rating explains itself (RatingExplainer).
  */
 export const OnboardingRatings: React.FC = () => (
   <View style={styles.center}>
     <FadeRise>
-      <Copy id="onboarding.ratings.eyebrow" style={ob.eyebrow}>
-        {'Two questions'}
+      <Copy id="onboarding.science.ratings.eyebrow" style={ob.eyebrow}>
+        {'How it’s measured'}
       </Copy>
-      <Copy id="onboarding.ratings.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
-        {'One as you start, **one when you finish.**'}
+      <Copy id="onboarding.science.ratings.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'Two taps make it **visible.**'}
       </Copy>
     </FadeRise>
     <FadeRise delay={250}>
       <RatingCard
         copyKey="start"
-        when="As you start · Override"
+        when="As you start · Getting started"
         question="How hard is it to start?"
-        direction="Watch it fall. Starting gets easier as it becomes automatic."
+        color={Colors.primary}
       />
       <RatingCard
-        copyKey="keepGoing"
-        when="When you finish · Override"
+        copyKey="stay"
+        when="When you finish · Staying with it"
         question="How hard was it to keep going?"
-        direction="Watch it fall too. The same session costs less override as you get stronger."
+        color={Colors.secondary}
       />
     </FadeRise>
     <FadeRise delay={500}>
-      <Copy id="onboarding.ratings.meals" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'Meals has no single start, so it asks once a day: **how hard was it to eat this way today?**'}
+      <Copy id="onboarding.science.ratings.direction" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Watch both fall.** That’s your override getting stronger. Meals has no single start, so it asks once a day: how hard was it to eat this way today?'}
       </Copy>
-      <Copy id="onboarding.ratings.helper" style={ob.helper}>
+      <Copy id="onboarding.science.ratings.helper" style={ob.helper}>
         {'Each one is 1 to 3. Be honest: a 3 is never a bad mark.'}
       </Copy>
     </FadeRise>
   </View>
 );
 
+/** A rating as it will look: the moment, the question, and its three answers. */
 const RatingCard: React.FC<{
-  copyKey: 'start' | 'keepGoing';
+  copyKey: 'start' | 'stay';
   when: string;
   question: string;
-  direction: string;
-}> = ({ copyKey, when, question, direction }) => (
+  color: string;
+}> = ({ copyKey, when, question, color }) => (
   <View style={styles.ratingCard}>
-    <Copy id={`onboarding.ratings.${copyKey}.when`} style={styles.ratingWhen}>
+    <Copy id={`onboarding.science.ratings.${copyKey}.when`} style={[styles.ratingWhen, { color }]}>
       {when}
     </Copy>
-    <Copy id={`onboarding.ratings.${copyKey}.question`} style={styles.ratingQuestion}>
+    <Copy id={`onboarding.science.ratings.${copyKey}.question`} style={styles.ratingQuestion}>
       {question}
     </Copy>
-    <View style={styles.ratingDirection}>
-      <Ionicons name="trending-down" size={18} color={Colors.primary} />
-      <Copy id={`onboarding.ratings.${copyKey}.direction`} style={styles.ratingDirectionText}>
-        {direction}
-      </Copy>
+    <View style={styles.ratingDots} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {[1, 2, 3].map((n) => (
+        <View key={n} style={[styles.ratingDot, { borderColor: color }]}>
+          <Text style={[styles.ratingDotText, { color }]}>{n}</Text>
+        </View>
+      ))}
+      <Ionicons name="trending-down" size={18} color={color} style={styles.ratingTrend} />
     </View>
   </View>
 );
@@ -219,14 +273,6 @@ export const OnboardingReminder: React.FC<{ time: string | null; onChange: (time
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', paddingVertical: Spacing.md },
-  tiles: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xl },
-  tile: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   chip: { paddingVertical: Spacing.sm + 2, paddingHorizontal: Spacing.md },
   chipText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.md, color: Colors.dark },
@@ -246,6 +292,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   ratingQuestion: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.lg, color: Colors.dark },
-  ratingDirection: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs, marginTop: 2 },
-  ratingDirectionText: { flex: 1, fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.gray, lineHeight: 20 },
+  ratingDots: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
+  ratingDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingDotText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
+  ratingTrend: { marginLeft: 'auto' },
 });

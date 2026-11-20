@@ -506,6 +506,18 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Onboarding leads with the science of the override** *(2026-11-20, committed, not yet live — needs an OTA)*
+Founder picked "science first" (Option A, tightened). Onboarding is seven
+screens: (1) that "I don't want to" is the brain's predicted cost, and acting
+against it is the override; (2) you use it twice, "Getting started" and
+"Staying with it" (founder's names); (3) both get easier: the habit system
+takes the start, a region linked to tenacity (aMCC) does the staying, effort
+grows less unpleasant; (4) two taps make it visible. Then apps, goals,
+reminder. Each science screen has a simple illustration built from Views and
+Ionicons (`components/onboarding/OverrideIllustrations.tsx`). The two ratings
+use the new names everywhere (rating sheets, app pages, toast, ⓘ). Copy under
+`onboarding.science.*`. Not yet seen on screen.
+
 **The override, twice: start and keep going** *(2026-11-20, live OTA 10bde827, not yet seen on screen)*
 Founder's framing: discipline is one skill used twice. "Push" (how hard you
 went) read the wrong way for Meditate, where a settled sit scored low and was

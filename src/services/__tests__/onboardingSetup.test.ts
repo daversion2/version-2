@@ -42,8 +42,8 @@ const timed: HabitDefinition = {
 };
 
 describe('ONBOARDING_BEATS', () => {
-  it('is four screens: why, the apps, their goals, the reminder', () => {
-    expect(ONBOARDING_BEATS.map((b) => b.key)).toEqual(['why', 'ratings', 'apps', 'goals', 'reminder']);
+  it('is seven screens: the science in four, then the apps, their goals, the reminder', () => {
+    expect(ONBOARDING_BEATS.map((b) => b.key)).toEqual(['why', 'twice', 'practice', 'ratings', 'apps', 'goals', 'reminder']);
   });
 
   it('gives every beat a forward label', () => {

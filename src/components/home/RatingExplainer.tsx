@@ -12,8 +12,8 @@ import { Copy } from '../common/Copy';
  */
 export const RatingExplainer: React.FC = () => (
   <View style={styles.box}>
-    <Copy id="today.override.explainerTwice" style={styles.text} boldStyle={styles.strong}>
-      {'**Two honest numbers, one skill.** Your override is what it takes to **start**, and what it takes to **keep going** when you want to stop: 1 easy, 3 took everything. Watching both fall is your progress.'}
+    <Copy id="today.override.explainerNamed" style={styles.text} boldStyle={styles.strong}>
+      {'**Two honest numbers, one skill.** Your override, **getting started** and **staying with it** when you want to stop: 1 easy, 3 took everything. Watching both fall is your progress.'}
     </Copy>
   </View>
 );

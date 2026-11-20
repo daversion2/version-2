@@ -44,7 +44,7 @@ export const OverrideStartSheet: React.FC<Props> = ({ visible, appName, accent, 
           </View>
           <View style={styles.head}>
             <Text style={[styles.kicker, { color: accent }]}>
-              {t('start.override.kicker', 'Override')} · {appName}
+              {t('start.override.kickerStarted', 'Getting started')} · {appName}
             </Text>
             <Text style={styles.question} accessibilityRole="header">
               {t('start.override.question', 'How hard is it to start?')}

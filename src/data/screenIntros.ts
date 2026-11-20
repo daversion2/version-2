@@ -41,11 +41,11 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Open an app',
-        text: 'Tap Meditate, Workouts or Meals under Your apps for its page: the main number and how it’s trending, your streak, your goal, and your override to start and to keep going. Start a session from the button at the bottom.',
+        text: 'Tap Meditate, Workouts or Meals under Your apps for its page: the main number and how it’s trending, your streak, your goal, and your override: getting started and staying with it. Start a session from the button at the bottom.',
       },
       {
         label: 'Your override, twice',
-        text: 'As you start a session, rate how hard it is to start, 1 to 3. When you finish, rate how hard it was to keep going when part of you wanted to stop. Each app’s page shows both. Over the weeks, both should fall.',
+        text: 'Getting started: as you start a session, rate how hard it is to start, 1 to 3. Staying with it: when you finish, rate how hard it was to keep going when part of you wanted to stop. Each app’s page shows both. Over the weeks, both should fall.',
       },
       {
         label: 'Close out the day',

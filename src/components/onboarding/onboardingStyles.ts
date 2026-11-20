@@ -2,8 +2,8 @@ import { StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 
 /**
- * Type and surface styles shared by the five onboarding beats, so the flow reads
- * as one screen rather than five that happen to be adjacent. Beat-specific
+ * Type and surface styles shared by the onboarding beats, so the flow reads
+ * as one screen rather than several that happen to be adjacent. Beat-specific
  * styling stays in the beat's own file.
  */
 export const ob = StyleSheet.create({

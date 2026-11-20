@@ -746,13 +746,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       if (!needsPointsIntro && !milestoneLabel) {
         const level =
           typeof input.resistance === 'number'
-            ? t('today.toast.start', 'Start {level}', { level: input.resistance })
+            ? t('today.toast.start', 'Started {level}', { level: input.resistance })
             : typeof input.day_rating === 'number'
               ? t('today.toast.mealsDay', 'Rated {level}', { level: input.day_rating })
               : undefined;
         const keepGoing =
           typeof input.keep_going === 'number'
-            ? t('today.toast.keepGoing', 'Keep going {level}', { level: input.keep_going })
+            ? t('today.toast.keepGoing', 'Stayed with it {level}', { level: input.keep_going })
             : undefined;
         const amounts = APP_TRACKING[appId]
           .filter((f) => isNumericField(f) && typeof input.metrics?.[f.key] === 'number')
