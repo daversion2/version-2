@@ -506,7 +506,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Meals: tap a food again for another serving** *(2026-11-20, committed, not yet live — needs an OTA)*
+**Meals: tap a food again for another serving** *(2026-11-20, live OTA 696ea5cd, not yet seen on screen)*
 Two fruit is Fruit tapped twice: the chip reads "Fruit ×2 · 81", its − takes
 one off, a long press takes the food off the plate. A plate stores one entry
 per serving (`['fruit', 'fruit']`), so older plates read as before. Founder's
