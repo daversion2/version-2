@@ -6,6 +6,7 @@ import {
   buildHomeDashboard,
   countServings,
   dayStreak,
+  inWeek,
   describeFriction,
   describeInsight,
   describeVsPrior,
@@ -118,6 +119,76 @@ describe('windows', () => {
 
   it('crosses month ends', () => {
     expect(addDays('2026-10-31', 1)).toBe('2026-11-01');
+  });
+});
+
+describe('goal counts: the calendar week, from Monday', () => {
+  // TODAY is Saturday the 24th: this week is Mon 19th – today, last week 12th – 18th.
+  const input = (over: Partial<Parameters<typeof buildHomeDashboard>[0]> = {}) =>
+    buildHomeDashboard({
+      today: TODAY,
+      meditateSessions: [],
+      meditateGoal: 5,
+      workoutSessions: [],
+      workoutsGoal: 3,
+      exercisesById: EXERCISES,
+      unit: 'lb',
+      phase: undefined,
+      mealsDays: {},
+      mealsRules: RULES,
+      logs: [],
+      ...over,
+    });
+
+  it('puts Monday in this week and the Sunday before in last week', () => {
+    expect(inWeek('2026-10-19', TODAY)).toBe(true);
+    expect(inWeek('2026-10-18', TODAY)).toBe(false);
+    expect(inWeek('2026-10-18', TODAY, 1)).toBe(true);
+    expect(inWeek('2026-10-12', TODAY, 1)).toBe(true);
+    expect(inWeek('2026-10-11', TODAY, 1)).toBe(false);
+  });
+
+  it('leaves the rest of this week out until it comes', () => {
+    expect(inWeek('2026-10-25', TODAY)).toBe(false);
+  });
+
+  it('counts the rings from Monday, not the last 7 days', () => {
+    const d = input({
+      meditateSessions: [sit('2026-10-18', 10), sit('2026-10-19', 10)],
+      workoutSessions: [workout('2026-10-18', 1000), workout('2026-10-20', 1000)],
+      mealsDays: { '2026-10-18': mealsDay('2026-10-18'), '2026-10-23': mealsDay('2026-10-23') },
+    });
+    expect(d.rings.map((r) => r.done)).toEqual([1, 1, 1]);
+    // The trends still read the rolling 7 days, Sunday the 18th included.
+    expect(d.meditate.minutes).toBe(20);
+    expect(d.workouts.volumeKg).toBe(2000);
+    expect(d.meals.loggedDates).toEqual(['2026-10-18', '2026-10-23']);
+  });
+
+  it('starts over on Monday', () => {
+    const d = input({
+      today: '2026-10-26',
+      workoutSessions: [workout('2026-10-20', 1000), workout('2026-10-22', 1000), workout('2026-10-24', 1000)],
+    });
+    expect(d.workouts.sessions).toBe(0);
+    expect(d.workouts.priorSessions).toBe(3);
+    expect(d.workouts.streakWeeks).toBe(1);
+  });
+
+  it('counts a session logged for an earlier day in the week it was for', () => {
+    const d = workoutsDashboard([], 3, EXERCISES, 'lb', undefined, TODAY, ['2026-10-18', '2026-10-19']);
+    expect(d.sessions).toBe(1);
+    expect(d.priorSessions).toBe(1);
+  });
+
+  it('counts the whole of last week, Monday to Sunday', () => {
+    const sessions = [workout('2026-10-11', 1000), workout('2026-10-12', 1000), workout('2026-10-18', 1000)];
+    expect(workoutsDashboard(sessions, 3, EXERCISES, 'lb', undefined, TODAY).priorSessions).toBe(2);
+  });
+
+  it('counts Meals days logged this week against its goal', () => {
+    const days = { '2026-10-18': mealsDay('2026-10-18'), '2026-10-19': mealsDay('2026-10-19') };
+    expect(mealsDashboard(days, RULES, TODAY, Object.keys(days)).loggedThisWeek).toBe(1);
   });
 });
 

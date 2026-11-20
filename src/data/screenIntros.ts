@@ -33,11 +33,11 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     id: 'today',
     icon: 'today-outline',
     title: 'Today',
-    intro: 'Your last 7 days across Meditate, Workouts and Meals, on one screen.',
+    intro: 'Your week across Meditate, Workouts and Meals, on one screen.',
     points: [
       {
         label: 'The rings',
-        text: 'One ring per app: how much of its weekly goal you’ve met in the last 7 days. Beside them, sessions done out of the goal (days logged, for Meals). Under them, your streak and XP.',
+        text: 'One ring per app: how much of its weekly goal you’ve met this week. The week starts Monday, so the rings start over then. Beside them, sessions done out of the goal (days logged, for Meals). Under them, your streak and XP.',
       },
       {
         label: 'Open an app',

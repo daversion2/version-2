@@ -160,7 +160,7 @@ export const TodayView: React.FC<Props> = ({
               <View style={styles.ringsRow}>
                 <AppRings
                   rings={apps.map((id) => ({ pct: ringOf(id)?.pct ?? 0, color: AppColors[id] }))}
-                  accessibilityLabel={`Last 7 days: ${apps.map(
+                  accessibilityLabel={`This week: ${apps.map(
                     (id) => `${APP_TITLES[id]} ${ringOf(id)?.done ?? 0} of ${ringOf(id)?.goal ?? 0}`
                   ).join(', ')}`}
                 />

@@ -99,7 +99,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
     }, [reload])
   );
 
-  // Back in the app on a new day: the 7 days moved, so read again.
+  // Back in the app on a new day: the 7 days (or the week) moved, so read again.
   const loadedDay = data?.app.today;
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
@@ -158,9 +158,11 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.cardLabel}>Minutes per session</Text>
             <DotTrend values={m.series} label="Your last 8 sessions" empty="No sessions yet." />
           </View>
+          <ListGroup title="This week">
+            <ListRow title="Goal" value={`${m.sessions} of ${m.goal} sessions`} />
+          </ListGroup>
           <ListGroup title="Last 7 days">
             <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
-            <ListRow title="Goal" value={`${m.sessions} of ${m.goal} sessions`} />
             <ListRow title="Your override" subtitle={friction} />
             <ListRow title="Your push" subtitle={push} />
           </ListGroup>
@@ -201,10 +203,12 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
               formatValue={(kg) => formatVolume(kg, data.app.unit)}
             />
           </View>
-          <ListGroup title="Last 7 days">
-            <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
+          <ListGroup title="This week">
             <ListRow title="Goal" value={`${w.sessions} of ${w.goal} sessions`} />
-            <ListRow title="The 7 days before" value={`${w.priorSessions} ${w.priorSessions === 1 ? 'session' : 'sessions'}`} />
+            <ListRow title="Last week" value={`${w.priorSessions} ${w.priorSessions === 1 ? 'session' : 'sessions'}`} />
+            <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
+          </ListGroup>
+          <ListGroup title="Last 7 days">
             <ListRow title="Your override" subtitle={friction} />
             <ListRow title="Your push" subtitle={push} />
           </ListGroup>
@@ -232,7 +236,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
               ? 'Every plate in the last 7 days'
               : describeVsPrior(m.averageScore, m.priorAverageScore, 'pts') ?? ''
           }
-          note={`${m.loggedDates.length} of ${m.goal} days logged · ${m.onTarget} of 7 on target (${m.threshold}+)`}
+          note={`${m.loggedThisWeek} of ${m.goal} days logged this week · ${m.onTarget} of the last 7 on target (${m.threshold}+)`}
         />
         <View style={styles.card}>
           <Text style={styles.cardLabel}>What you ate</Text>

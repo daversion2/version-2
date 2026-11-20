@@ -237,7 +237,7 @@ export const HomeDashboardView: React.FC<Props> = ({
             </View>
           ) : (
             <View style={styles.rings}>
-              <Text style={styles.window}>Last 7 days</Text>
+              <Text style={styles.window}>This week</Text>
               <View style={styles.ringRow}>
                 {d.rings.map((r) => {
                   const title = PAGES.find((p) => p.id === r.appId)?.title;
@@ -297,7 +297,7 @@ export const HomeDashboardView: React.FC<Props> = ({
                 [
                   'meals',
                   'Meals',
-                  `${d.meals.loggedDates.length} of ${d.meals.goal} days logged · ${d.meals.averageScore === null ? 'no plates yet' : `score ${d.meals.averageScore}`}`,
+                  `${d.meals.loggedThisWeek} of ${d.meals.goal} days logged · ${d.meals.averageScore === null ? 'no plates yet' : `score ${d.meals.averageScore}`}`,
                 ],
               ] as [TodayAppId, string, string][]
             )
@@ -371,7 +371,7 @@ export const HomeDashboardView: React.FC<Props> = ({
               <View style={styles.chips}>
                 <Chip text={`${d.workouts.streakWeeks}-week streak`} />
                 <Chip text={`${d.workouts.sessions} of ${d.workouts.goal} sessions`} />
-                <Chip text={`${d.workouts.priorSessions} the week before`} />
+                <Chip text={`${d.workouts.priorSessions} last week`} />
                 <Chip text={`Override: ${describeFriction(d.friction.workouts) ?? 'not rated yet'}`} />
                 <Chip text={`Push: ${describeFriction(d.push.workouts) ?? 'not rated yet'}`} />
               </View>
@@ -414,7 +414,7 @@ export const HomeDashboardView: React.FC<Props> = ({
               <SectionLabel>Day by day</SectionLabel>
               <DayDots days={d.meals.days} threshold={d.meals.threshold} />
               <View style={styles.chips}>
-                <Chip text={`${d.meals.loggedDates.length} of ${d.meals.goal} days logged`} />
+                <Chip text={`${d.meals.loggedThisWeek} of ${d.meals.goal} days logged`} />
                 <Chip text={`${d.meals.streakDays}-day streak`} />
                 <Chip text={`Eating well: ${describeFriction(d.mealsDay) ?? 'not rated yet'}`} />
               </View>

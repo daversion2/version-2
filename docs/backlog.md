@@ -510,6 +510,15 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Today's rings start over every Monday** *(2026-11-20, committed, not yet live — needs an OTA)*
+The rings and every "N of goal" line (Today, the app pages, the old
+dashboard) counted a rolling 7 days, so they never matched Workouts' This
+week and dropped a session each morning. They now count Monday to today,
+the same weeks as This week, the week streaks and the weekly review.
+Workouts' "the 7 days before" is now "Last week" (Monday to Sunday). Trends
+(minutes, volume, plate score, friction, the week grid) stay on the rolling
+7 days. `inWeek` in `services/homeDashboard.ts`; screen intro updated.
+
 **Explaining override and push: the ⓘ screen and onboarding** *(2026-11-11, live OTA 88cde86b, not yet seen on screen)*
 The ⓘ (now on the Start sheet and the rating sheet) explains both ratings:
 discipline is two skills, the car analogy (override = the engine turning

@@ -15,8 +15,11 @@ import { getWeekStart, toLocalDateString } from '../utils/date';
 // data rather than habit rows. Spec: docs/no-generic-habits-micro-apps.md,
 // "Progress-screen tracking spec". Pure functions, no I/O.
 //
-// Everything reads a ROLLING 7 days ending today, compared with the 7 before.
-// Friction is the one exception to "the app's own data": it still lives only
+// Trends read a ROLLING 7 days ending today, compared with the 7 before.
+// The GOAL counts are the exception: the rings and every "N of goal" line
+// count this calendar week, Monday to today, so they start over each Monday
+// (founder, 2026-11-20). Same weeks as Workouts' This week, the week streaks
+// and the weekly review. Friction is the other exception to "the app's own data": it still lives only
 // on the `app:<id>` check-in logs Today writes.
 // =============================================================================
 
@@ -55,6 +58,13 @@ export const dayStreak = (active: Set<string>, today: string): number => {
 };
 
 const weekOf = (date: string): string => toLocalDateString(getWeekStart(localDate(date)));
+
+/**
+ * In this calendar week (Monday to today) or, offset 1, the whole week before
+ * (Monday to Sunday). The goal counts use this; the trends use `inWindow`.
+ */
+export const inWeek = (date: string, today: string, offset = 0): boolean =>
+  weekOf(date) === addDays(weekOf(today), -7 * offset) && (offset > 0 || date <= today);
 
 /** Monday-start weeks in a row that met the goal. The current week counts once met and never breaks the run. */
 export const weekStreak = (dates: string[], goal: number, today: string): number => {
@@ -142,9 +152,10 @@ export const ratingDates = (logs: CompletionLog[], appId: TodayAppId): string[] 
 export const ratingRefs = (logs: CompletionLog[], appId: TodayAppId): RatingRef[] =>
   appRatings(logs, appId).map((l) => (l.session_id ? { date: l.date, sessionId: l.session_id } : { date: l.date }));
 
-const countIn = (byDay: Map<string, number>, today: string, offset = 0): number => {
+/** Sessions in a calendar week: this one so far, or (offset 1) last week. */
+const countInWeek = (byDay: Map<string, number>, today: string, offset = 0): number => {
   let n = 0;
-  for (const [d, c] of byDay) if (inWindow(d, today, offset)) n += c;
+  for (const [d, c] of byDay) if (inWeek(d, today, offset)) n += c;
   return n;
 };
 
@@ -171,7 +182,7 @@ export interface MeditateRecent {
 export interface MeditateDashboard {
   minutes: number;
   priorMinutes: number;
-  /** Sessions, not days: two sits on one day are two. */
+  /** This week's sessions, Monday on — the goal count. Sessions, not days: two sits on one day are two. */
   sessions: number;
   goal: number;
   lastSessionMinutes: number | null;
@@ -200,7 +211,7 @@ export const meditateDashboard = (
   return {
     minutes: sum(current),
     priorMinutes: sum(prior),
-    sessions: countIn(byDay, today),
+    sessions: countInWeek(byDay, today),
     goal,
     lastSessionMinutes: sorted[0] ? minutes(sorted[0].duration_sec) : null,
     series: sorted.slice(0, 8).reverse().map((s) => minutes(s.duration_sec)),
@@ -226,7 +237,9 @@ export interface WorkoutWeekRow {
 }
 
 export interface WorkoutsDashboard {
+  /** This week's sessions, Monday on — the goal count. */
   sessions: number;
+  /** Last week's, Monday to Sunday. */
   priorSessions: number;
   goal: number;
   volumeKg: number;
@@ -317,8 +330,8 @@ export const workoutsDashboard = (
   const volumeKg = volume(current);
   const priorVolumeKg = volume(prior);
   return {
-    sessions: countIn(byDay, today),
-    priorSessions: countIn(byDay, today, 1),
+    sessions: countInWeek(byDay, today),
+    priorSessions: countInWeek(byDay, today, 1),
     goal,
     volumeKg,
     priorVolumeKg,
@@ -358,7 +371,7 @@ export interface MealsDashboard {
   threshold: number;
   onTarget: number;
   priorOnTarget: number;
-  /** Days logged a week — the ring counts `loggedDates` against it (founder, 2026-11-01). */
+  /** Days logged a week — the ring counts `loggedThisWeek` against it (founder, 2026-11-01). */
   goal: number;
   /**
    * Every food group, processed ones included, most servings first — the
@@ -371,6 +384,8 @@ export interface MealsDashboard {
   onDates: string[];
   /** Days in the window with anything logged. */
   loggedDates: string[];
+  /** Days this week, Monday on, with anything logged — the ring counts these against `goal`. */
+  loggedThisWeek: number;
 }
 
 const hasAnything = (day: MealsDay | undefined): boolean => platesOf(day).length > 0;
@@ -455,6 +470,7 @@ export const mealsDashboard = (
     streakDays: dayStreak(loggedAll, today),
     onDates,
     loggedDates: dates.filter((d) => hasAnything(daysByDate[d])),
+    loggedThisWeek: Object.keys(daysByDate).filter((d) => inWeek(d, today) && hasAnything(daysByDate[d])).length,
   };
 };
 
@@ -705,7 +721,7 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
   const rings = [
     progressOf('meditate', meditate.sessions, meditate.goal),
     progressOf('workouts', workouts.sessions, workouts.goal),
-    progressOf('meals', meals.loggedDates.length, meals.goal),
+    progressOf('meals', meals.loggedThisWeek, meals.goal),
   ].filter((r) => !input.hiddenApps?.includes(r.appId));
   // One day streak (design §3): any app session, or any meal logged (Q2).
   // Craving Crusher doesn't count (Q3).
