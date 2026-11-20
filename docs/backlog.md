@@ -565,7 +565,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Close out the day and Craving Crusher: their own micro-apps** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+**Close out the day and Craving Crusher: their own micro-apps** *(2026-11-20, live OTA 73b44644, not yet seen on screen)*
 From the mockup the founder approved (https://claude.ai/artifact/JyTy21iCp1BuRU9kmKQsMJ).
 - **Close out the day** (`screens/Nightly/NightlyApp.tsx`, root route
   `NightlyApp`; the old `NightlyReflection` route renders it too) is rebuilt
