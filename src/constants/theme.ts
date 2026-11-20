@@ -33,6 +33,8 @@ export const AppColors = {
   meals: '#1F4FA8',
   /** Hot & Cold (Lab, 2026-11-01): a glacier blue, kept clear of Meals' blue. */
   hotcold: '#2A8BB5',
+  /** Back Pain (Lab, 2026-11-20): a sage green for recovery. */
+  pain: '#3C8D5A',
 };
 
 // Meditate's breathing pacer (redesign canvas "Meditate · breathing pacer"):

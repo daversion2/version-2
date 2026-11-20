@@ -117,6 +117,15 @@ export const LAB_EXPERIMENTS = [
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'AvoidanceApp' })),
   },
+  // Built 2026-11-20 with the build-micro-app skill: docs/micro-apps/pain.md.
+  {
+    id: 'pain',
+    title: 'Back Pain',
+    description:
+      'Check in on your back each day, follow a few evidence-backed things for 2–4 weeks, then retest and see what actually helped.',
+    open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
+      navigation.dispatch(CommonActions.navigate({ name: 'PainApp' })),
+  },
 ] as const satisfies readonly LabExperiment[];
 
 /** Typed against the registry, so useLab('typo') fails tsc. */

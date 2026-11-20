@@ -242,3 +242,47 @@ the day. One fewer fact, and nothing to go stale when a plan is ended.
 - Rename or migrate `lab_pain_*`, flip `release` to `'live'`.
 - A dashboard page / ring: the 7-day pain average against the starting number.
 - Review the copy and the red-flag list with a clinician before it reaches everyone.
+
+## What got built (Lab, 2026-11-20)
+
+Built the same day as the spec, with the `build-micro-app` skill. Open it from
+**Admin → Lab → Back Pain** (admin accounts only). It ships over the air.
+
+| Piece | Where |
+|---|---|
+| Types | `src/types/pain.ts` |
+| The menu, red flags, suggestions, defaults, copy | `src/data/painPlan.ts` |
+| All the rules (pure, 34 tests) | `src/services/painMath.ts`, `__tests__/painMath.test.ts` |
+| Storage (3 tests) | `src/services/labPain.ts`, `__tests__/labPain.test.ts` |
+| Manifest + gate | `MINI_APPS.pain` in `services/miniApps.ts`, `release: 'lab'` |
+| Route | `PainApp` in `RootNavigator` (getComponent + require) |
+| Lab entry | `src/screens/Lab/experiments.ts` |
+| Screens | `src/screens/Lab/experiments/pain/`: `PainHomeScreen`, `PainPlanScreen`, `PainResultsScreen`, `PainHistoryScreen`, `components/CheckInSheet`, `PainScale`, `PainBars` |
+| Colour | `AppColors.pain` in `constants/theme.ts` |
+| Clear Account | `lab_pain_days`, `lab_pain_plans`, `lab_pain_prefs` added to `USER_SUBCOLLECTIONS` in `services/users.ts` (a jest guard caught it) |
+
+**Collections:** `users/{uid}/lab_pain_days/{date}`, `users/{uid}/lab_pain_plans`,
+`users/{uid}/lab_pain_prefs/main`. No rules or index changes.
+
+**Reused, not rebuilt:**
+- `homeDashboard.dayStreak`, `habitSchedule.addDays` / `daysBetween`
+- `StepFlowShell` for the plan flow
+- `BottomSheet`, `SegmentedControl`, `Stepper`, `InputField`, `ListGroup`/`ListRow`, `ProgressRing`
+
+**Differences from the spec:**
+- **The Results screen does three jobs.** It's the plan in progress (items and
+  doses, adherence so far, End plan early), the retest once it's due, and the
+  outcome afterwards. Without that, a running plan had no screen of its own,
+  and a fifth screen would break the limit of four.
+- **Two small components are new.** `PainScale` is the 0–10 row, used for pain
+  and for activities. `PainBars` is the 14-day chart. `MiniBars` draws a 0
+  the same as a missing day, which is wrong for pain.
+- **The activities step can be skipped** ("Skip, track pain only"). The plan
+  then compares pain alone.
+- **A partly done today doesn't break the plan streak.** There's still time
+  to finish it, the same rule as an empty today.
+- **Ending a plan early sets `closed_on` to yesterday.** Today's check-in stops
+  showing its items, and a plan ended the day it started never covers a day.
+
+**Not checked on screen yet.** Jest and tsc are clean; nobody has seen it in
+the simulator. See `docs/backlog.md`.

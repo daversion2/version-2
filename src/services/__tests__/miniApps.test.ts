@@ -28,6 +28,10 @@ describe('canOpenMiniApp', () => {
     expect(canOpenMiniApp('hotcold', null)).toBe(false);
     expect(canOpenMiniApp('avoidance', { is_admin: true })).toBe(true);
     expect(canOpenMiniApp('avoidance', { is_admin: false })).toBe(false);
+    // Back Pain, since 2026-11-20.
+    expect(canOpenMiniApp('pain', { is_admin: true })).toBe(true);
+    expect(canOpenMiniApp('pain', { is_admin: false })).toBe(false);
+    expect(canOpenMiniApp('pain', null)).toBe(false);
   });
 
   it('opens the live mini-apps for everyone', () => {

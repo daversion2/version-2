@@ -207,6 +207,11 @@ export const RootNavigator: React.FC = () => {
               getComponent={() => require('../screens/Lab/experiments/avoidance/AvoidanceApp').AvoidanceApp}
               options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
             />
+            <Stack.Screen
+              name="PainApp"
+              getComponent={() => require('../screens/Lab/experiments/pain/PainApp').PainApp}
+              options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+            />
           </>
         )}
       </Stack.Navigator>

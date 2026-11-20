@@ -290,6 +290,9 @@ export const USER_SUBCOLLECTIONS = [
   'lab_hotcold_prefs',
   'lab_avoidance_tasks',
   'lab_avoidance_prefs',
+  'lab_pain_days',
+  'lab_pain_plans',
+  'lab_pain_prefs',
   'lab_compose',
 ];
 

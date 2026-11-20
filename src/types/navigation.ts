@@ -39,6 +39,8 @@ export type RootStackParamList = {
   HotColdApp: undefined;
   /** Avoidance Training (Lab): the things you keep putting off, one rep a day. */
   AvoidanceApp: undefined;
+  /** Back Pain (Lab): a daily pain check-in and a few weeks' plan, then a retest. */
+  PainApp: undefined;
 };
 
 // ============================================================================

@@ -129,6 +129,15 @@ models.
 
 ## Next
 
+### Back Pain (Lab, 2026-11-20)
+
+Workouts' phase loop pointed at pain. Check in each evening with a 0–10 pain
+score and the plan items done. A plan starts with a red-flag check and a test
+(the past week's pain, plus 1–3 activities your back gets in the way of, each
+rated 0–10). Then you pick up to three evidence-tiered things (walking, core,
+yoga, extensions…) for 2–4 weeks, retest against honest thresholds, and change
+one thing. Spec and build notes: `docs/micro-apps/pain.md`.
+
 ### Avoidance Training (Lab, 2026-11-01)
 
 A short list of the things you keep putting off: add one with how hard you

@@ -310,6 +310,25 @@ date added, a sentence or two of context, link to a design doc if one exists.
 No priority ordering implied — flag with a note if something's more wanted
 than the rest.
 
+### Back Pain: check on screen, then decide on graduating *(added 2026-11-20)*
+
+Back pain as a self-experiment: a daily 0–10 check-in, then plans run like
+Workouts' phases (red-flag check → test → up to 3 evidence-backed things for
+2–4 weeks → retest → change one thing). Built in the Lab with the
+`build-micro-app` skill (`docs/micro-apps/pain.md`). Jest and tsc are clean;
+nobody has seen it on screen. Next:
+1. Try it from Admin → Lab → Back Pain: a check-in with no plan, the plan
+   flow (including the "One or more" red-flag stop and the custom activity
+   field with the keyboard up), ticking items and the rating, and History
+   edit/delete. The retest only opens on the retest date, so seeing the
+   results screen needs a plan with a back-dated `retest_date` (production
+   data, so ask first). Ask before `ui-verify`.
+2. Have someone clinical read the item copy, the red flags and the result
+   wording before it leaves the Lab.
+3. If it earns a place: add it to `TodayAppId` / `TODAY_APPS`, move friction
+   to `finishSession`, migrate `lab_pain_*`, give it a dashboard page (7-day
+   pain average against the starting number).
+
 ### Avoidance Training: check on screen, then decide on graduating *(added 2026-11-01)*
 
 A to-do list for what you keep putting off, built in the Lab with the
