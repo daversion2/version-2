@@ -552,7 +552,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Apps: browse every app and add one to Today** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+**Apps: browse every app and add one to Today** *(2026-11-20, live OTA c66b3efa, admin-only, not yet seen on screen)*
 Admin-only for now (founder's call). Today → "Browse apps" (under Your apps)
 or Settings → Browse apps. The Apps screen: a swipeable row of featured cards
 (new apps, then ones not on Today), then On your Today (with each goal), Add
