@@ -10,7 +10,9 @@ import type { FoodGroupId, MealsStackParamList } from '../../../../types/meals';
 import {
   activeCustomGroups,
   canReopen,
+  clockTime,
   isSettled,
+  plateStamp,
   platesOf,
   reopenDay,
   rulesForDay,
@@ -32,7 +34,7 @@ type Editing = PickerTarget & { plateId?: string };
 /**
  * One day of meals — today by default, or a past day of this week opened from
  * the week view. Log a meal (or a snack, or a drink) whenever you eat: tap
- * what was on the plate, and it's saved with the time. Close out today when
+ * what was on the plate, and it's saved with the time (changeable). Close out today when
  * the eating's done, or it closes on its own at midnight.
  */
 export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
@@ -92,8 +94,6 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  const stamp = () => new Date().toISOString();
-
   /** A new plate with no id, or the one logged under `plateId`. */
   const openPlate = (plateId?: string) => {
     if (locked) return;
@@ -104,13 +104,16 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
       groups: plate?.groups ?? [],
       name: plate?.name,
       loggedAt: plate?.logged_at,
+      // A new plate starts at the clock time now, on this sheet's day.
+      time: plate ? clockTime(plate.logged_at) : clockTime(new Date()),
     });
   };
 
-  // An edited plate keeps the time it was first logged.
-  const save = (groups: FoodGroupId[], name?: string) => {
+  // The time is the sheet's, on this day; an unchanged one keeps its stamp.
+  const save = (groups: FoodGroupId[], name: string | undefined, time: string) => {
     if (!editing) return;
-    saveDay(withPlate(day, { id: editing.plateId ?? newId(), name, groups, logged_at: editing.loggedAt ?? stamp() }));
+    const logged_at = plateStamp(date, time, editing.loggedAt);
+    saveDay(withPlate(day, { id: editing.plateId ?? newId(), name, groups, logged_at }));
     setEditing(null);
   };
 

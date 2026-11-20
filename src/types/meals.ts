@@ -174,7 +174,11 @@ export interface MealPlate {
   /** "Breakfast", "Pre-workout shake". Optional. */
   name?: string;
   groups: FoodGroupId[];
-  /** When it was first logged. Editing the plate keeps it. */
+  /**
+   * When it was eaten: the time it was logged, unless changed in the meal
+   * sheet (2026-11-20). Plates sort by it. Before then it was always the
+   * moment of logging, even for a meal added to a past day.
+   */
   logged_at: string;
 }
 

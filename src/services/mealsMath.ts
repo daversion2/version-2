@@ -744,6 +744,38 @@ export const describeGroupGoal = (goal: GroupGoal): string => {
 export const emptyDay = (date: string): MealsDay => ({ date, plates: [] });
 
 /** Add a plate, or replace the one with the same id. Kept in the order logged. */
+// --- A plate's time ----------------------------------------------------------------
+// A plate's `logged_at` is when it was eaten. It starts as the time it was
+// logged, and the meal sheet can change it (2026-11-20): a lunch logged at 8pm,
+// or a meal added to a past day, which used to carry the moment it was typed.
+
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+/** "HH:MM", local, of a stamp or a Date. */
+export const clockTime = (at: string | Date): string => {
+  const d = typeof at === 'string' ? new Date(at) : at;
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+
+/** The local YYYY-MM-DD a stamp falls on. */
+const localDateOf = (iso: string): string => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+
+/**
+ * The stamp for a plate eaten on `date` (YYYY-MM-DD) at `time` (HH:MM, local).
+ * An edited plate whose time wasn't changed keeps its stamp to the second, so
+ * plates logged in the same minute keep their order; one that sits on another
+ * day (added to a past day before times could be set) moves onto its own.
+ */
+export const plateStamp = (date: string, time: string, original?: string): string => {
+  if (original && localDateOf(original) === date && clockTime(original) === time) return original;
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = time.split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm).toISOString();
+};
+
 export const withPlate = (day: MealsDay, plate: MealPlate): MealsDay => {
   const plates = platesOf(day);
   const exists = plates.some((p) => p.id === plate.id);

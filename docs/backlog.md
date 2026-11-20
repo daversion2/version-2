@@ -462,9 +462,6 @@ photo/video to a set for form checks, and sharing a workout or PR as an image.
   `model/draft` doc) and have Claude copy it into the built-in model.
 - **Alcohol chip?** Open founder question (2026-11-05): a real part of many
   days, but a values call. Not added.
-- **Change a plate's time.** A plate keeps the time it was first logged, so a
-  lunch logged at 8pm reads 8pm, and one added to a past day carries today's
-  time. A time picker in the meal sheet would fix both.
 - **Which part of the day slips.** The Week screen's "Lunch is the one
   slipping" card went with the set-up meals. Grouping plates by time of day
   (morning / midday / evening) could bring it back.
@@ -505,6 +502,16 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Meals: change a plate's time** *(2026-11-20, committed, not yet live — needs an OTA)*
+The meal sheet has a Time row under the name (iOS: the compact native time
+picker; Android: a dialog). A new meal starts at the clock time now, on the
+sheet's day, so a meal added to a past day no longer carries today's date.
+Changing the time re-sorts the day. An edited plate whose time wasn't touched
+keeps its stamp to the second; an old plate filed on the wrong day moves onto
+its own day when next saved. `clockTime` / `plateStamp` in
+`services/mealsMath.ts`; the picker module was already in the 2.2.0 build.
+Not yet seen on screen.
 
 **Meals: tap a food again for another serving** *(2026-11-20, live OTA 696ea5cd, not yet seen on screen)*
 Two fruit is Fruit tapped twice: the chip reads "Fruit ×2 · 81", its − takes

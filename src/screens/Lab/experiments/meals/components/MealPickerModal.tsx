@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { Modal, Platform, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
+import { BorderRadius, Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { FOOD_SECTIONS, MEAL_GUIDE_RULES, isCustomGroup, sectionGroups } from '../../../../../data/mealGroups';
 import type { CustomFoodGroup, FoodGroupId, MealsRules } from '../../../../../types/meals';
@@ -28,6 +29,8 @@ export interface PickerTarget {
   name?: string;
   /** When an existing plate was logged. Absent for a new one. */
   loggedAt?: string;
+  /** When it was eaten, "HH:MM" local, on the sheet's day. Changeable here. */
+  time: string;
 }
 
 interface Props {
@@ -37,7 +40,7 @@ interface Props {
   /** The user's foods to offer as chips — the ones not removed. */
   offered?: CustomFoodGroup[];
   onCancel: () => void;
-  onSave: (groups: FoodGroupId[], name?: string) => void;
+  onSave: (groups: FoodGroupId[], name: string | undefined, time: string) => void;
   /** Delete a plate already logged. */
   onRemove?: () => void;
 }
@@ -63,15 +66,30 @@ export const MealPickerModal: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const [groups, setGroups] = useState<FoodGroupId[]>([]);
   const [name, setName] = useState('');
+  const [time, setTime] = useState('12:00');
+  // Android shows the time picker as a dialog, opened from the row.
+  const [androidTimeOpen, setAndroidTimeOpen] = useState(false);
   const [showRules, setShowRules] = useState(false);
 
   useEffect(() => {
     if (target) {
       setGroups(target.groups);
       setName(target.name ?? '');
+      setTime(target.time);
+      setAndroidTimeOpen(false);
       setShowRules(false);
     }
   }, [target]);
+
+  // The picker works in Dates; only the clock time matters.
+  const [hh, mm] = time.split(':').map(Number);
+  const timeValue = new Date(2000, 0, 1, hh, mm);
+  const pickTime = (event: DateTimePickerEvent, picked?: Date) => {
+    if (Platform.OS === 'android') setAndroidTimeOpen(false);
+    if (event.type === 'set' && picked) {
+      setTime(`${String(picked.getHours()).padStart(2, '0')}:${String(picked.getMinutes()).padStart(2, '0')}`);
+    }
+  };
 
   // A day saved before chip scores is scored by the old formula: no per-chip
   // number to show, and no servings to weigh.
@@ -152,7 +170,7 @@ export const MealPickerModal: React.FC<Props> = ({
   };
 
   const canSave = groups.length > 0;
-  const save = () => onSave(groups, name.trim() || undefined);
+  const save = () => onSave(groups, name.trim() || undefined, time);
 
   return (
     <Modal visible={!!target} animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}>
@@ -177,9 +195,7 @@ export const MealPickerModal: React.FC<Props> = ({
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={mls.lead}>
-            {target?.loggedAt
-              ? `Logged at ${plateTime(target.loggedAt)}. What was on the plate?`
-              : servings
+            {servings
                 ? 'What was on the plate? Tap all that apply, and tap again for another serving.'
                 : 'What was on the plate? Tap all that apply.'}
           </Text>
@@ -194,6 +210,32 @@ export const MealPickerModal: React.FC<Props> = ({
             returnKeyType="done"
             accessibilityLabel="Meal name"
           />
+
+          <View style={styles.timeRow}>
+            <Text style={styles.timeLabel}>Time</Text>
+            {Platform.OS === 'ios' ? (
+              <DateTimePickerNative
+                testID="meal-time"
+                value={timeValue}
+                mode="time"
+                display="compact"
+                onChange={pickTime}
+                accentColor={MEALS_ACCENT}
+                accessibilityLabel="Time eaten"
+              />
+            ) : (
+              <TouchableOpacity
+                testID="meal-time"
+                onPress={() => setAndroidTimeOpen(true)}
+                style={styles.timeButton}
+                accessibilityRole="button"
+                accessibilityLabel={`Time eaten, ${plateTime(timeValue.toISOString())}. Change`}
+              >
+                <Text style={styles.timeValue}>{plateTime(timeValue.toISOString())}</Text>
+              </TouchableOpacity>
+            )}
+            {androidTimeOpen && <DateTimePickerNative value={timeValue} mode="time" onChange={pickTime} />}
+          </View>
 
           {FOOD_SECTIONS.map((section) => (
             <View key={section.id} style={styles.section}>
@@ -253,6 +295,18 @@ const styles = StyleSheet.create({
   chipMain: { paddingHorizontal: 14, justifyContent: 'center', minHeight: 40 },
   chipMainAfterMinus: { paddingLeft: 6 },
   minus: { paddingLeft: 12, paddingRight: 4, justifyContent: 'center', minHeight: 40 },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.cardBg,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    minHeight: 48,
+  },
+  timeLabel: { ...TextStyles.body, color: Colors.dark },
+  timeButton: { minHeight: 44, justifyContent: 'center' },
+  timeValue: { ...TextStyles.body, color: MEALS_ACCENT },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

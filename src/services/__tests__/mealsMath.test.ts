@@ -2,6 +2,8 @@ import {
   activeCustomGroups,
   addServing,
   clearFood,
+  clockTime,
+  plateStamp,
   MAX_SERVINGS,
   removeServing,
   servingCount,
@@ -1034,5 +1036,39 @@ describe('servings — tap a food again for another serving', () => {
     const old = rules();
     expect(scorePlate(['veggies', 'veggies', 'chicken'], old)).toBe(scorePlate(['veggies', 'chicken'], old));
     expect(scoreVerdict(['veggies', 'veggies', 'chicken'], old)).toEqual(scoreVerdict(['veggies', 'chicken'], old));
+  });
+});
+
+describe('a plate’s time — when it was eaten, changeable in the meal sheet', () => {
+  // Built from local times, so these hold in any time zone.
+  const local = (y: number, m: number, d: number, hh: number, mm: number, ss = 0) =>
+    new Date(y, m - 1, d, hh, mm, ss).toISOString();
+
+  it('reads the local clock time of a stamp or a Date', () => {
+    expect(clockTime(local(2026, 11, 20, 8, 5))).toBe('08:05');
+    expect(clockTime(new Date(2026, 10, 20, 19, 30))).toBe('19:30');
+  });
+
+  it('puts the time on the sheet’s day', () => {
+    expect(plateStamp('2026-11-18', '12:30')).toBe(local(2026, 11, 18, 12, 30));
+  });
+
+  it('moves a plate added to a past day onto that day', () => {
+    // Logged at 8pm on the 20th for the 18th, before times could be set.
+    expect(plateStamp('2026-11-18', '20:00', local(2026, 11, 20, 20, 0, 41))).toBe(local(2026, 11, 18, 20, 0));
+  });
+
+  it('keeps an unchanged plate’s stamp to the second', () => {
+    const original = local(2026, 11, 20, 12, 30, 41);
+    expect(plateStamp('2026-11-20', '12:30', original)).toBe(original);
+    expect(plateStamp('2026-11-20', '13:00', original)).toBe(local(2026, 11, 20, 13, 0));
+  });
+
+  it('re-sorts the day when a time changes', () => {
+    const lunch = { id: 'a', groups: ['eggs'] as FoodGroupId[], logged_at: local(2026, 11, 20, 12, 0) };
+    const late = { id: 'b', groups: ['fruit'] as FoodGroupId[], logged_at: local(2026, 11, 20, 20, 0) };
+    const moved = { ...late, logged_at: plateStamp('2026-11-20', '08:00', late.logged_at) };
+    const d = withPlate(day('2026-11-20', [lunch, late]), moved);
+    expect(d.plates.map((p) => p.id)).toEqual(['b', 'a']);
   });
 });
