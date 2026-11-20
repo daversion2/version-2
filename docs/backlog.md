@@ -565,7 +565,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Apps for everyone; Hot & Cold and Avoidance Training out of the Lab** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+**Apps for everyone; Hot & Cold and Avoidance Training out of the Lab** *(2026-11-20, live OTA fb0b5aaa, not yet seen on screen)*
 Founder: everyone sees Apps (Today → Browse apps, Settings → Browse apps),
 and Hot & Cold and Avoidance Training are open to every account
 (`release: 'live'` in `services/miniApps.ts`). Both can be added to Today
