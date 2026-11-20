@@ -32,8 +32,10 @@ export const cardioWeek = (opts: {
   exercisesById: Record<string, Exercise>;
   now: Date;
   goalMin?: number;
+  /** Any span instead of this Monday week — the Week screen's last 7 days, or a past week. */
+  range?: { start: Date; end: Date };
 }): CardioWeek => {
-  const { start, end } = weekBounds(opts.now);
+  const { start, end } = opts.range ?? weekBounds(opts.now);
   const minutesByZone = { ...ZERO };
   for (const session of opts.sessions) {
     const at = new Date(session.finished_at).getTime();

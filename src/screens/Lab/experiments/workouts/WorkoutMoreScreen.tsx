@@ -64,6 +64,12 @@ export const WorkoutMoreScreen: React.FC<Props> = ({ navigation }) => {
 
       <ListGroup title="Track">
         <ListRow
+          title="Your week"
+          subtitle="Day by day, with totals, muscles and your ratings"
+          icon={{ name: 'calendar-outline', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('WorkoutWeek')}
+        />
+        <ListRow
           title="This week"
           subtitle={
             weekToRate

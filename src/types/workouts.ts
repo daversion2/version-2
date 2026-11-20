@@ -266,6 +266,11 @@ export interface WorkoutPrefs {
    */
   vt1_bpm?: number;
   vt2_bpm?: number;
+  /**
+   * How the Week screen and its card frame a week: the last 7 days (default)
+   * or Monday to Sunday (services/workoutWeek.ts).
+   */
+  week_view?: 'rolling' | 'calendar';
 }
 
 /**
@@ -355,13 +360,19 @@ export type WorkoutsLaunch =
   | { kind: 'home' }
   | { kind: 'resume' }
   | { kind: 'workout'; workoutId: string }
-  | { kind: 'phaseTest'; mode: 'baseline' | 'retest' };
+  | { kind: 'phaseTest'; mode: 'baseline' | 'retest' }
+  /** Straight to the Week screen (from the Workouts page on Today). */
+  | { kind: 'week' };
 
 export type WorkoutsStackParamList = {
   /** `launch`: opened from the Workouts page's start button — go on to that, once. */
   WorkoutsHome: { launch?: WorkoutsLaunch } | undefined;
   /** This week, tests, phases and past workouts — everything that isn't starting one. */
   WorkoutMore: undefined;
+  /** Your week at a glance: days, totals, muscles, ratings (services/workoutWeek.ts). */
+  WorkoutWeek: undefined;
+  /** One day of the week: its workouts and every set. */
+  WorkoutDay: { date: string };
   /** Every exercise done this week, with sets added straight from here. */
   WeeklyVolume: undefined;
   WeeklyVolumeExercise: { exerciseId: string };

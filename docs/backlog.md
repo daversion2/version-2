@@ -503,6 +503,22 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Workouts: your week at a glance, with every detail a tap away** *(2026-11-20, committed, not yet live — needs an OTA)*
+A Week screen (Workouts → the card at the top of the home, More → Your week,
+or Today's Workouts page → Your week): a day strip (barbell / heart / both /
+a check for "logged without details" / a dot for rest), workouts against the
+goal, time, sets, volume vs the window before, PRs, cardio, sets per muscle,
+the week's two ratings, and the sessions. A day opens its workouts and every
+set; a muscle opens its exercises; an exercise opens its history. Founder's
+pick: **Last 7 days or This week (Mon–Sun), toggled and remembered**
+(`WorkoutPrefs.week_view`, default last 7 days); ‹ › page back. The compact
+card on the Workouts home follows the same choice, and shows last week under
+an empty Monday-week. Days count as Today's ring does (sessions plus ratings
+with no session). The per-exercise "This week" screen stays, linked from the
+bottom. Logic in `services/workoutWeek.ts` (tested). Also fixed the Workouts
+intro card, which still said "Finish asks how hard you pushed". Not yet seen
+on screen.
+
 **Meals: change a plate's time** *(2026-11-20, live OTA 2f4e3c97, not yet seen on screen)*
 The meal sheet has a Time row under the name (iOS: the compact native time
 picker; Android: a dialog). A new meal starts at the clock time now, on the

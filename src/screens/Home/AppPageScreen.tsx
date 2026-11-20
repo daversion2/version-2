@@ -4,7 +4,7 @@ import { CommonActions, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
+import { AppColors, BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 import type { HomeStackParamList } from '../../types/navigation';
 import type { CompletionLog } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -232,6 +232,14 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
               ))}
             </ListGroup>
           )}
+          <ListGroup>
+            <ListRow
+              title="Your week"
+              subtitle="Day by day, every set, in Workouts"
+              icon={{ name: 'calendar-outline', color: AppColors.workouts }}
+              onPress={() => start({ kind: 'week' })}
+            />
+          </ListGroup>
         </>
       );
     }

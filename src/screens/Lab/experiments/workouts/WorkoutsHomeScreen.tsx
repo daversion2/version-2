@@ -17,6 +17,7 @@ import { isRetestDue, nextProgramWorkout, phaseSessions } from '../../../../serv
 import { upNextWorkout } from '../../../../services/workoutUpNext';
 import { PhaseStatusCard } from './components/PhaseParts';
 import { useOverrideStart } from '../../../../components/checkin/OverrideStartSheet';
+import { WeekCard } from './components/WeekCard';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
@@ -143,6 +144,8 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
     } else if (launch.kind === 'resume') {
       if (session) resume();
       else handled = !loading;
+    } else if (launch.kind === 'week') {
+      navigation.navigate('WorkoutWeek');
     } else if (launch.kind === 'phaseTest') {
       if (currentPhase) navigation.navigate('PhaseTest', { phaseId: currentPhase.id, mode: launch.mode });
       else handled = !loading;
@@ -169,7 +172,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={ws.body}>• Pick a workout — or build one from exercises and circuits.</Text>
           <Text style={ws.body}>• Log each set as you go; the rest timer starts on its own.</Text>
           <Text style={ws.body}>
-            • Start asks how hard it is to start. Finish asks how hard you pushed. It counts toward your week.
+            • Start asks how hard it is to start. Finish asks how hard it was to keep going. It counts toward your week.
           </Text>
           <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
             <Text style={ws.link}>Got it</Text>
@@ -199,6 +202,8 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </TouchableOpacity>
       )}
+
+      {!loading && <WeekCard onOpen={() => navigation.navigate('WorkoutWeek')} />}
 
       {!loading && currentPhase && (
         <PhaseStatusCard
