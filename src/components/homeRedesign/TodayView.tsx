@@ -10,6 +10,8 @@ import type { TodayAppId } from '../../services/appCheckins';
 import { buildHomeDashboard, HomeDashboard } from '../../services/homeDashboard';
 import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
 import { formatDayHeader, getTodayString } from '../../utils/date';
+import type { TodayRowId } from '../../data/appCatalog';
+import type { RowRing } from '../../services/rowRings';
 import { AppRings } from '../common/ProgressRing';
 import { ListGroup, ListRow } from '../common/ListGroup';
 import { TopScrim } from '../common/TopScrim';
@@ -51,6 +53,8 @@ interface Props {
   craving?: { title: string; subtitle: string; onPress: () => void };
   /** Starts the app last night's plan names. Unset: the plan card has no button. */
   onStartPlan?: () => void;
+  /** Close out the day's and Craving Crusher's rings (services/rowRings.ts), after the apps'. */
+  extraRings?: RowRing[];
   /** Apps switched off (services/appSetup.ts): no ring and no row. */
   hiddenApps?: TodayAppId[];
   /** Opens the Apps screen. Admin-only for now: unset hides the row. */
@@ -58,6 +62,8 @@ interface Props {
 }
 
 const NO_APPS: TodayAppId[] = [];
+const NO_RINGS: RowRing[] = [];
+const ROW_TITLES: Record<TodayRowId, string> = { nightly: 'Close out', craving: 'Cravings' };
 
 export const TodayView: React.FC<Props> = ({
   userId,
@@ -76,6 +82,7 @@ export const TodayView: React.FC<Props> = ({
   hiddenApps = NO_APPS,
   onBrowseApps,
   onStartPlan,
+  extraRings = NO_RINGS,
 }) => {
   const apps = useMemo(() => APP_ORDER.filter((id) => !hiddenApps.includes(id)), [hiddenApps]);
   const insets = useSafeAreaInsets();
@@ -167,10 +174,17 @@ export const TodayView: React.FC<Props> = ({
             <View style={styles.card}>
               <View style={styles.ringsRow}>
                 <AppRings
-                  rings={apps.map((id) => ({ pct: ringOf(id)?.pct ?? 0, color: AppColors[id] }))}
-                  accessibilityLabel={`This week: ${apps.map(
-                    (id) => `${APP_TITLES[id]} ${ringOf(id)?.done ?? 0} of ${ringOf(id)?.goal ?? 0}`
-                  ).join(', ')}`}
+                  rings={[
+                    ...apps.map((id) => ({ pct: ringOf(id)?.pct ?? 0, color: AppColors[id] })),
+                    ...extraRings.map((r) => ({ pct: r.pct, color: AppColors[r.id] })),
+                  ]}
+                  // Five rings need thinner strokes to fit.
+                  stroke={apps.length + extraRings.length > 3 ? 9 : 13}
+                  gap={apps.length + extraRings.length > 3 ? 3 : 4}
+                  accessibilityLabel={`This week: ${[
+                    ...apps.map((id) => `${APP_TITLES[id]} ${ringOf(id)?.done ?? 0} of ${ringOf(id)?.goal ?? 0}`),
+                    ...extraRings.map((r) => `${ROW_TITLES[r.id]} ${r.done} of ${r.goal}`),
+                  ].join(', ')}`}
                 />
                 <View style={styles.legend} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
                   {apps.map((id) => (
@@ -182,6 +196,18 @@ export const TodayView: React.FC<Props> = ({
                       <Text style={styles.legendValue}>
                         {ringOf(id)?.done ?? 0}
                         <Text style={styles.legendGoal}> / {ringOf(id)?.goal ?? 0}</Text>
+                      </Text>
+                    </View>
+                  ))}
+                  {extraRings.map((r) => (
+                    <View key={r.id} style={styles.legendItem}>
+                      <View style={styles.legendLabel}>
+                        <View style={[styles.legendDot, { backgroundColor: AppColors[r.id] }]} />
+                        <Text style={styles.legendName}>{ROW_TITLES[r.id]}</Text>
+                      </View>
+                      <Text style={styles.legendValue}>
+                        {r.done}
+                        <Text style={styles.legendGoal}> / {r.goal}</Text>
                       </Text>
                     </View>
                   ))}

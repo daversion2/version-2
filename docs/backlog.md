@@ -30,7 +30,9 @@ evening reminder); the three beats; a D or F (or nothing logged) offers the
 small plan; next morning Today's plan card says "After coffee, I'll do
 Workouts" with Start, and goes once that app has a session. Craving Crusher:
 Today's row opens its home; Ride it out opens the old ride, and Done/close
-comes back to the home with this week's counts updated. Apps (admin): both
+comes back to the home with this week's counts updated. Today: five rings fit
+(thinner strokes), the legend reads Close out / Cravings, and each ring fills
+toward its goal. Apps (admin): both
 under On your Today; remove and add each back; removing Close out the day asks
 first and turns the reminder off. Ask before `ui-verify`.
 
@@ -583,10 +585,17 @@ From the mockup the founder approved (https://claude.ai/artifact/JyTy21iCp1BuRU9
   `cravingWeek`, tested), your 30-day pattern. The ride is unchanged, now also
   at root route `CravingRide`. The gave-in copy lost "makes the next one
   easier".
-- **Both are Today rows** under Your apps, in the Apps catalog with a page
-  each, removable (`users.hidden_rows`, `hiddenRowsOf` / `withRowOnToday` /
-  `setRowOnToday`, tested). Removing Close out the day asks, then turns the
-  evening reminder off. New colours `AppColors.nightly` / `.craving`.
+- **Both are treated like the other apps** (founder, 2026-11-20): a ring on
+  Today with a weekly goal (Close out the day: nights closed, default 5;
+  Craving Crusher: urges faced, ridden out or logged, default 3;
+  `services/rowRings.ts`, `users.row_goals`, tested; five rings draw with
+  thinner strokes), a row under Your apps that opens their own app, and a
+  page in the Apps catalog with Add / Remove and the goal stepper
+  (`users.hidden_rows`, `hiddenRowsOf` / `withRowOnToday` / `setRowOnToday`,
+  tested). Removing Close out the day asks, then turns the evening reminder
+  off. Not included: they stay out of friction, the weekly review, the
+  combined streak and Settings → Apps and weekly goals, which all assume the
+  start/keep-going ratings. New colours `AppColors.nightly` / `.craving`.
   Everyone gets the new apps; the catalog is still admin-only.
 
 **Apps: browse every app and add one to Today** *(2026-11-20, live OTA c66b3efa, admin-only, not yet seen on screen)*

@@ -14,8 +14,11 @@ import type { TodayAppId } from '../services/appCheckins';
 // - a TODAY app (`todayAppId` set): Meditate, Workouts, Meals. Adding one puts
 //   it on Today: its ring, its page, its weekly goal, its ratings.
 // - a TODAY ROW (`todayRow` set, plus `route`): Close out the day and Craving
-//   Crusher (2026-11-20). Adding one puts a row under Your apps on Today; no
-//   ring, no weekly goal. On for every account until removed.
+//   Crusher (2026-11-20). Adding one puts a row under Your apps on Today, plus
+//   a ring and a weekly goal like the others (services/rowRings.ts: nights
+//   closed out, urges faced). They open their own app instead of an app page,
+//   and stay out of what needs start/keep-going ratings (friction, the weekly
+//   review, the combined streak). On for every account until removed.
 // - a STANDALONE app (`route` set): Hot & Cold and Avoidance Training, built in
 //   the Lab. They open on their own for now; joining Today's rings and ratings
 //   is the next build (docs/backlog.md).

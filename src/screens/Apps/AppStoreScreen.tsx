@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import type { CatalogApp } from '../../data/appCatalog';
 import { addAppToToday, catalogSections, catalogStatus, goalLine, hiddenRowsOf, setRowOnToday } from '../../services/appCatalog';
 import { AppSetup, loadAppSetup } from '../../services/appSetup';
+import { rowGoalsOf } from '../../services/rowRings';
 import { triggerTapHaptic } from '../../utils/haptics';
 import { showAlert } from '../../utils/alert';
 import type { RootStackParamList } from '../../types/navigation';
@@ -139,7 +140,13 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
                   <AppRow
                     key={app.id}
                     app={app}
-                    subtitle={app.todayAppId ? `${app.tagline} · ${goalLine(setup!.goals[app.todayAppId])}` : undefined}
+                    subtitle={
+                      app.todayAppId
+                        ? `${app.tagline} · ${goalLine(setup!.goals[app.todayAppId])}`
+                        : app.todayRow
+                          ? `${app.tagline} · ${goalLine(rowGoalsOf(userProfile)[app.todayRow])}`
+                          : undefined
+                    }
                     action={actionFor(app)}
                     onPress={() => open(app)}
                     separator={i < sections.onToday.length - 1}
@@ -149,7 +156,7 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             {sections.addable.length > 0 && (
-              <Panel title="Add to Today" footer="Puts it back on Today. Apps with a ring get their weekly goal too.">
+              <Panel title="Add to Today" footer="Adds its ring and a weekly goal to Today.">
                 {sections.addable.map((app, i) => (
                   <AppRow
                     key={app.id}

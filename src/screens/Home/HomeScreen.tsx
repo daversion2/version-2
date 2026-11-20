@@ -89,6 +89,10 @@ import { getMeditatePrefs } from '../../services/labMeditate';
 import { getMealsPrefs, listMealsDays, saveMealsDay } from '../../services/labMeals';
 import { needsMealsCatchUp, scoreDay } from '../../services/mealsMath';
 import { hiddenRowsOf } from '../../services/appCatalog';
+import { rowGoalsOf, rowRing, urgesThisWeek, weekDone } from '../../services/rowRings';
+import { getReflections } from '../../services/reflections';
+import { getCravingLogs } from '../../services/cravings';
+import { addDays as addDaysStr } from '../../services/homeDashboard';
 import { hiddenAppsOf, needsGoalSetup, shouldExplainRating, startAppOf, startHereLine } from '../../services/appSetup';
 import { syncCloseOutReminder } from '../../services/closeOutReminder';
 import { AppGoalsSheet } from '../../components/appSetup/AppGoalsSheet';
@@ -222,6 +226,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [celebrationSkipIntro, setCelebrationSkipIntro] = useState(false);
   const [showReflectionBanner, setShowReflectionBanner] = useState(false);
   const [reflectedToday, setReflectedToday] = useState(false);
+  // This week's nights closed and urges faced, for those two apps' rings.
+  const [rowWeek, setRowWeek] = useState<{ nights: string[]; urges: { date: string }[] }>({ nights: [], urges: [] });
   const [todaysGrade, setTodaysGrade] = useState<ReflectionGrade | undefined>();
   const [todaysPlan, setTodaysPlan] = useState<PlanDraft | null>(null);
 
@@ -501,6 +507,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
         // Show prominent banner at 8pm+, always show at least the compact version
         setShowReflectionBanner(true);
+        const since = addDaysStr(loadDay, -6);
+        const [nights, urges] = await Promise.all([getReflections(user.uid, since), getCravingLogs(user.uid, since)]);
+        setRowWeek({ nights: nights.map((r) => r.date), urges });
       } catch (err) {
         console.warn('Reflection check failed:', err);
       }
@@ -847,6 +856,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const streak = dashStreak ?? displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
   // Today's plan: last night's, while it's still to do. Failing that, the app
   // picked in onboarding as "start here", until its first session is rated.
+  const rowGoals = rowGoalsOf(userProfile);
+  const extraRings = [
+    !hiddenRows.includes('nightly') && rowRing('nightly', weekDone(rowWeek.nights, todayStr), rowGoals.nightly),
+    !hiddenRows.includes('craving') && rowRing('craving', urgesThisWeek(rowWeek.urges, todayStr), rowGoals.craving),
+  ].filter((r): r is ReturnType<typeof rowRing> => !!r);
   const planOpen = !!todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr);
   // Last night's plan names an app (since 2026-11-20): Today's card can start it.
   const planRoute = planOpen && todaysPlan?.appId ? TODAY_APPS.find((a) => a.id === todaysPlan.appId)?.route : undefined;
@@ -950,6 +964,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           hiddenApps={hiddenApps}
           onBrowseApps={userProfile?.is_admin === true ? () => rootNav.navigate('AppStore') : undefined}
           onStartPlan={planRoute ? () => rootNav.navigate(planRoute) : undefined}
+          extraRings={extraRings}
           closeOut={hiddenRows.includes('nightly') ? undefined : {
             done: reflectedToday,
             title: reflectedToday

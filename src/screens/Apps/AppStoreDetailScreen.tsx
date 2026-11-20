@@ -17,6 +17,7 @@ import {
   setRowOnToday,
 } from '../../services/appCatalog';
 import { setCloseOutReminder } from '../../services/closeOutReminder';
+import { ROW_GOAL_NOUNS, rowGoalsOf, saveRowGoal } from '../../services/rowRings';
 import { TODAY_APPS } from '../../services/appCheckins';
 import { AppSetup, GOAL_NOUNS, loadAppSetup } from '../../services/appSetup';
 import { triggerTapHaptic } from '../../utils/haptics';
@@ -33,6 +34,7 @@ import { AppIcon, Badge, Panel } from './AppStoreParts';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AppStoreDetail'>;
 type IconName = keyof typeof Ionicons.glyphMap;
+const capitalize = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -48,6 +50,7 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       .then((s) => {
         setSetup(s);
         if (app.todayAppId) setGoal(s.goals[app.todayAppId]);
+        else if (app.todayRow) setGoal(rowGoalsOf(userProfile)[app.todayRow]);
       })
       .catch((e) => console.warn('App page: loading setup failed', e));
   }, [user, userProfile, app]);
@@ -75,20 +78,26 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const add = () => {
     if (!user) return;
-    if (row) return save(() => setRowOnToday(user.uid, userProfile, row, true), 'Couldn’t add it');
+    if (row) {
+      return save(async () => {
+        await setRowOnToday(user.uid, userProfile, row, true);
+        if (goal !== null) await saveRowGoal(user.uid, row, goal);
+      }, 'Couldn’t add it');
+    }
     if (!todayId || goal === null) return;
     save(() => addAppToToday(user.uid, userProfile, todayId, goal), 'Couldn’t add it');
   };
 
   const changeGoal = (next: number) => {
     setGoal(next);
+    if (!user || status !== 'onToday') return;
     // On Today already: the goal is live, so save it as it changes.
-    if (user && todayId && status === 'onToday') {
-      addAppToToday(user.uid, userProfile, todayId, next).catch((e) =>
-        showAlert('Couldn’t save the goal', e?.message ?? 'Please try again.')
-      );
-    }
+    const saving = row ? saveRowGoal(user.uid, row, next) : todayId ? addAppToToday(user.uid, userProfile, todayId, next) : null;
+    saving
+      ?.then(() => (row ? refreshProfile() : undefined))
+      .catch((e) => showAlert('Couldn’t save the goal', e?.message ?? 'Please try again.'));
   };
+
 
   const remove = () => {
     if (!user) return;
@@ -194,13 +203,13 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
           ))}
         </Panel>
 
-        {todayId && goal !== null && status !== null && (
+        {(todayId || row) && goal !== null && status !== null && (
           <Panel
             title="Weekly goal"
             footer={status === 'onToday' ? 'Saved as you change it.' : 'Pick a number you’d hit on a bad week.'}
           >
             <View style={styles.goalRow}>
-              <Text style={styles.goalLabel}>{GOAL_NOUNS[todayId][0].toUpperCase() + GOAL_NOUNS[todayId].slice(1)} a week</Text>
+              <Text style={styles.goalLabel}>{capitalize(row ? ROW_GOAL_NOUNS[row] : GOAL_NOUNS[todayId!])} a week</Text>
               <Stepper
                 value={goal}
                 onChange={changeGoal}
