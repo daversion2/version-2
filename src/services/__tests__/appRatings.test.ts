@@ -46,16 +46,29 @@ describe('rateAppSession', () => {
     expect('session_id' in log).toBe(false);
   });
 
-  it('saves push and when the override was given alongside it', async () => {
+  it('saves keep going and when the start override was given alongside it', async () => {
     await rateAppSession(userId, 'workouts', {
       difficulty: 'challenging',
       resistance: 3,
-      push: 1,
+      keep_going: 1,
       override_rated: 'start',
       sessionId: 'sess-2',
     });
     const [log] = logs();
-    expect(log).toMatchObject({ resistance: 3, push: 1, override_rated: 'start', difficulty: 2 });
+    expect(log).toMatchObject({ resistance: 3, keep_going: 1, override_rated: 'start', difficulty: 2 });
+    expect('push' in log).toBe(false);
+  });
+
+  it('keeps a late session, rated on keep going alone, out of the start line', async () => {
+    const result = await rateAppSession(userId, 'workouts', {
+      difficulty: 'challenging',
+      keep_going: 3,
+      sessionId: 'sess-late',
+    });
+    const [log] = logs();
+    expect(log).toMatchObject({ keep_going: 3, difficulty: 0, points: 3 });
+    expect('resistance' in log).toBe(false);
+    expect(result.pointsEarned).toBe(3);
   });
 
   it('saves a Meals day rating unrated for the override, and earns its XP', async () => {

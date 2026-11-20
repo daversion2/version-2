@@ -15,8 +15,8 @@ import { ob } from './onboardingStyles';
 // ============================================================================
 // THE FIVE ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
 //
-//   why       discipline is two skills, and the friction is the training
-//   ratings   the two questions: override as you start, push when you finish
+//   why       discipline is one skill used twice, and the friction is the training
+//   ratings   the two questions: the override to start, and to keep going
 //   apps      the three apps, all on; switch off any you won't use
 //   goals     a weekly goal each, and the app to start with
 //   reminder  an evening close-out nudge, or none
@@ -25,7 +25,7 @@ import { ob } from './onboardingStyles';
 // and writes them when the last screen is done.
 // ============================================================================
 
-/** 1 — why: discipline is two skills, and the app measures both. */
+/** 1 — why: discipline is one skill used twice, and the app measures both. */
 export const OnboardingWhy: React.FC = () => (
   <View style={styles.center}>
     <FadeRise>
@@ -39,13 +39,13 @@ export const OnboardingWhy: React.FC = () => (
       <Copy id="onboarding.why.eyebrow" style={ob.eyebrow}>
         {'How it works'}
       </Copy>
-      <Copy id="onboarding.why.headlineTwoSkills" style={ob.headline} boldStyle={ob.headlineAccent}>
-        {'Discipline is **two skills.**'}
+      <Copy id="onboarding.why.headlineOneSkill" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'Discipline is **one skill, used twice.**'}
       </Copy>
     </FadeRise>
     <FadeRise delay={400}>
-      <Copy id="onboarding.why.bodyTwoSkills" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'**Getting yourself to start**, and **pushing once you’re going.** Most apps only ask whether you did it. Neuro-Nudge measures both, across three apps: Meditate, Workouts and Meals.'}
+      <Copy id="onboarding.why.bodyOneSkill" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Overriding the urge **not to start**, and the urge **to stop once you have.** Most apps only ask whether you did it. Neuro-Nudge measures both, across three apps: Meditate, Workouts and Meals.'}
       </Copy>
       <Copy id="onboarding.why.bodyTraining" style={ob.body} boldStyle={ob.bodyStrong}>
         {'The friction is the training. **The hard days are the ones doing the work.**'}
@@ -70,23 +70,21 @@ export const OnboardingRatings: React.FC = () => (
     </FadeRise>
     <FadeRise delay={250}>
       <RatingCard
-        copyKey="override"
+        copyKey="start"
         when="As you start · Override"
         question="How hard is it to start?"
-        icon="trending-down"
         direction="Watch it fall. Starting gets easier as it becomes automatic."
       />
       <RatingCard
-        copyKey="push"
-        when="When you finish · Push"
-        question="How hard did you push?"
-        icon="trending-up"
-        direction="Keep it high. Once you’re going, keep choosing hard work."
+        copyKey="keepGoing"
+        when="When you finish · Override"
+        question="How hard was it to keep going?"
+        direction="Watch it fall too. The same session costs less override as you get stronger."
       />
     </FadeRise>
     <FadeRise delay={500}>
-      <Copy id="onboarding.ratings.car" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'Like a car on a cold morning: your **override** is getting the engine to turn over, **push** is how hard you press the accelerator.'}
+      <Copy id="onboarding.ratings.meals" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Meals has no single start, so it asks once a day: **how hard was it to eat this way today?**'}
       </Copy>
       <Copy id="onboarding.ratings.helper" style={ob.helper}>
         {'Each one is 1 to 3. Be honest: a 3 is never a bad mark.'}
@@ -96,12 +94,11 @@ export const OnboardingRatings: React.FC = () => (
 );
 
 const RatingCard: React.FC<{
-  copyKey: 'override' | 'push';
+  copyKey: 'start' | 'keepGoing';
   when: string;
   question: string;
-  icon: 'trending-down' | 'trending-up';
   direction: string;
-}> = ({ copyKey, when, question, icon, direction }) => (
+}> = ({ copyKey, when, question, direction }) => (
   <View style={styles.ratingCard}>
     <Copy id={`onboarding.ratings.${copyKey}.when`} style={styles.ratingWhen}>
       {when}
@@ -110,7 +107,7 @@ const RatingCard: React.FC<{
       {question}
     </Copy>
     <View style={styles.ratingDirection}>
-      <Ionicons name={icon} size={18} color={Colors.primary} />
+      <Ionicons name="trending-down" size={18} color={Colors.primary} />
       <Copy id={`onboarding.ratings.${copyKey}.direction`} style={styles.ratingDirectionText}>
         {direction}
       </Copy>

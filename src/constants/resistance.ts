@@ -49,57 +49,73 @@ export const RESISTANCE_LEVELS: ResistanceLevel[] = [
 ];
 
 // =============================================================================
-// TWO RATINGS (2026-11-11). The override above is "how hard was it to START" —
-// getting from a cold stop to going. A session now also gets PUSH: once in
-// motion, how hard did you push yourself? A hard start and an easy workout is
-// a 3 then a 1, and the two say different things, so they are never added.
+// THE OVERRIDE, TWICE (2026-11-20; two ratings since 2026-11-11). Discipline is
+// one skill used twice. You override the resistance to START, and once you're
+// going you override it again to KEEP GOING: the "this sucks, stop" in a
+// workout, the "I'll stop a little early" in a meditation. Each gets its own
+// 1–3, and on both a lower number over the weeks is the override getting
+// stronger. A hard start and an easy finish is a 3 then a 1; the two say
+// different things, so they are never added.
 //
 // WHEN EACH IS ASKED:
-//   - Started in the app (Workouts, Meditate): the override on the Start
-//     buttons themselves, while the resistance is there to feel; push at the
-//     end. Logs say `override_rated: 'start'`.
-//   - Done it / a past session: both at the end, back to back, the override in
+//   - Started in the app (Workouts, Meditate): the start on the Start
+//     buttons themselves, while the resistance is there to feel; keep going
+//     at the end. Logs say `override_rated: 'start'`.
+//   - Done it / a past session: both at the end, back to back, the start in
 //     the past tense. `override_rated: 'after'` — a remembered start may read
-//     easier than one rated in the moment, so the two stay tellable apart.
-//   - Meals: no single start, so one rating per logged day, at close:
-//     `day_rating`, kept out of both the override and push lines.
+//     easier than one rated in the moment, so the start line prefers live ones
+//     (homeDashboard.appFriction).
+//   - Logged more than a day late: keep going only (services/checkinRating.ts).
+//   - Meals: no single start; the whole day is one long keep-going. One rating
+//     per logged day, at close: `day_rating`.
 //
-// "Suck factor" was the working name for push; on screen it is "Push", and
-// every word below can be changed in the copy editor.
+// Until 2026-11-20 the second rating was "push" — how hard you went — which
+// read the wrong way for Meditate and for easy training weeks. Those logs keep
+// `push`; nothing reads it. Every word below can be changed in the copy editor.
 // =============================================================================
 
-/** The override, asked as the session starts — present tense. */
+/** The start override — present tense on Start, the past tense asked afterwards. */
 export const START_LEVELS: ResistanceLevel[] = [
-  { value: 1, label: 'Easy start', sublabel: 'Barely thinking about it', anchor: 'Barely thinking about it' },
-  { value: 2, label: 'Have to push', sublabel: 'Talking myself into it', anchor: 'Talking myself into it' },
-  { value: 3, label: 'Took everything', sublabel: 'Almost talked myself out of it', anchor: 'Almost talked myself out of it' },
+  { value: 1, label: 'Easy start', sublabel: 'Barely thought about it', anchor: 'Barely thought about it' },
+  { value: 2, label: 'Had to talk myself into it', sublabel: 'Got there', anchor: 'Talked myself into it' },
+  { value: 3, label: 'Almost didn’t', sublabel: 'Nearly talked myself out of it', anchor: 'Almost didn’t' },
 ];
 
-/** Which app's words push uses. */
-export type PushApp = 'workouts' | 'meditate';
+/** Which app's words keep going uses. */
+export type KeepGoingApp = 'workouts' | 'meditate';
 
-export const PUSH_QUESTION: Record<PushApp, string> = {
-  workouts: 'How hard did you push?',
-  meditate: 'How hard was it to stay with it?',
+export const KEEP_GOING_QUESTION: Record<KeepGoingApp, string> = {
+  workouts: 'How hard was it to keep going?',
+  meditate: 'How hard was it not to stop early?',
 };
 
-/** Push, after the session. For Meditate, pushing is staying with it when your mind pulls away. */
-export const PUSH_LEVELS: Record<PushApp, ResistanceLevel[]> = {
+/** Keep going, after the session: how loud the urge to stop was, and that you overrode it. */
+export const KEEP_GOING_LEVELS: Record<KeepGoingApp, ResistanceLevel[]> = {
   workouts: [
-    { value: 1, label: 'Cruised', sublabel: 'Had plenty left', anchor: 'Had plenty left' },
-    { value: 2, label: 'Worked', sublabel: 'Pushed, a little left', anchor: 'Pushed, a little left' },
-    { value: 3, label: 'Emptied the tank', sublabel: 'Nothing left at the end', anchor: 'Nothing left at the end' },
+    { value: 1, label: 'Barely there', sublabel: 'Never really wanted to stop', anchor: 'Never wanted to stop' },
+    {
+      value: 2,
+      label: 'Talked myself through it',
+      sublabel: '“This sucks” showed up, I kept going',
+      anchor: 'Talked myself through it',
+    },
+    { value: 3, label: 'Took everything', sublabel: 'Wanted to quit, kept going anyway', anchor: 'Wanted to quit, kept going' },
   ],
   meditate: [
-    { value: 1, label: 'Settled in', sublabel: 'Mind mostly stayed put', anchor: 'Mind mostly stayed put' },
-    { value: 2, label: 'Kept coming back', sublabel: 'Wandered, I brought it back', anchor: 'Wandered, I brought it back' },
-    { value: 3, label: 'Fought it', sublabel: 'Restless the whole time', anchor: 'Restless the whole time' },
+    { value: 1, label: 'Barely there', sublabel: 'Never thought about stopping', anchor: 'Never thought of stopping' },
+    {
+      value: 2,
+      label: 'Talked myself through it',
+      sublabel: '“I’ll stop early” crept in, I stayed',
+      anchor: 'Talked myself through it',
+    },
+    { value: 3, label: 'Took everything', sublabel: 'Wanted to stop the whole time', anchor: 'Wanted to stop, stayed' },
   ],
 };
 
 export const MEALS_DAY_QUESTION = 'How hard was it to eat this way today?';
 
-/** Meals' one rating a day: the pull of the day's choices, not a start. */
+/** Meals' one rating a day: keeping going all day, against the pull of the day's choices. */
 export const MEALS_DAY_LEVELS: ResistanceLevel[] = [
   { value: 1, label: 'Didn’t think about it', sublabel: 'An easy day', anchor: 'An easy day' },
   { value: 2, label: 'Said no a few times', sublabel: 'Some pull, I held', anchor: 'Some pull, I held' },

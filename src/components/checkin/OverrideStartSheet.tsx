@@ -58,15 +58,15 @@ export const OverrideStartSheet: React.FC<Props> = ({ visible, appName, accent, 
                 onPress={() => onPick(level.value)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={`${level.value}, ${t(`start.override.${level.value}.label`, level.label)}. ${t(
-                  `start.override.${level.value}.sub`,
+                accessibilityLabel={`${level.value}, ${t(`start.level.${level.value}.label`, level.label)}. ${t(
+                  `start.level.${level.value}.sub`,
                   level.sublabel
                 )}. Starts.`}
               >
                 <Text style={[styles.number, { color: accent }]}>{level.value}</Text>
                 <View style={styles.levelText}>
-                  <Text style={styles.label}>{t(`start.override.${level.value}.label`, level.label)}</Text>
-                  <Text style={styles.sub}>{t(`start.override.${level.value}.sub`, level.sublabel)}</Text>
+                  <Text style={styles.label}>{t(`start.level.${level.value}.label`, level.label)}</Text>
+                  <Text style={styles.sub}>{t(`start.level.${level.value}.sub`, level.sublabel)}</Text>
                 </View>
                 <Text style={[styles.go, { color: accent }]}>{t('start.override.go', 'Start')} ›</Text>
               </TouchableOpacity>

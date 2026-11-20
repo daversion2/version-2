@@ -50,7 +50,7 @@ import { ReflectionGrade } from '../../types';
 import { RuleModal } from '../../components/common/RuleModal';
 import { PushOptInModal } from '../../components/common/PushOptInModal';
 import { registerForPushNotifications } from '../../services/notifications';
-import { appRatedDays, mealsDayEcho, overrideEcho, pairEcho } from '../../services/overrideEcho';
+import { appRatedDays, keepGoingEcho, mealsDayEcho, overrideEcho, pairEcho } from '../../services/overrideEcho';
 import { buildCheckinInput, CheckinMode, CheckinRating, checkinModeFor } from '../../services/checkinRating';
 import { LogToast, LogToastContent } from '../../components/home/LogToast';
 import { formatMetricValue, isNumericField, prefillMetrics } from '../../services/lastMetrics';
@@ -571,7 +571,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         extraMetrics: Object.keys(extra).length ? extra : undefined,
         date: pendingFinish.date,
         sessionId: pendingFinish.sessionId,
-        mode: checkinModeFor(appId, pendingFinish.override),
+        mode: checkinModeFor(appId, pendingFinish.override, pendingFinish.date, getTodayString()),
         override: pendingFinish.override,
         onTarget: pendingFinish.onTarget,
       });
@@ -662,16 +662,19 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           app_id: appId,
           ...(sessionId ? { session_id: sessionId } : {}),
           points: pointsEarned,
-          // A Meals day rating is kept out of the override (practices.logHabitCompletion).
+          // A Meals day rating, or a late session's keep going, is kept out of
+          // the start line (practices.logHabitCompletion).
           ...(typeof input.day_rating === 'number' && typeof input.resistance !== 'number'
             ? { difficulty: 0, day_rating: input.day_rating }
+            : typeof input.resistance !== 'number'
+            ? { difficulty: 0 }
             : {
                 difficulty: difficulty === 'easy' ? 1 : 2,
                 resistance: input.resistance,
                 resistance_scale: RESISTANCE_SCALE,
                 ...(input.override_rated ? { override_rated: input.override_rated } : {}),
               }),
-          ...(typeof input.push === 'number' ? { push: input.push } : {}),
+          ...(typeof input.keep_going === 'number' ? { keep_going: input.keep_going } : {}),
           // So the next quick sheet fills in what was just logged.
           metrics: input.metrics,
           completed_at: new Date().toISOString(),
@@ -743,27 +746,29 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       if (!needsPointsIntro && !milestoneLabel) {
         const level =
           typeof input.resistance === 'number'
-            ? t('today.toast.override', 'Override {level}', { level: input.resistance })
+            ? t('today.toast.start', 'Start {level}', { level: input.resistance })
             : typeof input.day_rating === 'number'
               ? t('today.toast.mealsDay', 'Rated {level}', { level: input.day_rating })
               : undefined;
-        const push =
-          typeof input.push === 'number' ? t('today.toast.push', 'Push {level}', { level: input.push }) : undefined;
+        const keepGoing =
+          typeof input.keep_going === 'number'
+            ? t('today.toast.keepGoing', 'Keep going {level}', { level: input.keep_going })
+            : undefined;
         const amounts = APP_TRACKING[appId]
           .filter((f) => isNumericField(f) && typeof input.metrics?.[f.key] === 'number')
           .map((f) => formatMetricValue(f, input.metrics![f.key] as number));
         setToast({
           key: Date.now(),
           points: pointsEarned,
-          text: [appName, ...amounts, level, push].filter(Boolean).join(' · '),
+          text: [appName, ...amounts, level, keepGoing].filter(Boolean).join(' · '),
           context: backdated
             ? t('today.celebration.loggedFor', 'Logged for {day}', { day: formatRelativeDay(date) })
             : null,
           echo:
-            typeof input.resistance === 'number' && typeof input.push === 'number'
+            typeof input.resistance === 'number' && typeof input.keep_going === 'number'
               ? pairEcho({
                   override: input.resistance,
-                  push: input.push,
+                  keepGoing: input.keep_going,
                   appName,
                   history: appRatedDays(nudgeLogs, appId, logId),
                   date,
@@ -779,7 +784,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   })
                 : typeof input.day_rating === 'number'
                   ? mealsDayEcho(input.day_rating, onTarget)
-                  : null,
+                  : typeof input.keep_going === 'number'
+                    ? keepGoingEcho(input.keep_going)
+                    : null,
           canAddNote: wasHard,
         });
         return;
@@ -893,7 +900,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const rateQuickLog = async (answers: CheckinRating, values: Record<string, number>) => {
     if (!quickLog) return;
     // Started in the app: the override came back with the session.
-    const rating = quickLog.mode === 'push' ? { ...answers, override: quickLog.override } : answers;
+    const rating = quickLog.mode === 'afterStart' ? { ...answers, override: quickLog.override } : answers;
     const input = buildCheckinInput(quickLog.mode, rating, values, quickLog.initialValues, quickLog.date);
     if (quickLog.extraMetrics) input.metrics = { ...quickLog.extraMetrics, ...input.metrics };
     try {
@@ -1116,7 +1123,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         habitName={quickLog ? MINI_APPS[quickLog.appId].title : ''}
         appColor={quickLog ? AppColors[quickLog.appId] : Colors.primary}
         mode={quickLog?.mode ?? 'both'}
-        pushApp={quickLog?.appId === 'meditate' ? 'meditate' : 'workouts'}
+        keepGoingApp={quickLog?.appId === 'meditate' ? 'meditate' : 'workouts'}
         fields={quickLog?.fields ?? []}
         initialValues={quickLog?.initialValues ?? {}}
         note={quickLog?.note}

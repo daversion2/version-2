@@ -385,13 +385,22 @@ export interface CompletionLog {
    */
   override_rated?: 'start' | 'after';
   /**
-   * Push, 1–3: once in motion, how hard did you push? Workouts and Meditate
-   * since 2026-11-11. Never added to `resistance` — see constants/resistance.ts.
+   * Old: push, 1–3, how hard they pushed (2026-11-11 to 2026-11-20). It
+   * measured effort (and restlessness, for Meditate), not the urge to stop, so
+   * nothing reads it any more. Replaced by `keep_going`.
    */
   push?: number;
   /**
+   * Keep going, 1–3: how hard it was to override the urge to stop or ease off
+   * once in motion. Workouts and Meditate since 2026-11-20. Never added to
+   * `resistance` — see constants/resistance.ts, "THE OVERRIDE, TWICE". A
+   * session logged days late carries only this, with no `resistance` and
+   * `difficulty: 0`, so it stays out of the start line.
+   */
+  keep_going?: number;
+  /**
    * Meals' one rating a day, 1–3: how hard it was to eat that way. Kept out of
-   * the override and push lines; a log carrying it has no `resistance` and
+   * the start and keep-going lines; a log carrying it has no `resistance` and
    * `difficulty: 0`, so it reads as unrated everywhere the override is read.
    */
   day_rating?: number;
@@ -566,8 +575,8 @@ export interface PracticeCompletionInput {
   metrics_assumed?: boolean;
   /** When `resistance` was given — see CompletionLog.override_rated. */
   override_rated?: 'start' | 'after';
-  /** Push, 1–3 — see CompletionLog.push. */
-  push?: number;
+  /** Keep going, 1–3 — see CompletionLog.keep_going. */
+  keep_going?: number;
   /** Meals' daily rating, 1–3, in place of `resistance` — see CompletionLog.day_rating. */
   day_rating?: number;
 }

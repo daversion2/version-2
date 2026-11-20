@@ -13,7 +13,9 @@ import {
   addDays,
   buildHomeDashboard,
   describeFriction,
+  describeKeepGoing,
   describeVsPrior,
+  pctChange,
   recentDayLabel,
 } from '../../services/homeDashboard';
 import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
@@ -138,7 +140,16 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const today = data?.app.today ?? '';
   const friction = d ? describeFriction(d.friction[appId]) ?? 'Not rated yet' : '';
-  const push = d && appId !== 'meals' ? describeFriction(d.push[appId]) ?? 'Not rated yet' : '';
+  // Keep going, set against the work done: falling while the work rose is the proof.
+  const keepGoing =
+    d && appId !== 'meals'
+      ? describeKeepGoing(
+          d.keepGoing[appId],
+          appId === 'workouts'
+            ? { pct: d.workouts.volumeChangePct, noun: 'volume' }
+            : { pct: pctChange(d.meditate.minutes, d.meditate.priorMinutes), noun: 'minutes' }
+        ) ?? 'Not rated yet'
+      : '';
   const mealsDay = d ? describeFriction(d.mealsDay) ?? 'Not rated yet' : '';
 
   const body = () => {
@@ -163,8 +174,10 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
           </ListGroup>
           <ListGroup title="Last 7 days">
             <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
-            <ListRow title="Your override" subtitle={friction} />
-            <ListRow title="Your push" subtitle={push} />
+          </ListGroup>
+          <ListGroup title="Your override · last 7 days">
+            <ListRow title="To start" subtitle={friction} />
+            <ListRow title="To keep going" subtitle={keepGoing} />
           </ListGroup>
           {m.recent.length > 0 && (
             <ListGroup title="Recent">
@@ -208,9 +221,9 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             <ListRow title="Last week" value={`${w.priorSessions} ${w.priorSessions === 1 ? 'session' : 'sessions'}`} />
             <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
           </ListGroup>
-          <ListGroup title="Last 7 days">
-            <ListRow title="Your override" subtitle={friction} />
-            <ListRow title="Your push" subtitle={push} />
+          <ListGroup title="Your override · last 7 days">
+            <ListRow title="To start" subtitle={friction} />
+            <ListRow title="To keep going" subtitle={keepGoing} />
           </ListGroup>
           {(w.week.length > 0 || w.phaseLine) && (
             <ListGroup title={w.phaseLine ? `Sessions · ${w.phaseLine}` : 'Sessions'}>
@@ -248,7 +261,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
         <ListGroup title="Last 7 days">
           <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
-          <ListRow title="Eating well" subtitle={mealsDay} />
+          <ListRow title="Your override" subtitle={mealsDay} />
         </ListGroup>
       </>
     );

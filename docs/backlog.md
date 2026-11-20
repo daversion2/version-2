@@ -30,16 +30,17 @@ a real check needs a real save). On the Workouts page: Log beside Start opens
 top one) and search; a row opens the entry sheet filled in; saving lands on
 Today with both ratings; the session shows on This week and in History.
 
-**Check the two ratings on screen** *(added 2026-11-11)*
-Live (OTA a218c201). Maestro flows 19a–19d checked the start sheets (Cancel)
-and the app pages without writing. Still unseen — each needs a real save:
-Look at: every Start in Workouts (Up next, a workout's Do it, Empty workout)
-and Meditate's Begin opening "How hard is it to start?", with the answer
-starting the session; Finish asking only push; Done it and a past session
-asking both, back to back, with "Change" going back; a discarded session
-writing `overrideStarts`; closing an off-target Meals day asking "How hard
-was it to eat this way today?"; yesterday's unclosed Meals day asked once on
-the next open; the Push and Eating well chips on Home and the app pages.
+**Check the override, twice, on screen** *(added 2026-11-11, reworked 2026-11-20)*
+The founder has used the two ratings since 11-11 and they work; the
+2026-11-20 rework (see Done) changed the second question and hasn't been seen
+yet. Look at: Start opening "How hard is it to start?" with the new answers;
+Finish asking Workouts "How hard was it to keep going?" and Meditate "How
+hard was it not to stop early?"; Done it asking start then keep going, with
+"Change" going back; a session logged 2+ days late asking keep going only;
+the app pages' "Your override · last 7 days" rows (To start / To keep going);
+the ⓘ ("Your override, twice") and onboarding's first two screens.
+If any old wording still shows, it was edited in the copy editor: those
+edits win over the code (see Done).
 
 **Work through `docs/launch-review.md`** *(added 2026-11-02)*
 The app-wide launch review fixed everything small (see Done). What's left is
@@ -351,24 +352,19 @@ removed, the Library tab is removed.
 Came up while reviewing Meditate/Workouts/Meals feature-by-feature. Both are
 bigger, not yet scoped — discuss before building either.
 
-- **Two ratings: what's left** *(added 2026-11-11)*. Follow-ups to the
-  override-on-Start + push change (see Done):
-  - **Name for push.** "Suck factor" was the working name; the screen says
-    "Push". All the words are copy keys (`start.override.*`,
-    `today.rate.*`) and the level wording is in `constants/resistance.ts`.
-  - **Push on Progress.** The friction chart is still override-only. Push
-    should be its own line (it should hold up or rise while the override
-    falls), never added to the override.
-  - **XP.** Still equal to the override. Options: follow push (rewards
-    choosing hard work) or flat per session (can't be gamed).
-  - **Where Meals' day rating goes.** Saved as `day_rating` and kept out of
-    both lines for now; decide whether it joins push.
+- **The override, twice: what's left** *(added 2026-11-11, updated 2026-11-20)*.
+  Follow-ups to the start + keep-going ratings (see Done):
+  - **Keep going on Progress.** The friction chart is still start-only. Keep
+    going should be its own line (both should fall), never added to the start.
+  - **XP.** Still equal to the start rating (keep going alone, for a late
+    session). Options: the sum of both, or flat per session (can't be gamed).
   - **Use the discarded starts.** `users/{uid}/overrideStarts` is written but
     nothing reads it yet.
-  - **"Heading out now".** A one-tap live override for people who don't run
+  - **"Heading out now".** A one-tap live start for people who don't run
     the session in the app, logged with Done it later.
-  - **Rated live vs after.** Once there's data, check whether
-    `override_rated: 'after'` ratings skew easier, and weigh them if so.
+  - **The toast's start trend** (`overrideEcho`, first two weeks vs this week)
+    still mixes live and remembered starts: the first weeks predate live
+    ratings for every current account. The app-page line prefers live ones.
 
 - **Surface streaks more clearly on Progress.** Streaks stay owned by
   Progress, not duplicated inside each mini-app (decided when discussing a
@@ -509,6 +505,23 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**The override, twice: start and keep going** *(2026-11-20, committed, not yet live — needs an OTA)*
+Founder's framing: discipline is one skill used twice. "Push" (how hard you
+went) read the wrong way for Meditate, where a settled sit scored low and was
+told to "raise the bar", and for easy training weeks. The second rating is now
+the override to KEEP GOING: Workouts "How hard was it to keep going?",
+Meditate "How hard was it not to stop early?", both 1–3, both should fall.
+Meals keeps "How hard was it to eat this way today?" as its override. Stored
+as `keep_going`; the old `push` values are left out. Also: start answers no
+longer say "push"; a session logged 2+ days late asks keep going only (no
+start, out of the start line); the app-page start line reads only live starts
+once both weeks have two; "getting easier" on a fall of 0.3+; keep going is set
+against volume / minutes ("…while your volume rose 12%"). Copy moved to new
+keys (`today.rate.keepGoing.*`, `today.rate.start.*`, `start.level.*`,
+`override.twice.*`, new onboarding ids) so old copy-editor edits of the push
+wording don't show. Today's screen intro keeps its keys (`intro.today.*`): an
+edit made there in the copy editor would hide the new wording.
 
 **Today's rings start over every Monday** *(2026-11-20, live OTA 57f3bdcd, confirmed on screen by the founder)*
 The rings and every "N of goal" line (Today, the app pages, the old

@@ -1,5 +1,13 @@
 import type { CompletionLog } from '../../types';
-import { appRatedDays, mealsDayEcho, overrideEcho, overrideTrend, pairEcho, RatedDay } from '../overrideEcho';
+import {
+  appRatedDays,
+  keepGoingEcho,
+  mealsDayEcho,
+  overrideEcho,
+  overrideTrend,
+  pairEcho,
+  RatedDay,
+} from '../overrideEcho';
 
 const TODAY = '2026-11-01';
 const day = (n: number) => {
@@ -64,7 +72,7 @@ describe('overrideEcho', () => {
 
   it('says what the level means when there is no trend yet', () => {
     expect(overrideEcho({ ...base, level: 3, history: [] })).toMatch(/started anyway/);
-    expect(overrideEcho({ ...base, level: 2, history: [] })).toMatch(/push/);
+    expect(overrideEcho({ ...base, level: 2, history: [] })).toMatch(/talk yourself into it/);
     expect(overrideEcho({ ...base, level: 1, history: [] })).toMatch(/override/i);
   });
 
@@ -97,19 +105,24 @@ describe('appRatedDays', () => {
 describe('pairEcho', () => {
   const base = { appName: 'Workouts', history: [] as RatedDay[], date: '2026-11-11', today: '2026-11-11' };
 
-  it('reads a hard start and an easy session as getting started being the win', () => {
-    expect(pairEcho({ ...base, override: 3, push: 1 })).toMatch(/Getting started was the win/);
+  it('reads a hard start and an easy finish as getting started being the hard part', () => {
+    expect(pairEcho({ ...base, override: 3, keepGoing: 1 })).toMatch(/Getting started was the hard part/);
   });
 
-  it('gives each pairing its own line', () => {
-    const lines = new Set([
-      pairEcho({ ...base, override: 3, push: 3 }),
-      pairEcho({ ...base, override: 2, push: 2 }),
-      pairEcho({ ...base, override: 2, push: 1 }),
-      pairEcho({ ...base, override: 1, push: 3 }),
-      pairEcho({ ...base, override: 1, push: 1 }),
-    ]);
-    expect(lines.size).toBe(5);
+  it('credits keeping going when only the middle was hard', () => {
+    expect(pairEcho({ ...base, override: 1, keepGoing: 3 })).toMatch(/you kept going/);
+  });
+
+  it('gives each pairing its own line, and never tells anyone to raise the bar', () => {
+    const lines = [
+      pairEcho({ ...base, override: 3, keepGoing: 3 }),
+      pairEcho({ ...base, override: 2, keepGoing: 2 }),
+      pairEcho({ ...base, override: 2, keepGoing: 1 }),
+      pairEcho({ ...base, override: 1, keepGoing: 3 }),
+      pairEcho({ ...base, override: 1, keepGoing: 1 }),
+    ];
+    expect(new Set(lines).size).toBe(5);
+    expect(lines.some((l) => /raise the bar|push/i.test(l))).toBe(false);
   });
 
   it('still leads with a falling override when there is one', () => {
@@ -119,7 +132,14 @@ describe('pairEcho', () => {
       { date: '2026-10-05', resistance: 3 },
       { date: '2026-11-09', resistance: 1 },
     ];
-    expect(pairEcho({ ...base, history, override: 1, push: 2 })).toMatch(/^Your Workouts override: 3\.0 of 3/);
+    expect(pairEcho({ ...base, history, override: 1, keepGoing: 2 })).toMatch(/^Your Workouts override: 3\.0 of 3/);
+  });
+});
+
+describe('keepGoingEcho', () => {
+  it('has a line for each level', () => {
+    expect(new Set([keepGoingEcho(1), keepGoingEcho(2), keepGoingEcho(3)]).size).toBe(3);
+    expect(keepGoingEcho(3)).toMatch(/wanted to quit/);
   });
 });
 

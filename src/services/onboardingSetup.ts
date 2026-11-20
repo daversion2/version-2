@@ -17,9 +17,9 @@ import {
 // result; everything that can be got wrong lives here where jest can see it.
 // The screen itself is untestable (jest's testMatch excludes .tsx).
 //
-//   1 why        discipline is two skills: starting, and pushing once going
-//   2 ratings    the two questions — override as you start, push when you
-//                finish — and which way each should move (2026-11-11)
+//   1 why        discipline is one skill used twice: to start, and to keep going
+//   2 ratings    the two questions — the override as you start, and to keep
+//                going when you finish — and that both should fall (2026-11-20)
 //   3 apps       Meditate, Workouts, Meals: all on, switch off any you won't use
 //   4 goals      a weekly goal each (3 / 3 / 5) and one app to start with
 //   5 reminder   an evening close-out nudge; picking a time is what asks iOS

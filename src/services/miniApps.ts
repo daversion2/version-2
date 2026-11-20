@@ -106,9 +106,10 @@ export interface SessionHandoff {
    */
   choices?: Record<string, string>;
   /**
-   * The override, 1–3, when it was tapped on the app's Start (constants/
-   * resistance.ts, "TWO RATINGS"). Absent = Done it or a past session, so
-   * Today asks it at the end, before push.
+   * The start override, 1–3, when it was tapped on the app's Start
+   * (constants/resistance.ts, "THE OVERRIDE, TWICE"). Absent = Done it or a
+   * past session, so Today asks it at the end, before keep going (or not at
+   * all, for a session logged days late).
    */
   override?: number;
   /** Meals: whether the day closed on target, for the line said back. */

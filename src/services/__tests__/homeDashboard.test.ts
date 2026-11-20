@@ -1,7 +1,7 @@
 import {
   addDays,
   appFriction,
-  appPush,
+  appKeepGoing,
   mealsDayRating,
   buildHomeDashboard,
   countServings,
@@ -9,9 +9,11 @@ import {
   inWeek,
   describeFriction,
   describeInsight,
+  describeKeepGoing,
   describeVsPrior,
   mealsDashboard,
   mealsDayState,
+  pctChange,
   meditateDashboard,
   profileActivityPatch,
   progressOf,
@@ -556,7 +558,7 @@ describe('friction', () => {
   });
 
   it('describes the level and the direction', () => {
-    expect(describeFriction({ avg: 1.6, priorAvg: 2.1, count: 4 })).toBe('Mostly manageable (1.6 of 3) · down from 2.1');
+    expect(describeFriction({ avg: 1.6, priorAvg: 2.1, count: 4 })).toBe('Mostly manageable (1.6 of 3) · down from 2.1, getting easier');
     expect(describeFriction({ avg: 1.2, priorAvg: null, count: 2 })).toBe('Mostly easy (1.2 of 3)');
     expect(describeFriction({ avg: 2.6, priorAvg: 2.6, count: 2 })).toBe('Mostly hard (2.6 of 3) · same as the week before');
     expect(describeFriction({ avg: null, priorAvg: 2, count: 0 })).toBeNull();
@@ -737,16 +739,27 @@ describe('the user doc', () => {
   });
 });
 
-describe('push and the Meals day rating', () => {
-  const withPush = (date: string, push: number): CompletionLog =>
-    ({ ...log('app:workouts', date, 2), id: `p-${date}`, push }) as CompletionLog;
+describe('keep going and the Meals day rating', () => {
+  const withKeepGoing = (date: string, keep_going: number): CompletionLog =>
+    ({ ...log('app:workouts', date, 2), id: `k-${date}`, keep_going }) as CompletionLog;
 
-  it('averages push on its own, never mixed with the override', () => {
-    const logs = [withPush('2026-10-24', 3), withPush('2026-10-22', 2), withPush('2026-10-15', 1)];
-    const p = appPush(logs, 'workouts', TODAY);
-    expect(p.avg).toBeCloseTo(2.5);
-    expect(p.priorAvg).toBe(1);
+  it('averages keep going on its own, never mixed with the start', () => {
+    const logs = [withKeepGoing('2026-10-24', 3), withKeepGoing('2026-10-22', 2), withKeepGoing('2026-10-15', 1)];
+    const k = appKeepGoing(logs, 'workouts', TODAY);
+    expect(k.avg).toBeCloseTo(2.5);
+    expect(k.priorAvg).toBe(1);
     expect(appFriction(logs, 'workouts', TODAY).avg).toBe(2);
+  });
+
+  it('leaves the old push ratings out of keep going', () => {
+    const oldPush = { ...log('app:workouts', '2026-10-24', 2), id: 'old', push: 3 } as CompletionLog;
+    expect(appKeepGoing([oldPush], 'workouts', TODAY).avg).toBeNull();
+  });
+
+  it('keeps a late session, rated on keep going alone, out of the start line', () => {
+    const late = { ...log('app:workouts', '2026-10-24', undefined), id: 'late', keep_going: 3 } as CompletionLog;
+    expect(appFriction([late], 'workouts', TODAY).avg).toBeNull();
+    expect(appKeepGoing([late], 'workouts', TODAY).avg).toBe(3);
   });
 
   it('reads a Meals day from day_rating, and older Meals logs from resistance', () => {
@@ -755,5 +768,60 @@ describe('push and the Meals day rating', () => {
     expect(mealsDayRating([dayRated, legacy], TODAY).avg).toBe(2);
     // The day rating stays out of the override.
     expect(appFriction([dayRated], 'meals', TODAY).avg).toBeNull();
+  });
+});
+
+describe('the start line prefers starts rated live', () => {
+  const start = (date: string, resistance: number, rated?: 'start' | 'after'): CompletionLog =>
+    ({ ...log('app:workouts', date, resistance), id: `s-${date}-${resistance}-${rated}`, override_rated: rated }) as CompletionLog;
+
+  it('reads every start until both weeks have enough live ones', () => {
+    const logs = [start('2026-10-24', 3, 'start'), start('2026-10-23', 1, 'after'), start('2026-10-15', 2, 'start')];
+    expect(appFriction(logs, 'workouts', TODAY).avg).toBe(2);
+  });
+
+  it('reads only live starts once both weeks have two', () => {
+    const logs = [
+      start('2026-10-24', 3, 'start'),
+      start('2026-10-22', 3, 'start'),
+      start('2026-10-23', 1, 'after'),
+      start('2026-10-21', 1, 'after'),
+      start('2026-10-16', 2, 'start'),
+      start('2026-10-14', 2, 'start'),
+      start('2026-10-15', 1, 'after'),
+    ];
+    const f = appFriction(logs, 'workouts', TODAY);
+    expect(f.avg).toBe(3);
+    expect(f.priorAvg).toBe(2);
+    expect(f.count).toBe(2);
+  });
+});
+
+describe('saying which way it moved', () => {
+  it('says getting easier when an average falls far enough', () => {
+    expect(describeFriction({ avg: 1.6, priorAvg: 2.1, count: 4 })).toBe(
+      'Mostly manageable (1.6 of 3) · down from 2.1, getting easier'
+    );
+    expect(describeFriction({ avg: 1.9, priorAvg: 2.1, count: 4 })).toBe('Mostly manageable (1.9 of 3) · down from 2.1');
+    expect(describeFriction({ avg: 2.4, priorAvg: 1.9, count: 4 })).toBe('Mostly manageable (2.4 of 3) · up from 1.9');
+  });
+
+  it('sets a falling keep going against more work', () => {
+    const f = { avg: 1.9, priorAvg: 2.4, count: 3 };
+    expect(describeKeepGoing(f, { pct: 12, noun: 'volume' })).toBe(
+      'Mostly manageable (1.9 of 3) · down from 2.4, getting easier while your volume rose 12%'
+    );
+  });
+
+  it('leaves the work out when keep going did not fall, or the work did not rise', () => {
+    expect(describeKeepGoing({ avg: 2.4, priorAvg: 1.9, count: 3 }, { pct: 12, noun: 'volume' })).not.toMatch(/rose/);
+    expect(describeKeepGoing({ avg: 1.9, priorAvg: 2.4, count: 3 }, { pct: 2, noun: 'minutes' })).not.toMatch(/rose/);
+    expect(describeKeepGoing({ avg: 1.9, priorAvg: 2.4, count: 3 }, { pct: null, noun: 'minutes' })).not.toMatch(/rose/);
+    expect(describeKeepGoing({ avg: null, priorAvg: null, count: 0 }, { pct: 50, noun: 'minutes' })).toBeNull();
+  });
+
+  it('works out a change on the week before', () => {
+    expect(pctChange(110, 100)).toBeCloseTo(10);
+    expect(pctChange(5, 0)).toBeNull();
   });
 });

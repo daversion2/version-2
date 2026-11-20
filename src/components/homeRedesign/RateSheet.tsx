@@ -7,14 +7,14 @@ import type { TrackingField } from '../../data/practices';
 import {
   MEALS_DAY_LEVELS,
   MEALS_DAY_QUESTION,
-  PUSH_LEVELS,
-  PUSH_QUESTION,
-  PushApp,
-  RESISTANCE_LEVELS,
+  KEEP_GOING_LEVELS,
+  KEEP_GOING_QUESTION,
+  KeepGoingApp,
   ResistanceLevel,
+  START_LEVELS,
 } from '../../constants/resistance';
 import { formatMetricValue, stepMetric } from '../../services/lastMetrics';
-import { CheckinMode, CheckinRating } from '../../services/checkinRating';
+import { asksStart, CheckinMode, CheckinRating } from '../../services/checkinRating';
 import { useCopy } from '../../context/CopyContext';
 import { RatingExplainer } from '../home/RatingExplainer';
 import { OverrideInfoButton } from '../home/OverrideInfoButton';
@@ -22,16 +22,17 @@ import { OverrideInfoButton } from '../home/OverrideInfoButton';
 // =============================================================================
 // THE RATING SHEET on Today, after a session hands back (services/miniApps.ts).
 // What it asks depends on how the session began (services/checkinRating.ts):
-//   'push'   started in the app — the override was tapped on Start, so only
-//            "How hard did you push?"
-//   'both'   Done it or a past session — "How hard was it to start?", then push,
-//            back to back
-//   'meals'  a Meals day — "How hard was it to eat this way today?"
+//   'afterStart'  started in the app — the start was tapped on Start, so only
+//                 keep going ("How hard was it to keep going?")
+//   'both'        Done it or yesterday's session — "How hard was it to
+//                 start?", then keep going, back to back
+//   'late'        logged days later — keep going only
+//   'meals'       a Meals day — "How hard was it to eat this way today?"
 // The session's numbers sit above the first question. Tapping the last
 // answer IS the save.
 // =============================================================================
 
-type Step = 'override' | 'push' | 'day';
+type Step = 'override' | 'keepGoing' | 'day';
 
 interface Props {
   visible: boolean;
@@ -40,8 +41,8 @@ interface Props {
   /** The app's colour (AppColors), for the check mark. */
   appColor: string;
   mode: CheckinMode;
-  /** Whose words push uses. */
-  pushApp: PushApp;
+  /** Whose words keep going uses. */
+  keepGoingApp: KeepGoingApp;
   fields: TrackingField[];
   initialValues: Record<string, number>;
   /** One line under the app name, e.g. "From your workout". */
@@ -53,14 +54,14 @@ interface Props {
   onCancel: () => void;
 }
 
-const firstStep = (mode: CheckinMode): Step => (mode === 'meals' ? 'day' : mode === 'both' ? 'override' : 'push');
+const firstStep = (mode: CheckinMode): Step => (mode === 'meals' ? 'day' : asksStart(mode) ? 'override' : 'keepGoing');
 
 export const RateSheet: React.FC<Props> = ({
   visible,
   habitName,
   appColor,
   mode,
-  pushApp,
+  keepGoingApp,
   fields,
   initialValues,
   note,
@@ -100,9 +101,9 @@ export const RateSheet: React.FC<Props> = ({
   const pick = (level: number) => {
     if (step === 'override') {
       setOverride(level);
-      setStep('push');
-    } else if (step === 'push') {
-      save({ override, push: level }, level);
+      setStep('keepGoing');
+    } else if (step === 'keepGoing') {
+      save({ override, keepGoing: level }, level);
     } else {
       save({ day: level }, level);
     }
@@ -110,28 +111,29 @@ export const RateSheet: React.FC<Props> = ({
 
   const levelText = (level: ResistanceLevel): string =>
     step === 'override'
-      ? t(`today.rate.override.${level.value}`, level.anchor)
-      : step === 'push'
-        ? t(`today.rate.push.${pushApp}.${level.value}`, level.label)
+      ? t(`today.rate.start.${level.value}`, level.anchor)
+      : step === 'keepGoing'
+        ? t(`today.rate.keepGoing.${keepGoingApp}.${level.value}`, level.anchor)
         : t(`today.rate.meals.${level.value}`, level.label);
 
-  const levels = step === 'override' ? RESISTANCE_LEVELS : step === 'push' ? PUSH_LEVELS[pushApp] : MEALS_DAY_LEVELS;
+  const levels =
+    step === 'override' ? START_LEVELS : step === 'keepGoing' ? KEEP_GOING_LEVELS[keepGoingApp] : MEALS_DAY_LEVELS;
   const kicker =
     step === 'override'
-      ? t('today.rate.override.kicker', 'Override')
-      : step === 'push'
-        ? t('today.rate.push.kicker', 'Push')
+      ? t('today.rate.start.kicker', 'Override · Start')
+      : step === 'keepGoing'
+        ? t('today.rate.keepGoing.kicker', 'Override · Keep going')
         : t('today.rate.meals.kicker', 'Today’s rating');
   const question =
     step === 'override'
       ? t('today.quick.question', 'How hard was it to start?')
-      : step === 'push'
-        ? t(`today.rate.push.${pushApp}.question`, PUSH_QUESTION[pushApp])
+      : step === 'keepGoing'
+        ? t(`today.rate.keepGoing.${keepGoingApp}.question`, KEEP_GOING_QUESTION[keepGoingApp])
         : t('today.rate.meals.question', MEALS_DAY_QUESTION);
   const lastStep = step !== 'override';
   // The numbers belong with whichever question comes first.
   const shown = step === firstStep(mode) ? fields.filter((f) => typeof values[f.key] === 'number') : [];
-  const chosen = override ? RESISTANCE_LEVELS.find((l) => l.value === override) : undefined;
+  const chosen = override ? START_LEVELS.find((l) => l.value === override) : undefined;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
@@ -159,17 +161,17 @@ export const RateSheet: React.FC<Props> = ({
 
           {explain && mode !== 'meals' && step === firstStep(mode) && <RatingExplainer />}
 
-          {chosen && step === 'push' && (
+          {chosen && step === 'keepGoing' && (
             <TouchableOpacity
               style={styles.chosen}
               onPress={() => setStep('override')}
               disabled={saving !== null}
               accessibilityRole="button"
-              accessibilityLabel={t('today.rate.change', 'Change your override, {level}', { level: String(chosen.value) })}
+              accessibilityLabel={t('today.rate.change', 'Change your start, {level}', { level: String(chosen.value) })}
             >
               <Text style={styles.chosenText} numberOfLines={1}>
-                {t('today.rate.override.kicker', 'Override')} {chosen.value} ·{' '}
-                {t(`today.rate.override.${chosen.value}`, chosen.anchor)}
+                {t('today.rate.start.short', 'Start')} {chosen.value} ·{' '}
+                {t(`today.rate.start.${chosen.value}`, chosen.anchor)}
               </Text>
               <Text style={[styles.chosenChange, { color: appColor }]}>{t('today.rate.changeShort', 'Change')}</Text>
             </TouchableOpacity>
@@ -228,7 +230,7 @@ export const RateSheet: React.FC<Props> = ({
           </View>
           <Text style={styles.hint}>
             {step === 'override'
-              ? t('today.rate.hint.override', 'Rate the start, not the session. Then: how hard you pushed.')
+              ? t('today.rate.hint.start', 'Rate the start, not the session. Then: how hard it was to keep going.')
               : lastStep
                 ? t('today.rate.hint.save', 'Tap one to save.')
                 : ''}

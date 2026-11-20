@@ -501,13 +501,34 @@ const appRating = (
   return { avg: average(current), priorAvg: average(rated(1)), count: current.length };
 };
 
-/** "How hard was it to start?" for one app. */
-export const appFriction = (logs: CompletionLog[], appId: TodayAppId, today: string): FrictionSummary =>
-  appRating(logs, appId, today, logResistance);
+/** Live start ratings each window needs before the start line reads only those. */
+export const MIN_LIVE_STARTS = 2;
 
-/** Push — "How hard did you push?" — for Workouts or Meditate (since 2026-11-11). */
-export const appPush = (logs: CompletionLog[], appId: TodayAppId, today: string): FrictionSummary =>
-  appRating(logs, appId, today, (l) => asLevel(l.push));
+/**
+ * "How hard was it to start?" for one app. A start remembered afterwards (Done
+ * it, a past session) may read easier than one rated in the moment, so once
+ * both windows have MIN_LIVE_STARTS live ratings, only live ones count — then
+ * logging more sessions after the fact can't make the line fall on its own.
+ * Until then, every start counts.
+ */
+export const appFriction = (logs: CompletionLog[], appId: TodayAppId, today: string): FrictionSummary => {
+  const live = logs.filter((l) => l.override_rated === 'start');
+  const liveOnly = appRating(live, appId, today, logResistance);
+  const priorLive = live.filter(
+    (l) => l.reference_id === appCheckinId(appId) && inWindow(l.date, today, 1) && logResistance(l) !== undefined
+  ).length;
+  return liveOnly.count >= MIN_LIVE_STARTS && priorLive >= MIN_LIVE_STARTS
+    ? liveOnly
+    : appRating(logs, appId, today, logResistance);
+};
+
+/**
+ * Keep going — how hard it was not to stop once going — for Workouts or
+ * Meditate. Since 2026-11-20; the push ratings before it measured something
+ * else and are left out.
+ */
+export const appKeepGoing = (logs: CompletionLog[], appId: TodayAppId, today: string): FrictionSummary =>
+  appRating(logs, appId, today, (l) => asLevel(l.keep_going));
 
 /**
  * Meals' one rating a day. Before 2026-11-11 a Meals day was rated in
@@ -531,8 +552,40 @@ export const describeFriction = (f: FrictionSummary): string | null => {
   if (f.priorAvg === null) return head;
   const diff = f.avg - f.priorAvg;
   if (Math.abs(diff) < 0.05) return `${head} · same as the week before`;
-  return `${head} · ${diff < 0 ? 'down' : 'up'} from ${f.priorAvg.toFixed(1)}`;
+  // Lower is the override getting stronger, on both ratings. A rise gets no
+  // word of its own: Progress says "a tough stretch" with room to explain.
+  const easier = diff <= -GETTING_EASIER ? ', getting easier' : '';
+  return `${head} · ${diff < 0 ? 'down' : 'up'} from ${f.priorAvg.toFixed(1)}${easier}`;
 };
+
+/** How far an average has to fall, week on week, to say "getting easier". */
+export const GETTING_EASIER = 0.3;
+
+/** How much more work there has to be before keep going is set against it. */
+const MORE_WORK_PCT = 5;
+
+/**
+ * Keep going, set against how much was done. Keep going rises in a heavy
+ * week, so a falling number alone could just mean lighter sessions. Falling
+ * while the work went up is the proof: the same effort costs less override.
+ * `workPct` is the change in volume (Workouts) or minutes (Meditate) on the
+ * 7 days before; null when there's nothing to compare.
+ */
+export const describeKeepGoing = (
+  f: FrictionSummary,
+  work: { pct: number | null; noun: 'volume' | 'minutes' }
+): string | null => {
+  const line = describeFriction(f);
+  if (!line || f.avg === null || f.priorAvg === null || work.pct === null) return line;
+  if (f.priorAvg - f.avg >= GETTING_EASIER && work.pct >= MORE_WORK_PCT) {
+    return `${line} while your ${work.noun} rose ${Math.round(work.pct)}%`;
+  }
+  return line;
+};
+
+/** Percentage change on the window before, or null with nothing before. */
+export const pctChange = (current: number, prior: number): number | null =>
+  prior > 0 ? ((current - prior) / prior) * 100 : null;
 
 // --- The user doc --------------------------------------------------------------
 
@@ -675,7 +728,7 @@ export interface HomeDashboard {
   meals: MealsDashboard;
   /** The override per app. Meals' falls away as its days move to `mealsDay`. */
   friction: Record<TodayAppId, FrictionSummary>;
-  push: Record<'meditate' | 'workouts', FrictionSummary>;
+  keepGoing: Record<'meditate' | 'workouts', FrictionSummary>;
   mealsDay: FrictionSummary;
   rings: AppProgress[];
   combinedStreak: number;
@@ -713,9 +766,9 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
     workouts: appFriction(input.logs, 'workouts', today),
     meals: appFriction(input.logs, 'meals', today),
   };
-  const push = {
-    meditate: appPush(input.logs, 'meditate', today),
-    workouts: appPush(input.logs, 'workouts', today),
+  const keepGoing = {
+    meditate: appKeepGoing(input.logs, 'meditate', today),
+    workouts: appKeepGoing(input.logs, 'workouts', today),
   };
   const mealsDay = mealsDayRating(input.logs, today);
   const rings = [
@@ -758,7 +811,7 @@ export const buildHomeDashboard = (raw: HomeDashboardInput): HomeDashboard => {
     workouts,
     meals,
     friction,
-    push,
+    keepGoing,
     mealsDay,
     rings,
     combinedStreak: dayStreak(everyDay, today),
