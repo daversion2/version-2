@@ -506,7 +506,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**The override, twice: start and keep going** *(2026-11-20, committed, not yet live — needs an OTA)*
+**The override, twice: start and keep going** *(2026-11-20, live OTA 10bde827, not yet seen on screen)*
 Founder's framing: discipline is one skill used twice. "Push" (how hard you
 went) read the wrong way for Meditate, where a settled sit scored low and was
 told to "raise the bar", and for easy training weeks. The second rating is now
