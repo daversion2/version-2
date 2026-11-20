@@ -506,7 +506,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Onboarding leads with the science of the override** *(2026-11-20, committed, not yet live — needs an OTA)*
+**Onboarding leads with the science of the override** *(2026-11-20, live OTA b24ba03a, not yet seen on screen)*
 Founder picked "science first" (Option A, tightened). Onboarding is seven
 screens: (1) that "I don't want to" is the brain's predicted cost, and acting
 against it is the override; (2) you use it twice, "Getting started" and
