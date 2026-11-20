@@ -219,9 +219,10 @@ export const NUTRIENTS: Nutrient[] = [
 /** The guide's rules, in the order a first-time user needs them. */
 export const MEAL_GUIDE_RULES: string[] = [
   'Tap every group that was on the plate. Real servings only — the lettuce on a burger isn’t Veggies.',
+  'Had two? Tap it twice. Each serving counts, up to five of one food. Long-press a chip to take it off.',
   'Ready-made food is one chip. A frozen pizza is Frozen & ready meals, not Grains + Dairy + Veggies.',
   'Cooking basics don’t need a chip: oil, butter, salt, spices.',
-  'Every chip has a score, shown on the chip. A plate scores the average of its chips.',
+  'Every chip has a score, shown on the chip. A plate scores the average of its chips, each serving counted.',
   'A chip’s score comes from what that food brings: protein, fiber, vitamins & minerals and healthy fats add points; refined sugar or flour and processing take them away.',
   'Your goal (in settings) decides how much each counts. Ultra-processed food is capped low in every goal.',
   'You can change any chip’s score in settings, and add your own foods with their own score.',

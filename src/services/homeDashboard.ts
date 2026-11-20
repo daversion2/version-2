@@ -4,7 +4,7 @@ import type { CompletedWorkoutSession, Exercise, TrainingPhase, WeightUnit } fro
 import type { BuiltInGroupId, FoodGroupId, MealsDay, MealsRules } from '../types/meals';
 import { FOOD_GROUPS } from '../data/mealGroups';
 import { asLevel, logResistance, RESISTANCE_MAX } from '../constants/resistance';
-import { chipScore, isSettled, platesOf, rulesForDay, scoreDay } from './mealsMath';
+import { chipScore, isSettled, platesOf, rulesForDay, scoreDay, servingsOf } from './mealsMath';
 import { bestSetTrend, describeTrend, lowerIsBetter } from './workoutStats';
 import { phaseWeek } from './trainingPhases';
 import { appCheckinId, clampWeeklyGoal, TodayAppId } from './appCheckins';
@@ -406,15 +406,16 @@ export const mealsDayState = (
 };
 
 /**
- * One serving = one plate with that group's chip on it (founder, 2026-10-24).
- * Tapping Veggies at lunch and again at dinner is two.
+ * Servings as tapped (founder, 2026-11-20): two fruit at breakfast is two, and
+ * Veggies at lunch and again at dinner is two. Before then a chip was on or
+ * off, so older plates count one per plate (the 2026-10-24 rule) on their own.
  */
 export const countServings = (days: (MealsDay | undefined)[]): Partial<Record<FoodGroupId, number>> => {
   const out: Partial<Record<FoodGroupId, number>> = {};
   for (const day of days) {
     if (!day) continue;
     for (const { groups } of platesOf(day)) {
-      for (const g of new Set(groups)) out[g] = (out[g] ?? 0) + 1;
+      for (const { id, count } of servingsOf(groups)) out[id] = (out[id] ?? 0) + count;
     }
   }
   return out;

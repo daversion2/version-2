@@ -6,7 +6,18 @@ import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import type { FoodGroup } from '../../../../../data/mealGroups';
 import { FOOD_SECTIONS, MEAL_GUIDE_RULES, isCustomGroup, sectionGroups } from '../../../../../data/mealGroups';
 import type { CustomFoodGroup, FoodGroupId, MealsRules } from '../../../../../types/meals';
-import { chipScore, pickerFoods, plateNutrients, scoreVerdict, usesChipScores } from '../../../../../services/mealsMath';
+import {
+  addServing,
+  chipScore,
+  clearFood,
+  MAX_SERVINGS,
+  pickerFoods,
+  plateNutrients,
+  removeServing,
+  scoreVerdict,
+  servingCount,
+  usesChipScores,
+} from '../../../../../services/mealsMath';
 import { MEALS_ACCENT, scoreColor, mls } from './mealsStyle';
 import { NutrientTags, plateTime } from './MealsParts';
 
@@ -32,9 +43,14 @@ interface Props {
 }
 
 /**
- * What was on the plate. Tap every group that applies; each chip shows its
- * score and the plate's average is worked out as you go, so you see it before
- * saving. Scores are changed in settings, never here.
+ * What was on the plate. Tap every group that applies, and tap one again for
+ * another serving (founder, 2026-11-20): the chip reads "Fruit ×2", its − takes
+ * one off, and a long press takes the food off the plate. Each chip shows its
+ * score and the plate's average is worked out as you go, each serving counted,
+ * so you see it before saving. Scores are changed in settings, never here.
+ *
+ * A past day scored by the old formula can't weigh servings, so there a chip
+ * is still on or off.
  */
 export const MealPickerModal: React.FC<Props> = ({
   target,
@@ -57,8 +73,17 @@ export const MealPickerModal: React.FC<Props> = ({
     }
   }, [target]);
 
-  const toggle = (id: FoodGroupId) =>
-    setGroups((list) => (list.includes(id) ? list.filter((g) => g !== id) : [...list, id]));
+  // A day saved before chip scores is scored by the old formula: no per-chip
+  // number to show, and no servings to weigh.
+  const showScores = usesChipScores(rules);
+  const servings = showScores;
+
+  const add = (id: FoodGroupId) =>
+    setGroups((list) =>
+      servings ? addServing(list, id) : list.includes(id) ? clearFood(list, id) : [...list, id]
+    );
+  const less = (id: FoodGroupId) => setGroups((list) => removeServing(list, id));
+  const clear = (id: FoodGroupId) => setGroups((list) => clearFood(list, id));
 
   const custom = rules.custom_groups ?? [];
   const verdict = scoreVerdict(groups, rules);
@@ -66,27 +91,63 @@ export const MealPickerModal: React.FC<Props> = ({
   // Labelled with the score this plate uses (a past day's saved one), and a
   // removed food already on the plate stays tappable, so it can be taken off.
   const myFoods = pickerFoods(offered, custom, groups);
-  // A day saved before chip scores is scored by the old formula: no per-chip number to show.
-  const showScores = usesChipScores(rules);
 
   const renderChip = (group: Pick<FoodGroup, 'id' | 'label'>) => {
-    const on = groups.includes(group.id);
+    const count = servingCount(groups, group.id);
+    const on = count > 0;
     const score = showScores || isCustomGroup(group.id) ? (chipScore(group.id, rules) ?? undefined) : undefined;
+    const scored = score !== undefined ? `, scores ${score}` : '';
+    const withMinus = servings && on;
     return (
-      <TouchableOpacity
-        key={group.id}
-        testID={`meal-chip-${group.id}`}
-        style={[mls.chip, on && mls.chipActive]}
-        onPress={() => toggle(group.id)}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: on }}
-        accessibilityLabel={score !== undefined ? `${group.label}, scores ${score}` : group.label}
-      >
-        <Text style={[mls.chipText, on && mls.chipTextActive]}>
-          {group.label}
-          {score !== undefined ? ` · ${score}` : ''}
-        </Text>
-      </TouchableOpacity>
+      <View key={group.id} style={[mls.chip, on && mls.chipActive, styles.chip]}>
+        {withMinus && (
+          // Hidden from screen readers: the chip itself is adjustable.
+          <TouchableOpacity
+            testID={`meal-chip-${group.id}-less`}
+            onPress={() => less(group.id)}
+            style={styles.minus}
+            hitSlop={{ top: 6, bottom: 6, left: 6 }}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Ionicons name="remove" size={16} color={Colors.white} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          testID={`meal-chip-${group.id}`}
+          style={[styles.chipMain, withMinus && styles.chipMainAfterMinus]}
+          onPress={() => add(group.id)}
+          onLongPress={() => clear(group.id)}
+          {...(servings
+            ? {
+                accessibilityRole: 'adjustable' as const,
+                accessibilityLabel: `${group.label}${scored}`,
+                accessibilityValue: { text: on ? `${count} ${count === 1 ? 'serving' : 'servings'}` : 'not on the plate' },
+                accessibilityHint: count >= MAX_SERVINGS ? `${MAX_SERVINGS} is the most a plate counts.` : undefined,
+                accessibilityActions: [
+                  { name: 'increment' as const },
+                  { name: 'decrement' as const },
+                  ...(on ? [{ name: 'longpress' as const, label: 'Take off the plate' }] : []),
+                ],
+                onAccessibilityAction: (e: { nativeEvent: { actionName: string } }) => {
+                  if (e.nativeEvent.actionName === 'increment') add(group.id);
+                  else if (e.nativeEvent.actionName === 'decrement') less(group.id);
+                  else if (e.nativeEvent.actionName === 'longpress') clear(group.id);
+                },
+              }
+            : {
+                accessibilityRole: 'checkbox' as const,
+                accessibilityState: { checked: on },
+                accessibilityLabel: `${group.label}${scored}`,
+              })}
+        >
+          <Text style={[mls.chipText, on && mls.chipTextActive]}>
+            {group.label}
+            {count > 1 ? ` ×${count}` : ''}
+            {score !== undefined ? ` · ${score}` : ''}
+          </Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -118,7 +179,9 @@ export const MealPickerModal: React.FC<Props> = ({
           <Text style={mls.lead}>
             {target?.loggedAt
               ? `Logged at ${plateTime(target.loggedAt)}. What was on the plate?`
-              : 'What was on the plate? Tap all that apply.'}
+              : servings
+                ? 'What was on the plate? Tap all that apply, and tap again for another serving.'
+                : 'What was on the plate? Tap all that apply.'}
           </Text>
 
           <TextInput
@@ -184,6 +247,12 @@ export const MealPickerModal: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: Colors.lightGray },
+  // The chip's own padding moves onto its parts, so the − and the label each
+  // get the full height as a target.
+  chip: { flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 0 },
+  chipMain: { paddingHorizontal: 14, justifyContent: 'center', minHeight: 40 },
+  chipMainAfterMinus: { paddingLeft: 6 },
+  minus: { paddingLeft: 12, paddingRight: 4, justifyContent: 'center', minHeight: 40 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

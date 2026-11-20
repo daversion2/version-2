@@ -217,10 +217,65 @@ export const chipScore = (
   return rules.group_scores?.[id] ?? goalScores(DEFAULT_MEAL_GOAL)[id] ?? null;
 };
 
-/** The average of the chips' scores — each chip once, however it was tapped. Null with none. */
+// --- Servings ---------------------------------------------------------------------
+// A plate lists a food once per serving: two fruit is ['fruit', 'fruit']
+// (founder, 2026-11-20). Before that, a tap toggled a food on or off, so every
+// plate saved earlier lists each food once and reads exactly as it did.
+
+/** The most servings of one food a plate counts. Taps past it do nothing. */
+export const MAX_SERVINGS = 5;
+
+export interface Serving {
+  id: FoodGroupId;
+  /** 1 to MAX_SERVINGS. */
+  count: number;
+}
+
+/** Each food on a plate with its servings, in the order first tapped. */
+export const servingsOf = (groups: FoodGroupId[] = []): Serving[] => {
+  const out: Serving[] = [];
+  for (const id of groups) {
+    const found = out.find((s) => s.id === id);
+    if (found) found.count = Math.min(MAX_SERVINGS, found.count + 1);
+    else out.push({ id, count: 1 });
+  }
+  return out;
+};
+
+/** How many servings of this food the plate has. */
+export const servingCount = (groups: FoodGroupId[], id: FoodGroupId): number =>
+  servingsOf(groups).find((s) => s.id === id)?.count ?? 0;
+
+/** One more serving, kept beside the food's others. No change at MAX_SERVINGS. */
+export const addServing = (groups: FoodGroupId[], id: FoodGroupId): FoodGroupId[] => {
+  if (servingCount(groups, id) >= MAX_SERVINGS) return groups;
+  const last = groups.lastIndexOf(id);
+  return last === -1 ? [...groups, id] : [...groups.slice(0, last + 1), id, ...groups.slice(last + 1)];
+};
+
+/** One serving fewer; the food leaves the plate with its last. */
+export const removeServing = (groups: FoodGroupId[], id: FoodGroupId): FoodGroupId[] => {
+  const last = groups.lastIndexOf(id);
+  return last === -1 ? groups : [...groups.slice(0, last), ...groups.slice(last + 1)];
+};
+
+/** The food off the plate, every serving of it. */
+export const clearFood = (groups: FoodGroupId[], id: FoodGroupId): FoodGroupId[] => groups.filter((g) => g !== id);
+
+/**
+ * The average of the chips' scores, each counted once per serving: Fruit 90
+ * twice and Chips 20 is (90 + 90 + 20) / 3 = 67. Null with none scored.
+ */
 const scoreByChips = (groups: FoodGroupId[], rules: Pick<MealsRules, 'group_scores' | 'custom_groups'>): number | null => {
-  const scores = [...new Set(groups)].flatMap((g) => chipScore(g, rules) ?? []);
-  return scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+  let total = 0;
+  let servings = 0;
+  for (const { id, count } of servingsOf(groups)) {
+    const score = chipScore(id, rules);
+    if (score === null) continue;
+    total += score * count;
+    servings += count;
+  }
+  return servings ? Math.round(total / servings) : null;
 };
 
 /** The rules a plate is scored with. */
@@ -233,7 +288,8 @@ export const usesChipScores = (rules: Pick<MealsRules, 'group_scores'>): boolean
 export const scorePlate = (groups: FoodGroupId[] | undefined, rules: PlateRules): number | null => {
   if (!groups || groups.length === 0) return null;
   if (usesChipScores(rules)) return scoreByChips(groups, rules);
-  return scoreByFormula(groups, !!rules.strict, rules.scoring, rules.custom_groups);
+  // The formula predates servings: each food once.
+  return scoreByFormula([...new Set(groups)], !!rules.strict, rules.scoring, rules.custom_groups);
 };
 
 export interface PlateScore {
@@ -243,12 +299,15 @@ export interface PlateScore {
 
 /** The score and the one-line reason the picker shows under the chips. */
 export const scoreVerdict = (groups: FoodGroupId[], rules: PlateRules): PlateScore => {
-  if (!usesChipScores(rules)) return verdictByFormula(groups, !!rules.strict, rules.scoring, rules.custom_groups);
+  if (!usesChipScores(rules)) {
+    return verdictByFormula([...new Set(groups)], !!rules.strict, rules.scoring, rules.custom_groups);
+  }
   const score = scorePlate(groups, rules);
-  if (score === null) return { score, why: 'Tap what was on the plate.' };
-  const chips = [...new Set(groups)].filter((g) => chipScore(g, rules) !== null);
-  if (chips.length === 1) return { score, why: `${groupLabel(chips[0], rules.custom_groups)} scores ${score}.` };
-  return { score, why: `The average of ${chips.map((g) => `${groupLabel(g, rules.custom_groups)} ${chipScore(g, rules)}`).join(', ')}.` };
+  if (score === null) return { score, why: 'Tap what was on the plate. Tap again for another serving.' };
+  const chips = servingsOf(groups).filter((s) => chipScore(s.id, rules) !== null);
+  const name = (s: Serving) => `${groupLabel(s.id, rules.custom_groups)}${s.count > 1 ? ` ×${s.count}` : ''}`;
+  if (chips.length === 1) return { score, why: `${name(chips[0])} scores ${score}.` };
+  return { score, why: `The average of ${chips.map((s) => `${name(s)} ${chipScore(s.id, rules)}`).join(', ')}.` };
 };
 
 // --- The formula, for days saved before chip scores ----------------------------
@@ -351,9 +410,11 @@ export const verdictByFormula = (
   return { score, why: groups.every(isWholeGroup) ? 'All whole food.' : 'Real food, with a little semi-processed.' };
 };
 
-/** "Eggs · Fruit". */
+/** "Eggs · Fruit ×2". */
 export const describeGroups = (groups: FoodGroupId[], custom: CustomFoodGroup[] = []): string =>
-  groups.map((g) => groupLabel(g, custom)).join(' · ');
+  servingsOf(groups)
+    .map((s) => `${groupLabel(s.id, custom)}${s.count > 1 ? ` ×${s.count}` : ''}`)
+    .join(' · ');
 
 export const rulesOf = (prefs: MealsPrefs, model: MealsModel = BUILT_IN_MEALS_MODEL): MealsRules => ({
   goal: prefs.goal ?? DEFAULT_MEAL_GOAL,
@@ -472,7 +533,11 @@ export interface DayScore {
   status: DayStatus;
 }
 
-/** How many of the plates carry this group. A plate counts once however much was on it. */
+/**
+ * How many of the plates carry this group. A plate counts once however many
+ * servings it had: a daily goal ("Veggies at 2 meals a day") is about spreading
+ * them through the day (founder, 2026-11-20).
+ */
 const countGroup = (items: ScoredItem[], group: WholeGroupId): number =>
   items.filter((i) => i.groups.includes(group)).length;
 

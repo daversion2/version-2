@@ -424,9 +424,14 @@ describe('meals', () => {
     expect(countServings([legacy])).toEqual({ veggies: 2, chicken: 1, fruit: 1 });
   });
 
-  it('counts one serving per plate', () => {
+  it('counts servings as tapped', () => {
     const day = mealsDay('2026-10-20', { plates: [plate('veggies', 'veggies', 'chicken'), plate('veggies', 'fruit')] });
-    expect(countServings([day])).toEqual({ veggies: 2, chicken: 1, fruit: 1 });
+    expect(countServings([day])).toEqual({ veggies: 3, chicken: 1, fruit: 1 });
+  });
+
+  it('counts at most five servings of a food on one plate', () => {
+    const day = mealsDay('2026-10-20', { plates: [plate(...Array<FoodGroupId>(7).fill('fruit'))] });
+    expect(countServings([day])).toEqual({ fruit: 5 });
   });
 
   it('lists servings, most first, and counts days on target', () => {

@@ -506,6 +506,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Meals: tap a food again for another serving** *(2026-11-20, committed, not yet live — needs an OTA)*
+Two fruit is Fruit tapped twice: the chip reads "Fruit ×2 · 81", its − takes
+one off, a long press takes the food off the plate. A plate stores one entry
+per serving (`['fruit', 'fruit']`), so older plates read as before. Founder's
+calls: (1) the plate score counts every serving (Fruit 90 ×2 + Chips 20 = 67),
+capped at 5 of one food (`MAX_SERVINGS`); (2) "What you ate" counts servings,
+replacing the one-per-plate rule of 2026-10-24; (3) daily goals ("Veggies at 2
+meals a day") still count meals; (4) the picker UI above, adjustable for
+screen readers. Past days scored by the old formula ignore repeats and keep
+on/off chips. Logic in `services/mealsMath.ts` (`servingsOf`, `addServing`,
+`removeServing`, `clearFood`); not yet seen on screen. The Meals Maestro
+flows tap `meal-chip-<id>`, which still exists.
+
 **Onboarding leads with the science of the override** *(2026-11-20, live OTA b24ba03a, not yet seen on screen)*
 Founder picked "science first" (Option A, tightened). Onboarding is seven
 screens: (1) that "I don't want to" is the brain's predicted cost, and acting

@@ -1,5 +1,11 @@
 import {
   activeCustomGroups,
+  addServing,
+  clearFood,
+  MAX_SERVINGS,
+  removeServing,
+  servingCount,
+  servingsOf,
   archiveCustomGroup,
   describeGroups,
   isSettled,
@@ -152,11 +158,19 @@ describe('chip scores — a plate scores the average of its chips', () => {
     expect(balanced.group_scores).toEqual(goalScores('balanced'));
   });
 
-  it('averages the chips, each counted once', () => {
+  it('averages the chips, each counted once per serving', () => {
     // Chicken 72, Veggies 86, Whole grains 79 → 79
     expect(scorePlate(['chicken', 'veggies', 'grains'], balanced)).toBe(79);
-    expect(scorePlate(['veggies', 'veggies', 'fish'], balanced)).toBe(89); // (86 + 91) / 2 = 88.5
+    expect(scorePlate(['veggies', 'veggies', 'fish'], balanced)).toBe(88); // (86 + 86 + 91) / 3 = 87.7
     expect(scorePlate(['fast_food', 'sugary_drinks'], balanced)).toBe(8); // (13 + 2) / 2 = 7.5
+    // Two sodas pull harder than one.
+    expect(scorePlate(['veggies', 'sugary_drinks', 'sugary_drinks'], balanced)).toBe(30); // (86 + 2 + 2) / 3
+  });
+
+  it('counts at most five servings of a food', () => {
+    const seven = Array<FoodGroupId>(7).fill('veggies');
+    // (86 × 5 + 2) / 6 = 72, not (86 × 7 + 2) / 8 = 75.5
+    expect(scorePlate([...seven, 'sugary_drinks'], balanced)).toBe(72);
   });
 
   it('a protein shake on its own is just its chip score', () => {
@@ -193,7 +207,12 @@ describe('chip scores — a plate scores the average of its chips', () => {
   it('says how the score was made', () => {
     expect(scoreVerdict(['eggs'], balanced)).toEqual({ score: 83, why: 'Eggs scores 83.' });
     expect(scoreVerdict(['eggs', 'fruit'], balanced).why).toBe('The average of Eggs 83, Fruit 81.');
-    expect(scoreVerdict([], balanced)).toEqual({ score: null, why: 'Tap what was on the plate.' });
+    expect(scoreVerdict(['eggs', 'fruit', 'fruit'], balanced).why).toBe('The average of Eggs 83, Fruit ×2 81.');
+    expect(scoreVerdict(['fruit', 'fruit'], balanced)).toEqual({ score: 81, why: 'Fruit ×2 scores 81.' });
+    expect(scoreVerdict([], balanced)).toEqual({
+      score: null,
+      why: 'Tap what was on the plate. Tap again for another serving.',
+    });
   });
 
   it('a day saved without chip scores keeps the formula', () => {
@@ -418,6 +437,11 @@ describe('scoreDay — daily group goals are a readout, not a gate', () => {
     const met = settledScore(day('d', [plate('eggs'), plate('veggies'), plate('beef', 'veggies')]), r);
     expect(met.groupGoals[0].met).toBe(true);
     expect(met.status).toBe('on');
+  });
+
+  it('counts a meal once however many servings it had', () => {
+    const s = scoreDay(day('d', [plate('veggies', 'veggies', 'veggies')]), rules({ group_goals: [veggies2] }));
+    expect(s.groupGoals[0]).toMatchObject({ have: 1, met: false });
   });
 
   it('a veggie snack counts toward the goal', () => {
@@ -971,5 +995,44 @@ describe('needsMealsCatchUp', () => {
     expect(needsMealsCatchUp(day(), true)).toBe(false);
     expect(needsMealsCatchUp(day({ plates: [] }), false)).toBe(false);
     expect(needsMealsCatchUp(undefined, false)).toBe(false);
+  });
+});
+
+describe('servings — tap a food again for another serving', () => {
+  it('lists each food with its servings, in the order first tapped', () => {
+    expect(servingsOf(['fruit', 'eggs', 'fruit'])).toEqual([
+      { id: 'fruit', count: 2 },
+      { id: 'eggs', count: 1 },
+    ]);
+    expect(servingsOf([])).toEqual([]);
+    expect(servingCount(['fruit', 'eggs', 'fruit'], 'fruit')).toBe(2);
+    expect(servingCount(['eggs'], 'fruit')).toBe(0);
+  });
+
+  it('adds a serving beside the food’s others, up to the cap', () => {
+    expect(addServing([], 'fruit')).toEqual(['fruit']);
+    expect(addServing(['fruit', 'eggs'], 'fruit')).toEqual(['fruit', 'fruit', 'eggs']);
+    const full = Array<FoodGroupId>(MAX_SERVINGS).fill('fruit');
+    expect(addServing(full, 'fruit')).toBe(full);
+  });
+
+  it('takes one serving off, and the food leaves with its last', () => {
+    expect(removeServing(['fruit', 'fruit', 'eggs'], 'fruit')).toEqual(['fruit', 'eggs']);
+    expect(removeServing(['fruit', 'eggs'], 'fruit')).toEqual(['eggs']);
+    expect(removeServing(['eggs'], 'fruit')).toEqual(['eggs']);
+  });
+
+  it('clears every serving of a food at once', () => {
+    expect(clearFood(['fruit', 'fruit', 'eggs'], 'fruit')).toEqual(['eggs']);
+  });
+
+  it('names repeated foods with their servings', () => {
+    expect(describeGroups(['eggs', 'fruit', 'fruit'])).toBe('Eggs · Fruit ×2');
+  });
+
+  it('leaves a day scored by the old formula as it was', () => {
+    const old = rules();
+    expect(scorePlate(['veggies', 'veggies', 'chicken'], old)).toBe(scorePlate(['veggies', 'chicken'], old));
+    expect(scoreVerdict(['veggies', 'veggies', 'chicken'], old)).toEqual(scoreVerdict(['veggies', 'chicken'], old));
   });
 });
