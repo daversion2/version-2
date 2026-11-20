@@ -510,7 +510,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Today's rings start over every Monday** *(2026-11-20, committed, not yet live — needs an OTA)*
+**Today's rings start over every Monday** *(2026-11-20, live OTA 57f3bdcd, not yet seen on screen)*
 The rings and every "N of goal" line (Today, the app pages, the old
 dashboard) counted a rolling 7 days, so they never matched Workouts' This
 week and dropped a session each morning. They now count Monday to today,
