@@ -4,8 +4,10 @@ import {
   catalogSections,
   catalogStatus,
   findCatalogApp,
+  hiddenRowsOf,
   isCatalogAppId,
   withAppAdded,
+  withRowOnToday,
   withAppRemoved,
 } from '../appCatalog';
 import { defaultAppSetup } from '../appSetup';
@@ -13,15 +15,19 @@ import { defaultAppSetup } from '../appSetup';
 const app = (id: string) => findCatalogApp(id)!;
 
 describe('the catalog content', () => {
-  it('has every Today app and the two Lab apps, each with a description', () => {
-    expect(APP_CATALOG.map((a) => a.id)).toEqual(['meditate', 'workouts', 'meals', 'hotcold', 'avoidance']);
+  it('has every Today app, the two Today rows and the two Lab apps, each with a description', () => {
+    expect(APP_CATALOG.map((a) => a.id)).toEqual([
+      'meditate', 'workouts', 'meals', 'nightly', 'craving', 'hotcold', 'avoidance',
+    ]);
     for (const a of APP_CATALOG) {
       expect(a.tagline.length).toBeGreaterThan(0);
       expect(a.description.length).toBeGreaterThan(40);
       expect(a.features.length).toBeGreaterThan(0);
       expect(a.features.length).toBeLessThanOrEqual(3);
       expect(a.override.length).toBeGreaterThan(0);
-      expect(!!a.todayAppId !== !!a.route).toBe(true);
+      // Exactly one kind: a Today app, a Today row (which opens a route), or a standalone route.
+      const kind = a.todayAppId ? 'app' : a.todayRow ? 'row' : 'standalone';
+      expect(kind === 'app' ? !a.route : !!a.route).toBe(true);
       expect(a.color).toMatch(/^#[0-9A-Fa-f]{6}$/);
     }
   });
@@ -56,10 +62,16 @@ describe('catalogStatus', () => {
 describe('catalogSections', () => {
   it('groups the apps and features new ones first, then ones to add', () => {
     const s = catalogSections(['workouts', 'meals']);
-    expect(s.onToday.map((a) => a.id)).toEqual(['meditate']);
+    expect(s.onToday.map((a) => a.id)).toEqual(['meditate', 'nightly', 'craving']);
     expect(s.addable.map((a) => a.id)).toEqual(['workouts', 'meals']);
     expect(s.standalone.map((a) => a.id)).toEqual(['hotcold', 'avoidance']);
     expect(s.featured.map((a) => a.id)).toEqual(['hotcold', 'avoidance', 'workouts', 'meals']);
+  });
+
+  it('puts a switched-off Today row under Add to Today', () => {
+    const s = catalogSections([], ['craving']);
+    expect(s.onToday.map((a) => a.id)).toEqual(['meditate', 'workouts', 'meals', 'nightly']);
+    expect(s.addable.map((a) => a.id)).toEqual(['craving']);
   });
 
   it('with everything on, features only the new apps', () => {
@@ -95,6 +107,24 @@ describe('adding and removing', () => {
     expect(canRemoveFromToday([], 'meals')).toBe(true);
     expect(canRemoveFromToday(['workouts', 'meals'], 'meditate')).toBe(false);
     expect(canRemoveFromToday(['meals'], 'meals')).toBe(false);
+  });
+});
+
+describe('Today rows', () => {
+  it('reads both on when nothing is stored, and ignores junk', () => {
+    expect(hiddenRowsOf(null)).toEqual([]);
+    expect(hiddenRowsOf({ hidden_rows: ['craving', 'nonsense'] })).toEqual(['craving']);
+  });
+
+  it('puts a row on or takes it off', () => {
+    expect(withRowOnToday([], 'nightly', false)).toEqual(['nightly']);
+    expect(withRowOnToday(['nightly', 'craving'], 'nightly', true)).toEqual(['craving']);
+    expect(withRowOnToday(['craving'], 'craving', false)).toEqual(['craving']);
+  });
+
+  it('reads a row app as on Today or addable', () => {
+    expect(catalogStatus(app('nightly'), [], [])).toBe('onToday');
+    expect(catalogStatus(app('nightly'), [], ['nightly'])).toBe('addable');
   });
 });
 

@@ -45,8 +45,12 @@ interface Props {
   xp: number;
   /** Last night's plan as one sentence, while it's still to do. */
   plan: string | null;
-  closeOut: { title: string; subtitle: string; done: boolean; onPress: () => void };
-  craving: { title: string; subtitle: string; onPress: () => void };
+  /** Close out the day's row under Your apps. Unset: removed from Today (Apps). */
+  closeOut?: { title: string; subtitle: string; done: boolean; onPress: () => void };
+  /** Craving Crusher's row under Your apps. Unset: removed from Today (Apps). */
+  craving?: { title: string; subtitle: string; onPress: () => void };
+  /** Starts the app last night's plan names. Unset: the plan card has no button. */
+  onStartPlan?: () => void;
   /** Apps switched off (services/appSetup.ts): no ring and no row. */
   hiddenApps?: TodayAppId[];
   /** Opens the Apps screen. Admin-only for now: unset hides the row. */
@@ -71,6 +75,7 @@ export const TodayView: React.FC<Props> = ({
   craving,
   hiddenApps = NO_APPS,
   onBrowseApps,
+  onStartPlan,
 }) => {
   const apps = useMemo(() => APP_ORDER.filter((id) => !hiddenApps.includes(id)), [hiddenApps]);
   const insets = useSafeAreaInsets();
@@ -195,7 +200,14 @@ export const TodayView: React.FC<Props> = ({
             {plan ? (
               <View style={styles.card}>
                 <Text style={styles.planLabel}>Today’s plan</Text>
-                <Text style={styles.planText}>{plan}</Text>
+                <View style={styles.planRow}>
+                  <Text style={[styles.planText, styles.planTextFlex]}>{plan}</Text>
+                  {onStartPlan ? (
+                    <TouchableOpacity style={styles.planStart} onPress={onStartPlan} accessibilityRole="button">
+                      <Text style={styles.planStartText}>Start</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
               </View>
             ) : null}
 
@@ -208,6 +220,22 @@ export const TodayView: React.FC<Props> = ({
                   onPress={() => onOpenAppPage(id)}
                 />
               ))}
+              {closeOut ? (
+                <ListRow
+                  title={closeOut.title}
+                  subtitle={closeOut.subtitle}
+                  icon={{ name: closeOut.done ? 'checkmark' : 'moon', color: AppColors.nightly }}
+                  onPress={closeOut.onPress}
+                />
+              ) : null}
+              {craving ? (
+                <ListRow
+                  title={craving.title}
+                  subtitle={craving.subtitle}
+                  icon={{ name: 'water', color: AppColors.craving }}
+                  onPress={craving.onPress}
+                />
+              ) : null}
               {onBrowseApps ? (
                 <ListRow
                   title="Browse apps"
@@ -218,20 +246,6 @@ export const TodayView: React.FC<Props> = ({
               ) : null}
             </ListGroup>
 
-            <ListGroup>
-              <ListRow
-                title={closeOut.title}
-                subtitle={closeOut.subtitle}
-                icon={{ name: closeOut.done ? 'checkmark' : 'moon', color: closeOut.done ? Colors.primary : Colors.gray }}
-                onPress={closeOut.onPress}
-              />
-              <ListRow
-                title={craving.title}
-                subtitle={craving.subtitle}
-                icon={{ name: 'flash', color: Colors.secondary }}
-                onPress={craving.onPress}
-              />
-            </ListGroup>
           </>
         )}
       </ScrollView>
@@ -264,4 +278,14 @@ const styles = StyleSheet.create({
   strong: { fontWeight: '600', color: Colors.dark },
   planLabel: { ...TextStyles.footnote, fontWeight: '600', color: Colors.gray, marginBottom: -12 },
   planText: { ...TextStyles.headline, color: Colors.dark },
+  planRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  planTextFlex: { flex: 1 },
+  planStart: {
+    minHeight: 36,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+  },
+  planStartText: { ...TextStyles.subhead, fontWeight: '700', color: Colors.white },
 });

@@ -27,7 +27,7 @@ import { ProgramDetailScreen } from '../screens/Home/ProgramDetailScreen';
 import { ProgramDashboardScreen } from '../screens/Home/ProgramDashboardScreen';
 import { ProgramCompletionScreen } from '../screens/Home/ProgramCompletionScreen';
 import { ProgramFailedScreen } from '../screens/Home/ProgramFailedScreen';
-import { NightlyReflectionScreen } from '../screens/Home/NightlyReflectionScreen';
+import { NightlyApp } from '../screens/Nightly/NightlyApp';
 import { AppPageScreen } from '../screens/Home/AppPageScreen';
 import { JourneyCheckinScreen } from '../screens/Home/JourneyCheckinScreen';
 import { MantraScreen } from '../screens/Home/MantraScreen';
@@ -187,11 +187,8 @@ export const HomeStack: React.FC = () => (
       component={ProgramFailedScreen}
       options={{ title: '', headerShown: false }}
     />
-    <Stack.Screen
-      name="NightlyReflection"
-      component={NightlyReflectionScreen}
-      options={{ title: 'Close out the day' }}
-    />
+    {/* The old route (rules' calls to action) now opens Close out the day's app. */}
+    <Stack.Screen name="NightlyReflection" component={NightlyApp} options={{ headerShown: false }} />
     <Stack.Screen name="AppPage" component={AppPageScreen} options={{ headerShown: false }} />
     <Stack.Screen
       name="JourneyCheckin"

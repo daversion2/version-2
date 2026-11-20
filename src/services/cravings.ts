@@ -4,6 +4,7 @@ import { CravingLog, CravingOutcome } from '../types';
 import { getCravingType } from '../data/cravings';
 import { getTodayString, toLocalDateString } from '../utils/date';
 import { adjustWillpowerPoints, updateWillpowerStats } from './willpower';
+import { inWeek } from './homeDashboard';
 
 /** Base points for riding a craving out — same as a 'challenging' practice rep. */
 const CRAVING_PASSED_BASE_POINTS = 2;
@@ -212,4 +213,18 @@ export const summarizeCravingPatterns = (
     byType: [...typeCounts.values()].sort((a, b) => b.total - a.total),
     peakWindow,
   };
+};
+
+/**
+ * This week (Monday start) in Craving Crusher: urges ridden out, urges logged
+ * as gave in, and the XP they earned (2 and 1, as logCravingSession awards).
+ */
+export const cravingWeek = (
+  logs: Pick<CravingLog, 'date' | 'outcome'>[],
+  today: string
+): { passed: number; gaveIn: number; xp: number } => {
+  const week = logs.filter((l) => inWeek(l.date, today));
+  const passed = week.filter((l) => l.outcome === 'passed').length;
+  const gaveIn = week.length - passed;
+  return { passed, gaveIn, xp: passed * CRAVING_PASSED_BASE_POINTS + gaveIn * CRAVING_LOGGED_POINTS };
 };

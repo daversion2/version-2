@@ -97,7 +97,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Tomorrow as a when-then',
-        text: 'When it happens, then what you’ll do: “When I finish work, then a 10-minute sit.” It’s waiting on Today in the morning.',
+        text: 'When it happens, then what you’ll do: “After work, I’ll do Meditate.” It’s waiting on Today in the morning.',
       },
       {
         label: 'A rough day gets a smaller plan',

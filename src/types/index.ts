@@ -119,6 +119,8 @@ export interface User {
   // App setup (services/appSetup.ts), from onboarding or the goals sheet.
   /** Apps switched off: not on Today, not in the weekly review. Never all three. */
   hidden_apps?: string[];
+  /** Today rows switched off from Apps: 'nightly' (Close out the day), 'craving' (Craving Crusher). */
+  hidden_rows?: string[];
   /** Today's plan card says "start here" for this app until its first session. */
   start_app?: string | null;
   /** Weekly goals have been set — the one-time goals sheet is done. */
@@ -990,6 +992,8 @@ export interface DailyReflection {
   prompt_ifthen_response?: string;
   /** The habit tomorrow's plan was drafted from, so Today can hide it once logged. */
   plan_habit_id?: string;
+  /** The app tomorrow's session is planned in (since 2026-11-20); Today hides the plan once it has a session. */
+  plan_app_id?: 'meditate' | 'workouts' | 'meals';
   daily_summary: DailySummary;
   created_at: string;
 }

@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { HomeScreenProps } from '../../types/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { CravingLog, CravingOutcome } from '../../types';
 import {
@@ -47,7 +46,9 @@ import { WaveTrendChart } from '../../components/craving/WaveTrendChart';
 import { showAlert, showConfirm } from '../../utils/alert';
 import { triggerRewardHaptic } from '../../utils/haptics';
 
-type Props = HomeScreenProps<'CravingCrusher'>;
+// Opened from Craving Crusher's home (root route CravingRide) and, for the
+// classic look, the Home stack. It only ever goes back, so either works.
+type Props = { navigation: { goBack: () => void } };
 
 type Phase = 'setup' | 'riding' | 'reflect' | 'complete';
 type RidingView = InAppActivityId | 'menu' | 'mission' | 'away' | 'welcome_back';

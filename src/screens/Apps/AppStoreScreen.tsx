@@ -7,7 +7,7 @@ import { Colors, Spacing, TextStyles } from '../../constants/theme';
 import { LargeTitle } from '../../components/common/LargeTitle';
 import { useAuth } from '../../context/AuthContext';
 import type { CatalogApp } from '../../data/appCatalog';
-import { addAppToToday, catalogSections, catalogStatus, goalLine } from '../../services/appCatalog';
+import { addAppToToday, catalogSections, catalogStatus, goalLine, hiddenRowsOf, setRowOnToday } from '../../services/appCatalog';
 import { AppSetup, loadAppSetup } from '../../services/appSetup';
 import { triggerTapHaptic } from '../../utils/haptics';
 import { showAlert } from '../../utils/alert';
@@ -49,11 +49,14 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
 
   const open = (app: CatalogApp) => navigation.navigate('AppStoreDetail', { appId: app.id });
 
+  const hiddenRows = hiddenRowsOf(userProfile);
+
   const quickAdd = async (app: CatalogApp) => {
-    if (!user || !setup || !app.todayAppId || adding) return;
+    if (!user || !setup || adding || !(app.todayAppId || app.todayRow)) return;
     setAdding(app.id);
     try {
-      await addAppToToday(user.uid, userProfile, app.todayAppId, setup.goals[app.todayAppId]);
+      if (app.todayRow) await setRowOnToday(user.uid, userProfile, app.todayRow, true);
+      else if (app.todayAppId) await addAppToToday(user.uid, userProfile, app.todayAppId, setup.goals[app.todayAppId]);
       triggerTapHaptic();
       await refreshProfile();
       load();
@@ -72,7 +75,7 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const actionFor = (app: CatalogApp) => {
-    const status = catalogStatus(app, setup?.hidden ?? []);
+    const status = catalogStatus(app, setup?.hidden ?? [], hiddenRows);
     if (status === 'onToday') {
       return <PillButton kind="done" label="On Today" accessibilityLabel={`${app.name} is on Today`} />;
     }
@@ -90,7 +93,7 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
     return <PillButton kind="outline" label="Open" onPress={() => launch(app)} accessibilityLabel={`Open ${app.name}`} />;
   };
 
-  const sections = setup ? catalogSections(setup.hidden) : null;
+  const sections = setup ? catalogSections(setup.hidden, hiddenRows) : null;
   const cardWidth = Math.min(width - Spacing.md * 2 - 28, 360);
 
   return (
@@ -146,7 +149,7 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             {sections.addable.length > 0 && (
-              <Panel title="Add to Today" footer="Adds its ring, its page and a weekly goal to Today.">
+              <Panel title="Add to Today" footer="Puts it back on Today. Apps with a ring get their weekly goal too.">
                 {sections.addable.map((app, i) => (
                   <AppRow
                     key={app.id}

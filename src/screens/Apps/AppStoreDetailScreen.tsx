@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -12,8 +12,11 @@ import {
   canRemoveFromToday,
   catalogStatus,
   findCatalogApp,
+  hiddenRowsOf,
   removeAppFromToday,
+  setRowOnToday,
 } from '../../services/appCatalog';
+import { setCloseOutReminder } from '../../services/closeOutReminder';
 import { TODAY_APPS } from '../../services/appCheckins';
 import { AppSetup, GOAL_NOUNS, loadAppSetup } from '../../services/appSetup';
 import { triggerTapHaptic } from '../../utils/haptics';
@@ -52,8 +55,9 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
   useFocusEffect(load);
 
   if (!app) return null;
-  const status = setup ? catalogStatus(app, setup.hidden) : null;
+  const status = setup ? catalogStatus(app, setup.hidden, hiddenRowsOf(userProfile)) : null;
   const todayId = app.todayAppId;
+  const row = app.todayRow;
 
   const save = async (fn: () => Promise<void>, failTitle: string) => {
     setBusy(true);
@@ -70,7 +74,9 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
   };
 
   const add = () => {
-    if (!user || !todayId || goal === null) return;
+    if (!user) return;
+    if (row) return save(() => setRowOnToday(user.uid, userProfile, row, true), 'Couldn’t add it');
+    if (!todayId || goal === null) return;
     save(() => addAppToToday(user.uid, userProfile, todayId, goal), 'Couldn’t add it');
   };
 
@@ -85,7 +91,25 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
   };
 
   const remove = () => {
-    if (!user || !todayId) return;
+    if (!user) return;
+    if (row === 'nightly') {
+      // Its reminder is the evening nudge to close out; it goes with it.
+      Alert.alert('Remove Close out the day?', 'This also turns off the evening reminder. Past nights stay.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () =>
+            save(async () => {
+              await setRowOnToday(user.uid, userProfile, 'nightly', false);
+              await setCloseOutReminder(user.uid, null);
+            }, 'Couldn’t remove it'),
+        },
+      ]);
+      return;
+    }
+    if (row) return save(() => setRowOnToday(user.uid, userProfile, row, false), 'Couldn’t remove it');
+    if (!todayId) return;
     save(() => removeAppFromToday(user.uid, userProfile, todayId), 'Couldn’t remove it');
   };
 
@@ -158,7 +182,10 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
           ))}
         </Panel>
 
-        <Panel title="Where the override shows up" footer="1 to 3 each time. A 3 is never a bad mark: it’s the most training a session can give.">
+        <Panel
+          title="Where the override shows up"
+          footer={app.rated === false ? undefined : '1 to 3 each time. A 3 is never a bad mark: it’s the most training a session can give.'}
+        >
           {app.override.map((o, i) => (
             <View key={o.label} style={[styles.overrideRow, i < app.override.length - 1 && styles.separator]}>
               <Text style={styles.overrideLabel}>{o.label}</Text>
@@ -189,12 +216,14 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
           <Text style={styles.note}>Opens on its own for now. Joining Today’s rings and ratings is coming next.</Text>
         )}
 
-        {status === 'onToday' && setup && todayId && canRemoveFromToday(setup.hidden, todayId) && (
+        {status === 'onToday' && setup && (row || (todayId && canRemoveFromToday(setup.hidden, todayId))) && (
           <View style={styles.removeWrap}>
             <TouchableOpacity onPress={remove} disabled={busy} accessibilityRole="button" style={styles.remove}>
               <Text style={styles.removeText}>Remove from Today</Text>
             </TouchableOpacity>
-            <Text style={styles.note}>Its history stays. Add it back any time.</Text>
+            <Text style={styles.note}>
+              {row === 'nightly' ? 'Also turns off the evening reminder. Past nights stay.' : 'Its history stays. Add it back any time.'}
+            </Text>
           </View>
         )}
       </ScrollView>

@@ -10,9 +10,12 @@ import type { TodayAppId } from '../services/appCheckins';
 // mockup (https://claude.ai/artifact/UFiDq1rMPFQwzqzA4aKG5x), admin-only for
 // now.
 //
-// Two kinds:
+// Three kinds:
 // - a TODAY app (`todayAppId` set): Meditate, Workouts, Meals. Adding one puts
 //   it on Today: its ring, its page, its weekly goal, its ratings.
+// - a TODAY ROW (`todayRow` set, plus `route`): Close out the day and Craving
+//   Crusher (2026-11-20). Adding one puts a row under Your apps on Today; no
+//   ring, no weekly goal. On for every account until removed.
 // - a STANDALONE app (`route` set): Hot & Cold and Avoidance Training, built in
 //   the Lab. They open on their own for now; joining Today's rings and ratings
 //   is the next build (docs/backlog.md).
@@ -21,7 +24,10 @@ import type { TodayAppId } from '../services/appCheckins';
 // override shows up in each app; never promise it gets easier. No "rep".
 // =============================================================================
 
-export type CatalogAppId = 'meditate' | 'workouts' | 'meals' | 'hotcold' | 'avoidance';
+export type CatalogAppId = 'meditate' | 'workouts' | 'meals' | 'nightly' | 'craving' | 'hotcold' | 'avoidance';
+
+/** An app that lives on Today as a row, not a ring. */
+export type TodayRowId = 'nightly' | 'craving';
 
 export interface CatalogApp {
   id: CatalogAppId;
@@ -42,8 +48,12 @@ export interface CatalogApp {
   goodFor: string;
   /** Set for an app that lives on Today. */
   todayAppId?: TodayAppId;
-  /** Set for an app that opens on its own (a root route). */
-  route?: 'HotColdApp' | 'AvoidanceApp';
+  /** Set for an app that lives on Today as a row. */
+  todayRow?: TodayRowId;
+  /** Set for an app that opens on its own route. */
+  route?: 'HotColdApp' | 'AvoidanceApp' | 'NightlyApp' | 'CravingApp';
+  /** False for an app with no 1–3 rating (its page leaves out the rating note). Default true. */
+  rated?: boolean;
   /** Shown with a "New" badge and featured at the top. */
   isNew?: boolean;
 }
@@ -110,6 +120,54 @@ export const APP_CATALOG: CatalogApp[] = [
     ],
     goodFor: 'People who want to track food without counting calories.',
     todayAppId: 'meals',
+  },
+  {
+    id: 'nightly',
+    name: 'Close out the day',
+    icon: 'moon-outline',
+    color: AppColors.nightly,
+    tagline: 'A minute each evening, ending on a plan',
+    description:
+      'Three beats before bed: the day’s win, picked from your sessions; a grade for the effort; and one session planned for tomorrow, with when. The plan waits on Today until it’s done.',
+    features: [
+      { icon: 'trophy-outline', text: 'See the day’s win, already found' },
+      { icon: 'school-outline', text: 'Grade the effort, A to F' },
+      { icon: 'calendar-outline', text: 'Plan tomorrow’s session, and when' },
+    ],
+    override: [
+      {
+        label: 'Tomorrow’s start',
+        text: 'Deciding tonight when tomorrow’s session happens means less to decide when the moment comes.',
+      },
+    ],
+    goodFor: 'Plans with a when (“after coffee, I’ll…”) are some of the most reliable tools in behaviour change.',
+    todayRow: 'nightly',
+    route: 'NightlyApp',
+    rated: false,
+  },
+  {
+    id: 'craving',
+    name: 'Craving Crusher',
+    icon: 'water-outline',
+    color: AppColors.craving,
+    tagline: 'Ride out an urge instead of acting on it',
+    description:
+      'When an urge hits (food, your phone, a drink, a cigarette, a purchase), say how strong it is and a timer sized to it starts. Breathing, a walk or a message to someone fill the minutes while it peaks and passes.',
+    features: [
+      { icon: 'timer-outline', text: 'A timer sized to how strong the urge is' },
+      { icon: 'walk-outline', text: 'Something to do while it peaks and passes' },
+      { icon: 'stats-chart-outline', text: 'Your pattern: what pulls, when, what helps' },
+    ],
+    override: [
+      {
+        label: 'Not acting on it',
+        text: 'Every urge you sit through is the override. Rode it out: 2 XP. Gave in and logged it anyway: 1 XP.',
+      },
+    ],
+    goodFor: 'Anyone with a pull they’d rather not follow.',
+    todayRow: 'craving',
+    route: 'CravingApp',
+    rated: false,
   },
   {
     id: 'hotcold',

@@ -44,6 +44,12 @@ export type RootStackParamList = {
   AppStore: undefined;
   /** One app's page in Apps. */
   AppStoreDetail: { appId: CatalogAppId };
+  /** Close out the day (2026-11-20): its home and three beats. */
+  NightlyApp: undefined;
+  /** Craving Crusher's home (2026-11-20). */
+  CravingApp: undefined;
+  /** Craving Crusher's ride itself (CravingCrusherScreen), opened from its home. */
+  CravingRide: undefined;
 };
 
 // ============================================================================

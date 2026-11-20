@@ -1,133 +1,193 @@
-import { CompletionLog, DailyReflection, PracticeInstance, ReflectionGrade } from '../types';
-import { logResistance, normalizeResistance, RESISTANCE_MAX } from '../constants/resistance';
-import { addDays, isDayScheduled, isDueOn } from './habitSchedule';
-import { fetchAllNudgeLogs, getActiveHabits } from './practices';
-import { getReflection } from './reflections';
+import { CompletionLog, DailyReflection, ReflectionGrade } from '../types';
+import { logResistance, RESISTANCE_MAX } from '../constants/resistance';
+import { appCheckinId, appIdFromCheckinId, TodayAppId } from './appCheckins';
+import { addDays, inWeek } from './homeDashboard';
+import { fetchAllNudgeLogs } from './practices';
+import { getReflection, getReflections } from './reflections';
 
 // =============================================================================
-// NIGHTLY CLOSE — the evening reflection as three beats: recognise one win,
-// grade the effort, set tomorrow's if-then. Pure helpers first; the screen
-// loads data through loadNightlyClose and decides nothing on its own.
+// CLOSE OUT THE DAY — the evening micro-app as three beats: tonight's win,
+// a grade for the effort, one app session planned for tomorrow. Pure helpers
+// first; the screen (screens/Nightly/NightlyApp.tsx) loads data through
+// loadNightlyClose and decides nothing on its own.
+//
+// Rebuilt around the apps on 2026-11-20 (founder's D3 call,
+// docs/pivot-checklist.md): the win comes from today's app sessions and the
+// plan is one session in one app, "After coffee, I'll do Workouts". Until then
+// it read habits, which no longer show anywhere.
 //
 // Why this shape: implementation intentions ("when X, then Y") are the most
 // reliable effect in behaviour change, and ending the night on a forward plan
 // rather than a review of what went wrong is easier on sleep onset.
 // =============================================================================
 
-/** How far back a habit's ratings count toward "how hard is this lately". */
-export const RECENT_RESISTANCE_DAYS = 14;
-
-/** A rating with no history behind it sits in the middle of the scale. */
-const DEFAULT_RESISTANCE = 2;
+/** One app session logged today, with its ratings. */
+export interface SessionToday {
+  appId: TodayAppId;
+  /** Getting started, 1–3, when rated. */
+  start?: number;
+  /** Staying with it, 1–3, when rated. */
+  keepGoing?: number;
+  completedAt?: string;
+}
 
 export type NightlyWin =
-  | { kind: 'hard'; habitName: string }
-  | { kind: 'logged'; count: number }
+  | { kind: 'hardStart'; appId: TodayAppId }
+  | { kind: 'hardStay'; appId: TodayAppId }
+  | { kind: 'logged'; count: number; appIds: TodayAppId[] }
   | null;
 
 export interface PlanDraft {
+  /** Set for a plan made since 2026-11-20: done once this app has a session. */
+  appId?: TodayAppId;
+  /** Older plans pointed at a habit. */
   habitId?: string;
   cue: string;
   response: string;
 }
 
+/** When tomorrow's session happens: the chips on the plan beat. */
+export const PLAN_WHENS = ['After coffee', 'Before work', 'At lunch', 'After work', 'Before bed'] as const;
+
+const level = (n: unknown): number | undefined =>
+  typeof n === 'number' && n >= 1 && n <= RESISTANCE_MAX ? Math.round(n) : undefined;
+
+/** Today's app sessions, from the day's logs. Meals' day rating isn't a session. */
+export const sessionsToday = (logsToday: CompletionLog[]): SessionToday[] =>
+  logsToday
+    .map((l) => {
+      const appId = appIdFromCheckinId(l.reference_id);
+      if (!appId || appId === 'meals') return null;
+      return {
+        appId,
+        start: level(logResistance(l)),
+        keepGoing: level(l.keep_going),
+        completedAt: l.completed_at,
+      } as SessionToday;
+    })
+    .filter((s): s is SessionToday => s !== null);
+
+/** The apps that had anything logged today: a session, or Meals' day. */
+export const appsLoggedToday = (logsToday: CompletionLog[]): TodayAppId[] => {
+  const ids = new Set<TodayAppId>();
+  for (const l of logsToday) {
+    const id = appIdFromCheckinId(l.reference_id);
+    if (id) ids.add(id);
+  }
+  return [...ids];
+};
+
+const latestFirst = (a: SessionToday, b: SessionToday) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '');
+
+/**
+ * The win to name tonight. Starting when the start took everything (a 3)
+ * beats everything: doing it anyway is the moment worth reinforcing. Then
+ * staying with it when that took everything. Otherwise, what got done.
+ */
+export const pickWin = (sessions: SessionToday[], loggedApps: TodayAppId[]): NightlyWin => {
+  const hardStart = sessions.filter((s) => s.start === RESISTANCE_MAX).sort(latestFirst)[0];
+  if (hardStart) return { kind: 'hardStart', appId: hardStart.appId };
+  const hardStay = sessions.filter((s) => s.keepGoing === RESISTANCE_MAX).sort(latestFirst)[0];
+  if (hardStay) return { kind: 'hardStay', appId: hardStay.appId };
+  if (loggedApps.length === 0) return null;
+  return { kind: 'logged', count: Math.max(sessions.length, loggedApps.length), appIds: loggedApps };
+};
+
+/**
+ * A bad day gets the kinder framing and a small plan. Once graded, the
+ * user's own call decides: D or F. Before that, a day with nothing logged.
+ */
+export const isBadDay = (input: { grade: ReflectionGrade | null; loggedToday: number }): boolean => {
+  if (input.grade) return input.grade === 'D' || input.grade === 'F';
+  return input.loggedToday === 0;
+};
+
+/**
+ * The app to suggest for tomorrow: the one furthest behind its weekly goal
+ * (by share met), first in the given order on a tie. Null with no apps.
+ */
+export const suggestPlanApp = (
+  apps: TodayAppId[],
+  weekCounts: Partial<Record<TodayAppId, number>>,
+  goals: Partial<Record<TodayAppId, number>>
+): TodayAppId | null => {
+  let best: TodayAppId | null = null;
+  let bestShare = Infinity;
+  for (const id of apps) {
+    const goal = Math.max(1, goals[id] ?? 1);
+    const share = (weekCounts[id] ?? 0) / goal;
+    if (share < bestShare) {
+      best = id;
+      bestShare = share;
+    }
+  }
+  return best;
+};
+
+const PLAN_ACTION: Record<TodayAppId, { full: string; small: string }> = {
+  meditate: { full: 'do Meditate', small: 'do a 5-minute sit' },
+  workouts: { full: 'do Workouts', small: 'do one short workout' },
+  meals: { full: 'log my meals in Meals', small: 'log one meal in Meals' },
+};
+
+/** Tomorrow's plan for an app and a when. A bad day aims at the small version. */
+export const appPlan = (appId: TodayAppId, when: string, badDay: boolean): PlanDraft => ({
+  appId,
+  cue: when.trim(),
+  response: badDay ? PLAN_ACTION[appId].small : PLAN_ACTION[appId].full,
+});
+
+/** The last 7 nights, oldest first, ending today: each night's grade or null. */
+export const lastNights = (
+  reflections: Pick<DailyReflection, 'date' | 'grade'>[],
+  today: string
+): { date: string; grade: ReflectionGrade | null }[] => {
+  const byDate = new Map(reflections.map((r) => [r.date, r.grade]));
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(today, i - 6);
+    return { date, grade: byDate.get(date) ?? null };
+  });
+};
+
+/** Sessions this week (Monday start) per app, from the logs. */
+export const weekCounts = (logs: CompletionLog[], today: string): Partial<Record<TodayAppId, number>> => {
+  const counts: Partial<Record<TodayAppId, number>> = {};
+  for (const l of logs) {
+    const id = appIdFromCheckinId(l.reference_id);
+    if (!id || !l.date || !inWeek(l.date, today)) continue;
+    counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+};
+
 export interface NightlyCloseData {
+  sessions: SessionToday[];
+  /** Apps with anything logged today. */
+  loggedApps: TodayAppId[];
   win: NightlyWin;
-  /** Habits logged today (distinct). */
-  loggedToday: number;
-  /** Day-scheduled habits that were due today and not logged. */
-  missedScheduledToday: number;
-  /** Habits due tomorrow, toughest first. The first is the default plan. */
-  planCandidates: PracticeInstance[];
+  weekCounts: Partial<Record<TodayAppId, number>>;
+  nights: { date: string; grade: ReflectionGrade | null }[];
+  /** Tonight's reflection, if already saved (closing out again edits it). */
+  tonight: DailyReflection | null;
 }
 
-const isLive = (h: PracticeInstance): boolean => h.is_active && !h.archived_at;
-
-/**
- * The win to name tonight. The most recent log rated Hard beats everything:
- * doing it when it was hard is the moment worth reinforcing. Otherwise, a plain
- * count of what got done. Logs for habits no longer on Home are ignored.
- */
-export const pickWin = (
-  logsToday: CompletionLog[],
-  habitsById: Record<string, PracticeInstance>
-): NightlyWin => {
-  const known = logsToday.filter((l) => habitsById[l.reference_id]);
-  if (known.length === 0) return null;
-
-  const hard = known
-    .filter((l) => logResistance(l) === RESISTANCE_MAX)
-    .sort((a, b) => (b.completed_at ?? '').localeCompare(a.completed_at ?? ''));
-  if (hard.length > 0) return { kind: 'hard', habitName: habitsById[hard[0].reference_id].name };
-
-  return { kind: 'logged', count: new Set(known.map((l) => l.reference_id)).size };
-};
-
-/**
- * A bad day gets the self-compassion framing and a minimum-version plan. Once
- * graded, the user's own call decides: D or F. Before that, a day with nothing
- * logged while a habit was pinned to it. A count habit can't be "missed" on a
- * given day, so it never counts toward that rule.
- */
-export const isBadDay = (input: {
-  grade: ReflectionGrade | null;
-  loggedToday: number;
-  missedScheduledToday: number;
-}): boolean => {
-  if (input.grade) return input.grade === 'D' || input.grade === 'F';
-  return input.loggedToday === 0 && input.missedScheduledToday > 0;
-};
-
-const averageResistance = (habit: PracticeInstance, recentLogs: CompletionLog[]): number => {
-  const ratings = recentLogs
-    .filter((l) => l.reference_id === habit.id)
-    .map(logResistance)
-    .filter((r): r is number => typeof r === 'number');
-  if (ratings.length > 0) return ratings.reduce((a, b) => a + b, 0) / ratings.length;
-  if (typeof habit.expected_resistance === 'number') {
-    return normalizeResistance(habit.expected_resistance, habit.expected_resistance_scale ?? RESISTANCE_MAX);
-  }
-  return DEFAULT_RESISTANCE;
-};
-
-/**
- * Habits due tomorrow, toughest first: highest recent average resistance, then
- * day-scheduled before flexible (a pinned day is a firmer promise), then name.
- */
-export const rankPlanCandidates = (
-  habits: PracticeInstance[],
-  recentLogs: CompletionLog[],
-  tomorrow: string
-): PracticeInstance[] =>
-  habits
-    .filter((h) => isLive(h) && isDueOn(h, tomorrow))
-    .map((h) => ({ h, score: averageResistance(h, recentLogs) }))
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        Number(isDayScheduled(b.h)) - Number(isDayScheduled(a.h)) ||
-        a.h.name.localeCompare(b.h.name)
-    )
-    .map(({ h }) => h);
-
-/**
- * Anchors are written to complete "After I ___", so they read as a cue once
- * the "I" is put back. Legacy free-text cues are used as written.
- */
-const cueFromHabit = (habit: PracticeInstance): string => {
-  const anchor = habit.action_plan?.anchor?.trim();
-  if (anchor) return /^i\b/i.test(anchor) ? anchor : `I ${anchor}`;
-  return habit.action_plan?.cue?.trim() ?? '';
-};
-
-/** The pre-filled if-then for a habit. On a bad day, aim at the minimum version. */
-export const draftPlan = (habit: PracticeInstance | undefined, badDay: boolean): PlanDraft => {
-  if (!habit) return { cue: '', response: '' };
-  const minimum = habit.action_plan?.minimum_version?.trim();
+/** Everything the evening app needs: the last 14 days of logs and the last week of reflections. */
+export const loadNightlyClose = async (userId: string, today: string): Promise<NightlyCloseData> => {
+  const [logs, reflections, tonight] = await Promise.all([
+    fetchAllNudgeLogs(userId, addDays(today, -13)),
+    getReflections(userId, addDays(today, -6), today),
+    getReflection(userId, today),
+  ]);
+  const logsToday = logs.filter((l) => l.date === today);
+  const sessions = sessionsToday(logsToday);
+  const loggedApps = appsLoggedToday(logsToday);
   return {
-    habitId: habit.id,
-    cue: cueFromHabit(habit),
-    response: badDay && minimum ? minimum : habit.name,
+    sessions,
+    loggedApps,
+    win: pickWin(sessions, loggedApps),
+    weekCounts: weekCounts(logs, today),
+    nights: lastNights(reflections, today),
+    tonight,
   };
 };
 
@@ -136,41 +196,26 @@ export const planFromReflection = (reflection: DailyReflection | null): PlanDraf
   const cue = reflection?.prompt_ifthen_cue?.trim() ?? '';
   const response = reflection?.prompt_ifthen_response?.trim() ?? '';
   if (!cue && !response) return null;
-  return { habitId: reflection?.plan_habit_id, cue, response };
+  return { appId: reflection?.plan_app_id, habitId: reflection?.plan_habit_id, cue, response };
 };
 
-/** The plan as one sentence: "When I get home, then Workout." */
-export const formatPlan = (plan: { cue?: string; response?: string }): string => {
+/**
+ * The plan as one sentence. An app plan: "After coffee, I’ll do Workouts."
+ * An older habit plan: "When I get home, then Workout."
+ */
+export const formatPlan = (plan: { appId?: TodayAppId; cue?: string; response?: string }): string => {
   const cue = plan.cue?.trim();
   const response = plan.response?.trim();
+  if (plan.appId && cue && response) return `${cue}, I’ll ${response}.`;
   if (cue && response) return `When ${cue}, then ${response}.`;
   if (cue) return `When ${cue}.`;
   return response ?? '';
 };
 
-/** A plan tied to a habit is done once that habit is logged on the day. */
-export const isPlanDone = (plan: PlanDraft, logs: CompletionLog[], date: string): boolean =>
-  !!plan.habitId && logs.some((l) => l.reference_id === plan.habitId && l.date === date);
-
-/** Everything the evening screen needs, from one habits read and one logs read. */
-export const loadNightlyClose = async (userId: string, today: string): Promise<NightlyCloseData> => {
-  const [habits, recentLogs] = await Promise.all([
-    getActiveHabits(userId),
-    fetchAllNudgeLogs(userId, addDays(today, -(RECENT_RESISTANCE_DAYS - 1))),
-  ]);
-  const live = habits.filter(isLive);
-  const habitsById = Object.fromEntries(live.map((h) => [h.id, h]));
-  const logsToday = recentLogs.filter((l) => l.date === today);
-  const loggedIds = new Set(logsToday.filter((l) => habitsById[l.reference_id]).map((l) => l.reference_id));
-
-  return {
-    win: pickWin(logsToday, habitsById),
-    loggedToday: loggedIds.size,
-    missedScheduledToday: live.filter(
-      (h) => isDayScheduled(h) && isDueOn(h, today) && !loggedIds.has(h.id)
-    ).length,
-    planCandidates: rankPlanCandidates(live, recentLogs, addDays(today, 1)),
-  };
+/** A plan is done once its app (or, for an older plan, its habit) is logged on the day. */
+export const isPlanDone = (plan: PlanDraft, logs: CompletionLog[], date: string): boolean => {
+  const ref = plan.appId ? appCheckinId(plan.appId) : plan.habitId;
+  return !!ref && logs.some((l) => l.reference_id === ref && l.date === date);
 };
 
 /** Yesterday evening's plan, for Today — or null if there was none. */

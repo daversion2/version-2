@@ -131,8 +131,11 @@ a real habit.
 
 - [ ] **Progress**, including "Friction you can handle" across the apps.
   **🔒 D2**
-- [ ] **The nightly close** and "Today's plan" (`services/nightlyClose.ts`,
-  `NightlyReflectionScreen`). **🔒 D3**
+- [x] **The nightly close** and "Today's plan" (`services/nightlyClose.ts`,
+  `screens/Nightly/NightlyApp.tsx`). **🔒 D3** *(2026-11-20)* Its own
+  micro-app: the win from today's app sessions, A–F, one app session planned
+  for tomorrow with a when. `NightlyReflectionScreen` is deleted; its route
+  renders the new app.
 - [x] **Onboarding** stops creating a habit and stops showing a mock habit row
   (`OnboardingScreen.tsx`, `components/onboarding/`). **🔒 D4** *(2026-11-01)*
   Four screens: why → apps (all on, switch off any) → weekly goals (3 / 3 / 5,

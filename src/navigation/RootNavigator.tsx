@@ -213,6 +213,14 @@ export const RootNavigator: React.FC = () => {
               name="AppStoreDetail"
               getComponent={() => require('../screens/Apps/AppStoreDetailScreen').AppStoreDetailScreen}
             />
+            {/* Close out the day and Craving Crusher, their own apps since 2026-11-20. */}
+            <Stack.Screen name="NightlyApp" getComponent={() => require('../screens/Nightly/NightlyApp').NightlyApp} />
+            <Stack.Screen name="CravingApp" getComponent={() => require('../screens/Craving/CravingApp').CravingApp} />
+            <Stack.Screen
+              name="CravingRide"
+              getComponent={() => require('../screens/Home/CravingCrusherScreen').CravingCrusherScreen}
+              options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+            />
           </>
         )}
       </Stack.Navigator>

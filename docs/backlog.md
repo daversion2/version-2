@@ -23,6 +23,17 @@ How to use it:
 
 ## Now
 
+**Check Close out the day and Craving Crusher on screen** *(added 2026-11-20)*
+Both became their own apps (see Done); nobody has seen them running. Close out
+the day: Today's row opens its home (tonight, tomorrow's plan, last 7 nights,
+evening reminder); the three beats; a D or F (or nothing logged) offers the
+small plan; next morning Today's plan card says "After coffee, I'll do
+Workouts" with Start, and goes once that app has a session. Craving Crusher:
+Today's row opens its home; Ride it out opens the old ride, and Done/close
+comes back to the home with this week's counts updated. Apps (admin): both
+under On your Today; remove and add each back; removing Close out the day asks
+first and turns the reminder off. Ask before `ui-verify`.
+
 **Start with one app, earn the rest** *(added 2026-11-20)*
 New users pick one app in onboarding instead of getting all three, and are
 offered a second once they've earned it. Mockup approved in direction by the
@@ -551,6 +562,32 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Close out the day and Craving Crusher: their own micro-apps** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+From the mockup the founder approved (https://claude.ai/artifact/JyTy21iCp1BuRU9kmKQsMJ).
+- **Close out the day** (`screens/Nightly/NightlyApp.tsx`, root route
+  `NightlyApp`; the old `NightlyReflection` route renders it too) is rebuilt
+  around the apps, the D3 decision: tonight's win from today's sessions (a
+  start rated 3 first, then a keep-going 3, else what got done); A–F with the
+  same labels; one app session for tomorrow (suggested: the app furthest
+  behind its weekly goal) plus a when (After coffee … Before bed). A bad day
+  (D/F, or nothing logged) plans the small version. Saved on the reflection
+  as `prompt_ifthen_cue` / `prompt_ifthen_response` / new `plan_app_id`;
+  Today's plan card reads "After coffee, I'll do Workouts.", has Start, and
+  goes once that app has a session. Home: tonight, tomorrow's plan, last 7
+  nights' grades, evening reminder. Logic in `services/nightlyClose.ts`
+  (rewritten, tested); the habit-based helpers and `NightlyReflectionScreen`
+  are gone.
+- **Craving Crusher** (`screens/Craving/CravingApp.tsx`, root route
+  `CravingApp`) gets a home: Ride it out, this week (ridden out, logged, XP:
+  `cravingWeek`, tested), your 30-day pattern. The ride is unchanged, now also
+  at root route `CravingRide`. The gave-in copy lost "makes the next one
+  easier".
+- **Both are Today rows** under Your apps, in the Apps catalog with a page
+  each, removable (`users.hidden_rows`, `hiddenRowsOf` / `withRowOnToday` /
+  `setRowOnToday`, tested). Removing Close out the day asks, then turns the
+  evening reminder off. New colours `AppColors.nightly` / `.craving`.
+  Everyone gets the new apps; the catalog is still admin-only.
 
 **Apps: browse every app and add one to Today** *(2026-11-20, live OTA c66b3efa, admin-only, not yet seen on screen)*
 Admin-only for now (founder's call). Today → "Browse apps" (under Your apps)

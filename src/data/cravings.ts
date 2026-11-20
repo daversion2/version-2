@@ -518,6 +518,6 @@ export const OUTCOME_COPY = {
     emoji: '🌊',
     headline: 'The wave won this one.',
     body:
-      'Logging it anyway is the move. Every logged craving — either outcome — sharpens the picture of when and why they hit, and that’s what makes the next one easier.',
+      'Logging it anyway is the move. Every logged craving, either outcome, shows you more of when and why they hit.',
   },
 } as const;

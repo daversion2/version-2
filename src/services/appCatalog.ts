@@ -1,4 +1,6 @@
-import { APP_CATALOG, CatalogApp, CatalogAppId } from '../data/appCatalog';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
+import { APP_CATALOG, CatalogApp, CatalogAppId, TodayRowId } from '../data/appCatalog';
 import { clampWeeklyGoal, TodayAppId } from './appCheckins';
 import { AppSetup, loadAppSetup, saveAppSetup, toggleApp, visibleApps } from './appSetup';
 import type { User } from '../types';
@@ -19,7 +21,12 @@ import type { User } from '../types';
  */
 export type CatalogStatus = 'onToday' | 'addable' | 'standalone';
 
-export const catalogStatus = (app: CatalogApp, hidden: readonly TodayAppId[]): CatalogStatus => {
+export const catalogStatus = (
+  app: CatalogApp,
+  hidden: readonly TodayAppId[],
+  hiddenRows: readonly TodayRowId[] = []
+): CatalogStatus => {
+  if (app.todayRow) return hiddenRows.includes(app.todayRow) ? 'addable' : 'onToday';
   if (!app.todayAppId) return 'standalone';
   return visibleApps(hidden).includes(app.todayAppId) ? 'onToday' : 'addable';
 };
@@ -34,12 +41,14 @@ export interface CatalogSections {
 
 export const catalogSections = (
   hidden: readonly TodayAppId[],
+  hiddenRows: readonly TodayRowId[] = [],
   apps: readonly CatalogApp[] = APP_CATALOG
 ): CatalogSections => {
-  const by = (s: CatalogStatus) => apps.filter((a) => catalogStatus(a, hidden) === s);
+  const status = (a: CatalogApp) => catalogStatus(a, hidden, hiddenRows);
+  const by = (s: CatalogStatus) => apps.filter((a) => status(a) === s);
   const addable = by('addable');
   const standalone = by('standalone');
-  const featured = [...apps.filter((a) => a.isNew && catalogStatus(a, hidden) !== 'onToday'), ...addable].filter(
+  const featured = [...apps.filter((a) => a.isNew && status(a) !== 'onToday'), ...addable].filter(
     (a, i, all) => all.findIndex((b) => b.id === a.id) === i
   );
   return { featured, onToday: by('onToday'), addable, standalone };
@@ -68,6 +77,28 @@ export const goalLine = (goal: number): string => `${goal} a week`;
 /** The catalog ids, for a route param check. */
 export const isCatalogAppId = (id: unknown): id is CatalogAppId =>
   typeof id === 'string' && APP_CATALOG.some((a) => a.id === id);
+
+// --- Today rows (Close out the day, Craving Crusher) ---------------------------
+
+export const TODAY_ROWS: TodayRowId[] = ['nightly', 'craving'];
+
+/** The user doc's switched-off rows, cleaned. Missing = both on. */
+export const hiddenRowsOf = (profile: Pick<User, 'hidden_rows'> | null | undefined): TodayRowId[] =>
+  TODAY_ROWS.filter((r) => (profile?.hidden_rows ?? []).includes(r));
+
+/** The switched-off rows with one row put on or taken off Today. */
+export const withRowOnToday = (hiddenRows: readonly TodayRowId[], row: TodayRowId, on: boolean): TodayRowId[] =>
+  TODAY_ROWS.filter((r) => (r === row ? !on : hiddenRows.includes(r)));
+
+/** Put a row on Today or take it off, then save. */
+export const setRowOnToday = async (
+  userId: string,
+  profile: Pick<User, 'hidden_rows'> | null | undefined,
+  row: TodayRowId,
+  on: boolean
+): Promise<void> => {
+  await setDoc(doc(db, 'users', userId), { hidden_rows: withRowOnToday(hiddenRowsOf(profile), row, on) }, { merge: true });
+};
 
 // --- Saving ------------------------------------------------------------------
 

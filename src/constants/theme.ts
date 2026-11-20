@@ -35,6 +35,10 @@ export const AppColors = {
   hotcold: '#2A8BB5',
   /** Avoidance Training (Lab, 2026-11-01): the Mind purple it has always used. */
   avoidance: '#7B1FA2',
+  /** Close out the day (2026-11-20): the Sleep indigo. */
+  nightly: '#3949AB',
+  /** Craving Crusher (2026-11-20): a raspberry, clear of Workouts' orange. */
+  craving: '#B23A48',
 };
 
 // Meditate's breathing pacer (redesign canvas "Meditate · breathing pacer"):

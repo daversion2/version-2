@@ -88,6 +88,7 @@ import { getWorkoutPrefs } from '../../services/labWorkouts';
 import { getMeditatePrefs } from '../../services/labMeditate';
 import { getMealsPrefs, listMealsDays, saveMealsDay } from '../../services/labMeals';
 import { needsMealsCatchUp, scoreDay } from '../../services/mealsMath';
+import { hiddenRowsOf } from '../../services/appCatalog';
 import { hiddenAppsOf, needsGoalSetup, shouldExplainRating, startAppOf, startHereLine } from '../../services/appSetup';
 import { syncCloseOutReminder } from '../../services/closeOutReminder';
 import { AppGoalsSheet } from '../../components/appSetup/AppGoalsSheet';
@@ -184,6 +185,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [appGoals, setAppGoals] = useState<Partial<Record<TodayAppId, number>>>({});
   // Apps switched off in onboarding or Settings (services/appSetup.ts).
   const hiddenApps = useMemo(() => hiddenAppsOf(userProfile), [userProfile]);
+  // Close out the day and Craving Crusher, switched off from Apps (2026-11-20).
+  const hiddenRows = useMemo(() => hiddenRowsOf(userProfile), [userProfile]);
   const appHabits = useMemo(
     () =>
       TODAY_APPS.filter((a) => canOpenMiniApp(a.id, userProfile) && !hiddenApps.includes(a.id)).map((a) =>
@@ -844,6 +847,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const streak = dashStreak ?? displayStreak(userProfile?.currentStreak, userProfile?.lastActivityDate, todayStr);
   // Today's plan: last night's, while it's still to do. Failing that, the app
   // picked in onboarding as "start here", until its first session is rated.
+  const planOpen = !!todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr);
+  // Last night's plan names an app (since 2026-11-20): Today's card can start it.
+  const planRoute = planOpen && todaysPlan?.appId ? TODAY_APPS.find((a) => a.id === todaysPlan.appId)?.route : undefined;
   const planLine =
     todaysPlan && !isPlanDone(todaysPlan, nudgeLogs, todayStr)
       ? formatPlan(todaysPlan)
@@ -943,7 +949,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           plan={planLine}
           hiddenApps={hiddenApps}
           onBrowseApps={userProfile?.is_admin === true ? () => rootNav.navigate('AppStore') : undefined}
-          closeOut={{
+          onStartPlan={planRoute ? () => rootNav.navigate(planRoute) : undefined}
+          closeOut={hiddenRows.includes('nightly') ? undefined : {
             done: reflectedToday,
             title: reflectedToday
               ? t('today.close.titleDone', 'Today’s reflection')
@@ -953,12 +960,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 ? t('today.close.graded', 'You graded today a {grade}. Tap to review.', { grade: todaysGrade })
                 : t('today.close.saved', 'Saved. Tap to review.')
               : t('today.close.subtitle', 'Grade the effort, set tomorrow’s plan.'),
-            onPress: () => navigation.navigate('NightlyReflection'),
+            onPress: () => rootNav.navigate('NightlyApp'),
           }}
-          craving={{
+          craving={hiddenRows.includes('craving') ? undefined : {
             title: t('today.craving.title', 'Craving Crusher'),
             subtitle: t('today.craving.subtitle', 'Ride out an urge without giving in.'),
-            onPress: () => navigation.navigate('CravingCrusher'),
+            onPress: () => rootNav.navigate('CravingApp'),
           }}
         />
       )}
