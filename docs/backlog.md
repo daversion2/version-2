@@ -549,7 +549,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**The effort is the reward: no more "it gets easier"** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+**The effort is the reward: no more "it gets easier"** *(2026-11-20, live OTA a95b255d, not yet seen on screen)*
 Founder: a few weeks is too little data to promise the start gets easier, and
 the promise makes a hard week read as failing. Focus on the effort as the
 training instead. Changed:
