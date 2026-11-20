@@ -503,7 +503,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Meals: change a plate's time** *(2026-11-20, committed, not yet live — needs an OTA)*
+**Meals: change a plate's time** *(2026-11-20, live OTA 2f4e3c97, not yet seen on screen)*
 The meal sheet has a Time row under the name (iOS: the compact native time
 picker; Android: a dialog). A new meal starts at the clock time now, on the
 sheet's day, so a meal added to a past day no longer carries today's date.
