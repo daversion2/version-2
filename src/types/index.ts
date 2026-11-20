@@ -121,8 +121,10 @@ export interface User {
   hidden_apps?: string[];
   /** Today rows switched off from Apps: 'nightly' (Close out the day), 'craving' (Craving Crusher). */
   hidden_rows?: string[];
+  /** The rows on Today, once chosen (wins over hidden_rows): 'nightly', 'craving', 'hotcold', 'avoidance'. */
+  today_rows?: string[];
   /** Weekly goals for Close out the day and Craving Crusher's rings (services/rowRings.ts). */
-  row_goals?: { nightly?: number; craving?: number };
+  row_goals?: { nightly?: number; craving?: number; hotcold?: number; avoidance?: number };
   /** Today's plan card says "start here" for this app until its first session. */
   start_app?: string | null;
   /** Weekly goals have been set — the one-time goals sheet is done. */

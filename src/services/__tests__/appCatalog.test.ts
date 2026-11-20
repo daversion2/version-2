@@ -6,6 +6,7 @@ import {
   findCatalogApp,
   hiddenRowsOf,
   isCatalogAppId,
+  todayRowsOf,
   withAppAdded,
   withRowOnToday,
   withAppRemoved,
@@ -50,8 +51,9 @@ describe('catalogStatus', () => {
     expect(catalogStatus(app('meals'), ['meals'])).toBe('addable');
   });
 
-  it('reads a Lab app as standalone', () => {
-    expect(catalogStatus(app('hotcold'), [])).toBe('standalone');
+  it('reads Hot & Cold as addable until it is added (off by default)', () => {
+    expect(catalogStatus(app('hotcold'), [], ['hotcold', 'avoidance'])).toBe('addable');
+    expect(catalogStatus(app('hotcold'), [], [])).toBe('onToday');
   });
 
   it('treats a stored list that hides everything as everything on', () => {
@@ -60,22 +62,25 @@ describe('catalogStatus', () => {
 });
 
 describe('catalogSections', () => {
+  // A new account: Hot & Cold and Avoidance start off Today.
+  const NEW_ROWS = ['hotcold', 'avoidance'] as const;
+
   it('groups the apps and features new ones first, then ones to add', () => {
-    const s = catalogSections(['workouts', 'meals']);
+    const s = catalogSections(['workouts', 'meals'], [...NEW_ROWS]);
     expect(s.onToday.map((a) => a.id)).toEqual(['meditate', 'nightly', 'craving']);
-    expect(s.addable.map((a) => a.id)).toEqual(['workouts', 'meals']);
-    expect(s.standalone.map((a) => a.id)).toEqual(['hotcold', 'avoidance']);
+    expect(s.addable.map((a) => a.id)).toEqual(['workouts', 'meals', 'hotcold', 'avoidance']);
+    expect(s.standalone).toEqual([]);
     expect(s.featured.map((a) => a.id)).toEqual(['hotcold', 'avoidance', 'workouts', 'meals']);
   });
 
   it('puts a switched-off Today row under Add to Today', () => {
-    const s = catalogSections([], ['craving']);
+    const s = catalogSections([], ['craving', ...NEW_ROWS]);
     expect(s.onToday.map((a) => a.id)).toEqual(['meditate', 'workouts', 'meals', 'nightly']);
-    expect(s.addable.map((a) => a.id)).toEqual(['craving']);
+    expect(s.addable.map((a) => a.id)).toEqual(['craving', 'hotcold', 'avoidance']);
   });
 
-  it('with everything on, features only the new apps', () => {
-    expect(catalogSections([]).featured.map((a) => a.id)).toEqual(['hotcold', 'avoidance']);
+  it('with everything on, features nothing', () => {
+    expect(catalogSections([], []).featured).toEqual([]);
   });
 });
 
@@ -111,14 +116,23 @@ describe('adding and removing', () => {
 });
 
 describe('Today rows', () => {
-  it('reads both on when nothing is stored, and ignores junk', () => {
-    expect(hiddenRowsOf(null)).toEqual([]);
-    expect(hiddenRowsOf({ hidden_rows: ['craving', 'nonsense'] })).toEqual(['craving']);
+  it('starts with Close out and Craving Crusher on, the new two off', () => {
+    expect(todayRowsOf(null)).toEqual(['nightly', 'craving']);
+    expect(hiddenRowsOf(null)).toEqual(['hotcold', 'avoidance']);
+  });
+
+  it('reads the older hidden list until rows are chosen, then the chosen list', () => {
+    expect(todayRowsOf({ hidden_rows: ['craving', 'nonsense'] })).toEqual(['nightly']);
+    expect(todayRowsOf({ hidden_rows: ['craving'], today_rows: ['craving', 'hotcold', 'junk'] })).toEqual([
+      'craving',
+      'hotcold',
+    ]);
   });
 
   it('puts a row on or takes it off', () => {
     expect(withRowOnToday([], 'nightly', false)).toEqual(['nightly']);
     expect(withRowOnToday(['nightly', 'craving'], 'nightly', true)).toEqual(['craving']);
+    expect(withRowOnToday(['hotcold', 'avoidance'], 'hotcold', true)).toEqual(['avoidance']);
     expect(withRowOnToday(['craving'], 'craving', false)).toEqual(['craving']);
   });
 

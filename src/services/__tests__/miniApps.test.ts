@@ -22,17 +22,12 @@ describe('canOpenMiniApp', () => {
     expect(canOpenMiniApp('compose', { is_admin: false })).toBe(false);
     expect(canOpenMiniApp('compose', {})).toBe(false);
     expect(canOpenMiniApp('compose', null)).toBe(false);
-    // Hot & Cold too, since 2026-11-01.
-    expect(canOpenMiniApp('hotcold', { is_admin: true })).toBe(true);
-    expect(canOpenMiniApp('hotcold', { is_admin: false })).toBe(false);
-    expect(canOpenMiniApp('hotcold', null)).toBe(false);
-    expect(canOpenMiniApp('avoidance', { is_admin: true })).toBe(true);
-    expect(canOpenMiniApp('avoidance', { is_admin: false })).toBe(false);
   });
 
   it('opens the live mini-apps for everyone', () => {
-    // Workouts, Meditate and Meals went live on 2026-10-18.
-    for (const id of ['workouts', 'meditate', 'meals'] as const) {
+    // Workouts, Meditate and Meals went live on 2026-10-18; Hot & Cold and
+    // Avoidance Training on 2026-11-20.
+    for (const id of ['workouts', 'meditate', 'meals', 'hotcold', 'avoidance'] as const) {
       expect(canOpenMiniApp(id, { is_admin: false })).toBe(true);
       expect(canOpenMiniApp(id, null)).toBe(true);
     }

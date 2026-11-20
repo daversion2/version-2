@@ -18,10 +18,11 @@ import type { TodayAppId } from '../services/appCheckins';
 //   a ring and a weekly goal like the others (services/rowRings.ts: nights
 //   closed out, urges faced). They open their own app instead of an app page,
 //   and stay out of what needs start/keep-going ratings (friction, the weekly
-//   review, the combined streak). On for every account until removed.
-// - a STANDALONE app (`route` set): Hot & Cold and Avoidance Training, built in
-//   the Lab. They open on their own for now; joining Today's rings and ratings
-//   is the next build (docs/backlog.md).
+//   review, the combined streak). Close out the day and Craving Crusher are on
+//   for every account until removed; Hot & Cold and Avoidance start off.
+// - a STANDALONE app (`route` only): none since 2026-11-20, when Hot & Cold
+//   and Avoidance Training became Today rows for everyone (off by default:
+//   people add them from Apps). Kept for the next Lab app.
 //
 // Copy voice: the effort is the training (founder, 2026-11-20). Say where the
 // override shows up in each app; never promise it gets easier. No "rep".
@@ -30,7 +31,7 @@ import type { TodayAppId } from '../services/appCheckins';
 export type CatalogAppId = 'meditate' | 'workouts' | 'meals' | 'nightly' | 'craving' | 'hotcold' | 'avoidance';
 
 /** An app that lives on Today as a row, not a ring. */
-export type TodayRowId = 'nightly' | 'craving';
+export type TodayRowId = 'nightly' | 'craving' | 'hotcold' | 'avoidance';
 
 export interface CatalogApp {
   id: CatalogAppId;
@@ -189,6 +190,7 @@ export const APP_CATALOG: CatalogApp[] = [
       { label: 'Getting started', text: 'How hard was it to get in? Asked when you log it.' },
     ],
     goodFor: 'Anyone with a plunge, a cold shower or a gym sauna.',
+    todayRow: 'hotcold',
     route: 'HotColdApp',
     isNew: true,
   },
@@ -210,6 +212,7 @@ export const APP_CATALOG: CatalogApp[] = [
       { label: 'Getting started', text: 'How hard was it really? Asked when you tap Did it.' },
     ],
     goodFor: 'Anyone with a list in their head that never gets done.',
+    todayRow: 'avoidance',
     route: 'AvoidanceApp',
     isNew: true,
   },

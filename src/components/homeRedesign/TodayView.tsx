@@ -55,6 +55,8 @@ interface Props {
   onStartPlan?: () => void;
   /** Close out the day's and Craving Crusher's rings (services/rowRings.ts), after the apps'. */
   extraRings?: RowRing[];
+  /** More app rows under Your apps, after Craving Crusher. */
+  extraRows?: ExtraRow[];
   /** Apps switched off (services/appSetup.ts): no ring and no row. */
   hiddenApps?: TodayAppId[];
   /** Opens the Apps screen. Admin-only for now: unset hides the row. */
@@ -63,7 +65,25 @@ interface Props {
 
 const NO_APPS: TodayAppId[] = [];
 const NO_RINGS: RowRing[] = [];
-const ROW_TITLES: Record<TodayRowId, string> = { nightly: 'Close out', craving: 'Cravings' };
+const ROW_TITLES: Record<TodayRowId, string> = {
+  nightly: 'Close out',
+  craving: 'Cravings',
+  hotcold: 'Hot & Cold',
+  avoidance: 'Avoidance',
+};
+/** Ring stroke and gap by how many rings are nested, so up to seven fit. */
+const ringSpacing = (n: number) => (n <= 3 ? { stroke: 13, gap: 4 } : n <= 5 ? { stroke: 9, gap: 3 } : { stroke: 7, gap: 2 });
+const NO_ROWS: ExtraRow[] = [];
+
+/** A row under Your apps for an app added from Apps (Hot & Cold, Avoidance Training). */
+export interface ExtraRow {
+  id: TodayRowId;
+  title: string;
+  subtitle?: string;
+  icon: string;
+  color: string;
+  onPress: () => void;
+}
 
 export const TodayView: React.FC<Props> = ({
   userId,
@@ -83,6 +103,7 @@ export const TodayView: React.FC<Props> = ({
   onBrowseApps,
   onStartPlan,
   extraRings = NO_RINGS,
+  extraRows = NO_ROWS,
 }) => {
   const apps = useMemo(() => APP_ORDER.filter((id) => !hiddenApps.includes(id)), [hiddenApps]);
   const insets = useSafeAreaInsets();
@@ -178,9 +199,8 @@ export const TodayView: React.FC<Props> = ({
                     ...apps.map((id) => ({ pct: ringOf(id)?.pct ?? 0, color: AppColors[id] })),
                     ...extraRings.map((r) => ({ pct: r.pct, color: AppColors[r.id] })),
                   ]}
-                  // Five rings need thinner strokes to fit.
-                  stroke={apps.length + extraRings.length > 3 ? 9 : 13}
-                  gap={apps.length + extraRings.length > 3 ? 3 : 4}
+                  // More rings need thinner strokes to fit.
+                  {...ringSpacing(apps.length + extraRings.length)}
                   accessibilityLabel={`This week: ${[
                     ...apps.map((id) => `${APP_TITLES[id]} ${ringOf(id)?.done ?? 0} of ${ringOf(id)?.goal ?? 0}`),
                     ...extraRings.map((r) => `${ROW_TITLES[r.id]} ${r.done} of ${r.goal}`),
@@ -262,6 +282,15 @@ export const TodayView: React.FC<Props> = ({
                   onPress={craving.onPress}
                 />
               ) : null}
+              {extraRows.map((r) => (
+                <ListRow
+                  key={r.id}
+                  title={r.title}
+                  subtitle={r.subtitle}
+                  icon={{ name: r.icon as never, color: r.color }}
+                  onPress={r.onPress}
+                />
+              ))}
               {onBrowseApps ? (
                 <ListRow
                   title="Browse apps"

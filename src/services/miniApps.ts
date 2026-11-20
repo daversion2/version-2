@@ -57,21 +57,21 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
     accent: CategoryColors.fuel,
     release: 'live',
   },
-  // Cold plunges and sauna (Lab, 2026-11-01): docs/micro-apps/hotcold.md.
+  // Cold plunges and sauna (Lab 2026-11-01, everyone from 2026-11-20): docs/micro-apps/hotcold.md.
   hotcold: {
     id: 'hotcold',
     title: 'Hot & Cold',
     icon: 'snow-outline',
     accent: AppColors.hotcold,
-    release: 'lab',
+    release: 'live',
   },
-  // The things you keep putting off (Lab, 2026-11-01): docs/micro-apps/avoidance.md.
+  // The things you keep putting off (Lab 2026-11-01, everyone from 2026-11-20): docs/micro-apps/avoidance.md.
   avoidance: {
     id: 'avoidance',
     title: 'Avoidance Training',
     icon: 'flash-outline',
     accent: CategoryColors.mind,
-    release: 'lab',
+    release: 'live',
   },
 };
 

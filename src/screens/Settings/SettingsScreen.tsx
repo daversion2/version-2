@@ -217,14 +217,12 @@ export const SettingsScreen: React.FC = () => {
           </ListGroup>
 
           <ListGroup>
-            {userProfile?.is_admin === true && (
-              <ListRow
-                title="Browse apps"
-                subtitle="Every app, what it does, add to Today"
-                icon={{ name: 'apps', color: Colors.primary }}
-                onPress={() => rootNav.navigate('AppStore')}
-              />
-            )}
+            <ListRow
+              title="Browse apps"
+              subtitle="Every app, what it does, add to Today"
+              icon={{ name: 'apps', color: Colors.primary }}
+              onPress={() => rootNav.navigate('AppStore')}
+            />
             <ListRow
               title="Apps and weekly goals"
               icon={{ name: 'flag', color: Colors.primary }}

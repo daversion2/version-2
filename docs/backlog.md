@@ -64,9 +64,9 @@ Build order:
    other two in `hidden_apps`); the goals screen sets that one app's goal.
 3. Today with one app: one large ring, the More apps row; hide the cross-app
    pieces below 2 apps.
-4. ~~The Apps screen and per-app detail~~ built 2026-11-20, admin-only (see
-   Done). Left: open it to everyone, and point the "More apps" row and
-   Settings at it instead of the old Apps and weekly goals sheet.
+4. ~~The Apps screen and per-app detail~~ built 2026-11-20, open to
+   everyone the same day (see Done). Left: decide whether Settings → Apps and
+   weekly goals stays alongside it or goes.
 5. The earned prompt: count rated sessions in the start app (logic in a
    service, tested); a `seen_intros` flag for shown/dismissed.
 
@@ -366,7 +366,7 @@ date added, a sentence or two of context, link to a design doc if one exists.
 No priority ordering implied — flag with a note if something's more wanted
 than the rest.
 
-### Avoidance Training: check on screen, then decide on graduating *(added 2026-11-01)*
+### Avoidance Training: check on screen *(added 2026-11-01; live for everyone 2026-11-20)*
 
 A to-do list for what you keep putting off, built in the Lab with the
 `build-micro-app` skill (`docs/micro-apps/avoidance.md`). Jest and tsc are
@@ -379,7 +379,7 @@ clean; nobody has seen it on screen. Next:
    to `finishSession`, migrate `lab_avoidance_*`, and decide what happens to
    the archived `AvoidanceTraining` screen and its `avoidanceTasks` data.
 
-### Hot & Cold: check on screen, then decide on graduating *(added 2026-11-01)*
+### Hot & Cold: check on screen *(added 2026-11-01; live for everyone 2026-11-20)*
 
 Cold plunge + sauna micro-app, built in the Lab with the `build-micro-app`
 skill (`docs/micro-apps/hotcold.md`). Jest and tsc are clean, but nobody has
@@ -564,6 +564,20 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Apps for everyone; Hot & Cold and Avoidance Training out of the Lab** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+Founder: everyone sees Apps (Today → Browse apps, Settings → Browse apps),
+and Hot & Cold and Avoidance Training are open to every account
+(`release: 'live'` in `services/miniApps.ts`). Both can be added to Today
+like Close out the day and Craving Crusher: a row under Your apps, a ring
+(Hot & Cold: sessions; Avoidance: things cleared, by `done_date`), a weekly
+goal (default 3, `users.row_goals`). They start OFF Today: people add them
+from Apps. Which rows are on is now `users.today_rows` once chosen
+(`todayRowsOf`, tested); accounts that never chose read the defaults minus
+the older `hidden_rows`. Up to seven nested rings fit (strokes thin out).
+Still outside friction, the weekly review and the combined streak. Their
+screens still live under `screens/Lab/experiments/` and their data in
+`lab_*` collections; moving them is cosmetic.
 
 **Close out the day and Craving Crusher: their own micro-apps** *(2026-11-20, live OTA 73b44644, not yet seen on screen)*
 From the mockup the founder approved (https://claude.ai/artifact/JyTy21iCp1BuRU9kmKQsMJ).

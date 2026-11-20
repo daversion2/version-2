@@ -1,6 +1,6 @@
 # Hot & Cold — micro-app spec
 
-*Status: Lab. Written 2026-11-01 from the idea: "Build a micro-app that will
+*Status: live for everyone since 2026-11-20, added to Today from Apps (a row, a ring of sessions, a weekly goal); still outside friction and the weekly review. Was Lab. Written 2026-11-01 from the idea: "Build a micro-app that will
 help users track cold plunges and sauna sessions by keeping track of both
 temperature and time for each."*
 *Id: `hotcold` (permanent — MiniAppId, `lab_hotcold_*` collections, Lab flag).*

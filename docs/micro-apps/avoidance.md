@@ -1,6 +1,6 @@
 # Avoidance Training — micro-app spec
 
-*Status: Lab. Written 2026-11-01 from the idea: "a to do list but framed as
+*Status: live for everyone since 2026-11-20, added to Today from Apps (a row, a ring of things cleared, a weekly goal); still outside friction and the weekly review. Was Lab. Written 2026-11-01 from the idea: "a to do list but framed as
 'avoidance training'. It will be a to do list with a focus on getting users to
 add items that they typically put off and thus help them train overcoming
 procrastination."*

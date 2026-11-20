@@ -80,11 +80,26 @@ export const isCatalogAppId = (id: unknown): id is CatalogAppId =>
 
 // --- Today rows (Close out the day, Craving Crusher) ---------------------------
 
-export const TODAY_ROWS: TodayRowId[] = ['nightly', 'craving'];
+export const TODAY_ROWS: TodayRowId[] = ['nightly', 'craving', 'hotcold', 'avoidance'];
 
-/** The user doc's switched-off rows, cleaned. Missing = both on. */
-export const hiddenRowsOf = (profile: Pick<User, 'hidden_rows'> | null | undefined): TodayRowId[] =>
-  TODAY_ROWS.filter((r) => (profile?.hidden_rows ?? []).includes(r));
+/** On Today for an account that hasn't chosen: the two that were always there. */
+export const DEFAULT_TODAY_ROWS: TodayRowId[] = ['nightly', 'craving'];
+
+/**
+ * The rows on Today. `today_rows` once the account has added or removed one
+ * (since 2026-11-20, when Hot & Cold and Avoidance joined, off by default);
+ * before that, the defaults minus the older `hidden_rows`.
+ */
+export const todayRowsOf = (profile: Pick<User, 'hidden_rows' | 'today_rows'> | null | undefined): TodayRowId[] => {
+  if (Array.isArray(profile?.today_rows)) return TODAY_ROWS.filter((r) => profile!.today_rows!.includes(r));
+  return DEFAULT_TODAY_ROWS.filter((r) => !(profile?.hidden_rows ?? []).includes(r));
+};
+
+/** The rows not on Today. */
+export const hiddenRowsOf = (profile: Pick<User, 'hidden_rows' | 'today_rows'> | null | undefined): TodayRowId[] => {
+  const on = todayRowsOf(profile);
+  return TODAY_ROWS.filter((r) => !on.includes(r));
+};
 
 /** The switched-off rows with one row put on or taken off Today. */
 export const withRowOnToday = (hiddenRows: readonly TodayRowId[], row: TodayRowId, on: boolean): TodayRowId[] =>
@@ -93,11 +108,16 @@ export const withRowOnToday = (hiddenRows: readonly TodayRowId[], row: TodayRowI
 /** Put a row on Today or take it off, then save. */
 export const setRowOnToday = async (
   userId: string,
-  profile: Pick<User, 'hidden_rows'> | null | undefined,
+  profile: Pick<User, 'hidden_rows' | 'today_rows'> | null | undefined,
   row: TodayRowId,
   on: boolean
 ): Promise<void> => {
-  await setDoc(doc(db, 'users', userId), { hidden_rows: withRowOnToday(hiddenRowsOf(profile), row, on) }, { merge: true });
+  const hidden = withRowOnToday(hiddenRowsOf(profile), row, on);
+  await setDoc(
+    doc(db, 'users', userId),
+    { today_rows: TODAY_ROWS.filter((r) => !hidden.includes(r)), hidden_rows: hidden },
+    { merge: true }
+  );
 };
 
 // --- Saving ------------------------------------------------------------------
