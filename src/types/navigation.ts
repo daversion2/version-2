@@ -1,3 +1,4 @@
+import type { CatalogAppId } from '../data/appCatalog';
 import { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps, NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type {
@@ -39,6 +40,10 @@ export type RootStackParamList = {
   HotColdApp: undefined;
   /** Avoidance Training (Lab): the things you keep putting off, one rep a day. */
   AvoidanceApp: undefined;
+  /** Apps (admin-only, 2026-11-20): browse every app and add one to Today. */
+  AppStore: undefined;
+  /** One app's page in Apps. */
+  AppStoreDetail: { appId: CatalogAppId };
 };
 
 // ============================================================================

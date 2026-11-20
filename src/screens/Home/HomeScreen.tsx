@@ -1,4 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../types/navigation';
 import {
   View,
   Text,
@@ -153,6 +156,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (redesign) navigation.setOptions({ headerShown: false });
   }, [navigation, redesign]);
   const { user, userProfile, refreshProfile } = useAuth();
+  // Root routes (Apps) sit above the tabs.
+  const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const t = useCopy();
 
   // Last week's shortfalls, if any are still unanswered. See services/skipLogic.ts.
@@ -937,6 +942,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           xp={xp}
           plan={planLine}
           hiddenApps={hiddenApps}
+          onBrowseApps={userProfile?.is_admin === true ? () => rootNav.navigate('AppStore') : undefined}
           closeOut={{
             done: reflectedToday,
             title: reflectedToday

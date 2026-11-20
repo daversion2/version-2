@@ -51,8 +51,9 @@ Build order:
    other two in `hidden_apps`); the goals screen sets that one app's goal.
 3. Today with one app: one large ring, the More apps row; hide the cross-app
    pieces below 2 apps.
-4. The Apps screen and per-app detail (adding an app removes it from
-   `hidden_apps` and sets its goal).
+4. ~~The Apps screen and per-app detail~~ built 2026-11-20, admin-only (see
+   Done). Left: open it to everyone, and point the "More apps" row and
+   Settings at it instead of the old Apps and weekly goals sheet.
 5. The earned prompt: count rated sessions in the start app (logic in a
    service, tested); a `seen_intros` flag for shown/dismissed.
 
@@ -357,7 +358,8 @@ than the rest.
 A to-do list for what you keep putting off, built in the Lab with the
 `build-micro-app` skill (`docs/micro-apps/avoidance.md`). Jest and tsc are
 clean; nobody has seen it on screen. Next:
-1. Try it from Admin → Lab → Avoidance Training: add with a forecast, Did it
+1. Try it from Apps (Today → Browse apps, admin-only; it left the Lab
+   2026-11-20) → Avoidance Training: add with a forecast, Did it
    → rating → the dread-vs-reality line, the task editor with the keyboard up,
    the Cleared screen, and bringing over the old list. Ask before `ui-verify`.
 2. If it earns a place: add it to `TodayAppId` / `TODAY_APPS`, move the rating
@@ -369,7 +371,8 @@ clean; nobody has seen it on screen. Next:
 Cold plunge + sauna micro-app, built in the Lab with the `build-micro-app`
 skill (`docs/micro-apps/hotcold.md`). Jest and tsc are clean, but nobody has
 seen it on screen yet. Next:
-1. Try it from Admin → Lab → Hot & Cold. Check the log sheet, the timer bell
+1. Try it from Apps (Today → Browse apps, admin-only; it left the Lab
+   2026-11-20) → Hot & Cold. Check the log sheet, the timer bell
    with the phone locked, and History edit/delete. Ask before running
    `ui-verify`.
 2. If it earns a place: add it to `TodayAppId` / `TODAY_APPS`, move friction
@@ -548,6 +551,20 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Apps: browse every app and add one to Today** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+Admin-only for now (founder's call). Today → "Browse apps" (under Your apps)
+or Settings → Browse apps. The Apps screen: a swipeable row of featured cards
+(new apps, then ones not on Today), then On your Today (with each goal), Add
+to Today (one-tap Add, at the saved goal) and "New, on their own for now".
+Each app has its own page: icon, tagline, description, what you do in it,
+where the override shows up, a weekly goal stepper, and Add to Today / Open /
+Remove from Today (never the last one; history stays). Hot & Cold and
+Avoidance Training left the Lab list and open from here (still admin-gated by
+`canOpenMiniApp`); joining Today's rings and ratings is the next step (their
+Features items). Content in `data/appCatalog.ts`, logic in
+`services/appCatalog.ts` (tested), screens in `screens/Apps/`, root routes
+`AppStore` / `AppStoreDetail`. New theme colour `AppColors.avoidance`.
 
 **The effort is the reward: no more "it gets easier"** *(2026-11-20, live OTA a95b255d, not yet seen on screen)*
 Founder: a few weeks is too little data to promise the start gets easier, and

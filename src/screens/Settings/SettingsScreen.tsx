@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { SettingsNavigation } from '../../types/navigation';
+import { RootStackParamList, SettingsNavigation } from '../../types/navigation';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
@@ -26,6 +27,7 @@ import { formatReminderTime } from '../../services/closeOutTimes';
 export const SettingsScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
   const navigation = useNavigation<SettingsNavigation>();
+  const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [username, setUsername] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -215,6 +217,14 @@ export const SettingsScreen: React.FC = () => {
           </ListGroup>
 
           <ListGroup>
+            {userProfile?.is_admin === true && (
+              <ListRow
+                title="Browse apps"
+                subtitle="Every app, what it does, add to Today"
+                icon={{ name: 'apps', color: Colors.primary }}
+                onPress={() => rootNav.navigate('AppStore')}
+              />
+            )}
             <ListRow
               title="Apps and weekly goals"
               icon={{ name: 'flag', color: Colors.primary }}

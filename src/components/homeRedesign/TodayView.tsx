@@ -49,6 +49,8 @@ interface Props {
   craving: { title: string; subtitle: string; onPress: () => void };
   /** Apps switched off (services/appSetup.ts): no ring and no row. */
   hiddenApps?: TodayAppId[];
+  /** Opens the Apps screen. Admin-only for now: unset hides the row. */
+  onBrowseApps?: () => void;
 }
 
 const NO_APPS: TodayAppId[] = [];
@@ -68,6 +70,7 @@ export const TodayView: React.FC<Props> = ({
   closeOut,
   craving,
   hiddenApps = NO_APPS,
+  onBrowseApps,
 }) => {
   const apps = useMemo(() => APP_ORDER.filter((id) => !hiddenApps.includes(id)), [hiddenApps]);
   const insets = useSafeAreaInsets();
@@ -205,6 +208,14 @@ export const TodayView: React.FC<Props> = ({
                   onPress={() => onOpenAppPage(id)}
                 />
               ))}
+              {onBrowseApps ? (
+                <ListRow
+                  title="Browse apps"
+                  subtitle="Add another, or try the new ones"
+                  icon={{ name: 'apps', color: Colors.gray }}
+                  onPress={onBrowseApps}
+                />
+              ) : null}
             </ListGroup>
 
             <ListGroup>

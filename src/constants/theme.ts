@@ -33,6 +33,8 @@ export const AppColors = {
   meals: '#1F4FA8',
   /** Hot & Cold (Lab, 2026-11-01): a glacier blue, kept clear of Meals' blue. */
   hotcold: '#2A8BB5',
+  /** Avoidance Training (Lab, 2026-11-01): the Mind purple it has always used. */
+  avoidance: '#7B1FA2',
 };
 
 // Meditate's breathing pacer (redesign canvas "Meditate · breathing pacer"):

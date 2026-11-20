@@ -101,22 +101,9 @@ export const LAB_EXPERIMENTS = [
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
   },
-  // Built 2026-11-01 with the build-micro-app skill: docs/micro-apps/hotcold.md.
-  {
-    id: 'hotcold',
-    title: 'Hot & Cold',
-    description: 'Log cold plunges and sauna sessions: how long, and how cold or hot. Time a plunge with a bell.',
-    open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
-      navigation.dispatch(CommonActions.navigate({ name: 'HotColdApp' })),
-  },
-  // Built 2026-11-01 with the build-micro-app skill: docs/micro-apps/avoidance.md.
-  {
-    id: 'avoidance',
-    title: 'Avoidance Training',
-    description: 'Write down what you keep putting off, face one a day, and see the dread was worse than the thing.',
-    open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
-      navigation.dispatch(CommonActions.navigate({ name: 'AvoidanceApp' })),
-  },
+  // Hot & Cold and Avoidance Training left the Lab on 2026-11-20: they open from
+  // Apps (screens/Apps/, data/appCatalog.ts). Still admin-only through
+  // canOpenMiniApp until they join Today. Their ids stay retired: never reuse.
 ] as const satisfies readonly LabExperiment[];
 
 /** Typed against the registry, so useLab('typo') fails tsc. */
