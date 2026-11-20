@@ -503,7 +503,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: your week at a glance, with every detail a tap away** *(2026-11-20, committed, not yet live — needs an OTA)*
+**Workouts: your week at a glance, with every detail a tap away** *(2026-11-20, live OTA f1d5da30, not yet seen on screen)*
 A Week screen (Workouts → the card at the top of the home, More → Your week,
 or Today's Workouts page → Your week): a day strip (barbell / heart / both /
 a check for "logged without details" / a dot for rest), workouts against the
