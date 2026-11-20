@@ -12,7 +12,8 @@ import { BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../constants
 //                    through it anyway
 //   TwoMoments       one session as a line: the override at the start, and
 //                    again partway in
-//   BothFall         two ratings falling over six weeks
+//   EffortAdds       sessions rated up and down, and the XP they add up to,
+//                    which only climbs
 //
 // Decorative only: each beat's text says everything the picture does, so they
 // are hidden from screen readers.
@@ -72,27 +73,29 @@ export const TwoMoments: React.FC = () => (
   </View>
 );
 
-// Six weeks of a rating, 1–3: an illustration, not anyone's data.
-const FALLING = [2.8, 2.6, 2.2, 2.0, 1.6, 1.4];
+// Six sessions' start ratings, 1–3: an illustration, not anyone's data. Up and
+// down on purpose: the ratings don't need to fall, the total only climbs.
+const SESSIONS = [2, 3, 1, 3, 2, 2];
 const BAR_MAX = 56;
+const TOTAL = SESSIONS.reduce((a, b) => a + b, 0);
 
-const Bars: React.FC<{ name: string; color: string; values: number[] }> = ({ name, color, values }) => (
-  <View style={styles.chart}>
-    <View style={styles.bars}>
-      {values.map((v, i) => (
-        <View key={i} style={[styles.bar, { height: (v / 3) * BAR_MAX, backgroundColor: color }]} />
-      ))}
-    </View>
-    <Text style={[styles.momentName, { color }]}>{name}</Text>
-    <Text style={styles.tick}>6 weeks</Text>
-  </View>
-);
-
-/** 3 — both ratings falling over six weeks. */
-export const BothFall: React.FC = () => (
+/** 3 — the effort adds up: ratings that go up and down, and XP that only climbs. */
+export const EffortAdds: React.FC = () => (
   <View style={[styles.frame, styles.charts]} {...hidden}>
-    <Bars name="Getting started" color={Colors.primary} values={FALLING} />
-    <Bars name="Staying with it" color={Colors.secondary} values={FALLING.map((v) => Math.max(1.2, v - 0.2))} />
+    <View style={styles.chart}>
+      <View style={styles.bars}>
+        {SESSIONS.map((v, i) => (
+          <View key={i} style={[styles.bar, { height: (v / 3) * BAR_MAX, backgroundColor: Colors.primary }]} />
+        ))}
+      </View>
+      <Text style={[styles.momentName, { color: Colors.primary }]}>Each session</Text>
+      <Text style={styles.tick}>Some easy, some hard</Text>
+    </View>
+    <View style={styles.total}>
+      <Text style={styles.totalNumber}>{TOTAL}</Text>
+      <Text style={[styles.momentName, { color: Colors.secondary }]}>Friction overcome</Text>
+      <Text style={styles.tick}>Only goes up</Text>
+    </View>
   </View>
 );
 
@@ -154,4 +157,6 @@ const styles = StyleSheet.create({
   chart: { flex: 1, gap: 2 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: BAR_MAX, marginBottom: Spacing.xs },
   bar: { flex: 1, borderRadius: 3 },
+  total: { flex: 1, gap: 2, justifyContent: 'flex-end' },
+  totalNumber: { fontFamily: Fonts.primaryBold, fontSize: FontSizes.hero, color: Colors.secondary, lineHeight: BAR_MAX },
 });

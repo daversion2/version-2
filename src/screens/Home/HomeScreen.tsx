@@ -766,22 +766,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             : null,
           echo:
             typeof input.resistance === 'number' && typeof input.keep_going === 'number'
-              ? pairEcho({
-                  override: input.resistance,
-                  keepGoing: input.keep_going,
-                  appName,
-                  history: appRatedDays(nudgeLogs, appId, logId),
-                  date,
-                  today: getTodayString(),
-                })
+              ? pairEcho({ override: input.resistance, keepGoing: input.keep_going })
               : typeof input.resistance === 'number'
-                ? overrideEcho({
-                    level: input.resistance,
-                    appName,
-                    history: appRatedDays(nudgeLogs, appId, logId),
-                    date,
-                    today: getTodayString(),
-                  })
+                ? overrideEcho({ level: input.resistance, history: appRatedDays(nudgeLogs, appId, logId) })
                 : typeof input.day_rating === 'number'
                   ? mealsDayEcho(input.day_rating, onTarget)
                   : typeof input.keep_going === 'number'

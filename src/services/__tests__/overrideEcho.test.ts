@@ -4,7 +4,6 @@ import {
   keepGoingEcho,
   mealsDayEcho,
   overrideEcho,
-  overrideTrend,
   pairEcho,
   RatedDay,
 } from '../overrideEcho';
@@ -21,69 +20,28 @@ const rated = (daysAgo: number, resistance: number): RatedDay => ({ date: day(da
 // Four hard ratings a month ago, two easy ones this week.
 const fallingHistory = [rated(30, 3), rated(29, 3), rated(27, 2), rated(25, 3), rated(3, 1)];
 
-describe('overrideTrend', () => {
-  it('compares the first two weeks with the last 7 days', () => {
-    const trend = overrideTrend(fallingHistory, rated(0, 1), TODAY);
-    expect(trend).toEqual({ first: 2.75, recent: 1 });
-  });
-
-  it('waits until the two windows no longer overlap', () => {
-    const history = [rated(15, 3), rated(14, 3), rated(13, 3), rated(2, 1)];
-    expect(overrideTrend(history, rated(0, 1), TODAY)).toBeNull();
-  });
-
-  it('needs three ratings in the first weeks', () => {
-    const history = [rated(30, 3), rated(29, 3), rated(3, 1)];
-    expect(overrideTrend(history, rated(0, 1), TODAY)).toBeNull();
-  });
-
-  it('needs two ratings this week, counting the new one', () => {
-    const history = [rated(30, 3), rated(29, 3), rated(28, 3)];
-    expect(overrideTrend(history, rated(0, 1), TODAY)).toBeNull();
-  });
-});
-
 describe('overrideEcho', () => {
-  const base = { appName: 'Workouts', date: TODAY, today: TODAY };
-
-  it('says the trend when the override has fallen', () => {
-    expect(overrideEcho({ ...base, level: 1, history: fallingHistory })).toBe(
-      'Your Workouts override: 2.8 of 3 your first two weeks, 1.0 this week.'
-    );
+  it('never compares with earlier ratings, even when they have fallen', () => {
+    // The effort is the reward (2026-11-20): no "first two weeks" line.
+    for (const level of [1, 2, 3]) {
+      expect(overrideEcho({ level, history: fallingHistory })).not.toMatch(/first two weeks|this week|down|easier/);
+    }
   });
 
-  it('keeps the trend after a hard rating, said kindly', () => {
-    const history = [rated(30, 3), rated(29, 3), rated(27, 3), rated(25, 3), rated(3, 1), rated(2, 1)];
-    expect(overrideEcho({ ...base, level: 3, history })).toBe(
-      'A hard one today, but your Workouts override is still down: 3.0 of 3 your first two weeks, 1.7 this week.'
-    );
-  });
-
-  it('never puts a rising override in the toast', () => {
-    const history = [rated(30, 1), rated(29, 1), rated(27, 1), rated(3, 3)];
-    expect(overrideEcho({ ...base, level: 3, history })).not.toMatch(/first two weeks/);
-  });
-
-  it('ignores a fall smaller than half a level', () => {
-    // 2.3 → 2.0
-    const history = [rated(30, 2), rated(29, 2), rated(27, 3), rated(3, 2)];
-    expect(overrideEcho({ ...base, level: 2, history })).not.toMatch(/first two weeks/);
-  });
-
-  it('says what the level means when there is no trend yet', () => {
-    expect(overrideEcho({ ...base, level: 3, history: [] })).toMatch(/started anyway/);
-    expect(overrideEcho({ ...base, level: 2, history: [] })).toMatch(/talk yourself into it/);
-    expect(overrideEcho({ ...base, level: 1, history: [] })).toMatch(/override/i);
+  it('says what the level is worth', () => {
+    expect(overrideEcho({ level: 3, history: [] })).toMatch(/started anyway/);
+    expect(overrideEcho({ level: 2, history: [] })).toMatch(/talk yourself into it/);
+    expect(overrideEcho({ level: 1, history: [] })).toMatch(/count/i);
   });
 
   it('alternates the level line so a daily rating varies', () => {
-    const first = overrideEcho({ ...base, level: 2, history: [] });
-    const second = overrideEcho({ ...base, level: 2, history: [rated(1, 2)] });
+    const first = overrideEcho({ level: 2, history: [] });
+    const second = overrideEcho({ level: 2, history: [rated(1, 2)] });
     expect(first).not.toBe(second);
   });
 
   it('clamps a value outside 1–3', () => {
-    expect(overrideEcho({ ...base, level: 7, history: [] })).toMatch(/started anyway/);
+    expect(overrideEcho({ level: 7, history: [] })).toMatch(/started anyway/);
   });
 });
 
@@ -103,36 +61,29 @@ describe('appRatedDays', () => {
 });
 
 describe('pairEcho', () => {
-  const base = { appName: 'Workouts', history: [] as RatedDay[], date: '2026-11-11', today: '2026-11-11' };
-
   it('reads a hard start and an easy finish as getting started being the hard part', () => {
-    expect(pairEcho({ ...base, override: 3, keepGoing: 1 })).toMatch(/Getting started was the hard part/);
+    expect(pairEcho({ override: 3, keepGoing: 1 })).toMatch(/Getting started was the hard part/);
   });
 
   it('credits keeping going when only the middle was hard', () => {
-    expect(pairEcho({ ...base, override: 1, keepGoing: 3 })).toMatch(/you kept going/);
+    expect(pairEcho({ override: 1, keepGoing: 3 })).toMatch(/you kept going/);
   });
 
   it('gives each pairing its own line, and never tells anyone to raise the bar', () => {
     const lines = [
-      pairEcho({ ...base, override: 3, keepGoing: 3 }),
-      pairEcho({ ...base, override: 2, keepGoing: 2 }),
-      pairEcho({ ...base, override: 2, keepGoing: 1 }),
-      pairEcho({ ...base, override: 1, keepGoing: 3 }),
-      pairEcho({ ...base, override: 1, keepGoing: 1 }),
+      pairEcho({ override: 3, keepGoing: 3 }),
+      pairEcho({ override: 2, keepGoing: 2 }),
+      pairEcho({ override: 2, keepGoing: 1 }),
+      pairEcho({ override: 1, keepGoing: 3 }),
+      pairEcho({ override: 1, keepGoing: 1 }),
     ];
     expect(new Set(lines).size).toBe(5);
     expect(lines.some((l) => /raise the bar|push/i.test(l))).toBe(false);
   });
 
-  it('still leads with a falling override when there is one', () => {
-    const history: RatedDay[] = [
-      { date: '2026-10-01', resistance: 3 },
-      { date: '2026-10-03', resistance: 3 },
-      { date: '2026-10-05', resistance: 3 },
-      { date: '2026-11-09', resistance: 1 },
-    ];
-    expect(pairEcho({ ...base, history, override: 1, keepGoing: 2 })).toMatch(/^Your Workouts override: 3\.0 of 3/);
+  it('never promises it will get easier', () => {
+    const lines = [1, 2, 3].flatMap((o) => [1, 2, 3].map((k) => pairEcho({ override: o, keepGoing: k })));
+    expect(lines.some((l) => /easier|less override|first two weeks/i.test(l))).toBe(false);
   });
 });
 

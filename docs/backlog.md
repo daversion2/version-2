@@ -23,6 +23,48 @@ How to use it:
 
 ## Now
 
+**Start with one app, earn the rest** *(added 2026-11-20)*
+New users pick one app in onboarding instead of getting all three, and are
+offered a second once they've earned it. Mockup approved in direction by the
+founder: https://claude.ai/artifact/UFiDq1rMPFQwzqzA4aKG5x (7 screens). The
+founder's calls:
+- **Meditate is the default pick**, labelled "Easiest way in". Meals is listed
+  last, as "For tracking food".
+- **The second app is earned: 5 rated sessions in the start app.** Nothing
+  about whether the ratings went up or down (see the Done item "The effort is
+  the reward"). Shown once on Today as a sheet ("Five times you sat down
+  anyway", the five ratings, friction overcome in XP, "Ready to train it
+  somewhere new?"). "Not now" hides it for good.
+- **A plain Apps screen, not an "app store"**: Your apps, then Add another,
+  each with what it is and where the override shows up; a detail page sets
+  the weekly goal and has Add to Today. Reached from a "More apps" row on
+  Today and from Settings.
+- Cross-app pieces (combined streak, week grid, most consistent) only show
+  with 2+ apps. Existing accounts keep all three.
+
+Build order:
+1. **First fix the known gap:** Progress and the app pages still show
+   switched-off apps, and the friction card counts them (see "Check the new
+   onboarding on screen"). With one app as the default, that becomes what
+   every new user sees.
+2. Onboarding: the "apps" screen becomes pick one (sets `start_app`, hides the
+   other two in `hidden_apps`); the goals screen sets that one app's goal.
+3. Today with one app: one large ring, the More apps row; hide the cross-app
+   pieces below 2 apps.
+4. The Apps screen and per-app detail (adding an app removes it from
+   `hidden_apps` and sets its goal).
+5. The earned prompt: count rated sessions in the start app (logic in a
+   service, tested); a `seen_intros` flag for shown/dismissed.
+
+**Check "the effort is the reward" copy on screen** *(added 2026-11-20)*
+Not yet seen running (Maestro needs a yes first). Look at: onboarding screens
+3–4 (new picture: six uneven bars and "Friction overcome"); the ⓘ on the
+rating sheets ("The effort is the training"); the toast after a rating (no
+"first two weeks" line); the app pages' To start / To keep going rows (a level
+only, no "down from"); the first-rating explainer; Today's ⓘ intro. Today's
+intro kept its keys (`intro.today.*`), so an older copy-editor edit there
+would still show the old "both should fall" line: check Admin → All wording.
+
 **Check Workouts' Log on screen** *(added 2026-11-11)*
 Live (OTA 2ee549fe), not yet seen running (Maestro needs a yes first, and
 a real check needs a real save). On the Workouts page: Log beside Start opens
@@ -355,16 +397,20 @@ bigger, not yet scoped — discuss before building either.
 - **The override, twice: what's left** *(added 2026-11-11, updated 2026-11-20)*.
   Follow-ups to the start + keep-going ratings (see Done):
   - **Keep going on Progress.** The friction chart is still start-only. Keep
-    going should be its own line (both should fall), never added to the start.
+    going should be its own line, never added to the start.
   - **XP.** Still equal to the start rating (keep going alone, for a late
     session). Options: the sum of both, or flat per session (can't be gamed).
   - **Use the discarded starts.** `users/{uid}/overrideStarts` is written but
     nothing reads it yet.
   - **"Heading out now".** A one-tap live start for people who don't run
     the session in the app, logged with Done it later.
-  - **The toast's start trend** (`overrideEcho`, first two weeks vs this week)
-    still mixes live and remembered starts: the first weeks predate live
-    ratings for every current account. The app-page line prefers live ones.
+  - **Progress still frames felt friction falling.** "Friction you can
+    handle" (faced vs felt, `services/frictionCapacity.ts`) and the friction
+    chart are built on the old promise. Rethink them around the effort
+    (friction overcome, sessions done anyway) when Progress is reworked. Same
+    for `docs/app-overview-user-facing.md` ("success is resistance falling")
+    and the hidden habit page's "It is genuinely getting easier" insight
+    (`services/practicePerformance.ts`).
 
 - **Surface streaks more clearly on Progress.** Streaks stay owned by
   Progress, not duplicated inside each mini-app (decided when discussing a
@@ -502,6 +548,26 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**The effort is the reward: no more "it gets easier"** *(2026-11-20, on the branch, not OTA'd, not yet seen on screen)*
+Founder: a few weeks is too little data to promise the start gets easier, and
+the promise makes a hard week read as failing. Focus on the effort as the
+training instead. Changed:
+- the toast after a rating never compares with earlier ratings (the "your
+  first two weeks, this week" trend line is gone); its lines say what the
+  effort was worth (`services/overrideEcho.ts`).
+- app pages show the 7-day level only ("Mostly manageable (1.6 of 3)"): no
+  "down from", "getting easier" or "while your volume rose"
+  (`describeFriction` in `services/homeDashboard.ts`; `describeKeepGoing` and
+  `GETTING_EASIER` removed).
+- the ⓘ on the rating sheets: "Both should fall" became "The effort is the
+  training" (copy moved to `override.effort.*`).
+- onboarding screen 3 is "The effort is the training" with a new picture
+  (`EffortAdds`: uneven ratings, XP that only climbs); screen 4 says "every
+  tap is a session you did anyway" and lost the trending-down icon. New copy
+  ids, so older edits can't hide them.
+- the first-rating explainer and Today's ⓘ intro.
+The ratings themselves are unchanged.
 
 **Workouts: your week at a glance, with every detail a tap away** *(2026-11-20, live OTA f1d5da30, not yet seen on screen)*
 A Week screen (Workouts → the card at the top of the home, More → Your week,

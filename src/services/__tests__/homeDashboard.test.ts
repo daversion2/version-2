@@ -9,7 +9,6 @@ import {
   inWeek,
   describeFriction,
   describeInsight,
-  describeKeepGoing,
   describeVsPrior,
   mealsDashboard,
   mealsDayState,
@@ -563,9 +562,9 @@ describe('friction', () => {
   });
 
   it('describes the level and the direction', () => {
-    expect(describeFriction({ avg: 1.6, priorAvg: 2.1, count: 4 })).toBe('Mostly manageable (1.6 of 3) · down from 2.1, getting easier');
+    expect(describeFriction({ avg: 1.6, priorAvg: 2.1, count: 4 })).toBe('Mostly manageable (1.6 of 3)');
     expect(describeFriction({ avg: 1.2, priorAvg: null, count: 2 })).toBe('Mostly easy (1.2 of 3)');
-    expect(describeFriction({ avg: 2.6, priorAvg: 2.6, count: 2 })).toBe('Mostly hard (2.6 of 3) · same as the week before');
+    expect(describeFriction({ avg: 2.6, priorAvg: 2.6, count: 2 })).toBe('Mostly hard (2.6 of 3)');
     expect(describeFriction({ avg: null, priorAvg: 2, count: 0 })).toBeNull();
   });
 });
@@ -802,27 +801,11 @@ describe('the start line prefers starts rated live', () => {
   });
 });
 
-describe('saying which way it moved', () => {
-  it('says getting easier when an average falls far enough', () => {
-    expect(describeFriction({ avg: 1.6, priorAvg: 2.1, count: 4 })).toBe(
-      'Mostly manageable (1.6 of 3) · down from 2.1, getting easier'
-    );
-    expect(describeFriction({ avg: 1.9, priorAvg: 2.1, count: 4 })).toBe('Mostly manageable (1.9 of 3) · down from 2.1');
-    expect(describeFriction({ avg: 2.4, priorAvg: 1.9, count: 4 })).toBe('Mostly manageable (2.4 of 3) · up from 1.9');
-  });
-
-  it('sets a falling keep going against more work', () => {
-    const f = { avg: 1.9, priorAvg: 2.4, count: 3 };
-    expect(describeKeepGoing(f, { pct: 12, noun: 'volume' })).toBe(
-      'Mostly manageable (1.9 of 3) · down from 2.4, getting easier while your volume rose 12%'
-    );
-  });
-
-  it('leaves the work out when keep going did not fall, or the work did not rise', () => {
-    expect(describeKeepGoing({ avg: 2.4, priorAvg: 1.9, count: 3 }, { pct: 12, noun: 'volume' })).not.toMatch(/rose/);
-    expect(describeKeepGoing({ avg: 1.9, priorAvg: 2.4, count: 3 }, { pct: 2, noun: 'minutes' })).not.toMatch(/rose/);
-    expect(describeKeepGoing({ avg: 1.9, priorAvg: 2.4, count: 3 }, { pct: null, noun: 'minutes' })).not.toMatch(/rose/);
-    expect(describeKeepGoing({ avg: null, priorAvg: null, count: 0 }, { pct: 50, noun: 'minutes' })).toBeNull();
+describe('saying what the ratings were', () => {
+  it('never says which way it moved (the effort is the reward, 2026-11-20)', () => {
+    for (const [avg, priorAvg] of [[1.6, 2.1], [1.9, 2.1], [2.4, 1.9]]) {
+      expect(describeFriction({ avg, priorAvg, count: 4 })).not.toMatch(/down|up|easier|before/);
+    }
   });
 
   it('works out a change on the week before', () => {

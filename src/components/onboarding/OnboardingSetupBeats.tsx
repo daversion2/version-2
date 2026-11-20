@@ -10,15 +10,15 @@ import { AppSetup } from '../../services/appSetup';
 import { CLOSEOUT_TIMES, formatReminderTime } from '../../services/closeOutTimes';
 import { AppGoalRows, AppToggleList } from '../appSetup/AppSetupParts';
 import { ob } from './onboardingStyles';
-import { BothFall, PredictionMeter, TwoMoments } from './OverrideIllustrations';
+import { EffortAdds, PredictionMeter, TwoMoments } from './OverrideIllustrations';
 
 // ============================================================================
 // THE SEVEN ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
 //
 //   why       resistance is a prediction; acting against it is the override
 //   twice     the override used twice: getting started, staying with it
-//   practice  why both get easier (habit system; tenacity, learned effort)
-//   ratings   the two questions that make it visible, and that both should fall
+//   practice  the effort is the training (tenacity, learned effort)
+//   ratings   the two questions that make it visible; a 3 is never a bad mark
 //   apps      the three apps, all on; switch off any you won't use
 //   goals     a weekly goal each, and the app to start with
 //   reminder  an evening close-out nudge, or none
@@ -29,7 +29,10 @@ import { BothFall, PredictionMeter, TwoMoments } from './OverrideIllustrations';
 
 // The first four beats are the science, in order (founder's pick, 2026-11-20):
 // where resistance comes from and what the override is; the two moments it's
-// used; why both get easier; and the two ratings that show it. One idea per
+// used; why the effort itself is the training; and the two ratings that show
+// it. Until 2026-11-20 screens 3–4 promised both ratings would fall; the
+// founder dropped that (a few weeks is too little data, and a hard week then
+// reads as failing). One idea per
 // screen: a bold headline that carries it alone, a picture, two short lines.
 // The names are the founder's: "Getting started" and "Staying with it".
 
@@ -79,34 +82,34 @@ export const OnboardingTwice: React.FC = () => (
   </View>
 );
 
-/** 3 — practice: why each one gets easier. */
+/** 3 — practice: the effort is the training, whatever it feels like. */
 export const OnboardingPractice: React.FC = () => (
   <View style={styles.center}>
     <FadeRise>
-      <BothFall />
-      <Copy id="onboarding.science.practice.eyebrow" style={ob.eyebrow}>
-        {'What practice changes'}
+      <EffortAdds />
+      <Copy id="onboarding.science.effort.eyebrow" style={ob.eyebrow}>
+        {'What builds it'}
       </Copy>
-      <Copy id="onboarding.science.practice.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
-        {'Both get **easier with practice.**'}
+      <Copy id="onboarding.science.effort.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'The effort **is the training.**'}
       </Copy>
     </FadeRise>
     <FadeRise delay={400}>
-      <Copy id="onboarding.science.practice.start" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'**Getting started:** repetition hands the start to your brain’s habit system, so it takes less deciding.'}
+      <Copy id="onboarding.science.effort.start" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Getting started:** each time you begin when you’d rather not, you practise the override itself.'}
       </Copy>
-      <Copy id="onboarding.science.practice.stay" style={ob.body} boldStyle={ob.bodyStrong}>
+      <Copy id="onboarding.science.effort.stay" style={ob.body} boldStyle={ob.bodyStrong}>
         {'**Staying with it:** keeping going works a brain region linked to tenacity, and with practice, effort itself feels less unpleasant.'}
       </Copy>
-      <Copy id="onboarding.science.practice.helper" style={ob.helper}>
-        {'The region is the anterior mid-cingulate cortex. Studies find a start takes weeks to months to become automatic, so the hard days are the ones doing the work.'}
+      <Copy id="onboarding.science.effort.helper" style={ob.helper}>
+        {'The region is the anterior mid-cingulate cortex, most active when you do what you’d rather not. Some days will feel easy and some won’t. Both count, and the hard ones count most.'}
       </Copy>
     </FadeRise>
   </View>
 );
 
 /**
- * 4 — the two ratings: when each is asked, and that both should fall. Shown,
+ * 4 — the two ratings: when each is asked, and that a 3 is never a bad mark. Shown,
  * not asked: the first real rating explains itself (RatingExplainer).
  */
 export const OnboardingRatings: React.FC = () => (
@@ -134,8 +137,8 @@ export const OnboardingRatings: React.FC = () => (
       />
     </FadeRise>
     <FadeRise delay={500}>
-      <Copy id="onboarding.science.ratings.direction" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'**Watch both fall.** That’s your override getting stronger. Meals has no single start, so it asks once a day: how hard was it to eat this way today?'}
+      <Copy id="onboarding.science.ratings.effort" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**Every tap is a session you did anyway.** Your XP adds up what they cost, and it only goes up. Meals has no single start, so it asks once a day: how hard was it to eat this way today?'}
       </Copy>
       <Copy id="onboarding.science.ratings.helper" style={ob.helper}>
         {'Each one is 1 to 3. Be honest: a 3 is never a bad mark.'}
@@ -164,7 +167,6 @@ const RatingCard: React.FC<{
           <Text style={[styles.ratingDotText, { color }]}>{n}</Text>
         </View>
       ))}
-      <Ionicons name="trending-down" size={18} color={color} style={styles.ratingTrend} />
     </View>
   </View>
 );
@@ -302,5 +304,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ratingDotText: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm },
-  ratingTrend: { marginLeft: 'auto' },
 });

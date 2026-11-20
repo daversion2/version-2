@@ -14,11 +14,13 @@ import { useCopy } from '../../context/CopyContext';
  * Vocabulary (founder, 2026-11-01 and 2026-11-20): FRICTION is the resistance;
  * your OVERRIDE is what it takes to act anyway. Discipline is one skill used
  * twice: the override to START (asked on Start) and to KEEP GOING when part of
- * you wants to stop (asked at the end). On both, lower over the weeks is the
- * override getting stronger.
+ * you wants to stop (asked at the end).
  *
- * Copy lives under `override.twice.*`. The older `override.ratings.*` (override
- * and push) and `override.info.*` keys are no longer read.
+ * The effort is the reward (founder, 2026-11-20): a rating records what a
+ * session cost, and is never a number that should fall. Copy lives under
+ * `override.effort.*`, new keys so an older copy-editor edit of "Both should
+ * fall" can't hide the new wording. `override.twice.*`, `override.ratings.*`
+ * and `override.info.*` are no longer read.
  */
 export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Colors.gray }) => {
   const t = useCopy();
@@ -38,7 +40,7 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
         visible={open}
         onDismiss={() => setOpen(false)}
         icon="flash-outline"
-        copyPrefix="override.twice"
+        copyPrefix="override.effort"
         title="Your override, twice"
         intro="Before anything hard, your brain predicts what it will cost, and you feel that prediction as resistance. Acting against it is your override. You use it twice: getting started, and staying with it."
         points={[
@@ -51,12 +53,12 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
             text: 'How hard was it to keep going? In a workout it’s the “this sucks, stop” voice; in Meditate it’s the “I’ll stop a little early” one. 1: it barely showed up. 2: you talked yourself through it. 3: you wanted to quit and kept going.',
           },
           {
-            label: 'Both should fall',
-            text: 'As the override gets stronger, getting started takes less and so does staying with it. A heavy week can push staying with it up for a while: that’s the training, not a step back.',
+            label: 'The effort is the training',
+            text: 'Every rating is a session you did anyway. A 3 is the most training a session can give, not a bad day. The numbers aren’t meant to fall week to week: they’re a record of what you paid.',
           },
           {
             label: 'Be honest',
-            text: 'A 3 is never a bad mark, on either. Honest numbers today are what make next month’s trend mean something.',
+            text: 'A 3 is never a bad mark, on either. Rate what it actually took today, not what you think it should be.',
           },
           {
             label: 'Meals is the exception',
@@ -65,8 +67,8 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
         ]}
         science={[
           {
-            label: 'Getting started gets automatic',
-            text: 'Repetition hands the start to your brain’s habit system, so it takes less deciding. The session stays as demanding while the effort to begin it drops, and that drop is the clearest sign something is bedding in.',
+            label: 'Starting is a skill you practise',
+            text: 'Each time you begin when you’d rather not, you practise acting against the prediction. Over months, repetition can hand some starts to your brain’s habit system, but it takes weeks to months and it isn’t steady, so one week says little.',
           },
           {
             label: 'Staying with it is the exercise',

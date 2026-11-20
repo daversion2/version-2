@@ -19,9 +19,9 @@ import {
 //
 //   1 why        resistance is a prediction; acting against it is the override
 //   2 twice      the override used twice: getting started, staying with it
-//   3 practice   why both get easier: the habit system, and a brain region
+//   3 practice   the effort is the training: a brain region
 //                linked to tenacity (science first, founder's pick 2026-11-20)
-//   4 ratings    the two questions that make it visible, and that both fall
+//   4 ratings    the two questions that make it visible; a 3 is never a bad mark
 //   5 apps       Meditate, Workouts, Meals: all on, switch off any you won't use
 //   6 goals      a weekly goal each (3 / 3 / 5) and one app to start with
 //   7 reminder   an evening close-out nudge; picking a time is what asks iOS

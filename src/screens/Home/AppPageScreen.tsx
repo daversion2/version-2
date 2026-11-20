@@ -13,9 +13,7 @@ import {
   addDays,
   buildHomeDashboard,
   describeFriction,
-  describeKeepGoing,
   describeVsPrior,
-  pctChange,
   recentDayLabel,
 } from '../../services/homeDashboard';
 import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
@@ -140,16 +138,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const today = data?.app.today ?? '';
   const friction = d ? describeFriction(d.friction[appId]) ?? 'Not rated yet' : '';
-  // Keep going, set against the work done: falling while the work rose is the proof.
-  const keepGoing =
-    d && appId !== 'meals'
-      ? describeKeepGoing(
-          d.keepGoing[appId],
-          appId === 'workouts'
-            ? { pct: d.workouts.volumeChangePct, noun: 'volume' }
-            : { pct: pctChange(d.meditate.minutes, d.meditate.priorMinutes), noun: 'minutes' }
-        ) ?? 'Not rated yet'
-      : '';
+  const keepGoing = d && appId !== 'meals' ? describeFriction(d.keepGoing[appId]) ?? 'Not rated yet' : '';
   const mealsDay = d ? describeFriction(d.mealsDay) ?? 'Not rated yet' : '';
 
   const body = () => {

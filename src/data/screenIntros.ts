@@ -45,7 +45,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Your override, twice',
-        text: 'Getting started: as you start a session, rate how hard it is to start, 1 to 3. Staying with it: when you finish, rate how hard it was to keep going when part of you wanted to stop. Each app’s page shows both. Over the weeks, both should fall.',
+        text: 'Getting started: as you start a session, rate how hard it is to start, 1 to 3. Staying with it: when you finish, rate how hard it was to keep going when part of you wanted to stop. Each app’s page shows both. A hard session is the training, not a bad mark.',
       },
       {
         label: 'Close out the day',
