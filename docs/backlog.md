@@ -575,7 +575,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: swap an exercise for one session** *(2026-11-21, on the branch, not OTA'd, not yet seen on screen)*
+**Workouts: swap an exercise for one session** *(2026-11-21, live OTA 1465a4e7, not yet seen on screen)*
 Founder: "my back hurts, bodyweight lunges instead of squats today." Swap
 beside Skip in a live workout (until the first set of it is logged) and per
 exercise in Done it. A sheet offers an optional reason (Sore or hurt / No
