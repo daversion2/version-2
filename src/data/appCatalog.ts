@@ -7,8 +7,8 @@ import type { TodayAppId } from '../services/appCheckins';
 // One entry per app a person can add or open. The Apps screen
 // (screens/Apps/) lists them; the logic of who sees what where is
 // services/appCatalog.ts. Built 2026-11-20 from the "Start with one app"
-// mockup (https://claude.ai/artifact/UFiDq1rMPFQwzqzA4aKG5x), admin-only for
-// now.
+// mockup (https://claude.ai/artifact/UFiDq1rMPFQwzqzA4aKG5x). Open to everyone
+// since 2026-11-20.
 //
 // Three kinds:
 // - a TODAY app (`todayAppId` set): Meditate, Workouts, Meals. Adding one puts

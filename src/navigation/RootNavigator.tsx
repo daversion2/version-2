@@ -207,7 +207,7 @@ export const RootNavigator: React.FC = () => {
               getComponent={() => require('../screens/Lab/experiments/avoidance/AvoidanceApp').AvoidanceApp}
               options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
             />
-            {/* Apps: browse and add (admin-only for now; the entry points check is_admin). */}
+            {/* Apps: browse and add. Open to everyone since 2026-11-20. */}
             <Stack.Screen name="AppStore" getComponent={() => require('../screens/Apps/AppStoreScreen').AppStoreScreen} />
             <Stack.Screen
               name="AppStoreDetail"

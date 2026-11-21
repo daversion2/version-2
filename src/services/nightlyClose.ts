@@ -4,6 +4,12 @@ import { appCheckinId, appIdFromCheckinId, TodayAppId } from './appCheckins';
 import { addDays, inWeek } from './homeDashboard';
 import { fetchAllNudgeLogs } from './practices';
 import { getReflection, getReflections } from './reflections';
+import { getCravingLogs } from './cravings';
+import { listHotColdSessions } from './labHotCold';
+import { listAvoidanceTasks } from './labAvoidance';
+
+/** The Today apps with no session check-in, which count toward tonight too. */
+export type RowAppId = 'craving' | 'hotcold' | 'avoidance';
 
 // =============================================================================
 // CLOSE OUT THE DAY — the evening micro-app as three beats: tonight's win,
@@ -34,7 +40,7 @@ export interface SessionToday {
 export type NightlyWin =
   | { kind: 'hardStart'; appId: TodayAppId }
   | { kind: 'hardStay'; appId: TodayAppId }
-  | { kind: 'logged'; count: number; appIds: TodayAppId[] }
+  | { kind: 'logged'; count: number; appIds: TodayAppId[]; rowIds: RowAppId[] }
   | null;
 
 export interface PlanDraft {
@@ -80,17 +86,40 @@ export const appsLoggedToday = (logsToday: CompletionLog[]): TodayAppId[] => {
 const latestFirst = (a: SessionToday, b: SessionToday) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '');
 
 /**
+ * Craving Crusher, Hot & Cold and Avoidance Training used today: an urge
+ * faced, a session logged, a task cleared. They have no check-in log, so
+ * the evening reads their own records (code review, 2026-11-21: a day with
+ * only these used to read as "Nothing logged today").
+ */
+export const rowsActiveToday = (
+  input: { urgeDates: string[]; plungeDates: string[]; clearedDates: string[] },
+  today: string
+): RowAppId[] => {
+  const rows: RowAppId[] = [];
+  if (input.urgeDates.includes(today)) rows.push('craving');
+  if (input.plungeDates.includes(today)) rows.push('hotcold');
+  if (input.clearedDates.includes(today)) rows.push('avoidance');
+  return rows;
+};
+
+/**
  * The win to name tonight. Starting when the start took everything (a 3)
  * beats everything: doing it anyway is the moment worth reinforcing. Then
- * staying with it when that took everything. Otherwise, what got done.
+ * staying with it when that took everything. Otherwise, what got done, in
+ * any app.
  */
-export const pickWin = (sessions: SessionToday[], loggedApps: TodayAppId[]): NightlyWin => {
+export const pickWin = (sessions: SessionToday[], loggedApps: TodayAppId[], rowsToday: RowAppId[] = []): NightlyWin => {
   const hardStart = sessions.filter((s) => s.start === RESISTANCE_MAX).sort(latestFirst)[0];
   if (hardStart) return { kind: 'hardStart', appId: hardStart.appId };
   const hardStay = sessions.filter((s) => s.keepGoing === RESISTANCE_MAX).sort(latestFirst)[0];
   if (hardStay) return { kind: 'hardStay', appId: hardStay.appId };
-  if (loggedApps.length === 0) return null;
-  return { kind: 'logged', count: Math.max(sessions.length, loggedApps.length), appIds: loggedApps };
+  if (loggedApps.length === 0 && rowsToday.length === 0) return null;
+  return {
+    kind: 'logged',
+    count: Math.max(sessions.length, loggedApps.length) + rowsToday.length,
+    appIds: loggedApps,
+    rowIds: rowsToday,
+  };
 };
 
 /**
@@ -164,6 +193,8 @@ export interface NightlyCloseData {
   sessions: SessionToday[];
   /** Apps with anything logged today. */
   loggedApps: TodayAppId[];
+  /** Craving Crusher, Hot & Cold and Avoidance used today. */
+  rowsToday: RowAppId[];
   win: NightlyWin;
   weekCounts: Partial<Record<TodayAppId, number>>;
   nights: { date: string; grade: ReflectionGrade | null }[];
@@ -173,18 +204,32 @@ export interface NightlyCloseData {
 
 /** Everything the evening app needs: the last 14 days of logs and the last week of reflections. */
 export const loadNightlyClose = async (userId: string, today: string): Promise<NightlyCloseData> => {
-  const [logs, reflections, tonight] = await Promise.all([
+  // The three row apps are read separately and allowed to fail: tonight still works without them.
+  const quiet = <T,>(p: Promise<T[]>) => p.catch(() => [] as T[]);
+  const [logs, reflections, tonight, urges, plunges, tasks] = await Promise.all([
     fetchAllNudgeLogs(userId, addDays(today, -13)),
     getReflections(userId, addDays(today, -6), today),
     getReflection(userId, today),
+    quiet(getCravingLogs(userId, today)),
+    quiet(listHotColdSessions(userId, today)),
+    quiet(listAvoidanceTasks(userId)),
   ]);
   const logsToday = logs.filter((l) => l.date === today);
   const sessions = sessionsToday(logsToday);
   const loggedApps = appsLoggedToday(logsToday);
+  const rowsToday = rowsActiveToday(
+    {
+      urgeDates: urges.map((u) => u.date),
+      plungeDates: plunges.map((p) => p.date),
+      clearedDates: tasks.filter((t) => t.status === 'done' && t.done_date).map((t) => t.done_date as string),
+    },
+    today
+  );
   return {
     sessions,
     loggedApps,
-    win: pickWin(sessions, loggedApps),
+    rowsToday,
+    win: pickWin(sessions, loggedApps, rowsToday),
     weekCounts: weekCounts(logs, today),
     nights: lastNights(reflections, today),
     tonight,

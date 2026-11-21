@@ -9,6 +9,7 @@ import {
   loadNightlyClose,
   pickWin,
   planFromReflection,
+  rowsActiveToday,
   sessionsToday,
   suggestPlanApp,
   weekCounts,
@@ -71,8 +72,27 @@ describe('pickWin', () => {
       kind: 'logged',
       count: 2,
       appIds: ['meditate', 'meals'],
+      rowIds: [],
     });
     expect(pickWin([], [])).toBeNull();
+  });
+
+  it('counts Craving Crusher, Hot & Cold and Avoidance too: a day with only those is not "nothing"', () => {
+    expect(pickWin([], [], ['hotcold', 'craving'])).toEqual({
+      kind: 'logged',
+      count: 2,
+      appIds: [],
+      rowIds: ['hotcold', 'craving'],
+    });
+  });
+});
+
+describe('rowsActiveToday', () => {
+  it('finds an urge, a session or a cleared task dated today', () => {
+    expect(
+      rowsActiveToday({ urgeDates: [TODAY], plungeDates: ['2026-10-13'], clearedDates: [TODAY] }, TODAY)
+    ).toEqual(['craving', 'avoidance']);
+    expect(rowsActiveToday({ urgeDates: [], plungeDates: [], clearedDates: [] }, TODAY)).toEqual([]);
   });
 });
 
@@ -179,6 +199,15 @@ describe('formatPlan', () => {
 describe('loadNightlyClose', () => {
   beforeEach(() => resetMockDB());
 
+  it('reads today’s Hot & Cold sessions and cleared Avoidance tasks', async () => {
+    addMockDocument('users/u1/lab_hotcold_sessions', 'h1', { id: 'h1', kind: 'cold', date: TODAY, seconds: 120 });
+    addMockDocument('users/u1/lab_avoidance_tasks', 't1', { id: 't1', status: 'done', done_date: TODAY, created_date: TODAY });
+    addMockDocument('users/u1/lab_avoidance_tasks', 't2', { id: 't2', status: 'open', done_date: TODAY, created_date: TODAY });
+    const data = await loadNightlyClose('u1', TODAY);
+    expect(data.rowsToday).toEqual(['hotcold', 'avoidance']);
+    expect(data.win).toMatchObject({ kind: 'logged', rowIds: ['hotcold', 'avoidance'] });
+  });
+
   it("assembles today's sessions, the win, the week and the last nights", async () => {
     addMockDocument('users/u1/completionLogs', 'l1', log('app:workouts', { resistance: 3, keep_going: 2 }));
     addMockDocument('users/u1/completionLogs', 'l2', log('app:meditate', { date: '2026-10-13', resistance: 1 }));
@@ -187,6 +216,7 @@ describe('loadNightlyClose', () => {
     const data = await loadNightlyClose('u1', TODAY);
     expect(data.win).toEqual({ kind: 'hardStart', appId: 'workouts' });
     expect(data.loggedApps).toEqual(['workouts']);
+    expect(data.rowsToday).toEqual([]);
     expect(data.weekCounts).toEqual({ workouts: 1, meditate: 1 });
     expect(data.nights[5]).toEqual({ date: '2026-10-13', grade: 'B' });
     expect(data.tonight).toBeNull();

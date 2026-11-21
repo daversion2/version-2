@@ -1,6 +1,7 @@
 import type { CompletedWorkoutSession, Exercise, SessionBlock, Workout, WorkoutSession } from '../../types/workouts';
 import {
   insteadOfLine,
+  keepSwapPlan,
   markSwapKept,
   permanentSwapOffer,
   sessionSwaps,
@@ -10,7 +11,7 @@ import {
   swapTag,
   withSwapMadePermanent,
 } from '../exerciseSwap';
-import { applySessionToWorkout, canSwapItem, swapItem, swapTarget } from '../workoutSession';
+import { applySessionToWorkout, canSwapItem, swapItem, swapRelogValues, swapTarget } from '../workoutSession';
 
 const ex = (id: string, over: Partial<Exercise> = {}): Exercise => ({
   id,
@@ -108,6 +109,15 @@ describe('swapItem', () => {
   });
 });
 
+describe('swapRelogValues (Done it)', () => {
+  it('carries reps over to a new exercise, and the plan back when swapping back', () => {
+    const item = { exerciseId: 'squat', target: { reps: 8, weightKg: 60 } };
+    expect(swapRelogValues(item, LUNGE, [])).toEqual({ reps: 8 });
+    const swapped = { exerciseId: 'bw_lunge', target: { reps: 8 }, swappedFrom: { exerciseId: 'squat', target: { reps: 8, weightKg: 60 } } };
+    expect(swapRelogValues(swapped, SQUAT, [])).toEqual({ reps: 8, weightKg: 60 });
+  });
+});
+
 describe('saving back to the workout', () => {
   it('puts the original exercise back: a swap is for today only', () => {
     const workout: Workout = {
@@ -147,6 +157,20 @@ describe('swapSuggestions', () => {
 describe('reading swaps afterwards', () => {
   const swappedBlock = block({
     items: [{ exerciseId: 'bw_lunge', target: { reps: 8 }, swappedFrom: { exerciseId: 'squat', target: { reps: 8 }, reason: 'sore' } }],
+    sets: [{ exerciseId: 'bw_lunge', round: 0, at: '', reps: 8 }],
+  });
+
+  it('leaves out a swapped item that was never done (a circuit stopped early)', () => {
+    const circuit = block({
+      type: 'circuit',
+      items: [
+        { exerciseId: 'a', target: {} },
+        { exerciseId: 'c', target: {}, swappedFrom: { exerciseId: 'b', target: {} } },
+      ],
+      sets: [{ exerciseId: 'a', round: 0, at: '', reps: 5 }],
+    });
+    expect(sessionSwaps({ blocks: [circuit] })).toEqual([]);
+    expect(swapTag({ blocks: [circuit] })).toBeNull();
   });
 
   it('lists a session’s swaps and tags it', () => {
@@ -172,6 +196,7 @@ describe('reading swaps afterwards', () => {
 describe('making a swap permanent', () => {
   const swappedBlock = block({
     items: [{ exerciseId: 'bw_lunge', target: { reps: 8 }, swappedFrom: { exerciseId: 'squat', target: { reps: 8 } } }],
+    sets: [{ exerciseId: 'bw_lunge', round: 0, at: '', reps: 8 }],
   });
 
   it('offers it after the same swap two sessions of that workout in a row', () => {
@@ -202,6 +227,23 @@ describe('making a swap permanent', () => {
       updated_at: '',
     };
     expect(applySessionToWorkout(workout, live, new Date()).blocks[0].items[0].exerciseId).toBe('bw_lunge');
+  });
+
+  it('keepSwapPlan changes nothing when the workout no longer has the original there', () => {
+    const live = session([swappedBlock]);
+    const swap = { blockId: 'b1', itemIndex: 0, fromId: 'squat', toId: 'bw_lunge' };
+    const edited: Workout = {
+      id: 'w1',
+      name: 'Leg Day',
+      blocks: [{ id: 'b1', type: 'single', items: [{ exerciseId: 'deadlift', target: {} }], rounds: 3, restSec: 90 }],
+      created_at: '',
+      updated_at: '',
+    };
+    expect(keepSwapPlan(edited, live, swap, new Date())).toBeNull();
+    const intact: Workout = { ...edited, blocks: [{ ...edited.blocks[0], items: [{ exerciseId: 'squat', target: { reps: 8 } }] }] };
+    const plan = keepSwapPlan(intact, live, swap, new Date('2026-11-21T10:00:00Z'))!;
+    expect(plan.workout.blocks[0].items[0].exerciseId).toBe('bw_lunge');
+    expect(plan.session.blocks[0].items[0].swappedFrom?.kept).toBe(true);
   });
 
   it('replaces that slot in the workout', () => {

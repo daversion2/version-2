@@ -16,7 +16,7 @@ import type { RootStackParamList } from '../../types/navigation';
 import { AppRow, FeaturedCard, Panel, PillButton } from './AppStoreParts';
 
 // =============================================================================
-// APPS — browse every app and add one to Today (2026-11-20, admin-only).
+// APPS — browse every app and add one to Today (2026-11-20; everyone since the same day).
 //
 // Featured cards at the top (new apps, then ones not on Today yet), then what's
 // on your Today, what you can add, and the apps that open on their own. "Add"

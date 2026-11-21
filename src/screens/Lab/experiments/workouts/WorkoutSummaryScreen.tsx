@@ -25,7 +25,9 @@ import {
 import { useWorkouts } from './WorkoutsContext';
 import { useFinishWorkout } from './components/useFinishWorkout';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
-import { markSwapKept, permanentSwapOffer, sessionSwaps, swapReasonLabel, withSwapMadePermanent } from '../../../../services/exerciseSwap';
+import { keepSwapPlan, permanentSwapOffer, sessionSwaps, swapReasonLabel } from '../../../../services/exerciseSwap';
+import { withTimeout } from '../../../../utils/withTimeout';
+import { showAlert } from '../../../../utils/alert';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutSummary'>;
 
@@ -62,12 +64,21 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const offer = workout ? permanentSwapOffer({ id: session.id, workout_id: session.workoutId, blocks: doneBlocks }, sessions) : null;
   const keepSwap = async () => {
     if (!offer || !workout || keeping) return;
-    const item = session.blocks.find((b) => b.id === offer.blockId)?.items[offer.itemIndex];
-    if (!item) return;
+    const plan = keepSwapPlan(workout, session, offer, new Date());
+    if (!plan) {
+      showAlert('Couldn’t change the workout', `${workout.name} has changed since you started. Edit it in the builder instead.`);
+      return;
+    }
     setKeeping(true);
     try {
-      await upsertWorkout(withSwapMadePermanent(workout, offer, item.target, new Date()));
-      updateSession(markSwapKept(session, offer.blockId, offer.itemIndex));
+      // Offline, a save only settles once it reaches the server: don't leave the button spinning.
+      await withTimeout(upsertWorkout(plan.workout), 8000);
+      updateSession(plan.session);
+    } catch (e: any) {
+      showAlert(
+        'Couldn’t change the workout',
+        e?.message === 'timeout' ? 'No connection right now. Try again when you’re back online.' : e?.message ?? 'Please try again.'
+      );
     } finally {
       setKeeping(false);
     }

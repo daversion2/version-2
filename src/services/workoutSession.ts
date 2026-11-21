@@ -683,6 +683,22 @@ export const swapItem = (
   };
 };
 
+/**
+ * Done it: the numbers to re-fill a swapped item's sets with. The planned
+ * target when swapping back, else what carries over (swapTarget); then last
+ * time's numbers for the exercise picked, then the default.
+ */
+export const swapRelogValues = (
+  item: BlockItem,
+  picked: Pick<Exercise, 'id' | 'kind'>,
+  sessions: CompletedWorkoutSession[]
+): SetValues => {
+  const planned = item.swappedFrom ?? item;
+  const target = picked.id === planned.exerciseId ? planned.target : swapTarget(picked.kind, planned.target);
+  const last = lastSetsFor(sessions, picked.id);
+  return cleanValues(prescribedValues(picked.kind, target, last[last.length - 1]));
+};
+
 export const blockTitle = (block: WorkoutBlock, exercisesById: Record<string, Exercise>): string =>
   block.items.length > 1
     ? block.name || 'Circuit'

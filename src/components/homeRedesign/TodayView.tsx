@@ -59,7 +59,7 @@ interface Props {
   extraRows?: ExtraRow[];
   /** Apps switched off (services/appSetup.ts): no ring and no row. */
   hiddenApps?: TodayAppId[];
-  /** Opens the Apps screen. Admin-only for now: unset hides the row. */
+  /** Opens the Apps screen (everyone since 2026-11-20). Unset hides the row. */
   onBrowseApps?: () => void;
 }
 

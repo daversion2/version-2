@@ -13,13 +13,11 @@ import {
   estimateWorkoutMinutes,
   fillAsPrescribed,
   roundsDone,
-  prescribedValues,
   setRoundsDone,
   swapItem,
-  swapTarget,
+  swapRelogValues,
   withLoggedTimes,
 } from '../../../../services/workoutSession';
-import { lastSetsFor } from '../../../../services/workoutMath';
 import { insteadOfLine } from '../../../../services/exerciseSwap';
 import { SwapExerciseSheet } from './components/SwapExerciseSheet';
 import { formatSetValues } from '../../../../services/workoutMath';
@@ -211,10 +209,7 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
           const at = swapping;
           setSwapping(null);
           if (!at || !swapItemNow) return;
-          const planned = swapItemNow.swappedFrom ?? swapItemNow;
-          const target = picked.id === planned.exerciseId ? planned.target : swapTarget(picked.kind, planned.target);
-          const last = lastSetsFor(sessions, picked.id);
-          const values = prescribedValues(picked.kind, target, last[last.length - 1]);
+          const values = swapRelogValues(swapItemNow, picked, sessions);
           setSession((s) => s && swapItem(s, at.blockIndex, at.itemIndex, { exercise: picked, reason, values }));
         }}
       />

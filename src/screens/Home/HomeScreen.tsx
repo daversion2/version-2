@@ -527,7 +527,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           nights: nights.map((r) => r.date),
           urges,
           plunges: plunges.map((p) => p.date),
-          cleared: tasks.map((t) => t.done_date),
+          // Same rule as Avoidance Training's own counts: done, with a date.
+          cleared: tasks.filter((t) => t.status === 'done').map((t) => t.done_date),
         });
       } catch (err) {
         console.warn('Reflection check failed:', err);

@@ -29,7 +29,7 @@ import {
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { TestHistoryRows } from './components/TestHistory';
 import { testHistory } from '../../../../services/exerciseTests';
-import { insteadOfLine, sessionSwaps, swappedForLine, swapsAwayFrom } from '../../../../services/exerciseSwap';
+import { insteadOfLine, SessionSwap, sessionSwaps, swappedForLine, swapsAwayFrom } from '../../../../services/exerciseSwap';
 import { testTypeFor } from '../../../../services/trainingPhases';
 import { hasHowTo } from './components/exerciseHowTo';
 import { ExerciseDemoCard } from './components/ExerciseDemoCard';
@@ -72,13 +72,15 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
   const trend = useMemo(() => (ex ? bestSetTrend(sessions, id, ex.kind) : []), [sessions, id, ex?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
   // Swaps (2026-11-20): sessions where this exercise stood in for another, and
   // days it was swapped out for something else.
-  const swapIns = useMemo(
-    () =>
-      new Map(
-        sessions.flatMap((s) => sessionSwaps(s).filter((w) => w.toId === id).map((w) => [s.id, w] as const))
-      ),
-    [sessions, id]
-  );
+  // Session id → the swaps this exercise stood in for there (it can be more than one).
+  const swapIns = useMemo(() => {
+    const map = new Map<string, SessionSwap[]>();
+    for (const s of sessions) {
+      const mine = sessionSwaps(s).filter((w) => w.toId === id);
+      if (mine.length) map.set(s.id, mine);
+    }
+    return map;
+  }, [sessions, id]);
   const swappedIds = useMemo(() => new Set(swapIns.keys()), [swapIns]);
   const swapAways = useMemo(() => (isExercise ? swapsAwayFrom(sessions, id).slice(0, 8) : []), [sessions, id, isExercise]);
   const workoutNameOf = (sessionId: string) => sessions.find((s) => s.id === sessionId)?.workout_name ?? '';
@@ -156,11 +158,11 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
                   <Text style={styles.sets}>
                     {row.line.sets.map((s) => formatSetValues(s, ex!.kind, unit)).join('  ·  ')}
                   </Text>
-                  {swapIns.has(row.line.sessionId) && (
-                    <Text style={styles.swapLine}>
-                      {insteadOfLine(exercise(swapIns.get(row.line.sessionId)!.fromId).name, swapIns.get(row.line.sessionId)!.reason)}
+                  {(swapIns.get(row.line.sessionId) ?? []).map((w) => (
+                    <Text key={`${w.blockId}-${w.itemIndex}`} style={styles.swapLine}>
+                      {insteadOfLine(exercise(w.fromId).name, w.reason)}
                     </Text>
-                  )}
+                  ))}
                 </View>
               )
             )

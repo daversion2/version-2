@@ -73,10 +73,14 @@ export interface SessionSwap {
   reason?: SwapReason;
 }
 
-export const sessionSwaps = (session: { blocks: Pick<SessionBlock, 'id' | 'items'>[] }): SessionSwap[] =>
+/**
+ * A session's swaps that were actually done: the substitute has at least one
+ * set. A swapped item never reached (a circuit stopped early) isn't a swap.
+ */
+export const sessionSwaps = (session: { blocks: Pick<SessionBlock, 'id' | 'items' | 'sets'>[] }): SessionSwap[] =>
   session.blocks.flatMap((b) =>
     b.items.flatMap((item, itemIndex) =>
-      item.swappedFrom
+      item.swappedFrom && b.sets.some((_, k) => k % b.items.length === itemIndex)
         ? [
             {
               blockId: b.id,
@@ -91,7 +95,7 @@ export const sessionSwaps = (session: { blocks: Pick<SessionBlock, 'id' | 'items
   );
 
 /** "1 swap", "2 swaps", or null. */
-export const swapTag = (session: { blocks: Pick<SessionBlock, 'id' | 'items'>[] }): string | null => {
+export const swapTag = (session: { blocks: Pick<SessionBlock, 'id' | 'items' | 'sets'>[] }): string | null => {
   const n = sessionSwaps(session).length;
   return n === 0 ? null : n === 1 ? '1 swap' : `${n} swaps`;
 };
@@ -184,3 +188,26 @@ export const markSwapKept = (session: WorkoutSession, blockId: string, itemIndex
         }
   ),
 });
+
+/** Does the workout still hold the swapped-out exercise in that slot? (Making it permanent needs it to.) */
+export const workoutHasSlot = (workout: Workout, swap: Pick<SessionSwap, 'blockId' | 'itemIndex' | 'fromId'>): boolean =>
+  workout.blocks.find((b) => b.id === swap.blockId)?.items[swap.itemIndex]?.exerciseId === swap.fromId;
+
+/**
+ * "Put X in <workout>": the changed workout and the session with the swap
+ * marked kept, or null when the workout no longer has the original in that
+ * slot (edited meanwhile): then nothing is changed or claimed.
+ */
+export const keepSwapPlan = (
+  workout: Workout,
+  session: WorkoutSession,
+  swap: SessionSwap,
+  now: Date
+): { workout: Workout; session: WorkoutSession } | null => {
+  const item = session.blocks.find((b) => b.id === swap.blockId)?.items[swap.itemIndex];
+  if (!item || item.exerciseId !== swap.toId || !workoutHasSlot(workout, swap)) return null;
+  return {
+    workout: withSwapMadePermanent(workout, swap, item.target, now),
+    session: markSwapKept(session, swap.blockId, swap.itemIndex),
+  };
+};

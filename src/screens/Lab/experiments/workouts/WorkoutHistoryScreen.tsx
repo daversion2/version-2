@@ -9,7 +9,7 @@ import { WorkoutStatsPanel } from './components/WorkoutStatsPanel';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
-import { swapTag, insteadOfLine } from '../../../../services/exerciseSwap';
+import { swapTag, insteadOfLine, sessionSwaps } from '../../../../services/exerciseSwap';
 
 /** One finished session; tap to see its sets. */
 const SessionRow = React.memo(function SessionRow({
@@ -56,14 +56,12 @@ const SessionRow = React.memo(function SessionRow({
                 <Text style={styles.detailTitle}>
                   {multi ? b.name || 'Circuit' : exercise(b.items[0].exerciseId).name}
                 </Text>
-                {b.items
-                  .filter((item) => item.swappedFrom)
-                  .map((item) => (
-                    <Text key={item.exerciseId} style={styles.swapLine}>
-                      {multi ? `${exercise(item.exerciseId).name}: ` : ''}
-                      {insteadOfLine(exercise(item.swappedFrom!.exerciseId).name, item.swappedFrom!.reason)}
-                    </Text>
-                  ))}
+                {sessionSwaps({ blocks: [b] }).map((w) => (
+                  <Text key={`${b.id}-${w.itemIndex}`} style={styles.swapLine}>
+                    {multi ? `${exercise(w.toId).name}: ` : ''}
+                    {insteadOfLine(exercise(w.fromId).name, w.reason)}
+                  </Text>
+                ))}
                 <Text style={ws.muted}>
                   {b.sets
                     .map((set) => {

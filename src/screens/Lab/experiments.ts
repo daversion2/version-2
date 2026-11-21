@@ -102,8 +102,8 @@ export const LAB_EXPERIMENTS = [
       navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
   },
   // Hot & Cold and Avoidance Training left the Lab on 2026-11-20: they open from
-  // Apps (screens/Apps/, data/appCatalog.ts). Still admin-only through
-  // canOpenMiniApp until they join Today. Their ids stay retired: never reuse.
+  // Apps (screens/Apps/, data/appCatalog.ts). Open to everyone, and addable to
+  // Today, since 2026-11-20. Their ids stay retired: never reuse.
 ] as const satisfies readonly LabExperiment[];
 
 /** Typed against the registry, so useLab('typo') fails tsc. */

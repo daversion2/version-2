@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -43,6 +43,18 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
   const [setup, setSetup] = useState<AppSetup | null>(null);
   const [goal, setGoal] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  // A goal change on an app already on Today saves once the taps stop, with
+  // only the latest number, so quick taps can't land out of order. Leaving the
+  // screen still saves a pending change.
+  const goalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingGoalSave = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      if (goalTimer.current) clearTimeout(goalTimer.current);
+      pendingGoalSave.current?.();
+    },
+    []
+  );
 
   const load = useCallback(() => {
     if (!user || !app) return;
@@ -91,11 +103,16 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
   const changeGoal = (next: number) => {
     setGoal(next);
     if (!user || status !== 'onToday') return;
-    // On Today already: the goal is live, so save it as it changes.
-    const saving = row ? saveRowGoal(user.uid, row, next) : todayId ? addAppToToday(user.uid, userProfile, todayId, next) : null;
-    saving
-      ?.then(() => (row ? refreshProfile() : undefined))
-      .catch((e) => showAlert('Couldn’t save the goal', e?.message ?? 'Please try again.'));
+    // On Today already: the goal is live, so save the latest once the taps stop.
+    pendingGoalSave.current = () => {
+      pendingGoalSave.current = null;
+      const saving = row ? saveRowGoal(user.uid, row, next) : todayId ? addAppToToday(user.uid, userProfile, todayId, next) : null;
+      saving
+        ?.then(() => refreshProfile())
+        .catch((e) => showAlert('Couldn’t save the goal', e?.message ?? 'Please try again.'));
+    };
+    if (goalTimer.current) clearTimeout(goalTimer.current);
+    goalTimer.current = setTimeout(() => pendingGoalSave.current?.(), 600);
   };
 
 

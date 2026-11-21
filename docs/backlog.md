@@ -575,6 +575,23 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Code review fixes for this week's work** *(2026-11-21, on the branch, not OTA'd)*
+A review of the 2026-11-20/21 commits found ten issues; all fixed:
+- Close out the day counted only Meditate/Workouts/Meals, so a day with only
+  Craving Crusher, Hot & Cold or Avoidance read as "Nothing logged today" and
+  a bad day. It now reads those too (`rowsActiveToday`, tested).
+- "Put … in <workout>" on the summary: shows an error (and gives up after 8s
+  offline) instead of failing silently, and claims nothing when the workout
+  no longer has the original in that slot (`keepSwapPlan`, tested).
+- Apps' goal stepper saves once the taps stop, so quick taps can't save an
+  older number.
+- Today's Avoidance ring counts only tasks marked done.
+- A swapped item never reached (circuit stopped early) no longer shows as a
+  swap; History keys are unique; an exercise's stats list every swap it
+  stood in for in a session.
+- Done it's swap re-fill moved into a tested service (`swapRelogValues`).
+- Comments that still said Apps, Hot & Cold and Avoidance were admin-only.
+
 **Workouts: swap an exercise for one session** *(2026-11-21, live OTA 1465a4e7, not yet seen on screen)*
 Founder: "my back hurts, bodyweight lunges instead of squats today." Swap
 beside Skip in a live workout (until the first set of it is logged) and per

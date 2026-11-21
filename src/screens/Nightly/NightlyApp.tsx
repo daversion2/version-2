@@ -24,6 +24,7 @@ import {
   NightlyCloseData,
   NightlyWin,
   PLAN_WHENS,
+  RowAppId,
   planFromReflection,
   SessionToday,
   suggestPlanApp,
@@ -51,6 +52,7 @@ import { triggerRewardHaptic } from '../../utils/haptics';
 type Step = 'home' | 'win' | 'grade' | 'plan';
 type IconName = keyof typeof Ionicons.glyphMap;
 const APP_TITLES = (id: TodayAppId) => MINI_APPS[id].title;
+const ROW_TITLES: Record<RowAppId, string> = { craving: 'Craving Crusher', hotcold: 'Hot & Cold', avoidance: 'Avoidance Training' };
 
 const ACCENT = AppColors.nightly;
 const TINT = AppColors.nightly + '1F';
@@ -86,8 +88,10 @@ const winCopy = (win: NightlyWin): { headline: string; body: string } => {
     };
   }
   return {
-    headline:
-      win.appIds.length === 1 ? `You showed up for ${APP_TITLES(win.appIds[0])}.` : `You showed up in ${win.appIds.length} apps today.`,
+    headline: (() => {
+      const names = [...win.appIds.map(APP_TITLES), ...win.rowIds.map((r) => ROW_TITLES[r])];
+      return names.length === 1 ? `You showed up for ${names[0]}.` : `You showed up in ${names.length} apps today.`;
+    })(),
     body: 'Every session is a start you made. That’s the training.',
   };
 };
@@ -130,7 +134,7 @@ export const NightlyApp: React.FC = () => {
   const apps = useMemo(() => (setup ? visibleApps(setup.hidden) : []), [setup]);
   const suggested = data && setup ? suggestPlanApp(apps, data.weekCounts, setup.goals) : null;
   const chosenApp = planApp ?? suggested;
-  const badDay = isBadDay({ grade, loggedToday: data?.loggedApps.length ?? 0 });
+  const badDay = isBadDay({ grade, loggedToday: (data?.loggedApps.length ?? 0) + (data?.rowsToday.length ?? 0) });
   const plan = chosenApp ? appPlan(chosenApp, when, badDay) : null;
   const tonightPlan = planFromReflection(data?.tonight ?? null);
 
@@ -251,11 +255,16 @@ export const NightlyApp: React.FC = () => {
             </View>
           </View>
           <View style={styles.cardFoot}>
-            {data.sessions.length > 0 || data.loggedApps.includes('meals') ? (
+            {data.loggedApps.length + data.rowsToday.length > 0 ? (
               <View style={styles.chips}>
                 {data.loggedApps.map((id) => (
                   <Text key={id} style={styles.chip}>
                     {APP_TITLES(id)}
+                  </Text>
+                ))}
+                {data.rowsToday.map((id) => (
+                  <Text key={id} style={styles.chip}>
+                    {ROW_TITLES[id]}
                   </Text>
                 ))}
               </View>
