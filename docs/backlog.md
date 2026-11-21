@@ -23,6 +23,16 @@ How to use it:
 
 ## Now
 
+**Check exercise swaps on screen** *(added 2026-11-21)*
+Built, not seen running (see Done). In a live workout: Swap beside Skip
+before the first set (gone once a set is logged), the sheet (reason chips,
+suggestions, Search all exercises, "Back to …" when already swapped), the
+"Instead of …" line under the name. Done it: the swap row per exercise
+re-fills its sets. Afterwards: "1 swap" on History, the hollow dot and
+legend on the substitute's Best set chart, "Swapped for …" in the original's
+Recent sessions, and after the same swap twice in a row, "Put … in <workout>"
+on the summary. Ask before `ui-verify`.
+
 **Check Close out the day and Craving Crusher on screen** *(added 2026-11-20)*
 Both became their own apps (see Done); nobody has seen them running. Close out
 the day: Today's row opens its home (tonight, tomorrow's plan, last 7 nights,
@@ -564,6 +574,25 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workouts: swap an exercise for one session** *(2026-11-21, on the branch, not OTA'd, not yet seen on screen)*
+Founder: "my back hurts, bodyweight lunges instead of squats today." Swap
+beside Skip in a live workout (until the first set of it is logged) and per
+exercise in Done it. A sheet offers an optional reason (Sore or hurt / No
+equipment / Gym busy / Just felt like it), suggestions (same body part,
+bodyweight, recent; `swapSuggestions`) and the full picker. Stored on the
+session's copy only (`BlockItem.swappedFrom`: the planned exercise, its
+target, the reason); the saved workout never changes, and "Save changes"
+puts the original back. Sets are logged under the exercise done, so its
+history and records are real; the original has no sets that day, so its
+trend, "last time" numbers and step-ups skip the session on their own.
+Marked on the exercise: hollow dots on the substitute's Best set chart,
+"Instead of …" / "Swapped for …" lines in each one's Recent sessions, a
+"1 swap" tag on History, and today's swaps on the summary. The same swap
+two sessions of a workout in a row offers "Put … in <workout>"
+(`permanentSwapOffer`, `withSwapMadePermanent`, `markSwapKept`). Logic in
+`services/exerciseSwap.ts` and `swapItem` in `services/workoutSession.ts`
+(tested).
 
 **Apps for everyone; Hot & Cold and Avoidance Training out of the Lab** *(2026-11-20, live OTA fb0b5aaa, not yet seen on screen)*
 Founder: everyone sees Apps (Today → Browse apps, Settings → Browse apps),

@@ -13,9 +13,15 @@ import {
   estimateWorkoutMinutes,
   fillAsPrescribed,
   roundsDone,
+  prescribedValues,
   setRoundsDone,
+  swapItem,
+  swapTarget,
   withLoggedTimes,
 } from '../../../../services/workoutSession';
+import { lastSetsFor } from '../../../../services/workoutMath';
+import { insteadOfLine } from '../../../../services/exerciseSwap';
+import { SwapExerciseSheet } from './components/SwapExerciseSheet';
 import { formatSetValues } from '../../../../services/workoutMath';
 import { formatRelativeDay, getEditableDates } from '../../../../utils/date';
 import { Stepper } from '../../../../components/common/Stepper';
@@ -53,6 +59,9 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
       : null
   );
   const [editing, setEditing] = useState<{ blockIndex: number; setIndex: number } | null>(null);
+  // "Swap for today" on one item (2026-11-20): its filled-in sets are re-prescribed for the new exercise.
+  const [swapping, setSwapping] = useState<{ blockIndex: number; itemIndex: number } | null>(null);
+  const swapItemNow = swapping && session ? session.blocks[swapping.blockIndex]?.items[swapping.itemIndex] : undefined;
 
   useLayoutEffect(() => {
     navigation.setOptions({ title: workout?.name ?? '' });
@@ -139,6 +148,22 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
                   tint={WORKOUTS_ACCENT}
                 />
               </View>
+              {block.items.map((item, ii) => (
+                <TouchableOpacity
+                  key={`swap-${ii}`}
+                  style={[styles.row, styles.swapRow, ws.separator]}
+                  onPress={() => setSwapping({ blockIndex: bi, itemIndex: ii })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Swap ${exercise(item.exerciseId).name} for today`}
+                >
+                  <Ionicons name="swap-horizontal" size={16} color={WORKOUTS_ACCENT} />
+                  <Text style={[ws.link, { flex: 1 }]} numberOfLines={1}>
+                    {item.swappedFrom
+                      ? `${exercise(item.exerciseId).name} · ${insteadOfLine(exercise(item.swappedFrom.exerciseId).name, item.swappedFrom.reason)}`
+                      : `Swap ${exercise(item.exerciseId).name}`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
               {block.sets.map((set, si) => {
                 const ex = exercise(set.exerciseId);
                 const firstOfRound = si % block.items.length === 0;
@@ -177,6 +202,23 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
         </Text>
       </View>
 
+      <SwapExerciseSheet
+        visible={!!swapItemNow}
+        planned={swapItemNow ? exercise(swapItemNow.swappedFrom?.exerciseId ?? swapItemNow.exerciseId) : null}
+        current={swapItemNow ? exercise(swapItemNow.exerciseId) : null}
+        onCancel={() => setSwapping(null)}
+        onPick={(picked, reason) => {
+          const at = swapping;
+          setSwapping(null);
+          if (!at || !swapItemNow) return;
+          const planned = swapItemNow.swappedFrom ?? swapItemNow;
+          const target = picked.id === planned.exerciseId ? planned.target : swapTarget(picked.kind, planned.target);
+          const last = lastSetsFor(sessions, picked.id);
+          const values = prescribedValues(picked.kind, target, last[last.length - 1]);
+          setSession((s) => s && swapItem(s, at.blockIndex, at.itemIndex, { exercise: picked, reason, values }));
+        }}
+      />
+
       <SetEntrySheet
         visible={!!editingSet}
         exercise={editingSet ? exercise(editingSet.exerciseId) : undefined}
@@ -204,6 +246,7 @@ const styles = StyleSheet.create({
   muted: { color: Colors.gray },
   roundLabel: { ...TextStyles.footnote, color: Colors.gray, paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
   setRow: { paddingHorizontal: Spacing.md, minHeight: 44 },
+  swapRow: { paddingHorizontal: Spacing.md, minHeight: 40 },
   value: { ...TextStyles.subhead, color: Colors.dark, fontVariant: ['tabular-nums'] },
   footerNote: { textAlign: 'center' },
 });

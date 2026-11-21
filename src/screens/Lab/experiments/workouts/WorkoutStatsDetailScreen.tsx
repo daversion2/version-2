@@ -29,6 +29,7 @@ import {
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { TestHistoryRows } from './components/TestHistory';
 import { testHistory } from '../../../../services/exerciseTests';
+import { insteadOfLine, sessionSwaps, swappedForLine, swapsAwayFrom } from '../../../../services/exerciseSwap';
 import { testTypeFor } from '../../../../services/trainingPhases';
 import { hasHowTo } from './components/exerciseHowTo';
 import { ExerciseDemoCard } from './components/ExerciseDemoCard';
@@ -69,6 +70,24 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
   // too few to show a direction.
   const testsOf = useMemo(() => (ex ? testHistory(ex, tests, phases) : []), [ex, tests, phases]);
   const trend = useMemo(() => (ex ? bestSetTrend(sessions, id, ex.kind) : []), [sessions, id, ex?.kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Swaps (2026-11-20): sessions where this exercise stood in for another, and
+  // days it was swapped out for something else.
+  const swapIns = useMemo(
+    () =>
+      new Map(
+        sessions.flatMap((s) => sessionSwaps(s).filter((w) => w.toId === id).map((w) => [s.id, w] as const))
+      ),
+    [sessions, id]
+  );
+  const swappedIds = useMemo(() => new Set(swapIns.keys()), [swapIns]);
+  const swapAways = useMemo(() => (isExercise ? swapsAwayFrom(sessions, id).slice(0, 8) : []), [sessions, id, isExercise]);
+  const workoutNameOf = (sessionId: string) => sessions.find((s) => s.id === sessionId)?.workout_name ?? '';
+  const recentRows = [
+    ...recent.map((line) => ({ kind: 'done' as const, at: line.finishedAt, line })),
+    ...swapAways.map((away) => ({ kind: 'away' as const, at: away.finishedAt, away })),
+  ]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 8);
 
   return (
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
@@ -84,7 +103,7 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
 
       {isExercise ? (
         <>
-          {ex && trend.length >= 2 && <TrendChart points={trend} kind={ex.kind} unit={unit} />}
+          {ex && trend.length >= 2 && <TrendChart points={trend} kind={ex.kind} unit={unit} swappedIds={swappedIds} />}
 
           {records_.length > 0 && (
             <>
@@ -116,20 +135,35 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
           )}
 
           <Text style={ws.sectionLabel}>Recent sessions</Text>
-          {recent.length === 0 ? (
+          {recentRows.length === 0 ? (
             <Text style={ws.muted}>Not logged yet.</Text>
           ) : (
-            recent.map((line) => (
-              <View key={line.sessionId} style={ws.card}>
-                <Text style={ws.title}>
-                  {formatDayHeader(toLocalDateString(new Date(line.finishedAt)))}
-                  <Text style={ws.muted}>  {line.workoutName}</Text>
-                </Text>
-                <Text style={styles.sets}>
-                  {line.sets.map((s) => formatSetValues(s, ex!.kind, unit)).join('  ·  ')}
-                </Text>
-              </View>
-            ))
+            recentRows.map((row) =>
+              row.kind === 'away' ? (
+                <View key={`away-${row.away.sessionId}`} style={ws.card}>
+                  <Text style={ws.title}>
+                    {formatDayHeader(toLocalDateString(new Date(row.away.finishedAt)))}
+                    <Text style={ws.muted}>  {workoutNameOf(row.away.sessionId)}</Text>
+                  </Text>
+                  <Text style={styles.swapLine}>{swappedForLine(exercise(row.away.toId).name, row.away.reason)}</Text>
+                </View>
+              ) : (
+                <View key={row.line.sessionId} style={ws.card}>
+                  <Text style={ws.title}>
+                    {formatDayHeader(toLocalDateString(new Date(row.line.finishedAt)))}
+                    <Text style={ws.muted}>  {row.line.workoutName}</Text>
+                  </Text>
+                  <Text style={styles.sets}>
+                    {row.line.sets.map((s) => formatSetValues(s, ex!.kind, unit)).join('  ·  ')}
+                  </Text>
+                  {swapIns.has(row.line.sessionId) && (
+                    <Text style={styles.swapLine}>
+                      {insteadOfLine(exercise(swapIns.get(row.line.sessionId)!.fromId).name, swapIns.get(row.line.sessionId)!.reason)}
+                    </Text>
+                  )}
+                </View>
+              )
+            )
           )}
         </>
       ) : view.exercises.length === 0 ? (
@@ -159,4 +193,5 @@ const styles = StyleSheet.create({
   testLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
   record: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
   sets: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: Spacing.xs, lineHeight: 20 },
+  swapLine: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: WORKOUTS_ACCENT, marginTop: Spacing.xs },
 });

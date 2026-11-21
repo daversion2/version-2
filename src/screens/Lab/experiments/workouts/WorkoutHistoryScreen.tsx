@@ -9,6 +9,7 @@ import { WorkoutStatsPanel } from './components/WorkoutStatsPanel';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
+import { swapTag, insteadOfLine } from '../../../../services/exerciseSwap';
 
 /** One finished session; tap to see its sets. */
 const SessionRow = React.memo(function SessionRow({
@@ -35,6 +36,7 @@ const SessionRow = React.memo(function SessionRow({
             {s.logged_sets ? '' : `${formatSeconds(s.duration_sec)} · `}
             {s.total_sets} sets
             {s.total_volume_kg > 0 ? ` · ${formatVolume(s.total_volume_kg, unit)}` : ''}
+            {swapTag(s) ? ` · ${swapTag(s)}` : ''}
           </Text>
         </View>
         {s.prs.length > 0 && (
@@ -54,6 +56,14 @@ const SessionRow = React.memo(function SessionRow({
                 <Text style={styles.detailTitle}>
                   {multi ? b.name || 'Circuit' : exercise(b.items[0].exerciseId).name}
                 </Text>
+                {b.items
+                  .filter((item) => item.swappedFrom)
+                  .map((item) => (
+                    <Text key={item.exerciseId} style={styles.swapLine}>
+                      {multi ? `${exercise(item.exerciseId).name}: ` : ''}
+                      {insteadOfLine(exercise(item.swappedFrom!.exerciseId).name, item.swappedFrom!.reason)}
+                    </Text>
+                  ))}
                 <Text style={ws.muted}>
                   {b.sets
                     .map((set) => {
@@ -171,6 +181,7 @@ const styles = StyleSheet.create({
   prBadgeText: { fontFamily: Fonts.secondaryBold, fontSize: 11, color: Colors.white },
   detail: { marginTop: Spacing.md, gap: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.lightGray },
   detailTitle: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: Colors.dark },
+  swapLine: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: WORKOUTS_ACCENT },
   recordRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   recordValue: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT, textAlign: 'right' },
 });

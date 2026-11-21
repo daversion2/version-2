@@ -31,6 +31,8 @@ import {
   roundsDone,
   setsTodayFor,
   skipBlock,
+  canSwapItem,
+  swapItem,
   skipRest,
   slotSets,
   startClock,
@@ -63,6 +65,8 @@ import { RestSheet, REST_SHEET_HEIGHT } from './components/RestSheet';
 import { useRestBell } from './useRestBell';
 import { ExercisePickerModal } from './components/ExercisePickerModal';
 import { ExerciseEditorModal } from './components/ExerciseEditorModal';
+import { SwapExerciseSheet } from './components/SwapExerciseSheet';
+import { insteadOfLine } from '../../../../services/exerciseSwap';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutSession'>;
@@ -90,6 +94,8 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
 
   const [values, setValues] = useState<SetValues>({});
   const [picking, setPicking] = useState(false);
+  // "Swap for today" on the current exercise (2026-11-20).
+  const [swapping, setSwapping] = useState(false);
   const [holdRunning, setHoldRunning] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [editingCues, setEditingCues] = useState(false);
@@ -343,6 +349,11 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.exerciseName} accessibilityRole="header">
                 {ex.name}
               </Text>
+              {pos.item.swappedFrom && (
+                <Text style={styles.swapNote}>
+                  {insteadOfLine(exercise(pos.item.swappedFrom.exerciseId).name, pos.item.swappedFrom.reason)}
+                </Text>
+              )}
               {ex.kind === 'distance' && !!ex.distanceM && (
                 <Text style={styles.lastTime}>{formatDistance(ex.distanceM)} · lower is better</Text>
               )}
@@ -570,6 +581,17 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons name="play-skip-forward-outline" size={16} color={WORKOUTS_ACCENT} />
                 <Text style={styles.actionText}>Skip</Text>
               </TouchableOpacity>
+              {canSwapItem(session, pos.blockIndex, pos.itemIndex) && (
+                <TouchableOpacity
+                  style={styles.action}
+                  onPress={() => setSwapping(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Swap ${ex.name} for today`}
+                >
+                  <Ionicons name="swap-horizontal" size={16} color={WORKOUTS_ACCENT} />
+                  <Text style={styles.actionText}>Swap</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         ) : session.blocks.length === 0 ? (
@@ -678,6 +700,17 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
         onClose={() => setEditingCues(false)}
       />
 
+      <SwapExerciseSheet
+        visible={swapping && !!pos}
+        planned={pos ? exercise(pos.item.swappedFrom?.exerciseId ?? pos.item.exerciseId) : null}
+        current={ex}
+        onCancel={() => setSwapping(false)}
+        onPick={(picked, reason) => {
+          setSwapping(false);
+          if (pos) updateSession(swapItem(session, pos.blockIndex, pos.itemIndex, { exercise: picked, reason }));
+        }}
+      />
+
       <ExercisePickerModal
         visible={picking}
         title="Add to this workout"
@@ -718,6 +751,7 @@ const styles = StyleSheet.create({
   finishText: { ...TextStyles.headline, color: WORKOUTS_ACCENT },
 
   current: { gap: 18 },
+  swapNote: { ...TextStyles.footnote, fontWeight: '600', color: WORKOUTS_ACCENT },
   empty: { gap: Spacing.md, padding: Spacing.lg, alignItems: 'center' },
   wide: { alignSelf: 'stretch' },
   eyebrow: { ...TextStyles.footnote, fontWeight: '600', color: Colors.gray, paddingHorizontal: 4, marginBottom: -Spacing.sm },

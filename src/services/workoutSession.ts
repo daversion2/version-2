@@ -8,6 +8,7 @@ import {
   PersonalRecord,
   SessionBlock,
   SetValues,
+  SwapReason,
   Workout,
   WeightUnit,
   WorkoutBlock,
@@ -62,8 +63,13 @@ const cleanValues = (values: SetValues): SetValues => {
   return out;
 };
 
+/** The items as planned: a swap made for one session goes back to the original. */
 const cloneItems = (items: BlockItem[]): BlockItem[] =>
-  items.map((i) => ({ exerciseId: i.exerciseId, target: cleanValues(i.target) }));
+  items.map((i) =>
+    i.swappedFrom && !i.swappedFrom.kept
+      ? { exerciseId: i.swappedFrom.exerciseId, target: cleanValues(i.swappedFrom.target) }
+      : { exerciseId: i.exerciseId, target: cleanValues(i.target) }
+  );
 
 const toSessionBlock = (block: WorkoutBlock, added = false): SessionBlock => ({
   id: block.id,
@@ -599,6 +605,83 @@ export const workoutFromSession = (
   created_at: opts.now.toISOString(),
   updated_at: opts.now.toISOString(),
 });
+
+// --- Swapping an exercise for one session (2026-11-20) ---------------------------
+//
+// "My back hurts, lunges instead of squats today." The swap lives on the
+// session's copy of the block (BlockItem.swappedFrom); the saved workout never
+// changes unless the person makes it permanent. Sets are logged under the
+// exercise actually done, so its history and records are real, and the
+// original simply has no sets that day: its trend, "last time" numbers and
+// step-ups skip the session on their own.
+
+/** What a swap's new target keeps: reps or seconds carry over; weight never does (another exercise). */
+export const swapTarget = (kind: Exercise['kind'], planned: SetValues): SetValues => {
+  switch (kind) {
+    case 'weight':
+    case 'reps':
+      return typeof planned.reps === 'number' ? { reps: planned.reps } : {};
+    case 'time':
+    case 'cardio':
+      return typeof planned.seconds === 'number' ? { seconds: planned.seconds } : {};
+    case 'distance':
+      return {};
+  }
+};
+
+/**
+ * A live session can swap an item until a set of it is logged: logged sets
+ * were done as the original. Done it (`relog`) can always swap: its sets are
+ * filled in as prescribed and get re-prescribed for the new exercise.
+ */
+export const canSwapItem = (session: WorkoutSession, blockIndex: number, itemIndex: number, relog = false): boolean => {
+  const block = session.blocks[blockIndex];
+  if (!block || !block.items[itemIndex]) return false;
+  return relog || slotSets(block, itemIndex).length === 0;
+};
+
+/**
+ * Swap one item of one block for today. Swapping back to the planned
+ * exercise undoes the swap. `values` (Done it) re-prescribes the item's sets
+ * already filled in; without it, the item must have none (canSwapItem).
+ */
+export const swapItem = (
+  session: WorkoutSession,
+  blockIndex: number,
+  itemIndex: number,
+  opts: { exercise: Pick<Exercise, 'id' | 'kind'>; reason?: SwapReason; values?: SetValues }
+): WorkoutSession => {
+  const block = session.blocks[blockIndex];
+  const item = block?.items[itemIndex];
+  if (!block || !item) return session;
+  const planned = item.swappedFrom ?? { exerciseId: item.exerciseId, target: item.target };
+  const next: BlockItem =
+    opts.exercise.id === planned.exerciseId
+      ? { exerciseId: planned.exerciseId, target: cleanValues(planned.target) }
+      : {
+          exerciseId: opts.exercise.id,
+          target: swapTarget(opts.exercise.kind, planned.target),
+          swappedFrom: {
+            exerciseId: planned.exerciseId,
+            target: cleanValues(planned.target),
+            ...(opts.reason ? { reason: opts.reason } : {}),
+          },
+        };
+  const items = block.items.map((it, i) => (i === itemIndex ? next : it));
+  const sets = opts.values
+    ? block.sets.map((s, k) =>
+        k % block.items.length === itemIndex
+          ? { exerciseId: next.exerciseId, round: s.round, at: s.at, ...cleanValues(opts.values!) }
+          : s
+      )
+    : block.sets;
+  return {
+    ...session,
+    blocks: session.blocks.map((b, i) =>
+      i === blockIndex ? { ...b, items, sets } : b
+    ),
+  };
+};
 
 export const blockTitle = (block: WorkoutBlock, exercisesById: Record<string, Exercise>): string =>
   block.items.length > 1

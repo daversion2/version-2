@@ -25,6 +25,7 @@ import {
 import { useWorkouts } from './WorkoutsContext';
 import { useFinishWorkout } from './components/useFinishWorkout';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
+import { markSwapKept, permanentSwapOffer, sessionSwaps, swapReasonLabel, withSwapMadePermanent } from '../../../../services/exerciseSwap';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutSummary'>;
 
@@ -32,7 +33,8 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { session, updateSession, exercise, exercisesById, prefs, records, workouts } = useWorkouts();
+  const { session, updateSession, exercise, exercisesById, prefs, records, workouts, sessions, upsertWorkout } = useWorkouts();
+  const [keeping, setKeeping] = useState(false);
   const { saving, finish: finishWorkout } = useFinishWorkout();
   // The unit the sets were entered in, even if prefs didn't load this time.
   const unit = session?.unit ?? prefs.unit;
@@ -55,6 +57,21 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const changes = planChanges(session);
   const baselines = Object.keys(touched).filter((id) => !records[id]).length;
   const doneBlocks = session.blocks.filter((b) => b.sets.length > 0);
+  // Swaps today (2026-11-20), and whether one has repeated enough to offer keeping it.
+  const swaps = sessionSwaps({ blocks: doneBlocks });
+  const offer = workout ? permanentSwapOffer({ id: session.id, workout_id: session.workoutId, blocks: doneBlocks }, sessions) : null;
+  const keepSwap = async () => {
+    if (!offer || !workout || keeping) return;
+    const item = session.blocks.find((b) => b.id === offer.blockId)?.items[offer.itemIndex];
+    if (!item) return;
+    setKeeping(true);
+    try {
+      await upsertWorkout(withSwapMadePermanent(workout, offer, item.target, new Date()));
+      updateSession(markSwapKept(session, offer.blockId, offer.itemIndex));
+    } finally {
+      setKeeping(false);
+    }
+  };
 
   const finish = () =>
     finishWorkout(session, {
@@ -95,6 +112,46 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.statLabel}>Moved</Text>
           </View>
         </View>
+
+        {swaps.length > 0 && (
+          <View style={ws.panel}>
+            {swaps.map((w, i) => {
+              const kept = !!session.blocks.find((b) => b.id === w.blockId)?.items[w.itemIndex]?.swappedFrom?.kept;
+              return (
+                <View key={`${w.blockId}-${w.itemIndex}`} style={[styles.swapRow, i < swaps.length - 1 && ws.separator]}>
+                  <Ionicons name="swap-horizontal" size={18} color={WORKOUTS_ACCENT} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={ws.title}>
+                      {exercise(w.toId).name} instead of {exercise(w.fromId).name}
+                    </Text>
+                    <Text style={ws.muted}>
+                      {[swapReasonLabel(w.reason), kept ? `Now part of ${workout?.name ?? 'the workout'}` : 'Just today'].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {offer && workout && (
+          <View style={[ws.card, styles.offer]}>
+            <Text style={ws.title}>
+              {exercise(offer.toId).name} instead of {exercise(offer.fromId).name}, again
+            </Text>
+            <Text style={ws.body}>
+              That’s {exercise(offer.fromId).name} swapped out the last two times you did {workout.name}. Make the swap permanent?
+            </Text>
+            <TouchableOpacity
+              style={[ws.secondaryBtn, keeping && ws.disabled]}
+              onPress={keepSwap}
+              disabled={keeping}
+              accessibilityRole="button"
+            >
+              <Text style={ws.secondaryBtnText}>Put {exercise(offer.toId).name} in {workout.name}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {prs.length > 0 && (
           <View style={ws.panel} accessibilityLabel={plural(prs.length, 'new record', 'new records')}>
@@ -243,6 +300,8 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  swapRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Spacing.md, paddingVertical: 12 },
+  offer: { gap: Spacing.sm },
   hero: { alignItems: 'center', gap: 6, paddingTop: Spacing.xl },
   badge: {
     width: 56,

@@ -68,9 +68,24 @@ export interface SetValues {
   zone?: CardioZone;
 }
 
+/** Why an exercise was swapped for one session. Optional, one tap. */
+export type SwapReason = 'sore' | 'equipment' | 'busy' | 'preference';
+
 export interface BlockItem {
   exerciseId: string;
   target: SetValues;
+  /**
+   * Set on a session's copy only: this item was swapped for today (2026-11-20).
+   * `exerciseId` is what was done; this is what the workout planned. Saved
+   * workouts never carry it, and "Save changes" puts the original back.
+   */
+  swappedFrom?: {
+    exerciseId: string;
+    target: SetValues;
+    reason?: SwapReason;
+    /** Made permanent from the summary: the workout now has the new exercise, so saving keeps it. */
+    kept?: true;
+  };
 }
 
 /**

@@ -174,11 +174,13 @@ const FLOOR_ROOM = 16;
  * mile sits higher — and the axis says the real numbers. No zero line: what
  * matters is 60 → 70 kg, which bars from zero would flatten.
  */
-export const TrendChart: React.FC<{ points: TrendPoint[]; kind: ExerciseKind; unit: WeightUnit }> = ({
-  points,
-  kind,
-  unit,
-}) => {
+export const TrendChart: React.FC<{
+  points: TrendPoint[];
+  kind: ExerciseKind;
+  unit: WeightUnit;
+  /** Sessions where this exercise was done as a swap for another (2026-11-20): drawn hollow. */
+  swappedIds?: ReadonlySet<string>;
+}> = ({ points, kind, unit, swappedIds }) => {
   const last = points.length - 1;
   const [selected, setSelected] = useState(last);
   useEffect(() => setSelected(last), [last]);
@@ -208,6 +210,7 @@ export const TrendChart: React.FC<{ points: TrendPoint[]; kind: ExerciseKind; un
         {sel && (
           <Text style={styles.readout}>
             {dateOf(sel)} · {formatTrendPoint(sel, kind, unit)}
+            {swappedIds?.has(sel.sessionId) ? ' · as a swap' : ''}
           </Text>
         )}
       </View>
@@ -223,7 +226,7 @@ export const TrendChart: React.FC<{ points: TrendPoint[]; kind: ExerciseKind; un
               style={styles.barSlot}
               onPress={() => setSelected(i)}
               accessibilityRole="button"
-              accessibilityLabel={`${dateOf(p)}: ${formatTrendPoint(p, kind, unit)}`}
+              accessibilityLabel={`${dateOf(p)}: ${formatTrendPoint(p, kind, unit)}${swappedIds?.has(p.sessionId) ? ', done as a swap' : ''}`}
               hitSlop={{ top: 8, bottom: 8 }}
             >
               <View
@@ -231,6 +234,7 @@ export const TrendChart: React.FC<{ points: TrendPoint[]; kind: ExerciseKind; un
                   styles.dot,
                   { bottom: heightOf(p.value) },
                   i === last && styles.dotLatest,
+                  swappedIds?.has(p.sessionId) && styles.dotSwapped,
                   i === selected && styles.dotSelected,
                 ]}
               />
@@ -246,6 +250,12 @@ export const TrendChart: React.FC<{ points: TrendPoint[]; kind: ExerciseKind; un
           </Text>
         ))}
       </View>
+      {points.some((p) => swappedIds?.has(p.sessionId)) && (
+        <View style={styles.swapLegend}>
+          <View style={[styles.dot, styles.dotSwapped, styles.legendDot]} />
+          <Text style={ws.muted}>Done as a swap for another exercise</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -345,6 +355,9 @@ const styles = StyleSheet.create({
     backgroundColor: WORKOUTS_ACCENT + '66',
   },
   dotLatest: { backgroundColor: WORKOUTS_ACCENT },
+  dotSwapped: { backgroundColor: Colors.white, borderWidth: 2, borderColor: WORKOUTS_ACCENT },
+  swapLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.sm },
+  legendDot: { position: 'relative', left: 0, marginLeft: 0 },
   dotSelected: { borderWidth: 2, borderColor: Colors.dark },
   axisLabel: { flex: 1, textAlign: 'center', fontFamily: Fonts.secondary, fontSize: 9, color: Colors.gray },
   axisLabelOn: { fontFamily: Fonts.secondaryBold, color: Colors.dark },
