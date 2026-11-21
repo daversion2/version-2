@@ -273,6 +273,118 @@ and uncomment them to fix it.
 
 ## Next (pre-launch)
 
+**Full-codebase review: 36 verified findings, in three batches** *(added 2026-11-21)*
+Ten agents reviewed the codebase in five areas; a skeptic per area tried to
+refute each finding, and 5 were thrown out. Security came out clean: no way
+to make yourself admin, every client collection has a rule, deleteAccount
+covers `users/**`, `composeUsage` and Storage, no API keys in the repo. Line
+numbers are as of commit 2820450.
+
+*Batch 1: data a user can lose (do first)*
+- **Meals overwrites a day after a failed load** (`meals/MealsContext.tsx:103`).
+  `reload()` puts habits and the week's days in one `Promise.all`; if either
+  fails, `days={}` and prefs are defaults, yet logging is still allowed, and
+  the save replaces the real day (and prefs) with only the new plate. Fix:
+  `Promise.allSettled` like MeditateContext, a `loaded` flag, block day/prefs
+  writes until loaded.
+- **Meals: a past day left open across the Monday rollover shows empty, and
+  editing it overwrites the doc** (`meals/MealsContext.tsx:149`). `dayFor`
+  only looks in this week's `days`. Fix: look in `pastDays` too, or pop the
+  Meals stack when `today` changes; never save a day not loaded.
+- **Meals close screen follows the context's `today`**
+  (`meals/MealsCloseScreen.tsx:38`): resumed after midnight, it closes the
+  new empty day and yesterday is never closed. Fix: pass the date as a route
+  param fixed when the screen opens.
+- **Close out the day across midnight saves to the next day**
+  (`screens/Nightly/NightlyApp.tsx:106`, `services/nightlyClose.ts:267`).
+  `today` is recomputed each render, so the flow reloads and saves under
+  tomorrow; the plan never shows and the night reads as skipped. Fix: freeze
+  the day when the flow starts; consider an "evening day" helper (before
+  04:00 counts as yesterday) in `utils/date.ts`.
+- **Workouts: starting a phase after a failed load** overwrites edited
+  template workouts and can create a second active phase
+  (`workouts/PhaseSetupScreen.tsx:81`). Fix: `await ensureLoaded()` first;
+  hide Phases while `loadError`.
+- **Workouts: retrying Finish after a timed-out save erases the new PRs**
+  from the saved session (`workouts/components/useFinishWorkout.ts:55`): the
+  retry compares against records that already include it. Fix: keep the
+  first attempt's PRs on the draft and reuse them.
+- **Rating sheet can be dismissed mid-save** and a failed save loses the
+  rating (`homeRedesign/RateSheet.tsx:141`). Fix: ignore backdrop/close
+  while saving, or keep the target so it can reopen.
+- **Avoidance can import the old list again** when the main load failed,
+  duplicating tasks (`avoidance/AvoidanceContext.tsx:166`). Fix: hide the
+  import offer until a load succeeds.
+
+*Batch 2: numbers that come out wrong*
+- **Close out the day counts ratings, not sessions** (`nightlyClose.ts:182`,
+  `isPlanDone` ~261): "N of goal", the plan suggestion and "plan done"
+  disagree with Today's rings (unrated meals, a cancelled rating sheet). Fix:
+  share Today's counts (`buildHomeDashboard` rings / `perApp`).
+- **Stored streak is cut to the loaded window** (`homeDashboard.ts:602`):
+  Meals loads 90 days and check-ins 120, so a longer streak is rewritten
+  shorter. Fix: never lower it when the run reaches the oldest loaded day
+  (treat the edge as unknown), or load back past `currentStreak`.
+- **Craving Crusher raises the streak and can fire a milestone**
+  (`cravings.ts:86`, `updateWillpowerStats`), then the next day's sync resets
+  it. Fix: award XP with `adjustWillpowerPoints` only, or count Craving
+  Crusher in `activeDays` (a product call).
+- **Deleting a check-in rewrites the streak from completion logs only**
+  (`progress.ts:257`). Fix: skip `recalculateUserStats` for `app:` logs.
+- **Progress counts a session rated after midnight on two days**
+  (`progress.ts:524`, `appSessionsByDay` drops session-id pairing). Fix: use
+  `ratingRefs` like `buildHomeDashboard`, plus a test.
+- **Craving pings scheduled after they were cancelled** fire after the ride
+  ends, the first time permission is asked (`CravingCrusherScreen.tsx:256`).
+  Fix: after the await, cancel the ids if the screen left 'away'.
+- **`logCravingSession` isn't atomic** (`cravings.ts:78`): a failure after
+  the craving log is written invites a retry that logs it twice. Fix:
+  best-effort XP after the log, or a client-made id.
+- **Overlapping Today loads can drop a just-made rating**
+  (`HomeScreen.tsx:476`). Fix: a load sequence ref, latest wins.
+- **Meals catch-up marked as asked before it can be shown**
+  (`HomeScreen.tsx:636`): a Workouts rating sheet at the same time swallows
+  it. Fix: stamp `handed_off_at` only when it's actually shown.
+- **Workouts: a session started before prefs load has no unit**
+  (`WorkoutsContext.tsx:467`), so a kg user's weights can be read as lb.
+  Fix: cache the unit on the device and stamp every new session.
+- **Workouts: editing a set rebuilds records from this device's loaded
+  sessions only** (`weeklyVolume.ts:525`), and logged sets rewrite today's
+  `log_<date>` doc from a possibly stale copy (`WorkoutsContext.tsx:557`).
+  Multi-device only. Fix: re-read before rebuilding / building on it.
+
+*Batch 3: later (performance, cost, polish)*
+- **Load sizes grow with history:** Today re-reads up to ~1,500 docs per
+  focus (`homeDashboardLoad.ts:40`) with no staleness check
+  (`HomeScreen.tsx:551`); Workouts reads up to 5,000 sessions per open
+  (`WorkoutsContext.tsx:244`); Meditate and Hot & Cold read everything
+  (`labMeditate.ts`, `labHotCold.ts`); Progress reads all completion logs
+  (`ProgressRedesignScreen.tsx:83`); each ride reads all craving logs
+  (`CravingCrusherScreen.tsx:172`). Fix: date-bounded queries, a staleness
+  stamp like Progress's, summary docs for all-time totals.
+- **Workouts saves with no timeout** spin forever offline and never update
+  the screen (`WorkoutsContext.tsx:401`: workouts, phases, tests). Fix: the
+  optimistic + `withTimeout` pattern `changeSession` already uses.
+- **Compose cost caps** (admin-only today; fix before it opens): deleting a
+  session mid-render refunds its minutes (`functions/src/compose.ts:253`),
+  declines refund too, and there's no character cap on the script before
+  voicing (`utils/meditation/claude.ts:45`). Server writes can also recreate
+  `composeUsage`/`users` docs after deleteAccount (`compose.ts:254`, push
+  budget claim).
+- **deleteAccount skips old social collections** (teams, duoStreaks;
+  `functions/src/index.ts:645`) though privacy.html promises full removal.
+  Check production for data first.
+- **Hourly crons scan all users** (`functions/src/index.ts:38`); remove the
+  archived micro-commitment one, bucket push users by hour.
+- **Signing out and back in turns server pushes off silently**
+  (`notifications.ts:71`). Fix: a `push_enabled` preference that survives
+  sign-out.
+- **Clear Account misses `overrideStarts`** (`users.ts:251`).
+- **Skip-review answer failure** is an unhandled rejection with no message
+  (`habits/SkipReviewSheet.tsx:63`).
+- **Craving ride's close button** has no accessibility label
+  (`CravingCrusherScreen.tsx:329`).
+
 **Device checks on a real phone** *(added 2026-09-05)*
 Named-day scheduling, schedule-aware streaks, adherence and the archive screen
 are live, but only jest, `tsc` and `expo export` have checked them. Two
