@@ -575,7 +575,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Code review fixes for this week's work** *(2026-11-21, on the branch, not OTA'd)*
+**Code review fixes for this week's work** *(2026-11-21, live OTA 56c190ca)*
 A review of the 2026-11-20/21 commits found ten issues; all fixed:
 - Close out the day counted only Meditate/Workouts/Meals, so a day with only
   Craving Crusher, Hot & Cold or Avoidance read as "Nothing logged today" and
