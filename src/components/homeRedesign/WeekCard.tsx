@@ -1,23 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  LayoutChangeEvent,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SwipeViews } from '../common/SwipeViews';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 import { ProgressRing } from '../common/ProgressRing';
-import { WEEK_VIEWS, WeekApp, WeekViewId, weekTotal, weekViewOf } from '../../services/weekViews';
+import { WEEK_VIEWS, WeekApp, weekTotal } from '../../services/weekViews';
 
 // =============================================================================
 // THE WEEK CARD at the top of Today (2026-11-22): three ways to show the week
 // (a ring per app, bars, a week grid), swiped between, with dots below. The
-// last one seen is remembered on this phone. Logic: services/weekViews.ts.
+// last one seen is remembered on this phone (components/common/SwipeViews).
+// Logic: services/weekViews.ts.
 // =============================================================================
 
 const STORE_KEY = 'nn.todayWeekView';
@@ -31,53 +23,7 @@ export const WeekCard: React.FC<{
   footer?: React.ReactNode;
   onOpenApp?: (id: string) => void;
 }> = ({ apps, todayIndex, footer, onOpenApp }) => {
-  const scroller = useRef<ScrollView>(null);
-  const [width, setWidth] = useState(0);
-  const [page, setPage] = useState(0);
-  const [heights, setHeights] = useState<number[]>([]);
-  const restored = useRef(false);
-
-  // Come back to the view last seen on this phone.
-  useEffect(() => {
-    AsyncStorage.getItem(STORE_KEY)
-      .then((v) => {
-        const i = WEEK_VIEWS.findIndex((x) => x.id === weekViewOf(v));
-        if (i > 0) setPage(i);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Once the card knows its width, show the remembered page without animating.
-  useEffect(() => {
-    if (width > 0 && !restored.current) {
-      restored.current = true;
-      scroller.current?.scrollTo({ x: page * width, animated: false });
-    }
-  }, [width, page]);
-
-  const goTo = (i: number) => {
-    setPage(i);
-    scroller.current?.scrollTo({ x: i * width, animated: true });
-    remember(WEEK_VIEWS[i].id);
-  };
-
-  const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!width) return;
-    const i = Math.max(0, Math.min(WEEK_VIEWS.length - 1, Math.round(e.nativeEvent.contentOffset.x / width)));
-    if (i !== page) {
-      setPage(i);
-      remember(WEEK_VIEWS[i].id);
-    }
-  };
-
-  const measure = (i: number) => (e: LayoutChangeEvent) => {
-    const h = Math.ceil(e.nativeEvent.layout.height);
-    setHeights((hs) => (hs[i] === h ? hs : Object.assign([...hs], { [i]: h })));
-  };
-
   const total = weekTotal(apps);
-  const height = heights[page];
-
   return (
     <View style={styles.card}>
       <View style={styles.head}>
@@ -88,56 +34,25 @@ export const WeekCard: React.FC<{
           {total.done} of {total.goal}
         </Text>
       </View>
-
-      <View onLayout={(e) => setWidth(Math.floor(e.nativeEvent.layout.width))}>
-        {width > 0 && (
-          <ScrollView
-            ref={scroller}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={onScrollEnd}
-            style={height ? { height } : undefined}
-            contentContainerStyle={styles.pages}
-            accessibilityLabel={`This week, ${WEEK_VIEWS[page].label} view`}
-          >
-            {WEEK_VIEWS.map((v, i) => (
-              <View key={v.id} style={{ width }} onLayout={measure(i)}>
-                {v.id === 'rings' ? (
-                  <RingsView apps={apps} onOpenApp={onOpenApp} />
-                ) : v.id === 'bars' ? (
-                  <BarsView apps={apps} onOpenApp={onOpenApp} />
-                ) : (
-                  <GridView apps={apps} todayIndex={todayIndex} />
-                )}
-              </View>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-
-      <View style={styles.dots} accessibilityRole="tablist">
-        {WEEK_VIEWS.map((v, i) => (
-          <TouchableOpacity
-            key={v.id}
-            onPress={() => goTo(i)}
-            style={styles.dotHit}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: i === page }}
-            accessibilityLabel={`${v.label} view`}
-          >
-            <View style={[styles.dot, i === page && styles.dotOn]} />
-          </TouchableOpacity>
-        ))}
-      </View>
-
+      <SwipeViews
+        name="This week"
+        storageKey={STORE_KEY}
+        views={WEEK_VIEWS.map((v) => ({
+          id: v.id,
+          label: v.label,
+          render: () =>
+            v.id === 'rings' ? (
+              <RingsView apps={apps} onOpenApp={onOpenApp} />
+            ) : v.id === 'bars' ? (
+              <BarsView apps={apps} onOpenApp={onOpenApp} />
+            ) : (
+              <GridView apps={apps} todayIndex={todayIndex} />
+            ),
+        }))}
+      />
       {footer ? <View style={styles.footer}>{footer}</View> : null}
     </View>
   );
-};
-
-const remember = (id: WeekViewId) => {
-  AsyncStorage.setItem(STORE_KEY, id).catch(() => {});
 };
 
 const label = (a: WeekApp) => `${a.title}: ${a.done} of ${a.goal} this week`;
@@ -254,7 +169,6 @@ const styles = StyleSheet.create({
   },
   title: { ...TextStyles.headline, color: Colors.dark },
   total: { ...TextStyles.footnote, color: Colors.gray },
-  pages: { alignItems: 'flex-start' },
 
   ringGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, paddingHorizontal: Spacing.sm },
   ringCell: { width: '33.333%', alignItems: 'center', gap: 6 },
@@ -284,10 +198,6 @@ const styles = StyleSheet.create({
   cell: { flex: 1, height: 22, borderRadius: 6 },
   cellFuture: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.separator },
 
-  dots: { flexDirection: 'row', justifyContent: 'center', marginTop: 10 },
-  dotHit: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: Colors.separator },
-  dotOn: { backgroundColor: Colors.dark },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.separator,

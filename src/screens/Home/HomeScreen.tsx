@@ -1024,6 +1024,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           onStartPlan={planRoute ? () => rootNav.navigate(planRoute) : undefined}
           extraRings={extraRings}
           extraRows={extraRows}
+          planAppId={planOpen ? todaysPlan?.appId : undefined}
           closeOut={hiddenRows.includes('nightly') ? undefined : {
             done: reflectedToday,
             title: reflectedToday

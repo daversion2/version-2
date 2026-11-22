@@ -13,8 +13,9 @@ import { formatDayHeader, getTodayString } from '../../utils/date';
 import type { TodayRowId } from '../../data/appCatalog';
 import type { RowRing } from '../../services/rowRings';
 import { WeekCard } from './WeekCard';
+import { AppsCard } from './AppsCard';
+import { APP_ACTIONS, TodayAppItem } from '../../services/appsLayout';
 import { WeekApp, weekApp, weekDayIndex } from '../../services/weekViews';
-import { ListGroup, ListRow } from '../common/ListGroup';
 import { TopScrim } from '../common/TopScrim';
 import { APP_ICONS } from '../homeDashboard/DashboardParts';
 import { LoadError } from './LoadError';
@@ -58,6 +59,8 @@ interface Props {
   extraRings?: RowRing[];
   /** More app rows under Your apps, after Craving Crusher. */
   extraRows?: ExtraRow[];
+  /** The app last night's plan names, while it's still to do: flagged on the apps card. */
+  planAppId?: string;
   /** Apps switched off (services/appSetup.ts): no ring and no row. */
   hiddenApps?: TodayAppId[];
   /** Opens the Apps screen (everyone since 2026-11-20). Unset hides the row. */
@@ -103,6 +106,7 @@ export const TodayView: React.FC<Props> = ({
   onStartPlan,
   extraRings = NO_RINGS,
   extraRows = NO_ROWS,
+  planAppId,
 }) => {
   const apps = useMemo(() => APP_ORDER.filter((id) => !hiddenApps.includes(id)), [hiddenApps]);
   const insets = useSafeAreaInsets();
@@ -178,6 +182,44 @@ export const TodayView: React.FC<Props> = ({
           ),
         ]
       : [];
+  // "Your apps" (2026-11-22): every app on Today with today's status, for the apps card.
+  const todayIdx = appData ? weekDayIndex(appData.today) : -1;
+  const doneToday = (id: string) => weekApps.find((w) => w.id === id)?.days[todayIdx] === 'done';
+  const weekNote = (id: string) => {
+    const w = weekApps.find((x) => x.id === id);
+    return w ? `${w.done} of ${w.goal} this week` : '';
+  };
+  const appItems: TodayAppItem[] = [
+    ...apps.map((id) => ({
+      id,
+      title: APP_TITLES[id],
+      short: APP_TITLES[id],
+      color: AppColors[id],
+      icon: APP_ICONS[id],
+      note: id === planAppId && !doneToday(id) ? 'Today’s plan' : weekNote(id),
+      done: doneToday(id),
+      plan: id === planAppId && !doneToday(id),
+      action: APP_ACTIONS[id],
+    })),
+    ...(closeOut
+      ? [{ id: 'nightly', title: 'Close out the day', short: 'Close out', color: AppColors.nightly, icon: 'moon', note: closeOut.done ? 'Closed out' : 'Tonight', done: closeOut.done, plan: false, action: APP_ACTIONS.nightly }]
+      : []),
+    ...(craving
+      ? [{ id: 'craving', title: craving.title, short: 'Cravings', color: AppColors.craving, icon: 'water', note: 'When an urge hits', done: doneToday('craving'), plan: false, action: APP_ACTIONS.craving }]
+      : []),
+    ...extraRows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      short: ROW_TITLES[r.id],
+      color: r.color,
+      icon: r.icon,
+      note: weekNote(r.id) || r.subtitle || '',
+      done: doneToday(r.id),
+      plan: false,
+      action: APP_ACTIONS[r.id] ?? 'Open',
+    })),
+  ];
+
   const openFromWeek = (id: string) => {
     if ((apps as string[]).includes(id)) return onOpenAppPage(id as TodayAppId);
     if (id === 'nightly') return closeOut?.onPress();
@@ -245,49 +287,7 @@ export const TodayView: React.FC<Props> = ({
               </View>
             ) : null}
 
-            <ListGroup title="Your apps">
-              {apps.map((id) => (
-                <ListRow
-                  key={id}
-                  title={APP_TITLES[id]}
-                  icon={{ name: APP_ICONS[id] as never, color: AppColors[id] }}
-                  onPress={() => onOpenAppPage(id)}
-                />
-              ))}
-              {closeOut ? (
-                <ListRow
-                  title={closeOut.title}
-                  subtitle={closeOut.subtitle}
-                  icon={{ name: closeOut.done ? 'checkmark' : 'moon', color: AppColors.nightly }}
-                  onPress={closeOut.onPress}
-                />
-              ) : null}
-              {craving ? (
-                <ListRow
-                  title={craving.title}
-                  subtitle={craving.subtitle}
-                  icon={{ name: 'water', color: AppColors.craving }}
-                  onPress={craving.onPress}
-                />
-              ) : null}
-              {extraRows.map((r) => (
-                <ListRow
-                  key={r.id}
-                  title={r.title}
-                  subtitle={r.subtitle}
-                  icon={{ name: r.icon as never, color: r.color }}
-                  onPress={r.onPress}
-                />
-              ))}
-              {onBrowseApps ? (
-                <ListRow
-                  title="Browse apps"
-                  subtitle="Add another, or try the new ones"
-                  icon={{ name: 'apps', color: Colors.gray }}
-                  onPress={onBrowseApps}
-                />
-              ) : null}
-            </ListGroup>
+            <AppsCard items={appItems} onOpen={openFromWeek} onBrowse={onBrowseApps} />
 
           </>
         )}

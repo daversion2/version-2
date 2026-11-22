@@ -687,6 +687,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Today: a swipeable "Your apps" card** *(2026-11-22, on the branch, not OTA'd, not yet seen on screen)*
+The apps list under the week card felt cramped. Founder picked four layouts
+from the mockup (https://claude.ai/artifact/KPoxHXiUEDC9rVD7DbjBTd, 1, 2, 4,
+5) and wants people to swipe between them like the week card: **Icons** (a
+home-screen grid, a check for done today, PLAN on the plan), **Cards** (two
+columns with a status line), **List** (roomy rows with an action button,
+the plan first, done ones last) and **Up next** (a big card for the plan or
+the first app not done, the rest as bubbles that wrap rather than scroll, so
+they don't fight the swipe). Browse apps is in every layout. The last layout
+is remembered on the phone (`nn.todayAppsView`). The paging moved into a
+shared `components/common/SwipeViews.tsx`, which the week card now uses
+too. Logic in `services/appsLayout.ts` (tested); `AppsCard.tsx`.
+
 **Today: a swipeable week card replaces the nested rings** *(2026-11-22, live OTA 49ee2b70, not yet seen on screen)*
 The nested rings stopped reading well past three apps. Founder picked three
 views from the mockup (https://claude.ai/artifact/XPp116zTm1TgtRcxdECtZy, A,
