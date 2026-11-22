@@ -687,7 +687,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Today: a swipeable "Your apps" card** *(2026-11-22, on the branch, not OTA'd, not yet seen on screen)*
+**Today: a swipeable "Your apps" card** *(2026-11-22, live OTA 6f15de5a, not yet seen on screen)*
 The apps list under the week card felt cramped. Founder picked four layouts
 from the mockup (https://claude.ai/artifact/KPoxHXiUEDC9rVD7DbjBTd, 1, 2, 4,
 5) and wants people to swipe between them like the week card: **Icons** (a
