@@ -413,6 +413,15 @@ hosting.
 It's stale: it still has Challenges and Programs sections and an old baseline.
 Rewrite it against the current app.
 
+**`expo-video` rides the next store build** *(added 2026-11-22)*
+In `package.json` (~3.0.16, SDK 54's pinned version) for the in-app tutorial
+videos (Features → In-app tutorial and explainer videos). Nothing imports it
+yet, so OTAs to the 2.2.0 binary are unaffected. The `version` bump below
+covers it. Until every user is on the new binary, the player must check
+`requireOptionalNativeModule('ExpoVideo')` and hide the Watch button if it's
+missing, rather than import `expo-video` unguarded: an OTA that reaches 2.2.0
+with an unguarded import crashes on launch.
+
 **Compose needs a store build before it leaves the Lab** *(added 2026-10-18)*
 Compose (Admin → Lab) works on the 2.2.0 binary only while the app is open.
 That binary has no background audio, so `KEEP_SCREEN_ON_WHILE_PLAYING` in
@@ -487,6 +496,30 @@ mid-task, instead of letting it evaporate. Same format as above: bold title,
 date added, a sentence or two of context, link to a design doc if one exists.
 No priority ordering implied — flag with a note if something's more wanted
 than the rest.
+
+### In-app tutorial and explainer videos *(added 2026-11-22)*
+
+Short videos that play inside the app: **tutorials** (30–90 s, how to use a
+screen) and **explainers** (the Neuro-Nudge idea and the neuroscience behind
+it, diagram-heavy). Made with a video skill adapted from the founder's LMS
+`training-video` skill (Vertesia), in its "from a brief", stills mode.
+Decided 2026-11-22: copy the LMS scripts into this repo under
+`scripts/video/`; record on the founder's own account with Demo Data on.
+Next:
+1. **Push `scripts/video/`.** It's copied on the founder's Mac but not
+   committed. It includes the training scripts and the Vertesia video
+   engine. Never copy `~/.vertesia-video-editor/` (ElevenLabs key).
+2. Adapt it: Maestro + `maestro hierarchy` instead of Chrome DevTools for
+   capture and highlight boxes; portrait 9:16 stills template; Neuro-Nudge
+   intro/outro from `theme.ts`; burned-in captions; publish = upload to
+   Storage + an entry in a `src/data/tutorials.ts` list instead of the LMS
+   lesson + quiz. Write `.claude/skills/neuro-video/SKILL.md`. Approval
+   points: plan (it also asks to take the simulator, per CLAUDE.md), V1.
+3. App side: a read-only `tutorials/` path in `storage.rules` for signed-in
+   users (deploy); a guarded player component (see Next → `expo-video`
+   rides the next store build); an optional `video` on `ScreenIntro` for a
+   Watch button in the ⓘ, plus a list for explainers. Behind a Lab switch
+   first.
 
 ### Avoidance Training: check on screen *(added 2026-11-01; live for everyone 2026-11-20)*
 
