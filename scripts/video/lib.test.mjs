@@ -62,6 +62,15 @@ test("captionChunks never exceeds the limit or splits a word", () => {
     assert.equal(chunks.join(" "), s);
 });
 
+test("captionChunks doesn't strand the last words", () => {
+    const s = "Tap Finish and rate it, and say how hard it was to stay with it.";
+    const chunks = captionChunks(s);
+    assert.ok(chunks.at(-1).length >= 12);
+    assert.equal(chunks.join(" "), s);
+    // A clean break after a comma is left alone.
+    assert.deepEqual(captionChunks("A hard session is the training, not a bad mark."), ["A hard session is the training,", "not a bad mark."]);
+});
+
 test("captionCues are contiguous within a section", () => {
     const text = "Open Meals. Tap the plus button at the bottom of the screen, then choose what you ate and save it to your day.";
     const words = [{ w: "Open", s: 0 }, { w: "Meals.", s: 0.3 }, { w: "Tap", s: 1 }, { w: "the", s: 1.2 }, { w: "plus", s: 1.3 }];

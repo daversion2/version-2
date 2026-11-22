@@ -101,6 +101,14 @@ export function captionChunks(sentence, max = 58) {
         }
     }
     if (cur) chunks.push(cur);
+    // No stranded last words ("with it."): borrow from the chunk before.
+    while (chunks.length > 1 && chunks.at(-1).length < 12) {
+        const prev = chunks.at(-2).split(" ");
+        if (prev.length < 2) break;
+        const moved = prev.pop();
+        chunks[chunks.length - 2] = prev.join(" ");
+        chunks[chunks.length - 1] = `${moved} ${chunks.at(-1)}`;
+    }
     return chunks;
 }
 

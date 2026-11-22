@@ -1,0 +1,124 @@
+{
+  "title": "How to use Meditate",
+  "mode": "stills",
+  "brief": "Meditate: a simple tutorial for new users. The capture never starts or saves a session.",
+  "sections": [
+    {
+      "id": "01",
+      "label": "Open Meditate",
+      "narration": "On Today, tap Meditate. This page shows your progress. When you're ready, tap Start a session.",
+      "steps": [
+        {
+          "mark": "01-today",
+          "do": "tap Meditate on Today",
+          "setup": [
+            "launchApp",
+            { "extendedWaitUntil": { "visible": { "text": "Today, tab.*" }, "timeout": 60000 } },
+            { "extendedWaitUntil": { "visible": "Your apps", "timeout": 30000 } },
+            { "waitForAnimationToEnd": { "timeout": 5000 } },
+            { "runFlow": { "when": { "visible": ".*Open debugger to view warnings.*" }, "commands": [{ "tapOn": { "point": "92%,93%" } }] } }
+          ],
+          "target": { "text": "Meditate, .* this week" },
+          "then": "tap"
+        },
+        {
+          "mark": "01-progress",
+          "do": "show the Meditate page",
+          "sync": "This page shows",
+          "setup": [
+            { "extendedWaitUntil": { "visible": "Start a session", "timeout": 20000 } },
+            { "waitForAnimationToEnd": { "timeout": 3000 } }
+          ]
+        },
+        {
+          "mark": "01-page",
+          "do": "tap Start a session",
+          "sync": "When you're ready",
+          "target": { "text": "Start a session" },
+          "then": "tap"
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "label": "Set it up",
+      "narration": "Choose how you want to practice: Sit, Breathe or NSDR. For Sit, pick a technique, like Focused. Then set how long you want to go.",
+      "steps": [
+        {
+          "mark": "02-kind",
+          "do": "show Sit, Breathe and NSDR",
+          "setup": [
+            { "extendedWaitUntil": { "visible": "Begin · .*", "timeout": 20000 } },
+            { "tapOn": "(., )?Sit" },
+            { "waitForAnimationToEnd": { "timeout": 2000 } }
+          ],
+          "target": { "union": [{ "text": "(., )?Sit" }, { "text": "(., )?Breathe" }, { "text": "(., )?NSDR" }] },
+          "kind": "look"
+        },
+        {
+          "mark": "02-technique",
+          "do": "pick Focused",
+          "sync": "For Sit, pick",
+          "setup": [
+            { "tapOn": "Focused.*" },
+            { "runFlow": { "when": { "visible": "On my own.*" }, "commands": [{ "tapOn": "On my own.*" }] } },
+            { "waitForAnimationToEnd": { "timeout": 2000 } }
+          ],
+          "target": { "text": "Focused.*" },
+          "kind": "look"
+        },
+        {
+          "mark": "02-length",
+          "do": "show How long",
+          "sync": "Then set how",
+          "setup": [
+            { "swipe": { "start": "50%,65%", "end": "50%,35%" } },
+            { "waitForAnimationToEnd": { "timeout": 2000 } }
+          ],
+          "target": { "text": "How long", "pad": 10 },
+          "kind": "look"
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "label": "Begin",
+      "narration": "Tap Begin. The app asks how hard it is to start, from one to three. Your answer starts the session.",
+      "steps": [
+        {
+          "mark": "03-begin",
+          "do": "tap Begin",
+          "target": { "text": "Begin · .*" },
+          "then": "tap"
+        },
+        {
+          "mark": "03-rate",
+          "do": "show the three ratings, then Cancel without answering",
+          "sync": "The app asks",
+          "setup": [
+            { "extendedWaitUntil": { "visible": "How hard is it to start\\?", "timeout": 10000 } },
+            { "waitForAnimationToEnd": { "timeout": 2000 } }
+          ],
+          "target": { "union": [{ "text": "1, Easy start.*" }, { "text": "3, Almost didn.*" }] },
+          "kind": "look",
+          "then": [
+            { "tapOn": { "text": "Cancel", "below": "Tap one to start\\." } },
+            { "waitForAnimationToEnd": { "timeout": 2000 } },
+            { "assertNotVisible": "How hard is it to start\\?" },
+            { "tapOn": "Close Meditate" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "label": "Sit, then finish",
+      "narration": "Now lock your phone. A bell rings at the end. Tap Finish and rate it, and say how hard it was to stay with it. A hard session is the training, not a bad mark.",
+      "steps": [
+        { "mark": "04-lock", "do": "diagram: lock your phone", "diagram": "after-begin", "from": 0, "to": 1.2 },
+        { "mark": "04-bell", "do": "diagram: the bell", "diagram": "after-begin", "from": 1.2, "to": 2.4, "sync": "A bell rings" },
+        { "mark": "04-finish", "do": "diagram: finish and rate", "diagram": "after-begin", "from": 2.4, "to": 3.6, "sync": "Tap Finish and" }
+      ]
+    }
+  ]
+}

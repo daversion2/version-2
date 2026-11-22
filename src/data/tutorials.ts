@@ -16,5 +16,6 @@ export interface Tutorial {
 
 export const TUTORIALS: Tutorial[] = [
   // <publish:start>
+  {"id":"how-to-use-meditate","title":"How to use Meditate","kind":"tutorial","storagePath":"tutorials/how-to-use-meditate.mp4","durationSec":48},
   // <publish:end>
 ];
