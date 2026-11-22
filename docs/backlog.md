@@ -687,6 +687,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Today: a swipeable week card replaces the nested rings** *(2026-11-22, on the branch, not OTA'd, not yet seen on screen)*
+The nested rings stopped reading well past three apps. Founder picked three
+views from the mockup (https://claude.ai/artifact/XPp116zTm1TgtRcxdECtZy, A,
+B and D) and wants people to swipe between them: **Rings** (a small ring per
+app, three to a row), **Bars** (a bar per app), **Week grid** (a row per app,
+a cell per day Monday to Sunday, today outlined). Dots underneath, tappable;
+the last view is remembered on the phone (AsyncStorage `nn.todayWeekView`).
+Every app on Today is on the card, apps first, then Close out the day,
+Craving Crusher, Hot & Cold and Avoidance (their days now ride on `RowRing`).
+Tapping an app opens it. `components/homeRedesign/WeekCard.tsx`, logic in
+`services/weekViews.ts` (tested). Today's ⓘ intro updated; its keys didn't
+change, so an older copy-editor edit there would still show the old text.
+
 **Code review fixes for this week's work** *(2026-11-21, live OTA 56c190ca)*
 A review of the 2026-11-20/21 commits found ten issues; all fixed:
 - Close out the day counted only Meditate/Workouts/Meals, so a day with only

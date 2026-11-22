@@ -12,7 +12,8 @@ import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
 import { formatDayHeader, getTodayString } from '../../utils/date';
 import type { TodayRowId } from '../../data/appCatalog';
 import type { RowRing } from '../../services/rowRings';
-import { AppRings } from '../common/ProgressRing';
+import { WeekCard } from './WeekCard';
+import { WeekApp, weekApp, weekDayIndex } from '../../services/weekViews';
 import { ListGroup, ListRow } from '../common/ListGroup';
 import { TopScrim } from '../common/TopScrim';
 import { APP_ICONS } from '../homeDashboard/DashboardParts';
@@ -71,8 +72,6 @@ const ROW_TITLES: Record<TodayRowId, string> = {
   hotcold: 'Hot & Cold',
   avoidance: 'Avoidance',
 };
-/** Ring stroke and gap by how many rings are nested, so up to seven fit. */
-const ringSpacing = (n: number) => (n <= 3 ? { stroke: 13, gap: 4 } : n <= 5 ? { stroke: 9, gap: 3 } : { stroke: 7, gap: 2 });
 const NO_ROWS: ExtraRow[] = [];
 
 /** A row under Your apps for an app added from Apps (Hot & Cold, Avoidance Training). */
@@ -159,6 +158,32 @@ export const TodayView: React.FC<Props> = ({
   }, [d]);
 
   const ringOf = (id: TodayAppId) => d?.rings.find((r) => r.appId === id);
+  // The week card (2026-11-22): every app on Today, apps first, then the rows.
+  const appDates = (id: TodayAppId): string[] =>
+    !d ? [] : id === 'meditate' ? d.meditate.activeDates : id === 'workouts' ? d.workouts.activeDates : d.meals.loggedDates;
+  const weekApps: WeekApp[] =
+    d && appData
+      ? [
+          ...apps.map((id) =>
+            weekApp(
+              { id, title: APP_TITLES[id], color: AppColors[id], done: ringOf(id)?.done ?? 0, goal: ringOf(id)?.goal ?? 0, dates: appDates(id) },
+              appData.today
+            )
+          ),
+          ...extraRings.map((r) =>
+            weekApp(
+              { id: r.id, title: ROW_TITLES[r.id], color: AppColors[r.id], done: r.done, goal: r.goal, dates: r.dates ?? [] },
+              appData.today
+            )
+          ),
+        ]
+      : [];
+  const openFromWeek = (id: string) => {
+    if ((apps as string[]).includes(id)) return onOpenAppPage(id as TodayAppId);
+    if (id === 'nightly') return closeOut?.onPress();
+    if (id === 'craving') return craving?.onPress();
+    extraRows.find((r) => r.id === id)?.onPress();
+  };
 
   return (
     <View style={styles.root}>
@@ -192,56 +217,19 @@ export const TodayView: React.FC<Props> = ({
           </View>
         ) : (
           <>
-            <View style={styles.card}>
-              <View style={styles.ringsRow}>
-                <AppRings
-                  rings={[
-                    ...apps.map((id) => ({ pct: ringOf(id)?.pct ?? 0, color: AppColors[id] })),
-                    ...extraRings.map((r) => ({ pct: r.pct, color: AppColors[r.id] })),
-                  ]}
-                  // More rings need thinner strokes to fit.
-                  {...ringSpacing(apps.length + extraRings.length)}
-                  accessibilityLabel={`This week: ${[
-                    ...apps.map((id) => `${APP_TITLES[id]} ${ringOf(id)?.done ?? 0} of ${ringOf(id)?.goal ?? 0}`),
-                    ...extraRings.map((r) => `${ROW_TITLES[r.id]} ${r.done} of ${r.goal}`),
-                  ].join(', ')}`}
-                />
-                <View style={styles.legend} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-                  {apps.map((id) => (
-                    <View key={id} style={styles.legendItem}>
-                      <View style={styles.legendLabel}>
-                        <View style={[styles.legendDot, { backgroundColor: AppColors[id] }]} />
-                        <Text style={styles.legendName}>{APP_TITLES[id]}</Text>
-                      </View>
-                      <Text style={styles.legendValue}>
-                        {ringOf(id)?.done ?? 0}
-                        <Text style={styles.legendGoal}> / {ringOf(id)?.goal ?? 0}</Text>
-                      </Text>
-                    </View>
-                  ))}
-                  {extraRings.map((r) => (
-                    <View key={r.id} style={styles.legendItem}>
-                      <View style={styles.legendLabel}>
-                        <View style={[styles.legendDot, { backgroundColor: AppColors[r.id] }]} />
-                        <Text style={styles.legendName}>{ROW_TITLES[r.id]}</Text>
-                      </View>
-                      <Text style={styles.legendValue}>
-                        {r.done}
-                        <Text style={styles.legendGoal}> / {r.goal}</Text>
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-              <View style={styles.cardFooter}>
+            <WeekCard
+              apps={weekApps}
+              todayIndex={weekDayIndex(appData?.today ?? '')}
+              onOpenApp={openFromWeek}
+              footer={
                 <Text style={styles.footerText}>
                   <Text style={styles.strong}>
                     {d.combinedStreak > 0 ? `${d.combinedStreak}-day streak` : 'No streak yet'}
                   </Text>
                   {` · ${xp.toLocaleString()} XP in all`}
                 </Text>
-              </View>
-            </View>
+              }
+            />
 
             {plan ? (
               <View style={styles.card}>
@@ -320,15 +308,6 @@ const styles = StyleSheet.create({
   infoButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   loading: { paddingVertical: Spacing.xxl, alignItems: 'center' },
   card: { backgroundColor: Colors.cardBg, borderRadius: BorderRadius.lg, padding: 20, gap: Spacing.md },
-  ringsRow: { flexDirection: 'row', alignItems: 'center', gap: 22 },
-  legend: { flex: 1, gap: 12 },
-  legendItem: { gap: 1 },
-  legendLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendName: { ...TextStyles.footnote, fontWeight: '500', color: Colors.label2 },
-  legendValue: { ...TextStyles.title2, fontWeight: '600', color: Colors.dark },
-  legendGoal: { ...TextStyles.subhead, fontWeight: '500', color: Colors.gray },
-  cardFooter: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.separator, paddingTop: 14 },
   footerText: { ...TextStyles.subhead, color: Colors.label2 },
   strong: { fontWeight: '600', color: Colors.dark },
   planLabel: { ...TextStyles.footnote, fontWeight: '600', color: Colors.gray, marginBottom: -12 },

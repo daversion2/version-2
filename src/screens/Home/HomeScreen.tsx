@@ -89,7 +89,7 @@ import { getMeditatePrefs } from '../../services/labMeditate';
 import { getMealsPrefs, listMealsDays, saveMealsDay } from '../../services/labMeals';
 import { needsMealsCatchUp, scoreDay } from '../../services/mealsMath';
 import { hiddenRowsOf, todayRowsOf } from '../../services/appCatalog';
-import { rowGoalsOf, rowRing, urgesThisWeek, weekCount, weekDone } from '../../services/rowRings';
+import { RowRing, rowGoalsOf, rowRing, urgesThisWeek, weekCount, weekDone } from '../../services/rowRings';
 import { listHotColdSessions } from '../../services/labHotCold';
 import { listAvoidanceTasks } from '../../services/labAvoidance';
 import type { ExtraRow } from '../../components/homeRedesign/TodayView';
@@ -877,12 +877,26 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Today's plan: last night's, while it's still to do. Failing that, the app
   // picked in onboarding as "start here", until its first session is rated.
   const rowGoals = rowGoalsOf(userProfile);
-  const extraRings = [
-    !hiddenRows.includes('nightly') && rowRing('nightly', weekDone(rowWeek.nights, todayStr), rowGoals.nightly),
-    !hiddenRows.includes('craving') && rowRing('craving', urgesThisWeek(rowWeek.urges, todayStr), rowGoals.craving),
-    !hiddenRows.includes('hotcold') && rowRing('hotcold', weekCount(rowWeek.plunges, todayStr), rowGoals.hotcold),
-    !hiddenRows.includes('avoidance') && rowRing('avoidance', weekCount(rowWeek.cleared, todayStr), rowGoals.avoidance),
-  ].filter((r): r is ReturnType<typeof rowRing> => !!r);
+  // Their rings, with the days each was used this week for the week grid.
+  const extraRings: RowRing[] = [];
+  if (!hiddenRows.includes('nightly')) {
+    extraRings.push({ ...rowRing('nightly', weekDone(rowWeek.nights, todayStr), rowGoals.nightly), dates: rowWeek.nights });
+  }
+  if (!hiddenRows.includes('craving')) {
+    extraRings.push({
+      ...rowRing('craving', urgesThisWeek(rowWeek.urges, todayStr), rowGoals.craving),
+      dates: rowWeek.urges.map((u) => u.date),
+    });
+  }
+  if (!hiddenRows.includes('hotcold')) {
+    extraRings.push({ ...rowRing('hotcold', weekCount(rowWeek.plunges, todayStr), rowGoals.hotcold), dates: rowWeek.plunges });
+  }
+  if (!hiddenRows.includes('avoidance')) {
+    extraRings.push({
+      ...rowRing('avoidance', weekCount(rowWeek.cleared, todayStr), rowGoals.avoidance),
+      dates: rowWeek.cleared.filter((d): d is string => !!d),
+    });
+  }
   // Hot & Cold and Avoidance Training, once added from Apps.
   const extraRows: ExtraRow[] = [];
   if (!hiddenRows.includes('hotcold')) {

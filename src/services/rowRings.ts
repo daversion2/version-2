@@ -55,6 +55,8 @@ export interface RowRing {
   goal: number;
   /** 0–1. */
   pct: number;
+  /** The days it was used this week, for Today's week grid. */
+  dates?: string[];
 }
 
 export const rowRing = (id: TodayRowId, done: number, goal: number): RowRing => ({
