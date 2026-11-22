@@ -1,0 +1,13 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Caption</title>
+<link rel="stylesheet" href="tokens.css">
+<!-- One caption, on a transparent page the size of the band under the phone (burn.mjs). -->
+<style>
+  html, body { width: 1080px; height: 290px; background: transparent; }
+  #wrap { position: absolute; inset: 0 56px 44px; display: flex; align-items: center; justify-content: center; }
+  #cap { text-align: center; text-wrap: balance; font-weight: 800; font-size: 54px; line-height: 1.2; color: var(--white);
+         text-shadow: 0 2px 10px rgba(0, 0, 0, .3); }
+</style></head>
+<body><div id="wrap"><div id="cap"></div></div>
+<script>window.setCaption = (t) => { document.getElementById("cap").textContent = t; };</script>
+</body></html>

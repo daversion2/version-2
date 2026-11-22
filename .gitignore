@@ -63,3 +63,8 @@ functions/meditation-assets/
 content/exercise-art/out/
 content/exercise-art/.cache/
 content/exercise-library/.cache/
+
+# tutorial videos: plans and diagrams are committed, media is not
+content/videos/*/*
+!content/videos/*/plan.json
+!content/videos/*/diagrams/

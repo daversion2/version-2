@@ -1,0 +1,6 @@
+{
+  "voice": "steffy",
+  "model": "eleven_multilingual_v2",
+  "draft_model": "eleven_flash_v2_5",
+  "seed": 1528
+}

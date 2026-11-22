@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Video outro</title>
+<link rel="stylesheet" href="tokens.css">
+<!-- Silent closing card, 2.4 s: the same mark and name as the intro, so a video is bookended. -->
+<style>
+  #disc { position: absolute; left: 290px; top: 520px; width: 500px; height: 500px; border-radius: 50%; background: var(--white); opacity: 0; }
+  #mark { position: absolute; left: 90px; top: 320px; width: 900px; height: 900px; opacity: 0; }
+  #name { position: absolute; left: 0; right: 0; top: 1080px; text-align: center; opacity: 0;
+          font-weight: 800; font-size: 72px; letter-spacing: -.01em; color: var(--white); }
+</style></head>
+<body><div id="stage"><div id="disc"></div><img id="mark" src="assets/logo.png" alt=""><div id="name">Neuro-Nudge</div></div>
+<script src="node_modules/gsap/dist/gsap.min.js"></script>
+<script src="lib.js"></script>
+<script>
+const tl = gsap.timeline({ paused: true });
+tl.fromTo(["#disc", "#mark"], { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }, 0.1)
+  .fromTo("#name", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.4)
+  .to(["#disc", "#mark", "#name"], { opacity: 0, duration: 0.5, ease: "power1.in" }, 1.9)
+  .to({}, { duration: 0 }, 2.4);
+window.tl = tl; window.DURATION = 2.4;
+</script>
+</body></html>

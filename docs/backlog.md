@@ -505,17 +505,14 @@ it, diagram-heavy). Made with a video skill adapted from the founder's LMS
 `training-video` skill (Vertesia), in its "from a brief", stills mode.
 Decided 2026-11-22: copy the LMS scripts into this repo under
 `scripts/video/`; record on the founder's own account with Demo Data on.
+The pipeline is built: the `neuro-video` skill and `scripts/video/`. It has
+been run end to end offline on made-up screens with a local test voice.
+Never copy `~/.vertesia-video-editor/` (ElevenLabs key).
 Next:
-1. **Push `scripts/video/`.** It's copied on the founder's Mac but not
-   committed. It includes the training scripts and the Vertesia video
-   engine. Never copy `~/.vertesia-video-editor/` (ElevenLabs key).
-2. Adapt it: Maestro + `maestro hierarchy` instead of Chrome DevTools for
-   capture and highlight boxes; portrait 9:16 stills template; Neuro-Nudge
-   intro/outro from `theme.ts`; burned-in captions; publish = upload to
-   Storage + an entry in a `src/data/tutorials.ts` list instead of the LMS
-   lesson + quiz. Write `.claude/skills/neuro-video/SKILL.md`. Approval
-   points: plan (it also asks to take the simulator, per CLAUDE.md), V1.
-3. App side: a read-only `tutorials/` path in `storage.rules` for signed-in
+1. **First real video.** Maestro capture, the ElevenLabs step and the Storage
+   upload have not run yet. On the first capture, check that the
+   `maestro hierarchy` boxes land on the controls. Ask before the run.
+2. App side: a read-only `tutorials/` path in `storage.rules` for signed-in
    users (deploy); a guarded player component (see Next → `expo-video`
    rides the next store build); an optional `video` on `ScreenIntro` for a
    Watch button in the ⓘ, plus a list for explainers. Behind a Lab switch

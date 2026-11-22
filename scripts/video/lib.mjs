@@ -1,12 +1,20 @@
 /**
- * Pure helpers for the training-video pipeline (see .claude/skills/training-video).
+ * Pure helpers for the Neuro-Nudge video pipeline (.claude/skills/neuro-video).
  *
- * Everything here is deterministic and free of I/O so it can be unit-tested
- * (test/training-pipeline.test.ts); the scripts beside it do the ffmpeg, file and
- * engine work and call into this module for the decisions.
+ * Everything here is deterministic and free of I/O so it can be tested with
+ * `node --test scripts/video/`; the scripts beside it do the ffmpeg, simulator and
+ * file work and call into this module for the decisions.
  */
 
-/** "Content Basics (trimmed)" → "content-basics-trimmed". */
+/** The output frame: portrait 9:16. */
+export const STAGE = { w: 1080, h: 1920 };
+/** The band under the phone that holds the burned-in captions. */
+export const CAPTION_BAND = 290;
+const FRAME_TOP = 56;
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+/** "Log a Meal (quick)" → "log-a-meal-quick". */
 export function slugify(name) {
     return String(name)
         .toLowerCase()
@@ -14,8 +22,7 @@ export function slugify(name) {
         .replace(/(^-|-$)/g, "") || "video";
 }
 
-/** Seconds → `m:ss` (or `h:mm:ss`). Matches transcript.ts so lesson text and the
- * player's transcript read the same. */
+/** Seconds → `m:ss` (or `h:mm:ss`). */
 export function formatTimestamp(seconds) {
     const s = Math.max(0, Math.floor(seconds));
     const h = Math.floor(s / 3600);
@@ -31,167 +38,6 @@ export function vttTime(seconds) {
     const m = Math.floor((v % 3600) / 60);
     const s = v % 60;
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${s.toFixed(3).padStart(6, "0")}`;
-}
-
-function parseVttTime(stamp) {
-    return stamp
-        .replace(",", ".")
-        .split(":")
-        .map(Number)
-        .reduce((total, part) => total * 60 + part, 0);
-}
-
-/**
- * Choose where to cut a raw recording.
- *
- * - **start**: `lead` seconds before the first speech, so the first word isn't clipped
- *   (Zoom recordings open on ~10–15 s of dead air while the presenter leaves full screen).
- * - **end**: just before the first picture change after the last speech (Zoom's closing
- *   name card), but never more than `tailMax` after the last word, and at least `tailMin`
- *   after it so the last word can ring out.
- *
- * `speech` is a list of `{start, end}` non-silent spans, `sceneChanges` the times of hard
- * picture changes; both in source seconds.
- */
-export function pickTrim({ speech, sceneChanges = [], duration, lead = 0.5, tailMin = 0.8, tailMax = 2.5 }) {
-    if (!speech.length) return { start: 0, end: duration };
-    const firstSpeech = speech[0].start;
-    const lastSpeech = speech[speech.length - 1].end;
-    const start = Math.max(0, firstSpeech - lead);
-    const card = sceneChanges.find((t) => t > lastSpeech + 0.2);
-    let end = lastSpeech + tailMax;
-    if (card !== undefined) end = Math.min(end, Math.max(lastSpeech + tailMin, card - 0.1));
-    return { start: round2(start), end: round2(Math.min(duration, end)) };
-}
-
-const round2 = (n) => Math.round(n * 100) / 100;
-
-/** Invert silencedetect's silent spans into speech spans over `[0, duration]`. */
-export function speechSpans(silences, duration) {
-    const spans = [];
-    let cursor = 0;
-    for (const { start, end } of silences) {
-        if (start > cursor + 0.05) spans.push({ start: cursor, end: start });
-        cursor = Math.max(cursor, end ?? duration);
-    }
-    if (cursor < duration - 0.05) spans.push({ start: cursor, end: duration });
-    return spans;
-}
-
-/**
- * Shift a WebVTT file so it lines up with a trimmed cut: every cue moves `offset`
- * seconds earlier, cues wholly outside `[offset, end]` are dropped, the rest clamped.
- * Optional `replacements` fix systematic mishearings (`[["Vertigia", "Vertesia"]]`).
- */
-export function shiftVtt(vtt, offset, end = Infinity, replacements = []) {
-    const blocks = vtt.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").split(/\n{2,}/);
-    const out = ["WEBVTT"];
-    let n = 0;
-    const cueRe = /^((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})\s*-->\s*((?:\d+:)?\d{1,2}:\d{2}[.,]\d{1,3})(.*)$/;
-    for (const block of blocks) {
-        const lines = block.split("\n");
-        const at = lines.findIndex((l) => cueRe.test(l.trim()));
-        if (at < 0) continue;
-        const [, a, b] = cueRe.exec(lines[at].trim());
-        const s = parseVttTime(a);
-        const e = parseVttTime(b);
-        if (e <= offset || s >= end) continue;
-        let text = lines.slice(at + 1).join("\n");
-        for (const [from, to] of replacements) text = text.split(from).join(to);
-        out.push(`${++n}\n${vttTime(Math.max(0, s - offset))} --> ${vttTime(Math.min(end, e) - offset)}\n${text}`);
-    }
-    return out.join("\n\n") + "\n";
-}
-
-/** A paragraph that is a single-paragraph callout blockquote: `> **Tip:** …`. */
-const CALLOUT_RE = /^> \*\*(Tip|Note|Warning|Caution):\*\*\s+/;
-const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
-
-/**
- * Lift callout paragraphs (`> **Tip:** text`) out of text blocks into their own blocks
- * with `callout` set, so a lesson written as plain markdown gets the editor's callout
- * panels. Paragraphs inside fenced code are never touched. Ids are left empty for
- * `withStableIds` to mint.
- */
-export function liftCallouts(blocks) {
-    const out = [];
-    for (const block of blocks) {
-        if (block.kind !== "text" || block.callout) {
-            out.push(block);
-            continue;
-        }
-        const paragraphs = splitParagraphs(block.text);
-        if (!paragraphs.some((p) => p.callout)) {
-            out.push(block);
-            continue;
-        }
-        let pending = [];
-        const flush = () => {
-            if (pending.length) out.push({ id: "", kind: "text", text: pending.join("\n\n") });
-            pending = [];
-        };
-        for (const p of paragraphs) {
-            if (!p.callout) {
-                pending.push(p.text);
-                continue;
-            }
-            flush();
-            const m = CALLOUT_RE.exec(p.text);
-            const body = p.text
-                .slice(m[0].length)
-                .split("\n")
-                .map((l) => l.replace(/^>\s?/, ""))
-                .join("\n");
-            out.push({ id: "", kind: "text", text: body, callout: m[1].toLowerCase() });
-        }
-        flush();
-    }
-    return out;
-}
-
-/** Split markdown into blank-line-separated paragraphs, keeping fenced code whole. */
-function splitParagraphs(text) {
-    const paragraphs = [];
-    let current = [];
-    let fence = null;
-    const flush = () => {
-        if (current.length) {
-            const t = current.join("\n");
-            paragraphs.push({ text: t, callout: !fence && CALLOUT_RE.test(t) && t.split("\n").every((l) => l.startsWith(">")) });
-        }
-        current = [];
-    };
-    for (const line of text.split("\n")) {
-        const f = FENCE_RE.exec(line);
-        if (fence) {
-            current.push(line);
-            if (f && f[1][0] === fence[0] && f[1].length >= fence.length && line.trim() === f[1]) fence = null;
-            continue;
-        }
-        if (f) {
-            fence = f[1];
-            current.push(line);
-            continue;
-        }
-        if (line.trim() === "") flush();
-        else current.push(line);
-    }
-    flush();
-    return paragraphs;
-}
-
-/**
- * Resolve section timestamp markers in lesson markdown. A line `↪ [[03]]` points the
- * reader at section 03 of the finished video; with `starts` (section id → seconds) it
- * becomes `↪ 1:24 in the video`, and without (no video yet, or an unknown id) the
- * marker line is removed so no learner sees a dangling pointer.
- */
-export function resolveTimestamps(markdown, starts) {
-    return markdown.replace(/^↪ \[\[([\w-]+)\]\][^\n]*\n?(\n)?/gm, (whole, id, blank) => {
-        const at = starts?.[id];
-        if (at === undefined) return "";
-        return `↪ ${formatTimestamp(at)} in the video\n${blank ?? ""}`;
-    });
 }
 
 /** Section start times in the finished cut, from the engine's sync report. */
@@ -218,8 +64,7 @@ export function sentences(text) {
     );
 }
 
-/** Start of a phrase in Whisper word times; same matching rule as the engine's
- * words.mjs (case/punctuation-insensitive, first four letters per word). */
+/** Start of a phrase in Whisper word times; case/punctuation-insensitive, first four letters per word. */
 export function phraseStart(words, phrase) {
     const norm = (x) => x.toLowerCase().replace(/[^a-z0-9]+/g, "");
     const target = phrase.split(/\s+/).map(norm).filter(Boolean);
@@ -238,17 +83,37 @@ export function phraseStart(words, phrase) {
 }
 
 /**
- * Captions for the finished video, built from the narration script (so names are
- * spelled right — Whisper hears "Vertesia" a dozen ways) and timed from Whisper's word
- * times of the generated audio.
- *
- * `sections`: `[{ offset, text, words, duration }]`, where `offset` is when the
- * section's audio starts in the cut, `words` its Whisper word times (relative to the
- * section audio) and `duration` the audio length. Each sentence becomes a cue starting
- * where its first words are heard; a sentence whose start can't be found is placed
- * proportionally by character count, so one mismatch never breaks the file.
+ * Break a sentence into caption-sized chunks (two short lines on a phone). Prefers to
+ * break after punctuation once a chunk is at least half full; never splits a word.
  */
-export function captionsFromNarration(sections) {
+export function captionChunks(sentence, max = 58) {
+    const chunks = [];
+    let cur = "";
+    for (const word of String(sentence).trim().split(/\s+/).filter(Boolean)) {
+        const next = cur ? `${cur} ${word}` : word;
+        if (next.length > max && cur) {
+            chunks.push(cur);
+            cur = word;
+        } else cur = next;
+        if (cur.length >= max / 2 && /[,;:]$/.test(cur)) {
+            chunks.push(cur);
+            cur = "";
+        }
+    }
+    if (cur) chunks.push(cur);
+    return chunks;
+}
+
+/**
+ * Caption cues for the finished video, written from the narration script (so names are
+ * spelled right) and timed from Whisper's word times of the generated audio.
+ *
+ * `sections`: `[{ offset, text, words, duration }]`: `offset` is when the section's audio
+ * starts in the cut, `words` its word times, `duration` the audio length. A sentence whose
+ * start can't be found is placed proportionally, so one mismatch never breaks the file.
+ * Each sentence's time is shared across its chunks by character count.
+ */
+export function captionCues(sections) {
     const cues = [];
     for (const sec of sections) {
         const list = sentences(sec.text);
@@ -268,38 +133,70 @@ export function captionsFromNarration(sections) {
         list.forEach((s, i) => {
             const start = sec.offset + starts[i];
             const end = sec.offset + (i + 1 < list.length ? starts[i + 1] : sec.duration);
-            if (end > start) cues.push({ start, end, text: s });
+            if (end <= start) return;
+            const chunks = captionChunks(s);
+            const chars = chunks.reduce((a, c) => a + c.length, 0);
+            let t = start;
+            chunks.forEach((text, k) => {
+                const next = k === chunks.length - 1 ? end : t + ((end - start) * text.length) / chars;
+                cues.push({ start: t, end: next, text });
+                t = next;
+            });
         });
     }
+    return cues;
+}
+
+/** WebVTT for a list of cues. */
+export function cuesToVtt(cues) {
     return ["WEBVTT", ...cues.map((c, i) => `${i + 1}\n${vttTime(c.start)} --> ${vttTime(c.end)}\n${c.text}`)].join("\n\n") + "\n";
 }
 
-// ---- brief-driven videos: plan + recorded marks → edit plan ------------------------
+/**
+ * The image sequence that plays the captions over the video: `[{ cue, duration }]`, with
+ * `cue: null` for the gaps. Times are absolute, so rounding never accumulates into drift.
+ */
+export function captionTimeline(cues, total) {
+    const out = [];
+    let t = 0;
+    cues.forEach((c, i) => {
+        const start = Math.max(t, c.start);
+        const end = Math.min(total, c.end);
+        if (end <= start) return;
+        if (start > t) out.push({ cue: null, duration: round3(start - t) });
+        out.push({ cue: i, duration: round3(end - start) });
+        t = end;
+    });
+    if (total > t) out.push({ cue: null, duration: round3(total - t) });
+    return out;
+}
+const round3 = (n) => Math.round(n * 1000) / 1000;
 
-const words4 = (s) =>
+// ---- plans ---------------------------------------------------------------------
+
+const planWords = (s) =>
     String(s)
         .toLowerCase()
         .replace(/[^a-z0-9\s]+/g, " ")
         .split(/\s+/)
         .filter(Boolean);
 
-/** Where `phrase` starts in `text`, as a word index (punctuation/case-insensitive), or -1. */
+/** Where `phrase` starts in `text`, as a word index, or -1. */
 function phraseIndex(text, phrase, from = 0) {
-    const t = words4(text);
-    const p = words4(phrase);
+    const t = planWords(text);
+    const p = planWords(phrase);
     if (!p.length) return -1;
     for (let i = from; i <= t.length - p.length; i++) if (p.every((w, k) => t[i + k] === w)) return i;
     return -1;
 }
 
 /**
- * Check a brief-driven plan (training_videos/<slug>/plan.json) before recording.
- * Returns human-readable problems; empty means it's recordable.
+ * Check a plan (content/videos/<slug>/plan.json) before capture. Returns human-readable
+ * problems; empty means it's capturable.
  *
  * Each section needs an id, a label, narration and steps; every step a unique `mark`;
- * every step after a section's first a `sync` phrase that appears in the narration, in
- * step order (the engine cuts to the step's footage when that phrase is spoken). A
- * first step's `sync` is pointless — its clip starts with the section anyway.
+ * a later step's `sync` must appear in the narration, in step order. A `then: "tap"` step
+ * needs a `target` to tap.
  */
 export function validatePlan(plan) {
     const problems = [];
@@ -323,6 +220,9 @@ export function validatePlan(plan) {
             if (!step.mark) problems.push(`${where} step ${i + 1}: no mark`);
             else if (marks.has(step.mark)) problems.push(`${where}: duplicate mark "${step.mark}"`);
             marks.add(step.mark);
+            if (step.then === "tap" && !step.target?.text && !step.target?.id) {
+                problems.push(`${where} step "${step.mark}": then "tap" needs a target with text or id`);
+            }
             if (i === 0) {
                 if (step.sync) problems.push(`${where} step "${step.mark}": the first step needs no sync (its clip starts the section)`);
                 return;
@@ -339,74 +239,24 @@ export function validatePlan(plan) {
 }
 
 /**
- * Turn a plan and the recorder's marks into revoice.json sections, plus screenshot
- * suggestions for the lesson.
+ * Turn a plan and rec.json into revoice.json sections of still clips:
+ * `{ still, box, kind, zoom, prev, from, notes, sync }`, or `{ diagram, from, to, sync }`.
  *
- * `rec` is the recorder's export: `{ t0, marks: [{ label, start, end }] }` (epoch ms,
- * t0 = the screencast's first frame). `offset` is prep's cut start, so times land in
- * trimmed.mp4. Each step becomes one clip, from `pre` s before its action to `after` s
- * past its end (the action's own wait/hold is inside the mark) — so however long the
- * agent paused between actions, the pause never reaches the cut. A retaken step uses
- * its last mark. Steps with `shot` yield `{ name, t, crop }` taken just after the action.
- */
-export function planToRevoice(plan, rec, { offset = 0, duration = Infinity } = {}) {
-    const last = new Map();
-    for (const m of rec.marks ?? []) last.set(m.label, m);
-    const at = (ms) => (ms - rec.t0) / 1000 - offset;
-    const missing = [];
-    const shots = [];
-    const sections = plan.sections.map((sec) => {
-        const clips = [];
-        sec.steps.forEach((step, i) => {
-            const m = last.get(step.mark);
-            if (!m) {
-                missing.push(step.mark);
-                return;
-            }
-            const clip = {
-                in: round2(Math.max(0, at(m.start) - (step.pre ?? 0.3))),
-                out: round2(Math.min(duration, at(m.end) + (step.after ?? 0.8))),
-            };
-            if (step.speed && step.speed !== 1) clip.speed = step.speed;
-            if (i > 0 && step.sync) clip.sync = step.sync;
-            if (clip.out > clip.in) clips.push(clip);
-            if (step.shot) {
-                const name = typeof step.shot === "string" ? step.shot : step.mark.replace(/^\d+-/, "");
-                shots.push({ name: slugify(name), t: round2(Math.min(duration - 0.1, at(m.end) + 0.3)), crop: step.crop ?? "content" });
-            }
-        });
-        // A section whose first step was lost must not open on a synced clip.
-        if (clips[0]?.sync) delete clips[0].sync;
-        return { id: sec.id, label: sec.label, narration: sec.narration, clips, ...(sec.tail !== undefined ? { tail: sec.tail } : {}) };
-    });
-    return { revoice: { title: plan.title, sections }, shots, missing };
-}
-
-/**
- * Stills mode (plan.mode === "stills"): each step is a screenshot `stills/<mark>.png` taken
- * during the take, with the box the recorder `locate`d for it. Returns revoice.json sections
- * whose clips are still clips — `{ still, box, kind, zoom, prev, sync }` — rendered by
- * revoice.mjs through the training-still scene, plus lesson screenshots for `shot` steps.
- *
- * `prev` is the previous step's still (across sections too) so each still cross-fades from
- * the last; the first still of the video has none. `from` is where that still's camera, ring,
- * cursor and callouts ended (`{ box, zoom?, kind?, notes? }`, only when it had a box), so the next clip moves
- * on from there instead of snapping back to the full screen. `kind` defaults to "click" when the
- * step has a box, "none" without; `zoom` to 1 (none). A step with no recorded rect has no
- * screenshot to show and is reported in `missing`.
+ * `rec` is `{ device: { w, h, scale }, rects: { <mark>: { box: {x,y,w,h} | null } } }`, boxes
+ * in device points. `prev` is the previous still, so each clip cross-fades from it; `from`
+ * is where that still's camera ended, so the next clip moves on instead of snapping back.
+ * `kind` defaults to "click" with a box and "none" without. A step with no recorded rect
+ * is reported in `missing`.
  */
 export function planToStills(plan, rec) {
     const rects = rec.rects ?? {};
     const missing = [];
-    const shots = [];
     let prev = null;
     let prevCam = null;
     const sections = plan.sections.map((sec) => {
         const clips = [];
         sec.steps.forEach((step, i) => {
             if (step.diagram) {
-                // A full-screen diagram scene (diagrams/<name>.html), or a time window of one:
-                // no screenshot, so nothing to cross-fade from or into.
                 const clip = { diagram: step.diagram };
                 if (step.from !== undefined) clip.from = step.from;
                 if (step.to !== undefined) clip.to = step.to;
@@ -422,8 +272,7 @@ export function planToStills(plan, rec) {
                 return;
             }
             const still = `stills/${step.mark}.png`;
-            // Terminal stills have nothing to click: ring only, no cursor or ripple.
-            const clip = { still, kind: step.kind ?? (!r.box ? "none" : step.terminal || r.terminal ? "look" : "click") };
+            const clip = { still, kind: step.kind ?? (r.box ? "click" : "none") };
             if (r.box) clip.box = [r.box.x, r.box.y, r.box.w, r.box.h];
             if (step.zoom && step.zoom > 1) clip.zoom = step.zoom;
             if (step.tags?.length || step.arrows?.length) clip.notes = { tags: step.tags ?? [], arrows: step.arrows ?? [] };
@@ -433,13 +282,171 @@ export function planToStills(plan, rec) {
             clips.push(clip);
             prev = still;
             prevCam = clip.box ? { box: clip.box, ...(clip.zoom ? { zoom: clip.zoom } : {}), kind: clip.kind, ...(clip.notes ? { notes: clip.notes } : {}) } : null;
-            if (step.shot) {
-                const name = typeof step.shot === "string" ? step.shot : step.mark.replace(/^\d+-/, "");
-                shots.push({ name: slugify(name), still, crop: step.crop ?? "content" });
-            }
         });
         if (clips[0]?.sync) delete clips[0].sync;
         return { id: sec.id, label: sec.label, narration: sec.narration, clips, ...(sec.tail !== undefined ? { tail: sec.tail } : {}) };
     });
-    return { revoice: { title: plan.title, mode: "stills", sections }, shots, missing };
+    return { revoice: { title: plan.title, mode: "stills", device: rec.device, sections }, missing };
+}
+
+/**
+ * Where the phone screen sits on the 9:16 stage: as large as fits above the caption band,
+ * centred. An iPhone screen is taller than 9:16, so height is normally the limit.
+ */
+export function frameLayout(device) {
+    const maxW = STAGE.w - 64;
+    const maxH = STAGE.h - CAPTION_BAND - FRAME_TOP;
+    const s = Math.min(maxW / device.w, maxH / device.h);
+    const w = Math.round(device.w * s);
+    const h = Math.round(device.h * s);
+    return { x: Math.round((STAGE.w - w) / 2), y: FRAME_TOP + Math.round((maxH - h) / 2), w, h };
+}
+
+// ---- maestro hierarchy ---------------------------------------------------------
+
+/** "[10,20][110,64]" → { x: 10, y: 20, w: 100, h: 44 }, or null. */
+export function parseBounds(bounds) {
+    const m = /^\[(-?[\d.]+),(-?[\d.]+)\]\[(-?[\d.]+),(-?[\d.]+)\]$/.exec(String(bounds ?? "").trim());
+    if (!m) return null;
+    const [x1, y1, x2, y2] = m.slice(1).map(Number);
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+}
+
+/** `maestro hierarchy` output → the parsed tree. Tolerates log lines before the JSON. */
+export function parseHierarchy(output) {
+    const text = String(output);
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start < 0 || end < start) throw new Error("no JSON in maestro hierarchy output");
+    return JSON.parse(text.slice(start, end + 1));
+}
+
+/** Every node with bounds, in document order: `{ text, id, box }`. */
+export function flattenHierarchy(root) {
+    const out = [];
+    const walk = (n) => {
+        const a = n?.attributes ?? {};
+        const box = parseBounds(a.bounds);
+        if (box) {
+            out.push({
+                // iOS keeps labels in accessibilityText; `text` holds only system chrome.
+                labels: [a.accessibilityText, a.text, a.hintText, a.value].filter(Boolean),
+                id: a["resource-id"] || "",
+                box,
+            });
+        }
+        (n?.children ?? []).forEach(walk);
+    };
+    walk(root);
+    return out;
+}
+
+/**
+ * The screen size in points, from the screenshot's pixels: the node at the origin whose
+ * size is the screenshot divided by a whole scale. Falls back to @3x.
+ */
+export function deviceSize(nodes, px) {
+    for (const scale of [3, 2]) {
+        const w = px.w / scale;
+        const h = px.h / scale;
+        if (nodes.some((n) => n.box.x === 0 && n.box.y === 0 && Math.abs(n.box.w - w) < 1 && Math.abs(n.box.h - h) < 1)) {
+            return { w, h, scale };
+        }
+    }
+    return { w: px.w / 3, h: px.h / 3, scale: 3 };
+}
+
+const isOnScreen = (b, device) => b.w > 0 && b.h > 0 && b.x < device.w && b.y < device.h && b.x + b.w > 0 && b.y + b.h > 0;
+
+/** Clip a box to the screen, after padding it so the ring doesn't sit on the control. */
+export function padBox(b, device, pad = 4) {
+    const x = Math.max(0, b.x - pad);
+    const y = Math.max(0, b.y - pad);
+    return { x, y, w: Math.min(device.w, b.x + b.w + pad) - x, h: Math.min(device.h, b.y + b.h + pad) - y };
+}
+
+/**
+ * Find a control. `target` is `{ text?, id?, index?, pad? }`, or `{ union: [t1, t2] }` for a
+ * region. `text` and `id` are full-string regexes, the same rule as Maestro's selectors,
+ * so a plan can use one selector for the highlight and the tap (iOS labels often gain a
+ * leading comma: use ".*Reps"). The smallest visible match wins, because wrappers repeat a
+ * child's label; `index` picks the nth visible match in document order instead.
+ */
+export function findControl(nodes, target, device) {
+    if (target.union) {
+        const parts = target.union.map((t) => findControl(nodes, t, device));
+        const bad = parts.find((p) => !p.box);
+        if (bad) return bad;
+        const x = Math.min(...parts.map((p) => p.box.x));
+        const y = Math.min(...parts.map((p) => p.box.y));
+        const x2 = Math.max(...parts.map((p) => p.box.x + p.box.w));
+        const y2 = Math.max(...parts.map((p) => p.box.y + p.box.h));
+        return { box: { x, y, w: x2 - x, h: y2 - y } };
+    }
+    const textRe = target.text ? new RegExp(`^(?:${target.text})$`, "s") : null;
+    const idRe = target.id ? new RegExp(`^(?:${target.id})$`) : null;
+    const hits = nodes.filter(
+        (n) => isOnScreen(n.box, device) && (!textRe || n.labels.some((l) => textRe.test(l))) && (!idRe || idRe.test(n.id)) && (textRe || idRe),
+    );
+    if (!hits.length) {
+        const candidates = [...new Set(nodes.filter((n) => isOnScreen(n.box, device)).flatMap((n) => n.labels))].slice(0, 40);
+        return { box: null, candidates };
+    }
+    const hit = target.index !== undefined ? hits[target.index] : [...hits].sort((a, b) => a.box.w * a.box.h - b.box.w * b.box.h)[0];
+    if (!hit) return { box: null, candidates: hits.flatMap((n) => n.labels) };
+    return { box: padBox(hit.box, device, target.pad ?? 4) };
+}
+
+// ---- brand ---------------------------------------------------------------------
+
+/**
+ * CSS variables for the scenes, read from src/constants/theme.ts so a brand change
+ * reaches the videos. The redesign's `dark` (the look everyone has) wins over the classic one.
+ */
+export function themeTokens(themeSource) {
+    const block = (name) => new RegExp(`export const ${name} = \\{([\\s\\S]*?)\\n\\}`).exec(themeSource)?.[1] ?? "";
+    const hex = (src, key) => new RegExp(`\\b${key}:\\s*'(#[0-9A-Fa-f]{6})'`).exec(src)?.[1];
+    const colors = block("Colors");
+    const redesign = block("REDESIGN");
+    const need = { primary: hex(colors, "primary"), accent: hex(colors, "secondary"), white: hex(colors, "white"), ink: hex(redesign, "dark") ?? hex(colors, "dark"), gray: hex(redesign, "gray") ?? hex(colors, "gray") };
+    const missing = Object.entries(need).filter(([, v]) => !v).map(([k]) => k);
+    if (missing.length) throw new Error(`theme.ts: could not read ${missing.join(", ")}`);
+    const font = /secondary:\s*'([^']+)'/.exec(block("Fonts"))?.[1] ?? "Avenir";
+    const vars = Object.entries(need).map(([k, v]) => `  --${k}: ${v};`).join("\n");
+    return `/* Generated from src/constants/theme.ts by revoice.mjs. Do not edit. */
+:root {
+${vars}
+  --sans: "${font}", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+}
+html, body { margin: 0; padding: 0; width: ${STAGE.w}px; height: ${STAGE.h}px; overflow: hidden; background: var(--primary); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+#stage { position: absolute; left: 0; top: 0; width: ${STAGE.w}px; height: ${STAGE.h}px; overflow: hidden; background: var(--primary); }
+`;
+}
+
+// ---- publishing ----------------------------------------------------------------
+
+const START = "// <publish:start>";
+const END = "// <publish:end>";
+
+/**
+ * Add or replace (by id) an entry in src/data/tutorials.ts, between its publish markers.
+ * Entries are one JSON object per line, sorted by id, so diffs stay one line each.
+ */
+export function upsertTutorial(source, entry) {
+    const a = source.indexOf(START);
+    const b = source.indexOf(END);
+    if (a < 0 || b < a) throw new Error("tutorials.ts: publish markers not found");
+    const lineStart = source.lastIndexOf("\n", a) + 1;
+    const indent = source.slice(lineStart, a);
+    const body = source.slice(a + START.length, b);
+    const entries = body
+        .split("\n")
+        .map((l) => l.trim().replace(/,$/, ""))
+        .filter(Boolean)
+        .map((l) => JSON.parse(l))
+        .filter((e) => e.id !== entry.id);
+    entries.push(entry);
+    entries.sort((x, y) => x.id.localeCompare(y.id));
+    const lines = entries.map((e) => `${indent}${JSON.stringify(e)},\n`).join("");
+    return `${source.slice(0, a + START.length)}\n${lines}${indent}${source.slice(b)}`;
 }
