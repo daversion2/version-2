@@ -687,7 +687,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Today: a swipeable week card replaces the nested rings** *(2026-11-22, on the branch, not OTA'd, not yet seen on screen)*
+**Today: a swipeable week card replaces the nested rings** *(2026-11-22, live OTA 49ee2b70, not yet seen on screen)*
 The nested rings stopped reading well past three apps. Founder picked three
 views from the mockup (https://claude.ai/artifact/XPp116zTm1TgtRcxdECtZy, A,
 B and D) and wants people to swipe between them: **Rings** (a small ring per
