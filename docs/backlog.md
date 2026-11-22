@@ -108,6 +108,23 @@ the ⓘ ("Your override, twice") and onboarding's first two screens.
 If any old wording still shows, it was edited in the copy editor: those
 edits win over the code (see Done).
 
+**Relaunch on Google Play with a new Android build** *(added 2026-11-21)*
+`app.json` is ready: Android is 2.3.0 with its own runtime, so iOS stays on
+2.2.0 and keeps getting OTAs. Keep `android.runtimeVersion` until iOS ships a
+new binary. The microphone permission is gone, and the name, OTA timeout and
+notification icon are fixed. Still to do:
+- Add the Android app in Firebase, save `google-services.json` at the repo
+  root, set `android.googleServicesFile`, and upload an FCM V1 key to EAS.
+  Don't set the path before the file exists: the build will fail.
+- Build, confirm the EAS keystore matches Play's upload key, and upload to
+  Internal testing. Add Play's app signing SHA-1 to Firebase for Google Sign-In.
+- Test on a real Android phone, including guided audio with the screen locked
+  (the background-audio patch is iOS-only).
+- Consider `android.blockedPermissions` for the template's storage and
+  `SYSTEM_ALERT_WINDOW` permissions, which the app doesn't appear to need.
+- Replace the exercise photos and steps (below), then redo Play's App content
+  forms and listing.
+
 **Work through `docs/launch-review.md`** *(added 2026-11-02)*
 The app-wide launch review fixed everything small (see Done). What's left is
 there, most important first: deploy rules, functions and hosting; **Sign in

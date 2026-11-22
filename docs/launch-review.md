@@ -46,7 +46,9 @@ firebase deploy --only firestore:rules,functions,hosting
   `expo-apple-authentication`, the Apple developer setup, Firebase's Apple
   provider, and token revocation on account deletion. Alternative: drop
   Google sign-in on iOS.
-- **`app.json` cleanup, all baked into the binary:**
+- **`app.json` cleanup, all baked into the binary** (2026-11-21: microphone,
+  name, OTA timeout and Android notification icon are done and take effect in
+  the next build; the two iOS usage strings are still open)**:**
   - `"expo-audio"` adds a **microphone** permission the app never uses (and
     Android `RECORD_AUDIO`, a Play-flagged permission). Use
     `["expo-audio", {"microphonePermission": false, "recordAudioAndroid": false}]`.
