@@ -65,8 +65,6 @@ export interface MeditateSession {
   bellId?: string;
   /** The habit whose Start button opened the app, if one did. */
   habitId?: string;
-  /** "How calm do you feel?" 1 (tense) to 5 (calm), asked on the start screen. Optional. */
-  calmBefore?: number;
   /** The override, 1–3, tapped on Start (components/checkin/OverrideStartSheet). */
   override?: number;
 }
@@ -91,6 +89,7 @@ export interface CompletedMeditateSession {
   date: string;
   habit_id?: string;
   /** 1 (tense) to 5 (calm), before and after. Either can be missing — both are optional taps. */
+  /** No longer asked (2026-11-23); older sessions may still carry them. */
   calm_before?: number;
   calm_after?: number;
   /** The override, 1–3, tapped on Start. Absent on a past session, which asks it at the end. */

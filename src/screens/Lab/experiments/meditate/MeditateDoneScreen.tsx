@@ -6,8 +6,6 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import {
-  calmInsight,
-  describeCalmInsight,
   describeSession,
   isTooShortToLog,
   newRecords,
@@ -19,7 +17,6 @@ import { showAlert, showConfirm } from '../../../../utils/alert';
 import { withTimeout } from '../../../../utils/withTimeout';
 import { useMeditate } from './MeditateContext';
 import { MEDITATE_ACCENT, MEDITATE_TINT, ms } from './components/meditateStyle';
-import { CalmScale } from './components/CalmScale';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateDone'>;
 
@@ -34,13 +31,10 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { userId, session, sessions, recordFinished, closeAndCheckOff, discardSession } = useMeditate();
   const [saving, setSaving] = useState(false);
-  const [calmAfter, setCalmAfter] = useState<number | undefined>(undefined);
 
   // finished_at is stamped again at save; this is only for what's shown.
   const preview = useMemo(() => (session ? toCompletedSession(session, new Date()) : null), [session]);
   const records = useMemo(() => (preview ? newRecords(sessions, preview) : []), [sessions, preview]);
-  // From past sessions only — this one joins once it's saved.
-  const insight = useMemo(() => calmInsight(sessions), [sessions]);
 
   if (!session || !preview) return <View style={ms.screen} />;
 
@@ -48,7 +42,7 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
     setSaving(true);
     // Every finished session is the Meditate check-in on Today; no habit is
     // chosen here (services/appCheckins.ts ticks a matching Meditation habit).
-    const completed = toCompletedSession({ ...session, habitId: undefined }, new Date(), calmAfter);
+    const completed = toCompletedSession({ ...session, habitId: undefined }, new Date());
     try {
       await withTimeout(saveMeditateSession(userId, completed), 15000);
     } catch (e) {
@@ -89,7 +83,7 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.unit}> {unit}</Text>
             </Text>
             <Text style={[styles.described, styles.center]}>
-              Sessions under a minute aren’t logged. Begin again whenever you’re ready.
+              Sessions under a minute aren’t logged. Start again whenever you’re ready.
             </Text>
           </View>
         </ScrollView>
@@ -142,15 +136,6 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <View style={[ms.card, styles.calmCard]}>
-          <CalmScale
-            question="How calm do you feel now?"
-            note={session.calmBefore !== undefined ? `You started at ${session.calmBefore}.` : undefined}
-            value={calmAfter}
-            onChange={setCalmAfter}
-          />
-          {insight && <Text style={styles.insight}>{describeCalmInsight(insight)}</Text>}
-        </View>
       </ScrollView>
 
       <View style={[ms.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
@@ -203,6 +188,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  calmCard: { gap: Spacing.md },
-  insight: { ...TextStyles.subhead, fontWeight: '600', color: MEDITATE_ACCENT },
 });

@@ -23,6 +23,15 @@ How to use it:
 
 ## Now
 
+**Re-record "How to use Meditate": Begin is now Do it** *(added 2026-11-23)*
+Meditate's footer changed (see Done): **Do it · N min** replaced **Begin**,
+**Done it** replaced "Log a past session", and the calm question is gone. The
+published tutorial (`content/videos/how-to-use-meditate/plan.json`,
+`src/data/tutorials.ts`) still narrates "Tap Begin" and its capture step
+targets `"Begin · .*"`. Update the plan's narration and selectors, then
+re-run the neuro-video skill (needs the simulator and ElevenLabs, so on the
+founder's machine).
+
 **Check exercise swaps on screen** *(added 2026-11-21)*
 Built, not seen running (see Done). In a live workout: Swap beside Skip
 before the first set (gone once a set is logged), the sheet (reason chips,
@@ -733,6 +742,19 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Meditate: Do it / Done it, and no calm question** *(2026-11-23, on the branch, not OTA'd, not yet seen on screen)*
+Founder: make the start match Workouts, and drop "How calm do you feel?"
+(an extra question that added nothing). The footer is now **Done it** and
+**Do it · N min** side by side. Done it opens the past-session sheet already
+set to the mode and length picked on the start screen (`PastSessionSheet`
+gained optional `initialMode` / `initialMinutes`; Workouts unchanged); the
+separate "Log a past session" link is gone. The calm questions before and
+after a session, the "You usually finish N points calmer" lines on Done and
+History, and the per-session "Calm 2 → 4" are removed (`CalmScale` deleted,
+`calmInsight` / `describeCalm` removed). Old sessions keep their stored
+calm answers; nothing reads them. Maestro: `15a-meditate-calm-scale` deleted;
+`17c` and `19c` now tap "Do it · …" / "Done it" (not rerun).
 
 **Today: a swipeable "Your apps" card** *(2026-11-22, live OTA 6f15de5a, not yet seen on screen)*
 The apps list under the week card felt cramped. Founder picked four layouts

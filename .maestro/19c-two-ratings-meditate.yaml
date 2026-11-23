@@ -1,5 +1,5 @@
 # Two ratings (9211b7d), Meditate: Begin asks "How hard is it to start?";
-# Log a past session's new hint. WRITES NOTHING: Cancels the sheet and the
+# Done it's past-session hint. WRITES NOTHING: Cancels the sheet and the
 # past-session sheet. Never taps "Got it" on the intro (that writes prefs).
 appId: com.neuronudge.neuronudge
 ---
@@ -26,11 +26,11 @@ appId: com.neuronudge.neuronudge
     timeout: 20000
 - tapOn: "Start a session"
 - extendedWaitUntil:
-    visible: "Begin · .*"
+    visible: "Do it · .*"
     timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: 19c-01-meditate-home
-- tapOn: "Begin · .*"
+- tapOn: "Do it · .*"
 - waitForAnimationToEnd
 # A session already open would show "A session is still open" — do not discard.
 - assertNotVisible: ".*A session is still open.*"
@@ -48,14 +48,10 @@ appId: com.neuronudge.neuronudge
     below: "Tap one to start\\."
 - waitForAnimationToEnd
 - assertNotVisible: "How hard is it to start\\?"
-- assertVisible: "Begin · .*"
+- assertVisible: "Do it · .*"
 - takeScreenshot: 19c-03-after-cancel
-# Log a past session -> hint; Cancel, never Save
-- scrollUntilVisible:
-    element: "Log a past session"
-    direction: DOWN
-    timeout: 15000
-- tapOn: "Log a past session"
+# Done it (was "Log a past session", 2026-11-23) -> hint; Cancel, never Save
+- tapOn: "Done it"
 - extendedWaitUntil:
     visible: ".*Save & rate it.*"
     timeout: 10000

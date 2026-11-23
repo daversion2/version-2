@@ -65,7 +65,7 @@ export const MeditateSettingsScreen: React.FC = () => {
 
       <ListGroup
         title="NSDR recordings"
-        footer={prefs.nsdr_links.length === 0 && !adding ? 'None yet. Begin on NSDR opens the one you pick.' : undefined}
+        footer={prefs.nsdr_links.length === 0 && !adding ? 'None yet. Do it on NSDR opens the one you pick.' : undefined}
       >
         {prefs.nsdr_links.map((l) => (
           <ListRow

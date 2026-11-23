@@ -5,10 +5,7 @@ import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import { MeditateMode } from '../../../../types/meditate';
 import {
   breakdown,
-  calmInsight,
   computeRecords,
-  describeCalm,
-  describeCalmInsight,
   describeSession,
   MODE_ORDER,
   RECORD_LABELS,
@@ -49,7 +46,6 @@ export const MeditateHistoryScreen: React.FC = () => {
   const bars = useMemo(() => weeklyTotals(sessions, now, WEEKS), [sessions, now]);
   const records = useMemo(() => computeRecords(sessions), [sessions]);
   const rows = useMemo(() => breakdown(sessions), [sessions]);
-  const calm = useMemo(() => calmInsight(sessions), [sessions]);
   const [selected, setSelected] = useState(WEEKS - 1);
 
   const maxSec = Math.max(...bars.map((b) => b.sec), 60);
@@ -89,14 +85,6 @@ export const MeditateHistoryScreen: React.FC = () => {
         })}
       </View>
 
-      {calm && (
-        <View style={[ms.card, styles.calmCard]}>
-          <Text style={styles.calmText}>{describeCalmInsight(calm)}</Text>
-          <Text style={ms.muted}>
-            From {calm.sessions} sessions where you said how calm you felt before and after (1 tense, 5 calm).
-          </Text>
-        </View>
-      )}
 
       <Text style={ms.sectionLabel}>Minutes per week</Text>
       <View style={ms.card}>
@@ -175,7 +163,6 @@ export const MeditateHistoryScreen: React.FC = () => {
               subtitle={[
                 formatRelativeDay(s.date),
                 s.ended_early ? `ended early of ${formatMinutes(s.planned_sec)}` : null,
-                describeCalm(s) || null,
               ]
                 .filter(Boolean)
                 .join(' · ')}
@@ -210,6 +197,4 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 4,
   },
   axis: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs },
-  calmCard: { gap: 4 },
-  calmText: { ...TextStyles.headline, color: MEDITATE_ACCENT },
 });

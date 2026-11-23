@@ -37,7 +37,6 @@ import {
 import { showAlert, showChoice, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { NsdrLinkForm } from './components/NsdrLinkForm';
-import { CalmScale } from './components/CalmScale';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { newMeditateId, saveMeditateSession } from '../../../../services/labMeditate';
@@ -48,9 +47,10 @@ import { useOverrideStart } from '../../../../components/checkin/OverrideStartSh
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateHome'>;
 
 /**
- * Meditate's start screen: one screen from open to Begin. Sit, Breathe or
+ * Meditate's start screen: one screen from open to Do it. Sit, Breathe or
  * NSDR; the technique, pattern or recording; how long. Everything opens on
- * what was used last time, so a regular just taps Begin.
+ * what was used last time, so a regular just taps Do it. Done it
+ * logs one already done (2026-11-23, like Workouts).
  */
 export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -74,7 +74,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     recordFinished,
     closeAndCheckOff,
   } = useMeditate();
-  // Begin asks the override first; its answer is what starts the session.
+  // Do it asks the override first; its answer is what starts the session.
   const overrideStart = useOverrideStart('Meditate', MEDITATE_ACCENT);
   // A sit done without the app, or forgotten: credit only comes through the
   // app, so it's entered here — saved to history, then rated on Today.
@@ -130,7 +130,6 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
   const [showSteps, setShowSteps] = useState(false);
   const [addingLink, setAddingLink] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [calmBefore, setCalmBefore] = useState<number | undefined>(undefined);
   /** Per mode: play a guided recording instead of timing it yourself. Opens on last time's choice. */
   const [guidedOn, setGuidedOn] = useState<Record<MeditateMode, boolean>>({ sit: false, breathe: false, nsdr: false });
   const [guidedPick, setGuidedPick] = useState<string | undefined>(undefined);
@@ -233,10 +232,8 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         breatheStyle: choices.breatheStyle,
         nsdrLink: mode === 'nsdr' && !recording ? nsdrLink : undefined,
         guided: recording,
-        calmBefore,
         override,
       });
-      setCalmBefore(undefined);
       if (recording) {
         navigation.navigate('MeditateGuided');
         return;
@@ -296,7 +293,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={ms.title}>How Meditate works</Text>
             <Text style={styles.introLine}>• Pick Sit, Breathe or NSDR, and how long.</Text>
             <Text style={styles.introLine}>
-              • Tap Begin and lock your phone. A bell rings at the end — no screen glowing at you while you sit.
+              • Tap Do it and lock your phone. A bell rings at the end — no screen glowing at you while you sit. Already sat? Done it logs it.
             </Text>
             {guided.length > 0 && (
               <Text style={styles.introLine}>
@@ -304,7 +301,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             )}
             <Text style={styles.introLine}>
-              • Begin asks how hard it is to start. Finish asks how hard it was to stay with it. It counts toward your
+              • Do it asks how hard it is to start. Finish asks how hard it was to stay with it. It counts toward your
               week.
             </Text>
             <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
@@ -419,7 +416,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
             )}
             {prefs.nsdr_links.length === 0 && !addingLink && (
               <Text style={ms.lead}>
-                NSDR follows a recording — a yoga nidra or NSDR track you like. Save one and Begin opens it, with the
+                NSDR follows a recording — a yoga nidra or NSDR track you like. Save one and Do it opens it, with the
                 bell set for the end.
               </Text>
             )}
@@ -488,18 +485,13 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <View style={ms.card}>
-          <CalmScale question="How calm do you feel?" value={calmBefore} onChange={setCalmBefore} />
-        </View>
-
-        <TouchableOpacity style={styles.pastLink} onPress={() => setLoggingPast(true)} accessibilityRole="button">
-          <Text style={ms.link}>Log a past session</Text>
-        </TouchableOpacity>
       </ScrollView>
       <PastSessionSheet
         visible={loggingPast}
         accent={MEDITATE_ACCENT}
-        title="Log a past session"
+        title="Done it"
+        initialMode={mode}
+        initialMinutes={recording ? recording.length_min : minutes}
         minutes={{ min: MODES.sit.minMin, max: MODES.sit.maxMin, step: MODES.sit.stepMin, initial: MODES.sit.defaultMin }}
         modes={MODE_ORDER.map((m) => ({
           value: m,
@@ -512,22 +504,29 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
       />
       {overrideStart.sheet}
 
-      <View style={[ms.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
+      {/* Do it runs the session now; Done it logs one already done, like Workouts (2026-11-23). */}
+      <View style={[ms.footer, styles.footerRow, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
-          style={[ms.primaryBtn, (starting || needsLink) && ms.disabled]}
+          style={[ms.secondaryBtn, styles.doneItBtn, starting && ms.disabled]}
+          onPress={() => setLoggingPast(true)}
+          disabled={starting}
+          accessibilityRole="button"
+          accessibilityHint="Log a session you've already done"
+        >
+          <Text style={ms.secondaryBtnText}>Done it</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[ms.primaryBtn, styles.doItBtn, (starting || needsLink) && ms.disabled]}
           onPress={onBegin}
           disabled={starting || needsLink}
           accessibilityRole="button"
+          accessibilityHint="Start this session now"
         >
           {starting ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={ms.primaryBtnText}>
-              {recording
-                ? `Begin · ${recording.length_min} min guided`
-                : mode === 'nsdr'
-                  ? 'Begin · open recording'
-                  : `Begin · ${minutes} min`}
+            <Text style={ms.primaryBtnText} numberOfLines={1}>
+              {recording ? `Do it · ${recording.length_min} min` : mode === 'nsdr' ? 'Do it · open' : `Do it · ${minutes} min`}
             </Text>
           )}
         </TouchableOpacity>
@@ -537,6 +536,9 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  footerRow: { flexDirection: 'row', gap: Spacing.sm },
+  doneItBtn: { flex: 1 },
+  doItBtn: { flex: 2 },
   center: { alignItems: 'center', justifyContent: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   intro: { gap: 6 },
@@ -577,5 +579,4 @@ const styles = StyleSheet.create({
   },
   warn: { flexDirection: 'row', gap: Spacing.md },
   warnLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  pastLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center' },
 });

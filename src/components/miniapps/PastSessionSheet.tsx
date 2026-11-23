@@ -22,6 +22,10 @@ interface Props {
   modes?: { value: string; label: string; minutes?: MinuteRange }[];
   /** A save is in flight: the button spins and nothing can be tapped twice. */
   saving?: boolean;
+  /** Open on this mode instead of the first (Meditate's Done it: what's picked on the start screen). */
+  initialMode?: string;
+  /** Open on this many minutes instead of the range's default. */
+  initialMinutes?: number;
   onSave: (input: PastSessionInput) => void;
   onCancel: () => void;
 }
@@ -42,22 +46,29 @@ export const PastSessionSheet: React.FC<Props> = ({
   minutes,
   modes,
   saving = false,
+  initialMode,
+  initialMinutes,
   onSave,
   onCancel,
 }) => {
   const insets = useSafeAreaInsets();
   const days = getEditableDates();
   const rangeFor = (value?: string): MinuteRange => modes?.find((m) => m.value === value)?.minutes ?? minutes;
+  const startMode = initialMode && modes?.some((m) => m.value === initialMode) ? initialMode : modes?.[0]?.value;
+  const startMins = () => {
+    const r = rangeFor(startMode);
+    return initialMinutes !== undefined ? fit(initialMinutes, r) : r.initial;
+  };
   const [date, setDate] = useState(days[0]);
-  const [mins, setMins] = useState(rangeFor(modes?.[0]?.value).initial);
-  const [mode, setMode] = useState(modes?.[0]?.value);
+  const [mins, setMins] = useState(startMins);
+  const [mode, setMode] = useState(startMode);
   const range = rangeFor(mode);
 
   useEffect(() => {
     if (visible) {
       setDate(getEditableDates()[0]);
-      setMins(rangeFor(modes?.[0]?.value).initial);
-      setMode(modes?.[0]?.value);
+      setMins(startMins());
+      setMode(startMode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);

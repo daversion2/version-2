@@ -5,7 +5,7 @@
 #
 # Before: screenshots the Overview (rings, streak line, XP) and the Meditate
 # page (minutes, "N of 5 sessions", friction chip). Then Start a session →
-# Sit, 1 min, no calm rating → Begin → waits out the minute (no End early) →
+# Sit, 1 min, Do it → waits out the minute (no End early) →
 # Finish & rate it → rates 1 on Today's "How hard was it to start?" sheet →
 # screenshots the toast. After: the same Today screenshots, then Progress →
 # today's day view.
@@ -52,7 +52,7 @@ appId: com.neuronudge.neuronudge
 # ---- WRITES from here on ----------------------------------------------------
 - tapOn: ".*Start a session.*"
 - extendedWaitUntil:
-    visible: "Begin · .*"
+    visible: "Do it · .*"
     timeout: 20000
 - tapOn: "., Sit"   # icon is a private-use glyph, not empty
 - tapOn: "On my own.*"
@@ -68,15 +68,15 @@ appId: com.neuronudge.neuronudge
 - repeat:
     times: 40
     while:
-      notVisible: "Begin · 1 min"
+      notVisible: "Do it · 1 min"
     commands:
       - tapOn: "Less time"
-- assertVisible: "Begin · 1 min"
+- assertVisible: "Do it · 1 min"
 - assertNotVisible:
     text: "Calm [1-5] of 5.*"
     selected: true
 - takeScreenshot: 17c-04-setup-1-min
-- tapOn: "Begin · 1 min"
+- tapOn: "Do it · 1 min"
 - waitForAnimationToEnd
 - takeScreenshot: 17c-05-session-running
 # The full minute, then the bell. Never End early.
