@@ -743,7 +743,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Meditate: Do it / Done it, and no calm question** *(2026-11-23, on the branch, not OTA'd, not yet seen on screen)*
+**Meditate: Do it / Done it, and no calm question** *(2026-11-23, live OTA iOS 6d1cdadb / Android a007ce1d, not yet seen on screen)*
 Founder: make the start match Workouts, and drop "How calm do you feel?"
 (an extra question that added nothing). The footer is now **Done it** and
 **Do it · N min** side by side. Done it opens the past-session sheet already
