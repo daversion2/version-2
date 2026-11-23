@@ -763,7 +763,7 @@ History, and the per-session "Calm 2 → 4" are removed (`CalmScale` deleted,
 calm answers; nothing reads them. Maestro: `15a-meditate-calm-scale` deleted;
 `17c` and `19c` now tap "Do it · …" / "Done it" (not rerun).
 
-**Workouts: home organized by what you came to do** *(2026-11-22, not shipped, partly checked on screen)*
+**Workouts: home organized by what you came to do** *(2026-11-22, live OTA iOS eca91abf, Android 33c288de, partly checked on screen)*
 The top card is the one thing to do now (`workoutHomeFocus`, built on the
 Workouts page's `workoutStartAction`), with Do it and Done it on it. Under it:
 the week, Progress, Create, other workouts. More is gone: This week merged
