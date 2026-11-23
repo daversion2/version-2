@@ -759,7 +759,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: edit past workouts** *(2026-11-23, not shipped, main paths checked on screen)*
+**Workouts: edit past workouts** *(2026-11-23, live OTA iOS c62c52dd, Android dc128684, main paths checked on screen)*
 One Edit workout screen (`WorkoutEditSessionScreen`, logic in
 `services/workoutEdit.ts`), opened from Progress → Sessions, a Week day, an
 exercise's Recent sessions and any record. Edit, add or remove sets, change the
