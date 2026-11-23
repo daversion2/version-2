@@ -198,6 +198,14 @@ Firestore.** Never run a seeder without the user explicitly asking.
 Solo repo. **Commit and push straight to `main`** — no feature branches, no PRs,
 unless the user asks for one.
 
+**Standing instruction (founder, 2026-11-23): once a change is done and
+verified (jest green, tsc at the known baseline), merge it to `main` and push
+the OTA update (`eas update --branch production`) without asking.** If a
+session has to work on another branch, fast-forward `main` to it first. Note
+in `docs/backlog.md` which OTA a change shipped in. This covers JS-only changes;
+native changes still need a store build, and Firebase deploys and seeders
+still need an explicit ask.
+
 ## Tech Stack
 - React Native 0.81 + Expo SDK 54 (custom dev build, not Expo Go)
 - React 19, TypeScript 5.9 (`strict: true`)
