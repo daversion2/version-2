@@ -27,12 +27,14 @@ How to use it:
 Seen working in the simulator with a throwaway session, then deleted: the icon
 opening the home, first-time and "Same as last time" cards, Do it's question,
 Done it from the home, Create from Other sessions, Week, a day, Progress's
-tabs, a length edit (10 → 12 min), Discard on back, and deleting a rated session
-(ring, streak and XP back to where they started). Not seen: a live timed, paced
-or guided session from the new home, Resume and Ready to log, the NSDR
-add-a-recording card, the no-bell warning, a guided session's locked length,
-and the day view's "Logged after" label. Flows 17c and 19c were updated but not
-rerun. Ask before `ui-verify`.
+tabs, a length edit (10 → 12 min), Discard on back, deleting a rated session
+(ring, streak and XP back to where they started), and a live 1-minute timed sit
+started from Create that survived an app restart, showed Ready to log, and
+saved with both ratings. Not seen: the In progress card, Do it from the home's
+top card running a session, paced or guided sessions, the NSDR add-a-recording
+card, the no-bell warning, a guided session's locked length, and the day view's
+"Logged after" label. Flows 17c and 19c were updated but not rerun. Ask before
+`ui-verify`.
 
 **Finish checking past-workout edits on screen** *(added 2026-11-23)*
 Seen working in the simulator with throwaway sessions, then deleted: Edit from
