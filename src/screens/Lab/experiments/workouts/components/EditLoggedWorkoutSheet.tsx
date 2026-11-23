@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import type { CompletionLog } from '../../../../../types';
 import { MAX_SESSION_MINUTES, MIN_SESSION_MINUTES } from '../../../../../services/workoutEdit';
-import { removeRating, updateRatedMinutes } from '../../../../../services/workoutRatingEdits';
+import { removeRating, updateRatedMinutes } from '../../../../../services/appRatingEdits';
 import { withTimeout } from '../../../../../services/labWorkouts';
 import { showAlert, showConfirm } from '../../../../../utils/alert';
 import { NumberStepper } from './NumberStepper';

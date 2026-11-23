@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { CompletedMeditateSession, GuidedRecording, MeditatePrefs } from '../types/meditate';
 import { stripUndefined } from './labWorkouts';
@@ -47,6 +47,10 @@ export const listMeditateSessions = async (userId: string, max = 5000): Promise<
 /** Keyed by the session's own id, so a retried save overwrites rather than duplicates. */
 export const saveMeditateSession = async (userId: string, session: CompletedMeditateSession): Promise<void> => {
   await setDoc(ref(userId, COL.sessions, session.id), stripUndefined(session));
+};
+
+export const deleteMeditateSession = async (userId: string, sessionId: string): Promise<void> => {
+  await deleteDoc(ref(userId, COL.sessions, sessionId));
 };
 
 export const newMeditateId = (userId: string): string => doc(col(userId, COL.sessions)).id;

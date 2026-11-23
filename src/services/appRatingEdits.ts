@@ -4,10 +4,11 @@ import { deleteCompletionLog } from './progress';
 import type { CompletionLog } from '../types';
 
 // =============================================================================
-// A WORKOUT'S RATING, when the workout is corrected. The rating is a separate
-// log from the session, and a rating whose session is gone counts as "a workout
-// logged without details" (homeDashboard.sessionsByDay). So deleting a workout
-// has to delete its rating too, or it stays on the week as a phantom session.
+// A SESSION'S RATING, when a Workouts or Meditate session is corrected. The
+// rating is a separate log from the session, and a rating whose session is gone
+// counts as a session "logged without details" (homeDashboard.sessionsByDay).
+// So deleting a session has to delete its rating too, or it stays on the week
+// as a phantom session.
 // =============================================================================
 
 const logsRef = (userId: string) => collection(db, 'users', userId, 'completionLogs');
@@ -24,6 +25,19 @@ export const removeRating = async (userId: string, logId: string): Promise<void>
 export const removeSessionRatings = async (userId: string, sessionId: string): Promise<void> => {
   const ratings = await getDocs(query(logsRef(userId), where('session_id', '==', sessionId)));
   for (const rating of ratings.docs) await removeRating(userId, rating.id);
+};
+
+/**
+ * A session's length changed: its rating keeps its own copy of the minutes, so
+ * that follows. Only a rating that recorded a length is touched.
+ */
+export const updateSessionRatingMinutes = async (userId: string, sessionId: string, minutes: number): Promise<void> => {
+  const ratings = await getDocs(query(logsRef(userId), where('session_id', '==', sessionId)));
+  await Promise.all(
+    ratings.docs
+      .filter((d) => typeof (d.data() as CompletionLog).metrics?.duration_min === 'number')
+      .map((d) => updateRatedMinutes(userId, { id: d.id, metrics: (d.data() as CompletionLog).metrics }, minutes))
+  );
 };
 
 /** A workout logged with only a day and a length: the length corrected. */

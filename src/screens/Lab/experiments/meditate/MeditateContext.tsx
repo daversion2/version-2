@@ -6,12 +6,17 @@ import type { PracticeInstance } from '../../../../types';
 import { CompletedMeditateSession, GuidedRecording, MeditatePrefs, MeditateSession } from '../../../../types/meditate';
 import {
   DEFAULT_MEDITATE_PREFS,
+  deleteMeditateSession,
   getMeditatePrefs,
   listGuidedRecordings,
   listMeditateSessions,
   newMeditateId,
   saveMeditatePrefs,
+  saveMeditateSession,
 } from '../../../../services/labMeditate';
+import { isTimeoutError, SAVE_TIMEOUT_MS, withTimeout } from '../../../../services/labWorkouts';
+import { removeSessionRatings, updateSessionRatingMinutes } from '../../../../services/appRatingEdits';
+import { replaceMeditateSession } from '../../../../services/meditateEdit';
 import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../../services/miniAppDrafts';
 import { finishSession } from '../../../../services/miniApps';
 import { recordAbandonedStart } from '../../../../services/overrideStarts';
@@ -67,6 +72,8 @@ interface MeditateContextValue {
   discardSession: () => Promise<void>;
   /** After a successful save: fold it into history and drop the draft. */
   recordFinished: (completed: CompletedMeditateSession) => void;
+  /** A finished session rewritten or (null) deleted; a delete takes its rating and XP too. */
+  editSession: (sessionId: string, next: CompletedMeditateSession | null) => Promise<void>;
 
   closeApp: () => void;
   /**
@@ -105,6 +112,8 @@ export const MeditateProvider: React.FC<{
   const [loadError, setLoadError] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<MeditatePrefs>(DEFAULT_MEDITATE_PREFS);
   const [sessions, setSessions] = useState<CompletedMeditateSession[]>([]);
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
   const [habits, setHabits] = useState<PracticeInstance[]>([]);
   const [guided, setGuided] = useState<GuidedRecording[]>([]);
   const [guidedStatus, setGuidedStatus] = useState<GuidedStatus>('loading');
@@ -286,6 +295,49 @@ export const MeditateProvider: React.FC<{
     [userId]
   );
 
+  // On screen before the save, like Workouts. A save that times out is queued
+  // and stays; one refused outright is taken back off.
+  const editSession = useCallback<MeditateContextValue['editSession']>(
+    async (sessionId, next) => {
+      const before = sessionsRef.current;
+      const previous = before.find((s) => s.id === sessionId);
+      if (!next) {
+        // The rating first: left behind, it would count as a phantom session.
+        // If it can't go, nothing has been deleted and the user can retry.
+        try {
+          await withTimeout(removeSessionRatings(userId, sessionId), SAVE_TIMEOUT_MS);
+        } catch {
+          throw new Error('Could not remove the session’s rating');
+        }
+      }
+      const after = replaceMeditateSession(before, sessionId, next);
+      sessionsRef.current = after;
+      setSessions(after);
+      // The rating keeps its own copy of the minutes. Best effort: the session is what counts.
+      const syncRating = () => {
+        if (!next || !previous || next.duration_sec === previous.duration_sec) return;
+        updateSessionRatingMinutes(userId, sessionId, Math.round(next.duration_sec / 60)).catch((e) =>
+          console.warn('Meditate: rating minutes not updated:', e)
+        );
+      };
+      try {
+        await withTimeout(
+          next ? saveMeditateSession(userId, next) : deleteMeditateSession(userId, sessionId),
+          SAVE_TIMEOUT_MS
+        );
+      } catch (e) {
+        if (isTimeoutError(e)) syncRating();
+        else if (sessionsRef.current === after) {
+          sessionsRef.current = before;
+          setSessions(before);
+        }
+        throw e;
+      }
+      syncRating();
+    },
+    [userId]
+  );
+
   const closeApp = useCallback(() => rootNavigation.goBack(), [rootNavigation]);
 
   const closeAndCheckOff = useCallback(
@@ -328,6 +380,7 @@ export const MeditateProvider: React.FC<{
     end,
     discardSession,
     recordFinished,
+    editSession,
     closeApp,
     closeAndCheckOff,
   };

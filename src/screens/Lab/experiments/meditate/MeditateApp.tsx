@@ -11,6 +11,10 @@ import { MeditateHomeScreen } from './MeditateHomeScreen';
 import { MeditateSessionScreen } from './MeditateSessionScreen';
 import { MeditateDoneScreen } from './MeditateDoneScreen';
 import { MeditateHistoryScreen } from './MeditateHistoryScreen';
+import { MeditateCreateScreen } from './MeditateCreateScreen';
+import { MeditateWeekScreen } from './MeditateWeekScreen';
+import { MeditateDayScreen } from './MeditateDayScreen';
+import { MeditateEditSessionScreen } from './MeditateEditSessionScreen';
 import { MeditateSettingsScreen } from './MeditateSettingsScreen';
 import { MEDITATE_ACCENT } from './components/meditateStyle';
 
@@ -52,8 +56,9 @@ export const MeditateApp: React.FC<NativeStackScreenProps<RootStackParamList, 'M
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
-        {/* The start screen draws its own large title ("New session"). */}
+        {/* Home draws its own large title ("Meditate"). */}
         <Stack.Screen name="MeditateHome" component={MeditateHomeScreen} options={{ title: '' }} />
+        <Stack.Screen name="MeditateCreate" component={MeditateCreateScreen} options={{ title: 'Create' }} />
         {/* No header, no swipe-back: a stray gesture mid-sit would leave the session. */}
         <Stack.Screen
           name="MeditateSession"
@@ -72,7 +77,15 @@ export const MeditateApp: React.FC<NativeStackScreenProps<RootStackParamList, 'M
           component={MeditateDoneScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen name="MeditateHistory" component={MeditateHistoryScreen} options={{ title: 'History' }} />
+        <Stack.Screen name="MeditateHistory" component={MeditateHistoryScreen} options={{ title: 'Progress' }} />
+        <Stack.Screen name="MeditateWeek" component={MeditateWeekScreen} options={{ title: 'Your week' }} />
+        <Stack.Screen name="MeditateDay" component={MeditateDayScreen} options={{ title: '' }} />
+        {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
+        <Stack.Screen
+          name="MeditateEditSession"
+          component={MeditateEditSessionScreen}
+          options={{ title: 'Edit session', headerBackButtonMenuEnabled: false }}
+        />
         <Stack.Screen name="MeditateSettings" component={MeditateSettingsScreen} options={{ title: 'Settings' }} />
       </Stack.Navigator>
     </MeditateProvider>

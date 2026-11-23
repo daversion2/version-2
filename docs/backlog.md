@@ -23,6 +23,17 @@ How to use it:
 
 ## Now
 
+**Finish checking the reorganized Meditate on screen** *(added 2026-11-23)*
+Seen working in the simulator with a throwaway session, then deleted: the icon
+opening the home, first-time and "Same as last time" cards, Do it's question,
+Done it from the home, Create from Other sessions, Week, a day, Progress's
+tabs, a length edit (10 → 12 min), Discard on back, and deleting a rated session
+(ring, streak and XP back to where they started). Not seen: a live timed, paced
+or guided session from the new home, Resume and Ready to log, the NSDR
+add-a-recording card, the no-bell warning, a guided session's locked length,
+and the day view's "Logged after" label. Flows 17c and 19c were updated but not
+rerun. Ask before `ui-verify`.
+
 **Finish checking past-workout edits on screen** *(added 2026-11-23)*
 Seen working in the simulator with throwaway sessions, then deleted: Edit from
 Progress → Sessions, a Week day and a record; a run 20 → 30 min (set, length,
@@ -39,7 +50,8 @@ published tutorial (`content/videos/how-to-use-meditate/plan.json`,
 `src/data/tutorials.ts`) still narrates "Tap Begin" and its capture step
 targets `"Begin · .*"`. Update the plan's narration and selectors, then
 re-run the neuro-video skill (needs the simulator and ElevenLabs, so on the
-founder's machine).
+founder's machine). The reorganized home (2026-11-23) changes it further: the
+icon opens a new home, and the setup form moved to Create.
 
 **Finish checking the reorganized Workouts home on screen** *(added 2026-11-22)*
 Seen in the simulator with no history: next-workout card, Week, Progress,
@@ -759,6 +771,17 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Meditate: organized like Workouts** *(2026-11-23, not shipped, main paths checked on screen)*
+Today's Meditate icon opens a new home: the last session ready to repeat
+(`services/meditateHome.ts`) with Do it and Done it, the week, Progress, Create
+and the other kinds of session. The old setup form is now Create. New Week and
+Day screens (`services/meditateWeek.ts`). Progress has Stats, Records and every
+session, and any session can have its length edited or be deleted
+(`services/meditateEdit.ts`); a guided session keeps its recording's length.
+Deleting removes the rating and XP. Do it now comes first everywhere, Workouts'
+preview included. Editing a length, in either app, also updates the minutes
+stored on the rating (`services/appRatingEdits.ts`, was `workoutRatingEdits`).
+
 **Workouts: edit past workouts** *(2026-11-23, live OTA iOS c62c52dd, Android dc128684, main paths checked on screen)*
 One Edit workout screen (`WorkoutEditSessionScreen`, logic in
 `services/workoutEdit.ts`), opened from Progress → Sessions, a Week day, an
@@ -766,7 +789,7 @@ exercise's Recent sessions and any record. Edit, add or remove sets, change the
 length, delete the workout; Summary can fix a set before finishing. In an
 all-cardio session the set's time and the length move together. Records and
 later sessions' PR badges are recalculated. Deleting also removes the rating,
-its habit tick and XP (`services/workoutRatingEdits.ts`), or it would stay on
+its habit tick and XP (`services/appRatingEdits.ts`), or it would stay on
 the week as a phantom session, and rolls back the workout's "last done". The
 day and the ratings are deliberately not editable.
 

@@ -21,10 +21,11 @@ appId: com.neuronudge.neuronudge
           point: "92%,93%"
 - takeScreenshot: 19c-00-today
 - tapOn: "Meditate"
+# The icon opens the home; Change opens Create, where this flow checks Do it.
 - extendedWaitUntil:
-    visible: "Start a session"
+    visible: "Change this session"
     timeout: 20000
-- tapOn: "Start a session"
+- tapOn: "Change this session"
 - extendedWaitUntil:
     visible: "Do it · .*"
     timeout: 20000

@@ -51,6 +51,11 @@ appId: com.neuronudge.neuronudge
 
 # ---- WRITES from here on ----------------------------------------------------
 - tapOn: ".*Start a session.*"
+# Lands on the home: Change opens Create, where the session is set up.
+- extendedWaitUntil:
+    visible: "Change this session"
+    timeout: 20000
+- tapOn: "Change this session"
 - extendedWaitUntil:
     visible: "Do it · .*"
     timeout: 20000

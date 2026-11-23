@@ -105,13 +105,23 @@ export interface MeditatePrefs {
   weekly_goal?: number;
   nsdr_links: NsdrLink[];
   intro_seen?: boolean;
+  /** How the Week screen frames a week. Absent = the last 7 days. */
+  week_view?: 'rolling' | 'calendar';
 }
 
 export type MeditateStackParamList = {
   MeditateHome: undefined;
+  /** Set up any session. `mode`: open on that kind. */
+  MeditateCreate: { mode?: MeditateMode } | undefined;
   MeditateSession: undefined;
   MeditateGuided: undefined;
   MeditateDone: undefined;
+  /** Progress: stats, records and every session. */
   MeditateHistory: undefined;
+  /** Your week: days, minutes, kinds and ratings (services/meditateWeek.ts). */
+  MeditateWeek: undefined;
+  MeditateDay: { date: string };
+  /** A finished session corrected: its length, or deleted. */
+  MeditateEditSession: { sessionId: string };
   MeditateSettings: undefined;
 };

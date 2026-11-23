@@ -58,7 +58,7 @@ import { currentPhase as findCurrentPhase, isLighterWeek, lightenSession } from 
 import { toLocalDateString } from '../../../../utils/date';
 import { addLoggedSets, logSessionId, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
 import { applySessionEdit, lastDoneAt } from '../../../../services/workoutEdit';
-import { removeSessionRatings } from '../../../../services/workoutRatingEdits';
+import { removeSessionRatings, updateSessionRatingMinutes } from '../../../../services/appRatingEdits';
 import type { PersonalRecord, SetValues } from '../../../../types/workouts';
 
 const APP = 'workouts' as const;
@@ -557,6 +557,14 @@ export const WorkoutsProvider: React.FC<{
 
       showSessions(out.sessions, { ...recordsBefore, ...out.records });
       if (workout) putWorkout(workout);
+      // The rating keeps its own copy of the minutes. Best effort: the session is what counts.
+      const previous = before.find((s) => s.id === sessionId);
+      const syncRating = () => {
+        if (!next || !previous || next.duration_sec === previous.duration_sec) return;
+        updateSessionRatingMinutes(userId, sessionId, Math.round(next.duration_sec / 60)).catch((e) =>
+          console.warn('Workouts: rating minutes not updated:', e)
+        );
+      };
       try {
         await withTimeout(
           saveSessionEdits(userId, {
@@ -568,12 +576,14 @@ export const WorkoutsProvider: React.FC<{
           SAVE_TIMEOUT_MS
         );
       } catch (e) {
-        if (!isTimeoutError(e) && sessionsRef.current === out.sessions) {
+        if (isTimeoutError(e)) syncRating();
+        else if (sessionsRef.current === out.sessions) {
           showSessions(before, recordsBefore);
           if (stale && workout) putWorkout(stale);
         }
         throw e;
       }
+      syncRating();
     },
     [userId, exercisesById, ensureLoaded, workouts]
   );

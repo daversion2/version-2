@@ -134,20 +134,20 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
       {/* Do it runs the workout live; Done it logs one already done, as prescribed. */}
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <TouchableOpacity
-          style={[ws.secondaryBtn, styles.footerBtn, empty && ws.disabled]}
-          onPress={() => navigation.navigate('WorkoutDoneIt', { workoutId: workout.id })}
-          disabled={empty}
-          accessibilityHint="Log this workout as already done"
-        >
-          <Text style={ws.secondaryBtnText}>Done it</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[ws.primaryBtn, styles.footerBtn, empty && ws.disabled]}
+          style={[ws.primaryBtn, styles.footerBtn, styles.doIt, empty && ws.disabled]}
           onPress={start}
           disabled={empty}
           accessibilityHint="Start this workout now"
         >
           <Text style={ws.primaryBtnText}>Do it</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[ws.secondaryBtn, styles.footerBtn, styles.doneIt, empty && ws.disabled]}
+          onPress={() => navigation.navigate('WorkoutDoneIt', { workoutId: workout.id })}
+          disabled={empty}
+          accessibilityHint="Log this workout as already done"
+        >
+          <Text style={ws.secondaryBtnText}>Done it</Text>
         </TouchableOpacity>
       </View>
       {overrideStart.sheet}
@@ -185,4 +185,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightGray,
   },
   footerBtn: { flex: 1 },
+  doIt: { flex: 2, paddingHorizontal: Spacing.sm },
+  doneIt: { paddingHorizontal: Spacing.sm },
 });
