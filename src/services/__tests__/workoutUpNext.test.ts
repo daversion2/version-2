@@ -1,8 +1,16 @@
-import { nextInRotation, rotationOrder, upNextWorkout, workoutStartAction } from '../workoutUpNext';
+import {
+  nextInRotation,
+  phaseEntry,
+  prsThisMonth,
+  rotationOrder,
+  upNextWorkout,
+  workoutHomeFocus,
+  workoutStartAction,
+} from '../workoutUpNext';
 import { newPhase } from '../trainingPhases';
 import { startSession } from '../workoutSession';
 import { STARTER_WORKOUTS } from '../../data/workoutExercises';
-import { TrainingPhase, Workout } from '../../types/workouts';
+import { CompletedWorkoutSession, TrainingPhase, Workout } from '../../types/workouts';
 
 const STAMP = '2026-10-01T10:00:00.000Z';
 const starters: Workout[] = STARTER_WORKOUTS.map((s) => ({ ...s, created_at: STAMP, updated_at: STAMP }));
@@ -123,5 +131,71 @@ describe('workoutStartAction', () => {
 
   it('just opens Workouts when there is nothing to suggest', () => {
     expect(workoutStartAction({ ...base, workouts: [] }).launch).toEqual({ kind: 'home' });
+  });
+});
+
+describe('workoutHomeFocus', () => {
+  const base = { workouts: starters, sessions: [], today: '2026-11-02' };
+
+  it('puts a workout left open first, even with a test due', () => {
+    const draft = startSession({ id: 's1', workout: pull, now: new Date('2026-11-02T10:00:00Z') });
+    expect(workoutHomeFocus({ ...base, draft, phase: phase({ status: 'baseline' }) })).toEqual({ kind: 'resume' });
+  });
+
+  it('puts a due test ahead of the next workout', () => {
+    expect(workoutHomeFocus({ ...base, phase: phase(), today: '2026-11-30' })).toEqual({
+      kind: 'test',
+      mode: 'retest',
+      label: 'Retest now',
+      meta: 'Phase 2 is done',
+    });
+  });
+
+  it('names the phase’s next workout', () => {
+    expect(workoutHomeFocus({ ...base, phase: phase() })).toEqual({
+      kind: 'workout',
+      workout: push,
+      why: 'Phase 2, week 3 of 6',
+      inPhase: true,
+    });
+  });
+
+  it('asks for a first workout when there is nothing to start', () => {
+    expect(workoutHomeFocus({ ...base, workouts: [] })).toEqual({ kind: 'create' });
+  });
+});
+
+describe('phaseEntry', () => {
+  it('leads to the current phase', () => {
+    expect(phaseEntry(phase(), phase(), '2026-11-02')).toEqual({
+      title: 'Your phase',
+      subtitle: 'Phase 2 · week 3 of 6',
+      target: { screen: 'Phase', phaseId: 'p1' },
+    });
+  });
+
+  it('leads to the last phase’s results once it is complete', () => {
+    const entry = phaseEntry(undefined, phase({ status: 'complete' }), '2026-12-10');
+    expect(entry.target).toEqual({ screen: 'PhaseResults', phaseId: 'p1' });
+  });
+
+  it('leads to setup with no phase', () => {
+    expect(phaseEntry(undefined, undefined, '2026-11-02').target).toEqual({ screen: 'PhaseSetup' });
+  });
+});
+
+describe('prsThisMonth', () => {
+  const session = (finished_at: string, prs: number) =>
+    ({ finished_at, prs: Array.from({ length: prs }) }) as unknown as CompletedWorkoutSession;
+
+  it('counts only this calendar month', () => {
+    const now = new Date(2026, 10, 22, 12);
+    const list = [
+      session(new Date(2026, 10, 3, 12).toISOString(), 2),
+      session(new Date(2026, 10, 20, 12).toISOString(), 1),
+      session(new Date(2026, 9, 30, 12).toISOString(), 5),
+      session(new Date(2025, 10, 20, 12).toISOString(), 4),
+    ];
+    expect(prsThisMonth(list, now)).toBe(3);
   });
 });

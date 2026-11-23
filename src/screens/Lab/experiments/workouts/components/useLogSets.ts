@@ -37,7 +37,7 @@ export const useLogSets = () => {
           () =>
             showConfirm(
               'That’s today’s workout',
-              'Rate how hard it was to start and it counts toward your week. Or keep logging, and rate it from This week when you’re done.',
+              'Rate how hard it was to start and it counts toward your week. Or keep logging, and rate it from your week when you’re done.',
               () => {
                 rateLoggedSets(session).catch(() =>
                   showAlert("Couldn't hand it to Today", 'Check your connection and try again.')

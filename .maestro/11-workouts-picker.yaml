@@ -27,7 +27,8 @@ appId: com.neuronudge.neuronudge
 - extendedWaitUntil:
     visible: "Empty workout.*"
     timeout: 20000
-# The + on the workouts list (accessibility label "Build a workout").
+# Create, then its Build a workout row.
+- tapOn: "Create, .*"
 - tapOn: ".*Build a workout.*"
 - tapOn: "\\+ Circuit"
 - waitForAnimationToEnd:

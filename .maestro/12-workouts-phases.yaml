@@ -5,7 +5,7 @@
 # WRITES to the signed-in account: two phase docs (phase 1 complete, phase 2
 # ended) and, the first time, the Full Body A / B template workouts.
 # Needs the Workouts card on Today, and no phase under way with the latest one
-# not "done" (ended is fine), so Workouts → More → Phases opens phase setup.
+# not "done" (ended is fine), so Workouts → Create → Start a phase opens phase setup.
 #
 # Steppers are tapped `below:` their exercise's name. A bare index once hit a
 # stepper hidden under the footer, and the tap landed on "See results".
@@ -29,10 +29,10 @@ appId: com.neuronudge.neuronudge
     commands:
       - tapOn:
           point: "92%,93%"
-- tapOn: "More, .*"
-- assertVisible: "Phases, Test yourself.*"
-- takeScreenshot: 12a-more-phases
-- tapOn: "Phases, .*"
+- tapOn: "Create, .*"
+- assertVisible: "Start a phase, Test yourself.*"
+- takeScreenshot: 12a-create-phases
+- tapOn: "Start a phase, .*"
 
 # Step 1 — program
 - extendedWaitUntil:

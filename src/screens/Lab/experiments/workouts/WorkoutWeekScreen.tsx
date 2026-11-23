@@ -24,6 +24,7 @@ import {
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { CardioWeekCard } from './components/CardioWeekCard';
+import { WeekExercises, WeekRateCard } from './components/WeekExercises';
 import { useWorkoutLogs, WeekStrip, weekdayName } from './components/WeekParts';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutWeek'>;
@@ -104,6 +105,8 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
         <WeekStrip days={week.days} onOpenDay={openDay} />
       </View>
 
+      {offset === 0 && <WeekRateCard />}
+
       <View style={styles.tiles}>
         <Tile label="Time" value={week.durationSec > 0 ? formatSeconds(week.durationSec) : '–'} />
         <Tile label="Sets" value={String(week.sets)} />
@@ -169,6 +172,11 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Targets and adding sets belong to the week in progress, not to past ones. */}
+      {offset === 0 && (
+        <WeekExercises onOpenExercise={(exerciseId) => navigation.navigate('WeeklyVolumeExercise', { exerciseId })} />
+      )}
+
       {daySessions.length > 0 ? (
         <ListGroup title="Sessions">
           {daySessions.map(({ day, s }, i) => (
@@ -196,14 +204,6 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
         <ListRow title="Staying with it" value={describeRating(week.ratings.stay) ?? 'Not rated'} />
       </ListGroup>
 
-      <ListGroup footer="Every exercise since Monday, with your weekly targets. Add or edit sets there.">
-        <ListRow
-          title="Sets by exercise"
-          subtitle="On This week"
-          icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}
-          onPress={() => navigation.navigate('WeeklyVolume')}
-        />
-      </ListGroup>
     </ScrollView>
   );
 };

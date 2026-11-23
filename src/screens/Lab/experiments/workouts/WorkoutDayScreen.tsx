@@ -64,7 +64,7 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={ws.muted}>
                   {s
                     ? [
-                        s.logged_sets ? 'Sets added on This week' : clock(s.started_at),
+                        s.logged_sets ? 'Sets added to your week' : clock(s.started_at),
                         !s.logged_sets && s.duration_sec > 0 ? formatSeconds(s.duration_sec) : null,
                         `${s.total_sets} ${s.total_sets === 1 ? 'set' : 'sets'}`,
                         s.total_volume_kg > 0 ? formatVolume(s.total_volume_kg, unit) : null,

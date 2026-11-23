@@ -125,3 +125,61 @@ export const workoutStartAction = (opts: {
   }
   return { label: 'Start a workout', meta: 'Pick a workout or start empty', launch: { kind: 'home' }, canChoose: false };
 };
+
+/** The top of Workouts' home: the one thing to do now. */
+export type HomeFocus =
+  | { kind: 'resume' }
+  | { kind: 'test'; mode: 'baseline' | 'retest'; label: string; meta: string }
+  | { kind: 'workout'; workout: Workout; why: string; inPhase: boolean }
+  | { kind: 'create' };
+
+/** Built on workoutStartAction, so the home and the Workouts page always name the same thing. */
+export const workoutHomeFocus = (opts: {
+  draft?: WorkoutSession | null;
+  phase?: TrainingPhase;
+  workouts: Workout[];
+  sessions: CompletedWorkoutSession[];
+  today: string;
+}): HomeFocus => {
+  const action = workoutStartAction(opts);
+  const { launch } = action;
+  if (launch.kind === 'resume') return { kind: 'resume' };
+  if (launch.kind === 'phaseTest') return { kind: 'test', mode: launch.mode, label: action.label, meta: action.meta };
+  const next = launch.kind === 'workout' ? upNextWorkout(opts) : undefined;
+  return next ? { kind: 'workout', workout: next.workout, why: next.why, inPhase: next.inPhase } : { kind: 'create' };
+};
+
+export interface PhaseEntry {
+  title: string;
+  subtitle: string;
+  target: { screen: 'Phase' | 'PhaseResults'; phaseId: string } | { screen: 'PhaseSetup' };
+}
+
+/** Where "phases" leads right now: the current one, the last one's results, or setting one up. */
+export const phaseEntry = (current: TrainingPhase | undefined, latest: TrainingPhase | undefined, today: string): PhaseEntry => {
+  if (current) {
+    return {
+      title: 'Your phase',
+      subtitle:
+        current.status === 'baseline'
+          ? `Phase ${current.number} · test day`
+          : `Phase ${current.number} · week ${phaseWeek(current, today)} of ${current.weeks}`,
+      target: { screen: 'Phase', phaseId: current.id },
+    };
+  }
+  if (latest?.status === 'complete') {
+    return {
+      title: 'Next phase',
+      subtitle: `Phase ${latest.number} done · see results`,
+      target: { screen: 'PhaseResults', phaseId: latest.id },
+    };
+  }
+  return { title: 'Start a phase', subtitle: 'Test yourself, follow a program, then retest', target: { screen: 'PhaseSetup' } };
+};
+
+/** Personal records set so far this calendar month. */
+export const prsThisMonth = (sessions: CompletedWorkoutSession[], now: Date): number =>
+  sessions.reduce((n, s) => {
+    const at = new Date(s.finished_at);
+    return at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() ? n + s.prs.length : n;
+  }, 0);

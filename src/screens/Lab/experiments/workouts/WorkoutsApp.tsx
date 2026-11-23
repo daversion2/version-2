@@ -24,11 +24,10 @@ import { PhaseTestScreen } from './PhaseTestScreen';
 import { ExerciseTestScreen } from './ExerciseTestScreen';
 import { PhaseResultsScreen } from './PhaseResultsScreen';
 import { PhaseNextScreen } from './PhaseNextScreen';
-import { WeeklyVolumeScreen } from './WeeklyVolumeScreen';
 import { WorkoutWeekScreen } from './WorkoutWeekScreen';
 import { WorkoutDayScreen } from './WorkoutDayScreen';
 import { WeeklyVolumeExerciseScreen } from './WeeklyVolumeExerciseScreen';
-import { WorkoutMoreScreen } from './WorkoutMoreScreen';
+import { WorkoutCreateScreen } from './WorkoutCreateScreen';
 import { WORKOUTS_ACCENT } from './components/workoutsStyle';
 
 const Stack = createNativeStackNavigator<WorkoutsStackParamList>();
@@ -76,7 +75,7 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           options={{ title: '' }}
           initialParams={{ launch: route.params?.launch }}
         />
-        <Stack.Screen name="WorkoutMore" component={WorkoutMoreScreen} options={{ title: 'More' }} />
+        <Stack.Screen name="WorkoutCreate" component={WorkoutCreateScreen} options={{ title: 'Create' }} />
         <Stack.Screen name="WorkoutPreview" component={WorkoutPreviewScreen} options={{ title: '' }} />
         {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
         <Stack.Screen
@@ -98,9 +97,8 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
         <Stack.Screen name="WorkoutDoneIt" component={WorkoutDoneItScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutWeek" component={WorkoutWeekScreen} options={{ title: 'Your week' }} />
         <Stack.Screen name="WorkoutDay" component={WorkoutDayScreen} options={{ title: '' }} />
-        <Stack.Screen name="WeeklyVolume" component={WeeklyVolumeScreen} options={{ title: 'This week' }} />
         <Stack.Screen name="WeeklyVolumeExercise" component={WeeklyVolumeExerciseScreen} options={{ title: '' }} />
-        <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'History' }} />
+        <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'Progress' }} />
         <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: 'Settings' }} />
         <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: 'My exercises' }} />
         <Stack.Screen

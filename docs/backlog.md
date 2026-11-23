@@ -32,6 +32,13 @@ targets `"Begin · .*"`. Update the plan's narration and selectors, then
 re-run the neuro-video skill (needs the simulator and ElevenLabs, so on the
 founder's machine).
 
+**Finish checking the reorganized Workouts home on screen** *(added 2026-11-22)*
+Seen in the simulator with no history: next-workout card, Week, Progress,
+Create, Done it's workout switching, and Do it reaching the start question.
+Not seen: Resume, test due, in a phase, no workouts, a week with real sets,
+or saving anything. Flows 11, 12 and 14a were updated but not rerun. Ask
+before `ui-verify`.
+
 **Check exercise swaps on screen** *(added 2026-11-21)*
 Built, not seen running (see Done). In a live workout: Swap beside Skip
 before the first set (gone once a set is logged), the sheet (reason chips,
@@ -755,6 +762,15 @@ History, and the per-session "Calm 2 → 4" are removed (`CalmScale` deleted,
 `calmInsight` / `describeCalm` removed). Old sessions keep their stored
 calm answers; nothing reads them. Maestro: `15a-meditate-calm-scale` deleted;
 `17c` and `19c` now tap "Do it · …" / "Done it" (not rerun).
+
+**Workouts: home organized by what you came to do** *(2026-11-22, not shipped, partly checked on screen)*
+The top card is the one thing to do now (`workoutHomeFocus`, built on the
+Workouts page's `workoutStartAction`), with Do it and Done it on it. Under it:
+the week, Progress, Create, other workouts. More is gone: This week merged
+into Your week, phases and tests moved to Progress and Create, and logging
+without details is "Done something else". Today's Workouts icon and ring now
+open this home directly, with the quick Log on it as "Log an exercise". The
+older stats page stays reachable from the Progress tab's Workouts row.
 
 **Today: a swipeable "Your apps" card** *(2026-11-22, live OTA 6f15de5a, not yet seen on screen)*
 The apps list under the week card felt cramped. Founder picked four layouts

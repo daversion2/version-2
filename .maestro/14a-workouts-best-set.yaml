@@ -23,7 +23,7 @@ appId: com.neuronudge.neuronudge
     commands:
       - tapOn:
           point: "92%,93%"
-- tapOn: "History, stats and records"
+- tapOn: "Progress, stats and records"
 - tapOn: "Stats"
 - tapOn: "All"
 - waitForAnimationToEnd:

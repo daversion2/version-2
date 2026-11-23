@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,6 +22,7 @@ import { insteadOfLine } from '../../../../services/exerciseSwap';
 import { SwapExerciseSheet } from './components/SwapExerciseSheet';
 import { formatSetValues } from '../../../../services/workoutMath';
 import { formatRelativeDay, getEditableDates } from '../../../../utils/date';
+import { showConfirm } from '../../../../utils/alert';
 import { Stepper } from '../../../../components/common/Stepper';
 import { useWorkouts } from './WorkoutsContext';
 import { useFinishWorkout } from './components/useFinishWorkout';
@@ -56,6 +57,15 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
       ? fillAsPrescribed(buildSession(workout), { exercisesById, sessions, end: new Date(), durationSec: minutes * 60 })
       : null
   );
+  // Switching workouts starts over, so it asks first once anything here has changed.
+  const untouched = useRef(session);
+  const switchable = workouts.filter((w) => w.blocks.length > 0);
+  const switchTo = (workoutId: string) => {
+    if (workoutId === workout?.id) return;
+    const go = () => navigation.replace('WorkoutDoneIt', { workoutId });
+    if (session === untouched.current) return go();
+    showConfirm('Switch workout?', 'Your changes to this one won’t be saved.', go, 'Switch');
+  };
   const [editing, setEditing] = useState<{ blockIndex: number; setIndex: number } | null>(null);
   // "Swap for today" on one item (2026-11-20): its filled-in sets are re-prescribed for the new exercise.
   const [swapping, setSwapping] = useState<{ blockIndex: number; itemIndex: number } | null>(null);
@@ -92,6 +102,28 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={[ws.scroll, { paddingBottom: 150 + insets.bottom }]}>
         <Text style={ws.lead}>Filled in as planned. Change anything that went differently, then save.</Text>
+
+        {switchable.length > 1 && (
+          <View style={ws.card}>
+            <Text style={ws.title}>Which workout?</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+              {switchable.map((w) => {
+                const on = w.id === workout?.id;
+                return (
+                  <TouchableOpacity
+                    key={w.id}
+                    style={[ws.chip, on && ws.chipActive]}
+                    onPress={() => switchTo(w.id)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: on }}
+                  >
+                    <Text style={[ws.chipText, on && ws.chipTextActive]}>{w.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={ws.card}>
           <Text style={ws.title}>When?</Text>

@@ -382,14 +382,12 @@ export type WorkoutsLaunch =
 export type WorkoutsStackParamList = {
   /** `launch`: opened from the Workouts page's start button — go on to that, once. */
   WorkoutsHome: { launch?: WorkoutsLaunch } | undefined;
-  /** This week, tests, phases and past workouts — everything that isn't starting one. */
-  WorkoutMore: undefined;
-  /** Your week at a glance: days, totals, muscles, ratings (services/workoutWeek.ts). */
+  /** Home's Create: build a workout or set up a phase. */
+  WorkoutCreate: undefined;
+  /** Your week: days, totals, muscles, ratings, and each exercise with sets added from here. */
   WorkoutWeek: undefined;
   /** One day of the week: its workouts and every set. */
   WorkoutDay: { date: string };
-  /** Every exercise done this week, with sets added straight from here. */
-  WeeklyVolume: undefined;
   WeeklyVolumeExercise: { exerciseId: string };
   WorkoutPreview: { workoutId: string };
   WorkoutBuilder: { workoutId?: string };

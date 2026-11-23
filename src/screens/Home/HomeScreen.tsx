@@ -1014,7 +1014,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           onDashboard={onDashboard}
           onLoadFailed={onDashboardFailed}
           onRefresh={loadData}
-          onOpenAppPage={(appId) => navigation.navigate('AppPage', { appId })}
+          // Workouts opens its own home; its stats page stays on the Progress tab.
+          onOpenAppPage={(appId) =>
+            appId === 'workouts' ? rootNav.navigate('WorkoutsApp') : navigation.navigate('AppPage', { appId })
+          }
           onInfo={intro.reopen}
           top={<RuleBanner rule={ruleBannerRule} onDismiss={dismissRuleBanner} />}
           xp={xp}

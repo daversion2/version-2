@@ -152,7 +152,7 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
           <Text style={ws.sectionLabel}>Weekly target</Text>
           <View style={[ws.card, { gap: Spacing.sm }]}>
             <Text style={ws.muted}>
-              {unitOfTarget === 'sec' ? 'Seconds held' : 'Reps'} to reach by Sunday. It keeps this exercise on This week
+              {unitOfTarget === 'sec' ? 'Seconds held' : 'Reps'} to reach by Sunday. It keeps this exercise on your week
               even before you’ve done it.
             </Text>
             <View style={styles.targetRow}>

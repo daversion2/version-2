@@ -1,4 +1,4 @@
-# From Workouts → History → Stats (range "All"), open ${EXERCISE}'s stats
+# From Workouts → Progress → Stats (range "All"), open ${EXERCISE}'s stats
 # screen and screenshot its top and its "Best set" card. Read-only.
 appId: com.neuronudge.neuronudge
 ---

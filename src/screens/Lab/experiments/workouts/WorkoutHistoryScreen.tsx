@@ -2,7 +2,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../constants/theme';
-import type { CompletedWorkoutSession, Exercise, WeightUnit } from '../../../../types/workouts';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
+import type { CompletedWorkoutSession, Exercise, WeightUnit, WorkoutsStackParamList } from '../../../../types/workouts';
+import { PhaseRow } from './components/PhaseRow';
 import { formatSeconds, formatSetValues, formatVolume } from '../../../../services/workoutMath';
 import { recordLines } from './components/StatsParts';
 import { WorkoutStatsPanel } from './components/WorkoutStatsPanel';
@@ -80,9 +83,12 @@ const SessionRow = React.memo(function SessionRow({
   );
 });
 
-export const WorkoutHistoryScreen: React.FC = () => {
+/** Progress: everything that looks back. Stats, records, past sessions, phases and tests. */
+export const WorkoutHistoryScreen: React.FC<NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutHistory'>> = ({
+  navigation,
+}) => {
   const { sessions, records, exercise, prefs } = useWorkouts();
-  const [tab, setTab] = useState<'sessions' | 'stats' | 'records'>('sessions');
+  const [tab, setTab] = useState<'stats' | 'records' | 'sessions'>('stats');
   const [open, setOpen] = useState<string | null>(null);
   const unit = prefs.unit;
   const toggle = useCallback((id: string) => setOpen((current) => (current === id ? null : id)), []);
@@ -100,8 +106,18 @@ export const WorkoutHistoryScreen: React.FC = () => {
   // and the Stats and Records tabs, ride along as its header.
   const header = (
     <View style={styles.header}>
+      <ListGroup>
+        <PhaseRow />
+        <ListRow
+          title="Test an exercise"
+          subtitle="See if you’re getting better — no program needed"
+          icon={{ name: 'speedometer', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('ExerciseTest')}
+        />
+      </ListGroup>
+
       <View style={styles.tabs}>
-        {(['sessions', 'stats', 'records'] as const).map((t) => (
+        {(['stats', 'records', 'sessions'] as const).map((t) => (
           <TouchableOpacity
             key={t}
             style={[styles.tab, tab === t && styles.tabOn]}
