@@ -771,7 +771,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Meditate: organized like Workouts** *(2026-11-23, not shipped, main paths checked on screen)*
+**Meditate: organized like Workouts** *(2026-11-23, live OTA iOS e67029c2, Android 6e036139, main paths checked on screen)*
 Today's Meditate icon opens a new home: the last session ready to repeat
 (`services/meditateHome.ts`) with Do it and Done it, the week, Progress, Create
 and the other kinds of session. The old setup form is now Create. New Week and
