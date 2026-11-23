@@ -23,6 +23,15 @@ How to use it:
 
 ## Now
 
+**Finish checking past-workout edits on screen** *(added 2026-11-23)*
+Seen working in the simulator with throwaway sessions, then deleted: Edit from
+Progress → Sessions, a Week day and a record; a run 20 → 30 min (set, length,
+Week time and cardio all follow); add, remove and edit a set; Discard on back;
+deleting rated workouts (ring, streak and XP back to where they started). Not
+seen: an exercise's Recent sessions, Summary's Edit sets, a circuit's add and
+remove round, a workout logged with only a day and length, and a later session
+regaining a PR badge (covered by jest). Ask before `ui-verify`.
+
 **Re-record "How to use Meditate": Begin is now Do it** *(added 2026-11-23)*
 Meditate's footer changed (see Done): **Do it · N min** replaced **Begin**,
 **Done it** replaced "Log a past session", and the calm question is gone. The
@@ -749,6 +758,17 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workouts: edit past workouts** *(2026-11-23, not shipped, main paths checked on screen)*
+One Edit workout screen (`WorkoutEditSessionScreen`, logic in
+`services/workoutEdit.ts`), opened from Progress → Sessions, a Week day, an
+exercise's Recent sessions and any record. Edit, add or remove sets, change the
+length, delete the workout; Summary can fix a set before finishing. In an
+all-cardio session the set's time and the length move together. Records and
+later sessions' PR badges are recalculated. Deleting also removes the rating,
+its habit tick and XP (`services/workoutRatingEdits.ts`), or it would stay on
+the week as a phantom session, and rolls back the workout's "last done". The
+day and the ratings are deliberately not editable.
 
 **Meditate: Do it / Done it, and no calm question** *(2026-11-23, live OTA iOS 6d1cdadb / Android a007ce1d, not yet seen on screen)*
 Founder: make the start match Workouts, and drop "How calm do you feel?"

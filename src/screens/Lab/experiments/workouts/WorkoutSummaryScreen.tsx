@@ -7,6 +7,7 @@ import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../constants
 import { WorkoutsStackParamList } from '../../../../types/workouts';
 import {
   backToWorkout,
+  editLoggedSet,
   finishedDurationSec,
   intervalReport,
   planChanges,
@@ -24,6 +25,7 @@ import {
 } from '../../../../services/workoutMath';
 import { useWorkouts } from './WorkoutsContext';
 import { useFinishWorkout } from './components/useFinishWorkout';
+import { SetEntrySheet } from './components/SetEntrySheet';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { keepSwapPlan, permanentSwapOffer, sessionSwaps, swapReasonLabel } from '../../../../services/exerciseSwap';
 import { withTimeout } from '../../../../utils/withTimeout';
@@ -45,6 +47,10 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const [saveChanges, setSaveChanges] = useState(false);
   const [saveAsNew, setSaveAsNew] = useState(false);
   const [newName, setNewName] = useState('');
+  // Fix a typo before leaving: the records above recompute from the edited sets.
+  const [fixingBlock, setFixingBlock] = useState<number | null>(null);
+  const [fixing, setFixing] = useState<{ blockIndex: number; setIndex: number } | null>(null);
+  const fixingSet = fixing ? session?.blocks[fixing.blockIndex]?.sets[fixing.setIndex] : undefined;
 
   const computed = useMemo(
     () => (session ? computeSessionRecords(session, exercisesById, records) : null),
@@ -219,6 +225,36 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                     .join(multi ? '\n' : '  ·  ')}
                 </Text>
               )}
+              {block.sets.length > 0 && (
+                <TouchableOpacity
+                  style={styles.fixLink}
+                  onPress={() => setFixingBlock(fixingBlock === bi ? null : bi)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: fixingBlock === bi }}
+                  accessibilityLabel={`Edit the sets of ${title}`}
+                >
+                  <Text style={ws.link}>{fixingBlock === bi ? 'Done editing' : 'Edit sets'}</Text>
+                </TouchableOpacity>
+              )}
+              {fixingBlock === bi &&
+                block.sets.map((s, si) => {
+                  const ex = exercise(s.exerciseId);
+                  const label = multi ? `Round ${s.round + 1}, ${ex.name}` : `Set ${si + 1}`;
+                  const value = formatSetValues(s, ex.kind, unit);
+                  return (
+                    <TouchableOpacity
+                      key={si}
+                      style={styles.fixRow}
+                      onPress={() => setFixing({ blockIndex: bi, setIndex: si })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${label}, ${value}. Edit`}
+                    >
+                      <Text style={[ws.body, { flex: 1 }]}>{label}</Text>
+                      <Text style={ws.body}>{value}</Text>
+                      <Ionicons name="chevron-forward" size={16} color={Colors.gray} />
+                    </TouchableOpacity>
+                  );
+                })}
               {clock && (
                 <View style={styles.clock}>
                   <Text style={styles.clockLine}>
@@ -306,6 +342,21 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.backText}>Back to workout</Text>
         </TouchableOpacity>
       </View>
+
+      <SetEntrySheet
+        visible={!!fixingSet}
+        exercise={fixingSet ? exercise(fixingSet.exerciseId) : undefined}
+        unit={unit}
+        vt1={prefs.vt1_bpm}
+        vt2={prefs.vt2_bpm}
+        mode="edit"
+        initial={fixingSet ?? {}}
+        onSave={async (values) => {
+          if (fixing) updateSession(editLoggedSet(session, fixing.blockIndex, fixing.setIndex, values));
+          setFixing(null);
+        }}
+        onCancel={() => setFixing(null)}
+      />
     </View>
   );
 };
@@ -353,6 +404,8 @@ const styles = StyleSheet.create({
   recapTitleMuted: { color: Colors.gray },
   recapCount: { ...TextStyles.subhead, color: Colors.gray },
   recapSets: { ...TextStyles.footnote, color: Colors.gray },
+  fixLink: { alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' },
+  fixRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, minHeight: 44 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   clock: { gap: 6, marginTop: Spacing.sm },
   clockLine: { ...TextStyles.footnote, color: Colors.label2 },

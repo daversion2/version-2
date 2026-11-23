@@ -34,6 +34,7 @@ import {
   savePhase,
   SAVE_TIMEOUT_MS,
   saveSessionChange,
+  saveSessionEdits,
   saveWorkout,
   saveWorkoutPrefs,
   sortWorkouts,
@@ -55,7 +56,9 @@ import {
 import { showAlert } from '../../../../utils/alert';
 import { currentPhase as findCurrentPhase, isLighterWeek, lightenSession } from '../../../../services/trainingPhases';
 import { toLocalDateString } from '../../../../utils/date';
-import { addLoggedSets, applySessionChange, logSessionId, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
+import { addLoggedSets, logSessionId, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
+import { applySessionEdit, lastDoneAt } from '../../../../services/workoutEdit';
+import { removeSessionRatings } from '../../../../services/workoutRatingEdits';
 import type { PersonalRecord, SetValues } from '../../../../types/workouts';
 
 const APP = 'workouts' as const;
@@ -158,8 +161,11 @@ interface WorkoutsContextValue {
    * already marked as asked, so it never comes up twice.
    */
   logSets: (exercise: Exercise, values: SetValues, count: number) => Promise<{ askCheckin: boolean; prs: PersonalRecord[]; session: CompletedWorkoutSession }>;
-  /** This week: a session rewritten or (null) deleted, and its records rebuilt. */
-  changeSession: (sessionId: string, next: CompletedWorkoutSession | null, exerciseIds: string[]) => Promise<void>;
+  /**
+   * A finished session rewritten or (null) deleted, with everything that
+   * depends on it: records, later record badges, and on a delete its rating.
+   */
+  editSession: (sessionId: string, next: CompletedWorkoutSession | null) => Promise<void>;
   /** Today's logged sets, handed to Today to be rated. Closes the app. */
   rateLoggedSets: (log: CompletedWorkoutSession) => Promise<void>;
 
@@ -525,19 +531,51 @@ export const WorkoutsProvider: React.FC<{
   // save is queued and can take any time: the next change has to build on
   // this one, or it would overwrite it once both land. A save that times out
   // stays (it's queued); one refused outright is taken back off.
-  const changeSession = useCallback<WorkoutsContextValue['changeSession']>(
-    async (sessionId, next, exerciseIds) => {
+  const editSession = useCallback<WorkoutsContextValue['editSession']>(
+    async (sessionId, next) => {
       const { sessions: before, records: recordsBefore } = await ensureLoaded();
-      const out = applySessionChange({ sessions: before, sessionId, next, exercisesById, exerciseIds });
+      const out = applySessionEdit({ sessions: before, sessionId, next, exercisesById });
+      if (!next) {
+        // The rating first: left behind, it would count as a phantom workout.
+        // If it can't go, nothing has been deleted and the user can retry.
+        try {
+          await withTimeout(removeSessionRatings(userId, sessionId), SAVE_TIMEOUT_MS);
+        } catch {
+          throw new Error('Could not remove the workout’s rating');
+        }
+      }
+      // Deleted: the workout's "last done" (and so what's up next) goes back a session.
+      const gone = next ? undefined : before.find((s) => s.id === sessionId);
+      const stale = gone?.workout_id ? workouts.find((w) => w.id === gone.workout_id) : undefined;
+      const lastDone = stale ? lastDoneAt(out.sessions, stale.id) : undefined;
+      let workout: Workout | undefined;
+      if (stale && stale.last_done_at !== lastDone) {
+        const { last_done_at: _old, ...rest } = stale;
+        workout = lastDone ? { ...rest, last_done_at: lastDone } : rest;
+      }
+      const putWorkout = (w: Workout) => setWorkouts((list) => sortWorkouts([...list.filter((x) => x.id !== w.id), w]));
+
       showSessions(out.sessions, { ...recordsBefore, ...out.records });
+      if (workout) putWorkout(workout);
       try {
-        await withTimeout(saveSessionChange(userId, { sessionId, session: out.session, records: out.records }), SAVE_TIMEOUT_MS);
+        await withTimeout(
+          saveSessionEdits(userId, {
+            ...(next ? {} : { deletedId: sessionId }),
+            sessions: out.changed,
+            records: out.records,
+            workout,
+          }),
+          SAVE_TIMEOUT_MS
+        );
       } catch (e) {
-        if (!isTimeoutError(e) && sessionsRef.current === out.sessions) showSessions(before, recordsBefore);
+        if (!isTimeoutError(e) && sessionsRef.current === out.sessions) {
+          showSessions(before, recordsBefore);
+          if (stale && workout) putWorkout(stale);
+        }
         throw e;
       }
     },
-    [userId, exercisesById, ensureLoaded]
+    [userId, exercisesById, ensureLoaded, workouts]
   );
 
   const logSets = useCallback<WorkoutsContextValue['logSets']>(
@@ -645,7 +683,7 @@ export const WorkoutsProvider: React.FC<{
     discardSession,
     recordFinished,
     logSets,
-    changeSession,
+    editSession,
     rateLoggedSets,
     closeApp,
     closeAndCheckOff,

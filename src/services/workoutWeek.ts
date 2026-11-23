@@ -126,6 +126,8 @@ export interface DaySession {
   name: string;
   kind: SessionKind;
   ratings: WeekRatings;
+  /** A workout logged with no details: the rating that is its only record. */
+  ratingLog?: CompletionLog;
 }
 
 export type DayKind = 'strength' | 'cardio' | 'mixed' | 'logged' | 'rest' | 'ahead';
@@ -243,6 +245,7 @@ const buildDays = (opts: {
       name: LOGGED_WORKOUT_NAME,
       kind: 'unknown' as SessionKind,
       ratings: ratingsOf(unpaired.slice(i, i + 1)),
+      ...(unpaired[i] ? { ratingLog: unpaired[i] } : {}),
     }));
     const sessions = [...saved, ...logged];
     const ahead = date > today;
@@ -295,7 +298,8 @@ export const buildWorkoutWeek = (opts: {
     days,
     workouts: days.reduce((n, d) => n + d.sessions.length, 0),
     activeDays: days.filter((d) => d.sessions.length > 0).length,
-    durationSec: inside.filter((s) => !s.logged_sets).reduce((n, s) => n + (s.duration_sec ?? 0), 0),
+    // A quick-logged run keeps its minutes as its length, so it counts here too.
+    durationSec: inside.filter((s) => !s.logged_sets || s.quick_log).reduce((n, s) => n + (s.duration_sec ?? 0), 0),
     sets: inside.reduce((n, s) => n + (s.total_sets ?? 0), 0),
     volumeKg,
     priorVolumeKg,

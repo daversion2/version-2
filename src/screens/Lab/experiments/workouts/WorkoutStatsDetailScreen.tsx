@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../../../constants/theme';
 import { MuscleGroup, StatsRange, WorkoutsStackParamList } from '../../../../types/workouts';
 import { MUSCLE_GROUP_LABELS } from '../../../../data/workoutExercises';
@@ -15,13 +16,13 @@ import {
   volumeBars,
 } from '../../../../services/workoutStats';
 import { formatSetValues } from '../../../../services/workoutMath';
+import { recordSources } from '../../../../services/workoutEdit';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
 import { useWorkouts } from './WorkoutsContext';
 import {
   BreakdownRow,
   RANGE_PHRASE,
   RangePicker,
-  recordLines,
   StatTiles,
   TrendChart,
   VolumeChart,
@@ -65,7 +66,10 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
   // Nothing weighted to add up (push-ups, planks): chart how much was done instead.
   const metric = scoped.some((r) => r.weightKg > 0 && r.reps > 0) ? 'volume' : 'sets';
   const recent = useMemo(() => (isExercise ? recentSessionsFor(sessions, id, 8) : []), [sessions, id, isExercise]);
-  const records_ = isExercise ? recordLines(records[id], unit) : [];
+  const records_ = useMemo(
+    () => (isExercise && records[id] ? recordSources(records[id], sessions, unit) : []),
+    [isExercise, records, id, sessions, unit]
+  );
   // The last 12 sessions whatever the range above: a week holds one or two,
   // too few to show a direction.
   const testsOf = useMemo(() => (ex ? testHistory(ex, tests, phases) : []), [ex, tests, phases]);
@@ -111,11 +115,24 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
             <>
               <Text style={ws.sectionLabel}>Records</Text>
               <View style={[ws.card, styles.records]}>
-                {records_.map((line) => (
-                  <Text key={line} style={styles.record}>
-                    {line}
-                  </Text>
-                ))}
+                {records_.map(({ line, sessionId }) =>
+                  sessionId ? (
+                    <TouchableOpacity
+                      key={line}
+                      style={styles.recordLine}
+                      onPress={() => navigation.navigate('WorkoutEditSession', { sessionId, exerciseId: id })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${line}. Open the workout that set it`}
+                    >
+                      <Text style={styles.record}>{line}</Text>
+                      <Ionicons name="chevron-forward" size={14} color={Colors.gray} />
+                    </TouchableOpacity>
+                  ) : (
+                    <Text key={line} style={styles.record}>
+                      {line}
+                    </Text>
+                  )
+                )}
               </View>
             </>
           )}
@@ -150,11 +167,20 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
                   <Text style={styles.swapLine}>{swappedForLine(exercise(row.away.toId).name, row.away.reason)}</Text>
                 </View>
               ) : (
-                <View key={row.line.sessionId} style={ws.card}>
-                  <Text style={ws.title}>
-                    {formatDayHeader(toLocalDateString(new Date(row.line.finishedAt)))}
-                    <Text style={ws.muted}>  {row.line.workoutName}</Text>
-                  </Text>
+                <TouchableOpacity
+                  key={row.line.sessionId}
+                  style={ws.card}
+                  onPress={() => navigation.navigate('WorkoutEditSession', { sessionId: row.line.sessionId, exerciseId: id })}
+                  accessibilityRole="button"
+                  accessibilityHint="Opens this workout to edit it"
+                >
+                  <View style={styles.recentHead}>
+                    <Text style={[ws.title, { flex: 1 }]}>
+                      {formatDayHeader(toLocalDateString(new Date(row.line.finishedAt)))}
+                      <Text style={ws.muted}>  {row.line.workoutName}</Text>
+                    </Text>
+                    <Text style={styles.testLink}>Edit</Text>
+                  </View>
                   <Text style={styles.sets}>
                     {row.line.sets.map((s) => formatSetValues(s, ex!.kind, unit)).join('  ·  ')}
                   </Text>
@@ -163,7 +189,7 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
                       {insteadOfLine(exercise(w.fromId).name, w.reason)}
                     </Text>
                   ))}
-                </View>
+                </TouchableOpacity>
               )
             )
           )}
@@ -194,6 +220,8 @@ const styles = StyleSheet.create({
   testsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   testLink: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
   record: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.sm, color: WORKOUTS_ACCENT },
+  recordLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 36 },
+  recentHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   sets: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.dark, marginTop: Spacing.xs, lineHeight: 20 },
   swapLine: { fontFamily: Fonts.secondaryBold, fontSize: FontSizes.xs, color: WORKOUTS_ACCENT, marginTop: Spacing.xs },
 });

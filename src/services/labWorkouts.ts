@@ -320,6 +320,45 @@ export const saveSessionChange = async (
   await batch.commit();
 };
 
+/** Firestore's batch limit is 500 writes; stay under it. */
+const EDIT_BATCH_SIZE = 450;
+
+/**
+ * A finished workout edited or deleted (services/workoutEdit.ts): the sessions
+ * whose sets or record badges changed, the records, and the workout's "last
+ * done" after a delete. The edit itself goes in the first batch.
+ */
+export const saveSessionEdits = async (
+  userId: string,
+  input: {
+    deletedId?: string;
+    sessions: CompletedWorkoutSession[];
+    records: Record<string, ExerciseRecord>;
+    workout?: Workout;
+  }
+): Promise<void> => {
+  const writes: ((batch: ReturnType<typeof writeBatch>) => void)[] = [];
+  if (input.deletedId) {
+    const id = input.deletedId;
+    writes.push((b) => b.delete(ref(userId, COL.sessions, id)));
+  }
+  for (const session of input.sessions) {
+    writes.push((b) => b.set(ref(userId, COL.sessions, session.id), stripUndefined(session)));
+  }
+  for (const [exerciseId, record] of Object.entries(input.records)) {
+    writes.push((b) => b.set(ref(userId, COL.records, exerciseId), stripUndefined(record)));
+  }
+  if (input.workout) {
+    const workout = input.workout;
+    writes.push((b) => b.set(ref(userId, COL.workouts, workout.id), stripUndefined(workout)));
+  }
+  for (let i = 0; i < writes.length; i += EDIT_BATCH_SIZE) {
+    const batch = writeBatch(db);
+    writes.slice(i, i + EDIT_BATCH_SIZE).forEach((write) => write(batch));
+    await batch.commit();
+  }
+};
+
 // --- Standalone tests ------------------------------------------------------------
 
 /** Newest first. */

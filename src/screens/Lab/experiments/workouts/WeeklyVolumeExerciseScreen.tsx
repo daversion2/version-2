@@ -8,7 +8,6 @@ import {
   canRemoveSet,
   describeTarget,
   describeWeekRow,
-  editSet,
   entriesByDay,
   prefillFrom,
   removeSet,
@@ -18,6 +17,7 @@ import {
   weekSummary,
 } from '../../../../services/weeklyVolume';
 import { formatCount, formatSeconds, formatSetValues, formatVolume } from '../../../../services/workoutMath';
+import { withEditedSet } from '../../../../services/workoutEdit';
 import { formatRelativeDay } from '../../../../utils/date';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { isTimeoutError } from '../../../../services/labWorkouts';
@@ -36,7 +36,7 @@ const DEFAULT_TARGET = { reps: 100, sec: 300 } as const;
 /** One exercise this week: its sets by day (each one editable), its weekly target, and "+ Add sets". */
 export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route }) => {
   const { exerciseId } = route.params;
-  const { sessions, exercise: exerciseOf, exercisesById, prefs, updatePrefs, changeSession } = useWorkouts();
+  const { sessions, exercise: exerciseOf, exercisesById, prefs, updatePrefs, editSession } = useWorkouts();
   const exercise = exerciseOf(exerciseId);
   const unitOfTarget = targetUnit(exercise.kind);
   const logSets = useLogSets();
@@ -74,7 +74,7 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
     const session = entry && sessionOf(entry);
     if (!entry || !session) return;
     try {
-      await changeSession(session.id, editSet(session, entry, values, exercisesById), [exerciseId]);
+      await editSession(session.id, withEditedSet(session, entry, values, exercisesById));
       setEditing(null);
     } catch (e) {
       if (isTimeoutError(e)) {
@@ -92,7 +92,7 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
     if (!entry || !session) return;
     const remove = async () => {
       try {
-        await changeSession(session.id, removeSet(session, entry, exercisesById), [exerciseId]);
+        await editSession(session.id, removeSet(session, entry, exercisesById));
         setEditing(null);
       } catch (e) {
         if (isTimeoutError(e)) {

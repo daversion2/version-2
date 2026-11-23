@@ -14,6 +14,7 @@ import { WorkoutSessionScreen } from './WorkoutSessionScreen';
 import { WorkoutSummaryScreen } from './WorkoutSummaryScreen';
 import { WorkoutDoneItScreen } from './WorkoutDoneItScreen';
 import { WorkoutHistoryScreen } from './WorkoutHistoryScreen';
+import { WorkoutEditSessionScreen } from './WorkoutEditSessionScreen';
 import { WorkoutSettingsScreen } from './WorkoutSettingsScreen';
 import { WorkoutExercisesScreen } from './WorkoutExercisesScreen';
 import { WorkoutHiddenExercisesScreen } from './WorkoutHiddenExercisesScreen';
@@ -99,6 +100,12 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
         <Stack.Screen name="WorkoutDay" component={WorkoutDayScreen} options={{ title: '' }} />
         <Stack.Screen name="WeeklyVolumeExercise" component={WeeklyVolumeExerciseScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'Progress' }} />
+        {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
+        <Stack.Screen
+          name="WorkoutEditSession"
+          component={WorkoutEditSessionScreen}
+          options={{ title: 'Edit workout', headerBackButtonMenuEnabled: false }}
+        />
         <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: 'Settings' }} />
         <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: 'My exercises' }} />
         <Stack.Screen

@@ -25,23 +25,24 @@ const LOG_DAYS = 120;
  * and the workouts logged with no session ("Log a past workout"). Until they
  * arrive the week draws from sessions alone.
  */
-export const useWorkoutLogs = (userId: string): CompletionLog[] => {
+export const useReloadableWorkoutLogs = (userId: string): { logs: CompletionLog[]; reload: () => void } => {
   const [logs, setLogs] = useState<CompletionLog[]>([]);
-  useFocusEffect(
-    useCallback(() => {
-      let live = true;
-      const since = new Date();
-      since.setDate(since.getDate() - LOG_DAYS);
-      fetchAllNudgeLogs(userId, toLocalDateString(since))
-        .then((all) => live && setLogs(all.filter((l) => l.reference_id === appCheckinId('workouts'))))
-        .catch((e) => console.warn('Week: loading the ratings failed:', e));
-      return () => {
-        live = false;
-      };
-    }, [userId])
-  );
-  return logs;
+  const load = useCallback(() => {
+    let live = true;
+    const since = new Date();
+    since.setDate(since.getDate() - LOG_DAYS);
+    fetchAllNudgeLogs(userId, toLocalDateString(since))
+      .then((all) => live && setLogs(all.filter((l) => l.reference_id === appCheckinId('workouts'))))
+      .catch((e) => console.warn('Week: loading the ratings failed:', e));
+    return () => {
+      live = false;
+    };
+  }, [userId]);
+  useFocusEffect(load);
+  return { logs, reload: load };
 };
+
+export const useWorkoutLogs = (userId: string): CompletionLog[] => useReloadableWorkoutLogs(userId).logs;
 
 const ICON: Record<DayKind, React.ComponentProps<typeof Ionicons>['name'] | null> = {
   strength: 'barbell',

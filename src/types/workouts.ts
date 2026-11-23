@@ -396,6 +396,8 @@ export type WorkoutsStackParamList = {
   /** "Done it": log a workout already done, filled in as prescribed. */
   WorkoutDoneIt: { workoutId: string };
   WorkoutHistory: undefined;
+  /** A finished workout corrected. `exerciseId`: open scrolled to that exercise. */
+  WorkoutEditSession: { sessionId: string; exerciseId?: string };
   WorkoutSettings: undefined;
   WorkoutExercises: undefined;
   WorkoutHiddenExercises: undefined;

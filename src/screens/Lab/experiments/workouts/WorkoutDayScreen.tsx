@@ -1,14 +1,17 @@
-import React, { useLayoutEffect, useMemo } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing } from '../../../../constants/theme';
+import type { CompletionLog } from '../../../../types';
 import type { WorkoutsStackParamList } from '../../../../types/workouts';
 import { formatSeconds, formatSetValues, formatVolume } from '../../../../services/workoutMath';
 import { buildWorkoutDay, describeRating, exercisesInSession } from '../../../../services/workoutWeek';
+import { canEditLength } from '../../../../services/workoutEdit';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
-import { useWorkoutLogs, weekdayName } from './components/WeekParts';
+import { useReloadableWorkoutLogs, weekdayName } from './components/WeekParts';
+import { EditLoggedWorkoutSheet, loggedMinutes } from './components/EditLoggedWorkoutSheet';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutDay'>;
 
@@ -22,7 +25,8 @@ const clock = (iso: string): string => new Date(iso).toLocaleTimeString(undefine
 export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const { date } = route.params;
   const { sessions, exercisesById, exercise, prefs, userId } = useWorkouts();
-  const logs = useWorkoutLogs(userId);
+  const { logs, reload } = useReloadableWorkoutLogs(userId);
+  const [editingLog, setEditingLog] = useState<CompletionLog | null>(null);
   const unit = prefs.unit;
 
   useLayoutEffect(() => {
@@ -65,13 +69,15 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
                   {s
                     ? [
                         s.logged_sets ? 'Sets added to your week' : clock(s.started_at),
-                        !s.logged_sets && s.duration_sec > 0 ? formatSeconds(s.duration_sec) : null,
+                        canEditLength(s) && s.duration_sec > 0 ? formatSeconds(s.duration_sec) : null,
                         `${s.total_sets} ${s.total_sets === 1 ? 'set' : 'sets'}`,
                         s.total_volume_kg > 0 ? formatVolume(s.total_volume_kg, unit) : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')
-                    : 'Logged without details'}
+                    : [loggedMinutes(d.ratingLog) ? `${loggedMinutes(d.ratingLog)} min` : null, 'Logged without details']
+                        .filter(Boolean)
+                        .join(' · ')}
                 </Text>
               </View>
               {!!s && s.prs.length > 0 && (
@@ -79,6 +85,18 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Ionicons name="trophy" size={12} color={Colors.white} />
                   <Text style={styles.prText}>{s.prs.length}</Text>
                 </View>
+              )}
+              {(!!s || !!d.ratingLog) && (
+                <TouchableOpacity
+                  onPress={() =>
+                    s ? navigation.navigate('WorkoutEditSession', { sessionId: s.id }) : setEditingLog(d.ratingLog ?? null)
+                  }
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${d.name}`}
+                >
+                  <Text style={ws.link}>Edit</Text>
+                </TouchableOpacity>
               )}
             </View>
             {ratings.length > 0 && <Text style={ws.body}>{ratings.join(' · ')}</Text>}
@@ -104,6 +122,7 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         );
       })}
+      <EditLoggedWorkoutSheet userId={userId} log={editingLog} onClose={() => setEditingLog(null)} onChanged={reload} />
     </ScrollView>
   );
 };
