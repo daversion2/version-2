@@ -23,6 +23,16 @@ How to use it:
 
 ## Now
 
+**Download landing page: deploy and point the domain at it** *(added 2026-11-25)*
+`hosting/index.html` is now a one-page site whose only job is App Store
+downloads; the old support index moved to `hosting/support.html`. Built and
+checked locally, not deployed yet: Firebase CLI needs `firebase login --reauth`,
+then `firebase deploy --only hosting`. After that, to replace the Squarespace
+site at www.neuro-nudge.net, add the domain in Firebase Console → Hosting and
+change the DNS at the registrar. Also: swap in screenshots from an account
+with real data (Today shows empty rings), and add a Google Play button once
+Android relaunches.
+
 **Finish checking the reorganized Meditate on screen** *(added 2026-11-23)*
 Seen working in the simulator with a throwaway session, then deleted: the icon
 opening the home, first-time and "Same as last time" cards, Do it's question,

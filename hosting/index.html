@@ -3,61 +3,274 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Neuro-Nudge</title>
-  <meta name="description" content="Neuro-Nudge — support and account information.">
+  <title>Neuro-Nudge — Train the moment you almost didn't</title>
+  <meta name="description" content="Meditate, train and eat well — and train your override, the skill of acting when part of you would rather not. Neuro-Nudge for iPhone.">
+  <meta name="apple-itunes-app" content="app-id=6479909452">
+  <meta property="og:title" content="Neuro-Nudge — Train the moment you almost didn't">
+  <meta property="og:description" content="Meditate, Workouts and Meals, built to train your override: getting started, and staying with it.">
+  <meta property="og:image" content="/img/today.jpg">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#217180">
   <link rel="icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/img/mark.png">
   <style>
-    :root { --brand: #217180; --dark: #2B2B2B; --gray: #656565; --bg: #F2F2F2; --border: #E0E0E0; }
+    :root {
+      --brand: #217180;
+      --brand-dark: #154C56;
+      --orange: #FF5B02;
+      --meditate: #217180;
+      --workouts: #F2600C;
+      --meals: #1F4FA8;
+      --nightly: #3949AB;
+      --craving: #B23A48;
+      --dark: #1C1C1E;
+      --gray: #5E5E63;
+      --bg: #F2F2F7;
+      --card: #FFFFFF;
+      --border: #E0E0E5;
+    }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
-      padding: 0 20px 64px;
-      background: var(--bg);
+      background: var(--card);
       color: var(--dark);
-      font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
-    .wrap { max-width: 680px; margin: 0 auto; padding-top: 72px; }
-    h1 { font-size: 34px; margin: 0 0 12px; }
-    .lede { color: var(--gray); margin: 0 0 40px; }
-    a.row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px 24px;
-      margin-bottom: 12px;
-      text-decoration: none;
-      color: inherit;
+    a { color: inherit; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+    h1, h2, h3 { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; letter-spacing: -0.02em; margin: 0; }
+
+    /* Nav */
+    nav { position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,0.85); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px); border-bottom: 1px solid rgba(0,0,0,0.06); }
+    nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; text-decoration: none; }
+    .brand img { width: 30px; height: 30px; }
+    .nav-cta { background: var(--dark); color: #fff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 8px 16px; border-radius: 999px; }
+
+    /* App Store button */
+    .store { display: inline-flex; align-items: center; gap: 10px; background: #000; color: #fff; text-decoration: none; padding: 10px 22px 10px 18px; border-radius: 14px; transition: transform .15s ease; }
+    .store:hover { transform: translateY(-1px); }
+    .store svg { width: 26px; height: 26px; fill: #fff; flex: none; }
+    .store small { display: block; font-size: 11px; line-height: 1.1; opacity: .85; }
+    .store strong { display: block; font-size: 21px; line-height: 1.1; font-weight: 600; letter-spacing: -0.01em; }
+    .store-note { font-size: 14px; color: var(--gray); margin: 12px 0 0; }
+
+    /* Hero */
+    .hero { background: linear-gradient(180deg, #fff 0%, var(--bg) 100%); overflow: hidden; }
+    .hero .wrap { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; padding-top: 72px; padding-bottom: 0; }
+    .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 13px; font-weight: 700; color: var(--brand); margin: 0 0 14px; }
+    .hero h1 { font-size: clamp(40px, 6.4vw, 68px); line-height: 1.02; margin-bottom: 22px; }
+    .hero h1 em { font-style: normal; color: var(--brand); }
+    .hero p.lede { font-size: 20px; color: var(--gray); max-width: 30em; margin: 0 0 32px; }
+    .hero-copy { padding-bottom: 72px; }
+    .phone { width: 100%; max-width: 330px; margin: 0 auto; border-radius: 44px; border: 10px solid #111; background: #111; box-shadow: 0 40px 80px -30px rgba(33,113,128,.45), 0 20px 40px -20px rgba(0,0,0,.35); overflow: hidden; }
+    .phone img { display: block; width: 100%; height: auto; border-radius: 34px; }
+    .hero .phone { margin-bottom: -120px; }
+
+    /* Sections */
+    section { padding: 112px 0; }
+    .center { text-align: center; }
+    h2 { font-size: clamp(32px, 4.6vw, 48px); line-height: 1.08; margin-bottom: 18px; }
+    .sub { font-size: 19px; color: var(--gray); max-width: 36em; margin: 0 auto; }
+
+    /* The question */
+    .question { padding-top: 200px; }
+    .split { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 64px; align-items: center; margin-top: 56px; }
+    .ratings { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+    .ratings li { display: flex; gap: 18px; align-items: center; background: var(--bg); border-radius: 18px; padding: 18px 22px; }
+    .ratings b { font-size: 34px; color: var(--brand); width: 28px; text-align: center; font-weight: 600; }
+    .ratings strong { display: block; font-size: 18px; }
+    .ratings span { color: var(--gray); font-size: 15px; }
+    .why { margin-top: 24px; color: var(--gray); font-size: 17px; }
+
+    /* Proof */
+    .proof { background: var(--brand-dark); color: #fff; }
+    .proof .sub { color: rgba(255,255,255,.75); }
+    .proof .eyebrow { color: #7FD1D8; }
+    .science { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 960px; margin: 56px auto 0; text-align: left; }
+    .science div { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 20px; padding: 24px; }
+    .science strong { display: block; font-size: 18px; margin-bottom: 6px; }
+    .science span { color: rgba(255,255,255,.75); font-size: 15px; }
+    .moment-label { text-transform: uppercase; letter-spacing: .08em; font-size: 12px; font-weight: 700; color: var(--gray); margin: 0 0 4px; }
+    h3.moment { font-size: 24px; margin-bottom: 14px; }
+
+    /* Apps */
+    .apps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-top: 56px; }
+    .app { background: var(--bg); border-radius: 22px; padding: 26px 24px; }
+    .tile { width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 18px; }
+    .tile svg { width: 30px; height: 30px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .app h3 { font-size: 20px; margin-bottom: 6px; }
+    .app p { margin: 0; color: var(--gray); font-size: 15px; }
+
+    /* Today */
+    .today { background: var(--bg); }
+    .points { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 18px; }
+    .points li { padding-left: 34px; position: relative; }
+    .points li::before { content: ""; position: absolute; left: 0; top: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--brand) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L19 7'/%3E%3C/svg%3E") center/12px no-repeat; }
+    .points strong { display: block; }
+    .points span { color: var(--gray); font-size: 16px; }
+
+    /* Final CTA */
+    .final { text-align: center; }
+    .final img.mark { width: 84px; height: 84px; border-radius: 20px; margin-bottom: 24px; }
+    .final .store { margin-top: 32px; }
+
+    footer { border-top: 1px solid var(--border); padding: 32px 0 48px; font-size: 14px; color: var(--gray); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
+    footer .links { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+    footer a { text-decoration: none; }
+    footer a:hover { color: var(--brand); }
+
+    @media (max-width: 820px) {
+      .hero .wrap, .split { grid-template-columns: 1fr; gap: 40px; }
+      .hero .wrap { padding-top: 48px; text-align: center; }
+      .hero p.lede { margin-left: auto; margin-right: auto; }
+      .hero-copy { padding-bottom: 0; }
+      .hero .phone { max-width: 270px; margin-bottom: -90px; }
+      .question { padding-top: 160px; }
+      section { padding: 80px 0; }
+      .split .phone { max-width: 270px; order: 2; }
+      .science { grid-template-columns: 1fr; }
     }
-    a.row:hover { border-color: var(--brand); }
-    .row strong { display: block; font-size: 17px; margin-bottom: 2px; }
-    .row span { color: var(--gray); font-size: 14px; }
-    .chev { color: var(--brand); font-size: 22px; flex: none; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Neuro-Nudge</h1>
-    <p class="lede">Support and account information for the Neuro-Nudge mobile app.</p>
 
-    <a class="row" href="/privacy">
-      <span>
-        <strong>Privacy policy</strong>
-        <span>What the app collects, who handles it, and your rights.</span>
-      </span>
-      <span class="chev">&rsaquo;</span>
-    </a>
+  <nav>
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/img/mark.png" alt="">Neuro-Nudge</a>
+      <a class="nav-cta" href="https://apps.apple.com/us/app/neuro-nudge/id6479909452">Get the app</a>
+    </div>
+  </nav>
 
-    <a class="row" href="/delete-account">
-      <span>
-        <strong>Delete your account</strong>
-        <span>Permanently remove your account and all of your data.</span>
-      </span>
-      <span class="chev">&rsaquo;</span>
-    </a>
-  </div>
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <p class="eyebrow">Meditate · Workouts · Meals</p>
+        <h1>Train the moment you <em>almost didn't.</em></h1>
+        <p class="lede">Discipline is one skill: acting when part of you would rather not. Neuro-Nudge turns every meditation, workout and meal into practice for it, and keeps an honest record of what each one took.</p>
+        <a class="store" href="https://apps.apple.com/us/app/neuro-nudge/id6479909452" aria-label="Download Neuro-Nudge on the App Store">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.75 2.28-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.67zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.61-2.66 1.37-.58.67-1.1 1.76-.96 2.8 1.01.08 2.05-.52 2.68-1.28z"/></svg>
+          <span><small>Download on the</small><strong>App Store</strong></span>
+        </a>
+        <p class="store-note">For iPhone. Android is on its way.</p>
+      </div>
+      <div class="phone"><img src="/img/today.jpg" alt="The Today screen: weekly rings for Meditate, Workouts and Meals, and your apps below" width="600" height="1304"></div>
+    </div>
+  </header>
+
+  <section class="question">
+    <div class="wrap">
+      <div class="center">
+        <p class="eyebrow">Your override, twice</p>
+        <h2>Two moments decide every session</h2>
+        <p class="sub">Before anything hard, your brain predicts what it will cost, and you feel that prediction as resistance. Acting anyway is your override. You use it twice — and Neuro-Nudge asks about both.</p>
+      </div>
+      <div class="split">
+        <div class="phone"><img src="/img/rate.jpg" alt="The rating sheet: How hard is it to start? 1 Easy start, 2 Had to talk myself into it, 3 Almost didn't" width="600" height="1304" loading="lazy"></div>
+        <div>
+          <p class="moment-label">As you start</p>
+          <h3 class="moment">How hard is it to start?</h3>
+          <ul class="ratings">
+            <li><b>1</b><div><strong>Easy start</strong><span>Barely thought about it</span></div></li>
+            <li><b>2</b><div><strong>Had to talk myself into it</strong><span>Got there</span></div></li>
+            <li><b>3</b><div><strong>Almost didn't</strong><span>Nearly talked myself out of it</span></div></li>
+          </ul>
+          <p class="moment-label" style="margin-top:32px">When you finish</p>
+          <h3 class="moment">How hard was it to keep going?</h3>
+          <p class="why" style="margin-top:8px">The “this sucks, stop” voice mid-set. The “I'll stop a little early” one on the cushion. 1 if it barely showed up, 3 if you wanted to quit and kept going.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="proof">
+    <div class="wrap center">
+      <p class="eyebrow">The effort is the training</p>
+      <h2>A 3 isn't a bad day. It's the best one.</h2>
+      <p class="sub">Every rating is a session you did anyway. The hard starts and the hard last minutes are where the work happens, so that's what the app records and rewards.</p>
+      <div class="science">
+        <div><strong>Starting is a skill you practise</strong><span>Each time you begin when you'd rather not, you practise acting against the prediction.</span></div>
+        <div><strong>Staying with it is the exercise</strong><span>Doing what you'd rather avoid engages a brain region studies link to tenacity and willpower.</span></div>
+        <div><strong>Effort can be learned</strong><span>People rewarded for working hard come to find effort itself less aversive, and carry it into new tasks.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap center">
+      <p class="eyebrow">Small apps, one place</p>
+      <h2>Everything a stronger day needs</h2>
+      <p class="sub">No generic to-do lists. Each app does one thing well, and finishing a session is the check-in.</p>
+      <div class="apps" style="text-align:left">
+        <div class="app">
+          <div class="tile" style="background:var(--meditate)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><path d="M12 9.5c0-3 1-5 0-6.5-1 1.5 0 3.5 0 6.5zM12 14.5c0 3-1 5 0 6.5 1-1.5 0-3.5 0-6.5zM9.5 12c-3 0-5-1-6.5 0 1.5 1 3.5 0 6.5 0zM14.5 12c3 0 5 1 6.5 0-1.5-1-3.5 0-6.5 0z"/></svg></div>
+          <h3>Meditate</h3><p>Timed sits, breath pacing and guided sessions. Track minutes, not mood.</p>
+        </div>
+        <div class="app">
+          <div class="tile" style="background:var(--workouts)"><svg viewBox="0 0 24 24"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg></div>
+          <h3>Workouts</h3><p>Phases, retests and cardio zones. Log sets fast, see your best lifts climb.</p>
+        </div>
+        <div class="app">
+          <div class="tile" style="background:var(--meals)"><svg viewBox="0 0 24 24"><path d="M12 7c-4-2-7 1-7 5 0 4 3 8 5 8 1 0 1.5-.5 2-.5s1 .5 2 .5c2 0 5-4 5-8 0-4-3-7-7-5zM12 7c0-2 1-3.5 2.5-4"/></svg></div>
+          <h3>Meals</h3><p>Log a plate in seconds by food group. No calorie counting, no cheat days.</p>
+        </div>
+        <div class="app">
+          <div class="tile" style="background:var(--nightly)"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></div>
+          <h3>Close out</h3><p>Sixty seconds at night: one win, an honest grade, and tomorrow's plan.</p>
+        </div>
+        <div class="app">
+          <div class="tile" style="background:var(--craving)"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg></div>
+          <h3>Cravings</h3><p>Ride out an urge in the moment instead of white-knuckling it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="today">
+    <div class="wrap">
+      <div class="split" style="margin-top:0">
+        <div>
+          <p class="eyebrow">No guilt built in</p>
+          <h2>A miss is information, not failure</h2>
+          <ul class="points">
+            <li><strong>Weekly goals, not daily guilt</strong><span>Pick how many sessions a week. A quiet Tuesday doesn't break anything.</span></li>
+            <li><strong>Hard days get a smaller plan</strong><span>When it's rough, tomorrow shrinks to the minimum version, so you keep going.</span></li>
+            <li><strong>XP for what it took</strong><span>Harder sessions earn more. Never multiplied, never taken away.</span></li>
+            <li><strong>Set up in a minute</strong><span>Choose your apps, set weekly goals, pick where to start. That's it.</span></li>
+          </ul>
+        </div>
+        <div class="phone" style="max-width:300px"><img src="/img/today.jpg" alt="" width="600" height="1304" loading="lazy"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="wrap">
+      <img class="mark" src="/img/mark.png" alt="">
+      <h2>Start where it's hard.</h2>
+      <p class="sub">The friction is the training. Download Neuro-Nudge and start your first session today.</p>
+      <a class="store" href="https://apps.apple.com/us/app/neuro-nudge/id6479909452" aria-label="Download Neuro-Nudge on the App Store">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.75 2.28-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.67zM14.1 5.86c.63-.77 1.06-1.83.94-2.89-.91.04-2.01.61-2.66 1.37-.58.67-1.1 1.76-.96 2.8 1.01.08 2.05-.52 2.68-1.28z"/></svg>
+        <span><small>Download on the</small><strong>App Store</strong></span>
+      </a>
+      <p class="store-note">For iPhone. Android is on its way.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <span>© 2026 Neuro-Nudge</span>
+      <div class="links">
+        <a href="/support">Support</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/delete-account">Delete account</a>
+        <a href="https://www.instagram.com/neuro_nudge_program">Instagram</a>
+      </div>
+    </div>
+  </footer>
+
 </body>
 </html>
