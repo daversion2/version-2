@@ -2,6 +2,17 @@
   "hosting": {
     "public": "hosting",
     "cleanUrls": true,
+    "redirects": [
+      { "source": "/privacy-policy", "destination": "/privacy", "type": 301 },
+      { "source": "/terms-and-conditions", "destination": "/terms", "type": 301 },
+      { "source": "/how-it-works", "destination": "/", "type": 301 },
+      { "source": "/about", "destination": "/", "type": 301 },
+      { "source": "/blog/**", "destination": "/", "type": 301 },
+      { "source": "/blog", "destination": "/", "type": 301 },
+      { "source": "/faq", "destination": "/support", "type": 301 },
+      { "source": "/neuro-nudges", "destination": "/", "type": 301 },
+      { "source": "/cart", "destination": "/", "type": 301 }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",

@@ -24,13 +24,32 @@ How to use it:
 ## Now
 
 **Download landing page: point the domain at it** *(added 2026-11-25)*
-`hosting/index.html` is now a one-page site whose only job is App Store
-downloads; the old support index moved to `hosting/support.html`. Live at
-https://version-2-4afa1.web.app since 2026-11-25. To replace the Squarespace
-site at www.neuro-nudge.net, add the domain in Firebase Console → Hosting and
-change the DNS at the registrar. Also: swap in screenshots from an account
-with real data (Today shows empty rings), and add a Google Play button once
-Android relaunches.
+`hosting/index.html` is a one-page, benefit-led site whose only job is App Store
+downloads (old support index moved to `hosting/support.html`). Live at
+https://version-2-4afa1.web.app since 2026-11-25, with a real Today and rating
+screenshots and old Squarespace URLs redirected (`firebase.json`). Still to do:
+- **Point www.neuro-nudge.net at it:** add the domain in Firebase Console →
+  Hosting, copy the DNS records to the registrar (keep any MX records), then
+  cancel the Squarespace site plan. Check App Store Connect's Privacy Policy and
+  Support URLs use `/privacy` and `/support`.
+- **Proof section:** add the App Store rating and one or two real user quotes
+  (the page has none; nothing was invented).
+- **Two blemishes in the keep-going screenshot** (`hosting/img/keepgoing.jpg`):
+  the rating sheet's note reads "Workouts · From Workouts." and the third answer
+  is cut off ("Wanted to quit, kept g…"). Fix in the app, then recapture.
+- **Google Play button** once Android relaunches; an "email me when Android is
+  out" sign-up would need a small backend.
+- Design mockups and the copy history are in `mockups/landing/` (v3 is the
+  shipped page).
+
+**Terms of Service: lawyer review** *(added 2026-11-25)*
+`hosting/terms.html` is live at `/terms` (old `/terms-and-conditions` redirects
+to it). It is a plain-language draft rebuilt from the old Squarespace terms,
+which only covered the website; it adds the app, accounts, a health disclaimer
+and liability limits. Not yet reviewed by a lawyer. Missing on purpose: a
+governing-law clause (the old terms had none; the founder must choose),
+payment/subscription terms (none found), and AI-generated content (add to both
+terms and privacy when Compose goes live).
 
 **Finish checking the reorganized Meditate on screen** *(added 2026-11-23)*
 Seen working in the simulator with a throwaway session, then deleted: the icon
