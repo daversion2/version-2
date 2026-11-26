@@ -808,7 +808,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workouts: Log a past workout** *(2026-11-26, 9669a70, live OTA iOS 01a218f5, Android 01a218f5-7513; not seen on screen)*
+**Workouts: Log a past workout** *(2026-11-26, 9669a70, live OTA iOS 01a218f5, Android 01a218f5-7513; founder tried it on device 2026-11-26, works)*
 A workout done without tracking it live, and never saved as a workout: Workouts
 home → "Log a past workout" opens Done it empty. "+ Add exercise" adds one
 exercise (or several as a circuit) with its sets filled in from last time,
