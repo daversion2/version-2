@@ -808,6 +808,14 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Workouts: Log a past workout** *(2026-11-26, 9669a70, live OTA iOS 01a218f5, Android 01a218f5-7513; not seen on screen)*
+A workout done without tracking it live, and never saved as a workout: Workouts
+home → "Log a past workout" opens Done it empty. "+ Add exercise" adds one
+exercise (or several as a circuit) with its sets filled in from last time,
+then day, length and set numbers as usual; Save & rate it. Done it on a saved
+workout gets "+ Add exercise" too, and a "Something else" chip switches to an
+unsaved one. Logic: `addDoneItBlock` in `services/workoutSession.ts` (tested).
+
 **Workout library open to everyone** *(2026-11-26, 6c8bcb2, live OTA iOS 01a218a4, Android 01a218a4-7184)*
 `canSeeWorkoutLibrary` now returns true for every account (founder's call), so
 the Create row and both library screens show for non-admins. Seen on screen
