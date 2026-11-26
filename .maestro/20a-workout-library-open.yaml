@@ -1,0 +1,39 @@
+# Workout library (admin-only): Workouts -> Create shows the "Workout library"
+# row and it opens the library. Writes nothing. Needs the Workouts card on Today
+# and an admin account. Ends on the library screen (Beginner/gear as saved).
+appId: com.neuronudge.neuronudge
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Workouts, \\d+ of \\d+ this week"
+- extendedWaitUntil:
+    visible: "Workouts settings"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "!, Open debugger.*"
+    commands:
+      - tapOn:
+          point: "92%,93%"
+- scrollUntilVisible:
+    element:
+      text: "Create, .*"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn: "Create, .*"
+- extendedWaitUntil:
+    visible: ".*Workout library.*"
+    timeout: 10000
+- takeScreenshot: 20a-create
+- tapOn: ".*Workout library.*"
+- extendedWaitUntil:
+    visible: "WHAT YOU HAVE"
+    timeout: 10000
+- takeScreenshot: 20a-library

@@ -810,7 +810,10 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 **Workout library open to everyone** *(2026-11-26, 6c8bcb2, live OTA iOS 01a218a4, Android 01a218a4-7184)*
 `canSeeWorkoutLibrary` now returns true for every account (founder's call), so
-the Create row and both library screens show for non-admins.
+the Create row and both library screens show for non-admins. Seen on screen
+2026-11-26 on a non-admin account (Maestro 20a–20e): counts 4/6/5, hints, and
+Foundations A refitting from bodyweight to dumbbells. "Add to my workouts" not
+tapped (it writes to the real account).
 
 **Workout library (admin-only)** *(2026-11-25, 1a20835, live OTA iOS 01a2152d, Android 01a2152d-7329; not seen on screen)*
 Premade workouts by level (4 beginner, 6 intermediate, 5 advanced) built on

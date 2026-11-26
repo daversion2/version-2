@@ -1,0 +1,17 @@
+# Puts the library prefs back to the state 20a found on this account:
+# Beginner, Bodyweight only. Edit if the starting state differs.
+appId: com.neuronudge.neuronudge
+---
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "WHAT YOU HAVE"
+    timeout: 10000
+- swipe:
+    start: "50%,30%"
+    end: "50%,90%"
+- tapOn: "Bodyweight only"
+- tapOn: "Beginner"
+- waitForAnimationToEnd
+- assertVisible: "4 workouts"
+- takeScreenshot: 20e-restored

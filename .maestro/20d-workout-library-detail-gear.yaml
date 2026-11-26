@@ -1,0 +1,21 @@
+# Back to the library, tick Dumbbells + Bench (writes library_gear), reopen
+# Foundations A. Ends on the detail screen. Restore with 20e.
+appId: com.neuronudge.neuronudge
+---
+- tapOn:
+    point: "9%,9%"
+- extendedWaitUntil:
+    visible: "WHAT YOU HAVE"
+    timeout: 10000
+- swipe:
+    start: "50%,30%"
+    end: "50%,90%"
+- tapOn: "Dumbbells"
+- tapOn: "Bench"
+- waitForAnimationToEnd
+- takeScreenshot: 20d-gear-ticked
+- runFlow:
+    file: subflows/workout-library-detail-scroll.yaml
+    env:
+      NAME: "Foundations A"
+      SHOT: "20d-fa-dumbbells-bench"

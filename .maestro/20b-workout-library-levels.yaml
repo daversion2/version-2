@@ -1,0 +1,61 @@
+# Workout library: each level's count, names and hint. Run after 20a (starts
+# on the library screen). Writes only the library_level pref; ends on Beginner.
+appId: com.neuronudge.neuronudge
+---
+- tapOn: "Beginner"
+- assertVisible: "4 workouts"
+- assertVisible: "New to strength training.*"
+- takeScreenshot: 20b-beginner-top
+- swipe:
+    start: "50%,80%"
+    end: "50%,25%"
+- waitForAnimationToEnd
+- assertVisible: "(?s)Mobility & Pillar Reset, .*"
+- takeScreenshot: 20b-beginner-list
+- swipe:
+    start: "50%,25%"
+    end: "50%,85%"
+- waitForAnimationToEnd
+- tapOn: "Intermediate"
+- assertVisible: "6 workouts"
+- assertVisible: "Six months or more.*"
+- takeScreenshot: 20b-intermediate-top
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+- takeScreenshot: 20b-intermediate-list
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+- takeScreenshot: 20b-intermediate-list2
+- swipe:
+    start: "50%,20%"
+    end: "50%,90%"
+- swipe:
+    start: "50%,20%"
+    end: "50%,90%"
+- waitForAnimationToEnd
+- tapOn: "Advanced"
+- assertVisible: "5 workouts"
+- takeScreenshot: 20b-advanced-top
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+- takeScreenshot: 20b-advanced-list
+- swipe:
+    start: "50%,80%"
+    end: "50%,20%"
+- waitForAnimationToEnd
+- takeScreenshot: 20b-advanced-list2
+- swipe:
+    start: "50%,20%"
+    end: "50%,90%"
+- swipe:
+    start: "50%,20%"
+    end: "50%,90%"
+- waitForAnimationToEnd
+- tapOn: "Beginner"
+- assertVisible: "4 workouts"

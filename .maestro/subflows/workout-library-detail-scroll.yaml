@@ -1,0 +1,43 @@
+# Opens a library workout (env NAME) from the library screen, screenshots it
+# top to bottom (SHOT prefix), checks the footer button, and goes back.
+# Never taps "Add to my workouts".
+appId: com.neuronudge.neuronudge
+---
+- scrollUntilVisible:
+    element:
+      text: "(?s)${NAME}, .*"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 3000
+# Retried: one run died here with a Maestro-internal "CommandFailed: null".
+- tapOn:
+    text: "(?s)${NAME}, .*"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible: "How to run it"
+    timeout: 10000
+- assertVisible: "Add to my workouts"
+- takeScreenshot: ${SHOT}-1
+- swipe:
+    start: "50%,75%"
+    end: "50%,25%"
+- waitForAnimationToEnd
+- takeScreenshot: ${SHOT}-2
+- swipe:
+    start: "50%,75%"
+    end: "50%,25%"
+- waitForAnimationToEnd
+- takeScreenshot: ${SHOT}-3
+- swipe:
+    start: "50%,75%"
+    end: "50%,25%"
+- waitForAnimationToEnd
+- takeScreenshot: ${SHOT}-4
+- swipe:
+    start: "50%,75%"
+    end: "50%,25%"
+- waitForAnimationToEnd
+- takeScreenshot: ${SHOT}-5
+- assertVisible: "Add to my workouts"

@@ -1,0 +1,10 @@
+# Foundations A fitted to Bodyweight only. Run after 20b, on the library with
+# Bodyweight only ticked. Writes nothing. Ends on the detail screen, scrolled down.
+appId: com.neuronudge.neuronudge
+---
+- tapOn: "Bodyweight only"
+- runFlow:
+    file: subflows/workout-library-detail-scroll.yaml
+    env:
+      NAME: "Foundations A"
+      SHOT: "20c-fa-bodyweight"
