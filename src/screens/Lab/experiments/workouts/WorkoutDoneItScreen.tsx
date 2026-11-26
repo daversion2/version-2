@@ -6,12 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { WorkoutSession, WorkoutsStackParamList } from '../../../../types/workouts';
 import {
+  addDoneItBlock,
   blockTitle,
   DONE_IT_MINUTES,
   doneItEnd,
   editLoggedSet,
   estimateWorkoutMinutes,
   fillAsPrescribed,
+  makeId,
+  newBlockShape,
   roundsDone,
   setRoundsDone,
   swapItem,
@@ -20,13 +23,14 @@ import {
 } from '../../../../services/workoutSession';
 import { insteadOfLine } from '../../../../services/exerciseSwap';
 import { SwapExerciseSheet } from './components/SwapExerciseSheet';
-import { formatSetValues } from '../../../../services/workoutMath';
+import { DEFAULT_TARGET, formatSetValues } from '../../../../services/workoutMath';
 import { formatRelativeDay, getEditableDates } from '../../../../utils/date';
 import { showConfirm } from '../../../../utils/alert';
 import { Stepper } from '../../../../components/common/Stepper';
 import { useWorkouts } from './WorkoutsContext';
 import { useFinishWorkout } from './components/useFinishWorkout';
 import { SetEntrySheet } from './components/SetEntrySheet';
+import { ExercisePickerModal } from './components/ExercisePickerModal';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutDoneIt'>;
@@ -40,6 +44,10 @@ const MAX_ROUNDS = 20;
  * fillAsPrescribed); fix what went differently, say when and how long, save.
  * It saves exactly like a finished live workout and goes to Today to be rated.
  *
+ * With no workoutId it logs a workout that was never saved ("Log a past
+ * workout" on the home): it starts empty and exercises are added here, each
+ * filled in as prescribed (addDoneItBlock). Either way more can be added.
+ *
  * Held on this screen only, never as the app's draft: a live workout that's
  * still in progress stays where it is.
  */
@@ -47,33 +55,42 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { workouts, exercise, exercisesById, sessions, prefs, buildSession } = useWorkouts();
   const { saving, finish } = useFinishWorkout();
-  const workout = workouts.find((w) => w.id === route.params.workoutId);
+  const workoutId = route.params?.workoutId;
+  const workout = workoutId ? workouts.find((w) => w.id === workoutId) : undefined;
+  const adHoc = !workoutId;
 
   const days = getEditableDates();
   const [date, setDate] = useState(days[0]);
   const [minutes, setMinutes] = useState(() => (workout ? estimateWorkoutMinutes(workout, exercisesById) : 45));
   const [session, setSession] = useState<WorkoutSession | null>(() =>
-    workout
-      ? fillAsPrescribed(buildSession(workout), { exercisesById, sessions, end: new Date(), durationSec: minutes * 60 })
+    workout || adHoc
+      ? fillAsPrescribed({ ...buildSession(workout), ...(adHoc ? { workoutName: 'Workout' } : {}) }, {
+          exercisesById,
+          sessions,
+          end: new Date(),
+          durationSec: minutes * 60,
+        })
       : null
   );
   // Switching workouts starts over, so it asks first once anything here has changed.
   const untouched = useRef(session);
   const switchable = workouts.filter((w) => w.blocks.length > 0);
-  const switchTo = (workoutId: string) => {
-    if (workoutId === workout?.id) return;
-    const go = () => navigation.replace('WorkoutDoneIt', { workoutId });
+  // undefined = a workout that was never saved.
+  const switchTo = (nextId: string | undefined) => {
+    if (nextId === workoutId) return;
+    const go = () => navigation.replace('WorkoutDoneIt', nextId ? { workoutId: nextId } : {});
     if (session === untouched.current) return go();
     showConfirm('Switch workout?', 'Your changes to this one won’t be saved.', go, 'Switch');
   };
+  const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<{ blockIndex: number; setIndex: number } | null>(null);
   // "Swap for today" on one item (2026-11-20): its filled-in sets are re-prescribed for the new exercise.
   const [swapping, setSwapping] = useState<{ blockIndex: number; itemIndex: number } | null>(null);
   const swapItemNow = swapping && session ? session.blocks[swapping.blockIndex]?.items[swapping.itemIndex] : undefined;
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: workout?.name ?? '' });
-  }, [navigation, workout?.name]);
+    navigation.setOptions({ title: adHoc ? 'Log a past workout' : workout?.name ?? '' });
+  }, [navigation, adHoc, workout?.name]);
 
   if (!session) {
     return (
@@ -101,9 +118,13 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={[ws.scroll, { paddingBottom: 150 + insets.bottom }]}>
-        <Text style={ws.lead}>Filled in as planned. Change anything that went differently, then save.</Text>
+        <Text style={ws.lead}>
+          {adHoc
+            ? 'Add each exercise you did. Sets fill in from last time; change anything that went differently, then save.'
+            : 'Filled in as planned. Change anything that went differently, then save.'}
+        </Text>
 
-        {switchable.length > 1 && (
+        {switchable.length > (adHoc ? 0 : 1) && (
           <View style={ws.card}>
             <Text style={ws.title}>Which workout?</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -121,6 +142,14 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
                   </TouchableOpacity>
                 );
               })}
+              <TouchableOpacity
+                style={[ws.chip, adHoc && ws.chipActive]}
+                onPress={() => switchTo(undefined)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: adHoc }}
+              >
+                <Text style={[ws.chipText, adHoc && ws.chipTextActive]}>Something else</Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
         )}
@@ -217,6 +246,14 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           );
         })}
+
+        <TouchableOpacity
+          style={[ws.secondaryBtn, styles.addBtn]}
+          onPress={() => setPicking(true)}
+          accessibilityHint="Pick one exercise, or several to log as a circuit"
+        >
+          <Text style={ws.secondaryBtnText}>+ Add exercise</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <View style={[ws.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
@@ -243,6 +280,31 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
           if (!at || !swapItemNow) return;
           const values = swapRelogValues(swapItemNow, picked, sessions);
           setSession((s) => s && swapItem(s, at.blockIndex, at.itemIndex, { exercise: picked, reason, values }));
+        }}
+      />
+
+      <ExercisePickerModal
+        visible={picking}
+        title="Add what you did"
+        mode="multi"
+        onCancel={() => setPicking(false)}
+        onConfirm={(picked) => {
+          setPicking(false);
+          setSession(
+            (s) =>
+              s &&
+              addDoneItBlock(
+                s,
+                picked.map((e) => ({ exerciseId: e.id, target: { ...DEFAULT_TARGET[e.kind] } })),
+                {
+                  id: makeId('block'),
+                  rounds: newBlockShape(picked.map((e) => e.kind)).rounds,
+                  ...(picked.length > 1 ? { name: 'Circuit' } : {}),
+                  exercisesById,
+                  sessions,
+                }
+              )
+          );
         }}
       />
 
@@ -276,4 +338,5 @@ const styles = StyleSheet.create({
   swapRow: { paddingHorizontal: Spacing.md, minHeight: 40 },
   value: { ...TextStyles.subhead, color: Colors.dark, fontVariant: ['tabular-nums'] },
   footerNote: { textAlign: 'center' },
+  addBtn: { marginTop: Spacing.xs },
 });

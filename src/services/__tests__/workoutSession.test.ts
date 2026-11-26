@@ -1,5 +1,6 @@
 import {
   addBlock,
+  addDoneItBlock,
   addRound,
   adjustRest,
   applySessionToWorkout,
@@ -737,6 +738,45 @@ describe('Done it: logging a workout after the fact', () => {
     const { prs } = computeSessionRecords(s, EXERCISES, { bench: { exerciseId: 'bench', heaviestKg: 62.5 } });
     expect(prs.some((p) => p.type === 'heaviest' && p.value === 70)).toBe(true);
     expect(editLoggedSet(s, 5, 0, { reps: 1 })).toBe(s);
+  });
+
+  it('logs a workout that was never saved, exercise by exercise', () => {
+    const opts = { exercisesById: EXERCISES, sessions: [lastBench] };
+    let s = fillAsPrescribed(startSession({ id: 's2', name: 'Workout', now: T0 }), {
+      ...opts,
+      end: END,
+      durationSec: HALF_HOUR,
+    });
+    expect(s.blocks).toEqual([]);
+    expect(addDoneItBlock(s, [], { id: 'x', ...opts })).toBe(s);
+    s = addDoneItBlock(s, [{ exerciseId: 'bench', target: { reps: 8 } }], { id: 'a1', ...opts });
+    s = addDoneItBlock(
+      s,
+      [
+        { exerciseId: 'pushup', target: { reps: 15 } },
+        { exerciseId: 'plank', target: { seconds: 45 } },
+      ],
+      { id: 'a2', rounds: 2, name: 'Circuit', ...opts }
+    );
+    expect(s.blocks.map((b) => [b.id, b.type, b.sets.length, b.added])).toEqual([
+      ['a1', 'single', 3, true],
+      ['a2', 'circuit', 4, true],
+    ]);
+    // Last time's weight, the target's reps.
+    expect(s.blocks[0].sets.map((x) => [x.reps, x.weightKg])).toEqual([
+      [8, 60],
+      [8, 62.5],
+      [8, 62.5],
+    ]);
+    expect(s.history).toEqual([0, 0, 0, 1, 1, 1, 1]);
+    // Set counts can still change, and the day and length hold.
+    s = setRoundsDone(s, 0, 1, opts);
+    const done = toCompletedSession(s, { now: at(99999), prs: [], exercisesById: EXERCISES });
+    expect(done.workout_name).toBe('Workout');
+    expect(done.finished_at).toBe(END.toISOString());
+    expect(done.duration_sec).toBe(HALF_HOUR);
+    expect(done.total_sets).toBe(5);
+    expect(done.logged_after).toBe(true);
   });
 
   it('drops rounds, repeats the last one, and 0 means not done', () => {

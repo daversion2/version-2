@@ -1009,3 +1009,43 @@ export const setRoundsDone = (
   const endMs = session.endedAt ? new Date(session.endedAt).getTime() : startMs;
   return withLoggedTimes(next, new Date(endMs), (endMs - startMs) / 1000);
 };
+
+/**
+ * Done it: an exercise (or a circuit of several) added after the fact — a
+ * workout that wasn't saved, or something extra. It goes on the end with
+ * every round filled in as prescribed (last time's numbers, else the
+ * defaults), and the session keeps its day and length.
+ */
+export const addDoneItBlock = (
+  session: WorkoutSession,
+  items: BlockItem[],
+  opts: {
+    id: string;
+    rounds?: number;
+    name?: string;
+    exercisesById: Record<string, Exercise>;
+    sessions: CompletedWorkoutSession[];
+  }
+): WorkoutSession => {
+  if (!items.length) return session;
+  const empty = toSessionBlock(
+    {
+      id: opts.id,
+      type: items.length > 1 ? 'circuit' : 'single',
+      ...(opts.name ? { name: opts.name } : {}),
+      items,
+      rounds: opts.rounds ?? 3,
+      restSec: DEFAULT_REST_SEC,
+    },
+    true
+  );
+  const block: SessionBlock = {
+    ...empty,
+    sets: Array.from({ length: empty.rounds }, (_, r) => prescribedRound(empty, r, opts.exercisesById, opts.sessions)).flat(),
+  };
+  const blocks = [...session.blocks, block];
+  const next = { ...session, blocks, history: historyInBlockOrder(blocks) };
+  const startMs = new Date(session.startedAt).getTime();
+  const endMs = session.endedAt ? new Date(session.endedAt).getTime() : startMs;
+  return withLoggedTimes(next, new Date(endMs), (endMs - startMs) / 1000);
+};

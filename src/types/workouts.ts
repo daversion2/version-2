@@ -466,8 +466,8 @@ export type WorkoutsStackParamList = {
   WorkoutBuilder: { workoutId?: string };
   WorkoutSession: undefined;
   WorkoutSummary: undefined;
-  /** "Done it": log a workout already done, filled in as prescribed. */
-  WorkoutDoneIt: { workoutId: string };
+  /** "Done it": log a workout already done, filled in as prescribed. No workoutId: one that was never saved, built here. */
+  WorkoutDoneIt: { workoutId?: string };
   WorkoutHistory: undefined;
   /** A finished workout corrected. `exerciseId`: open scrolled to that exercise. */
   WorkoutEditSession: { sessionId: string; exerciseId?: string };

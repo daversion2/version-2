@@ -276,6 +276,12 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress={startEmpty}
         />
         <ListRow
+          title="Log a past workout"
+          subtitle="Didn't track it live? Add what you did"
+          icon={{ name: 'checkmark-done', color: WORKOUTS_ACCENT }}
+          onPress={() => navigation.navigate('WorkoutDoneIt', {})}
+        />
+        <ListRow
           title="Log an exercise"
           subtitle="Add sets of something you did"
           icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}

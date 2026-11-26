@@ -145,8 +145,8 @@ interface WorkoutsContextValue {
   updateSession: (next: WorkoutSession) => void;
   /** `override` is the 1–3 tapped on Start (components/checkin/OverrideStartSheet). */
   beginSession: (workout?: Workout, override?: number) => WorkoutSession;
-  /** A fresh session for `workout`, phase and light week applied, not made the current one (Done it). */
-  buildSession: (workout: Workout) => WorkoutSession;
+  /** A fresh session for `workout` (none: an empty one), phase and light week applied, not made the current one (Done it). */
+  buildSession: (workout?: Workout) => WorkoutSession;
   discardSession: () => Promise<void>;
   /** After a successful save: fold it into what's on screen and drop the draft. */
   recordFinished: (input: {
