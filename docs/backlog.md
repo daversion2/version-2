@@ -809,7 +809,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workout library (admin-only)** *(2026-11-25, OTA below; not seen on screen)*
+**Workout library (admin-only)** *(2026-11-25, 1a20835, live OTA iOS 01a2152d, Android 01a2152d-7329; not seen on screen)*
 Premade workouts by level (4 beginner, 6 intermediate, 5 advanced) built on
 Exos / Boyle / Cook principles: movement prep, power, paired strength, pillar
 and carries. Each slot lists exercises best first; the first your ticked
