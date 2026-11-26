@@ -567,6 +567,14 @@ users when profiles went owner-only.
 
 ## Features
 
+**Workout library: review, then open to everyone** *(added 2026-11-25)*
+Built and live for admins (see Done): Workouts → Create → Workout library, 15
+templates across three levels, fitted to the equipment you tick
+(`docs/workout-library.md`). Not seen on screen yet. Next: founder reviews the
+exercise choices and order in `data/workoutLibrary.ts`; check both screens and
+"Add to my workouts" in the simulator; photos for the 31 new core exercises
+(text positions only for now); then flip `canSeeWorkoutLibrary` to everyone.
+
 **Cardio, next steps** *(added 2026-11-08)*
 After cardio v1 (see Done): the weekly cardio number on Today's Workouts card
 and in Progress (needs the Progress-screen spec updated: it says Workouts =
@@ -800,6 +808,14 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workout library (admin-only)** *(2026-11-25, OTA below; not seen on screen)*
+Premade workouts by level (4 beginner, 6 intermediate, 5 advanced) built on
+Exos / Boyle / Cook principles: movement prep, power, paired strength, pillar
+and carries. Each slot lists exercises best first; the first your ticked
+equipment covers is used, and every template also fits bodyweight only.
+"Add to my workouts" copies it (`Workout.library_id`). 31 new core exercises
+with written cues (live in everyone's picker). `docs/workout-library.md`.
 
 **Meditate: organized like Workouts** *(2026-11-23, live OTA iOS e67029c2, Android 6e036139, main paths checked on screen)*
 Today's Meditate icon opens a new home: the last session ready to repeat

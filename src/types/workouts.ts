@@ -120,6 +120,8 @@ export interface Workout {
   updated_at: string;
   /** Set on the bundled Push/Pull/Legs copies. */
   starter_id?: string;
+  /** Set on a copy added from the Workout library: the template's id (data/workoutLibrary.ts). */
+  library_id?: string;
   last_done_at?: string;
 }
 
@@ -286,6 +288,10 @@ export interface WorkoutPrefs {
    * or Monday to Sunday (services/workoutWeek.ts).
    */
   week_view?: 'rolling' | 'calendar';
+  /** Workout library: the equipment last ticked, so the list fits what they have. */
+  library_gear?: LibraryGear[];
+  /** Workout library: the level last picked. */
+  library_level?: LibraryLevel;
 }
 
 /**
@@ -297,6 +303,70 @@ export interface StepUp {
   weightKg?: number;
   addReps?: number;
   addSeconds?: number;
+}
+
+// --- Workout library: premade templates that fit the equipment you have ---
+
+export type LibraryLevel = 'beginner' | 'intermediate' | 'advanced';
+
+/**
+ * What someone can say they have. Finer than Equipment (a pull-up bar and a
+ * bench matter here); bodyweight needs nothing, so it isn't one.
+ */
+export type LibraryGear =
+  | 'dumbbells'
+  | 'kettlebells'
+  | 'barbell'
+  | 'trap_bar'
+  | 'bench'
+  | 'pullup_bar'
+  | 'bands'
+  | 'suspension'
+  | 'cable'
+  | 'med_ball'
+  | 'box'
+  | 'sled';
+
+/** One way to fill a slot: the exercise, its target, and the gear it needs (all of it). */
+export interface LibraryOption {
+  exerciseId: string;
+  target: SetValues;
+  needs?: LibraryGear[];
+}
+
+/**
+ * A slot in a template: options best first. The first one whose gear the
+ * person has is used, so one template fits a full gym or a living room.
+ * A slot with no bodyweight option drops the template for kit that can't fill it.
+ */
+export interface LibrarySlot {
+  options: LibraryOption[];
+}
+
+export interface LibraryBlock {
+  type: 'single' | 'circuit';
+  name?: string;
+  slots: LibrarySlot[];
+  rounds: number;
+  restSec: number;
+  intervalSec?: number;
+}
+
+export type LibraryFocus = 'full_body' | 'lower' | 'upper' | 'power' | 'conditioning' | 'mobility';
+
+export interface LibraryWorkout {
+  /** Stored on the copies (Workout.library_id): never rename one. */
+  id: string;
+  name: string;
+  level: LibraryLevel;
+  focus: LibraryFocus;
+  /** Roughly, start to finish. */
+  minutes: number;
+  /** One line under the name. */
+  summary: string;
+  /** How to run it: a few short coaching notes. */
+  notes: string[];
+  blocks: LibraryBlock[];
 }
 
 // --- Training phases: test → train for a few weeks → retest → change one thing ---
@@ -384,6 +454,9 @@ export type WorkoutsStackParamList = {
   WorkoutsHome: { launch?: WorkoutsLaunch } | undefined;
   /** Home's Create: build a workout or set up a phase. */
   WorkoutCreate: undefined;
+  /** Premade workouts by level, fitted to the equipment you have (admin-only for now). */
+  WorkoutLibrary: undefined;
+  WorkoutLibraryDetail: { libraryId: string };
   /** Your week: days, totals, muscles, ratings, and each exercise with sets added from here. */
   WorkoutWeek: undefined;
   /** One day of the week: its workouts and every set. */

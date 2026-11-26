@@ -29,6 +29,8 @@ import { WorkoutWeekScreen } from './WorkoutWeekScreen';
 import { WorkoutDayScreen } from './WorkoutDayScreen';
 import { WeeklyVolumeExerciseScreen } from './WeeklyVolumeExerciseScreen';
 import { WorkoutCreateScreen } from './WorkoutCreateScreen';
+import { WorkoutLibraryScreen } from './WorkoutLibraryScreen';
+import { WorkoutLibraryDetailScreen } from './WorkoutLibraryDetailScreen';
 import { WORKOUTS_ACCENT } from './components/workoutsStyle';
 
 const Stack = createNativeStackNavigator<WorkoutsStackParamList>();
@@ -77,6 +79,9 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           initialParams={{ launch: route.params?.launch }}
         />
         <Stack.Screen name="WorkoutCreate" component={WorkoutCreateScreen} options={{ title: 'Create' }} />
+        {/* Admin-only for now: both screens check canSeeWorkoutLibrary themselves. */}
+        <Stack.Screen name="WorkoutLibrary" component={WorkoutLibraryScreen} options={{ title: 'Workout library' }} />
+        <Stack.Screen name="WorkoutLibraryDetail" component={WorkoutLibraryDetailScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutPreview" component={WorkoutPreviewScreen} options={{ title: '' }} />
         {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
         <Stack.Screen
