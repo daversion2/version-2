@@ -808,7 +808,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Workout library open to everyone** *(2026-11-26, OTA_PENDING)*
+**Workout library open to everyone** *(2026-11-26, 6c8bcb2, live OTA iOS 01a218a4, Android 01a218a4-7184)*
 `canSeeWorkoutLibrary` now returns true for every account (founder's call), so
 the Create row and both library screens show for non-admins.
 
