@@ -567,13 +567,12 @@ users when profiles went owner-only.
 
 ## Features
 
-**Workout library: review, then open to everyone** *(added 2026-11-25)*
-Built and live for admins (see Done): Workouts → Create → Workout library, 15
-templates across three levels, fitted to the equipment you tick
-(`docs/workout-library.md`). Not seen on screen yet. Next: founder reviews the
-exercise choices and order in `data/workoutLibrary.ts`; check both screens and
-"Add to my workouts" in the simulator; photos for the 31 new core exercises
-(text positions only for now); then flip `canSeeWorkoutLibrary` to everyone.
+**Workout library: founder review and photos** *(added 2026-11-25)*
+Live for everyone since 2026-11-26 (see Done): Workouts → Create → Workout
+library, 15 templates across three levels, fitted to the equipment you tick
+(`docs/workout-library.md`). Next: founder reviews the exercise choices and
+order in `data/workoutLibrary.ts`; photos for the 31 new core exercises (text
+positions only for now).
 
 **Cardio, next steps** *(added 2026-11-08)*
 After cardio v1 (see Done): the weekly cardio number on Today's Workouts card
@@ -808,6 +807,10 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Workout library open to everyone** *(2026-11-26, OTA_PENDING)*
+`canSeeWorkoutLibrary` now returns true for every account (founder's call), so
+the Create row and both library screens show for non-admins.
 
 **Workout library (admin-only)** *(2026-11-25, 1a20835, live OTA iOS 01a2152d, Android 01a2152d-7329; not seen on screen)*
 Premade workouts by level (4 beginner, 6 intermediate, 5 advanced) built on

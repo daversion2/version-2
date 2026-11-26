@@ -10,7 +10,7 @@ import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutCreate'>;
 
-/** Home's Create: one workout, or a phase of them — or, for admins, one from the library. */
+/** Home's Create: one workout, or a phase of them — or one from the library. */
 export const WorkoutCreateScreen: React.FC<Props> = ({ navigation }) => {
   const { userProfile } = useAuth();
   return (

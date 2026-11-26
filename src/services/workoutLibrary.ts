@@ -14,11 +14,10 @@ import { WORKOUT_LIBRARY } from '../data/workoutLibrary';
 // one into their own workouts.
 
 /**
- * Who sees the library. Admins only while it's new (2026-11-25); open it to
- * everyone by returning true here.
+ * Who sees the library. Everyone since 2026-11-26 (it was admin-only for a
+ * day); kept as the one gate so it can be narrowed again here.
  */
-export const canSeeWorkoutLibrary = (profile: Pick<User, 'is_admin'> | null | undefined): boolean =>
-  profile?.is_admin === true;
+export const canSeeWorkoutLibrary = (_profile: Pick<User, 'is_admin'> | null | undefined): boolean => true;
 
 const covers = (gear: ReadonlySet<LibraryGear>, option: LibraryOption): boolean =>
   (option.needs ?? []).every((g) => gear.has(g));

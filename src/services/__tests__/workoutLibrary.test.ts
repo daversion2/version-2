@@ -137,9 +137,9 @@ describe('copying into my workouts', () => {
 });
 
 describe('canSeeWorkoutLibrary', () => {
-  it('is admin-only for now', () => {
+  it('is open to everyone', () => {
     expect(canSeeWorkoutLibrary({ is_admin: true })).toBe(true);
-    expect(canSeeWorkoutLibrary({ is_admin: false })).toBe(false);
-    expect(canSeeWorkoutLibrary(null)).toBe(false);
+    expect(canSeeWorkoutLibrary({ is_admin: false })).toBe(true);
+    expect(canSeeWorkoutLibrary(null)).toBe(true);
   });
 });

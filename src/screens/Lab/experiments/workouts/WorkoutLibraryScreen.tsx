@@ -20,7 +20,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutLibrary'>;
 
 /**
  * The Workout library: premade workouts by level, each fitted to the
- * equipment ticked here (services/workoutLibrary.ts). Admin-only for now.
+ * equipment ticked here (services/workoutLibrary.ts). Open to everyone.
  */
 export const WorkoutLibraryScreen: React.FC<Props> = ({ navigation }) => {
   const { userProfile } = useAuth();

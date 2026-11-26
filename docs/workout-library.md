@@ -1,11 +1,11 @@
 # Workout library
 
-*Built 2026-11-25. Admin-only for now.*
+*Built 2026-11-25 for admins; open to everyone since 2026-11-26.*
 
 Premade workouts in the Workouts app, by level, that fit whatever equipment
 someone says they have. Opened from Workouts → Create → **Workout library**
-(admins only; `canSeeWorkoutLibrary` in `src/services/workoutLibrary.ts` is the
-one gate — make it return `true` to open it to everyone).
+(`canSeeWorkoutLibrary` in `src/services/workoutLibrary.ts` is the one gate;
+it returns `true` for everyone).
 
 ## Where things live
 
@@ -91,8 +91,7 @@ breathing, active straight-leg lowering, world's greatest stretch, split squat,
 skater squat, single-leg RDLs, half-kneeling press and chops, band Pallof press,
 suitcase carry, Copenhagen plank and med ball rotational throw. They have **no photos
 yet**, so the app shows the text positions. **They show up in everyone's exercise
-picker**, not just admins'. They're additive and harmless, but that part is live
-for all users.
+picker**, along with the library itself.
 
 ## For the founder to review
 

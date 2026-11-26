@@ -79,7 +79,7 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           initialParams={{ launch: route.params?.launch }}
         />
         <Stack.Screen name="WorkoutCreate" component={WorkoutCreateScreen} options={{ title: 'Create' }} />
-        {/* Admin-only for now: both screens check canSeeWorkoutLibrary themselves. */}
+        {/* Both screens check canSeeWorkoutLibrary (open to everyone today). */}
         <Stack.Screen name="WorkoutLibrary" component={WorkoutLibraryScreen} options={{ title: 'Workout library' }} />
         <Stack.Screen name="WorkoutLibraryDetail" component={WorkoutLibraryDetailScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutPreview" component={WorkoutPreviewScreen} options={{ title: '' }} />
