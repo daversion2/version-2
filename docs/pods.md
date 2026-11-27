@@ -78,15 +78,20 @@ pod across time zones works.
   When the last one lands, everyone in the pod gets one push: "Everyone showed
   up today." At most once per pod per day. The Pod screen shows the count of
   everyone days and the best run of them.
-- **This week:** the rolling last 7 days, as on Today. "Pod: 11 of 14" is
-  sessions done against the sum of members' weekly goals (each member's goal is
-  the sum of the goals of the apps on their Today; Meals counts days on target,
-  as its ring does). It never says who fell short.
+- **Everyone showed up, across time zones:** a calendar date on which every
+  member has a session dated that day (each dated in their own zone). The push
+  fires when the session that completes it is logged for the writer's own today.
+- **This week:** the rolling last 7 days, as on Today. "Pod: 11 of 14" adds up
+  each member's apps, each counted **up to that app's own goal** (so extra
+  Workouts can't cover for no Meditate, as on Today's rings). Meals counts
+  **days logged, not days on target**: on target is the plate score, an outcome,
+  and the pod shares effort only. It never says who fell short.
 - A session logged late with Done it counts on its own day, but sends no push.
 
 ## Reactions and nudges
 
-- **Reactions:** tap a member's session to send one of a few presets, written
+- **Reactions:** tap a member's session to send one of a few presets (one per
+  sender per session), written
   in the house voice and about effort, e.g. "Showed up anyway", "Hard one, done",
   "Proud of you". Final wording goes in `<Copy>` so it can be edited live.
 - **Nudge:** for a member who hasn't shown up today, one preset nudge ("Your pod
@@ -129,17 +134,19 @@ pods/{podId}/members/{uid}
   first_name: string
   joined_at: ISO
   timezone: string
-  weekly_goal: number
+  goals: { [app]: number }   // weekly goal per app on their Today
   share_friction: boolean
   days: { 'YYYY-MM-DD': [{ app, start?, keep?, day? }] }   // last 14 days
   updated_at: ISO
 
 pods/{podId}/reactions/{id}
   from: uid, to: uid, kind: 'reaction' | 'nudge', preset: string,
+  session_id?: string,                          // reactions only
   for_day: 'YYYY-MM-DD', created_at: ISO        // last 14 days
 
 podInvites/{code}            // server-only: code → podId
-users/{uid}.pod_id, users/{uid}.first_name, users/{uid}.pod_muted
+users/{uid}.pod_id, users/{uid}.first_name, users/{uid}.pod_muted,
+users/{uid}.pod_push_history   // server-written, last 24 h of pod pushes
 ```
 
 The member doc is a **summary**, not a copy of the logs. Ratings stay in
@@ -206,12 +213,19 @@ one. **Founder: if you remember why Teams didn't stick, add it here.**
 
 Each step is its own commit, with jest green and tsc at the baseline.
 
-1. **Pure logic in services, tested.** `services/podMath.ts`: add or remove a
-   session from `days`, prune to 14 days, pod streak (anyone), everyone-showed-up
-   for a day across time zones, the week's "N of goal", and the push limits.
-   No Firestore here, so this is where most tests go.
+1. ~~**Pure logic in services, tested.**~~ **Done 2026-11-27.**
+   `services/podMath.ts` (54 tests in `__tests__/podMath.test.ts`): what a
+   session shares with friction on or off, adding/removing/pruning `days`, the
+   pod streak, everyone showed up and when to celebrate it, everyone-day runs,
+   the week's "N of goal", reaction and nudge limits, the pod push budget,
+   invite codes, the join check (cap of 5, one pod per person, expiry),
+   leaving/removing (the longest-standing member takes over removing when the
+   starter leaves), and first-name cleaning and pre-fill. It imports nothing,
+   so step 2 can copy it into `functions/` like the meditation core.
 2. **Functions and rules.** The callables, the trigger, the `deleteAccount`
-   change, the pod push budget, rules for `pods`. Jest for any shared logic.
+   change, the pod push budget, rules for `pods`. Copy `podMath.ts` into
+   `functions/src/pod-core/` in `sync-core`, with a drift test like
+   `src/utils/meditation/__tests__/sync.test.ts`.
    **Deploying rules and functions needs the founder's go-ahead.** Until then,
    the app side can't be tried against production.
 3. **App, in the Lab.** A Lab switch (`pods`) that adds the Pod card to Today
