@@ -23,21 +23,6 @@ How to use it:
 
 ## Now
 
-**⏰ Founder, at your laptop: deploy pods, then ship the OTA** *(added 2026-11-27)*
-Two commands, in this order, from the repo root after `git pull`:
-```bash
-firebase deploy --only functions,firestore:rules
-eas update --branch production --message "Pods (Lab): partner or small group"
-```
-(`firebase login` / `eas login` first if asked.) The first makes the pod
-functions and rules live: tested in the emulator, safe on its own, since the
-rules change only blocks two profile fields the app never writes. The second
-ships the pod screens: they're behind the admin-only Lab switch **Pods**, so
-nobody else sees anything. The cloud session that built them had no Firebase
-or Expo login, so neither has run. Then try it: Lab → Pods on two admin
-accounts (see step 4 in `docs/pods.md`). Note the OTA id here, then delete
-this item.
-
 **Download landing page: point the domain at it** *(added 2026-11-25)*
 `hosting/index.html` is a one-page, benefit-led site whose only job is App Store
 downloads (old support index moved to `hosting/support.html`). Live at
@@ -591,8 +576,9 @@ done 2026-11-27: the pure rules in `services/podMath.ts` (62 tests). Step 2
 written 2026-11-27: `functions/src/pods.ts`, the `pods` rules and the
 `deleteAccount` change, passing 49 emulator checks (`scripts/emulator/`).
 Step 3 built 2026-11-27: the Pod card on Today (Lab switch **Pods**), Start/Join
-and the Pod screen, sharing after each rating. **Neither deployed nor
-OTA'd**: see the ⏰ item at the top of Now. The toast's "Shared with your pod" line
+and the Pod screen, sharing after each rating. **Live 2026-11-27:** the founder
+deployed the functions and rules and shipped the OTA (id not recorded here;
+see the EAS dashboard). The toast's "Shared with your pod" line
 is in too (shows only once the share succeeds). Next: step 4, seeing it on
 screen with two admin accounts (ask before Maestro). A cloud session can't do
 that yet: the MacBook doesn't offer `_Version_2` to cloud sessions
@@ -838,6 +824,12 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Pods, steps 1–3: deployed and shipped behind the Lab** *(2026-11-27, live: functions + rules deployed and OTA run by the founder; not yet seen on screen)*
+A partner or a group of up to 5 (`docs/pods.md`). Admins turn on Lab → Pods
+to get the Pod card on Today. Rules in `services/podMath.ts`, server in
+`functions/src/pods.ts` (49 emulator checks, `scripts/emulator/`), app in
+`services/pods.ts`, `screens/Pods/` and `components/pods/`.
 
 **Workouts: Log a past workout** *(2026-11-26, 9669a70, live OTA iOS 01a218f5, Android 01a218f5-7513; founder tried it on device 2026-11-26, works)*
 A workout done without tracking it live, and never saved as a workout: Workouts

@@ -225,7 +225,7 @@ Each step is its own commit, with jest green and tsc at the baseline.
    leaving/removing (the longest-standing member takes over removing when the
    starter leaves), and first-name cleaning and pre-fill. It imports nothing,
    so step 2 can copy it into `functions/` like the meditation core.
-2. ~~**Functions and rules.**~~ **Written 2026-11-27, not deployed.**
+2. ~~**Functions and rules.**~~ **Deployed 2026-11-27** (by the founder).
    - `functions/src/pods.ts`: `createPod`, `joinPod`, `newPodInvite`,
      `leavePod`, `removeFromPod`, `sendPodReaction` (callables; errors carry a
      `details.reason` such as `full`, `expired`, `no_invite`, `in_another_pod`,
@@ -249,7 +249,7 @@ Each step is its own commit, with jest green and tsc at the baseline.
      the new functions are safe to ship before the app uses them: nothing
      calls them yet, and the profile guard only blocks two fields the app
      never writes.
-3. ~~**App, in the Lab.**~~ **Built 2026-11-27, not seen on screen.**
+3. ~~**App, in the Lab.**~~ **Shipped OTA 2026-11-27, not seen on screen.**
    - `services/pods.ts` (28 tests): the function calls and their error
      wording, `loadPod`, sharing a rating (`sharePodRating`, called after
      `rateAppSession` in HomeScreen's `handleAppRated`, not awaited) and
