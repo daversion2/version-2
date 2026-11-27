@@ -540,6 +540,14 @@ Before non-admins get Compose:
 
 ## Later
 
+**Bring app and site copy in line with the brand** *(added 2026-11-27)*
+`docs/brand.md` sets the voice: understated wins, self-aware jokes on bad days,
+Comfort Mode as the enemy. Known gaps are listed in its "Where the app doesn't
+match yet" section (hype streak tiers in `src/constants/willpower.ts`, no
+Comfort Mode anywhere, landing-page science lines). Founder's call on what
+changes and when; still to decide there: the clean App Store tagline,
+Comfort Inc., visuals.
+
 **Apps-first Today: untested on screen** *(added 2026-10-18)*
 See `docs/apps-first-today.md`. Maestro checked the cards, the apps opening and
 both "Log a past session" sheets, without saving anything. These steps haven't

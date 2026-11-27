@@ -289,6 +289,8 @@ They ship over the air like any other change.
 - `docs/pivot-checklist.md` — the ordered checklist for finishing the move off habits
 - `docs/go-live-checklist.md` (stale — rewrite is on the backlog)
 - `docs/app-overview-user-facing.md` — the product in the user's own words
+- `docs/brand.md` — brand and voice (2026-11-27): "Do hard shit most of the time",
+  Comfort Mode as the enemy, override as the move, the voice rules. Write new copy to it
 - `.maestro/README.md`, `.claude/skills/ui-test/SKILL.md`
 
 **Personal, not in the repo:** `docs/todo.md` is the user's own running notes
