@@ -81,12 +81,24 @@ const navigateToMiniApp = (
   return true;
 };
 
+// A pod push (functions/src/pods.ts: reactions, nudges, everyone showed up).
+const navigateToPod = (
+  navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList> | null>,
+  data: Record<string, string>
+): boolean => {
+  if (data.type !== 'pod') return false;
+  const nav = navigationRef.current;
+  if (nav?.isReady() && nav.getRootState()?.routeNames?.includes('Pod')) nav.navigate('Pod');
+  return true;
+};
+
 const handleNotificationData = (
   navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList> | null>,
   data: Record<string, string>
 ) => {
   if (navigateToFollowUp(navigationRef, data)) return;
   if (navigateToMiniApp(navigationRef, data)) return;
+  if (navigateToPod(navigationRef, data)) return;
   navigateToRuleCta(navigationRef, data);
 };
 
@@ -221,6 +233,9 @@ export const RootNavigator: React.FC = () => {
               getComponent={() => require('../screens/Home/CravingCrusherScreen').CravingCrusherScreen}
               options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
             />
+            {/* Pods (docs/pods.md). Reached from Today's card, Lab switch "pods" for now. */}
+            <Stack.Screen name="Pod" getComponent={() => require('../screens/Pods/PodScreen').PodScreen} />
+            <Stack.Screen name="PodSetup" getComponent={() => require('../screens/Pods/PodSetupScreen').PodSetupScreen} />
           </>
         )}
       </Stack.Navigator>

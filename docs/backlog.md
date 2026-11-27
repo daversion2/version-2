@@ -23,17 +23,20 @@ How to use it:
 
 ## Now
 
-**⏰ Founder, at your laptop: deploy the pod functions and rules** *(added 2026-11-27)*
-Written and tested in the emulator, not live. From the repo root, after
-`git pull`:
+**⏰ Founder, at your laptop: deploy pods, then ship the OTA** *(added 2026-11-27)*
+Two commands, in this order, from the repo root after `git pull`:
 ```bash
 firebase deploy --only functions,firestore:rules
+eas update --branch production --message "Pods (Lab): partner or small group"
 ```
-(`firebase login` first if it asks.) Safe to run before the pod screens
-ship: nothing calls the new functions yet, and the rules change only blocks
-two profile fields the app never writes. Until it's run, the pod screens
-(step 3 in `docs/pods.md`) can't be tried with real accounts. Delete this item
-once it's done.
+(`firebase login` / `eas login` first if asked.) The first makes the pod
+functions and rules live: tested in the emulator, safe on its own, since the
+rules change only blocks two profile fields the app never writes. The second
+ships the pod screens: they're behind the admin-only Lab switch **Pods**, so
+nobody else sees anything. The cloud session that built them had no Firebase
+or Expo login, so neither has run. Then try it: Lab → Pods on two admin
+accounts (see step 4 in `docs/pods.md`). Note the OTA id here, then delete
+this item.
 
 **Download landing page: point the domain at it** *(added 2026-11-25)*
 `hosting/index.html` is a one-page, benefit-led site whose only job is App Store
@@ -587,9 +590,11 @@ push when everyone did. First names, preset reactions only, no free text.
 done 2026-11-27: the pure rules in `services/podMath.ts` (62 tests). Step 2
 written 2026-11-27: `functions/src/pods.ts`, the `pods` rules and the
 `deleteAccount` change, passing 49 emulator checks (`scripts/emulator/`).
-**Not deployed:** needs the founder's go-ahead for
-`firebase deploy --only functions,firestore:rules`. No app change yet, so no
-OTA. Next: step 3, the app screens behind a Lab switch.
+Step 3 built 2026-11-27: the Pod card on Today (Lab switch **Pods**), Start/Join
+and the Pod screen, sharing after each rating. **Neither deployed nor
+OTA'd**: see the ⏰ item at the top of Now. Next: step 4, seeing it on screen
+with two admin accounts (ask before Maestro), then the toast's "Shared with
+your pod" line.
 
 **Workout library: founder review and photos** *(added 2026-11-25)*
 Live for everyone since 2026-11-26 (see Done): Workouts → Create → Workout

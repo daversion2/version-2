@@ -1,6 +1,7 @@
 import { collection, deleteDoc, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { deleteCompletionLog } from './progress';
+import { unsharePodRating } from './pods';
 import type { CompletionLog } from '../types';
 
 // =============================================================================
@@ -19,6 +20,13 @@ export const removeRating = async (userId: string, logId: string): Promise<void>
   const mirrors = await getDocs(query(logsRef(userId), where('mirror_of', '==', logId)));
   await Promise.all(mirrors.docs.map((d) => deleteDoc(doc(db, 'users', userId, 'completionLogs', d.id))));
   await deleteCompletionLog(userId, logId);
+  // Out of the pod too (docs/pods.md), or podmates keep seeing a session that's
+  // gone. Best-effort: the rating is already deleted.
+  try {
+    await unsharePodRating(userId, logId);
+  } catch (err) {
+    console.warn('Removing the rating from the pod failed:', err);
+  }
 };
 
 /** Every rating of this session. */

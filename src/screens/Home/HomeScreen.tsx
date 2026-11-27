@@ -18,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchAllNudgeLogs, saveLogReflection } from '../../services/practices';
 import { rateAppSession } from '../../services/appRatings';
 import { markProgressStale } from '../../services/progress';
+import { sharePodRating } from '../../services/pods';
 import { getTacticPattern, TacticPattern } from '../../services/tacticPatterns';
 import { cancelScheduledHabitReminders } from '../../services/habitReminders';
 import { PracticeCompletionInput } from '../../types';
@@ -34,6 +35,8 @@ import {
 } from '../../services/appCheckins';
 import { HomeDashboardView } from '../../components/homeDashboard/HomeDashboardView';
 import { TodayView } from '../../components/homeRedesign/TodayView';
+import { PodCard } from '../../components/pods/PodCard';
+import { useLab } from '../../hooks/useLab';
 import { RateSheet } from '../../components/homeRedesign/RateSheet';
 import { isRedesignOn } from '../../utils/redesign';
 import { HabitCelebrationModal } from '../../components/habits/HabitCelebrationModal';
@@ -192,6 +195,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [appGoals, setAppGoals] = useState<Partial<Record<TodayAppId, number>>>({});
   // Apps switched off in onboarding or Settings (services/appSetup.ts).
   const hiddenApps = useMemo(() => hiddenAppsOf(userProfile), [userProfile]);
+  // Pods (docs/pods.md): the card on Today, admin-only while it's tried.
+  const podsOn = useLab('pods');
   // Close out the day and Craving Crusher, switched off from Apps (2026-11-20).
   const hiddenRows = useMemo(() => hiddenRowsOf(userProfile), [userProfile]);
   const appHabits = useMemo(
@@ -675,6 +680,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     // and shows the error — the follow-up celebration work below stays best-effort.
     const { logId, pointsEarned, streakBefore, firstTry, backdated, date, willpower: updateResult } =
       await rateAppSession(user.uid, appId, { ...input, sessionId });
+    // Into the pod, if in one (docs/pods.md). Best-effort and not awaited: a
+    // pod hiccup must never get in the way of the rating itself.
+    if (userProfile?.pod_id) {
+      sharePodRating(user.uid, userProfile.pod_id, {
+        logId,
+        appId,
+        date,
+        start: input.resistance,
+        keep: input.keep_going,
+        day: input.day_rating,
+      }).catch((err) => console.warn('Sharing with the pod failed:', err));
+    }
     // Progress keeps its read for a minute; this rating should show there next visit.
     // Called here, not in completePractice: progress.ts imports practices.ts.
     markProgressStale();
@@ -1026,6 +1043,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           plan={planLine}
           hiddenApps={hiddenApps}
           onBrowseApps={() => rootNav.navigate('AppStore')}
+          pod={
+            podsOn ? (
+              <PodCard
+                userId={user.uid}
+                podId={userProfile?.pod_id}
+                onOpen={() => rootNav.navigate(userProfile?.pod_id ? 'Pod' : 'PodSetup')}
+              />
+            ) : undefined
+          }
           onStartPlan={planRoute ? () => rootNav.navigate(planRoute) : undefined}
           extraRings={extraRings}
           extraRows={extraRows}

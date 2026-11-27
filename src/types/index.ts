@@ -119,6 +119,11 @@ export interface User {
   // App setup (services/appSetup.ts), from onboarding or the goals sheet.
   /** Apps switched off: not on Today, not in the weekly review. Never all three. */
   hidden_apps?: string[];
+  // Pods (docs/pods.md). pod_id is written only by the pod Cloud Functions
+  // (firestore.rules blocks the owner); first_name and pod_muted are the app's.
+  pod_id?: string;
+  first_name?: string;
+  pod_muted?: boolean;
   /** Today rows switched off from Apps: 'nightly' (Close out the day), 'craving' (Craving Crusher). */
   hidden_rows?: string[];
   /** The rows on Today, once chosen (wins over hidden_rows): 'nightly', 'craving', 'hotcold', 'avoidance'. */

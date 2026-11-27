@@ -50,6 +50,10 @@ export type RootStackParamList = {
   CravingApp: undefined;
   /** Craving Crusher's ride itself (CravingCrusherScreen), opened from its home. */
   CravingRide: undefined;
+  /** Your pod (docs/pods.md; Lab switch "pods" while it's being tried). */
+  Pod: undefined;
+  /** Start a pod or join one with a code. */
+  PodSetup: { mode?: 'start' | 'join' } | undefined;
 };
 
 // ============================================================================

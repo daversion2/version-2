@@ -65,6 +65,8 @@ interface Props {
   hiddenApps?: TodayAppId[];
   /** Opens the Apps screen (everyone since 2026-11-20). Unset hides the row. */
   onBrowseApps?: () => void;
+  /** Under the apps: the Pod card (components/pods/PodCard). Unset: none. */
+  pod?: React.ReactNode;
 }
 
 const NO_APPS: TodayAppId[] = [];
@@ -103,6 +105,7 @@ export const TodayView: React.FC<Props> = ({
   craving,
   hiddenApps = NO_APPS,
   onBrowseApps,
+  pod,
   onStartPlan,
   extraRings = NO_RINGS,
   extraRows = NO_ROWS,
@@ -288,6 +291,8 @@ export const TodayView: React.FC<Props> = ({
             ) : null}
 
             <AppsCard items={appItems} onOpen={openFromWeek} onBrowse={onBrowseApps} />
+
+            {pod}
 
           </>
         )}

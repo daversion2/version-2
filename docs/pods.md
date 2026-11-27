@@ -47,7 +47,9 @@ Edit profile gets the field too.
   thing a member types; it's checked for length and shown only to their pod.
 
 Friction off means members see "did Workouts" without how hard it was. The
-toggle is per person and applies to what's shared from then on.
+toggle is per person. Turning it off also strips the ratings from days
+already shared (built 2026-11-27: whoever turns it off expects their pod to
+stop seeing it); turning it back on shares from then on.
 
 ## How a pod works
 
@@ -112,6 +114,7 @@ pod across time zones works.
   week at a glance), reactions on each cell, the nudge button, everyone days,
   and Invite.
 - **After a rating:** the toast gains a quiet "Shared with your pod" line.
+  *(Not built yet: the toast lives in HomeScreen's celebration path.)*
 - **Settings → Pod:** share friction (on), mute pod notifications, invite,
   leave, and remove (for the person who started it).
 
@@ -246,12 +249,29 @@ Each step is its own commit, with jest green and tsc at the baseline.
      the new functions are safe to ship before the app uses them: nothing
      calls them yet, and the profile guard only blocks two fields the app
      never writes.
-3. **App, in the Lab.** A Lab switch (`pods`) that adds the Pod card to Today
-   and Settings → Pod. Screens: start, join, first name, Pod screen, the
-   reaction sheet. The client service for the member doc, called from
-   `handleAppRated` and from the delete path. Admin-only, so the first test
-   needs **two admin accounts**; to try it with a real friend early, add an
-   allowlist to the switch.
+3. ~~**App, in the Lab.**~~ **Built 2026-11-27, not seen on screen.**
+   - `services/pods.ts` (28 tests): the function calls and their error
+     wording, `loadPod`, sharing a rating (`sharePodRating`, called after
+     `rateAppSession` in HomeScreen's `handleAppRated`, not awaited) and
+     taking it back out (`unsharePodRating`, in `appRatingEdits.removeRating`),
+     friction, mute, first name, goals sync, and `buildPodView`, which works
+     out everything the screens show.
+   - Lab switch **Pods** (`pods`) adds `components/pods/PodCard` to Today,
+     under the apps. Not in a pod: "Train alongside someone" → Start/Join.
+   - `screens/Pods/PodSetupScreen` (route `PodSetup`): Start or Join, first
+     name pre-filled from the profile or the Google name, the friction toggle
+     (on), the code. Starting opens the share sheet with the invite.
+   - `screens/Pods/PodScreen` (route `Pod`): the week and streak, everyone
+     days, Today per member (sessions in the rating sheet's words, a 3-bar
+     effort meter, reactions, React and Nudge), the last 7 days grid, Invite
+     (code, Share, New code), You (first name, friction, mute), Members
+     (starter: Remove), Leave. A pod push opens it.
+   - Settings → Pod isn't a separate screen: its settings are on the Pod
+     screen.
+   - Sharing works for anyone with a `pod_id`, switch or not, but only the
+     switch lets anyone get one.
+   - Checked: jest, tsc and an iOS `expo export` bundle. **Not seen running:**
+     it needs the functions deployed, then two admin accounts.
 4. **Check it on screen** with two accounts (Maestro needs a yes first, and
    only one simulator exists, so the second account is a real phone).
 5. **Open it to everyone:** privacy page and App Store privacy details,

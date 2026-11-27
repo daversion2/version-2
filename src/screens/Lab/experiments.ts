@@ -101,6 +101,15 @@ export const LAB_EXPERIMENTS = [
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
   },
+  // Pods (2026-11-27, docs/pods.md): a partner or small accountability group.
+  // Adds the Pod card to Today; the card opens Start/Join and the Pod screen.
+  // Needs the pod functions deployed. Admin-only, so try it with two admin
+  // accounts. Sharing a rating works for anyone already IN a pod, switch or not.
+  {
+    id: 'pods',
+    title: 'Pods',
+    description: 'A partner or a group of up to 5: see each other show up, and how hard it was. Adds a Pod card to Today.',
+  },
   // Hot & Cold and Avoidance Training left the Lab on 2026-11-20: they open from
   // Apps (screens/Apps/, data/appCatalog.ts). Open to everyone, and addable to
   // Today, since 2026-11-20. Their ids stay retired: never reuse.
