@@ -567,6 +567,14 @@ users when profiles went owner-only.
 
 ## Features
 
+**Pods: a partner or small accountability group** *(added 2026-11-27)*
+2–5 people see that each other showed up today and how hard it was (friction
+shared by default, toggle off). Pod streak = anyone showed up; everyone gets a
+push when everyone did. First names, preset reactions only, no free text.
+Planned, not started: `docs/pods.md` has the decisions, data model, rules and
+build order. Next: step 1, `services/podMath.ts` with tests. Step 2 (rules and
+functions) needs a deploy go-ahead before the app side can be tried.
+
 **Workout library: founder review and photos** *(added 2026-11-25)*
 Live for everyone since 2026-11-26 (see Done): Workouts → Create → Workout
 library, 15 templates across three levels, fitted to the equipment you tick
