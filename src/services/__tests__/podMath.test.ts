@@ -1,5 +1,11 @@
 import {
+  addedSessionOn,
   afterLeave,
+  cleanGoals,
+  cleanTimezone,
+  everyonePush,
+  isPodPreset,
+  podReactionPush,
   canRemoveMember,
   celebrationDay,
   checkJoin,
@@ -424,5 +430,68 @@ describe('first names', () => {
     expect(suggestedFirstName('', '  Ana Lucía Pérez')).toBe('Ana');
     expect(suggestedFirstName(undefined, undefined)).toBeNull();
     expect(suggestedFirstName('j0nny', 'x@y.com')).toBeNull();
+  });
+});
+
+describe('input from the app', () => {
+  it('cleans weekly goals', () => {
+    expect(cleanGoals({ meditate: 5, workouts: 3.7, meals: 0, Bad: 2, x: 2, hotcold: 99 })).toEqual({
+      meditate: 5,
+      workouts: 3,
+      hotcold: 14,
+    });
+    expect(cleanGoals(null)).toEqual({});
+    expect(cleanGoals([3])).toEqual({});
+    expect(cleanGoals({ meditate: '5' })).toEqual({});
+  });
+
+  it('keeps at most 10 apps', () => {
+    const many = Object.fromEntries(Array.from({ length: 15 }, (_, i) => [`app${i}`, 1]));
+    expect(Object.keys(cleanGoals(many))).toHaveLength(10);
+  });
+
+  it('accepts only time zones the runtime knows', () => {
+    expect(cleanTimezone('America/New_York')).toBe('America/New_York');
+    expect(cleanTimezone('Not/AZone')).toBeNull();
+    expect(cleanTimezone('')).toBeNull();
+    expect(cleanTimezone(5)).toBeNull();
+  });
+
+  it('spots a session newly added on a day, and ignores other edits', () => {
+    const a = s('meditate');
+    const b = s('workouts');
+    expect(addedSessionOn({}, { [TODAY]: [a] }, TODAY)).toBe(true);
+    expect(addedSessionOn({ [TODAY]: [a] }, { [TODAY]: [a, b] }, TODAY)).toBe(true);
+    // Friction toggled: same ids, ratings stripped.
+    expect(addedSessionOn({ [TODAY]: [{ ...a, start: 2 }] }, { [TODAY]: [a] }, TODAY)).toBe(false);
+    expect(addedSessionOn({ [TODAY]: [a, b] }, { [TODAY]: [a] }, TODAY)).toBe(false);
+    expect(addedSessionOn(undefined, { '2026-11-26': [a] }, TODAY)).toBe(false);
+  });
+});
+
+describe('presets and pushes', () => {
+  it('knows its presets and nothing else', () => {
+    expect(isPodPreset('reaction', 'proud')).toBe(true);
+    expect(isPodPreset('reaction', 'with_you')).toBe(false);
+    expect(isPodPreset('nudge', 'with_you')).toBe(true);
+    expect(isPodPreset('reaction', 'toString')).toBe(false);
+    expect(isPodPreset('reaction', 'anything you like')).toBe(false);
+  });
+
+  it('words a reaction with the app it was on', () => {
+    expect(podReactionPush('reaction', 'hard_one', 'Sam', 'workouts')).toEqual({
+      title: 'Sam',
+      body: 'On your Workouts: “Hard one, done”',
+    });
+    expect(podReactionPush('reaction', 'proud', 'Sam', 'hotcold').body).toBe('On your Hotcold: “Proud of you”');
+  });
+
+  it('words a nudge', () => {
+    expect(podReactionPush('nudge', 'with_you', 'Sam')).toEqual({ title: 'Sam', body: 'Your pod is with you today.' });
+  });
+
+  it('words the everyone push for two and for more', () => {
+    expect(everyonePush(2).body).toBe('Both of you did it.');
+    expect(everyonePush(4)).toEqual({ title: 'Everyone showed up today', body: 'All 4 of you did it.' });
   });
 });

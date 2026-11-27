@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "sync-core": "rm -f src/meditation-core/*.ts && mkdir -p src/meditation-core && cp ../src/utils/meditation/*.ts src/meditation-core/ && rm -rf meditation-assets && mkdir -p meditation-assets/ambience && cp ../content/meditations/voice.json ../content/meditations/voices.json ../content/meditations/pronunciations.json ../assets/sounds/chime.wav meditation-assets/ && cp ../content/meditations/ambience/*.mp3 meditation-assets/ambience/",
+    "sync-core": "rm -f src/meditation-core/*.ts && mkdir -p src/meditation-core && cp ../src/utils/meditation/*.ts src/meditation-core/ && rm -rf meditation-assets && mkdir -p meditation-assets/ambience && cp ../content/meditations/voice.json ../content/meditations/voices.json ../content/meditations/pronunciations.json ../assets/sounds/chime.wav meditation-assets/ && cp ../content/meditations/ambience/*.mp3 meditation-assets/ambience/ && mkdir -p src/pod-core && cp ../src/services/podMath.ts src/pod-core/podMath.ts",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "deploy": "firebase deploy --only functions",

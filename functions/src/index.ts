@@ -1,7 +1,8 @@
 import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { Expo, ExpoPushMessage } from "expo-server-sdk";
+import { PUSH_NOTIFICATIONS_ENABLED, deliverPush, isPushToken } from "./push";
+import { leavePodFor } from "./pods";
 import {
   POOL_PLACEHOLDER_KEYS,
   Rule,
@@ -20,10 +21,6 @@ import {
 
 admin.initializeApp();
 const db = admin.firestore();
-const expo = new Expo();
-
-// Global kill switch for push notifications — set to false to disable all sends
-const PUSH_NOTIFICATIONS_ENABLED = true;
 
 /**
  * Fetch users whose local time is currently at the given hour. Fetches all
@@ -124,26 +121,13 @@ const claimPushBudget = async (userId: string, nowIso: string): Promise<boolean>
   }
 };
 
-/** Null the user's push token, but only if it's still the one that failed. */
-const clearStaleToken = async (userId: string, pushToken: string): Promise<void> => {
-  try {
-    const ref = db.collection("users").doc(userId);
-    await db.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      if (snap.get("expoPushToken") === pushToken) tx.update(ref, { expoPushToken: null });
-    });
-    console.log(`Cleared unregistered push token for user ${userId}`);
-  } catch (error) {
-    console.error(`Couldn't clear push token for user ${userId}:`, error);
-  }
-};
-
 /**
  * Send one push via Expo, subject to the global per-user budget.
  *
- * This is the ONLY way a push leaves the server, and it takes a userId rather
- * than just a token precisely so the budget cannot be bypassed by a future
- * caller that forgets it exists.
+ * Every RULE push goes through here, and it takes a userId rather than just a
+ * token precisely so the budget cannot be bypassed by a future caller that
+ * forgets it exists. (Pod pushes, which a person sends, have their own budget:
+ * see pods.ts.)
  *
  * @returns whether the push was actually sent — callers MUST NOT record a rule
  *   as fired on a false, or a once_ever rule burns without reaching anyone.
@@ -159,7 +143,7 @@ const sendPushNotification = async (
     console.log("Push notifications disabled — skipping");
     return false;
   }
-  if (!Expo.isExpoPushToken(pushToken)) {
+  if (!isPushToken(pushToken)) {
     console.log(`Invalid Expo push token: ${pushToken}`);
     return false;
   }
@@ -169,35 +153,7 @@ const sendPushNotification = async (
     return false;
   }
 
-  const message: ExpoPushMessage = {
-    to: pushToken,
-    sound: "default",
-    title,
-    body,
-    ...(data && { data }),
-  };
-
-  try {
-    const chunks = expo.chunkPushNotifications([message]);
-    for (const chunk of chunks) {
-      const tickets = await expo.sendPushNotificationsAsync(chunk);
-      // The app was deleted or the token replaced (new phone, reinstall).
-      // Forget the token so the account stops sending into the void, and the
-      // app can ask again next time it opens.
-      const gone = tickets.some(
-        (t) => t.status === "error" && t.details?.error === "DeviceNotRegistered"
-      );
-      if (gone) {
-        await clearStaleToken(userId, pushToken);
-        return false;
-      }
-    }
-    console.log(`Notification sent to user ${userId}: ${title}`);
-    return true;
-  } catch (error) {
-    console.error("Error sending push notification:", error);
-    return false;
-  }
+  return deliverPush(userId, pushToken, title, body, data);
 };
 
 // ============================================
@@ -341,7 +297,7 @@ const fireEventRuleForUser = async (
   data?: Record<string, string>
 ): Promise<boolean> => {
   const pushToken = userData?.expoPushToken;
-  if (!userData || !pushToken || !Expo.isExpoPushToken(pushToken)) {
+  if (!userData || !pushToken || !isPushToken(pushToken)) {
     console.log(`No valid push token for user ${userId} — skipping rule "${rule.name}"`);
     return false;
   }
@@ -561,7 +517,7 @@ export const evaluatePushRules = onSchedule(
       try {
         const userData = userDoc.data();
         const pushToken = userData.expoPushToken;
-        if (!pushToken || !Expo.isExpoPushToken(pushToken)) return;
+        if (!pushToken || !isPushToken(pushToken)) return;
 
         const timezone = userData.timezone || "America/New_York";
         const localHour = getHourInTimezone(timezone);
@@ -706,6 +662,12 @@ export const deleteAccount = onCall(
     console.log(`deleteAccount starting for user ${uid}`);
 
     try {
+      // Out of their pod first: their first name and shared days live under
+      // pods/, not users/. Reads users/{uid}.pod_id, so it must run before
+      // the user doc goes. A failure here fails the deletion (it's retried),
+      // rather than leaving them visible to their pod.
+      await leavePodFor(uid);
+
       // Removes the user doc and every subcollection under it (habits,
       // challenges, completionLogs, reflections, worksheets, and any added
       // later — no hardcoded list to fall out of date).
@@ -777,3 +739,14 @@ export const checkUsernameAvailable = onCall(async (request) => {
 
 // Compose (Lab): guided sessions written and voiced on request.
 export { composeSession, cleanupComposeSession } from "./compose";
+
+// Pods: a partner or small accountability group (docs/pods.md).
+export {
+  createPod,
+  joinPod,
+  newPodInvite,
+  leavePod,
+  removeFromPod,
+  sendPodReaction,
+  onPodMemberWritten,
+} from "./pods";

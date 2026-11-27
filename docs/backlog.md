@@ -572,10 +572,12 @@ users when profiles went owner-only.
 shared by default, toggle off). Pod streak = anyone showed up; everyone gets a
 push when everyone did. First names, preset reactions only, no free text.
 `docs/pods.md` has the decisions, data model, rules and build order. Step 1
-done 2026-11-27: the pure rules in `services/podMath.ts`, 54 tests, used by
-nothing yet (no OTA needed). Next: step 2, the callables, trigger, rules and
-`deleteAccount` change, copying `podMath.ts` into `functions/`. Deploying them
-needs the founder's go-ahead before the app side can be tried.
+done 2026-11-27: the pure rules in `services/podMath.ts` (62 tests). Step 2
+written 2026-11-27: `functions/src/pods.ts`, the `pods` rules and the
+`deleteAccount` change, passing 49 emulator checks (`scripts/emulator/`).
+**Not deployed:** needs the founder's go-ahead for
+`firebase deploy --only functions,firestore:rules`. No app change yet, so no
+OTA. Next: step 3, the app screens behind a Lab switch.
 
 **Workout library: founder review and photos** *(added 2026-11-25)*
 Live for everyone since 2026-11-26 (see Done): Workouts → Create → Workout

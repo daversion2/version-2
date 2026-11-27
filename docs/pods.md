@@ -222,12 +222,30 @@ Each step is its own commit, with jest green and tsc at the baseline.
    leaving/removing (the longest-standing member takes over removing when the
    starter leaves), and first-name cleaning and pre-fill. It imports nothing,
    so step 2 can copy it into `functions/` like the meditation core.
-2. **Functions and rules.** The callables, the trigger, the `deleteAccount`
-   change, the pod push budget, rules for `pods`. Copy `podMath.ts` into
-   `functions/src/pod-core/` in `sync-core`, with a drift test like
-   `src/utils/meditation/__tests__/sync.test.ts`.
-   **Deploying rules and functions needs the founder's go-ahead.** Until then,
-   the app side can't be tried against production.
+2. ~~**Functions and rules.**~~ **Written 2026-11-27, not deployed.**
+   - `functions/src/pods.ts`: `createPod`, `joinPod`, `newPodInvite`,
+     `leavePod`, `removeFromPod`, `sendPodReaction` (callables; errors carry a
+     `details.reason` such as `full`, `expired`, `no_invite`, `in_another_pod`,
+     `already_sent`, `already_showed_up`, for the app to word), the
+     `onPodMemberWritten` trigger, and `leavePodFor`, which `deleteAccount`
+     now runs first.
+   - `functions/src/push.ts`: Expo delivery moved out of `index.ts` so pods
+     can send without the rule budget. Rule pushes still check it first,
+     unchanged.
+   - `podMath.ts` is copied to `functions/src/pod-core/` by `sync-core`;
+     `podCoreSync.test.ts` fails if the copy drifts.
+   - `firestore.rules`: the `pods` block above, and `pod_id` /
+     `pod_push_history` on the profile are now server-only.
+   - **Checked in the Firebase emulator, not just by reading:** 49 end-to-end
+     checks in `scripts/emulator/pods.e2e.js` (see its README), run in a
+     `demo-` project that can't reach production. They found one real bug
+     (a load-order crash on leaving), now fixed. `firebase.json` gained an
+     `emulators` block for this; deploys ignore it.
+   - **To deploy (founder's go-ahead):**
+     `firebase deploy --only functions,firestore:rules`. The rules change and
+     the new functions are safe to ship before the app uses them: nothing
+     calls them yet, and the profile guard only blocks two fields the app
+     never writes.
 3. **App, in the Lab.** A Lab switch (`pods`) that adds the Pod card to Today
    and Settings → Pod. Screens: start, join, first name, Pod screen, the
    reaction sheet. The client service for the member doc, called from

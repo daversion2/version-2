@@ -454,3 +454,98 @@ export const cleanFirstName = (input: string | null | undefined): string | null 
  */
 export const suggestedFirstName = (givenName?: string | null, fullName?: string | null): string | null =>
   cleanFirstName(givenName) ?? cleanFirstName(String(fullName ?? '').trim().split(/\s+/)[0]);
+
+// ---------------------------------------------------------------------------
+// Input from the app (the callables clean everything they're sent)
+// ---------------------------------------------------------------------------
+
+const APP_ID = /^[a-z][a-z0-9_]{1,19}$/;
+const MAX_GOAL = 14;
+const MAX_APPS = 10;
+
+/** Weekly goals as the app sent them: known-looking app ids, whole numbers 1–14, at most 10 apps. */
+export const cleanGoals = (input: unknown): Record<string, number> => {
+  const out: Record<string, number> = {};
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return out;
+  for (const [app, g] of Object.entries(input as Record<string, unknown>)) {
+    if (Object.keys(out).length >= MAX_APPS) break;
+    if (!APP_ID.test(app) || typeof g !== 'number' || !Number.isFinite(g)) continue;
+    const goal = Math.min(MAX_GOAL, Math.floor(g));
+    if (goal >= 1) out[app] = goal;
+  }
+  return out;
+};
+
+/** An IANA time zone the runtime knows, else null. */
+export const cleanTimezone = (input: unknown): string | null => {
+  if (typeof input !== 'string' || input.length === 0 || input.length > 64) return null;
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: input });
+    return input;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Did this write add a session on `day` that wasn't there before? The
+ * everyone-showed-up trigger only looks when it did, so a friction toggle or a
+ * goal change never sets it off.
+ */
+export const addedSessionOn = (before: PodDays | undefined, after: PodDays | undefined, day: string): boolean => {
+  const had = new Set((before?.[day] ?? []).map((s) => s.id));
+  return (after?.[day] ?? []).some((s) => !had.has(s.id));
+};
+
+// ---------------------------------------------------------------------------
+// Presets and push wording
+// ---------------------------------------------------------------------------
+
+/** Reactions on a session. Ids are stored; the wording can change. */
+export const POD_REACTIONS = {
+  showed_up: 'Showed up anyway',
+  hard_one: 'Hard one, done',
+  proud: 'Proud of you',
+} as const;
+export type PodReactionPreset = keyof typeof POD_REACTIONS;
+
+/** Nudges for someone who hasn't shown up yet today. */
+export const POD_NUDGES = {
+  with_you: 'Your pod is with you today',
+} as const;
+export type PodNudgePreset = keyof typeof POD_NUDGES;
+
+export const isPodPreset = (kind: 'reaction' | 'nudge', preset: unknown): boolean =>
+  typeof preset === 'string' &&
+  Object.prototype.hasOwnProperty.call(kind === 'reaction' ? POD_REACTIONS : POD_NUDGES, preset);
+
+const APP_LABELS: Record<string, string> = { meditate: 'Meditate', workouts: 'Workouts', meals: 'Meals' };
+
+export const podAppLabel = (app: string): string =>
+  APP_LABELS[app] ?? (app ? app.charAt(0).toUpperCase() + app.slice(1) : 'session');
+
+export interface PodPushText {
+  title: string;
+  body: string;
+}
+
+/** A reaction or nudge push, from `sender` (a first name). `app` is the session's, for a reaction. */
+export const podReactionPush = (
+  kind: 'reaction' | 'nudge',
+  preset: string,
+  sender: string,
+  app?: string
+): PodPushText => {
+  if (kind === 'nudge') {
+    const line = POD_NUDGES[preset as PodNudgePreset] ?? POD_NUDGES.with_you;
+    return { title: sender, body: `${line}.` };
+  }
+  const line = POD_REACTIONS[preset as PodReactionPreset] ?? POD_REACTIONS.showed_up;
+  return { title: sender, body: `On your ${podAppLabel(app ?? '')}: “${line}”` };
+};
+
+/** The push everyone gets when the whole pod showed up. */
+export const everyonePush = (memberCount: number): PodPushText => ({
+  title: 'Everyone showed up today',
+  body: memberCount === 2 ? 'Both of you did it.' : `All ${memberCount} of you did it.`,
+});

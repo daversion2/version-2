@@ -19,13 +19,17 @@ service cloud.firestore {
       // Nothing in the app writes either flag, and every user-doc write passes
       // merge: true, so this costs the client nothing. Grant the flags from the
       // Firebase console or an Admin SDK script; both bypass these rules.
+      //
+      // pod_id and pod_push_history are the pod functions' (functions/src/pods.ts):
+      // the pod you're in, and the pod push budget. The owner can't set either.
       allow create: if request.auth != null
                     && request.auth.uid == userId
-                    && !request.resource.data.keys().hasAny(['is_admin', 'is_coach']);
+                    && !request.resource.data.keys()
+                         .hasAny(['is_admin', 'is_coach', 'pod_id', 'pod_push_history']);
       allow update: if request.auth != null
                     && request.auth.uid == userId
                     && !request.resource.data.diff(resource.data)
-                         .affectedKeys().hasAny(['is_admin', 'is_coach']);
+                         .affectedKeys().hasAny(['is_admin', 'is_coach', 'pod_id', 'pod_push_history']);
       allow delete: if request.auth != null && request.auth.uid == userId;
 
       // Subcollections: challenges, habits, completionLogs, categories,
@@ -157,6 +161,47 @@ service cloud.firestore {
     // challengeReviews, reviewVotes, challengeSubmissions, coachApplications)
     // — has no rule, so clients are denied. deleteAccount (Admin SDK) still
     // sweeps old data from them.
+
+    // ========================================================================
+    // PODS — pods/{podId}   (docs/pods.md, functions/src/pods.ts)
+    // A partner or small group. Only members can read anything in a pod.
+    // Creating, joining, leaving, invites and reactions all go through the pod
+    // Cloud Functions, so the 5-person cap can't be raced. The one client
+    // write: a member updates their OWN member doc (the days they share, their
+    // goals, time zone, first name and friction toggle) and nothing else on it.
+    // podInvites/{code} has no rule: server only.
+    // ========================================================================
+    function isPodMember(podId) {
+      return request.auth != null
+        && request.auth.uid in get(/databases/$(database)/documents/pods/$(podId)).data.member_ids;
+    }
+
+    match /pods/{podId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.member_ids;
+
+      match /members/{memberId} {
+        allow read: if isPodMember(podId);
+        allow update: if request.auth != null
+                      && request.auth.uid == memberId
+                      && isPodMember(podId)
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['first_name', 'timezone', 'goals', 'share_friction', 'days', 'updated_at'])
+                      && request.resource.data.first_name is string
+                      && request.resource.data.first_name.size() >= 1
+                      && request.resource.data.first_name.size() <= 20
+                      && request.resource.data.timezone is string
+                      && request.resource.data.timezone.size() <= 64
+                      && request.resource.data.share_friction is bool
+                      && request.resource.data.goals is map
+                      && request.resource.data.goals.size() <= 10
+                      && request.resource.data.days is map
+                      && request.resource.data.days.size() <= 14;
+      }
+
+      match /reactions/{reactionId} {
+        allow read: if isPodMember(podId);
+      }
+    }
 
     // ========================================================================
     // COMPOSE ALLOWANCE — composeUsage/{userId}

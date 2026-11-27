@@ -142,7 +142,8 @@ firebase deploy --only functions,firestore:indexes,firestore:rules
 Functions deploys first run `npm --prefix functions run sync-core`
 (firebase.json predeploy), which copies `src/utils/meditation/` into
 `functions/src/meditation-core/` and the voices, backgrounds and chime into
-`functions/meditation-assets/`. Edit the originals, never the copies; a jest
+`functions/meditation-assets/`, and `src/services/podMath.ts` into
+`functions/src/pod-core/`. Edit the originals, never the copies; a jest
 test fails if the committed copies drift. `composeSession` needs the
 `ANTHROPIC_API_KEY` and `ELEVENLABS_API_KEY` Firebase secrets.
 
@@ -168,6 +169,12 @@ If not authenticated: `firebase login`
 held when a session starts, given back on a decline or failure). The owner
 may read it; only the function writes it. It lives outside `users/{uid}` on
 purpose: the user's own subcollections are client-writable.
+`pods/{podId}` (+ `members/`, `reactions/`) and `podInvites/{code}` — pods
+(`docs/pods.md`, `functions/src/pods.ts`). Members read their pod; each member
+updates only their own member doc; everything else goes through the pod
+functions. `podInvites` is server-only, as are `pod_id` and `pod_push_history`
+on the profile. End-to-end checks: `scripts/emulator/` (Firebase emulator,
+`demo-` project).
 
 **Storage** (`storage.rules`, deny-all for clients): `users/{uid}/compose/{id}.mp3`,
 written by the `composeSession` function and played through the tokened URL

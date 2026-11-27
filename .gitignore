@@ -68,3 +68,7 @@ content/exercise-library/.cache/
 content/videos/*/*
 !content/videos/*/plan.json
 !content/videos/*/diagrams/
+
+# Firebase emulator logs (scripts/emulator)
+firestore-debug.log
+firebase-debug.log
