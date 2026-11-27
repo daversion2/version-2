@@ -23,6 +23,23 @@ How to use it:
 
 ## Now
 
+**⏰ Founder, at your laptop: pull, then deploy pods and ship the OTA** *(added 2026-11-27, redone the same day)*
+The first attempt ran from an out-of-date checkout: checked 2026-11-27 03:35
+UTC, production has `deleteAccount` but no `createPod`/`joinPod` (404), and the
+Lab shows no Pods switch on the phone. From the repo root:
+```bash
+git pull origin main
+git log --oneline -1   # must show e9ac0d1 or newer
+firebase deploy --only functions,firestore:rules
+eas update --branch production --message "Pods (Lab): partner or small group"
+```
+Then open the app, wait ~20 s, force-quit, reopen: Lab → Switches → **Pods**.
+A cloud session with the `version-2` environment can confirm both afterwards
+(it can reach the functions and Expo's update server). It can't run either
+command itself: no Firebase login in the cloud, and no Expo token saved (one
+can be added as a Network secret for `api.expo.dev`). Delete this item once
+Pods shows up.
+
 **Download landing page: point the domain at it** *(added 2026-11-25)*
 `hosting/index.html` is a one-page, benefit-led site whose only job is App Store
 downloads (old support index moved to `hosting/support.html`). Live at
@@ -576,9 +593,8 @@ done 2026-11-27: the pure rules in `services/podMath.ts` (62 tests). Step 2
 written 2026-11-27: `functions/src/pods.ts`, the `pods` rules and the
 `deleteAccount` change, passing 49 emulator checks (`scripts/emulator/`).
 Step 3 built 2026-11-27: the Pod card on Today (Lab switch **Pods**), Start/Join
-and the Pod screen, sharing after each rating. **Live 2026-11-27:** the founder
-deployed the functions and rules and shipped the OTA (id not recorded here;
-see the EAS dashboard). The toast's "Shared with your pod" line
+and the Pod screen, sharing after each rating. **Not live yet:** the first
+deploy and OTA ran from an out-of-date checkout; see the ⏰ item in Now. The toast's "Shared with your pod" line
 is in too (shows only once the share succeeds). Next: step 4, seeing it on
 screen with two admin accounts (ask before Maestro). A cloud session can't do
 that yet: the MacBook doesn't offer `_Version_2` to cloud sessions
@@ -825,7 +841,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Pods, steps 1–3: deployed and shipped behind the Lab** *(2026-11-27, live: functions + rules deployed and OTA run by the founder; not yet seen on screen)*
+**Pods, steps 1–3: built** *(2026-11-27; NOT live yet: the first deploy and OTA ran from a stale checkout, see the ⏰ item in Now)*
 A partner or a group of up to 5 (`docs/pods.md`). Admins turn on Lab → Pods
 to get the Pod card on Today. Rules in `services/podMath.ts`, server in
 `functions/src/pods.ts` (49 emulator checks, `scripts/emulator/`), app in
