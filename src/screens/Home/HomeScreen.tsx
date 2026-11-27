@@ -681,17 +681,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const { logId, pointsEarned, streakBefore, firstTry, backdated, date, willpower: updateResult } =
       await rateAppSession(user.uid, appId, { ...input, sessionId });
     // Into the pod, if in one (docs/pods.md). Best-effort and not awaited: a
-    // pod hiccup must never get in the way of the rating itself.
-    if (userProfile?.pod_id) {
-      sharePodRating(user.uid, userProfile.pod_id, {
-        logId,
-        appId,
-        date,
-        start: input.resistance,
-        keep: input.keep_going,
-        day: input.day_rating,
-      }).catch((err) => console.warn('Sharing with the pod failed:', err));
-    }
+    // pod hiccup must never get in the way of the rating itself. The toast
+    // says "Shared with your pod" only once this has actually succeeded.
+    const podShare: Promise<boolean> | null = userProfile?.pod_id
+      ? sharePodRating(user.uid, userProfile.pod_id, {
+          logId,
+          appId,
+          date,
+          start: input.resistance,
+          keep: input.keep_going,
+          day: input.day_rating,
+        }).catch((err) => {
+          console.warn('Sharing with the pod failed:', err);
+          return false;
+        })
+      : null;
     // Progress keeps its read for a minute; this rating should show there next visit.
     // Called here, not in completePractice: progress.ts imports practices.ts.
     markProgressStale();
@@ -811,8 +815,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         const amounts = APP_TRACKING[appId]
           .filter((f) => isNumericField(f) && typeof input.metrics?.[f.key] === 'number')
           .map((f) => formatMetricValue(f, input.metrics![f.key] as number));
+        const toastKey = Date.now();
+        podShare?.then((shared) => {
+          if (!shared) return;
+          const line = t('today.toast.pod', 'Shared with your pod');
+          setToast((cur) =>
+            cur && cur.key === toastKey ? { ...cur, context: [cur.context, line].filter(Boolean).join(' · ') } : cur
+          );
+        });
         setToast({
-          key: Date.now(),
+          key: toastKey,
           points: pointsEarned,
           text: [appName, ...amounts, level, keepGoing].filter(Boolean).join(' · '),
           context: backdated

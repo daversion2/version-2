@@ -113,8 +113,8 @@ pod across time zones works.
 - **Pod screen:** the week grid, member × day (the same look as Overview's
   week at a glance), reactions on each cell, the nudge button, everyone days,
   and Invite.
-- **After a rating:** the toast gains a quiet "Shared with your pod" line.
-  *(Not built yet: the toast lives in HomeScreen's celebration path.)*
+- **After a rating:** the toast gains a quiet "Shared with your pod" line
+  (copy key `today.toast.pod`), added only once the share has succeeded.
 - **Settings → Pod:** share friction (on), mute pod notifications, invite,
   leave, and remove (for the person who started it).
 

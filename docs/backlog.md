@@ -592,9 +592,11 @@ written 2026-11-27: `functions/src/pods.ts`, the `pods` rules and the
 `deleteAccount` change, passing 49 emulator checks (`scripts/emulator/`).
 Step 3 built 2026-11-27: the Pod card on Today (Lab switch **Pods**), Start/Join
 and the Pod screen, sharing after each rating. **Neither deployed nor
-OTA'd**: see the ⏰ item at the top of Now. Next: step 4, seeing it on screen
-with two admin accounts (ask before Maestro), then the toast's "Shared with
-your pod" line.
+OTA'd**: see the ⏰ item at the top of Now. The toast's "Shared with your pod" line
+is in too (shows only once the share succeeds). Next: step 4, seeing it on
+screen with two admin accounts (ask before Maestro). A cloud session can't do
+that yet: the MacBook doesn't offer `_Version_2` to cloud sessions
+(Remote Control lists it as not available).
 
 **Workout library: founder review and photos** *(added 2026-11-25)*
 Live for everyone since 2026-11-26 (see Done): Workouts → Create → Workout
