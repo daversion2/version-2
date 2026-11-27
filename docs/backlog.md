@@ -23,6 +23,18 @@ How to use it:
 
 ## Now
 
+**⏰ Founder, at your laptop: deploy the pod functions and rules** *(added 2026-11-27)*
+Written and tested in the emulator, not live. From the repo root, after
+`git pull`:
+```bash
+firebase deploy --only functions,firestore:rules
+```
+(`firebase login` first if it asks.) Safe to run before the pod screens
+ship: nothing calls the new functions yet, and the rules change only blocks
+two profile fields the app never writes. Until it's run, the pod screens
+(step 3 in `docs/pods.md`) can't be tried with real accounts. Delete this item
+once it's done.
+
 **Download landing page: point the domain at it** *(added 2026-11-25)*
 `hosting/index.html` is a one-page, benefit-led site whose only job is App Store
 downloads (old support index moved to `hosting/support.html`). Live at
