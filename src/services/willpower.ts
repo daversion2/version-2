@@ -1,16 +1,21 @@
 import { doc, getDoc, setDoc, collection, getDocs, query, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import { STREAK_TIERS } from '../constants/willpower';
+import { copyText, declareCopy } from './appCopy';
 import { getTodayString, getYesterdayString, toLocalDateString } from '../utils/date';
 
 // A streak of 0 sits in the first tier, so a first-ever day is not a "new tier".
 const streakTierIndex = (streakDays: number): number =>
   Math.max(0, STREAK_TIERS.findIndex((t) => streakDays >= t.minDays && streakDays <= t.maxDays));
 
+// Tier names are admin-editable (Admin → All wording, "streak.tier.<minDays>").
+const tierKey = (minDays: number) => `streak.tier.${minDays}`;
+declareCopy(Object.fromEntries(STREAK_TIERS.map((t) => [tierKey(t.minDays), t.name])));
+
 // Get streak tier info for display
 export const getStreakTierInfo = (streakDays: number): { tierName: string; minDays: number } => {
   const tier = STREAK_TIERS[streakTierIndex(streakDays)];
-  return { tierName: tier.name, minDays: tier.minDays };
+  return { tierName: copyText(tierKey(tier.minDays), tier.name), minDays: tier.minDays };
 };
 
 // Update user's willpower stats (points and streak)

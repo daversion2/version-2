@@ -3,11 +3,13 @@ import { AppState } from 'react-native';
 import { useAuth } from './AuthContext';
 import {
   CopyVars,
+  declaredCopy,
   fetchCopyOverrides,
   interpolate,
   resetCopyOverride,
   resolveCopy,
   saveCopyOverride,
+  setLiveCopyOverrides,
   stripBold,
 } from '../services/appCopy';
 
@@ -49,6 +51,9 @@ export const CopyProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [editModeOn, setEditModeOn] = useState(false);
   const registry = useRef(new Map<string, string>());
+
+  // Services (toasts, streak tiers) read edits through copyText(), outside React.
+  useEffect(() => setLiveCopyOverrides(overrides), [overrides]);
 
   const load = useCallback(async () => {
     try {
@@ -93,10 +98,15 @@ export const CopyProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setEditMode: setEditModeOn,
       canEdit,
       register,
-      seen: () =>
-        [...registry.current.entries()]
+      // On-screen keys seen this session, plus every declared key (toasts and
+      // other service lines, which can't be long-pressed).
+      seen: () => {
+        const all = new Map(registry.current);
+        for (const { key, defaultText } of declaredCopy()) if (!all.has(key)) all.set(key, defaultText);
+        return [...all.entries()]
           .map(([key, defaultText]) => ({ key, defaultText }))
-          .sort((a, b) => a.key.localeCompare(b.key)),
+          .sort((a, b) => a.key.localeCompare(b.key));
+      },
       save,
       reset,
     }),

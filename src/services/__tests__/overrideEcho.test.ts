@@ -104,3 +104,16 @@ describe('mealsDayEcho', () => {
     expect(new Set([mealsDayEcho(1, true), mealsDayEcho(2, true), mealsDayEcho(3)]).size).toBe(3);
   });
 });
+
+describe('toast lines are admin-editable', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { setLiveCopyOverrides } = require('../appCopy');
+  afterEach(() => setLiveCopyOverrides({}));
+
+  it('uses the edit for a toast key', () => {
+    setLiveCopyOverrides({ 'toast.start.3a': 'Edited hard start.' });
+    expect(overrideEcho({ level: 3, history: [] })).toBe('Edited hard start.');
+    setLiveCopyOverrides({ 'toast.keepGoing.1': 'Edited steady.' });
+    expect(keepGoingEcho(1)).toBe('Edited steady.');
+  });
+});

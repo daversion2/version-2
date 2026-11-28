@@ -57,8 +57,9 @@ export const AdminCopyScreen: React.FC = () => {
         clearButtonMode="while-editing"
       />
       <Text style={styles.note}>
-        Shows wording from screens you've opened since the app started, plus everything you've
-        edited. Open a screen to add its wording here.
+        Shows wording from screens you've opened since the app started, every toast and
+        streak name (they can't be long-pressed), and everything you've edited. Open a
+        screen to add its wording here.
       </Text>
       <FlatList
         data={rows}

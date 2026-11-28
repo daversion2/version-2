@@ -8,6 +8,10 @@ import {
   fetchCopyOverrides,
   saveCopyOverride,
   resetCopyOverride,
+  copyText,
+  declareCopy,
+  declaredCopy,
+  setLiveCopyOverrides,
 } from '../appCopy';
 import { resetMockDB } from '../__mocks__/firestore';
 
@@ -77,5 +81,28 @@ describe('Firestore round trip', () => {
     expect(await fetchCopyOverrides()).toEqual({ 'today.empty': 'Nothing here yet.' });
     await resetCopyOverride('today.empty');
     expect(await fetchCopyOverrides()).toEqual({});
+  });
+});
+
+describe('copyText (wording built outside a screen)', () => {
+  afterEach(() => setLiveCopyOverrides({}));
+
+  it('returns the default with no edits, filled and without bold markers', () => {
+    expect(copyText('test.plain', 'Hi **{name}**', { name: 'Sam' })).toBe('Hi Sam');
+  });
+
+  it('returns the admin edit once the provider has one', () => {
+    setLiveCopyOverrides({ 'test.edited': 'Edited {n}' });
+    expect(copyText('test.edited', 'Default {n}', { n: 2 })).toBe('Edited 2');
+  });
+
+  it('lists declared keys for the admin even before they are used', () => {
+    declareCopy({ 'test.declared': 'Never shown yet' });
+    expect(declaredCopy()).toContainEqual({ key: 'test.declared', defaultText: 'Never shown yet' });
+  });
+
+  it('lists a key the first time copyText sees it', () => {
+    copyText('test.lazy', 'Seen once');
+    expect(declaredCopy()).toContainEqual({ key: 'test.lazy', defaultText: 'Seen once' });
   });
 });

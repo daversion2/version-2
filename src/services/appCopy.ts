@@ -82,3 +82,38 @@ export const saveCopyOverride = async (key: string, text: string): Promise<void>
 export const resetCopyOverride = async (key: string): Promise<void> => {
   await deleteDoc(doc(db, COLLECTION, key));
 };
+
+// ---- Wording built outside a screen -------------------------------------------
+//
+// Toasts, streak tiers and other lines a service returns can't call useCopy():
+// there's no component. They go through copyText(), which reads the same admin
+// edits from a snapshot CopyProvider keeps current. With no provider (jest, or
+// before the first load) it returns the default, so services stay testable.
+//
+// declareCopy() lists keys up front, so Admin → All wording shows them before
+// they have appeared on screen. Toasts vanish too fast to long-press, so that
+// list is the only place to edit them.
+
+let liveOverrides: Record<string, string> = {};
+const catalog = new Map<string, string>();
+
+/** Called by CopyProvider whenever the overrides change. */
+export const setLiveCopyOverrides = (overrides: Record<string, string>): void => {
+  liveOverrides = overrides;
+};
+
+/** Register keys and defaults so the admin list always shows them. Returns the map, for lookup. */
+export const declareCopy = <T extends Record<string, string>>(entries: T): T => {
+  for (const [key, text] of Object.entries(entries)) if (!catalog.has(key)) catalog.set(key, text);
+  return entries;
+};
+
+/** Every declared key, for the admin list. */
+export const declaredCopy = (): { key: string; defaultText: string }[] =>
+  [...catalog.entries()].map(([key, defaultText]) => ({ key, defaultText }));
+
+/** Plain text for a key, outside React: the admin's edit if there is one, else the default. */
+export const copyText = (key: string, defaultText: string, vars?: CopyVars): string => {
+  if (!catalog.has(key)) catalog.set(key, defaultText);
+  return stripBold(interpolate(resolveCopy(key, defaultText, liveOverrides), vars));
+};

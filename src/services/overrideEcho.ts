@@ -1,6 +1,7 @@
 import type { CompletionLog } from '../types';
 import { logResistance, RESISTANCE_MAX } from '../constants/resistance';
 import { appCheckinId, TodayAppId } from './appCheckins';
+import { copyText, declareCopy } from './appCopy';
 
 // =============================================================================
 // THE OVERRIDE, ANSWERED BACK.
@@ -28,18 +29,35 @@ export interface RatedDay {
   resistance: number;
 }
 
-const LEVEL_LINES: Record<1 | 2 | 3, string[]> = {
-  1: [
-    'Barely thought about it, and you’re in. Easy days count too.',
-    'Woah… look at you making it look easy!',
-  ],
-  2: [
-    'You had to talk yourself into it, and you did. That’s the override at work.',
-    'It took some convincing, and you started anyway. That convincing is the training.',
-  ],
-  3: [
-    'Nice work! Now refrain from posting about it on Instagram.',
-  ],
+// Every line is admin-editable (Admin → All wording, keys "toast.*"). The text
+// here is the default; copyText() returns the admin's edit when there is one.
+const LINES = declareCopy({
+  'toast.start.1a': 'Barely thought about it, and you’re in. Easy days count too.',
+  'toast.start.1b': 'Woah… look at you making it look easy!',
+  'toast.start.2a': 'You had to talk yourself into it, and you did. That’s the override at work.',
+  'toast.start.2b': 'It took some convincing, and you started anyway. That convincing is the training.',
+  'toast.start.3a': 'Nice work! Now refrain from posting about it on Instagram.',
+  'toast.pair.bothMax': 'Overrode it twice today, getting in and staying in. That’s the whole skill.',
+  'toast.pair.bothHard': 'Hard to start and hard to keep going, and you did both. Two overrides, one session.',
+  'toast.pair.hardStart': 'Getting started was the hard part today. Once you were in, you were in.',
+  'toast.pair.hardMiddle': 'Easy to start, hard to keep going, and you kept going. That’s the override doing its second job.',
+  'toast.pair.easy': 'Easy in, easy through. The easy days count as much as the hard ones.',
+  'toast.keepGoing.3': 'You wanted to quit and didn’t. Those are the minutes doing the training.',
+  'toast.keepGoing.2': 'The urge to stop showed up and you kept going. That’s the override at work.',
+  'toast.keepGoing.1': 'Never wanted to stop. A steady session counts.',
+  'toast.meals.offTargetHard': 'Off target, but you fought for it. A hard day you showed up for still counts.',
+  'toast.meals.offTargetEasy': 'Off target without much of a fight. Worth a look at what made it easy to drift.',
+  'toast.meals.3': 'A day full of pull, and you held. That’s the hard version, done.',
+  'toast.meals.2': 'You said no when it mattered.',
+  'toast.meals.1': 'An easy day of eating well. Those count too.',
+});
+type LineKey = keyof typeof LINES;
+const line = (key: LineKey): string => copyText(key, LINES[key]);
+
+const LEVEL_LINES: Record<1 | 2 | 3, LineKey[]> = {
+  1: ['toast.start.1a', 'toast.start.1b'],
+  2: ['toast.start.2a', 'toast.start.2b'],
+  3: ['toast.start.3a'],
 };
 
 /** One app's earlier ratings, on the current scale. `excludeId` drops the log just written. */
@@ -59,7 +77,7 @@ export const overrideEcho = (args: {
 }): string => {
   const level = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(args.level))) as 1 | 2 | 3;
   const lines = LEVEL_LINES[level];
-  return lines[args.history.length % lines.length];
+  return line(lines[args.history.length % lines.length]);
 };
 
 // --- The override, twice (2026-11-20) -------------------------------------------
@@ -73,21 +91,21 @@ export const overrideEcho = (args: {
 export const pairEcho = (args: { override: number; keepGoing: number }): string => {
   const start = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(args.override)));
   const keepGoing = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(args.keepGoing)));
-  if (start === 3 && keepGoing === 3) return 'Overrode it twice today, getting in and staying in. That’s the whole skill.';
+  if (start === 3 && keepGoing === 3) return line('toast.pair.bothMax');
   const hardStart = start >= 2;
   const hardMiddle = keepGoing >= 2;
-  if (hardStart && hardMiddle) return 'Hard to start and hard to keep going, and you did both. Two overrides, one session.';
-  if (hardStart) return 'Getting started was the hard part today. Once you were in, you were in.';
-  if (hardMiddle) return 'Easy to start, hard to keep going, and you kept going. That’s the override doing its second job.';
-  return 'Easy in, easy through. The easy days count as much as the hard ones.';
+  if (hardStart && hardMiddle) return line('toast.pair.bothHard');
+  if (hardStart) return line('toast.pair.hardStart');
+  if (hardMiddle) return line('toast.pair.hardMiddle');
+  return line('toast.pair.easy');
 };
 
 /** The line for a session rated on keep going alone (logged days late). */
 export const keepGoingEcho = (level: number): string => {
   const keepGoing = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(level)));
-  if (keepGoing === 3) return 'You wanted to quit and didn’t. Those are the minutes doing the training.';
-  if (keepGoing === 2) return 'The urge to stop showed up and you kept going. That’s the override at work.';
-  return 'Never wanted to stop. A steady session counts.';
+  if (keepGoing === 3) return line('toast.keepGoing.3');
+  if (keepGoing === 2) return line('toast.keepGoing.2');
+  return line('toast.keepGoing.1');
 };
 
 /** The line for a Meals day's rating. An off-target day is still a day you showed up for. */
@@ -95,10 +113,10 @@ export const mealsDayEcho = (rating: number, onTarget?: boolean): string => {
   const level = Math.min(RESISTANCE_MAX, Math.max(1, Math.round(rating)));
   if (onTarget === false) {
     return level >= 2
-      ? 'Off target, but you fought for it. A hard day you showed up for still counts.'
-      : 'Off target without much of a fight. Worth a look at what made it easy to drift.';
+      ? line('toast.meals.offTargetHard')
+      : line('toast.meals.offTargetEasy');
   }
-  if (level === 3) return 'A day full of pull, and you held. That’s the hard version, done.';
-  if (level === 2) return 'You said no when it mattered.';
-  return 'An easy day of eating well. Those count too.';
+  if (level === 3) return line('toast.meals.3');
+  if (level === 2) return line('toast.meals.2');
+  return line('toast.meals.1');
 };
