@@ -14,6 +14,9 @@ appId: com.neuronudge.neuronudge
     timeout: 5000
 - assertVisible: "This week"
 - assertVisible: "Your apps"
+# Meals and Craving Crusher are hidden from everyone (2026-11-28).
+- assertNotVisible: "Meals.*"
+- assertNotVisible: "(Craving Crusher|Cravings).*"
 - takeScreenshot: 22-01-today
 - scroll
 - takeScreenshot: 22-02-today-lower
@@ -53,6 +56,7 @@ appId: com.neuronudge.neuronudge
       - waitForAnimationToEnd:
           timeout: 4000
 - assertVisible: "Progress"
+- assertNotVisible: "Meals.*"
 - takeScreenshot: 22-05-progress
 - scroll
 - takeScreenshot: 22-06-progress-lower
