@@ -67,12 +67,12 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
         ]}
         science={[
           {
-            label: 'Starting is a skill you practise',
-            text: 'Each time you begin when you’d rather not, you practise acting against the prediction. Over months, repetition can hand some starts to your brain’s habit system, but it takes weeks to months and it isn’t steady, so one week says little.',
+            label: 'Starting can become automatic',
+            text: 'Each time you begin when you’d rather not, you act against the prediction. Over months, repetition can hand some starts to your brain’s habit system, but it takes weeks to months and it isn’t steady, so one week says little.',
           },
           {
-            label: 'Staying with it is the exercise',
-            text: 'Doing something you’d rather avoid engages the anterior mid-cingulate cortex, a region studies link to tenacity and willpower. The hard starts, and the hard last minutes, are where it’s working hardest.',
+            label: 'Staying with it',
+            text: 'Doing something you’d rather avoid engages the anterior mid-cingulate cortex, a region research links to persistence.',
           },
           {
             label: 'Effort can be learned',

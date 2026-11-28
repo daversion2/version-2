@@ -336,7 +336,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </TouchableOpacity>
         <Text style={[ws.muted, styles.footerNote]}>
-          Next, on Today: how hard you pushed. It counts toward your week.
+          Next, on Today: how hard it was to keep going. It counts toward your week.
         </Text>
         <TouchableOpacity onPress={backToSession} disabled={saving} style={styles.back}>
           <Text style={styles.backText}>Back to workout</Text>

@@ -265,7 +265,7 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
           {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Save & rate it</Text>}
         </TouchableOpacity>
         <Text style={[ws.muted, styles.footerNote]}>
-          Next, on Today: how hard it was to start, then how hard you pushed. It counts toward your week.
+          Next, on Today: how hard it was to start, then how hard it was to keep going. It counts toward your week.
         </Text>
       </View>
 

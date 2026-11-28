@@ -96,7 +96,7 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
     setNote(
       o
         ? `${OUTCOME_LABEL[o]}. You expected “${levelLabel(cleared.forecast)}”; it was “${levelLabel(cleared.resistance)}”.`
-        : 'Cleared. That’s a rep.'
+        : 'Cleared. Noted.'
     );
   };
 
@@ -146,7 +146,7 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
 
         {rep ? (
           <View style={[avs.card, styles.rep]}>
-            <Text style={avs.eyebrow}>Today’s rep</Text>
+            <Text style={avs.eyebrow}>Up today</Text>
             <Text style={avs.big}>{rep.text}</Text>
             <Text style={avs.muted}>
               {describeAvoided(daysAvoided(rep, today))}
@@ -172,8 +172,8 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
           <View style={avs.card}>
             <Text style={avs.title}>Train the start</Text>
             <Text style={avs.body}>
-              Add the things you keep putting off, and how hard you think starting will be. Each day, face one. Most
-              turn out easier than you feared, and the list proves it.
+              Add the things you keep putting off, and how hard you think starting will be. Each day, face one, then
+              check your prediction against how it actually went.
             </Text>
           </View>
         ) : (

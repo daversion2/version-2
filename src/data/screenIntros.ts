@@ -54,8 +54,8 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     ],
     science: [
       {
-        label: 'Your override is the measurement',
-        text: 'How hard a thing feels to start is the clearest signal of whether it is bedding in. What repetition makes automatic is the starting, not the work — so the number falls while the session itself stays exactly as demanding. Watching that fall over weeks is the point of tracking it at all.',
+        label: 'Your override is the record',
+        text: 'Your brain predicts what a thing will cost, and you feel it as resistance. Each rating records what a session cost you. Over months, you see how hard your hard things feel to you.',
       },
     ],
   },
@@ -67,8 +67,8 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
     intro: 'What has actually changed, rather than how much you have done.',
     points: [
       {
-        label: 'Friction you can handle',
-        text: 'The bars are friction faced: each session counted at how hard starting that app was in your first few sessions. They climb as you do more. The dots are the override it actually took. The gap between them is how much stronger you’ve got.',
+        label: 'Friction you’ve taken on',
+        text: 'The bars are friction faced: each session counted at how hard starting that app was in your first few sessions. They climb as you do more. The dots are the override it actually took. The gap shows how your hard things feel to you now, against how they felt at first.',
       },
       {
         label: 'The calendar shows the shape of it',
@@ -84,37 +84,8 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
   // library, habit_detail and archived went with their screens' last links
   // (docs/pivot-checklist.md, Phase 1). Those screens still call
   // useScreenIntro, and ScreenIntro renders nothing for an id with no entry.
-
-  nightly_reflection: {
-    id: 'nightly_reflection',
-    icon: 'moon-outline',
-    title: 'Closing out the day',
-    intro: 'Under a minute: grade the effort, then decide exactly when tomorrow’s session happens.',
-    points: [
-      {
-        label: 'Grade the effort, not the list',
-        text: 'A day where you did little but held the line under pressure can beat one where everything got done.',
-      },
-      {
-        label: 'Tomorrow as a when-then',
-        text: 'When it happens, then what you’ll do: “After work, I’ll do Meditate.” It’s waiting on Today in the morning.',
-      },
-      {
-        label: 'A rough day gets a smaller plan',
-        text: 'Grade it D or F and keep tomorrow small. Getting back on track beats making up for it.',
-      },
-    ],
-    science: [
-      {
-        label: 'Plans beat intentions',
-        text: 'Deciding when and where you’ll act — an if-then plan — is one of the most reliable ways to close the gap between meaning to and doing.',
-      },
-      {
-        label: 'End the night looking forward',
-        text: 'Writing down what’s next, rather than replaying what went wrong, helps people fall asleep faster.',
-      },
-    ],
-  },
+  // nightly_reflection (Close out the day) went 2026-11-28: founder's call in
+  // the brand copy review (docs/handoff-brand-copy.md).
 };
 
 export const getScreenIntro = (id: string): ScreenIntro | undefined => SCREEN_INTROS[id];

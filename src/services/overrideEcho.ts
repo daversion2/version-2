@@ -17,8 +17,9 @@ import { appCheckinId, TodayAppId } from './appCheckins';
 // 2026-11-20 a falling start (first two weeks against this week) won the
 // toast; that line is gone.
 //
-// Two variants per level, alternating, so a daily rating doesn't meet the
-// same sentence every day.
+// Two variants for levels 1 and 2, alternating, so a daily rating doesn't
+// meet the same sentence every day. A 3 gets one line, no applause (founder,
+// 2026-11-28, docs/brand.md "Wins").
 // =============================================================================
 
 export interface RatedDay {
@@ -30,15 +31,14 @@ export interface RatedDay {
 const LEVEL_LINES: Record<1 | 2 | 3, string[]> = {
   1: [
     'Barely thought about it, and you’re in. Easy days count too.',
-    'An easy start. Showing up is the training, every time.',
+    'Woah… look at you making it look easy!',
   ],
   2: [
     'You had to talk yourself into it, and you did. That’s the override at work.',
     'It took some convincing, and you started anyway. That convincing is the training.',
   ],
   3: [
-    'That took everything, and you started anyway. Starts like this train your override most.',
-    'A hard start, done. These are the ones doing the training.',
+    'Nice work! Now refrain from posting about it on Instagram.',
   ],
 };
 

@@ -21,11 +21,11 @@ describe('Willpower Service', () => {
   describe('getStreakTierInfo', () => {
     it('names each tier by its streak length', () => {
       expect(getStreakTierInfo(1).tierName).toBe('Starting');
-      expect(getStreakTierInfo(3).tierName).toBe('Building Momentum');
-      expect(getStreakTierInfo(7).tierName).toBe('On Fire');
-      expect(getStreakTierInfo(14).tierName).toBe('Unstoppable');
-      expect(getStreakTierInfo(30).tierName).toBe('Legendary');
-      expect(getStreakTierInfo(100).tierName).toBe('Legendary');
+      expect(getStreakTierInfo(3).tierName).toBe('Rolling');
+      expect(getStreakTierInfo(7).tierName).toBe('Steady');
+      expect(getStreakTierInfo(14).tierName).toBe('Stubborn');
+      expect(getStreakTierInfo(30).tierName).toBe('Capable');
+      expect(getStreakTierInfo(100).tierName).toBe('Capable');
     });
 
     it('treats a zero streak as Starting', () => {
@@ -58,7 +58,7 @@ describe('Willpower Service', () => {
       seedUser({ totalWillpowerPoints: 0, currentStreak: 2, lastActivityDate: yesterday() });
       const result = await updateWillpowerStats(userId, 1);
       expect(result.newTierReached).toBe(true);
-      expect(result.tierInfo).toEqual({ tierName: 'Building Momentum', minDays: 3 });
+      expect(result.tierInfo).toEqual({ tierName: 'Rolling', minDays: 3 });
     });
 
     it('does not call a first-ever day a new tier', async () => {

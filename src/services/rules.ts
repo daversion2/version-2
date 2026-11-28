@@ -186,8 +186,8 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     // Above generic app_open modals: a broken streak beats announcements.
     priority: 50,
     content: {
-      title: 'Welcome Back',
-      body: "You've been away for a couple days. That's okay — life happens. Let's figure out what's next.",
+      title: 'Welcome back',
+      body: "The pull of comfort gets everyone now and then. A couple of days off doesn't undo anything. Back at it?",
       component: 'comeback',
     },
   },
@@ -215,7 +215,7 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     priority: 45,
     content: {
       title: 'Want a nudge when it matters?',
-      body: "You've finished your first session. A nudge when it matters makes the next one easier to start — and we'll keep it to three a week, at most.",
+      body: 'First session done. Want to turn on reminders for the future?',
       cta: 'Turn them on',
       component: 'push_optin',
     },
@@ -233,30 +233,8 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
     frequency: { type: 'cooldown_hours', hours: 72 },
     priority: 10,
     content: {
-      title: 'We miss you',
-      body: "It's been a couple of days. One small win today gets you moving again.",
-    },
-  },
-  {
-    name: 'Challenge failed encouragement',
-    description:
-      'PARKED 2026-09-18 (enabled: false). This fired seconds after the user marked a ' +
-      'challenge failed — while they were still inside CompleteChallengeScreen, which ' +
-      'already walks them through a reward moment and then ChallengeFailureModal ' +
-      '(barrier → next action). The push was a notification about a screen the user was ' +
-      'looking at. The in-app flow is the better version of this message and already ships. ' +
-      'ALSO REMOVED from DEFAULT_EVENT_RULES in functions/src/index.ts: getPushRuleForEvent ' +
-      'auto-seeds a default ENABLED when no document exists for an event, so deleting this ' +
-      'rule would have resurrected it on the next failure. Disabled + no default = actually off.',
-    enabled: false,
-    surface: 'push',
-    event: 'challenge_failed',
-    conditions: [],
-    frequency: { type: 'always' },
-    priority: 20,
-    content: {
-      title: 'Growth Through Effort',
-      body: 'Failure is part of the journey. The fact that you tried is what matters most. Every attempt builds your willpower.',
+      title: 'Been a few days.',
+      body: 'No lecture. One short session and you’re back.',
     },
   },
   {
@@ -300,26 +278,11 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
   // Parked: 14 (asks for the same check-in day 28 pays off), 17 (a tidbit
   // with no ask — tidbits already surface in-app after every completion via
   // selectHabitTidbit), 21 (the day-7 recap again, three weeks later).
+  //
+  // REMOVED 2026-11-28 (brand copy review): the day 0, day 7 and day 28 seeds,
+  // and "Challenge failed encouragement" above. The founder switches the live
+  // rules off in Admin > Rules; with no seed, a fresh environment never has them.
   // ---------------------------------------------------------------------
-  {
-    name: 'Journey day 0: first check-in tonight',
-    description:
-      'Signup-day evening rescue for users who have not finished their first app session. Skipped automatically once they do.',
-    enabled: true,
-    surface: 'push',
-    event: 'scheduled_hourly',
-    conditions: [
-      { fact: 'days_since_signup', op: '==', value: 0 },
-      { fact: 'local_hour', op: '==', value: 20 },
-      { fact: 'completed_today', op: '==', value: 0 },
-    ],
-    frequency: { type: 'once_ever' },
-    priority: 30,
-    content: {
-      title: 'One check-in before bed still counts',
-      body: "You picked your starting point today. Your brain will say tomorrow. That's the moment — go do the thing.",
-    },
-  },
   {
     // NAME IS FROZEN. seedDefaultRules matches on `name` and skips rules that
     // already exist, so renaming this would leave the original live in
@@ -346,26 +309,6 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
       title: 'Three days in',
       body: "The weekly goals you set when you started are a promise, not a score to hit — falling short of one still counts as showing up. Change any app's goal in its settings.",
       cta: 'Got it',
-    },
-  },
-  {
-    name: 'Journey day 7: week one recap',
-    description:
-      'End-of-week-one proof push. Placeholders: {habits_completed}, {practices_tried}. Taps through to the Progress tab.',
-    enabled: true,
-    surface: 'push',
-    event: 'scheduled_hourly',
-    conditions: [
-      { fact: 'days_since_signup', op: '==', value: 7 },
-      { fact: 'local_hour', op: '==', value: 18 },
-      { fact: 'total_habits_completed', op: '>=', value: 1 },
-    ],
-    frequency: { type: 'once_ever' },
-    priority: 25,
-    content: {
-      title: 'Week one: {habits_completed} overrides logged',
-      body: "That's {habits_completed} times your brain said not now and you started anyway. You've tried {practices_tried} of Meditate, Workouts and Meals so far.",
-      cta_target: { type: 'screen', screen: 'Progress' },
     },
   },
   {
@@ -434,25 +377,6 @@ export const DEFAULT_RULES: Omit<Rule, 'id' | 'created_at' | 'updated_at'>[] = [
       title: 'Three weeks. {habits_completed} overrides.',
       body: "You've tried {practices_tried} of the three apps. The one you keep putting off is the one with the most to teach.",
       cta_target: { type: 'screen', screen: 'Progress' },
-    },
-  },
-  {
-    name: 'Journey day 28: the science said 2–4 weeks',
-    description:
-      'Pays off the onboarding promise (screen 7: improvements within 2–4 weeks). Taps through to the check-in screen for the final retake.',
-    enabled: true,
-    surface: 'push',
-    event: 'scheduled_hourly',
-    conditions: [
-      { fact: 'days_since_signup', op: '==', value: 28 },
-      { fact: 'local_hour', op: '==', value: 18 },
-    ],
-    frequency: { type: 'once_ever' },
-    priority: 25,
-    content: {
-      title: 'The science said two to four weeks.',
-      body: "You're there. Ten seconds: rate your mood, focus and motivation, and see the data for yourself.",
-      cta_target: { type: 'screen', screen: 'JourneyCheckin' },
     },
   },
   {

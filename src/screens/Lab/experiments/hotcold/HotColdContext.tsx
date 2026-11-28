@@ -219,7 +219,7 @@ export const HotColdProvider: React.FC<{
       const bellId = targetSec
         ? await scheduleBell(targetSec, {
             title: 'Time’s up',
-            body: `${formatDuration(targetSec)} in the cold. Get out when you’re ready, then log it.`,
+            body: `${formatDuration(targetSec)} in the cold. Time to get out. Warm up, then log it.`,
           })
         : undefined;
       setTimerState({ kind, startedAt, targetSec, bellId });

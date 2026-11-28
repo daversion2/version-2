@@ -214,7 +214,7 @@ const UpNext: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => {
       ) : (
         <View style={[styles.panel, styles.allDone]}>
           <Ionicons name="checkmark-circle" size={28} color={Colors.primary} />
-          <Text style={styles.cardTitle}>Everything’s done today</Text>
+          <Text style={styles.cardTitle}>Everything’s done today. Noted.</Text>
         </View>
       )}
       <View style={[styles.panel, styles.bubbles]}>

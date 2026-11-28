@@ -29,7 +29,7 @@ describe('overrideEcho', () => {
   });
 
   it('says what the level is worth', () => {
-    expect(overrideEcho({ level: 3, history: [] })).toMatch(/started anyway/);
+    expect(overrideEcho({ level: 3, history: [] })).toMatch(/refrain from posting/);
     expect(overrideEcho({ level: 2, history: [] })).toMatch(/talk yourself into it/);
     expect(overrideEcho({ level: 1, history: [] })).toMatch(/count/i);
   });
@@ -41,7 +41,7 @@ describe('overrideEcho', () => {
   });
 
   it('clamps a value outside 1–3', () => {
-    expect(overrideEcho({ level: 7, history: [] })).toMatch(/started anyway/);
+    expect(overrideEcho({ level: 7, history: [] })).toMatch(/refrain from posting/);
   });
 });
 

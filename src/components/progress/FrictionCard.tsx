@@ -34,10 +34,10 @@ export const FrictionCard: React.FC<Props> = ({ overview, bare = false }) => {
     return (
       <View style={styles.card}>
         <Copy id="progress.friction.label" style={styles.label}>
-          Friction you can handle
+          Friction you’ve taken on
         </Copy>
         <Copy id="progress.friction.empty" style={styles.empty}>
-          {"Log a few sessions and this will show how much friction you're handling, and how much easier it's getting."}
+          {"Log a few sessions and this will show how much friction you're taking on."}
         </Copy>
       </View>
     );
@@ -51,7 +51,7 @@ export const FrictionCard: React.FC<Props> = ({ overview, bare = false }) => {
     <View style={styles.card}>
       {!bare && (
         <Copy id="progress.friction.label" style={styles.label}>
-          Friction you can handle
+          Friction you’ve taken on
         </Copy>
       )}
 

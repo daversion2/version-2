@@ -45,12 +45,12 @@ export const OnboardingWhy: React.FC = () => (
         {'The science'}
       </Copy>
       <Copy id="onboarding.science.source.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
-        {'That “I don’t want to” has **a source.**'}
+        {'That “I don’t want to” is **the pull of comfort.**'}
       </Copy>
     </FadeRise>
     <FadeRise delay={400}>
       <Copy id="onboarding.science.source.body" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'Before anything hard, your brain predicts what it will cost. The resistance you feel is that prediction.'}
+        {'Before anything hard, your brain predicts what it will cost, and you feel it as a pull toward the easy option. Your phone, feed and couch are built to make giving in automatic.'}
       </Copy>
       <Copy id="onboarding.science.source.override" style={ob.body} boldStyle={ob.bodyStrong}>
         {'You can act against it. **That’s your override.**'}
@@ -96,13 +96,13 @@ export const OnboardingPractice: React.FC = () => (
     </FadeRise>
     <FadeRise delay={400}>
       <Copy id="onboarding.science.effort.start" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'**Getting started:** each time you begin when you’d rather not, you practise the override itself.'}
+        {'**Getting started:** each time you begin when you’d rather not, that’s an override.'}
       </Copy>
       <Copy id="onboarding.science.effort.stay" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'**Staying with it:** keeping going works a brain region linked to tenacity, and with practice, effort itself feels less unpleasant.'}
+        {'**Staying with it:** research links a brain region to persistence, and rewarding effort builds tenacity.'}
       </Copy>
       <Copy id="onboarding.science.effort.helper" style={ob.helper}>
-        {'The region is the anterior mid-cingulate cortex, most active when you do what you’d rather not. Some days will feel easy and some won’t. Both count, and the hard ones count most.'}
+        {'The region is the anterior mid-cingulate cortex (aMCC). Some days will feel easy and some won’t. Both count, and the hard ones count more.'}
       </Copy>
     </FadeRise>
   </View>
@@ -208,7 +208,7 @@ export const OnboardingGoals: React.FC<{ setup: AppSetup; onChange: (setup: AppS
         {'Start where you can win.'}
       </Copy>
       <Copy id="onboarding.goals.body" style={ob.body}>
-        {'Pick numbers you can hit this week, even a slow one. Raise them once they feel easy.'}
+        {'Pick numbers you can hit on a slow week. Most of the time is the goal, not every time.'}
       </Copy>
     </FadeRise>
     <FadeRise delay={250}>

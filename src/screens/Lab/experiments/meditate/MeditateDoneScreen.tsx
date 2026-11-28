@@ -113,7 +113,7 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.described}>{describeSession(preview)}</Text>
           {preview.ended_early && (
             <Text style={[styles.described, styles.center]}>
-              Of {formatMinutes(preview.planned_sec)} planned. Showing up is what counts.
+              Better than nothing!
             </Text>
           )}
         </View>

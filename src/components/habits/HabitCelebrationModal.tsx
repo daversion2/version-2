@@ -30,7 +30,7 @@ interface HabitCelebrationModalProps {
    */
   contextLabel?: string | null;
   /**
-   * Crossing a streak tier — "7-day streak: On Fire".
+   * Crossing a streak tier — "7-day streak: Steady".
    *
    * Its own slot for the same reason contextLabel has one: this is a different
    * kind of news from bonusLabel, and both can land on the same completion. It used to be a native Alert fired after the
@@ -346,7 +346,7 @@ export const HabitCelebrationModal: React.FC<HabitCelebrationModalProps> = ({
                 <View style={styles.tidbitHeader}>
                   <Ionicons name="flash" size={15} color={Colors.primary} />
                   <Copy id="celebration.tidbitLabel" style={styles.tidbitLabel}>
-                    {'Your brain right now'}
+                    {'From the research'}
                   </Copy>
                 </View>
                 <Text style={styles.tidbitText}>{tidbit.text}</Text>

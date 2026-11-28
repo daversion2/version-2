@@ -67,7 +67,7 @@ export interface OnboardingBeat {
 
 export const ONBOARDING_BEATS: OnboardingBeat[] = [
   { key: 'why', cta: 'When you use it →' },
-  { key: 'twice', cta: 'Why it gets easier →' },
+  { key: 'twice', cta: 'What it builds →' },
   { key: 'practice', cta: 'How it’s measured →' },
   { key: 'ratings', cta: 'Show me the apps →' },
   { key: 'apps', cta: 'Set my goals →' },

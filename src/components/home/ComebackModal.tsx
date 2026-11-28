@@ -34,8 +34,8 @@ interface ComebackModalProps {
 export const ComebackModal: React.FC<ComebackModalProps> = ({
   visible,
   habits,
-  title = 'Welcome Back',
-  body = "You've been away for a couple days. That's okay — life happens. Let's figure out what's next.",
+  title = 'Welcome back',
+  body = "The pull of comfort gets everyone now and then. A couple of days off doesn't undo anything. Back at it?",
   onCommit,
   onDismiss,
 }) => {
@@ -189,8 +189,8 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
           {/* Step 3: Commit to a habit */}
           {step === 3 && (
             <View>
-              <Text style={styles.title}>Commit to one thing today</Text>
-              <Text style={styles.subtitle}>Even if it's not perfect.</Text>
+              <Text style={styles.title}>Pick one for today</Text>
+              <Text style={styles.subtitle}>Small counts.</Text>
 
               <ScrollView style={styles.habitList} showsVerticalScrollIndicator={false}>
                 {habits.map((habit) => (
@@ -229,7 +229,7 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                 disabled={!selectedHabitId}
                 activeOpacity={0.8}
               >
-                <Text style={styles.primaryButtonText}>Let's Do This</Text>
+                <Text style={styles.primaryButtonText}>I'm in</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dismissLink} onPress={resetAndDismiss}>
                 <Text style={styles.dismissText}>Not now</Text>
