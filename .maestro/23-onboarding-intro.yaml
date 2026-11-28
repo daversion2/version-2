@@ -1,0 +1,40 @@
+# Onboarding's first screen (2026-11-28). WRITES to the signed-in account:
+# Settings → Replay intro sets has_completed_onboarding false and clears
+# has_seen_debrief (the Debrief shows again after the next session); "Just take
+# me to the app" sets onboarding done again and, on a replay, saves nothing
+# else (planOnboardingFinish). Ask the account owner before running it.
+appId: com.neuronudge.neuronudge
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- repeat:
+    times: 6
+    while:
+      notVisible: ".*Replay intro.*"
+    commands:
+      - tapOn:
+          point: "83%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+      - scroll
+- tapOn: ".*Replay intro.*"
+- extendedWaitUntil:
+    visible: ".*An app for doing.*"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertVisible: ".*Track your workouts and meditation.*"
+- assertVisible: ".*That answer is the point.*"
+- assertVisible: ".*Why it’s hard.*"
+- assertVisible: ".*Just take me to the app.*"
+- takeScreenshot: 23-01-onboarding-intro
+- tapOn: ".*Just take me to the app.*"
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 30000
+- takeScreenshot: 23-02-back-on-today

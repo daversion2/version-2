@@ -1,10 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { AppColors, BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Copy } from '../common/Copy';
 import { ALL_APPS } from '../../services/appSetup';
 import { MINI_APPS } from '../../services/miniApps';
+import { APP_ICONS } from '../homeDashboard/DashboardParts';
 
 // =============================================================================
 // THE OVERRIDE, DRAWN — one small picture per science screen in onboarding
@@ -24,13 +25,13 @@ import { MINI_APPS } from '../../services/miniApps';
 
 const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const };
 
-/** 0 — the intro: the apps you can use, as their Today icons. */
+/** 0 — the intro: the apps you can use, drawn as their Today icons (same colours and glyphs). */
 export const AppTiles: React.FC = () => (
   <View style={styles.tilesRow} {...hidden}>
     {ALL_APPS.map((id) => (
       <View key={id} style={styles.tileCol}>
-        <View style={[styles.tile, { backgroundColor: MINI_APPS[id].accent }]}>
-          <Ionicons name={MINI_APPS[id].icon as keyof typeof Ionicons.glyphMap} size={30} color={Colors.white} />
+        <View style={[styles.tile, { backgroundColor: AppColors[id] }]}>
+          <Ionicons name={APP_ICONS[id] as keyof typeof Ionicons.glyphMap} size={30} color={Colors.white} />
         </View>
         <Text style={styles.tileName}>{MINI_APPS[id].title}</Text>
       </View>
