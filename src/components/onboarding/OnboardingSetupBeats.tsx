@@ -10,12 +10,13 @@ import { AppSetup } from '../../services/appSetup';
 import { CLOSEOUT_TIMES, formatReminderTime } from '../../services/closeOutTimes';
 import { AppGoalRows, AppToggleList } from '../appSetup/AppSetupParts';
 import { ob } from './onboardingStyles';
-import { EffortAdds, PredictionMeter, TwoMoments } from './OverrideIllustrations';
+import { AppTiles, EffortAdds, PredictionMeter, TwoMoments } from './OverrideIllustrations';
 import { isTodayAppHidden } from '../../services/hiddenApps';
 
 // ============================================================================
-// THE SEVEN ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
+// THE EIGHT ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
 //
+//   intro     what the app is, before any science (added 2026-11-28)
 //   why       resistance is a prediction; acting against it is the override
 //   twice     the override used twice: getting started, staying with it
 //   practice  the effort is the training (tenacity, learned effort)
@@ -36,6 +37,33 @@ import { isTodayAppHidden } from '../../services/hiddenApps';
 // reads as failing). One idea per
 // screen: a bold headline that carries it alone, a picture, two short lines.
 // The names are the founder's: "Getting started" and "Staying with it".
+
+/**
+ * 0 — intro: what the app is, before the science. Short on purpose: no
+ * science here, and "the pull of comfort" is still named first on the next
+ * screen (docs/brand.md). Founder's copy, 2026-11-28.
+ */
+export const OnboardingIntro: React.FC = () => (
+  <View style={styles.center}>
+    <FadeRise>
+      <AppTiles />
+      <Copy id="onboarding.intro.eyebrow" style={ob.eyebrow}>
+        {'Neuro-Nudge'}
+      </Copy>
+      <Copy id="onboarding.intro.headline" style={ob.headline} boldStyle={ob.headlineAccent}>
+        {'An app for doing **the hard thing anyway.**'}
+      </Copy>
+    </FadeRise>
+    <FadeRise delay={400}>
+      <Copy id="onboarding.intro.body" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'Track your workouts and meditation. Each session also asks one quick question: how hard was it to start?'}
+      </Copy>
+      <Copy id="onboarding.intro.point" style={ob.body} boldStyle={ob.bodyStrong}>
+        {'**That answer is the point.** We count every time you do it anyway, and the hard ones count more.'}
+      </Copy>
+    </FadeRise>
+  </View>
+);
 
 /** 1 — why: resistance is a prediction, and acting against it is the override. */
 export const OnboardingWhy: React.FC = () => (

@@ -870,6 +870,13 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
+**Onboarding opens with what the app is** *(2026-11-28, OTA_PLACEHOLDER; not checked on screen)*
+A new first screen before the science: the app icons, "An app for doing the
+hard thing anyway.", what the app tracks and the one question it asks
+(founder's copy, keys `onboarding.intro.*`). "Just take me to the app" moved
+to it. Onboarding is eight screens now; the pull is still named first on
+screen 2.
+
 **Meals and Craving Crusher hidden from everyone** *(2026-11-28, d4b21a9, live OTA iOS 01a22364-14c4-70b4, Android 01a22364-14c4-73d3; not checked on screen)*
 Founder's call: not deleted, hidden for all accounts, admins too. One list in
 `services/hiddenApps.ts` drives it: off Today (ring, icon, row, dashboard

@@ -32,6 +32,7 @@ import {
   OnboardingApps,
   OnboardingGoals,
   OnboardingReminder,
+  OnboardingIntro,
   OnboardingWhy,
   OnboardingTwice,
   OnboardingPractice,
@@ -172,6 +173,8 @@ export const OnboardingScreen: React.FC = () => {
 
   const renderBeat = (key: OnboardingBeatKey) => {
     switch (key) {
+      case 'intro':
+        return <OnboardingIntro />;
       case 'why':
         return <OnboardingWhy />;
       case 'twice':

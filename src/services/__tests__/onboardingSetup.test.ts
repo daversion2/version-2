@@ -43,7 +43,7 @@ const timed: HabitDefinition = {
 
 describe('ONBOARDING_BEATS', () => {
   it('is seven screens: the science in four, then the apps, their goals, the reminder', () => {
-    expect(ONBOARDING_BEATS.map((b) => b.key)).toEqual(['why', 'twice', 'practice', 'ratings', 'apps', 'goals', 'reminder']);
+    expect(ONBOARDING_BEATS.map((b) => b.key)).toEqual(['intro', 'why', 'twice', 'practice', 'ratings', 'apps', 'goals', 'reminder']);
   });
 
   it('gives every beat a forward label', () => {
@@ -53,7 +53,7 @@ describe('ONBOARDING_BEATS', () => {
 
 describe('beatAllowsSkip', () => {
   it('offers the escape hatch only before anything has been chosen', () => {
-    expect(ONBOARDING_BEATS.filter((b) => beatAllowsSkip(b.key)).map((b) => b.key)).toEqual(['why']);
+    expect(ONBOARDING_BEATS.filter((b) => beatAllowsSkip(b.key)).map((b) => b.key)).toEqual(['intro']);
   });
 });
 

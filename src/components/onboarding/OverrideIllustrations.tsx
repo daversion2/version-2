@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Copy } from '../common/Copy';
+import { ALL_APPS } from '../../services/appSetup';
+import { MINI_APPS } from '../../services/miniApps';
 
 // =============================================================================
 // THE OVERRIDE, DRAWN — one small picture per science screen in onboarding
@@ -21,6 +23,20 @@ import { Copy } from '../common/Copy';
 // =============================================================================
 
 const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const };
+
+/** 0 — the intro: the apps you can use, as their Today icons. */
+export const AppTiles: React.FC = () => (
+  <View style={styles.tilesRow} {...hidden}>
+    {ALL_APPS.map((id) => (
+      <View key={id} style={styles.tileCol}>
+        <View style={[styles.tile, { backgroundColor: MINI_APPS[id].accent }]}>
+          <Ionicons name={MINI_APPS[id].icon as keyof typeof Ionicons.glyphMap} size={30} color={Colors.white} />
+        </View>
+        <Text style={styles.tileName}>{MINI_APPS[id].title}</Text>
+      </View>
+    ))}
+  </View>
+);
 
 /** 1 — the prediction: a cost meter near full, and the override breaking through it. */
 export const PredictionMeter: React.FC = () => (
@@ -103,6 +119,10 @@ export const EffortAdds: React.FC = () => (
 const MARKER = 32;
 
 const styles = StyleSheet.create({
+  tilesRow: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.xl, marginBottom: Spacing.xl },
+  tileCol: { alignItems: 'center', gap: Spacing.sm },
+  tile: { width: 64, height: 64, borderRadius: BorderRadius.lg, alignItems: 'center', justifyContent: 'center' },
+  tileName: { fontFamily: Fonts.secondary, fontSize: FontSizes.sm, color: Colors.label2 },
   frame: {
     backgroundColor: Colors.surfaceSubtle,
     borderRadius: BorderRadius.lg,

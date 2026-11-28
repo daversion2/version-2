@@ -17,6 +17,8 @@ import {
 // result; everything that can be got wrong lives here where jest can see it.
 // The screen itself is untestable (jest's testMatch excludes .tsx).
 //
+//   0 intro      what the app is: workouts and meditation, plus one question
+//                (how hard was it to start?) — added 2026-11-28, founder's call
 //   1 why        resistance is a prediction; acting against it is the override
 //   2 twice      the override used twice: getting started, staying with it
 //   3 practice   the effort is the training: a brain region
@@ -57,7 +59,7 @@ export const needsOnboarding = (
   return !profile.created_at;
 };
 
-export type OnboardingBeatKey = 'why' | 'twice' | 'practice' | 'ratings' | 'apps' | 'goals' | 'reminder';
+export type OnboardingBeatKey = 'intro' | 'why' | 'twice' | 'practice' | 'ratings' | 'apps' | 'goals' | 'reminder';
 
 export interface OnboardingBeat {
   key: OnboardingBeatKey;
@@ -66,6 +68,7 @@ export interface OnboardingBeat {
 }
 
 export const ONBOARDING_BEATS: OnboardingBeat[] = [
+  { key: 'intro', cta: 'Why it’s hard →' },
   { key: 'why', cta: 'When you use it →' },
   { key: 'twice', cta: 'What it builds →' },
   { key: 'practice', cta: 'How it’s measured →' },
@@ -76,10 +79,10 @@ export const ONBOARDING_BEATS: OnboardingBeat[] = [
 ];
 
 /**
- * Which beats offer "just take me to the app": only the first, before anything
+ * Which beats offer "just take me to the app": only the first (the intro), before anything
  * has been chosen. Skipping saves the default setup, so Today still has goals.
  */
-export const beatAllowsSkip = (key: OnboardingBeatKey): boolean => key === 'why';
+export const beatAllowsSkip = (key: OnboardingBeatKey): boolean => key === 'intro';
 
 /**
  * The habit setup written on completion. Seeded whole from the chosen habit's
