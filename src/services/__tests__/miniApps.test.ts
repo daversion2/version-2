@@ -1,3 +1,13 @@
+// These tests cover the general logic with every app available; the apps
+// hidden from everyone are covered in hiddenApps.test.ts.
+jest.mock('../hiddenApps', () => ({
+  HIDDEN_TODAY_APPS: [],
+  HIDDEN_TODAY_ROWS: [],
+  isTodayAppHidden: () => false,
+  isTodayRowHidden: () => false,
+  isCatalogAppHidden: () => false,
+}));
+
 // The library's mock exports the store itself; the app reads `.default` like the real module.
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,

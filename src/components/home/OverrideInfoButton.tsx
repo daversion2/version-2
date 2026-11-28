@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/theme';
 import { FeatureInfoModal } from '../common/FeatureInfoModal';
 import { useCopy } from '../../context/CopyContext';
+import { isTodayAppHidden } from '../../services/hiddenApps';
 
 /**
  * The ⓘ on the Start sheet and the rating sheet: the override, used twice —
@@ -60,10 +61,15 @@ export const OverrideInfoButton: React.FC<{ color?: string }> = ({ color = Color
             label: 'Be honest',
             text: 'A 3 is never a bad mark, on either. Rate what it actually took today, not what you think it should be.',
           },
-          {
-            label: 'Meals is the exception',
-            text: 'Eating has no single start, so Meals asks once a day: how hard was it to eat this way today?',
-          },
+          // Only while Meals is offered (services/hiddenApps.ts).
+          ...(isTodayAppHidden('meals')
+            ? []
+            : [
+                {
+                  label: 'Meals is the exception',
+                  text: 'Eating has no single start, so Meals asks once a day: how hard was it to eat this way today?',
+                },
+              ]),
         ]}
         science={[
           {

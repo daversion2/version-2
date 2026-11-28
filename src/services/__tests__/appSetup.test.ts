@@ -1,3 +1,13 @@
+// These tests cover the general logic with every app available; the apps
+// hidden from everyone are covered in hiddenApps.test.ts.
+jest.mock('../hiddenApps', () => ({
+  HIDDEN_TODAY_APPS: [],
+  HIDDEN_TODAY_ROWS: [],
+  isTodayAppHidden: () => false,
+  isTodayRowHidden: () => false,
+  isCatalogAppHidden: () => false,
+}));
+
 import {
   defaultAppSetup,
   GOAL_NOUNS,

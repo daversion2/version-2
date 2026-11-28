@@ -386,7 +386,8 @@ and uncomment them to fix it.
 ## Next (pre-launch)
 
 **Deploy the website's brand copy** *(added 2026-11-28)*
-Committed in 8871d66, not deployed (founder: not yet). When ready:
+Committed in 8871d66, plus Meals taken off the site (subhead, card, app strip,
+hero eyebrow) once Meals was hidden; not deployed (founder: not yet). When ready:
 `firebase deploy --only hosting`. Still open on the site: the hero headline
 (waiting for the clean tagline) and a "Get help" row on `support.html` (needs
 a support email).
@@ -868,6 +869,18 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**Meals and Craving Crusher hidden from everyone** *(2026-11-28, OTA_PLACEHOLDER)*
+Founder's call: not deleted, hidden for all accounts, admins too. One list in
+`services/hiddenApps.ts` drives it: off Today (ring, icon, row, dashboard
+page), out of Apps, onboarding and the goals sheet, off Progress History,
+out of the Lab, and `canOpenMiniApp()` refuses Meals. Routes, code and saved
+data stay; nothing is written to user docs, so emptying the list brings both
+back as each account left them. Copy that named Meals (onboarding ratings
+line, Today ⓘ, the rating ⓘ's "Meals is the exception") drops it while
+hidden. The copy review's parked "Hidden apps" fixes still apply before
+either comes back; Craving Crusher also needs a new name ("crush" is on the
+avoid list).
 
 **All live screens' wording admin-editable** *(2026-11-28, f6b8147, live OTA iOS 01a22348-d997-7224, Android 01a22348-d997-72b2; not checked on screen)*
 About 1,800 more strings now go through `<Copy>` (long-press in Admin → Edit

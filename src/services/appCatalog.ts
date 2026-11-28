@@ -4,6 +4,10 @@ import { APP_CATALOG, CatalogApp, CatalogAppId, TodayRowId } from '../data/appCa
 import { clampWeeklyGoal, TodayAppId } from './appCheckins';
 import { AppSetup, loadAppSetup, saveAppSetup, toggleApp, visibleApps } from './appSetup';
 import type { User } from '../types';
+import { isCatalogAppHidden, isTodayRowHidden } from './hiddenApps';
+
+/** The catalog minus apps hidden from everyone (services/hiddenApps.ts). */
+export const VISIBLE_CATALOG: CatalogApp[] = APP_CATALOG.filter((a) => !isCatalogAppHidden(a.id));
 
 // =============================================================================
 // THE APPS SCREEN'S LOGIC — what each app's state is, how the screen groups
@@ -42,7 +46,7 @@ export interface CatalogSections {
 export const catalogSections = (
   hidden: readonly TodayAppId[],
   hiddenRows: readonly TodayRowId[] = [],
-  apps: readonly CatalogApp[] = APP_CATALOG
+  apps: readonly CatalogApp[] = VISIBLE_CATALOG
 ): CatalogSections => {
   const status = (a: CatalogApp) => catalogStatus(a, hidden, hiddenRows);
   const by = (s: CatalogStatus) => apps.filter((a) => status(a) === s);
@@ -54,7 +58,7 @@ export const catalogSections = (
   return { featured, onToday: by('onToday'), addable, standalone };
 };
 
-export const findCatalogApp = (id: string): CatalogApp | undefined => APP_CATALOG.find((a) => a.id === id);
+export const findCatalogApp = (id: string): CatalogApp | undefined => VISIBLE_CATALOG.find((a) => a.id === id);
 
 /** At least one app stays on Today, so the last one can't be removed. */
 export const canRemoveFromToday = (hidden: readonly TodayAppId[], appId: TodayAppId): boolean =>
@@ -91,8 +95,10 @@ export const DEFAULT_TODAY_ROWS: TodayRowId[] = ['nightly', 'craving'];
  * before that, the defaults minus the older `hidden_rows`.
  */
 export const todayRowsOf = (profile: Pick<User, 'hidden_rows' | 'today_rows'> | null | undefined): TodayRowId[] => {
-  if (Array.isArray(profile?.today_rows)) return TODAY_ROWS.filter((r) => profile!.today_rows!.includes(r));
-  return DEFAULT_TODAY_ROWS.filter((r) => !(profile?.hidden_rows ?? []).includes(r));
+  // Rows hidden from everyone never show, whatever the account chose.
+  if (Array.isArray(profile?.today_rows))
+    return TODAY_ROWS.filter((r) => profile!.today_rows!.includes(r) && !isTodayRowHidden(r));
+  return DEFAULT_TODAY_ROWS.filter((r) => !(profile?.hidden_rows ?? []).includes(r) && !isTodayRowHidden(r));
 };
 
 /** The rows not on Today. */

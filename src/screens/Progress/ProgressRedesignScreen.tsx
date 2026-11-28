@@ -36,6 +36,7 @@ import { SegmentedControl } from '../../components/common/SegmentedControl';
 import { FrictionCard } from '../../components/progress/FrictionCard';
 import { PhaseHighlightCard } from '../../components/progress/PhaseHighlightCard';
 import { APP_TITLES } from '../../components/homeRedesign/TodayView';
+import { isTodayAppHidden } from '../../services/hiddenApps';
 
 // =============================================================================
 // PROGRESS, REDESIGNED (Lab → "Apple-style redesign"; canvas "Progress").
@@ -45,7 +46,8 @@ import { APP_TITLES } from '../../components/homeRedesign/TodayView';
 // gone here; XP lives on Today.
 // =============================================================================
 
-const APP_ORDER: TodayAppId[] = ['meditate', 'workouts', 'meals'];
+// Apps hidden from everyone (services/hiddenApps.ts) leave History too.
+const APP_ORDER: TodayAppId[] = (['meditate', 'workouts', 'meals'] as TodayAppId[]).filter((id) => !isTodayAppHidden(id));
 const RANGES: { value: HistoryRange; label: string }[] = [
   { value: 'week', label: 'W' },
   { value: 'month', label: 'M' },

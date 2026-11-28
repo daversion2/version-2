@@ -12,6 +12,7 @@ import { getMeditatePrefs, saveMeditatePrefs } from './labMeditate';
 import { getWorkoutPrefs, saveWorkoutPrefs } from './labWorkouts';
 import { getMealsPrefs, saveMealsPrefs } from './labMeals';
 import type { CompletionLog, User } from '../types';
+import { HIDDEN_TODAY_APPS, isTodayAppHidden } from './hiddenApps';
 
 // =============================================================================
 // APP SETUP — which apps are on, each one's weekly goal, and where to start.
@@ -41,7 +42,8 @@ export const GOAL_NOUNS: Record<TodayAppId, string> = {
   meals: 'days logged',
 };
 
-export const ALL_APPS: TodayAppId[] = TODAY_APPS.map((a) => a.id);
+/** The Today apps a person can have: every one except those hidden from everyone (services/hiddenApps.ts). */
+export const ALL_APPS: TodayAppId[] = TODAY_APPS.map((a) => a.id).filter((a) => !isTodayAppHidden(a));
 
 /** In section order. A stored list that hid everything (or garbage) shows everything. */
 export const visibleApps = (hidden: readonly string[] | undefined): TodayAppId[] => {
@@ -49,10 +51,13 @@ export const visibleApps = (hidden: readonly string[] | undefined): TodayAppId[]
   return shown.length ? shown : ALL_APPS;
 };
 
-/** The user doc's switched-off apps, cleaned. */
+/**
+ * The apps not on Today: the user doc's switched-off apps, cleaned, plus every
+ * app hidden from everyone, so screens that skip "hidden" apps skip those too.
+ */
 export const hiddenAppsOf = (profile: Pick<User, 'hidden_apps'> | null | undefined): TodayAppId[] => {
   const hidden = ALL_APPS.filter((a) => (profile?.hidden_apps ?? []).includes(a));
-  return hidden.length < ALL_APPS.length ? hidden : [];
+  return [...(hidden.length < ALL_APPS.length ? hidden : []), ...HIDDEN_TODAY_APPS];
 };
 
 /** The user doc's start app, if it names one. */
@@ -63,7 +68,8 @@ export const startAppOf = (profile: Pick<User, 'start_app'> | null | undefined):
 export const toggleApp = (hidden: TodayAppId[], appId: TodayAppId): TodayAppId[] => {
   if (hidden.includes(appId)) return hidden.filter((a) => a !== appId);
   const next = [...hidden, appId];
-  return next.length >= ALL_APPS.length ? hidden : ALL_APPS.filter((a) => next.includes(a));
+  const switchedOff = ALL_APPS.filter((a) => next.includes(a));
+  return switchedOff.length >= ALL_APPS.length ? hidden : [...switchedOff, ...hidden.filter(isTodayAppHidden)];
 };
 
 /** − / + on a goal: 1–7 days. */
@@ -112,8 +118,10 @@ const START_HERE: Record<TodayAppId, string> = {
 };
 
 /** The user-doc half of a setup. */
+// Apps hidden from everyone are never written: un-hiding one brings it back as
+// it was, rather than switched off for everyone who saved a setup meanwhile.
 export const setupProfilePatch = (setup: AppSetup) => ({
-  hidden_apps: setup.hidden,
+  hidden_apps: setup.hidden.filter((a) => !isTodayAppHidden(a)),
   start_app: resolveStartApp(setup.startApp, setup.hidden),
   app_goals_set: true,
 });

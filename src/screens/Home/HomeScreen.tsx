@@ -102,6 +102,7 @@ import { addDays as addDaysStr } from '../../services/homeDashboard';
 import { hiddenAppsOf, needsGoalSetup, shouldExplainRating, startAppOf, startHereLine } from '../../services/appSetup';
 import { syncCloseOutReminder } from '../../services/closeOutReminder';
 import { AppGoalsSheet } from '../../components/appSetup/AppGoalsSheet';
+import { isTodayRowHidden } from '../../services/hiddenApps';
 
 type Props = HomeScreenProps<'HomeScreen'>;
 
@@ -1168,7 +1169,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
               </TouchableOpacity>
 
-              {/* Craving Crusher — an in-the-moment tool. */}
+              {/* Craving Crusher — an in-the-moment tool. Hidden from everyone since 2026-11-28. */}
+              {!isTodayRowHidden('craving') && (
               <TouchableOpacity
                 style={styles.utilityCard}
                 onPress={() => navigation.navigate('CravingCrusher')}
@@ -1185,6 +1187,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
               </TouchableOpacity>
+              )}
             </>
           }
         />

@@ -1,6 +1,7 @@
 import { AppColors, CategoryColors, Colors } from '../constants/theme';
 import type { TrackingField } from '../data/practices';
 import type { PracticeInstance, User } from '../types';
+import { isTodayAppHidden } from './hiddenApps';
 
 // =============================================================================
 // MINI-APPS — the shell side of docs/mini-app-contract.md.
@@ -82,7 +83,8 @@ export const MINI_APPS: Record<MiniAppId, MiniAppManifest> = {
 export const canOpenMiniApp = (
   appId: MiniAppId,
   profile: Pick<User, 'is_admin'> | null | undefined
-): boolean => MINI_APPS[appId].release === 'live' || profile?.is_admin === true;
+): boolean =>
+  !isTodayAppHidden(appId) && (MINI_APPS[appId].release === 'live' || profile?.is_admin === true);
 
 // A session's rating is filed by services/appRatings.ts under the app itself.
 // It no longer ticks a habit (2026-10-31).

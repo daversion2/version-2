@@ -93,14 +93,16 @@ export const LAB_EXPERIMENTS = [
     open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
       navigation.dispatch(CommonActions.navigate({ name: 'ComposeApp' })),
   },
-  {
-    id: 'meals',
-    title: 'Meals',
-    description:
-      'Rate each meal by tapping the food groups on the plate; it scores 0 to 100, and your day is on target once your plates average your own target.',
-    open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
-      navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
-  },
+  // Meals is hidden from everyone, admins too (founder, 2026-11-28;
+  // services/hiddenApps.ts). Its row comes back with it.
+  // {
+  //   id: 'meals',
+  //   title: 'Meals',
+  //   description:
+  //     'Rate each meal by tapping the food groups on the plate; it scores 0 to 100, and your day is on target once your plates average your own target.',
+  //   open: (navigation: Pick<NavigationProp<ParamListBase>, 'dispatch'>) =>
+  //     navigation.dispatch(CommonActions.navigate({ name: 'MealsApp' })),
+  // },
   // Pods (2026-11-27, docs/pods.md): a partner or small accountability group.
   // Adds the Pod card to Today; the card opens Start/Join and the Pod screen.
   // Needs the pod functions deployed. Admin-only, so try it with two admin

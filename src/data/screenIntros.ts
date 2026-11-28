@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { FeatureInfoPoint, FeatureInfoScience } from '../components/common/FeatureInfoModal';
+import { isTodayAppHidden } from '../services/hiddenApps';
 
 // =============================================================================
 // SCREEN INTROS — "what is this screen and how do I use it?"
@@ -41,7 +42,7 @@ export const SCREEN_INTROS: Record<string, ScreenIntro> = {
       },
       {
         label: 'Open an app',
-        text: 'Tap Meditate, Workouts or Meals under Your apps for its page: the main number and how it’s trending, your streak, your goal, and your override: getting started and staying with it. Start a session from the button at the bottom.',
+        text: `Tap ${isTodayAppHidden('meals') ? 'Meditate or Workouts' : 'Meditate, Workouts or Meals'} under Your apps for its page: the main number and how it’s trending, your streak, your goal, and your override: getting started and staying with it. Start a session from the button at the bottom.`,
       },
       {
         label: 'Your override, twice',

@@ -11,6 +11,7 @@ import { CLOSEOUT_TIMES, formatReminderTime } from '../../services/closeOutTimes
 import { AppGoalRows, AppToggleList } from '../appSetup/AppSetupParts';
 import { ob } from './onboardingStyles';
 import { EffortAdds, PredictionMeter, TwoMoments } from './OverrideIllustrations';
+import { isTodayAppHidden } from '../../services/hiddenApps';
 
 // ============================================================================
 // THE SEVEN ONBOARDING SCREENS (services/onboardingSetup.ts has the order).
@@ -137,9 +138,16 @@ export const OnboardingRatings: React.FC = () => (
       />
     </FadeRise>
     <FadeRise delay={500}>
-      <Copy id="onboarding.science.ratings.effort" style={ob.body} boldStyle={ob.bodyStrong}>
-        {'**Every tap is a session you did anyway.** Your XP adds up what they cost, and it only goes up. Meals has no single start, so it asks once a day: how hard was it to eat this way today?'}
-      </Copy>
+      {/* Two keys so an edit that mentions Meals can't show while Meals is hidden (services/hiddenApps.ts). */}
+      {isTodayAppHidden('meals') ? (
+        <Copy id="onboarding.science.ratings.effortNoMeals" style={ob.body} boldStyle={ob.bodyStrong}>
+          {'**Every tap is a session you did anyway.** Your XP adds up what they cost, and it only goes up.'}
+        </Copy>
+      ) : (
+        <Copy id="onboarding.science.ratings.effort" style={ob.body} boldStyle={ob.bodyStrong}>
+          {'**Every tap is a session you did anyway.** Your XP adds up what they cost, and it only goes up. Meals has no single start, so it asks once a day: how hard was it to eat this way today?'}
+        </Copy>
+      )}
       <Copy id="onboarding.science.ratings.helper" style={ob.helper}>
         {'Each one is 1 to 3. Be honest: a 3 is never a bad mark.'}
       </Copy>
