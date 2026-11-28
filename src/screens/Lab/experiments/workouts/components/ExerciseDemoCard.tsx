@@ -2,6 +2,8 @@ import React from 'react';
 import { Image, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { BorderRadius, Colors, Fonts, Spacing } from '../../../../../constants/theme';
 import { howToFor } from './exerciseHowTo';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 /**
@@ -73,7 +75,9 @@ export const ExerciseDemoCard: React.FC<{ exerciseId: string }> = ({ exerciseId 
       )}
       {steps.length > 0 && (
         <View style={styles.cues}>
-          <Text style={styles.textLabel}>How to do it</Text>
+          <Copy id="workouts.demo.howTo" style={styles.textLabel}>
+            How to do it
+          </Copy>
           {steps.map((step, i) => (
             <View key={i} style={styles.stepRow}>
               <Text style={styles.stepNum}>{i + 1}</Text>

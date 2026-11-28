@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import { formatClock } from '../../../../../services/workoutMath';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 interface Props {
@@ -25,25 +27,30 @@ export const REST_SHEET_HEIGHT = 290;
  */
 export const RestSheet: React.FC<Props> = ({ remainingSec, totalSec, nextLabel, onAdjust, onSkip, skipLabel }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const progress = totalSec > 0 ? Math.min(1, remainingSec / totalSec) : 0;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <View style={[styles.sheet, { paddingBottom: Spacing.lg + insets.bottom }]} accessibilityLabel="Rest">
         <View style={styles.grabber} />
-        <Text style={styles.label}>Rest</Text>
+        <Copy id="workouts.rest.label" style={styles.label}>
+          Rest
+        </Copy>
         <Text style={styles.clock} accessibilityRole="timer">
           {formatClock(remainingSec)}
         </Text>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${progress * 100}%` }]} />
         </View>
-        <Text style={styles.next}>Up next: {nextLabel}</Text>
+        <Copy id="workouts.rest.next" style={styles.next} vars={{ next: nextLabel }}>
+          {'Up next: {next}'}
+        </Copy>
         <View style={styles.row}>
           <TouchableOpacity style={styles.adjust} onPress={() => onAdjust(-15)} accessibilityLabel="15 seconds less">
             <Text style={styles.adjustText}>−15 s</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[ws.primaryBtn, styles.skip]} onPress={onSkip}>
-            <Text style={ws.primaryBtnText}>{skipLabel ?? 'Skip rest'}</Text>
+            <Text style={ws.primaryBtnText}>{skipLabel ?? t('workouts.rest.skip', 'Skip rest')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.adjust} onPress={() => onAdjust(15)} accessibilityLabel="15 seconds more">
             <Text style={styles.adjustText}>+15 s</Text>

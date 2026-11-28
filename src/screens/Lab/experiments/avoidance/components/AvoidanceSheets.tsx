@@ -9,6 +9,8 @@ import { cleanTaskText, describeAvoided, daysAvoided } from '../../../../../serv
 import { showConfirm } from '../../../../../utils/alert';
 import { useAvoidance } from '../AvoidanceContext';
 import { avs, levelLabel } from './avoidanceStyle';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 
 /**
  * "Did it": how hard was it to start? Tapping a level saves, the same one-tap
@@ -20,15 +22,20 @@ export const RateSheet: React.FC<{
   onClose: () => void;
   onRate: (task: AvoidanceTask, resistance?: Level) => void;
 }> = ({ task, onClose, onRate }) => {
+  const t = useCopy();
   if (!task) return null;
   const expected = levelLabel(task.forecast);
   return (
-    <BottomSheet visible onClose={onClose} title="How hard was it to start?">
+    <BottomSheet visible onClose={onClose} title={t('avoidance.rate.title', 'How hard was it to start?')}>
       <View style={styles.body}>
         <Text style={[avs.body, styles.center]} numberOfLines={2}>
           {task.text}
         </Text>
-        {expected ? <Text style={[avs.muted, styles.center]}>You expected: {expected}</Text> : null}
+        {expected ? (
+          <Copy id="avoidance.rate.expected" style={[avs.muted, styles.center]} vars={{ expected }}>
+            {'You expected: {expected}'}
+          </Copy>
+        ) : null}
         <View style={styles.levels}>
           {RESISTANCE_LEVELS.map((level) => (
             <TouchableOpacity
@@ -44,7 +51,7 @@ export const RateSheet: React.FC<{
           ))}
         </View>
         <TouchableOpacity style={avs.textBtn} onPress={() => onRate(task)}>
-          <Text style={avs.textBtnText}>Save without a rating</Text>
+          <Copy id="avoidance.rate.saveNoRating" style={avs.textBtnText}>Save without a rating</Copy>
         </TouchableOpacity>
       </View>
     </BottomSheet>
@@ -82,6 +89,7 @@ export const TaskSheet: React.FC<{
   onClose: () => void;
   onDidIt: (task: AvoidanceTask) => void;
 }> = ({ task, onClose, onDidIt }) => {
+  const t = useCopy();
   const { today, updateTask, deleteTask } = useAvoidance();
   const [text, setText] = useState(task?.text ?? '');
   const [forecast, setForecast] = useState<Level | undefined>(task?.forecast);
@@ -98,13 +106,13 @@ export const TaskSheet: React.FC<{
 
   const remove = () =>
     showConfirm(
-      'Delete this?',
-      'It won’t count as cleared. It’s just gone from the list.',
+      t('avoidance.task.delete.title', 'Delete this?'),
+      t('avoidance.task.delete.message', 'It won’t count as cleared. It’s just gone from the list.'),
       () => {
         onClose();
         deleteTask(task.id);
       },
-      'Delete'
+      t('avoidance.task.delete.confirm', 'Delete')
     );
 
   return (
@@ -120,7 +128,7 @@ export const TaskSheet: React.FC<{
           onSubmitEditing={save}
           accessibilityLabel="What you’ve been putting off"
         />
-        <Text style={styles.label}>How hard will it be to start?</Text>
+        <Copy id="avoidance.task.forecast" style={styles.label}>How hard will it be to start?</Copy>
         <ForecastChips value={forecast} onPick={(l) => setForecast(forecast === l ? undefined : l)} />
         <TouchableOpacity
           style={[avs.primaryBtn, styles.didIt]}
@@ -133,16 +141,16 @@ export const TaskSheet: React.FC<{
             onDidIt(edited);
           }}
         >
-          <Text style={avs.primaryBtnText}>Did it</Text>
+          <Copy id="avoidance.task.didIt" style={avs.primaryBtnText}>Did it</Copy>
         </TouchableOpacity>
         <View style={styles.footer}>
           {changed ? (
             <TouchableOpacity style={avs.textBtn} onPress={save} disabled={!valid}>
-              <Text style={[avs.link, !valid && styles.dim]}>Save changes</Text>
+              <Copy id="avoidance.task.saveChanges" style={[avs.link, !valid && styles.dim]}>Save changes</Copy>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity style={avs.textBtn} onPress={remove}>
-            <Text style={[avs.textBtnText, { color: Colors.danger }]}>Delete</Text>
+            <Copy id="avoidance.task.delete" style={[avs.textBtnText, { color: Colors.danger }]}>Delete</Copy>
           </TouchableOpacity>
         </View>
       </View>

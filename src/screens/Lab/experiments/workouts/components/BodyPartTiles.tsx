@@ -4,6 +4,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../constants/theme';
 import { Exercise, MuscleGroup } from '../../../../../types/workouts';
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '../../../../../data/workoutExercises';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT } from './workoutsStyle';
 
 const ICONS: Record<MuscleGroup, React.ComponentProps<typeof MaterialCommunityIcons>['name']> = {
@@ -48,9 +50,13 @@ export const BodyPartTiles: React.FC<Props> = ({ exercises, onOpen, selectedIds 
             <MaterialCommunityIcons name={ICONS[muscle]} size={26} color={WORKOUTS_ACCENT} />
           </View>
           <Text style={styles.label}>{MUSCLE_GROUP_LABELS[muscle]}</Text>
-          <Text style={styles.count}>
-            {inGroup.length} {inGroup.length === 1 ? 'exercise' : 'exercises'}
-          </Text>
+          <Copy
+            id={inGroup.length === 1 ? 'workouts.tiles.countOne' : 'workouts.tiles.countMany'}
+            style={styles.count}
+            vars={{ n: inGroup.length }}
+          >
+            {inGroup.length === 1 ? '{n} exercise' : '{n} exercises'}
+          </Copy>
           {picked > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{picked}</Text>

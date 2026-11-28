@@ -5,6 +5,8 @@ import { Fonts, FontSizes, Spacing, BorderRadius, Colors } from '../../../../con
 import { KIND_LABELS, MUSCLE_GROUP_LABELS } from '../../../../data/workoutExercises';
 import { exerciseSubtitle } from '../../../../services/exerciseLibrary';
 import { showAlert, showConfirm } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
@@ -15,17 +17,21 @@ import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
  */
 export const WorkoutHiddenExercisesScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { hiddenExercises, setExerciseHidden, prefs, updatePrefs } = useWorkouts();
 
   const showAll = () =>
     showConfirm(
-      `Show all ${hiddenExercises.length}?`,
-      'They go back in the exercise picker.',
+      t('workouts.hidden.showAllTitle', 'Show all {n}?', { n: hiddenExercises.length }),
+      t('workouts.hidden.showAllMsg', 'They go back in the exercise picker.'),
       () =>
         updatePrefs({ hidden_exercise_ids: [] }).catch(() =>
-          showAlert("Couldn't save that", 'Check your connection and try again.')
+          showAlert(
+            t('workouts.hidden.failTitle', "Couldn't save that"),
+            t('workouts.hidden.failMsg', 'Check your connection and try again.')
+          )
         ),
-      'Show all'
+      t('workouts.hidden.showAll', 'Show all')
     );
 
   return (
@@ -36,12 +42,14 @@ export const WorkoutHiddenExercisesScreen: React.FC = () => {
       contentContainerStyle={{ paddingBottom: Spacing.xxl + insets.bottom }}
       ListHeaderComponent={
         <View style={styles.header}>
-          <Text style={ws.muted}>
+          <Copy id="workouts.hidden.intro" style={ws.muted}>
             Hidden from the exercise picker. Your history, stats and any workout that already uses one are unchanged.
-          </Text>
+          </Copy>
           {hiddenExercises.length > 1 && (
             <TouchableOpacity onPress={showAll} accessibilityRole="button" style={styles.showAll}>
-              <Text style={styles.showText}>Show all</Text>
+              <Copy id="workouts.hidden.showAll" style={styles.showText}>
+                Show all
+              </Copy>
             </TouchableOpacity>
           )}
         </View>
@@ -60,15 +68,17 @@ export const WorkoutHiddenExercisesScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel={`Show ${item.name}`}
           >
-            <Text style={styles.showText}>Show</Text>
+            <Copy id="workouts.hidden.show" style={styles.showText}>
+              Show
+            </Copy>
           </TouchableOpacity>
         </View>
       )}
       ListEmptyComponent={
         <Text style={[ws.muted, styles.empty]}>
           {prefs.hidden_exercise_ids?.length
-            ? 'Nothing to show back — the exercises you hid have since been deleted.'
-            : 'Nothing hidden. In the exercise picker, tap the eye icon on one you’ll never do.'}
+            ? t('workouts.hidden.emptyDeleted', 'Nothing to show back — the exercises you hid have since been deleted.')
+            : t('workouts.hidden.empty', 'Nothing hidden. In the exercise picker, tap the eye icon on one you’ll never do.')}
         </Text>
       }
     />

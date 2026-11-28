@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Copy } from '../common/Copy';
 import { Card } from '../common/Card';
 import { DailyReflection, ReflectionGrade } from '../../types';
 import { gradeToNumber } from '../../services/reflections';
@@ -17,7 +18,9 @@ export const GradeLineChart: React.FC<GradeLineChartProps> = ({ reflections }) =
   if (reflections.length === 0) {
     return (
       <Card>
-        <Text style={styles.emptyText}>No data yet</Text>
+        <Copy id="progress.gradeLine.empty" style={styles.emptyText}>
+          No data yet
+        </Copy>
       </Card>
     );
   }
@@ -28,7 +31,9 @@ export const GradeLineChart: React.FC<GradeLineChartProps> = ({ reflections }) =
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Grade Trend</Text>
+      <Copy id="progress.gradeLine.title" style={styles.title}>
+        Grade Trend
+      </Copy>
       <View style={styles.chartContainer}>
         {/* Y-axis labels */}
         <View style={styles.yAxis}>

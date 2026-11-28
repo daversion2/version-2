@@ -8,6 +8,8 @@ import { removeRating, updateRatedMinutes } from '../../../../../services/appRat
 import { withTimeout } from '../../../../../services/labWorkouts';
 import { showAlert, showConfirm } from '../../../../../utils/alert';
 import { NumberStepper } from './NumberStepper';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { ws } from './workoutsStyle';
 
 const SAVE_MS = 15000;
@@ -30,6 +32,7 @@ export const EditLoggedWorkoutSheet: React.FC<{
   onChanged: () => void;
 }> = ({ userId, log, onClose, onChanged }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const [minutes, setMinutes] = useState(FALLBACK_MINUTES);
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +53,10 @@ export const EditLoggedWorkoutSheet: React.FC<{
       onChanged();
       onClose();
     } catch {
-      showAlert('Couldn’t save that', 'Check your connection and try again.');
+      showAlert(
+        t('workouts.editLogged.failTitle', 'Couldn’t save that'),
+        t('workouts.editLogged.failMsg', 'Check your connection and try again.')
+      );
     } finally {
       setBusy(false);
     }
@@ -61,7 +67,10 @@ export const EditLoggedWorkoutSheet: React.FC<{
       await withTimeout(removeRating(userId, id), SAVE_MS);
       onChanged();
     } catch {
-      showAlert('Couldn’t delete that workout', 'Check your connection and try again.');
+      showAlert(
+        t('workouts.editLogged.deleteFailTitle', 'Couldn’t delete that workout'),
+        t('workouts.editLogged.failMsg', 'Check your connection and try again.')
+      );
     }
   };
 
@@ -72,10 +81,10 @@ export const EditLoggedWorkoutSheet: React.FC<{
     setTimeout(
       () =>
         showConfirm(
-          'Delete this workout?',
-          'It comes off your week, along with its rating and XP. This can’t be undone.',
+          t('workouts.editLogged.deleteTitle', 'Delete this workout?'),
+          t('workouts.editLogged.deleteMsg', 'It comes off your week, along with its rating and XP. This can’t be undone.'),
           () => remove(id),
-          'Delete'
+          t('workouts.editLogged.delete', 'Delete')
         ),
       SHEET_GAP_MS
     );
@@ -86,10 +95,14 @@ export const EditLoggedWorkoutSheet: React.FC<{
       <View style={styles.backdrop}>
         <Pressable style={styles.dismiss} onPress={onClose} accessibilityLabel="Cancel" />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.md }]}>
-          <Text style={styles.title}>Edit workout</Text>
-          <Text style={ws.muted}>Logged without details, so its length is all there is to change.</Text>
+          <Copy id="workouts.editLogged.title" style={styles.title}>
+            Edit workout
+          </Copy>
+          <Copy id="workouts.editLogged.sub" style={ws.muted}>
+            Logged without details, so its length is all there is to change.
+          </Copy>
           <NumberStepper
-            label="Minutes"
+            label={t('workouts.editLogged.minutes', 'Minutes')}
             value={minutes}
             onDecrement={() => setMinutes((m) => clamp(m - 5))}
             onIncrement={() => setMinutes((m) => clamp(m + 5))}
@@ -101,10 +114,14 @@ export const EditLoggedWorkoutSheet: React.FC<{
             disabled={busy}
             accessibilityRole="button"
           >
-            {busy ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Save</Text>}
+            {busy ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.editLogged.save" style={ws.primaryBtnText}>
+                Save
+              </Copy>}
           </TouchableOpacity>
           <TouchableOpacity style={ws.textBtn} onPress={askDelete} disabled={busy} accessibilityRole="button">
-            <Text style={ws.destructiveText}>Delete workout</Text>
+            <Copy id="workouts.editLogged.deleteWorkout" style={ws.destructiveText}>
+              Delete workout
+            </Copy>
           </TouchableOpacity>
         </View>
       </View>

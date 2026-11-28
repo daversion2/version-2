@@ -557,6 +557,17 @@ Before non-admins get Compose:
 
 ## Later
 
+**Make the remaining labels in services and data files editable** *(added 2026-11-28)*
+The screens pass these through unchanged, so they still need a release to
+edit: grade labels (`GRADE_LABELS`, "Took the easy way"), `REFLECTION_PROMPT_LABELS`,
+`DAILY_FACTORS`, skip reasons, `RESISTANCE_LEVELS`, `MINI_APPS` titles,
+`describeFriction` / `describeVsPrior`, `formatPlan`, pod week lines in
+`services/pods.ts`, Meditate `MODES` / techniques, Meals `MEAL_GOALS` /
+`FOOD_SECTIONS`, Workouts library/kind/muscle labels, cardio zone text,
+`data/cravings.ts` content. Same pattern: `copyText()` at call time, never at
+module scope. Watch the ones also stored or compared (`PLAN_WHENS` is saved
+as the plan cue). Accessibility labels were left out on purpose.
+
 **Apps-first Today: untested on screen** *(added 2026-10-18)*
 See `docs/apps-first-today.md`. Maestro checked the cards, the apps opening and
 both "Log a past session" sheets, without saving anything. These steps haven't
@@ -857,6 +868,16 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**All live screens' wording admin-editable** *(2026-11-28, OTA_PLACEHOLDER; not checked on screen)*
+About 1,900 more strings now go through `<Copy>` (long-press in Admin → Edit
+wording on screen) or `useCopy()` / `copyText()` (Admin → All wording):
+Today, onboarding, Progress, Settings, Apps, Nightly, Auth, Craving, Pods and
+the Workouts, Meditate, Meals, Hot & Cold and Avoidance apps. Rating toasts,
+streak names and the Progress friction sentences are declared up front, so
+All wording lists them even before they've shown (`declareCopy` in
+`services/appCopy.ts`). Wording didn't change. Lines that switch on a ternary
+show as `{t(…)}` inside a `<Text>`: editable from the list, not by long-press.
 
 **App copy in line with the brand** *(2026-11-28, 126d47f, live OTA iOS 01a2232b-0e41-7699, Android 01a2232b-0e41-75ea; not checked on screen)*
 Every app change in `docs/handoff-brand-copy.md` ("Changes to make in code"),

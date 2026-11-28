@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PracticeInstance } from '../../types';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 const BARRIER_OPTIONS = [
   'Work was too busy',
@@ -34,11 +36,12 @@ interface ComebackModalProps {
 export const ComebackModal: React.FC<ComebackModalProps> = ({
   visible,
   habits,
-  title = 'Welcome back',
-  body = "The pull of comfort gets everyone now and then. A couple of days off doesn't undo anything. Back at it?",
+  title,
+  body,
   onCommit,
   onDismiss,
 }) => {
+  const t = useCopy();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedBarrier, setSelectedBarrier] = useState<string | null>(null);
   const [otherText, setOtherText] = useState('');
@@ -87,17 +90,23 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
               <View style={styles.iconRow}>
                 <Ionicons name="refresh" size={32} color={Colors.secondary} />
               </View>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.body}>{body}</Text>
+              <Text style={styles.title}>{title ?? t('comeback.welcome.title', 'Welcome back')}</Text>
+              <Text style={styles.body}>
+                {body ??
+                  t(
+                    'comeback.welcome.body',
+                    "The pull of comfort gets everyone now and then. A couple of days off doesn't undo anything. Back at it?"
+                  )}
+              </Text>
               <TouchableOpacity
                 style={styles.primaryButton}
                 onPress={() => setStep(2)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.primaryButtonText}>Continue</Text>
+                <Copy id="comeback.welcome.continue" style={styles.primaryButtonText}>{'Continue'}</Copy>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dismissLink} onPress={resetAndDismiss}>
-                <Text style={styles.dismissText}>Not now</Text>
+                <Copy id="comeback.welcome.notNow" style={styles.dismissText}>{'Not now'}</Copy>
               </TouchableOpacity>
             </View>
           )}
@@ -105,11 +114,11 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
           {/* Step 2: Barrier */}
           {step === 2 && (
             <View>
-              <Text style={styles.title}>What got in the way?</Text>
-              <Text style={styles.subtitle}>No judgement. Just data.</Text>
+              <Copy id="comeback.barrier.title" style={styles.title}>{'What got in the way?'}</Copy>
+              <Copy id="comeback.barrier.subtitle" style={styles.subtitle}>{'No judgement. Just data.'}</Copy>
 
               <ScrollView style={styles.optionsList} showsVerticalScrollIndicator={false}>
-                {BARRIER_OPTIONS.map((option) => (
+                {BARRIER_OPTIONS.map((option, optionIndex) => (
                   <TouchableOpacity
                     key={option}
                     style={[
@@ -119,14 +128,15 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                     onPress={() => setSelectedBarrier(option)}
                     activeOpacity={0.7}
                   >
-                    <Text
+                    <Copy
+                      id={`comeback.barrier.option${optionIndex + 1}`}
                       style={[
                         styles.optionText,
                         selectedBarrier === option && styles.optionTextSelected,
                       ]}
                     >
                       {option}
-                    </Text>
+                    </Copy>
                     {selectedBarrier === option && (
                       <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
                     )}
@@ -142,14 +152,15 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                   onPress={() => setSelectedBarrier('Other')}
                   activeOpacity={0.7}
                 >
-                  <Text
+                  <Copy
+                    id="comeback.barrier.other"
                     style={[
                       styles.optionText,
                       selectedBarrier === 'Other' && styles.optionTextSelected,
                     ]}
                   >
-                    Something else
-                  </Text>
+                    {'Something else'}
+                  </Copy>
                   {selectedBarrier === 'Other' && (
                     <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
                   )}
@@ -160,7 +171,7 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                     style={styles.otherInput}
                     value={otherText}
                     onChangeText={setOtherText}
-                    placeholder="What happened?"
+                    placeholder={t('comeback.barrier.placeholder', 'What happened?')}
                     placeholderTextColor={Colors.gray}
                     multiline
                     maxLength={200}
@@ -178,10 +189,10 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                 disabled={!selectedBarrier}
                 activeOpacity={0.8}
               >
-                <Text style={styles.primaryButtonText}>Continue</Text>
+                <Copy id="comeback.barrier.continue" style={styles.primaryButtonText}>{'Continue'}</Copy>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dismissLink} onPress={resetAndDismiss}>
-                <Text style={styles.dismissText}>Not now</Text>
+                <Copy id="comeback.barrier.notNow" style={styles.dismissText}>{'Not now'}</Copy>
               </TouchableOpacity>
             </View>
           )}
@@ -189,8 +200,8 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
           {/* Step 3: Commit to a habit */}
           {step === 3 && (
             <View>
-              <Text style={styles.title}>Pick one for today</Text>
-              <Text style={styles.subtitle}>Small counts.</Text>
+              <Copy id="comeback.pick.title" style={styles.title}>{'Pick one for today'}</Copy>
+              <Copy id="comeback.pick.subtitle" style={styles.subtitle}>{'Small counts.'}</Copy>
 
               <ScrollView style={styles.habitList} showsVerticalScrollIndicator={false}>
                 {habits.map((habit) => (
@@ -229,10 +240,10 @@ export const ComebackModal: React.FC<ComebackModalProps> = ({
                 disabled={!selectedHabitId}
                 activeOpacity={0.8}
               >
-                <Text style={styles.primaryButtonText}>I'm in</Text>
+                <Copy id="comeback.pick.commit" style={styles.primaryButtonText}>{"I'm in"}</Copy>
               </TouchableOpacity>
               <TouchableOpacity style={styles.dismissLink} onPress={resetAndDismiss}>
-                <Text style={styles.dismissText}>Not now</Text>
+                <Copy id="comeback.pick.notNow" style={styles.dismissText}>{'Not now'}</Copy>
               </TouchableOpacity>
             </View>
           )}

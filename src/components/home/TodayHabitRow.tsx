@@ -51,6 +51,7 @@ const DAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
  * manageable" while the chip shows what fits in 34 points.
  */
 export const CHIP_CAPTIONS = ['Easy', 'Med', 'Hard'];
+const CHIP_KEYS = ['easy', 'med', 'hard'];
 
 /**
  * What this card adds to what its SECTION already said.
@@ -176,7 +177,9 @@ export const TodayHabitRow: React.FC<Props> = ({
                 accessibilityLabel={`Log ${name} — ${level.label}. ${level.sublabel}.`}
               >
                 <Text style={[styles.chipGlyph, CHIP_TEXT[i]]}>{level.value}</Text>
-                <Text style={[styles.chipCap, CHIP_TEXT[i]]}>{CHIP_CAPTIONS[i]}</Text>
+                <Copy id={`today.row.chip.${CHIP_KEYS[i]}`} style={[styles.chipCap, CHIP_TEXT[i]]}>
+                  {CHIP_CAPTIONS[i]}
+                </Copy>
               </TouchableOpacity>
             ))}
           </View>

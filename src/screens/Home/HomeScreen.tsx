@@ -931,8 +931,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   if (!hiddenRows.includes('hotcold')) {
     extraRows.push({
       id: 'hotcold',
-      title: 'Hot & Cold',
-      subtitle: 'Cold plunges and sauna',
+      title: t('today.rows.hotcold.title', 'Hot & Cold'),
+      subtitle: t('today.rows.hotcold.subtitle', 'Cold plunges and sauna'),
       icon: 'snow',
       color: AppColors.hotcold,
       onPress: () => rootNav.navigate('HotColdApp'),
@@ -941,8 +941,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   if (!hiddenRows.includes('avoidance')) {
     extraRows.push({
       id: 'avoidance',
-      title: 'Avoidance Training',
-      subtitle: 'Face one thing you’ve been putting off',
+      title: t('today.rows.avoidance.title', 'Avoidance Training'),
+      subtitle: t('today.rows.avoidance.subtitle', 'Face one thing you’ve been putting off'),
       icon: 'flash',
       color: AppColors.avoidance,
       onPress: () => rootNav.navigate('AvoidanceApp'),

@@ -23,6 +23,8 @@ import {
 } from '../../../../services/trainingPhases';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { HoldTimer } from './components/HoldTimer';
@@ -36,6 +38,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'PhaseTest'>;
 export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
   const { phaseId, mode } = route.params;
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { phases, exercise, records, sessions, prefs, upsertPhase } = useWorkouts();
   const unit = prefs.unit;
   const phase = phases.find((p) => p.id === phaseId);
@@ -91,24 +94,36 @@ export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
   const [saving, setSaving] = useState(false);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: retest ? 'Retest' : 'Baseline test' });
-  }, [navigation, retest]);
+    navigation.setOptions({
+      title: retest ? t('workouts.phaseTest.titleRetest', 'Retest') : t('workouts.phaseTest.titleBaseline', 'Baseline test'),
+    });
+  }, [navigation, retest, t]);
 
   if (!phase) {
     return (
       <View style={[ws.screen, styles.center]}>
-        <Text style={ws.muted}>This phase no longer exists.</Text>
+        <Copy id="workouts.phaseTest.gone" style={ws.muted}>
+          This phase no longer exists.
+        </Copy>
       </View>
     );
   }
 
   const anyRunning = Object.values(running).some(Boolean);
+  const weightLabel = t('workouts.phaseTest.weight', 'Test weight ({unit})', { unit });
+  const repsLabel = t('workouts.phaseTest.reps', 'Reps');
+  const baselineSuffix = (value: string) => t('workouts.phaseTest.baselineSuffix', ' · baseline {value}', { value });
   const set = (id: string, v: number) => setValues((all) => ({ ...all, [id]: v }));
 
   const save = async () => {
     const missingWeight = phase.tests.find((t) => exercise(t.exerciseId).kind === 'weight' && !(weights[t.exerciseId] > 0));
     if (missingWeight) {
-      showAlert('Pick a weight', `Choose the weight for ${exercise(missingWeight.exerciseId).name}. Every test of it uses the same one.`);
+      showAlert(
+        t('workouts.phaseTest.pickWeight', 'Pick a weight'),
+        t('workouts.phaseTest.pickWeightMsg', 'Choose the weight for {name}. Every test of it uses the same one.', {
+          name: exercise(missingWeight.exerciseId).name,
+        })
+      );
       return;
     }
     setSaving(true);
@@ -126,24 +141,45 @@ export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
       }
     } catch (e) {
       setSaving(false);
-      showAlert("Couldn't save the results", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.phaseTest.failTitle', "Couldn't save the results"),
+        t('workouts.phaseTest.failMsg', 'Check your connection and try again.')
+      );
     }
   };
 
   return (
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={ws.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.eyebrow}>
-          Phase {phase.number} · {retest ? `retest · ${formatPhaseDate(phase.retest_date)}` : 'baseline'}
+        {retest ? (
+          <Copy
+            id="workouts.phaseTest.eyebrowRetest"
+            style={styles.eyebrow}
+            vars={{ n: phase.number, date: formatPhaseDate(phase.retest_date) }}
+          >
+            {'Phase {n} · retest · {date}'}
+          </Copy>
+        ) : (
+          <Copy id="workouts.phaseTest.eyebrowBaseline" style={styles.eyebrow} vars={{ n: phase.number }}>
+            {'Phase {n} · baseline'}
+          </Copy>
+        )}
+        <Text style={styles.heading}>
+          {retest
+            ? t('workouts.phaseTest.headingRetest', 'Same tests, same way')
+            : t('workouts.phaseTest.headingBaseline', 'Where you’re starting from')}
         </Text>
-        <Text style={styles.heading}>{retest ? 'Same tests, same way' : 'Where you’re starting from'}</Text>
 
         <View style={[ws.card, styles.checklist]}>
-          <Text style={ws.title}>Before you start</Text>
+          <Copy id="workouts.phaseTest.before" style={ws.title}>
+            Before you start
+          </Copy>
           {[
-            retest ? 'The same warm-up as your baseline.' : 'Warm up for 5–10 minutes.',
-            'Test first thing in the session, while you’re fresh.',
-            'Rest 3–5 minutes between tests.',
+            retest
+              ? t('workouts.phaseTest.warmRetest', 'The same warm-up as your baseline.')
+              : t('workouts.phaseTest.warmBaseline', 'Warm up for 5–10 minutes.'),
+            t('workouts.phaseTest.fresh', 'Test first thing in the session, while you’re fresh.'),
+            t('workouts.phaseTest.rest', 'Rest 3–5 minutes between tests.'),
           ].map((line) => (
             <View key={line} style={styles.checkLine}>
               <Ionicons name="checkmark-circle-outline" size={18} color={WORKOUTS_ACCENT} />
@@ -163,7 +199,7 @@ export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={styles.testName}>{ex.name}</Text>
                 <Text style={styles.testType}>
                   {testLabel(ex, retest ? t : { ...t, weightKg: weights[t.exerciseId] || undefined }, unit)}
-                  {retest && base !== undefined ? ` · baseline ${formatTestValue(type, base)}` : ''}
+                  {retest && base !== undefined ? baselineSuffix(formatTestValue(type, base)) : ''}
                 </Text>
               </View>
               <Text style={ws.muted}>{TEST_STANDARDS[type]}</Text>
@@ -171,7 +207,7 @@ export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
               {type === 'reps_at_weight' && !retest && (
                 <NumberStepper
                   size="small"
-                  label={`Test weight (${unit})`}
+                  label={weightLabel}
                   value={toDisplayWeight(weights[t.exerciseId] ?? 0, unit)}
                   allowDecimal
                   onDecrement={() => setWeights((w) => ({ ...w, [t.exerciseId]: stepWeight(w[t.exerciseId] ?? 0, unit, -1) }))}
@@ -180,12 +216,14 @@ export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
                 />
               )}
               {type === 'reps_at_weight' && retest && !!t.weightKg && (
-                <Text style={ws.muted}>Use {formatWeight(t.weightKg, unit)}, the same as your baseline.</Text>
+                <Copy id="workouts.phaseTest.useWeight" style={ws.muted} vars={{ weight: formatWeight(t.weightKg, unit) }}>
+                  {'Use {weight}, the same as your baseline.'}
+                </Copy>
               )}
 
               {(type === 'max_reps' || type === 'reps_at_weight') && (
                 <NumberStepper
-                  label="Reps"
+                  label={repsLabel}
                   value={v}
                   onDecrement={() => set(t.exerciseId, Math.max(0, v - 1))}
                   onIncrement={() => set(t.exerciseId, v + 1)}
@@ -216,7 +254,9 @@ export const PhaseTestScreen: React.FC<Props> = ({ navigation, route }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={ws.primaryBtnText}>{retest ? 'See results' : 'Save baseline and start'}</Text>
+            <Text style={ws.primaryBtnText}>
+              {retest ? t('workouts.phaseTest.seeResults', 'See results') : t('workouts.phaseTest.saveBaseline', 'Save baseline and start')}
+            </Text>
           )}
         </TouchableOpacity>
       </View>

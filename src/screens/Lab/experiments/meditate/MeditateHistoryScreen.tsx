@@ -18,6 +18,8 @@ import { formatMinutes } from '../../../../services/sessionTimer';
 import { formatRelativeDay } from '../../../../utils/date';
 import { useMeditate } from './MeditateContext';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 const WEEKS = 8;
 const CHART_HEIGHT = 120;
@@ -50,6 +52,7 @@ const SessionRow = React.memo(function SessionRow({
   session: CompletedMeditateSession;
   onEdit: (id: string) => void;
 }) {
+  const t = useCopy();
   return (
     <TouchableOpacity
       style={[ms.card, styles.sessionRow]}
@@ -60,7 +63,7 @@ const SessionRow = React.memo(function SessionRow({
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={ms.title}>{describeSession(s)}</Text>
         <Text style={ms.muted}>
-          {[formatRelativeDay(s.date), s.ended_early ? `ended early of ${formatMinutes(s.planned_sec)}` : null]
+          {[formatRelativeDay(s.date), s.ended_early ? t('meditate.history.endedEarlyOf', 'ended early of {planned}', { planned: formatMinutes(s.planned_sec) }) : null]
             .filter(Boolean)
             .join(' · ')}
         </Text>
@@ -79,10 +82,11 @@ const SessionRow = React.memo(function SessionRow({
 export const MeditateHistoryScreen: React.FC<NativeStackScreenProps<MeditateStackParamList, 'MeditateHistory'>> = ({
   navigation,
 }) => {
+  const t = useCopy();
   const { sessions, loading, reload } = useMeditate();
   const [tab, setTab] = useState<Tab>('stats');
   const now = useMemo(() => new Date(), []);
-  const t = useMemo(() => totals(sessions, now), [sessions, now]);
+  const tot = useMemo(() => totals(sessions, now), [sessions, now]);
   const bars = useMemo(() => weeklyTotals(sessions, now, WEEKS), [sessions, now]);
   const records = useMemo(() => computeRecords(sessions), [sessions]);
   const rows = useMemo(() => breakdown(sessions), [sessions]);
@@ -95,9 +99,9 @@ export const MeditateHistoryScreen: React.FC<NativeStackScreenProps<MeditateStac
   const maxSec = Math.max(...bars.map((b) => b.sec), 60);
   const bar = bars[selected];
   const tiles = [
-    { label: 'This week', sec: t.weekSec },
-    { label: 'This month', sec: t.monthSec },
-    { label: 'All time', sec: t.allSec },
+    { key: 'week', label: 'This week', sec: tot.weekSec },
+    { key: 'month', label: 'This month', sec: tot.monthSec },
+    { key: 'all', label: 'All time', sec: tot.allSec },
   ];
 
   const stats = (
@@ -111,19 +115,21 @@ export const MeditateHistoryScreen: React.FC<NativeStackScreenProps<MeditateStac
                 {n.value}
                 <Text style={styles.tileUnit}> {n.unit}</Text>
               </Text>
-              <Text style={ms.muted}>{tile.label}</Text>
+              <Copy id={`meditate.history.tile.${tile.key}`} style={ms.muted}>{tile.label}</Copy>
             </View>
           );
         })}
       </View>
 
-      <Text style={ms.sectionLabel}>Minutes per week</Text>
+      <Copy id="meditate.history.perWeek" style={ms.sectionLabel}>Minutes per week</Copy>
       <View style={ms.card}>
         <Text style={styles.readout}>
-          {bar.sec ? formatMinutes(bar.sec) : 'No sessions'}
+          {bar.sec ? formatMinutes(bar.sec) : t('meditate.history.noSessions', 'No sessions')}
           <Text style={ms.muted}>
             {'  '}
-            {selected === WEEKS - 1 ? 'this week' : `week of ${shortDate(bar.weekStart)}`}
+            {selected === WEEKS - 1
+              ? t('meditate.history.thisWeekLower', 'this week')
+              : t('meditate.history.weekOf', 'week of {date}', { date: shortDate(bar.weekStart) })}
           </Text>
         </Text>
         <View style={styles.chart} accessibilityLabel="Minutes per week, last eight weeks">
@@ -149,17 +155,21 @@ export const MeditateHistoryScreen: React.FC<NativeStackScreenProps<MeditateStac
         </View>
         <View style={styles.axis}>
           <Text style={ms.muted}>{shortDate(bars[0].weekStart)}</Text>
-          <Text style={ms.muted}>This week</Text>
+          <Copy id="meditate.history.axisThisWeek" style={ms.muted}>This week</Copy>
         </View>
       </View>
 
       {rows.length > 0 && (
-        <ListGroup title="Where the minutes went">
+        <ListGroup title={t('meditate.history.whereMinutes', 'Where the minutes went')}>
           {rows.map((r) => (
             <ListRow
               key={r.key}
               title={r.label}
-              subtitle={`${r.sessions} ${r.sessions === 1 ? 'session' : 'sessions'}`}
+              subtitle={
+                r.sessions === 1
+                  ? t('meditate.history.sessionCount.one', '{n} session', { n: r.sessions })
+                  : t('meditate.history.sessionCount.other', '{n} sessions', { n: r.sessions })
+              }
               value={formatMinutes(r.sec)}
             />
           ))}
@@ -169,7 +179,7 @@ export const MeditateHistoryScreen: React.FC<NativeStackScreenProps<MeditateStac
   );
 
   const recordList = (
-    <ListGroup title="Records">
+    <ListGroup title={t('meditate.history.records', 'Records')}>
       {[
         ...MODE_ORDER.map((m: MeditateMode) => {
           const r = records.longest[m];
@@ -185,7 +195,7 @@ export const MeditateHistoryScreen: React.FC<NativeStackScreenProps<MeditateStac
         }),
         <ListRow
           key="week"
-          title="Most minutes in a week"
+          title={t('meditate.history.mostWeek', 'Most minutes in a week')}
           value={records.bestWeek ? formatMinutes(records.bestWeek.sec) : '—'}
         />,
       ]}
@@ -205,15 +215,17 @@ export const MeditateHistoryScreen: React.FC<NativeStackScreenProps<MeditateStac
             accessibilityRole="tab"
             accessibilityState={{ selected: tab === key }}
           >
-            <Text style={[styles.tabText, tab === key && styles.tabTextOn]}>{label}</Text>
+            <Copy id={`meditate.history.tab.${key}`} style={[styles.tabText, tab === key && styles.tabTextOn]}>
+              {label}
+            </Copy>
           </TouchableOpacity>
         ))}
       </View>
 
       {!loading && sessions.length === 0 && (
         <View style={ms.card}>
-          <Text style={ms.title}>Nothing here yet</Text>
-          <Text style={ms.muted}>Finish a session and your minutes, weeks and records start here.</Text>
+          <Copy id="meditate.history.empty.title" style={ms.title}>Nothing here yet</Copy>
+          <Copy id="meditate.history.empty.body" style={ms.muted}>Finish a session and your minutes, weeks and records start here.</Copy>
         </View>
       )}
       {tab === 'stats' && stats}

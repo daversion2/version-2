@@ -28,6 +28,8 @@ import { NumberStepper } from './NumberStepper';
 import { InputField } from '../../../../../components/common/InputField';
 import { showAlert, showConfirm } from '../../../../../utils/alert';
 import { useWorkouts } from '../WorkoutsContext';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './workoutsStyle';
 
 interface Props {
@@ -90,6 +92,7 @@ export const ExerciseEditorModal: React.FC<Props> = ({
   onClose,
   onSaved,
 }) => {
+  const t = useCopy();
   const { exercisesById, saveExercise, archiveExercise, isExerciseUsed, notes, saveNote } = useWorkouts();
   const isNew = !exercise;
   const isBuiltIn = !!exercise && !exercise.custom;
@@ -138,24 +141,33 @@ export const ExerciseEditorModal: React.FC<Props> = ({
       onClose();
     } catch (e) {
       setSaving(false);
-      showAlert("Couldn't save that", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.exEdit.failTitle', "Couldn't save that"),
+        t('workouts.exEdit.failMsg', 'Check your connection and try again.')
+      );
     }
   };
 
   const remove = () => {
     if (!exercise) return;
     showConfirm(
-      `Delete ${exercise.name}?`,
-      'It leaves your list. Past sessions and records keep it, and saved workouts keep it until you take it out.',
+      t('workouts.exEdit.deleteTitle', 'Delete {name}?', { name: exercise.name }),
+      t(
+        'workouts.exEdit.deleteMsg',
+        'It leaves your list. Past sessions and records keep it, and saved workouts keep it until you take it out.'
+      ),
       async () => {
         try {
           await archiveExercise(exercise.id);
           onClose();
         } catch {
-          showAlert("Couldn't delete it", 'Check your connection and try again.');
+          showAlert(
+            t('workouts.exEdit.deleteFailTitle', "Couldn't delete it"),
+            t('workouts.exEdit.failMsg', 'Check your connection and try again.')
+          );
         }
       },
-      'Delete'
+      t('workouts.exEdit.delete', 'Delete')
     );
   };
 
@@ -164,16 +176,24 @@ export const ExerciseEditorModal: React.FC<Props> = ({
       <KeyboardAvoidingView style={styles.sheet} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} hitSlop={8} disabled={saving}>
-            <Text style={styles.headerAction}>Cancel</Text>
+            <Copy id="workouts.exEdit.cancel" style={styles.headerAction}>
+              Cancel
+            </Copy>
           </TouchableOpacity>
           <Text style={styles.title} numberOfLines={1}>
-            {isNew ? 'New exercise' : isBuiltIn ? exercise!.name : 'Edit exercise'}
+            {isNew
+              ? t('workouts.exEdit.titleNew', 'New exercise')
+              : isBuiltIn
+                ? exercise!.name
+                : t('workouts.exEdit.titleEdit', 'Edit exercise')}
           </Text>
           {saving ? (
             <ActivityIndicator color={WORKOUTS_ACCENT} style={styles.headerSpinner} />
           ) : (
             <TouchableOpacity onPress={save} hitSlop={8}>
-              <Text style={[styles.headerAction, styles.headerSave]}>Save</Text>
+              <Copy id="workouts.exEdit.save" style={[styles.headerAction, styles.headerSave]}>
+                Save
+              </Copy>
             </TouchableOpacity>
           )}
         </View>
@@ -186,26 +206,29 @@ export const ExerciseEditorModal: React.FC<Props> = ({
                 {KIND_LABELS[exercise!.kind]} · {MUSCLE_GROUP_LABELS[exercise!.muscle]}
                 {exercise!.equipment ? ` · ${EQUIPMENT_LABELS[exercise!.equipment]}` : ''}
                 {exercise!.distanceM ? ` · ${formatDistance(exercise!.distanceM)}` : ''}
-                {'\n'}A built-in exercise — the cues below are yours alone.
+                {'\n'}
+                {t('workouts.exEdit.builtIn', 'A built-in exercise — the cues below are yours alone.')}
               </Text>
             </View>
           ) : (
             <>
               <InputField
-                label="Name"
+                label={t('workouts.exEdit.name', 'Name')}
                 value={name}
                 onChangeText={(t) => {
                   setName(t);
                   setNameError(null);
                 }}
-                placeholder="e.g. Sled Push"
+                placeholder={t('workouts.exEdit.namePlaceholder', 'e.g. Sled Push')}
                 autoCapitalize="words"
                 autoFocus={isNew && !initialName}
                 maxLength={60}
                 error={nameError ?? undefined}
               />
 
-              <Text style={ws.sectionLabel}>How it’s logged</Text>
+              <Copy id="workouts.exEdit.logged" style={ws.sectionLabel}>
+                How it’s logged
+              </Copy>
               <ChipRow
                 options={['weight', 'reps', 'time', 'distance', 'cardio'] as ExerciseKind[]}
                 labels={KIND_LABELS}
@@ -221,13 +244,18 @@ export const ExerciseEditorModal: React.FC<Props> = ({
               />
               <Text style={ws.muted}>
                 {kindLocked
-                  ? 'Locked — it has logged sets, which would read wrong as anything else. Make a new exercise to log it differently.'
+                  ? t(
+                      'workouts.exEdit.locked',
+                      'Locked — it has logged sets, which would read wrong as anything else. Make a new exercise to log it differently.'
+                    )
                   : KIND_HINTS[kind]}
               </Text>
 
               {kind === 'distance' && (
                 <>
-                  <Text style={ws.sectionLabel}>Distance</Text>
+                  <Copy id="workouts.exEdit.distance" style={ws.sectionLabel}>
+                    Distance
+                  </Copy>
                   <View style={styles.chips}>
                     {DISTANCE_PRESETS.map((p) => {
                       const on = !!distanceM && Math.abs(distanceM - p.metres) < 0.5;
@@ -252,7 +280,7 @@ export const ExerciseEditorModal: React.FC<Props> = ({
                     <View style={styles.distanceRow}>
                       <NumberStepper
                         size="small"
-                        label="Or metres"
+                        label={t('workouts.exEdit.orMetres', 'Or metres')}
                         value={Math.round(distanceM ?? 0)}
                         onDecrement={() => setDistanceM(Math.max(100, Math.round((distanceM ?? 0) - 100)))}
                         onIncrement={() => setDistanceM(Math.round((distanceM ?? 0) + 100))}
@@ -267,7 +295,9 @@ export const ExerciseEditorModal: React.FC<Props> = ({
                 </>
               )}
 
-              <Text style={ws.sectionLabel}>Body part</Text>
+              <Copy id="workouts.exEdit.bodyPart" style={ws.sectionLabel}>
+                Body part
+              </Copy>
               <ChipRow
                 options={MUSCLE_GROUP_ORDER}
                 labels={MUSCLE_GROUP_LABELS}
@@ -275,7 +305,9 @@ export const ExerciseEditorModal: React.FC<Props> = ({
                 onChange={(v) => v && setMuscle(v)}
               />
 
-              <Text style={ws.sectionLabel}>Equipment</Text>
+              <Copy id="workouts.exEdit.equipment" style={ws.sectionLabel}>
+                Equipment
+              </Copy>
               <ChipRow
                 options={EQUIPMENT_ORDER}
                 labels={EQUIPMENT_LABELS}
@@ -288,20 +320,24 @@ export const ExerciseEditorModal: React.FC<Props> = ({
 
           <View style={styles.notes}>
             <InputField
-              label="Form cues"
+              label={t('workouts.exEdit.cues', 'Form cues')}
               value={note}
               onChangeText={setNote}
-              placeholder="e.g. Pause at the chest, elbows tucked. Seat on 4."
+              placeholder={t('workouts.exEdit.cuesPlaceholder', 'e.g. Pause at the chest, elbows tucked. Seat on 4.')}
               multiline
               maxLength={500}
             />
-            <Text style={ws.muted}>Shown under the exercise while you do it.</Text>
+            <Copy id="workouts.exEdit.cuesNote" style={ws.muted}>
+              Shown under the exercise while you do it.
+            </Copy>
           </View>
 
           {!isNew && !isBuiltIn && (
             <TouchableOpacity style={styles.delete} onPress={remove} disabled={saving}>
               <Ionicons name="trash-outline" size={16} color={Colors.danger} />
-              <Text style={styles.deleteText}>Delete exercise</Text>
+              <Copy id="workouts.exEdit.deleteExercise" style={styles.deleteText}>
+                Delete exercise
+              </Copy>
             </TouchableOpacity>
           )}
         </ScrollView>

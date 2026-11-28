@@ -17,6 +17,8 @@ import {
 import { newPhaseId } from '../../../../services/labWorkouts';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
 
@@ -30,14 +32,15 @@ const SAME = 'none';
  */
 export const PhaseNextScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { userId, phases, sessions, workouts, exercisesById, upsertPhase, upsertWorkout } = useWorkouts();
   const phase = phases.find((p) => p.id === route.params.phaseId);
   const [choice, setChoice] = useState<string>(SUGGESTED);
   const [saving, setSaving] = useState(false);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: phase ? `Phase ${phase.number + 1}` : '' });
-  }, [navigation, phase]);
+    navigation.setOptions({ title: phase ? t('workouts.phaseNext.title', 'Phase {n}', { n: phase.number + 1 }) : '' });
+  }, [navigation, phase, t]);
 
   const program = useMemo(
     () => (phase?.workout_ids ?? []).map((id) => workouts.find((w) => w.id === id)).filter((w): w is Workout => !!w),
@@ -79,7 +82,10 @@ export const PhaseNextScreen: React.FC<Props> = ({ navigation, route }) => {
       navigation.navigate('Phase', { phaseId: next.id });
     } catch {
       setSaving(false);
-      showAlert("Couldn't start the next phase", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.phaseNext.failTitle', "Couldn't start the next phase"),
+        t('workouts.phaseNext.failMsg', 'Check your connection and try again.')
+      );
     }
   };
 
@@ -106,33 +112,48 @@ export const PhaseNextScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const how =
     chosen.key === 'none' || chosen.key === 'consistency'
-      ? 'Your workouts stay exactly as they are.'
+      ? t('workouts.phaseNext.howSame', 'Your workouts stay exactly as they are.')
       : changeIsAutomatic(chosen)
         ? chosen.key === 'days'
-          ? `Your schedule goes to ${Math.min(7, phase.days_per_week + 1)} days a week.`
-          : 'Your workouts are updated for you when the phase starts.'
-        : 'Make this change in your workouts before your next session — open one from the phase screen and tap Edit.';
+          ? t('workouts.phaseNext.howDays', 'Your schedule goes to {n} days a week.', {
+              n: Math.min(7, phase.days_per_week + 1),
+            })
+          : t('workouts.phaseNext.howAuto', 'Your workouts are updated for you when the phase starts.')
+        : t(
+            'workouts.phaseNext.howManual',
+            'Make this change in your workouts before your next session — open one from the phase screen and tap Edit.'
+          );
 
   return (
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={ws.scroll}>
-        <Text style={styles.heading}>Change one thing</Text>
-        <Text style={ws.muted}>
+        <Copy id="workouts.phaseNext.heading" style={styles.heading}>
+          Change one thing
+        </Copy>
+        <Copy id="workouts.phaseNext.sub" style={ws.muted}>
           Same program, same tests, one change — so the next retest has a clear story. Today’s retest becomes the new
           baseline.
-        </Text>
+        </Copy>
 
-        {option(SUGGESTED, suggestion.change.label, suggestion.why, 'Suggested')}
+        {option(SUGGESTED, suggestion.change.label, suggestion.why, t('workouts.phaseNext.suggested', 'Suggested'))}
 
-        <Text style={ws.sectionLabel}>Or pick a different change</Text>
+        <Copy id="workouts.phaseNext.orPick" style={ws.sectionLabel}>
+          Or pick a different change
+        </Copy>
         {PHASE_CHANGE_OPTIONS.map((o) => option(o.key, o.title, o.label))}
-        {option(SAME, 'Keep everything the same', 'Run the same phase again')}
+        {option(
+          SAME,
+          t('workouts.phaseNext.keepSame', 'Keep everything the same'),
+          t('workouts.phaseNext.keepSameSub', 'Run the same phase again')
+        )}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
         <Text style={ws.muted}>{how}</Text>
         <TouchableOpacity style={[ws.primaryBtn, saving && ws.disabled]} onPress={start} disabled={saving}>
-          {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Start phase {phase.number + 1}</Text>}
+          {saving ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.phaseNext.start" style={ws.primaryBtnText} vars={{ n: phase.number + 1 }}>
+              {'Start phase {n}'}
+            </Copy>}
         </TouchableOpacity>
       </View>
     </View>

@@ -21,6 +21,8 @@ import {
 import { useMeditate } from './MeditateContext';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
 import { MeditateWeekStrip, meditateWeekdayName, useMeditateLogs } from './components/MeditateWeekParts';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateWeek'>;
 
@@ -35,6 +37,7 @@ const VIEWS: { value: WeekView; label: string }[] = [
  * services/meditateWeek.ts.
  */
 export const MeditateWeekScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const { sessions, prefs, updatePrefs, userId } = useMeditate();
   const logs = useMeditateLogs(userId);
   const view: WeekView = prefs.week_view ?? DEFAULT_WEEK_VIEW;
@@ -97,20 +100,30 @@ export const MeditateWeekScreen: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.tiles}>
         <Tile
-          label="Time"
+          label={t('meditate.week.time', 'Time')}
           value={week.sec > 0 ? formatMinutes(week.sec) : '–'}
-          note={change ? `${change} on ${view === 'calendar' ? 'the week before' : 'the 7 days before'}` : undefined}
+          note={
+            change
+              ? view === 'calendar'
+                ? t('meditate.week.changeCalendar', '{change} on the week before', { change })
+                : t('meditate.week.changeRolling', '{change} on the 7 days before', { change })
+              : undefined
+          }
         />
-        <Tile label="Longest" value={week.longestSec > 0 ? formatMinutes(week.longestSec) : '–'} />
+        <Tile label={t('meditate.week.longest', 'Longest')} value={week.longestSec > 0 ? formatMinutes(week.longestSec) : '–'} />
       </View>
 
       {modesDone.length > 0 && (
-        <ListGroup title="What you did">
+        <ListGroup title={t('meditate.week.whatYouDid', 'What you did')}>
           {modesDone.map((m) => (
             <ListRow
               key={m.mode}
               title={m.label}
-              subtitle={`${m.sessions} ${m.sessions === 1 ? 'session' : 'sessions'}`}
+              subtitle={
+                m.sessions === 1
+                  ? t('meditate.week.sessionCount.one', '{n} session', { n: m.sessions })
+                  : t('meditate.week.sessionCount.other', '{n} sessions', { n: m.sessions })
+              }
               value={formatMinutes(m.sec)}
             />
           ))}
@@ -118,7 +131,7 @@ export const MeditateWeekScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       {daySessions.length > 0 ? (
-        <ListGroup title="Sessions">
+        <ListGroup title={t('meditate.week.sessions', 'Sessions')}>
           {daySessions.map(({ day, s }, i) => (
             <ListRow
               key={s.session?.id ?? `${day.date}-${i}`}
@@ -130,12 +143,23 @@ export const MeditateWeekScreen: React.FC<Props> = ({ navigation }) => {
           ))}
         </ListGroup>
       ) : (
-        <Text style={ms.lead}>Nothing logged {week.window.offset === 0 && view === 'rolling' ? 'in the last 7 days' : 'in these 7 days'}.</Text>
+        <Copy
+          id={week.window.offset === 0 && view === 'rolling' ? 'meditate.week.nothingRolling' : 'meditate.week.nothingOther'}
+          style={ms.lead}
+        >
+          {week.window.offset === 0 && view === 'rolling' ? 'Nothing logged in the last 7 days.' : 'Nothing logged in these 7 days.'}
+        </Copy>
       )}
 
-      <ListGroup title="Your override">
-        <ListRow title="Getting started" value={describeRating(week.ratings.start) ?? 'Not rated'} />
-        <ListRow title="Staying with it" value={describeRating(week.ratings.stay) ?? 'Not rated'} />
+      <ListGroup title={t('meditate.week.override', 'Your override')}>
+        <ListRow
+          title={t('meditate.week.gettingStarted', 'Getting started')}
+          value={describeRating(week.ratings.start) ?? t('meditate.week.notRated', 'Not rated')}
+        />
+        <ListRow
+          title={t('meditate.week.stayingWithIt', 'Staying with it')}
+          value={describeRating(week.ratings.stay) ?? t('meditate.week.notRated', 'Not rated')}
+        />
       </ListGroup>
     </ScrollView>
   );

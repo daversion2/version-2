@@ -8,6 +8,8 @@ import type { WorkoutsStackParamList } from '../../../../types/workouts';
 import { formatSeconds, formatSetValues, formatVolume } from '../../../../services/workoutMath';
 import { buildWorkoutDay, describeRating, exercisesInSession } from '../../../../services/workoutWeek';
 import { canEditLength } from '../../../../services/workoutEdit';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { useReloadableWorkoutLogs, weekdayName } from './components/WeekParts';
@@ -24,6 +26,7 @@ const clock = (iso: string): string => new Date(iso).toLocaleTimeString(undefine
  */
 export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const { date } = route.params;
+  const t = useCopy();
   const { sessions, exercisesById, exercise, prefs, userId } = useWorkouts();
   const { logs, reload } = useReloadableWorkoutLogs(userId);
   const [editingLog, setEditingLog] = useState<CompletionLog | null>(null);
@@ -45,8 +48,12 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
         <View style={ws.card}>
-          <Text style={ws.title}>{day.ahead ? 'Still to come' : 'Rest day'}</Text>
-          <Text style={ws.muted}>No workout logged on this day.</Text>
+          <Text style={ws.title}>
+            {day.ahead ? t('workouts.day.ahead', 'Still to come') : t('workouts.day.rest', 'Rest day')}
+          </Text>
+          <Copy id="workouts.day.none" style={ws.muted}>
+            No workout logged on this day.
+          </Copy>
         </View>
       </ScrollView>
     );
@@ -57,8 +64,12 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
       {day.sessions.map((d, i) => {
         const s = d.session;
         const ratings = [
-          describeRating(d.ratings.start) ? `Getting started ${d.ratings.start}` : null,
-          describeRating(d.ratings.stay) ? `Staying with it ${d.ratings.stay}` : null,
+          describeRating(d.ratings.start)
+            ? t('workouts.day.gettingStarted', 'Getting started {rating}', { rating: d.ratings.start ?? '' })
+            : null,
+          describeRating(d.ratings.stay)
+            ? t('workouts.day.stayingWith', 'Staying with it {rating}', { rating: d.ratings.stay ?? '' })
+            : null,
         ].filter(Boolean);
         return (
           <View key={s?.id ?? `logged-${i}`} style={[ws.card, styles.session]}>
@@ -68,14 +79,19 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={ws.muted}>
                   {s
                     ? [
-                        s.logged_sets ? 'Sets added to your week' : clock(s.started_at),
+                        s.logged_sets ? t('workouts.day.setsAdded', 'Sets added to your week') : clock(s.started_at),
                         canEditLength(s) && s.duration_sec > 0 ? formatSeconds(s.duration_sec) : null,
-                        `${s.total_sets} ${s.total_sets === 1 ? 'set' : 'sets'}`,
+                        s.total_sets === 1
+                          ? t('workouts.day.oneSet', '{n} set', { n: s.total_sets })
+                          : t('workouts.day.nSets', '{n} sets', { n: s.total_sets }),
                         s.total_volume_kg > 0 ? formatVolume(s.total_volume_kg, unit) : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')
-                    : [loggedMinutes(d.ratingLog) ? `${loggedMinutes(d.ratingLog)} min` : null, 'Logged without details']
+                    : [
+                        loggedMinutes(d.ratingLog) ? `${loggedMinutes(d.ratingLog)} min` : null,
+                        t('workouts.day.noDetails', 'Logged without details'),
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                 </Text>
@@ -95,7 +111,9 @@ export const WorkoutDayScreen: React.FC<Props> = ({ navigation, route }) => {
                   accessibilityRole="button"
                   accessibilityLabel={`Edit ${d.name}`}
                 >
-                  <Text style={ws.link}>Edit</Text>
+                  <Copy id="workouts.day.edit" style={ws.link}>
+                    Edit
+                  </Copy>
                 </TouchableOpacity>
               )}
             </View>

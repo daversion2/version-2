@@ -13,6 +13,7 @@ import { finishSession } from '../../../../services/miniApps';
 import { getActiveHabits } from '../../../../services/practices';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
+import { copyText } from '../../../../services/appCopy';
 
 const APP = 'meals' as const;
 /** How far back Past weeks looks. */
@@ -140,7 +141,7 @@ export const MealsProvider: React.FC<{
       } catch (e) {
         console.warn('Meals: prefs save failed:', e);
         setPrefs(before);
-        showAlert("Couldn't save that", 'Check your connection and try again.');
+        showAlert(copyText('meals.save.fail.title', "Couldn't save that"), copyText('meals.save.fail.message', 'Check your connection and try again.'));
       }
     },
     [userId, prefs]
@@ -174,7 +175,7 @@ export const MealsProvider: React.FC<{
           else delete copy[next.date];
           return copy;
         });
-        showAlert("Couldn't save that", 'Check your connection and try again.');
+        showAlert(copyText('meals.save.fail.title', "Couldn't save that"), copyText('meals.save.fail.message', 'Check your connection and try again.'));
         return false;
       }
     },

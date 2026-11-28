@@ -19,6 +19,8 @@ import { WeekApp, weekApp, weekDayIndex } from '../../services/weekViews';
 import { TopScrim } from '../common/TopScrim';
 import { APP_ICONS } from '../homeDashboard/DashboardParts';
 import { LoadError } from './LoadError';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 // =============================================================================
 // TODAY, REDESIGNED (Lab → "Apple-style redesign"; canvas "Today" artboard).
@@ -111,6 +113,7 @@ export const TodayView: React.FC<Props> = ({
   extraRows = NO_ROWS,
   planAppId,
 }) => {
+  const t = useCopy();
   const apps = useMemo(() => APP_ORDER.filter((id) => !hiddenApps.includes(id)), [hiddenApps]);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
@@ -190,7 +193,7 @@ export const TodayView: React.FC<Props> = ({
   const doneToday = (id: string) => weekApps.find((w) => w.id === id)?.days[todayIdx] === 'done';
   const weekNote = (id: string) => {
     const w = weekApps.find((x) => x.id === id);
-    return w ? `${w.done} of ${w.goal} this week` : '';
+    return w ? t('today.weekNote', '{done} of {goal} this week', { done: w.done, goal: w.goal }) : '';
   };
   const appItems: TodayAppItem[] = [
     ...apps.map((id) => ({
@@ -199,16 +202,16 @@ export const TodayView: React.FC<Props> = ({
       short: APP_TITLES[id],
       color: AppColors[id],
       icon: APP_ICONS[id],
-      note: id === planAppId && !doneToday(id) ? 'Today’s plan' : weekNote(id),
+      note: id === planAppId && !doneToday(id) ? t('today.appNote.plan', 'Today’s plan') : weekNote(id),
       done: doneToday(id),
       plan: id === planAppId && !doneToday(id),
       action: APP_ACTIONS[id],
     })),
     ...(closeOut
-      ? [{ id: 'nightly', title: 'Close out the day', short: 'Close out', color: AppColors.nightly, icon: 'moon', note: closeOut.done ? 'Closed out' : 'Tonight', done: closeOut.done, plan: false, action: APP_ACTIONS.nightly }]
+      ? [{ id: 'nightly', title: t('today.closeOut.title', 'Close out the day'), short: t('today.closeOut.short', 'Close out'), color: AppColors.nightly, icon: 'moon', note: closeOut.done ? t('today.closeOut.noteDone', 'Closed out') : t('today.closeOut.noteTonight', 'Tonight'), done: closeOut.done, plan: false, action: APP_ACTIONS.nightly }]
       : []),
     ...(craving
-      ? [{ id: 'craving', title: craving.title, short: 'Cravings', color: AppColors.craving, icon: 'water', note: 'When an urge hits', done: doneToday('craving'), plan: false, action: APP_ACTIONS.craving }]
+      ? [{ id: 'craving', title: craving.title, short: t('today.craving.short', 'Cravings'), color: AppColors.craving, icon: 'water', note: t('today.craving.note', 'When an urge hits'), done: doneToday('craving'), plan: false, action: APP_ACTIONS.craving }]
       : []),
     ...extraRows.map((r) => ({
       id: r.id,
@@ -219,7 +222,7 @@ export const TodayView: React.FC<Props> = ({
       note: weekNote(r.id) || r.subtitle || '',
       done: doneToday(r.id),
       plan: false,
-      action: APP_ACTIONS[r.id] ?? 'Open',
+      action: APP_ACTIONS[r.id] ?? t('today.appAction.open', 'Open'),
     })),
   ];
 
@@ -240,9 +243,9 @@ export const TodayView: React.FC<Props> = ({
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={styles.date}>{appData ? formatDayHeader(appData.today).toUpperCase() : ' '}</Text>
-            <Text style={styles.title} accessibilityRole="header">
-              Today
-            </Text>
+            <Copy id="today.title" style={styles.title} accessibilityRole="header">
+              {'Today'}
+            </Copy>
           </View>
           <TouchableOpacity
             style={styles.infoButton}
@@ -269,21 +272,23 @@ export const TodayView: React.FC<Props> = ({
               footer={
                 <Text style={styles.footerText}>
                   <Text style={styles.strong}>
-                    {d.combinedStreak > 0 ? `${d.combinedStreak}-day streak` : 'No streak yet'}
+                    {d.combinedStreak > 0
+                      ? t('today.footer.streak', '{n}-day streak', { n: d.combinedStreak })
+                      : t('today.footer.noStreak', 'No streak yet')}
                   </Text>
-                  {` · ${xp.toLocaleString()} XP in all`}
+                  {t('today.footer.xpAll', ' · {xp} XP in all', { xp: xp.toLocaleString() })}
                 </Text>
               }
             />
 
             {plan ? (
               <View style={styles.card}>
-                <Text style={styles.planLabel}>Today’s plan</Text>
+                <Copy id="today.view.planLabel" style={styles.planLabel}>{'Today’s plan'}</Copy>
                 <View style={styles.planRow}>
                   <Text style={[styles.planText, styles.planTextFlex]}>{plan}</Text>
                   {onStartPlan ? (
                     <TouchableOpacity style={styles.planStart} onPress={onStartPlan} accessibilityRole="button">
-                      <Text style={styles.planStartText}>Start</Text>
+                      <Copy id="today.plan.start" style={styles.planStartText}>{'Start'}</Copy>
                     </TouchableOpacity>
                   ) : null}
                 </View>

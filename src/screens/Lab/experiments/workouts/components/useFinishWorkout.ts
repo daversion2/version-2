@@ -11,12 +11,17 @@ import {
 } from '../../../../../services/labWorkouts';
 import { toLocalDateString } from '../../../../../utils/date';
 import { showAlert } from '../../../../../utils/alert';
+import { copyText } from '../../../../../services/appCopy';
 import { LoadedWorkouts, useWorkouts } from '../WorkoutsContext';
 
 /** A fresh read of the records gets this long before the loaded ones are used instead. */
 const FRESH_READ_MS = 5000;
 
-const SAVE_FAILED = ['Couldn\'t save your workout', 'It’s kept on this phone. Check your connection and tap Finish again.'] as const;
+const saveFailed = () =>
+  [
+    copyText('workouts.finish.failTitle', "Couldn't save your workout"),
+    copyText('workouts.finish.failMsg', 'It’s kept on this phone. Check your connection and tap Finish again.'),
+  ] as const;
 
 export interface FinishOptions {
   /** Fold added exercises and extra sets into the saved workout. */
@@ -50,7 +55,7 @@ export const useFinishWorkout = () => {
     } catch (e) {
       console.warn('Workouts: not loaded, not saving:', e);
       setSaving(false);
-      showAlert(...SAVE_FAILED);
+      showAlert(...saveFailed());
       return;
     }
     const exerciseIds = [...new Set(session.blocks.flatMap((b) => b.sets.map((s) => s.exerciseId)))];
@@ -96,7 +101,7 @@ export const useFinishWorkout = () => {
       console.warn('Workouts: save failed:', e);
       setSaving(false);
       if (isTimeoutError(e)) opts.onTimedOut?.({ ...session, saveTimedOutAt: now.toISOString() });
-      showAlert(...SAVE_FAILED);
+      showAlert(...saveFailed());
       return;
     }
     recordFinished({ completed, records: toSave, workout: toWrite });

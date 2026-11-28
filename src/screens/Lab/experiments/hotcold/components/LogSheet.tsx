@@ -25,6 +25,8 @@ import { addDays } from '../../../../../services/habitSchedule';
 import { showConfirm } from '../../../../../utils/alert';
 import { useHotCold } from '../HotColdContext';
 import { hcs, KIND_COLOR } from './hotcoldStyle';
+import { useCopy } from '../../../../../context/CopyContext';
+import { Copy } from '../../../../../components/common/Copy';
 
 /** What the sheet is for: a new session (maybe from the timer) or an edit. */
 export type LogTarget =
@@ -45,6 +47,7 @@ export const LogSheet: React.FC<{
   /** After a save: a short line for Home, e.g. "New record: longest cold". */
   onSaved?: (note: string) => void;
 }> = ({ target, onClose, onSaved }) => {
+  const t = useCopy();
   const { prefs, sessions, today, saveSession, deleteSession, newId, clearUnlogged } = useHotCold();
   const unit = prefs.unit;
 
@@ -71,14 +74,17 @@ export const LogSheet: React.FC<{
   const dismiss = () => {
     if (!fromTimer) return onClose();
     showConfirm(
-      'Discard this session?',
-      `Your timed ${KIND_LABEL[kind].toLowerCase()} (${formatDuration(durationSec)}) won’t be saved.`,
+      t('hotcold.log.discard.title', 'Discard this session?'),
+      t('hotcold.log.discard.message', 'Your timed {kind} ({time}) won’t be saved.', {
+        kind: KIND_LABEL[kind].toLowerCase(),
+        time: formatDuration(durationSec),
+      }),
       () => {
         clearUnlogged();
         onClose();
       },
-      'Discard',
-      'Keep it'
+      t('hotcold.log.discard.confirm', 'Discard'),
+      t('hotcold.log.discard.cancel', 'Keep it')
     );
   };
 
@@ -102,30 +108,32 @@ export const LogSheet: React.FC<{
     if (fromTimer) clearUnlogged();
     onSaved?.(
       broke.length
-        ? `New record: ${broke.map((r) => RECORD_LABEL[r].toLowerCase()).join(' and ')}.`
-        : `${KIND_LABEL[kind]} saved · ${formatDuration(session.duration_sec)}.`
+        ? t('hotcold.log.newRecord', 'New record: {records}.', {
+            records: broke.map((r) => RECORD_LABEL[r].toLowerCase()).join(' and '),
+          })
+        : t('hotcold.log.saved', '{kind} saved · {time}.', { kind: KIND_LABEL[kind], time: formatDuration(session.duration_sec) })
     );
   };
 
   const remove = () =>
     showConfirm(
-      'Delete this session?',
-      'It comes off your week and your records.',
+      t('hotcold.log.delete.title', 'Delete this session?'),
+      t('hotcold.log.delete.message', 'It comes off your week and your records.'),
       () => {
         onClose();
         if (editing) deleteSession(editing.id);
       },
-      'Delete'
+      t('hotcold.log.delete.confirm', 'Delete')
     );
 
   return (
-    <BottomSheet visible onClose={dismiss} title={editing ? `Edit ${KIND_LABEL[kind].toLowerCase()}` : KIND_LABEL[kind]}>
+    <BottomSheet visible onClose={dismiss} title={editing ? t('hotcold.log.edit', 'Edit {kind}', { kind: KIND_LABEL[kind].toLowerCase() }) : KIND_LABEL[kind]}>
       <View style={styles.body}>
         {canPickDay ? (
           <SegmentedControl<Day>
             options={[
-              { value: 'today', label: 'Today' },
-              { value: 'yesterday', label: 'Yesterday' },
+              { value: 'today', label: t('hotcold.log.today', 'Today') },
+              { value: 'yesterday', label: t('hotcold.log.yesterday', 'Yesterday') },
             ]}
             value={day}
             onChange={setDay}
@@ -136,7 +144,7 @@ export const LogSheet: React.FC<{
         )}
 
         <View style={styles.field}>
-          <Text style={styles.label}>How long</Text>
+          <Copy id="hotcold.log.howLong" style={styles.label}>How long</Copy>
           <Stepper
             value={durationSec}
             onChange={setDurationSec}
@@ -149,7 +157,9 @@ export const LogSheet: React.FC<{
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>{kind === 'cold' ? 'Water temperature' : 'Room temperature'}</Text>
+          <Copy id={kind === 'cold' ? 'hotcold.log.waterTemp' : 'hotcold.log.roomTemp'} style={styles.label}>
+            {kind === 'cold' ? 'Water temperature' : 'Room temperature'}
+          </Copy>
           <Stepper
             value={temp}
             onChange={setTemp}
@@ -161,7 +171,7 @@ export const LogSheet: React.FC<{
           />
         </View>
 
-        <Text style={[styles.label, styles.question]}>How hard was it to start?</Text>
+        <Copy id="hotcold.log.question" style={[styles.label, styles.question]}>How hard was it to start?</Copy>
         <View style={styles.levels}>
           {RESISTANCE_LEVELS.map((level) => {
             const chosen = editing?.resistance === level.value;
@@ -182,11 +192,13 @@ export const LogSheet: React.FC<{
 
         <View style={styles.footer}>
           <TouchableOpacity style={hcs.textBtn} onPress={() => save()}>
-            <Text style={hcs.textBtnText}>{editing ? 'Save changes' : 'Save without a rating'}</Text>
+            <Copy id={editing ? 'hotcold.log.saveChanges' : 'hotcold.log.saveNoRating'} style={hcs.textBtnText}>
+              {editing ? 'Save changes' : 'Save without a rating'}
+            </Copy>
           </TouchableOpacity>
           {editing ? (
             <TouchableOpacity style={hcs.textBtn} onPress={remove}>
-              <Text style={[hcs.textBtnText, { color: Colors.danger }]}>Delete</Text>
+              <Copy id="hotcold.log.delete" style={[hcs.textBtnText, { color: Colors.danger }]}>Delete</Copy>
             </TouchableOpacity>
           ) : null}
         </View>

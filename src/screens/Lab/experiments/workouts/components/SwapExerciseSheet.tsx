@@ -9,6 +9,8 @@ import { exerciseSubtitle } from '../../../../../services/exerciseLibrary';
 import { SWAP_REASONS, swapSuggestions } from '../../../../../services/exerciseSwap';
 import { useWorkouts } from '../WorkoutsContext';
 import { ExercisePickerModal } from './ExercisePickerModal';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './workoutsStyle';
 
 /**
@@ -28,6 +30,7 @@ export const SwapExerciseSheet: React.FC<{
   onPick: (exercise: Exercise, reason?: SwapReason) => void;
 }> = ({ visible, planned, current, onCancel, onPick }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { exercises, sessions } = useWorkouts();
   const [reason, setReason] = useState<SwapReason | undefined>();
   const [searching, setSearching] = useState(false);
@@ -52,15 +55,19 @@ export const SwapExerciseSheet: React.FC<{
       <View style={[styles.sheet, { paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel} accessibilityRole="button" style={styles.headerBtn}>
-            <Text style={ws.link}>Cancel</Text>
+            <Copy id="workouts.swap.cancel" style={ws.link}>
+              Cancel
+            </Copy>
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.titleBlock}>
-            <Text style={styles.title} accessibilityRole="header">
-              Swap {planned.name} for today
-            </Text>
-            <Text style={styles.lead}>Just this workout. Next time it’s {planned.name} again.</Text>
+            <Copy id="workouts.swap.title" style={styles.title} accessibilityRole="header" vars={{ name: planned.name }}>
+              {'Swap {name} for today'}
+            </Copy>
+            <Copy id="workouts.swap.lead" style={styles.lead} vars={{ name: planned.name }}>
+              {'Just this workout. Next time it’s {name} again.'}
+            </Copy>
           </View>
 
           {swapped && (
@@ -75,15 +82,21 @@ export const SwapExerciseSheet: React.FC<{
                   <Ionicons name="arrow-undo" size={18} color={WORKOUTS_ACCENT} />
                 </View>
                 <View style={styles.rowText}>
-                  <Text style={ws.title}>Back to {planned.name}</Text>
-                  <Text style={ws.muted}>Undo the swap</Text>
+                  <Copy id="workouts.swap.back" style={ws.title} vars={{ name: planned.name }}>
+                    {'Back to {name}'}
+                  </Copy>
+                  <Copy id="workouts.swap.undo" style={ws.muted}>
+                    Undo the swap
+                  </Copy>
                 </View>
               </TouchableOpacity>
             </View>
           )}
 
           <View style={styles.group}>
-            <Text style={ws.sectionLabel}>Why? (optional)</Text>
+            <Copy id="workouts.swap.why" style={ws.sectionLabel}>
+              Why? (optional)
+            </Copy>
             <View style={styles.chips}>
               {SWAP_REASONS.map((r) => {
                 const on = reason === r.id;
@@ -103,7 +116,9 @@ export const SwapExerciseSheet: React.FC<{
           </View>
 
           <View style={styles.group}>
-            <Text style={ws.sectionLabel}>Instead</Text>
+            <Copy id="workouts.swap.instead" style={ws.sectionLabel}>
+              Instead
+            </Copy>
             <View style={ws.panel}>
               {suggestions.map((e, i) => (
                 <TouchableOpacity
@@ -128,7 +143,9 @@ export const SwapExerciseSheet: React.FC<{
                 <View style={styles.rowIcon}>
                   <Ionicons name="search" size={18} color={WORKOUTS_ACCENT} />
                 </View>
-                <Text style={[ws.title, styles.rowText, { color: WORKOUTS_ACCENT }]}>Search all exercises</Text>
+                <Copy id="workouts.swap.searchAll" style={[ws.title, styles.rowText, { color: WORKOUTS_ACCENT }]}>
+                  Search all exercises
+                </Copy>
               </TouchableOpacity>
             </View>
           </View>
@@ -137,7 +154,7 @@ export const SwapExerciseSheet: React.FC<{
 
       <ExercisePickerModal
         visible={searching}
-        title={`Instead of ${planned.name}`}
+        title={t('workouts.swap.insteadOf', 'Instead of {name}', { name: planned.name })}
         mode="single"
         onCancel={() => setSearching(false)}
         onConfirm={([e]) => {

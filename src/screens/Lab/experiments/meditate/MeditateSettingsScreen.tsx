@@ -10,6 +10,8 @@ import { showAlert, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { NsdrLinkForm } from './components/NsdrLinkForm';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 const BELL_STATUS = {
   granted: 'On. The bell rings when a timed session ends, phone locked or not.',
@@ -18,11 +20,12 @@ const BELL_STATUS = {
 } as const;
 
 export const MeditateSettingsScreen: React.FC = () => {
+  const t = useCopy();
   const { prefs, updatePrefs, bellPermission } = useMeditate();
   const [adding, setAdding] = useState(false);
 
   const save = (changes: Parameters<typeof updatePrefs>[0]) =>
-    updatePrefs(changes).catch(() => showAlert("Couldn't save that", 'Check your connection and try again.'));
+    updatePrefs(changes).catch(() => showAlert(t('meditate.settings.saveFail.title', "Couldn't save that"), t('meditate.settings.saveFail.message', 'Check your connection and try again.')));
 
   const addRecording = (link: NsdrLink) => {
     save({ nsdr_links: [...prefs.nsdr_links, link] });
@@ -30,42 +33,49 @@ export const MeditateSettingsScreen: React.FC = () => {
   };
 
   const removeRecording = (link: NsdrLink) =>
-    showConfirm(`Remove “${link.title}”?`, 'Sessions already done with it keep its name.', () =>
-      save({ nsdr_links: prefs.nsdr_links.filter((l) => l.id !== link.id) }),
-    'Remove');
+    showConfirm(
+      t('meditate.settings.remove.title', 'Remove “{title}”?', { title: link.title }),
+      t('meditate.settings.remove.message', 'Sessions already done with it keep its name.'),
+      () => save({ nsdr_links: prefs.nsdr_links.filter((l) => l.id !== link.id) }),
+      t('meditate.settings.remove.confirm', 'Remove'),
+    );
 
   return (
     <ScrollView style={ms.screen} contentContainerStyle={ms.scroll} keyboardShouldPersistTaps="handled">
-      <Text style={ms.sectionLabel}>Weekly goal</Text>
+      <Copy id="meditate.settings.weeklyGoal" style={ms.sectionLabel}>Weekly goal</Copy>
       <WeeklyGoalPicker
-        noun="sessions"
+        noun={t('meditate.settings.noun', 'sessions')}
         value={clampWeeklyGoal(prefs.weekly_goal, 'meditate')}
         accent={MEDITATE_ACCENT}
         onChange={(n) => save({ weekly_goal: n })}
       />
-      <Text style={ms.muted}>
+      <Copy id="meditate.settings.goalNote" style={ms.muted}>
         Shown on Today as “2 of 5 this week”. A week that falls short gets the usual one-tap “what got in the way?”.
-      </Text>
+      </Copy>
 
       <ListGroup
-        title="The bell"
-        footer="The bell is your phone’s notification sound, so the silent switch, a Focus mode or Do Not Disturb can quiet it."
+        title={t('meditate.settings.bell.title', 'The bell')}
+        footer={t('meditate.settings.bell.footer', 'The bell is your phone’s notification sound, so the silent switch, a Focus mode or Do Not Disturb can quiet it.')}
       >
         <ListRow
-          title={BELL_STATUS[bellPermission]}
+          title={t(`meditate.settings.bell.status.${bellPermission}`, BELL_STATUS[bellPermission])}
           icon={{
             name: bellPermission === 'granted' ? 'notifications' : 'notifications-off',
             color: bellPermission === 'denied' ? Colors.danger : MEDITATE_ACCENT,
           }}
         />
         {bellPermission === 'denied' && (
-          <ListRow title="Open Settings" tint="accent" chevron={false} onPress={() => Linking.openSettings()} />
+          <ListRow title={t('meditate.settings.openSettings', 'Open Settings')} tint="accent" chevron={false} onPress={() => Linking.openSettings()} />
         )}
       </ListGroup>
 
       <ListGroup
-        title="NSDR recordings"
-        footer={prefs.nsdr_links.length === 0 && !adding ? 'None yet. Do it on NSDR opens the one you pick.' : undefined}
+        title={t('meditate.settings.nsdr.title', 'NSDR recordings')}
+        footer={
+          prefs.nsdr_links.length === 0 && !adding
+            ? t('meditate.settings.nsdr.none', 'None yet. Do it on NSDR opens the one you pick.')
+            : undefined
+        }
       >
         {prefs.nsdr_links.map((l) => (
           <ListRow
@@ -84,7 +94,7 @@ export const MeditateSettingsScreen: React.FC = () => {
             }
           />
         ))}
-        {!adding && <ListRow title="Add a recording" tint="accent" chevron={false} onPress={() => setAdding(true)} />}
+        {!adding && <ListRow title={t('meditate.settings.addRecording', 'Add a recording')} tint="accent" chevron={false} onPress={() => setAdding(true)} />}
       </ListGroup>
       {adding && <NsdrLinkForm onAdd={addRecording} onCancel={() => setAdding(false)} />}
     </ScrollView>

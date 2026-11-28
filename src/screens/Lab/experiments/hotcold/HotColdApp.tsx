@@ -12,6 +12,8 @@ import { HotColdTimerScreen } from './HotColdTimerScreen';
 import { HotColdHistoryScreen } from './HotColdHistoryScreen';
 import { HotColdSettingsScreen } from './HotColdSettingsScreen';
 import { HOTCOLD_ACCENT } from './components/hotcoldStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 const Stack = createNativeStackNavigator<HotColdStackParamList>();
 
@@ -23,14 +25,15 @@ const Stack = createNativeStackNavigator<HotColdStackParamList>();
  */
 export const HotColdApp: React.FC<NativeStackScreenProps<RootStackParamList, 'HotColdApp'>> = ({ navigation }) => {
   const { user, userProfile } = useAuth();
+  const t = useCopy();
 
   // The one gate (services/miniApps.ts) — Lab-only today.
   if (!user || !canOpenMiniApp('hotcold', userProfile)) {
     return (
       <View style={styles.blocked}>
-        <Text style={styles.blockedText}>Hot & Cold isn’t available on this account yet.</Text>
+        <Copy id="hotcold.app.blocked" style={styles.blockedText}>Hot & Cold isn’t available on this account yet.</Copy>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.blockedLink}>Close</Text>
+          <Copy id="hotcold.app.close" style={styles.blockedLink}>Close</Copy>
         </TouchableOpacity>
       </View>
     );
@@ -47,10 +50,10 @@ export const HotColdApp: React.FC<NativeStackScreenProps<RootStackParamList, 'Ho
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
-        <Stack.Screen name="HotColdHome" component={HotColdHomeScreen} options={{ title: 'Hot & Cold' }} />
-        <Stack.Screen name="HotColdTimer" component={HotColdTimerScreen} options={{ title: 'Timer' }} />
-        <Stack.Screen name="HotColdHistory" component={HotColdHistoryScreen} options={{ title: 'History' }} />
-        <Stack.Screen name="HotColdSettings" component={HotColdSettingsScreen} options={{ title: 'Settings' }} />
+        <Stack.Screen name="HotColdHome" component={HotColdHomeScreen} options={{ title: t('hotcold.app.titleHome', 'Hot & Cold') }} />
+        <Stack.Screen name="HotColdTimer" component={HotColdTimerScreen} options={{ title: t('hotcold.app.titleTimer', 'Timer') }} />
+        <Stack.Screen name="HotColdHistory" component={HotColdHistoryScreen} options={{ title: t('hotcold.app.titleHistory', 'History') }} />
+        <Stack.Screen name="HotColdSettings" component={HotColdSettingsScreen} options={{ title: t('hotcold.app.titleSettings', 'Settings') }} />
       </Stack.Navigator>
     </HotColdProvider>
   );

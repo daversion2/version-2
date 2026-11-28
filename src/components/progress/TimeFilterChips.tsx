@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useCopy } from '../../context/CopyContext';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 
 export type TimeFilter = '7d' | '30d' | '90d' | 'all';
@@ -9,17 +10,18 @@ interface TimeFilterChipsProps {
   onSelect: (filter: TimeFilter) => void;
 }
 
-const FILTERS: { key: TimeFilter; label: string }[] = [
-  { key: '7d', label: '7 Days' },
-  { key: '30d', label: '30 Days' },
-  { key: '90d', label: '90 Days' },
-  { key: 'all', label: 'All Time' },
+const FILTERS: { key: TimeFilter; copyId: string; label: string }[] = [
+  { key: '7d', copyId: 'progress.filter.days7', label: '7 Days' },
+  { key: '30d', copyId: 'progress.filter.days30', label: '30 Days' },
+  { key: '90d', copyId: 'progress.filter.days90', label: '90 Days' },
+  { key: 'all', copyId: 'progress.filter.allTime', label: 'All Time' },
 ];
 
 export const TimeFilterChips: React.FC<TimeFilterChipsProps> = ({ selected, onSelect }) => {
+  const t = useCopy();
   return (
     <View style={styles.container}>
-      {FILTERS.map(({ key, label }) => {
+      {FILTERS.map(({ key, copyId, label }) => {
         const isActive = selected === key;
         return (
           <TouchableOpacity
@@ -28,7 +30,7 @@ export const TimeFilterChips: React.FC<TimeFilterChipsProps> = ({ selected, onSe
             onPress={() => onSelect(key)}
           >
             <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-              {label}
+              {t(copyId, label)}
             </Text>
           </TouchableOpacity>
         );

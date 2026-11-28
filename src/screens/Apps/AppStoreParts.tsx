@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
+import { Copy } from '../../components/common/Copy';
 import type { CatalogApp } from '../../data/appCatalog';
 
 // =============================================================================
@@ -97,12 +98,12 @@ export const FeaturedCard: React.FC<{
     </View>
     <View style={styles.featuredBody}>
       <View style={styles.featuredText}>
-        <Text style={styles.featuredName} numberOfLines={1}>
+        <Copy id={`apps.catalog.${app.id}.name`} style={styles.featuredName} numberOfLines={1}>
           {app.name}
-        </Text>
-        <Text style={styles.featuredTagline} numberOfLines={2}>
+        </Copy>
+        <Copy id={`apps.catalog.${app.id}.tagline`} style={styles.featuredTagline} numberOfLines={2}>
           {app.tagline}
-        </Text>
+        </Copy>
       </View>
       {action}
     </View>
@@ -127,12 +128,18 @@ export const AppRow: React.FC<{
     <AppIcon app={app} />
     <View style={[styles.rowMain, separator && styles.rowSeparator]}>
       <View style={styles.rowText}>
-        <Text style={styles.rowName} numberOfLines={1}>
+        <Copy id={`apps.catalog.${app.id}.name`} style={styles.rowName} numberOfLines={1}>
           {app.name}
-        </Text>
-        <Text style={styles.rowSubtitle} numberOfLines={2}>
-          {subtitle ?? app.tagline}
-        </Text>
+        </Copy>
+        {subtitle ? (
+          <Text style={styles.rowSubtitle} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        ) : (
+          <Copy id={`apps.catalog.${app.id}.tagline`} style={styles.rowSubtitle} numberOfLines={2}>
+            {app.tagline}
+          </Copy>
+        )}
       </View>
       {action}
     </View>

@@ -11,6 +11,8 @@ import { SegmentedControl } from '../../../../components/common/SegmentedControl
 import { showChoice, showConfirm } from '../../../../utils/alert';
 import { useHotCold } from './HotColdContext';
 import { hcs, KIND_COLOR } from './components/hotcoldStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdTimer'>;
 
@@ -21,6 +23,7 @@ type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdTimer'>;
  * to the log sheet on Home.
  */
 export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
+  const t = useCopy();
   const { timer, prefs, updatePrefs, startTimer, stopTimer, cancelTimer } = useHotCold();
   const [kind, setKind] = useState<ThermalKind>(route.params?.kind ?? 'cold');
   const [targetSec, setTargetSec] = useState(prefs.cold_target_sec);
@@ -67,40 +70,45 @@ export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
     const elapsed = elapsedSec({ startedAt: timer.startedAt, plannedSec: 0 }, new Date());
     if (!looksForgotten(timer.kind, elapsed, timer.targetSec)) return finish();
     const kept = clampDuration(elapsed, timer.kind);
-    const keepLabel = `Log ${formatDuration(kept)}`;
+    const keepLabel = t('hotcold.timer.log', 'Log {time}', { time: formatDuration(kept) });
     if (timer.targetSec === undefined) {
       showConfirm(
-        'Still timing?',
-        `The clock says ${formatDuration(elapsed)}. If it kept running after you got out, set the real time on the next screen.`,
+        t('hotcold.timer.stillTiming.title', 'Still timing?'),
+        t('hotcold.timer.stillTiming.message', 'The clock says {time}. If it kept running after you got out, set the real time on the next screen.', { time: formatDuration(elapsed) }),
         () => finish(),
-        'Log it'
+        t('hotcold.timer.stillTiming.confirm', 'Log it')
       );
       return;
     }
     const bell = timer.targetSec;
     showChoice(
-      'Still in the cold?',
-      `The clock says ${formatDuration(elapsed)}, well past your ${formatDuration(bell)} bell. If it kept running after you got out, log your bell time and fix it on the next screen.`,
+      t('hotcold.timer.stillCold.title', 'Still in the cold?'),
+      t('hotcold.timer.stillCold.message', 'The clock says {time}, well past your {bell} bell. If it kept running after you got out, log your bell time and fix it on the next screen.', { time: formatDuration(elapsed), bell: formatDuration(bell) }),
       [
-        { label: `Log ${formatDuration(bell)}`, onPress: () => finish(bell) },
+        { label: t('hotcold.timer.log', 'Log {time}', { time: formatDuration(bell) }), onPress: () => finish(bell) },
         { label: keepLabel, onPress: () => finish() },
       ]
     );
   };
 
   const cancel = () =>
-    showConfirm('Stop without logging?', 'The time won’t be saved.', async () => {
-      await cancelTimer();
-      navigation.goBack();
-    }, 'Stop');
+    showConfirm(
+      t('hotcold.timer.stop.title', 'Stop without logging?'),
+      t('hotcold.timer.stop.message', 'The time won’t be saved.'),
+      async () => {
+        await cancelTimer();
+        navigation.goBack();
+      },
+      t('hotcold.timer.stop.confirm', 'Stop'),
+    );
 
   if (!timer) {
     return (
       <View style={[hcs.screen, styles.wrap]}>
         <SegmentedControl<ThermalKind>
           options={[
-            { value: 'cold', label: 'Cold' },
-            { value: 'heat', label: 'Heat' },
+            { value: 'cold', label: t('hotcold.timer.cold', 'Cold') },
+            { value: 'heat', label: t('hotcold.timer.heat', 'Heat') },
           ]}
           value={kind}
           onChange={setKind}
@@ -109,7 +117,7 @@ export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.middle}>
           {kind === 'cold' ? (
             <>
-              <Text style={styles.label}>Bell at</Text>
+              <Copy id="hotcold.timer.bellAt" style={styles.label}>Bell at</Copy>
               <Stepper
                 value={targetSec}
                 onChange={setTargetSec}
@@ -119,14 +127,14 @@ export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
                 format={formatDuration}
                 accessibilityLabel="Bell at"
               />
-              <Text style={[hcs.muted, styles.centerText]}>
+              <Copy id="hotcold.timer.keepsCounting" style={[hcs.muted, styles.centerText]}>
                 The clock keeps counting after the bell. Lock your phone if you like.
-              </Text>
+              </Copy>
             </>
           ) : (
-            <Text style={[hcs.body, styles.centerText]}>
+            <Copy id="hotcold.timer.noBellHeat" style={[hcs.body, styles.centerText]}>
               No bell for heat. Heat is hard on phones, so most people log afterwards instead.
-            </Text>
+            </Copy>
           )}
         </View>
         <TouchableOpacity
@@ -134,7 +142,7 @@ export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress={start}
           disabled={starting}
         >
-          <Text style={hcs.primaryBtnText}>Start</Text>
+          <Copy id="hotcold.timer.start" style={hcs.primaryBtnText}>Start</Copy>
         </TouchableOpacity>
       </View>
     );
@@ -151,19 +159,23 @@ export const HotColdTimerScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={[styles.clock, { color }]} accessibilityRole="timer">
           {formatClock(elapsed)}
         </Text>
-        <Text style={[hcs.body, styles.centerText]}>
+        <Copy
+          id={timer.targetSec === undefined ? 'hotcold.timer.noBell' : past ? 'hotcold.timer.past' : 'hotcold.timer.bellAtTime'}
+          style={[hcs.body, styles.centerText]}
+          vars={{ time: timer.targetSec === undefined ? '' : formatDuration(timer.targetSec) }}
+        >
           {timer.targetSec === undefined
             ? 'No bell'
             : past
-              ? `Past your ${formatDuration(timer.targetSec)}. Get out when you’re ready.`
-              : `Bell at ${formatDuration(timer.targetSec)}`}
-        </Text>
+              ? 'Past your {time}. Get out when you’re ready.'
+              : 'Bell at {time}'}
+        </Copy>
       </View>
       <TouchableOpacity style={[hcs.primaryBtn, { backgroundColor: color }]} onPress={done}>
-        <Text style={hcs.primaryBtnText}>Done</Text>
+        <Copy id="hotcold.timer.done" style={hcs.primaryBtnText}>Done</Copy>
       </TouchableOpacity>
       <TouchableOpacity style={hcs.textBtn} onPress={cancel}>
-        <Text style={hcs.textBtnText}>Stop without logging</Text>
+        <Copy id="hotcold.timer.stopLink" style={hcs.textBtnText}>Stop without logging</Copy>
       </TouchableOpacity>
     </View>
   );

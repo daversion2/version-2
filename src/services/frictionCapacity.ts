@@ -1,6 +1,7 @@
 import { CompletionLog } from '../types';
 import { logResistance } from '../constants/resistance';
 import { addDays, daysBetween } from './habitSchedule';
+import { copyText, declareCopy } from './appCopy';
 
 // =============================================================================
 // FRICTION YOU CAN HANDLE — the Progress headline.
@@ -123,14 +124,26 @@ export const withArticle = (n: number): string => {
   return `${s.startsWith('8') || n === 11 || n === 18 ? 'an' : 'a'} ${s}`;
 };
 
+// Admin-editable (Admin → All wording, "progress.friction.*").
+const LINES = declareCopy({
+  'progress.friction.growth.twice': 'Twice your first weeks',
+  'progress.friction.growth.times': '{ratio}× your first weeks',
+  'progress.friction.growth.same': 'Same as your first weeks',
+  'progress.friction.sentence.none': 'Nothing logged in the last 7 days. The bars pick up the moment you do.',
+  'progress.friction.sentence.gap': 'Your last 7 days would have felt like {faced} when you started. They felt like {felt}.',
+  'progress.friction.sentence.harder': 'Your last 7 days felt harder than when you started. A tough stretch, not a step back.',
+  'progress.friction.sentence.same': 'Your last 7 days felt about as hard as when you started. As starting gets easier, the gap opens up.',
+});
+const line = (key: keyof typeof LINES, vars?: Record<string, string | number>) => copyText(key, LINES[key], vars);
+
 /** "Twice your first weeks", "1.5× your first weeks" — or null when there's nothing to celebrate. */
 export const growthLabel = (overview: FrictionOverview): string | null => {
   const { firstWeeksFaced, faced } = overview;
   if (!firstWeeksFaced) return null;
   const ratio = faced / firstWeeksFaced;
-  if (ratio >= 1.95 && ratio < 2.05) return 'Twice your first weeks';
-  if (ratio >= 1.15) return `${Number(ratio.toFixed(1))}× your first weeks`;
-  if (ratio >= 0.85) return 'Same as your first weeks';
+  if (ratio >= 1.95 && ratio < 2.05) return line('progress.friction.growth.twice');
+  if (ratio >= 1.15) return line('progress.friction.growth.times', { ratio: Number(ratio.toFixed(1)) });
+  if (ratio >= 0.85) return line('progress.friction.growth.same');
   // Carrying less than at the start is not something to put in a headline.
   return null;
 };
@@ -138,12 +151,12 @@ export const growthLabel = (overview: FrictionOverview): string | null => {
 /** The sentence that explains the card without explaining the maths. */
 export const frictionSentence = (overview: FrictionOverview): string => {
   const { faced, felt } = overview;
-  if (faced === 0) return 'Nothing logged in the last 7 days. The bars pick up the moment you do.';
+  if (faced === 0) return line('progress.friction.sentence.none');
   if (faced - felt >= 1) {
-    return `Your last 7 days would have felt like ${withArticle(faced)} when you started. They felt like ${withArticle(felt)}.`;
+    return line('progress.friction.sentence.gap', { faced: withArticle(faced), felt: withArticle(felt) });
   }
   if (felt - faced >= 1) {
-    return 'Your last 7 days felt harder than when you started. A tough stretch, not a step back.';
+    return line('progress.friction.sentence.harder');
   }
-  return 'Your last 7 days felt about as hard as when you started. As starting gets easier, the gap opens up.';
+  return line('progress.friction.sentence.same');
 };

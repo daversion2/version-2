@@ -28,6 +28,8 @@ import {
 import { formatRelativeDay, toLocalDateString } from '../../../../../utils/date';
 import { showAlert } from '../../../../../utils/alert';
 import { SetEntrySheet } from './SetEntrySheet';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT } from './workoutsStyle';
 
 // =============================================================================
@@ -70,6 +72,7 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
   onCancel,
 }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const [query, setQuery] = useState('');
   const [entry, setEntry] = useState<{ exercise: Exercise; initial: SetValues } | null>(null);
   const [listOpen, setListOpen] = useState(visible);
@@ -98,9 +101,12 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
 
   const lastLine = (exercise: Exercise): string => {
     const last = lastTimeFor(sessions, exercise);
-    if (!last) return 'Not done yet';
+    if (!last) return t('workouts.log.notDone', 'Not done yet');
     const numbers = formatSetValues(last.values, exercise.kind, unit);
-    const sets = exercise.kind === 'cardio' || last.count === 1 ? '' : `${last.count} sets · `;
+    const sets =
+      exercise.kind === 'cardio' || last.count === 1
+        ? ''
+        : t('workouts.log.setsPrefix', '{n} sets · ', { n: last.count });
     return `${sets}${numbers} · ${formatRelativeDay(toLocalDateString(new Date(last.at)))}`;
   };
 
@@ -114,7 +120,10 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
       try {
         records = await withTimeout(getRecordsFor(userId, [exercise.id]), RECORDS_READ_MS);
       } catch {
-        showAlert("Couldn't log that", 'Check your connection and try again.');
+        showAlert(
+          t('workouts.log.failTitle', "Couldn't log that"),
+          t('workouts.log.failMsg', 'Check your connection and try again.')
+        );
         return false;
       }
       const { session, record } = quickLogSession({
@@ -134,7 +143,10 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
       } catch (e) {
         // Timed out: queued, and it lands once back online. The rating can go ahead.
         if (!isTimeoutError(e)) {
-          showAlert("Couldn't log that", 'Check your connection and try again.');
+          showAlert(
+          t('workouts.log.failTitle', "Couldn't log that"),
+          t('workouts.log.failMsg', 'Check your connection and try again.')
+        );
           return false;
         }
       }
@@ -182,7 +194,9 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
           accessibilityRole="button"
           accessibilityLabel={`Log ${exercise.name}, same as last time`}
         >
-          {savingSame ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.sameText}>Same</Text>}
+          {savingSame ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.log.same" style={styles.sameText}>
+              Same
+            </Copy>}
         </TouchableOpacity>
       ) : (
         <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
@@ -199,11 +213,13 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
             <View style={styles.grabber} />
             <View style={styles.head}>
               <TouchableOpacity onPress={onCancel} hitSlop={8} accessibilityRole="button">
-                <Text style={styles.cancel}>Cancel</Text>
+                <Copy id="workouts.log.cancel" style={styles.cancel}>
+                  Cancel
+                </Copy>
               </TouchableOpacity>
-              <Text style={styles.title} accessibilityRole="header">
+              <Copy id="workouts.log.title" style={styles.title} accessibilityRole="header">
                 Log to this week
-              </Text>
+              </Copy>
               <View style={styles.headSpacer} />
             </View>
             <View style={styles.search}>
@@ -211,7 +227,7 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Search exercises"
+                placeholder={t('workouts.log.search', 'Search exercises')}
                 placeholderTextColor={Colors.gray}
                 style={styles.searchInput}
                 autoCorrect={false}
@@ -226,16 +242,26 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
                 keyExtractor={(e) => e.id}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => row(item, false)}
-                ListEmptyComponent={<Text style={styles.empty}>Nothing matches “{query.trim()}”.</Text>}
+                ListEmptyComponent={
+                  <Copy id="workouts.log.noMatch" style={styles.empty} vars={{ query: query.trim() }}>
+                    {'Nothing matches “{query}”.'}
+                  </Copy>
+                }
               />
             ) : usual.length > 0 ? (
               <>
-                <Text style={styles.sectionLabel}>You usually log</Text>
+                <Copy id="workouts.log.usually" style={styles.sectionLabel}>
+                  You usually log
+                </Copy>
                 <View style={styles.panel}>{usual.map((e, i) => row(e, i === 0))}</View>
-                <Text style={styles.hint}>“Same” saves it exactly as last time.</Text>
+                <Copy id="workouts.log.hint" style={styles.hint}>
+                  “Same” saves it exactly as last time.
+                </Copy>
               </>
             ) : (
-              <Text style={styles.empty}>Search for what you did. What you log most will show up here.</Text>
+              <Copy id="workouts.log.empty" style={styles.empty}>
+                Search for what you did. What you log most will show up here.
+              </Copy>
             )}
           </View>
         </View>
@@ -249,7 +275,7 @@ export const WorkoutLogSheet: React.FC<WorkoutLogSheetProps> = ({
         vt2={vt2}
         mode="add"
         initial={entry?.initial ?? {}}
-        note="Added to this week, then rated on Today."
+        note={t('workouts.log.note', 'Added to this week, then rated on Today.')}
         onCancel={() => {
           setEntry(null);
           onCancel();

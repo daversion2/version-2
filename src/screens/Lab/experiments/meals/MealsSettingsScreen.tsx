@@ -38,6 +38,8 @@ import { clampWeeklyGoal } from '../../../../services/appCheckins';
 import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
 import { useMeals } from './MealsContext';
 import { MEALS_ACCENT, NUTRIENT_COLOR, mls } from './components/mealsStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsSettings'>;
 
@@ -92,7 +94,7 @@ const CustomFoodRow: React.FC<{
         </TouchableOpacity>
       </View>
       <View style={styles.goalLine}>
-        <Text style={mls.body}>Scores</Text>
+        <Copy id="meals.settings.food.scores" style={mls.body}>Scores</Copy>
         <Stepper
           value={food.score}
           min={0}
@@ -125,6 +127,7 @@ const CustomFoodRow: React.FC<{
 };
 
 export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const { prefs, model, updatePrefs, habits, newId } = useMeals();
   const [choosingFor, setChoosingFor] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
@@ -141,10 +144,12 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
     if (id === goalId) return;
     if (changed === 0) return updatePrefs({ goal: id, score_overrides: {} });
     showConfirm(
-      `Switch to ${mealGoal(id).label}?`,
-      `Your ${changed} changed ${changed === 1 ? 'score goes' : 'scores go'} back to the ${mealGoal(id).label} defaults. Days already logged keep their scores.`,
+      t('meals.settings.switch.title', 'Switch to {goal}?', { goal: mealGoal(id).label }),
+      changed === 1
+        ? t('meals.settings.switch.message.one', 'Your {n} changed score goes back to the {goal} defaults. Days already logged keep their scores.', { n: changed, goal: mealGoal(id).label })
+        : t('meals.settings.switch.message.other', 'Your {n} changed scores go back to the {goal} defaults. Days already logged keep their scores.', { n: changed, goal: mealGoal(id).label }),
       () => updatePrefs({ goal: id, score_overrides: {} }),
-      'Switch'
+      t('meals.settings.switch.confirm', 'Switch')
     );
   };
 
@@ -164,10 +169,10 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 
   const removeFood = (food: CustomFoodGroup) =>
     showConfirm(
-      `Remove ${food.label}?`,
-      'It leaves the picker. Days already logged with it keep it.',
+      t('meals.settings.removeFood.title', 'Remove {food}?', { food: food.label }),
+      t('meals.settings.removeFood.message', 'It leaves the picker. Days already logged with it keep it.'),
       () => updatePrefs({ custom_groups: archiveCustomGroup(customGroups, food.id) }),
-      'Remove'
+      t('meals.settings.removeFood.confirm', 'Remove')
     );
 
   const addGoal = () => {
@@ -177,16 +182,18 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll} keyboardShouldPersistTaps="handled">
-      <Text style={mls.sectionLabel}>Weekly goal</Text>
+      <Copy id="meals.settings.weeklyGoal" style={mls.sectionLabel}>Weekly goal</Copy>
       <WeeklyGoalPicker
-        noun="days logged"
+        noun={t('meals.settings.noun', 'days logged')}
         value={clampWeeklyGoal(prefs.weekly_goal, 'meals')}
         accent={MEALS_ACCENT}
         onChange={(n) => updatePrefs({ weekly_goal: n })}
       />
 
-      <Text style={mls.sectionLabel}>What you’re eating for</Text>
-      <Text style={mls.muted}>Your goal decides what counts most in each food group’s score. Ultra-processed food stays at {model.ceilings[3]} or under in every goal.</Text>
+      <Copy id="meals.settings.eatingFor" style={mls.sectionLabel}>What you’re eating for</Copy>
+      <Copy id="meals.settings.eatingForNote" style={mls.muted} vars={{ cap: model.ceilings[3] }}>
+        {'Your goal decides what counts most in each food group’s score. Ultra-processed food stays at {cap} or under in every goal.'}
+      </Copy>
       <View style={[mls.card, styles.goalList]}>
         {MEAL_GOALS.map((g, i) => {
           const active = goalId === g.id;
@@ -213,21 +220,26 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
         accessibilityRole="button"
       >
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={mls.title}>Customize scores</Text>
-          <Text style={mls.muted}>
+          <Copy id="meals.settings.customize.title" style={mls.title}>Customize scores</Copy>
+          <Copy
+            id={changed === 0 ? 'meals.settings.customize.using' : changed === 1 ? 'meals.settings.customize.changed.one' : 'meals.settings.customize.changed.other'}
+            style={mls.muted}
+            vars={{ goal: mealGoal(goalId).label, n: changed }}
+          >
             {changed === 0
-              ? `Using the ${mealGoal(goalId).label} scores.`
-              : `${changed} ${changed === 1 ? 'score' : 'scores'} changed from ${mealGoal(goalId).label}.`}
-          </Text>
+              ? 'Using the {goal} scores.'
+              : changed === 1
+                ? '{n} score changed from {goal}.'
+                : '{n} scores changed from {goal}.'}
+          </Copy>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
       </TouchableOpacity>
 
-      <Text style={mls.sectionLabel}>My foods</Text>
-      <Text style={mls.muted}>
-        Foods the groups don’t fit, like a carb supplement. Each scores what you give it, like any other food group.
-        Tags show on the plate but add no points.
-      </Text>
+      <Copy id="meals.settings.myFoods" style={mls.sectionLabel}>My foods</Copy>
+      <Copy id="meals.settings.myFoodsNote" style={mls.muted}>
+        Foods the groups don’t fit, like a carb supplement. Each scores what you give it, like any other food group. Tags show on the plate but add no points.
+      </Copy>
       {myFoods.map((food) => (
         <CustomFoodRow
           key={food.id}
@@ -240,14 +252,14 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
       {myFoods.length < MAX_CUSTOM_GROUPS && (
         <TouchableOpacity onPress={addFood} style={styles.add}>
           <Ionicons name="add" size={16} color={MEALS_ACCENT} />
-          <Text style={mls.link}>Add a food</Text>
+          <Copy id="meals.settings.addFood" style={mls.link}>Add a food</Copy>
         </TouchableOpacity>
       )}
 
-      <Text style={mls.sectionLabel}>Scoring</Text>
+      <Copy id="meals.settings.scoring" style={mls.sectionLabel}>Scoring</Copy>
       <View style={[mls.card, styles.goal]}>
         <View style={styles.goalLine}>
-          <Text style={mls.title}>On target at</Text>
+          <Copy id="meals.settings.onTargetAt" style={mls.title}>On target at</Copy>
           <Stepper
             value={clampOnTargetThreshold(prefs.scoring.on_target_threshold)}
             min={MIN_ON_TARGET_THRESHOLD}
@@ -257,12 +269,12 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
             onChange={(n) => setWeight('on_target_threshold', n)}
           />
         </View>
-        <Text style={mls.muted}>Your day is on target once your plates average this score or more.</Text>
+        <Copy id="meals.settings.onTargetNote" style={mls.muted}>Your day is on target once your plates average this score or more.</Copy>
       </View>
-      <Text style={mls.sectionLabel}>Food-group goals</Text>
-      <Text style={mls.muted}>
-        Up to {MAX_GROUP_GOALS}. A progress readout, not a gate — it doesn't change whether the day is on target.
-      </Text>
+      <Copy id="meals.settings.groupGoals" style={mls.sectionLabel}>Food-group goals</Copy>
+      <Copy id="meals.settings.groupGoalsNote" style={mls.muted} vars={{ max: MAX_GROUP_GOALS }}>
+        {"Up to {max}. A progress readout, not a gate — it doesn't change whether the day is on target."}
+      </Copy>
       {prefs.group_goals.map((goal) => (
         <View key={goal.id} style={[mls.card, styles.goalCard]}>
           <View style={styles.row}>
@@ -285,8 +297,8 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
             />
             <SegmentedControl
               options={[
-                { value: 'day', label: 'Per day' },
-                { value: 'week', label: 'Per week' },
+                { value: 'day', label: t('meals.settings.perDay', 'Per day') },
+                { value: 'week', label: t('meals.settings.perWeek', 'Per week') },
               ]}
               value={goal.period}
               onChange={(period) => changeGoal(goal.id, { period })}
@@ -294,7 +306,9 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.period}
             />
             <TouchableOpacity onPress={() => setChoosingFor(choosingFor === goal.id ? null : goal.id)}>
-              <Text style={mls.link}>{choosingFor === goal.id ? 'Done' : 'Change food'}</Text>
+              <Copy id={choosingFor === goal.id ? 'meals.settings.done' : 'meals.settings.changeFood'} style={mls.link}>
+                {choosingFor === goal.id ? 'Done' : 'Change food'}
+              </Copy>
             </TouchableOpacity>
           </View>
           {choosingFor === goal.id && (
@@ -320,13 +334,13 @@ export const MealsSettingsScreen: React.FC<Props> = ({ navigation }) => {
       {prefs.group_goals.length < MAX_GROUP_GOALS && (
         <TouchableOpacity onPress={addGoal} style={styles.add}>
           <Ionicons name="add" size={16} color={MEALS_ACCENT} />
-          <Text style={mls.link}>Add a food-group goal</Text>
+          <Copy id="meals.settings.addGoal" style={mls.link}>Add a food-group goal</Copy>
         </TouchableOpacity>
       )}
 
       <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')} style={styles.add}>
         <Ionicons name="information-circle-outline" size={16} color={MEALS_ACCENT} />
-        <Text style={mls.link}>What counts as what</Text>
+        <Copy id="meals.settings.whatCounts" style={mls.link}>What counts as what</Copy>
       </TouchableOpacity>
     </ScrollView>
   );

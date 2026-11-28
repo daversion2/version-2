@@ -21,6 +21,8 @@ import { CardioZonePicker } from './CardioEntry';
 import { CardioZonesInfo } from './CardioZonesInfo';
 import { ExercisePickerModal } from './ExercisePickerModal';
 import { ExercisePhotos } from './ExerciseDemoCard';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
@@ -39,6 +41,7 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
   onChange,
 }) => {
   const { exercise, prefs } = useWorkouts();
+  const tx = useCopy();
   const kind = exercise(item.exerciseId).kind;
   const t = { ...DEFAULT_TARGET[kind], ...item.target };
 
@@ -48,14 +51,16 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
       <View style={styles.cardioTarget}>
         <NumberStepper
           size="small"
-          label="Minutes"
+          label={tx('workouts.block.minutes', 'Minutes')}
           value={minutes}
           onDecrement={() => onChange({ ...t, seconds: clamp(minutes - 1, 1, 600) * 60 })}
           onIncrement={() => onChange({ ...t, seconds: clamp(minutes + 1, 1, 600) * 60 })}
           onSubmitValue={(v) => onChange({ ...t, seconds: clamp(Math.round(v), 1, 600) * 60 })}
         />
         <View style={styles.zoneHead}>
-          <Text style={ws.muted}>How hard</Text>
+          <Copy id="workouts.block.howHard" style={ws.muted}>
+            How hard
+          </Copy>
           <CardioZonesInfo size={18} />
         </View>
         <CardioZonePicker compact value={t.zone ?? 1} onChange={(zone) => onChange({ ...t, zone })} />
@@ -76,7 +81,7 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
     return (
       <NumberStepper
         size="small"
-        label="Seconds"
+        label={tx('workouts.block.seconds', 'Seconds')}
         value={t.seconds ?? 30}
         onDecrement={() => onChange({ ...t, seconds: clamp((t.seconds ?? 30) - 5, 5, 3600) })}
         onIncrement={() => onChange({ ...t, seconds: clamp((t.seconds ?? 30) + 5, 5, 3600) })}
@@ -88,7 +93,7 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
     <View style={styles.targetRow}>
       <NumberStepper
         size="small"
-        label="Reps"
+        label={tx('workouts.block.reps', 'Reps')}
         value={t.reps ?? 10}
         onDecrement={() => onChange({ ...t, reps: clamp((t.reps ?? 10) - 1, 1, 500) })}
         onIncrement={() => onChange({ ...t, reps: clamp((t.reps ?? 10) + 1, 1, 500) })}
@@ -97,7 +102,7 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
       {kind === 'weight' && (
         <NumberStepper
           size="small"
-          label={`Weight (${prefs.unit})`}
+          label={tx('workouts.block.weight', 'Weight ({unit})', { unit: prefs.unit })}
           value={toDisplayWeight(t.weightKg ?? 0, prefs.unit)}
           allowDecimal
           onDecrement={() => onChange({ ...t, weightKg: stepWeight(t.weightKg ?? 0, prefs.unit, -1) })}
@@ -111,6 +116,7 @@ const TargetEditor: React.FC<{ item: BlockItem; onChange: (target: SetValues) =>
 
 export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, onSave, onDelete }) => {
   const { exercise } = useWorkouts();
+  const t = useCopy();
   const [draft, setDraft] = useState<WorkoutBlock | null>(block);
   const [picking, setPicking] = useState(false);
 
@@ -149,26 +155,34 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
       <View style={styles.sheet}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel} hitSlop={8}>
-            <Text style={styles.headerAction}>Cancel</Text>
+            <Copy id="workouts.block.cancel" style={styles.headerAction}>
+              Cancel
+            </Copy>
           </TouchableOpacity>
-          <Text style={styles.title}>{isCircuit ? 'Circuit' : exercise(draft.items[0].exerciseId).name}</Text>
+          <Text style={styles.title}>
+            {isCircuit ? t('workouts.block.circuit', 'Circuit') : exercise(draft.items[0].exerciseId).name}
+          </Text>
           <TouchableOpacity
             onPress={() => onSave({ ...draft, type: isCircuit ? 'circuit' : 'single' })}
             hitSlop={8}
           >
-            <Text style={[styles.headerAction, styles.headerSave]}>Done</Text>
+            <Copy id="workouts.block.done" style={[styles.headerAction, styles.headerSave]}>
+              Done
+            </Copy>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {isCircuit && (
             <View style={{ gap: Spacing.xs }}>
-              <Text style={ws.sectionLabel}>Name</Text>
+              <Copy id="workouts.block.name" style={ws.sectionLabel}>
+                Name
+              </Copy>
               <TextInput
                 style={styles.nameInput}
                 value={draft.name ?? ''}
                 onChangeText={(name) => setDraft({ ...draft, name })}
-                placeholder="Circuit"
+                placeholder={t('workouts.block.circuit', 'Circuit')}
                 placeholderTextColor={Colors.gray}
               />
             </View>
@@ -176,14 +190,14 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
 
           <View style={styles.pair}>
             <NumberStepper
-              label={isCircuit ? 'Rounds' : 'Sets'}
+              label={isCircuit ? t('workouts.block.rounds', 'Rounds') : t('workouts.block.sets', 'Sets')}
               value={draft.rounds}
               onDecrement={() => setDraft({ ...draft, rounds: clamp(draft.rounds - 1, 1, 20) })}
               onIncrement={() => setDraft({ ...draft, rounds: clamp(draft.rounds + 1, 1, 20) })}
             />
             {onClock ? (
               <NumberStepper
-                label={isCircuit ? 'A round every' : 'A set every'}
+                label={isCircuit ? t('workouts.block.roundEvery', 'A round every') : t('workouts.block.setEvery', 'A set every')}
                 value={draft.intervalSec!}
                 suffix={formatClock(draft.intervalSec!)}
                 onDecrement={() => setDraft({ ...draft, intervalSec: clamp(draft.intervalSec! - 15, 30, 900) })}
@@ -191,9 +205,13 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
               />
             ) : (
               <NumberStepper
-                label={isCircuit ? 'Rest after a round' : 'Rest between sets'}
+                label={
+                  isCircuit
+                    ? t('workouts.block.restAfterRound', 'Rest after a round')
+                    : t('workouts.block.restBetweenSets', 'Rest between sets')
+                }
                 value={draft.restSec}
-                suffix={draft.restSec > 0 ? formatSeconds(draft.restSec) : 'no rest'}
+                suffix={draft.restSec > 0 ? formatSeconds(draft.restSec) : t('workouts.block.noRest', 'no rest')}
                 onDecrement={() => setDraft({ ...draft, restSec: clamp(draft.restSec - 15, 0, 600) })}
                 onIncrement={() => setDraft({ ...draft, restSec: clamp(draft.restSec + 15, 0, 600) })}
               />
@@ -201,12 +219,14 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
           </View>
 
           <View style={{ gap: Spacing.xs }}>
-            <Text style={ws.sectionLabel}>Clock</Text>
+            <Copy id="workouts.block.clock" style={ws.sectionLabel}>
+              Clock
+            </Copy>
             <SegmentedControl
               accessibilityLabel="Clock"
               options={[
-                { value: 'rest', label: 'Rest after each' },
-                { value: 'interval', label: 'On the clock' },
+                { value: 'rest', label: t('workouts.block.restAfterEach', 'Rest after each') },
+                { value: 'interval', label: t('workouts.block.onClock', 'On the clock') },
               ]}
               value={onClock ? 'interval' : 'rest'}
               onChange={setClock}
@@ -214,13 +234,30 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
           </View>
           <Text style={ws.muted}>
             {onClock
-              ? `${isCircuit ? 'Each round' : 'Each set'} starts on the clock; whatever’s left after the work is rest. ${draft.rounds} ${isCircuit ? (draft.rounds === 1 ? 'round' : 'rounds') : draft.rounds === 1 ? 'set' : 'sets'} take ${formatClock(draft.rounds * draft.intervalSec!)}.${isCircuit ? ' The exercises run back to back inside it.' : ''}`
+              ? t(
+                  'workouts.block.clockExplain',
+                  '{each} starts on the clock; whatever’s left after the work is rest. {count} take {time}.{extra}',
+                  {
+                    each: isCircuit ? t('workouts.block.eachRound', 'Each round') : t('workouts.block.eachSet', 'Each set'),
+                    count: isCircuit
+                      ? draft.rounds === 1
+                        ? t('workouts.block.oneRound', '{n} round', { n: draft.rounds })
+                        : t('workouts.block.nRounds', '{n} rounds', { n: draft.rounds })
+                      : draft.rounds === 1
+                        ? t('workouts.block.oneSet', '{n} set', { n: draft.rounds })
+                        : t('workouts.block.nSets', '{n} sets', { n: draft.rounds }),
+                    time: formatClock(draft.rounds * draft.intervalSec!),
+                    extra: isCircuit ? t('workouts.block.backToBack', ' The exercises run back to back inside it.') : '',
+                  }
+                )
               : isCircuit
-                ? 'Exercises run back to back with no rest; the timer starts after the last one.'
-                : 'Rest starts when you log the set. Best for sets to failure or anything you can’t time.'}
+                ? t('workouts.block.noRestCircuit', 'Exercises run back to back with no rest; the timer starts after the last one.')
+                : t('workouts.block.restNote', 'Rest starts when you log the set. Best for sets to failure or anything you can’t time.')}
           </Text>
 
-          <Text style={ws.sectionLabel}>{isCircuit ? 'Exercises, in order' : 'Each set'}</Text>
+          <Text style={ws.sectionLabel}>
+            {isCircuit ? t('workouts.block.inOrder', 'Exercises, in order') : t('workouts.block.eachSetLabel', 'Each set')}
+          </Text>
           {draft.items.map((item, index) => (
             <View key={`${item.exerciseId}_${index}`} style={ws.card}>
               <View style={styles.itemHead}>
@@ -254,26 +291,35 @@ export const BlockEditorModal: React.FC<Props> = ({ visible, block, onCancel, on
 
           <TouchableOpacity style={ws.secondaryBtn} onPress={() => setPicking(true)}>
             <Text style={ws.secondaryBtnText}>
-              {isCircuit ? 'Add an exercise to the circuit' : 'Make it a circuit — add an exercise'}
+              {isCircuit
+                ? t('workouts.block.addToCircuit', 'Add an exercise to the circuit')
+                : t('workouts.block.makeCircuit', 'Make it a circuit — add an exercise')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.delete}
             onPress={() =>
-              showConfirm('Remove from workout?', 'This only changes the plan, not past sessions.', onDelete, 'Remove')
+              showConfirm(
+                t('workouts.block.removeTitle', 'Remove from workout?'),
+                t('workouts.block.removeMsg', 'This only changes the plan, not past sessions.'),
+                onDelete,
+                t('workouts.block.remove', 'Remove')
+              )
             }
           >
             <Ionicons name="trash-outline" size={16} color={Colors.danger} />
-            <Text style={styles.deleteText}>Remove {isCircuit ? 'circuit' : 'exercise'}</Text>
+            <Text style={styles.deleteText}>
+              {isCircuit ? t('workouts.block.removeCircuit', 'Remove circuit') : t('workouts.block.removeExercise', 'Remove exercise')}
+            </Text>
           </TouchableOpacity>
         </ScrollView>
 
         <ExercisePickerModal
           visible={picking}
-          title="Add to circuit"
+          title={t('workouts.block.addToCircuitTitle', 'Add to circuit')}
           mode="multi"
-          confirmLabel={(n) => `Add ${n} to the circuit`}
+          confirmLabel={(n) => t('workouts.block.addN', 'Add {n} to the circuit', { n })}
           onCancel={() => setPicking(false)}
           onConfirm={(picked) => {
             setPicking(false);

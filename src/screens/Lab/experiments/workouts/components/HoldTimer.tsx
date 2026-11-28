@@ -5,6 +5,8 @@ import { Colors, Spacing, BorderRadius, TextStyles } from '../../../../../consta
 import { formatClock } from '../../../../../services/workoutMath';
 import { triggerTapHaptic } from '../../../../../utils/haptics';
 import { NumberStepper } from './NumberStepper';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT } from './workoutsStyle';
 
 interface Props {
@@ -22,6 +24,7 @@ interface Props {
  * have timed it on the gym clock.
  */
 export const HoldTimer: React.FC<Props> = ({ seconds, targetSec, onChange, onRunningChange }) => {
+  const t = useCopy();
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const buzzedRef = useRef(false);
@@ -58,10 +61,20 @@ export const HoldTimer: React.FC<Props> = ({ seconds, targetSec, onChange, onRun
     return (
       <View style={styles.running}>
         <Text style={[styles.clock, reached && styles.clockReached]}>{formatClock(elapsed)}</Text>
-        <Text style={styles.target}>{reached ? 'Target reached — keep going or stop' : `Target ${formatClock(targetSec)}`}</Text>
+        {reached ? (
+          <Copy id="workouts.hold.reached" style={styles.target}>
+            Target reached — keep going or stop
+          </Copy>
+        ) : (
+          <Copy id="workouts.hold.target" style={styles.target} vars={{ time: formatClock(targetSec) }}>
+            {'Target {time}'}
+          </Copy>
+        )}
         <TouchableOpacity style={styles.stop} onPress={stop} accessibilityRole="button">
           <Ionicons name="stop" size={18} color={Colors.white} />
-          <Text style={styles.stopText}>Stop</Text>
+          <Copy id="workouts.hold.stop" style={styles.stopText}>
+            Stop
+          </Copy>
         </TouchableOpacity>
       </View>
     );
@@ -70,7 +83,7 @@ export const HoldTimer: React.FC<Props> = ({ seconds, targetSec, onChange, onRun
   return (
     <View style={styles.idle}>
       <NumberStepper
-        label="Seconds"
+        label={t('workouts.hold.seconds', 'Seconds')}
         value={seconds}
         suffix={formatClock(seconds)}
         onDecrement={() => onChange(Math.max(1, seconds - 5))}
@@ -79,7 +92,9 @@ export const HoldTimer: React.FC<Props> = ({ seconds, targetSec, onChange, onRun
       />
       <TouchableOpacity style={styles.start} onPress={start} accessibilityRole="button">
         <Ionicons name="play" size={16} color={WORKOUTS_ACCENT} />
-        <Text style={styles.startText}>Start timer</Text>
+        <Copy id="workouts.hold.start" style={styles.startText}>
+          Start timer
+        </Copy>
       </TouchableOpacity>
     </View>
   );

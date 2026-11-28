@@ -6,6 +6,8 @@ import { NUTRIENTS, groupLabel } from '../../../../../data/mealGroups';
 import type { NutrientId } from '../../../../../types/meals';
 import { FAIL_COLOR, MEALS_ACCENT, NUTRIENT_COLOR, PASS_COLOR, STATUS_TITLE, scoreColor } from './mealsStyle';
 import { useMeals } from '../MealsContext';
+import { copyText } from '../../../../../services/appCopy';
+import { Copy } from '../../../../../components/common/Copy';
 
 /**
  * "2 meals logged · target 70+" while the day is open; once it's decided,
@@ -15,12 +17,15 @@ import { useMeals } from '../MealsContext';
 const statusLine = (score: DayScore, threshold: number): string => {
   const n = score.scoredCount;
   if (score.status === 'pending') {
-    return `${n === 0 ? 'Nothing' : n} ${n === 1 ? 'meal' : 'meals'} logged · target ${threshold}+`;
+    const count = n === 0 ? 'Nothing' : n;
+    return n === 1
+      ? copyText('meals.status.pending.one', '{count} meal logged · target {target}+', { count, target: threshold })
+      : copyText('meals.status.pending.other', '{count} meals logged · target {target}+', { count, target: threshold });
   }
-  if (score.status === 'none') return 'Nothing logged · counts neither way';
+  if (score.status === 'none') return copyText('meals.status.none', 'Nothing logged · counts neither way');
   return score.status === 'on'
-    ? `Averaged ${score.average} · at or above your target of ${threshold}`
-    : `Averaged ${score.average} · below your target of ${threshold}`;
+    ? copyText('meals.status.on', 'Averaged {avg} · at or above your target of {target}', { avg: score.average ?? '', target: threshold })
+    : copyText('meals.status.off', 'Averaged {avg} · below your target of {target}', { avg: score.average ?? '', target: threshold });
 };
 
 /** A small rounded tag: filled when it's there, a dashed outline when it isn't. */
@@ -87,7 +92,9 @@ export const DayStatusCard: React.FC<{ score: DayScore; threshold: number }> = (
       <View style={styles.statusTop}>
         <Text style={styles.statusScore}>{score.average ?? '–'}</Text>
         <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-          <Text style={[styles.badgeText, { color: badge.text }]}>{STATUS_TITLE[score.status]}</Text>
+          <Copy id={`meals.status.title.${score.status}`} style={[styles.badgeText, { color: badge.text }]}>
+            {STATUS_TITLE[score.status]}
+          </Copy>
         </View>
       </View>
       <Text style={styles.statusLine}>{statusLine(score, threshold)}</Text>
@@ -113,7 +120,7 @@ export const plateTime = (loggedAt: string): string =>
   new Date(loggedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 /** A plate's title: its name, or "Meal" when it has none. */
-export const plateTitle = (name?: string): string => name || 'Meal';
+export const plateTitle = (name?: string): string => name || copyText('meals.plate.defaultTitle', 'Meal');
 
 /**
  * One plate, as a row in a grouped list (ListGroup passes `separator`): its

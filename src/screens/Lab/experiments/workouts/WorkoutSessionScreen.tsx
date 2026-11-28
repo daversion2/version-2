@@ -56,6 +56,8 @@ import {
 import { answerStepUp, applyStepUp, stepUpKey, suggestStepUp } from '../../../../services/trainingPhases';
 import { showChoice, showConfirm } from '../../../../utils/alert';
 import { triggerRewardHaptic, triggerTapHaptic } from '../../../../utils/haptics';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { HoldTimer } from './components/HoldTimer';
@@ -86,6 +88,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   useKeepAwake('workout-session');
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const t = useCopy();
   const now = useNow();
   const { session, updateSession, discardSession, exercise, prefs, sessions, records, closeApp, notes } = useWorkouts();
   // The unit the session started in: a draft resumed with no signal has
@@ -165,8 +168,8 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const describePosition = (p: Position): string => {
     const name = exercise(p.item.exerciseId).name;
     return p.block.items.length > 1
-      ? `${name} · round ${p.round + 1} of ${p.block.rounds}`
-      : `${name} · set ${p.round + 1} of ${p.block.rounds}`;
+      ? t('workouts.session.posRound', '{name} · round {n} of {total}', { name, n: p.round + 1, total: p.block.rounds })
+      : t('workouts.session.posSet', '{name} · set {n} of {total}', { name, n: p.round + 1, total: p.block.rounds });
   };
 
   // On the clock: a tap the moment the interval runs out with the round unfinished.
@@ -177,7 +180,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   }, [workRanOut, session?.clock?.roundStartsAt]);
 
   // Locked phone or another app open: a notification says rest's up.
-  useRestBell(session?.rest, pos ? describePosition(pos) : 'Finish');
+  useRestBell(session?.rest, pos ? describePosition(pos) : t('workouts.session.finish', 'Finish'));
 
   if (!session) return <View style={ws.screen} />;
 
@@ -196,7 +199,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
     const record = newRecordOnSet(ex.id, ex.kind, todays, setsTodayFor(result.session, ex.id), records[ex.id]);
     if (record) {
       triggerRewardHaptic();
-      showToast(`New record: ${describeRecord(record, ex.name, unit).title}`);
+      showToast(
+        t('workouts.session.newRecord', 'New record: {title}', { title: describeRecord(record, ex.name, unit).title })
+      );
     } else {
       triggerTapHaptic();
     }
@@ -210,42 +215,56 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
 
   const onFinish = () => {
     if (totalSetsLogged(session) === 0) {
-      showConfirm('Nothing logged yet', 'Discard this workout?', async () => {
-        await discardSession();
-      }, 'Discard');
+      showConfirm(
+        t('workouts.session.nothingLogged', 'Nothing logged yet'),
+        t('workouts.session.discardTitle', 'Discard this workout?'),
+        async () => {
+          await discardSession();
+        },
+        t('workouts.session.discard', 'Discard')
+      );
       return;
     }
     const left = session.blocks.filter((b) => !isBlockFinished(b)).length;
     if (left === 0) return goToSummary();
     showConfirm(
-      'Finish now?',
-      `${left} ${left === 1 ? 'exercise isn’t' : 'exercises aren’t'} done. What you logged still counts.`,
+      t('workouts.session.finishNow', 'Finish now?'),
+      left === 1
+        ? t('workouts.session.leftOne', '{n} exercise isn’t done. What you logged still counts.', { n: left })
+        : t('workouts.session.leftOther', '{n} exercises aren’t done. What you logged still counts.', { n: left }),
       goToSummary,
-      'Finish'
+      t('workouts.session.finish', 'Finish')
     );
   };
 
   const onClose = () =>
-    showChoice('Leave this workout?', 'It stays saved on this phone — resume it any time from Workouts.', [
-      { label: 'Keep it for later', onPress: closeApp },
+    showChoice(
+      t('workouts.session.leaveTitle', 'Leave this workout?'),
+      t('workouts.session.leaveMsg', 'It stays saved on this phone — resume it any time from Workouts.'),
+      [
+      { label: t('workouts.session.keepLater', 'Keep it for later'), onPress: closeApp },
       {
-        label: 'Discard workout',
+        label: t('workouts.session.discardWorkout', 'Discard workout'),
         onPress: () =>
           showConfirm(
-            'Discard this workout?',
+            t('workouts.session.discardTitle', 'Discard this workout?'),
             // A Finish that timed out is still queued, and discarding can't stop it.
             session.saveTimedOutAt
-              ? 'Your last Finish didn’t get through, but it may still save once you’re back online. Discarding here won’t stop it.'
-              : 'Nothing from it will be saved.',
+              ? t(
+                  'workouts.session.discardTimedOut',
+                  'Your last Finish didn’t get through, but it may still save once you’re back online. Discarding here won’t stop it.'
+                )
+              : t('workouts.session.discardMsg', 'Nothing from it will be saved.'),
             discardSession,
-            'Discard'
+            t('workouts.session.discard', 'Discard')
           ),
       },
-    ]);
+    ]
+    );
 
   const titleOf = (index: number): string => {
     const block = session.blocks[index];
-    return block.items.length > 1 ? block.name || 'Circuit' : exercise(block.items[0].exerciseId).name;
+    return block.items.length > 1 ? block.name || t('workouts.session.circuit', 'Circuit') : exercise(block.items[0].exerciseId).name;
   };
 
   const onPlanTap = (index: number) => {
@@ -253,10 +272,12 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
     if (pos?.blockIndex === index) return;
     if (!block.skipped && isBlockFinished(block)) {
       showConfirm(
-        `Another ${block.items.length > 1 ? 'round' : 'set'}?`,
-        `Adds one more to ${titleOf(index)} and goes there now.`,
+        block.items.length > 1
+          ? t('workouts.session.anotherRound', 'Another round?')
+          : t('workouts.session.anotherSet', 'Another set?'),
+        t('workouts.session.addsOne', 'Adds one more to {name} and goes there now.', { name: titleOf(index) }),
         () => updateSession(addRound(session, index)),
-        'Add one'
+        t('workouts.session.addOne', 'Add one')
       );
       return;
     }
@@ -267,12 +288,17 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
   const isLastInRound = !!pos && pos.itemIndex === pos.block.items.length - 1;
   // A run is "Log it", not "Log set 1"; cardio intervals count as "2 of 6".
   const cardioLabel =
-    ex?.kind === 'cardio' && pos ? (pos.block.rounds > 1 ? `Log ${pos.round + 1} of ${pos.block.rounds}` : 'Log it') : null;
+    ex?.kind === 'cardio' && pos
+      ? pos.block.rounds > 1
+        ? t('workouts.session.logOf', 'Log {n} of {total}', { n: pos.round + 1, total: pos.block.rounds })
+        : t('workouts.session.logIt', 'Log it')
+      : null;
   const logLabel = !isCircuit
-    ? cardioLabel ?? `Log set ${(pos?.round ?? 0) + 1}`
+    ? cardioLabel ?? t('workouts.session.logSet', 'Log set {n}', { n: (pos?.round ?? 0) + 1 })
     : isLastInRound
-      ? 'Log & finish round'
-      : 'Log & next';
+      ? t('workouts.session.logFinishRound', 'Log & finish round')
+      : t('workouts.session.logNext', 'Log & next');
+  const roundOrSet = isCircuit ? t('workouts.session.roundWord', 'round') : t('workouts.session.setWord', 'set');
   const clockReady = clock?.phase === 'ready';
   const clockPaused = clock?.phase === 'paused';
   // Out of time from the moment the clock reads 0:00, so the panel doesn't shift a second later.
@@ -294,7 +320,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.topClock}>{formatClock(durationSec(session, now))}</Text>
         </View>
         <TouchableOpacity onPress={onFinish} style={styles.finishBtn} accessibilityRole="button">
-          <Text style={styles.finishText}>Finish</Text>
+          <Copy id="workouts.session.finish" style={styles.finishText}>
+            Finish
+          </Copy>
         </TouchableOpacity>
       </View>
 
@@ -308,18 +336,22 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
         {session.lighter && (
           <View style={styles.lightWeek}>
             <Ionicons name="leaf-outline" size={16} color={WORKOUTS_ACCENT} />
-            <Text style={styles.lightWeekText}>
+            <Copy id="workouts.session.lightWeek" style={styles.lightWeekText}>
               Light week: fewer sets, so your retest shows your fitness, not your tiredness.
-            </Text>
+            </Copy>
           </View>
         )}
         {pos && ex ? (
           <View style={styles.current}>
             {isCircuit ? (
               <>
-                <Text style={styles.eyebrow}>
-                  {pos.block.name || 'Circuit'} · round {pos.round + 1} of {pos.block.rounds}
-                </Text>
+                <Copy
+                  id="workouts.session.circuitRound"
+                  style={styles.eyebrow}
+                  vars={{ name: pos.block.name || t('workouts.session.circuit', 'Circuit'), n: pos.round + 1, total: pos.block.rounds }}
+                >
+                  {'{name} · round {n} of {total}'}
+                </Copy>
                 <View style={[ws.card, styles.circuitList]}>
                   {pos.block.items.map((item, i) => {
                     const done = i < pos.itemIndex;
@@ -340,9 +372,13 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               </>
             ) : (
-              <Text style={styles.eyebrow}>
-                Exercise {pos.blockIndex + 1} of {session.blocks.length}
-              </Text>
+              <Copy
+                id="workouts.session.exerciseOf"
+                style={styles.eyebrow}
+                vars={{ n: pos.blockIndex + 1, total: session.blocks.length }}
+              >
+                {'Exercise {n} of {total}'}
+              </Copy>
             )}
 
             <View style={styles.nameBlock}>
@@ -355,13 +391,23 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 </Text>
               )}
               {ex.kind === 'distance' && !!ex.distanceM && (
-                <Text style={styles.lastTime}>{formatDistance(ex.distanceM)} · lower is better</Text>
+                <Copy id="workouts.session.lowerBetter" style={styles.lastTime} vars={{ dist: formatDistance(ex.distanceM) }}>
+                  {'{dist} · lower is better'}
+                </Copy>
               )}
-              <Text style={styles.lastTime}>
-                {prefill?.last
-                  ? `Last time: ${formatSetValues(prefill.last, ex.kind, unit)}`
-                  : 'First time — today sets your baseline'}
-              </Text>
+              {prefill?.last ? (
+                <Copy
+                  id="workouts.session.lastTime"
+                  style={styles.lastTime}
+                  vars={{ values: formatSetValues(prefill.last, ex.kind, unit) }}
+                >
+                  {'Last time: {values}'}
+                </Copy>
+              ) : (
+                <Copy id="workouts.session.firstTime" style={styles.lastTime}>
+                  First time — today sets your baseline
+                </Copy>
+              )}
             </View>
 
             {/* Your form cues, where you'll actually read them. Tap to edit —
@@ -374,7 +420,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
             ) : (
               <TouchableOpacity style={styles.addCues} onPress={() => setEditingCues(true)} accessibilityRole="button">
                 <Ionicons name="add" size={14} color={Colors.gray} />
-                <Text style={styles.addCuesText}>Add form cues</Text>
+                <Copy id="workouts.session.addCues" style={styles.addCuesText}>
+                  Add form cues
+                </Copy>
               </TouchableOpacity>
             )}
 
@@ -404,10 +452,18 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
             {clock && !(clock.phase === 'rest' && session.rest) && (
               <View style={styles.clockPanel}>
                 {clock.phase === 'ready' ? (
-                  <Text style={styles.clockHint}>
-                    Every {formatClock(clock.sec)}: {isCircuit ? 'each round' : 'each set'} starts on the clock, and
-                    what’s left is rest. It starts when you tap Start the clock.
-                  </Text>
+                  <Copy
+                    id="workouts.session.clockReady"
+                    style={styles.clockHint}
+                    vars={{
+                      time: formatClock(clock.sec),
+                      each: isCircuit
+                        ? t('workouts.session.eachRound', 'each round')
+                        : t('workouts.session.eachSet', 'each set'),
+                    }}
+                  >
+                    {'Every {time}: {each} starts on the clock, and what’s left is rest. It starts when you tap Start the clock.'}
+                  </Copy>
                 ) : (
                   <>
                     <View style={styles.clockRow}>
@@ -423,13 +479,13 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                         <Text style={styles.clockHint}>
                           {clock.phase === 'paused'
                             ? clock.resting
-                              ? 'Paused in the rest'
-                              : 'Paused'
+                              ? t('workouts.session.pausedRest', 'Paused in the rest')
+                              : t('workouts.session.paused', 'Paused')
                             : clock.phase === 'rest'
-                              ? `till the next ${isCircuit ? 'round' : 'set'}`
+                              ? t('workouts.session.tillNext', 'till the next {what}', { what: roundOrSet })
                               : clockOver
-                                ? 'Over the interval. The next one starts as soon as you log.'
-                                : `left of ${formatClock(clock.sec)}`}
+                                ? t('workouts.session.overInterval', 'Over the interval. The next one starts as soon as you log.')
+                                : t('workouts.session.leftOf', 'left of {time}', { time: formatClock(clock.sec) })}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -442,7 +498,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                         accessibilityRole="button"
                       >
                         <Ionicons name={clockPaused ? 'play' : 'pause'} size={16} color={WORKOUTS_ACCENT} />
-                        <Text style={styles.clockBtnText}>{clockPaused ? 'Resume' : 'Pause'}</Text>
+                        <Text style={styles.clockBtnText}>
+                          {clockPaused ? t('workouts.session.resume', 'Resume') : t('workouts.session.pause', 'Pause')}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                     {canMissRound(session, now) && (
@@ -451,9 +509,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                         onPress={() => updateSession(missRound(session, new Date()))}
                         accessibilityRole="button"
                       >
-                        <Text style={styles.missText}>
-                          Missed this {isCircuit ? 'round' : 'set'} — start the next one
-                        </Text>
+                        <Copy id="workouts.session.missed" style={styles.missText} vars={{ what: roundOrSet }}>
+                          {'Missed this {what} — start the next one'}
+                        </Copy>
                       </TouchableOpacity>
                     )}
                   </>
@@ -471,14 +529,18 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                     onPress={() => updateSession(answerStepUp(session, slotKey, stepUpOffer.stepUp))}
                     accessibilityRole="button"
                   >
-                    <Text style={ws.smallBtnText}>Use it</Text>
+                    <Copy id="workouts.session.useIt" style={ws.smallBtnText}>
+                      Use it
+                    </Copy>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[ws.smallBtn, ws.smallBtnQuiet]}
                     onPress={() => updateSession(answerStepUp(session, slotKey, { declined: true }))}
                     accessibilityRole="button"
                   >
-                    <Text style={[ws.smallBtnText, ws.smallBtnQuietText]}>Not today</Text>
+                    <Copy id="workouts.session.notToday" style={[ws.smallBtnText, ws.smallBtnQuietText]}>
+                      Not today
+                    </Copy>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -511,7 +573,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                   <NumberStepper
                     layout="row"
                     separator
-                    label={`Weight (${unit})`}
+                    label={t('workouts.session.weight', 'Weight ({unit})', { unit })}
                     value={toDisplayWeight(values.weightKg ?? 0, unit)}
                     allowDecimal
                     onDecrement={() => setValues({ ...values, weightKg: stepWeight(values.weightKg ?? 0, unit, -1) })}
@@ -521,7 +583,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 )}
                 <NumberStepper
                   layout="row"
-                  label="Reps"
+                  label={t('workouts.session.reps', 'Reps')}
                   value={values.reps ?? 0}
                   onDecrement={() => setValues({ ...values, reps: Math.max(1, (values.reps ?? 1) - 1) })}
                   onIncrement={() => setValues({ ...values, reps: (values.reps ?? 0) + 1 })}
@@ -539,7 +601,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 }}
                 accessibilityRole="button"
               >
-                <Text style={ws.primaryBtnText}>Start the clock</Text>
+                <Copy id="workouts.session.startClock" style={ws.primaryBtnText}>
+                  Start the clock
+                </Copy>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
@@ -559,27 +623,35 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 disabled={!session.history.length}
               >
                 <Ionicons name="arrow-undo-outline" size={16} color={session.history.length ? WORKOUTS_ACCENT : Colors.separator} />
-                <Text style={[styles.actionText, !session.history.length && styles.actionDisabled]}>Undo</Text>
+                <Text style={[styles.actionText, !session.history.length && styles.actionDisabled]}>
+                  {t('workouts.session.undo', 'Undo')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.action} onPress={() => updateSession(addRound(session, pos.blockIndex))}>
                 <Ionicons name="add" size={16} color={WORKOUTS_ACCENT} />
-                <Text style={styles.actionText}>{isCircuit ? 'Round' : 'Set'}</Text>
+                <Text style={styles.actionText}>
+                  {isCircuit ? t('workouts.session.round', 'Round') : t('workouts.session.set', 'Set')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.action}
                 onPress={() =>
                   showConfirm(
-                    `Skip ${isCircuit ? pos.block.name || 'this circuit' : ex.name}?`,
+                    t('workouts.session.skipTitle', 'Skip {name}?', {
+                      name: isCircuit ? pos.block.name || t('workouts.session.thisCircuit', 'this circuit') : ex.name,
+                    }),
                     roundsDone(pos.block) || pos.itemIndex
-                      ? 'What you logged stays. You can come back to it from the plan below.'
-                      : 'You can come back to it from the plan below.',
+                      ? t('workouts.session.skipKept', 'What you logged stays. You can come back to it from the plan below.')
+                      : t('workouts.session.skipBack', 'You can come back to it from the plan below.'),
                     () => updateSession(skipBlock(session, pos.blockIndex)),
-                    'Skip'
+                    t('workouts.session.skip', 'Skip')
                   )
                 }
               >
                 <Ionicons name="play-skip-forward-outline" size={16} color={WORKOUTS_ACCENT} />
-                <Text style={styles.actionText}>Skip</Text>
+                <Copy id="workouts.session.skip" style={styles.actionText}>
+                  Skip
+                </Copy>
               </TouchableOpacity>
               {canSwapItem(session, pos.blockIndex, pos.itemIndex) && (
                 <TouchableOpacity
@@ -589,7 +661,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityLabel={`Swap ${ex.name} for today`}
                 >
                   <Ionicons name="swap-horizontal" size={16} color={WORKOUTS_ACCENT} />
-                  <Text style={styles.actionText}>Swap</Text>
+                  <Copy id="workouts.session.swap" style={styles.actionText}>
+                    Swap
+                  </Copy>
                 </TouchableOpacity>
               )}
             </View>
@@ -597,26 +671,44 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
         ) : session.blocks.length === 0 ? (
           <View style={[ws.card, styles.empty]}>
             <Ionicons name="barbell-outline" size={32} color={WORKOUTS_ACCENT} />
-            <Text style={styles.exerciseName}>Add your first exercise</Text>
-            <Text style={[ws.muted, { textAlign: 'center' }]}>Pick one to do straight sets, or several for a circuit.</Text>
+            <Copy id="workouts.session.addFirst" style={styles.exerciseName}>
+              Add your first exercise
+            </Copy>
+            <Copy id="workouts.session.addFirstSub" style={[ws.muted, { textAlign: 'center' }]}>
+              Pick one to do straight sets, or several for a circuit.
+            </Copy>
             <TouchableOpacity style={[ws.primaryBtn, styles.wide]} onPress={() => setPicking(true)}>
-              <Text style={ws.primaryBtnText}>Add exercise</Text>
+              <Copy id="workouts.session.addExercise" style={ws.primaryBtnText}>
+                Add exercise
+              </Copy>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[ws.card, styles.empty]}>
             <Ionicons name="checkmark-done-circle" size={40} color={WORKOUTS_ACCENT} />
-            <Text style={styles.exerciseName}>That’s every set</Text>
-            <Text style={[ws.muted, { textAlign: 'center' }]}>
-              {totalSetsLogged(session)} sets in {formatClock(durationSec(session, now))}.
-            </Text>
+            <Copy id="workouts.session.everySet" style={styles.exerciseName}>
+              That’s every set
+            </Copy>
+            <Copy
+              id="workouts.session.setsIn"
+              style={[ws.muted, { textAlign: 'center' }]}
+              vars={{ n: totalSetsLogged(session), time: formatClock(durationSec(session, now)) }}
+            >
+              {'{n} sets in {time}.'}
+            </Copy>
             <TouchableOpacity style={[ws.primaryBtn, styles.wide]} onPress={goToSummary}>
-              <Text style={ws.primaryBtnText}>Finish workout</Text>
+              <Copy id="workouts.session.finishWorkout" style={ws.primaryBtnText}>
+                Finish workout
+              </Copy>
             </TouchableOpacity>
           </View>
         )}
 
-        {session.blocks.length > 0 && <Text style={ws.sectionLabel}>Plan</Text>}
+        {session.blocks.length > 0 && (
+          <Copy id="workouts.session.plan" style={ws.sectionLabel}>
+            Plan
+          </Copy>
+        )}
         {session.blocks.length > 0 && (
         <View style={ws.panel}>
         {session.blocks.map((block, i) => {
@@ -651,7 +743,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.planTitle, block.skipped && styles.skippedText]}>
                   {title}
-                  {block.added ? '  · added' : ''}
+                  {block.added ? t('workouts.session.added', '  · added') : ''}
                 </Text>
                 {multi && (
                   <Text style={ws.muted} numberOfLines={1}>
@@ -660,7 +752,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
                 )}
               </View>
               <Text style={styles.planCount}>
-                {block.skipped ? 'skipped' : `${done}/${block.rounds}`}
+                {block.skipped ? t('workouts.session.skipped', 'skipped') : `${done}/${block.rounds}`}
               </Text>
               </View>
             </TouchableOpacity>
@@ -671,7 +763,9 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
 
         {session.blocks.length > 0 && (
           <TouchableOpacity style={ws.secondaryBtn} onPress={() => setPicking(true)}>
-            <Text style={ws.secondaryBtnText}>+ Add exercise</Text>
+            <Copy id="workouts.session.plusAdd" style={ws.secondaryBtnText}>
+              + Add exercise
+            </Copy>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -687,10 +781,10 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
         <RestSheet
           remainingSec={remaining}
           totalSec={session.rest.totalSec}
-          nextLabel={nextAfterRest ? describePosition(nextAfterRest) : 'Finish'}
+          nextLabel={nextAfterRest ? describePosition(nextAfterRest) : t('workouts.session.finish', 'Finish')}
           onAdjust={(delta) => updateSession(adjustRest(session, delta, new Date()))}
           onSkip={() => updateSession(skipRest(session, new Date()))}
-          skipLabel={session.clock ? 'Start now' : undefined}
+          skipLabel={session.clock ? t('workouts.session.startNow', 'Start now') : undefined}
         />
       )}
 
@@ -713,7 +807,7 @@ export const WorkoutSessionScreen: React.FC<Props> = ({ navigation }) => {
 
       <ExercisePickerModal
         visible={picking}
-        title="Add to this workout"
+        title={t('workouts.session.addToWorkout', 'Add to this workout')}
         mode="multi"
         onCancel={() => setPicking(false)}
         onConfirm={(picked) => {

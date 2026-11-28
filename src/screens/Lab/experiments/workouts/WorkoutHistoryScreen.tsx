@@ -10,6 +10,8 @@ import { formatSeconds, formatSetValues, formatVolume } from '../../../../servic
 import { canEditLength, recordSources } from '../../../../services/workoutEdit';
 import { WorkoutStatsPanel } from './components/WorkoutStatsPanel';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { swapTag, insteadOfLine, sessionSwaps } from '../../../../services/exerciseSwap';
@@ -30,6 +32,7 @@ const SessionRow = React.memo(function SessionRow({
   exercise: (id: string) => Exercise;
   unit: WeightUnit;
 }) {
+  const t = useCopy();
   return (
     <TouchableOpacity style={ws.card} onPress={() => onToggle(s.id)}>
       <View style={styles.head}>
@@ -39,7 +42,7 @@ const SessionRow = React.memo(function SessionRow({
             {formatDayHeader(toLocalDateString(new Date(s.finished_at)))} ·{' '}
             {/* Logged sets have no clock, unless a quick-logged run kept its minutes. */}
             {canEditLength(s) ? `${formatSeconds(s.duration_sec)} · ` : ''}
-            {s.total_sets} sets
+            {t('workouts.history.sets', '{n} sets', { n: s.total_sets })}
             {s.total_volume_kg > 0 ? ` · ${formatVolume(s.total_volume_kg, unit)}` : ''}
             {swapTag(s) ? ` · ${swapTag(s)}` : ''}
           </Text>
@@ -59,7 +62,7 @@ const SessionRow = React.memo(function SessionRow({
             return (
               <View key={b.id} style={{ gap: 2 }}>
                 <Text style={styles.detailTitle}>
-                  {multi ? b.name || 'Circuit' : exercise(b.items[0].exerciseId).name}
+                  {multi ? b.name || t('workouts.history.circuit', 'Circuit') : exercise(b.items[0].exerciseId).name}
                 </Text>
                 {sessionSwaps({ blocks: [b] }).map((w) => (
                   <Text key={`${b.id}-${w.itemIndex}`} style={styles.swapLine}>
@@ -86,7 +89,9 @@ const SessionRow = React.memo(function SessionRow({
             accessibilityLabel={`Edit ${s.workout_name}`}
           >
             <Ionicons name="pencil" size={15} color={WORKOUTS_ACCENT} />
-            <Text style={ws.link}>Edit</Text>
+            <Copy id="workouts.history.edit" style={ws.link}>
+              Edit
+            </Copy>
           </TouchableOpacity>
         </View>
       )}
@@ -99,6 +104,7 @@ export const WorkoutHistoryScreen: React.FC<NativeStackScreenProps<WorkoutsStack
   navigation,
 }) => {
   const { sessions, records, exercise, prefs } = useWorkouts();
+  const t = useCopy();
   const [tab, setTab] = useState<'stats' | 'records' | 'sessions'>('stats');
   const [open, setOpen] = useState<string | null>(null);
   const unit = prefs.unit;
@@ -125,24 +131,28 @@ export const WorkoutHistoryScreen: React.FC<NativeStackScreenProps<WorkoutsStack
       <ListGroup>
         <PhaseRow />
         <ListRow
-          title="Test an exercise"
-          subtitle="See if you’re getting better — no program needed"
+          title={t('workouts.history.test', 'Test an exercise')}
+          subtitle={t('workouts.history.testSub', 'See if you’re getting better — no program needed')}
           icon={{ name: 'speedometer', color: WORKOUTS_ACCENT }}
           onPress={() => navigation.navigate('ExerciseTest')}
         />
       </ListGroup>
 
       <View style={styles.tabs}>
-        {(['stats', 'records', 'sessions'] as const).map((t) => (
+        {(['stats', 'records', 'sessions'] as const).map((k) => (
           <TouchableOpacity
-            key={t}
-            style={[styles.tab, tab === t && styles.tabOn]}
-            onPress={() => setTab(t)}
+            key={k}
+            style={[styles.tab, tab === k && styles.tabOn]}
+            onPress={() => setTab(k)}
             accessibilityRole="tab"
-            accessibilityState={{ selected: tab === t }}
+            accessibilityState={{ selected: tab === k }}
           >
-            <Text style={[styles.tabText, tab === t && styles.tabTextOn]}>
-              {t === 'sessions' ? 'Sessions' : t === 'stats' ? 'Stats' : 'Records'}
+            <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
+              {k === 'sessions'
+                ? t('workouts.history.tabSessions', 'Sessions')
+                : k === 'stats'
+                  ? t('workouts.history.tabStats', 'Stats')
+                  : t('workouts.history.tabRecords', 'Records')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -151,11 +161,15 @@ export const WorkoutHistoryScreen: React.FC<NativeStackScreenProps<WorkoutsStack
       {tab === 'stats' ? (
         <WorkoutStatsPanel />
       ) : tab === 'sessions' ? (
-        sessions.length === 0 && <Text style={ws.muted}>No workouts finished yet. They’ll show up here.</Text>
+        sessions.length === 0 && (
+          <Copy id="workouts.history.noSessions" style={ws.muted}>
+            No workouts finished yet. They’ll show up here.
+          </Copy>
+        )
       ) : recordList.length === 0 ? (
-        <Text style={ws.muted}>
+        <Copy id="workouts.history.noRecords" style={ws.muted}>
           Records start after your first workout. The next time you beat a number, it’s called out.
-        </Text>
+        </Copy>
       ) : (
         recordList.map(({ record, name, sources }) => (
           <View key={record.exerciseId} style={[ws.card, styles.recordRow]}>

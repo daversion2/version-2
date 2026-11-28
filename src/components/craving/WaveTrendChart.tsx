@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Copy } from '../common/Copy';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 
 interface Props {
@@ -23,17 +24,14 @@ export const WaveTrendChart: React.FC<Props> = ({ intensities, typeLabel }) => {
   const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
   const recentAvg = Math.round(avg(recent) * 10) / 10;
 
-  let summary: string;
-  if (earlier.length > 0 && avg(earlier) > avg(recent)) {
-    const earlierAvg = Math.round(avg(earlier) * 10) / 10;
-    summary = `These waves used to peak around ${earlierAvg}/10 — your last three averaged ${recentAvg}/10. That's extinction learning, visibly working.`;
-  } else {
-    summary = `Averaging ${recentAvg}/10 over your last three. Every ridden wave teaches your brain the cue leads nowhere — this chart is where that shows up.`;
-  }
+  const improving = earlier.length > 0 && avg(earlier) > avg(recent);
+  const earlierAvg = improving ? Math.round(avg(earlier) * 10) / 10 : 0;
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Your {typeLabel} waves</Text>
+      <Copy id="craving.trend.title" style={styles.title} vars={{ type: typeLabel }}>
+        {'Your {type} waves'}
+      </Copy>
       <View style={styles.barsRow}>
         {shown.map((intensity, i) => (
           <View key={i} style={styles.barSlot}>
@@ -48,10 +46,22 @@ export const WaveTrendChart: React.FC<Props> = ({ intensities, typeLabel }) => {
         ))}
       </View>
       <View style={styles.axisRow}>
-        <Text style={styles.axisLabel}>earlier</Text>
-        <Text style={styles.axisLabel}>this ride</Text>
+        <Copy id="craving.trend.earlier" style={styles.axisLabel}>earlier</Copy>
+        <Copy id="craving.trend.thisRide" style={styles.axisLabel}>this ride</Copy>
       </View>
-      <Text style={styles.summary}>{summary}</Text>
+      {improving ? (
+        <Copy
+          id="craving.trend.summaryImproving"
+          style={styles.summary}
+          vars={{ earlier: earlierAvg, recent: recentAvg }}
+        >
+          {'These waves used to peak around {earlier}/10 — your last three averaged {recent}/10. That\'s extinction learning, visibly working.'}
+        </Copy>
+      ) : (
+        <Copy id="craving.trend.summaryFlat" style={styles.summary} vars={{ recent: recentAvg }}>
+          {'Averaging {recent}/10 over your last three. Every ridden wave teaches your brain the cue leads nowhere — this chart is where that shows up.'}
+        </Copy>
+      )}
     </View>
   );
 };

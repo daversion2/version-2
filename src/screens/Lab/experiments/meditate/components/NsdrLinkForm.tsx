@@ -4,12 +4,15 @@ import { Colors, Spacing, TextStyles } from '../../../../../constants/theme';
 import { NsdrLink } from '../../../../../types/meditate';
 import { normalizeLink } from '../../../../../services/meditateMath';
 import { MEDITATE_ACCENT, ms } from './meditateStyle';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 
 /** Title + link for a recording NSDR opens. Calls back with the new link; saving is the caller's. */
 export const NsdrLinkForm: React.FC<{
   onAdd: (link: NsdrLink) => void;
   onCancel?: () => void;
 }> = ({ onAdd, onCancel }) => {
+  const t = useCopy();
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +20,7 @@ export const NsdrLinkForm: React.FC<{
   const add = () => {
     const normalized = normalizeLink(url);
     if (!normalized) {
-      setError('That doesn’t look like a link. Copy it from YouTube, Spotify or wherever it lives.');
+      setError(t('meditate.link.invalid', 'That doesn’t look like a link. Copy it from YouTube, Spotify or wherever it lives.'));
       return;
     }
     onAdd({
@@ -36,18 +39,18 @@ export const NsdrLinkForm: React.FC<{
         style={ms.input}
         value={title}
         onChangeText={setTitle}
-        placeholder="Name, e.g. Yoga nidra 20"
+        placeholder={t('meditate.link.namePlaceholder', 'Name, e.g. Yoga nidra 20')}
         placeholderTextColor={Colors.gray}
         accessibilityLabel="Recording name"
       />
       <TextInput
         style={ms.input}
         value={url}
-        onChangeText={(t) => {
-          setUrl(t);
+        onChangeText={(v) => {
+          setUrl(v);
           setError(null);
         }}
-        placeholder="Paste the link"
+        placeholder={t('meditate.link.urlPlaceholder', 'Paste the link')}
         placeholderTextColor={Colors.gray}
         autoCapitalize="none"
         autoCorrect={false}
@@ -58,11 +61,11 @@ export const NsdrLinkForm: React.FC<{
       <View style={styles.row}>
         {onCancel && (
           <TouchableOpacity onPress={onCancel} style={styles.btn}>
-            <Text style={styles.cancel}>Cancel</Text>
+            <Copy id="meditate.link.cancel" style={styles.cancel}>Cancel</Copy>
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={add} style={styles.btn} disabled={!url.trim()}>
-          <Text style={[styles.save, !url.trim() && ms.disabled]}>Save recording</Text>
+          <Copy id="meditate.link.save" style={[styles.save, !url.trim() && ms.disabled]}>Save recording</Copy>
         </TouchableOpacity>
       </View>
     </View>

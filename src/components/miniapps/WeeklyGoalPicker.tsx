@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Copy } from '../common/Copy';
 
 interface Props {
   /** "workouts", "sessions" — what is being counted. */
@@ -35,9 +36,9 @@ export const WeeklyGoalPicker: React.FC<Props> = ({ noun, value, accent, onChang
         );
       })}
     </View>
-    <Text style={styles.caption}>
-      {value} {noun} a week
-    </Text>
+    <Copy id="appPage.goalPicker.caption" style={styles.caption} vars={{ value, noun }}>
+      {'{value} {noun} a week'}
+    </Copy>
   </View>
 );
 

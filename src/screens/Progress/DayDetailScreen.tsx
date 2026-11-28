@@ -4,7 +4,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
 import { EditDifficultyModal } from '../../components/challenge/EditDifficultyModal';
+import { Copy } from '../../components/common/Copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
 import {
   getCompletionLogsWithNames,
   EnrichedCompletionLog,
@@ -24,6 +26,7 @@ type Props = ProgressScreenProps<'DayDetail'>;
 export const DayDetailScreen: React.FC<Props> = ({ route }) => {
   const { date } = route.params;
   const { user } = useAuth();
+  const t = useCopy();
   const navigation = useNavigation<ProgressNavigation>();
   const [logs, setLogs] = useState<EnrichedCompletionLog[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
@@ -75,18 +78,27 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
     if (!user) return;
 
     showConfirm(
-      'Delete this entry?',
-      `"${log.name}" comes off this day, and its ${log.points} XP with it.`,
+      t('dayDetail.delete.title', 'Delete this entry?'),
+      t('dayDetail.delete.message', '"{name}" comes off this day, and its {points} XP with it.', {
+        name: log.name,
+        points: log.points,
+      }),
       async () => {
         try {
           await deleteCompletionLog(user.uid, log.id);
-          showAlert('Deleted', `Removed ${log.points} XP.`);
+          showAlert(
+            t('dayDetail.deleted.title', 'Deleted'),
+            t('dayDetail.deleted.message', 'Removed {points} XP.', { points: log.points })
+          );
           refreshData();
         } catch (error) {
-          showAlert('Couldn’t delete that', 'Please try again.');
+          showAlert(
+            t('dayDetail.deleteError.title', 'Couldn’t delete that'),
+            t('dayDetail.error.tryAgain', 'Please try again.')
+          );
         }
       },
-      'Delete'
+      t('dayDetail.delete.button', 'Delete')
     );
   };
 
@@ -105,7 +117,10 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         setEditDifficultyModalVisible(true);
       }
     } catch (error) {
-      showAlert('Couldn’t open that challenge', 'Please try again.');
+      showAlert(
+        t('dayDetail.openError.title', 'Couldn’t open that challenge'),
+        t('dayDetail.error.tryAgain', 'Please try again.')
+      );
     }
   };
 
@@ -128,10 +143,16 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
       markProgressStale();
       setEditDifficultyModalVisible(false);
       setEditingChallenge(null);
-      showAlert('Updated', `Difficulty changed. XP: ${deltaText}`);
+      showAlert(
+        t('dayDetail.updated.title', 'Updated'),
+        t('dayDetail.updated.message', 'Difficulty changed. XP: {delta}', { delta: deltaText })
+      );
       refreshData();
     } catch (error) {
-      showAlert('Couldn’t save that', 'Please try again.');
+      showAlert(
+        t('dayDetail.saveError.title', 'Couldn’t save that'),
+        t('dayDetail.error.tryAgain', 'Please try again.')
+      );
     }
   };
 
@@ -149,7 +170,9 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
           <Text style={styles.logName} numberOfLines={1}>
             {item.name}
           </Text>
-          <Text style={styles.logPoints}>{item.points} XP</Text>
+          <Copy id="dayDetail.log.points" style={styles.logPoints} vars={{ points: item.points }}>
+            {'{points} XP'}
+          </Copy>
         </View>
         <View style={styles.logMeta}>
           <Text style={styles.metaText}>{logKindLabel(item)}</Text>
@@ -175,7 +198,9 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
                 style={styles.editButton}
                 onPress={() => handleOpenEditDifficulty(item)}
               >
-                <Text style={styles.editButtonText}>Edit Difficulty</Text>
+                <Copy id="dayDetail.log.editDifficulty" style={styles.editButtonText}>
+                  Edit Difficulty
+                </Copy>
               </TouchableOpacity>
             )}
             {item.type === 'nudge' && (
@@ -183,7 +208,9 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
                 style={styles.deleteButton}
                 onPress={() => handleDeleteHabitLog(item)}
               >
-                <Text style={styles.deleteButtonText}>Delete</Text>
+                <Copy id="dayDetail.log.delete" style={styles.deleteButtonText}>
+                  Delete
+                </Copy>
               </TouchableOpacity>
             )}
           </View>
@@ -198,16 +225,22 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
         <Text style={styles.dateText}>{formatDayHeader(date)}</Text>
         {relativeLabel && <Text style={styles.dateSubText}>{relativeLabel}</Text>}
         {isEditable && (
-          <Text style={styles.editableLabel}>You can still edit this day</Text>
+          <Copy id="dayDetail.editable" style={styles.editableLabel}>
+            You can still edit this day
+          </Copy>
         )}
         <View style={styles.summaryRow}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{totalPoints}</Text>
-            <Text style={styles.summaryLabel}>XP</Text>
+            <Copy id="dayDetail.summary.xp" style={styles.summaryLabel}>
+              XP
+            </Copy>
           </View>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{logs.length}</Text>
-            <Text style={styles.summaryLabel}>Check-ins</Text>
+            <Copy id="dayDetail.summary.checkins" style={styles.summaryLabel}>
+              Check-ins
+            </Copy>
           </View>
         </View>
         {sessionLines.length > 0 && (
@@ -237,10 +270,10 @@ export const DayDetailScreen: React.FC<Props> = ({ route }) => {
           !loaded ? null : (
             <Text style={styles.emptyText}>
               {loadFailed
-                ? 'Couldn’t load this day. Go back and try again.'
+                ? t('dayDetail.empty.failed', 'Couldn’t load this day. Go back and try again.')
                 : sessionLines.length > 0
-                  ? 'Nothing rated this day, so there’s nothing to edit.'
-                  : 'No activity this day.'}
+                  ? t('dayDetail.empty.unrated', 'Nothing rated this day, so there’s nothing to edit.')
+                  : t('dayDetail.empty.none', 'No activity this day.')}
             </Text>
           )
         }

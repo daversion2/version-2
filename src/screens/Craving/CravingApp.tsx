@@ -5,7 +5,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
+import { Copy } from '../../components/common/Copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
 import { getCravingType, getMissionCategory } from '../../data/cravings';
 import { cravingWeek, getCravingLogs, summarizeCravingPatterns } from '../../services/cravings';
 import { addDays } from '../../services/homeDashboard';
@@ -34,6 +36,7 @@ const whatHelps = (logs: CravingLog[]): string | null => {
 };
 
 export const CravingApp: React.FC = () => {
+  const t = useCopy();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -70,11 +73,11 @@ export const CravingApp: React.FC = () => {
           accessibilityLabel="Back to Today"
         >
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
-          <Text style={styles.backText}>Today</Text>
+          <Copy id="craving.app.back" style={styles.backText}>Today</Copy>
         </TouchableOpacity>
-        <Text style={styles.largeTitle} accessibilityRole="header">
+        <Copy id="craving.app.title" style={styles.largeTitle} accessibilityRole="header">
           Craving Crusher
-        </Text>
+        </Copy>
 
         <View style={styles.card}>
           <View style={[styles.band, { backgroundColor: ACCENT + '1F' }]}>
@@ -91,50 +94,56 @@ export const CravingApp: React.FC = () => {
             </View>
           </View>
           <View style={styles.cardBody}>
-            <Text style={styles.cardTitle}>Feel an urge right now?</Text>
-            <Text style={styles.cardText}>
+            <Copy id="craving.app.cardTitle" style={styles.cardTitle}>Feel an urge right now?</Copy>
+            <Copy id="craving.app.cardText" style={styles.cardText}>
               Most urges rise, peak and pass within 10 to 20 minutes. Ride this one out with something to do while it does.
-            </Text>
+            </Copy>
             <TouchableOpacity
               style={styles.primary}
               onPress={() => navigation.navigate('CravingRide')}
               accessibilityRole="button"
             >
-              <Text style={styles.primaryText}>Ride it out</Text>
+              <Copy id="craving.app.ride" style={styles.primaryText}>Ride it out</Copy>
             </TouchableOpacity>
           </View>
         </View>
 
         {failed ? (
           <TouchableOpacity onPress={load} accessibilityRole="button" style={styles.failed}>
-            <Text style={styles.muted}>Couldn’t load your history. Tap to try again.</Text>
+            <Copy id="craving.app.loadFailed" style={styles.muted}>Couldn’t load your history. Tap to try again.</Copy>
           </TouchableOpacity>
         ) : !logs || !week ? (
           <ActivityIndicator color={Colors.primary} />
         ) : (
           <>
             <View style={styles.group}>
-              <Text style={styles.groupTitle}>THIS WEEK</Text>
+              <Copy id="craving.app.thisWeek" style={styles.groupTitle}>THIS WEEK</Copy>
               <View style={styles.stats}>
-                <Stat value={week.passed} label="ridden out" />
-                <Stat value={week.gaveIn} label="logged honestly" />
-                <Stat value={week.xp} label="XP of friction overcome" />
+                <Stat id="craving.app.stat.passed" value={week.passed} label="ridden out" />
+                <Stat id="craving.app.stat.gaveIn" value={week.gaveIn} label="logged honestly" />
+                <Stat id="craving.app.stat.xp" value={week.xp} label="XP of friction overcome" />
               </View>
             </View>
 
             <View style={styles.group}>
-              <Text style={styles.groupTitle}>YOUR PATTERN · LAST {PATTERN_DAYS} DAYS</Text>
+              <Copy id="craving.app.pattern" style={styles.groupTitle} vars={{ days: PATTERN_DAYS }}>
+                {'YOUR PATTERN · LAST {days} DAYS'}
+              </Copy>
               {pattern ? (
                 <View style={styles.panel}>
-                  <Row label="Pulls most" value={getCravingType(pattern.byType[0].cravingType).label} separator />
-                  <Row label="Usually" value={pattern.peakWindow ?? 'No set time'} separator={!!helps} />
-                  {helps ? <Row label="What helps you" value={helps} /> : null}
+                  <Row id="craving.app.row.pulls" label="Pulls most" value={getCravingType(pattern.byType[0].cravingType).label} separator />
+                  <Row id="craving.app.row.usually" label="Usually" value={pattern.peakWindow ?? t('craving.app.noSetTime', 'No set time')} separator={!!helps} />
+                  {helps ? <Row id="craving.app.row.helps" label="What helps you" value={helps} /> : null}
                 </View>
               ) : (
                 <View style={[styles.panel, styles.emptyPattern]}>
-                  <Text style={styles.muted}>
-                    After five urges, this shows what pulls most and when. {logs.length > 0 ? `${logs.length} so far.` : ''}
-                  </Text>
+                  <Copy
+                    id="craving.app.emptyPattern"
+                    style={styles.muted}
+                    vars={{ soFar: logs.length > 0 ? t('craving.app.soFar', '{n} so far.', { n: logs.length }) : '' }}
+                  >
+                    {'After five urges, this shows what pulls most and when. {soFar}'}
+                  </Copy>
                 </View>
               )}
             </View>
@@ -145,16 +154,16 @@ export const CravingApp: React.FC = () => {
   );
 };
 
-const Stat: React.FC<{ value: number; label: string }> = ({ value, label }) => (
+const Stat: React.FC<{ id: string; value: number; label: string }> = ({ id, value, label }) => (
   <View style={styles.stat} accessible accessibilityLabel={`${value} ${label}`}>
     <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
+    <Copy id={id} style={styles.statLabel}>{label}</Copy>
   </View>
 );
 
-const Row: React.FC<{ label: string; value: string; separator?: boolean }> = ({ label, value, separator }) => (
+const Row: React.FC<{ id: string; label: string; value: string; separator?: boolean }> = ({ id, label, value, separator }) => (
   <View style={[styles.row, separator && styles.separator]}>
-    <Text style={styles.body}>{label}</Text>
+    <Copy id={id} style={styles.body}>{label}</Copy>
     <Text style={styles.value}>{value}</Text>
   </View>
 );

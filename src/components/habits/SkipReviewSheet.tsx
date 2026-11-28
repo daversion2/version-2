@@ -5,6 +5,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { SKIP_REASON_GROUPS, getSkipReasonsByKind } from '../../data/skipReasons';
 import { PendingSkipReview, SkipCandidate } from '../../services/skipLogic';
 import { formatRelativeDay } from '../../utils/date';
+import { Copy } from '../common/Copy';
+import { copyText } from '../../services/appCopy';
 
 interface Props {
   visible: boolean;
@@ -18,8 +20,8 @@ interface Props {
 }
 
 const dayLabel = (dates: string[]): string => {
-  if (dates.length === 0) return 'You didn’t log it at all that week.';
-  return `You did it ${dates.map(formatRelativeDay).join(' and ')}.`;
+  if (dates.length === 0) return copyText('skipReview.dayNone', 'You didn’t log it at all that week.');
+  return copyText('skipReview.dayDone', 'You did it {days}.', { days: dates.map(formatRelativeDay).join(' and ') });
 };
 
 /**
@@ -74,18 +76,22 @@ export const SkipReviewSheet: React.FC<Props> = ({
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <View style={styles.headerRow}>
-              <Text style={styles.eyebrow}>Last week</Text>
+              <Copy id="skipReview.eyebrow" style={styles.eyebrow}>{'Last week'}</Copy>
               <TouchableOpacity onPress={onDismiss} hitSlop={12}>
-                <Text style={styles.dismiss}>Not now</Text>
+                <Copy id="skipReview.notNow" style={styles.dismiss}>{'Not now'}</Copy>
               </TouchableOpacity>
             </View>
 
             <Text style={styles.title}>{item.habitName}</Text>
             <Text style={styles.subtitle}>
-              You aimed for {item.target} and got {item.completed}. {dayLabel(item.doneDates)}
+              {copyText('skipReview.subtitle', 'You aimed for {target} and got {completed}.', {
+                target: item.target,
+                completed: item.completed,
+              })}{' '}
+              {dayLabel(item.doneDates)}
             </Text>
 
-            <Text style={styles.question}>What got in the way?</Text>
+            <Copy id="skipReview.question" style={styles.question}>{'What got in the way?'}</Copy>
 
             {SKIP_REASON_GROUPS.map((group) => (
               <View key={group.kind} style={styles.group}>
@@ -109,8 +115,9 @@ export const SkipReviewSheet: React.FC<Props> = ({
             ))}
 
             <Text style={styles.progress}>
-              {index + 1} of {review.items.length}
-              {review.hiddenCount > 0 && ` · ${review.hiddenCount} more not shown`}
+              {copyText('skipReview.progress', '{n} of {total}', { n: index + 1, total: review.items.length })}
+              {review.hiddenCount > 0 &&
+                copyText('skipReview.hidden', ' · {count} more not shown', { count: review.hiddenCount })}
             </Text>
           </ScrollView>
         </View>

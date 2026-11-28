@@ -5,6 +5,8 @@ import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { RootStackParamList } from '../../../../types/navigation';
 import { WorkoutsStackParamList } from '../../../../types/workouts';
 import { useAuth } from '../../../../context/AuthContext';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { canOpenMiniApp } from '../../../../services/miniApps';
 import { WorkoutsProvider } from './WorkoutsContext';
 import { WorkoutsHomeScreen } from './WorkoutsHomeScreen';
@@ -47,14 +49,19 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
   route,
 }) => {
   const { user, userProfile } = useAuth();
+  const t = useCopy();
 
   // The one gate (services/miniApps.ts) — Lab-only today.
   if (!user || !canOpenMiniApp('workouts', userProfile)) {
     return (
       <View style={styles.blocked}>
-        <Text style={styles.blockedText}>Workouts isn’t available on this account yet.</Text>
+        <Copy id="workouts.app.blocked" style={styles.blockedText}>
+          Workouts isn’t available on this account yet.
+        </Copy>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.blockedLink}>Close</Text>
+          <Copy id="workouts.app.close" style={styles.blockedLink}>
+            Close
+          </Copy>
         </TouchableOpacity>
       </View>
     );
@@ -78,16 +85,16 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           options={{ title: '' }}
           initialParams={{ launch: route.params?.launch }}
         />
-        <Stack.Screen name="WorkoutCreate" component={WorkoutCreateScreen} options={{ title: 'Create' }} />
+        <Stack.Screen name="WorkoutCreate" component={WorkoutCreateScreen} options={{ title: t('workouts.app.create', 'Create') }} />
         {/* Both screens check canSeeWorkoutLibrary (open to everyone today). */}
-        <Stack.Screen name="WorkoutLibrary" component={WorkoutLibraryScreen} options={{ title: 'Workout library' }} />
+        <Stack.Screen name="WorkoutLibrary" component={WorkoutLibraryScreen} options={{ title: t('workouts.app.library', 'Workout library') }} />
         <Stack.Screen name="WorkoutLibraryDetail" component={WorkoutLibraryDetailScreen} options={{ title: '' }} />
         <Stack.Screen name="WorkoutPreview" component={WorkoutPreviewScreen} options={{ title: '' }} />
         {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
         <Stack.Screen
           name="WorkoutBuilder"
           component={WorkoutBuilderScreen}
-          options={{ title: 'New workout', headerBackButtonMenuEnabled: false }}
+          options={{ title: t('workouts.app.newWorkout', 'New workout'), headerBackButtonMenuEnabled: false }}
         />
         {/* No header, no swipe-back: a stray gesture mid-set would leave the workout. */}
         <Stack.Screen
@@ -101,31 +108,31 @@ export const WorkoutsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'W
           options={{ headerShown: false, gestureEnabled: false }}
         />
         <Stack.Screen name="WorkoutDoneIt" component={WorkoutDoneItScreen} options={{ title: '' }} />
-        <Stack.Screen name="WorkoutWeek" component={WorkoutWeekScreen} options={{ title: 'Your week' }} />
+        <Stack.Screen name="WorkoutWeek" component={WorkoutWeekScreen} options={{ title: t('workouts.app.week', 'Your week') }} />
         <Stack.Screen name="WorkoutDay" component={WorkoutDayScreen} options={{ title: '' }} />
         <Stack.Screen name="WeeklyVolumeExercise" component={WeeklyVolumeExerciseScreen} options={{ title: '' }} />
-        <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: 'Progress' }} />
+        <Stack.Screen name="WorkoutHistory" component={WorkoutHistoryScreen} options={{ title: t('workouts.app.progress', 'Progress') }} />
         {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
         <Stack.Screen
           name="WorkoutEditSession"
           component={WorkoutEditSessionScreen}
-          options={{ title: 'Edit workout', headerBackButtonMenuEnabled: false }}
+          options={{ title: t('workouts.app.editWorkout', 'Edit workout'), headerBackButtonMenuEnabled: false }}
         />
-        <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: 'Settings' }} />
-        <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: 'My exercises' }} />
+        <Stack.Screen name="WorkoutSettings" component={WorkoutSettingsScreen} options={{ title: t('workouts.app.settings', 'Settings') }} />
+        <Stack.Screen name="WorkoutExercises" component={WorkoutExercisesScreen} options={{ title: t('workouts.app.myExercises', 'My exercises') }} />
         <Stack.Screen
           name="WorkoutHiddenExercises"
           component={WorkoutHiddenExercisesScreen}
-          options={{ title: 'Hidden exercises' }}
+          options={{ title: t('workouts.app.hidden', 'Hidden exercises') }}
         />
         <Stack.Screen name="WorkoutStatsDetail" component={WorkoutStatsDetailScreen} options={{ title: '' }} />
-        <Stack.Screen name="PhaseSetup" component={PhaseSetupScreen} options={{ title: 'New phase' }} />
+        <Stack.Screen name="PhaseSetup" component={PhaseSetupScreen} options={{ title: t('workouts.app.newPhase', 'New phase') }} />
         <Stack.Screen name="Phase" component={PhaseScreen} options={{ title: '' }} />
         {/* No swipe-back mid-test: a stray gesture would lose what's been entered. */}
         <Stack.Screen name="PhaseTest" component={PhaseTestScreen} options={{ title: '', gestureEnabled: false }} />
         <Stack.Screen name="PhaseResults" component={PhaseResultsScreen} options={{ title: '' }} />
         <Stack.Screen name="PhaseNext" component={PhaseNextScreen} options={{ title: '' }} />
-        <Stack.Screen name="ExerciseTest" component={ExerciseTestScreen} options={{ title: 'Test' }} />
+        <Stack.Screen name="ExerciseTest" component={ExerciseTestScreen} options={{ title: t('workouts.app.test', 'Test') }} />
       </Stack.Navigator>
     </WorkoutsProvider>
   );

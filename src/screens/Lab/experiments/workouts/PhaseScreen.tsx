@@ -16,24 +16,35 @@ import {
 } from '../../../../services/trainingPhases';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert, showConfirm } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { formatPhaseDate, PhaseStatusCard, TestHistoryBars, TestResultRow } from './components/PhaseParts';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 
 type Props = NativeStackScreenProps<WorkoutsStackParamList, 'Phase'>;
 
-const STATUS_WORDS = { baseline: 'Waiting on its baseline', training: 'In training', complete: 'Complete', ended: 'Ended early' };
+const STATUS_WORDS = {
+  baseline: { key: 'workouts.phase.statusBaseline', label: 'Waiting on its baseline' },
+  training: { key: 'workouts.phase.statusTraining', label: 'In training' },
+  complete: { key: 'workouts.phase.statusComplete', label: 'Complete' },
+  ended: { key: 'workouts.phase.statusEnded', label: 'Ended early' },
+};
 
 /** One phase: where it stands, its program and tests, and the tests' history across phases. */
 export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
+  const t = useCopy();
+  const statusWord = (s: keyof typeof STATUS_WORDS) => t(STATUS_WORDS[s].key, STATUS_WORDS[s].label);
   const { phases, currentPhase, sessions, workouts, exercise, exercisesById, prefs, upsertPhase } = useWorkouts();
   const phase = route.params?.phaseId ? phases.find((p) => p.id === route.params!.phaseId) : currentPhase ?? phases[0];
   const today = toLocalDateString(new Date());
   const [historyTest, setHistoryTest] = useState<string | undefined>();
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: phase ? `Phase ${phase.number}` : 'Phases' });
-  }, [navigation, phase]);
+    navigation.setOptions({
+      title: phase ? t('workouts.phase.title', 'Phase {n}', { n: phase.number }) : t('workouts.phase.titleNone', 'Phases'),
+    });
+  }, [navigation, phase, t]);
 
   const programWorkouts = useMemo(
     () =>
@@ -48,7 +59,9 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
   if (!phase) {
     return (
       <View style={[ws.screen, styles.center]}>
-        <Text style={ws.muted}>No phases yet.</Text>
+        <Copy id="workouts.phase.none" style={ws.muted}>
+          No phases yet.
+        </Copy>
       </View>
     );
   }
@@ -63,26 +76,31 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
     if (phase.status === 'baseline') return navigation.navigate('PhaseTest', { phaseId: phase.id, mode: 'baseline' });
     if (today >= phase.retest_date) return navigation.navigate('PhaseTest', { phaseId: phase.id, mode: 'retest' });
     showConfirm(
-      'Retest early?',
-      `Your retest is set for ${formatPhaseDate(phase.retest_date)}. Retesting now ends this phase.`,
+      t('workouts.phase.retestEarlyTitle', 'Retest early?'),
+      t('workouts.phase.retestEarlyMsg', 'Your retest is set for {date}. Retesting now ends this phase.', {
+        date: formatPhaseDate(phase.retest_date),
+      }),
       () => navigation.navigate('PhaseTest', { phaseId: phase.id, mode: 'retest' }),
-      'Retest now'
+      t('workouts.phase.retestNow', 'Retest now')
     );
   };
 
   const end = () =>
     showConfirm(
-      `End Phase ${phase.number}?`,
-      'It stops here without a retest. Your sessions and baseline stay in your history.',
+      t('workouts.phase.endTitle', 'End Phase {n}?', { n: phase.number }),
+      t('workouts.phase.endMsg', 'It stops here without a retest. Your sessions and baseline stay in your history.'),
       async () => {
         try {
           await upsertPhase(endPhase(phase, new Date()));
           navigation.popToTop();
         } catch {
-          showAlert("Couldn't end the phase", 'Check your connection and try again.');
+          showAlert(
+            t('workouts.phase.endFailTitle', "Couldn't end the phase"),
+            t('workouts.phase.endFailMsg', 'Check your connection and try again.')
+          );
         }
       },
-      'End phase'
+      t('workouts.phase.endConfirm', 'End phase')
     );
 
   return (
@@ -98,14 +116,20 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
         />
       ) : (
         <View style={[ws.card, { gap: 4 }]}>
-          <Text style={styles.eyebrow}>{STATUS_WORDS[phase.status]}</Text>
+          <Text style={styles.eyebrow}>{statusWord(phase.status)}</Text>
           <Text style={styles.title}>{phase.program_name}</Text>
-          <Text style={ws.muted}>
-            {formatPhaseDate(phase.start_date)} – {formatPhaseDate(phase.retest_date)} · {done} sessions
-          </Text>
+          <Copy
+            id="workouts.phase.range"
+            style={ws.muted}
+            vars={{ from: formatPhaseDate(phase.start_date), to: formatPhaseDate(phase.retest_date), n: done }}
+          >
+            {'{from} – {to} · {n} sessions'}
+          </Copy>
           {phase.status === 'complete' && (
             <TouchableOpacity onPress={() => navigation.navigate('PhaseResults', { phaseId: phase.id })} style={styles.link}>
-              <Text style={styles.linkText}>See results</Text>
+              <Copy id="workouts.phase.seeResults" style={styles.linkText}>
+                See results
+              </Copy>
             </TouchableOpacity>
           )}
         </View>
@@ -113,18 +137,24 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {phase.status === 'training' && today < phase.retest_date && (
         <TouchableOpacity onPress={openTest} style={styles.link}>
-          <Text style={styles.linkText}>Retest early</Text>
+          <Copy id="workouts.phase.retestEarly" style={styles.linkText}>
+            Retest early
+          </Copy>
         </TouchableOpacity>
       )}
 
       {!!phase.change && (
         <View style={ws.card}>
-          <Text style={ws.sectionLabel}>What this phase changed</Text>
+          <Copy id="workouts.phase.changed" style={ws.sectionLabel}>
+            What this phase changed
+          </Copy>
           <Text style={ws.body}>{phase.change.label}</Text>
         </View>
       )}
 
-      <Text style={ws.sectionLabel}>Tests</Text>
+      <Copy id="workouts.phase.tests" style={ws.sectionLabel}>
+        Tests
+      </Copy>
       <View style={ws.card}>
         {phase.tests.map((t) => (
           <TestResultRow
@@ -139,8 +169,14 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
         ))}
       </View>
 
-      <Text style={ws.sectionLabel}>Program · {phase.days_per_week} days a week</Text>
-      {programWorkouts.length === 0 && <Text style={ws.muted}>These workouts have been deleted.</Text>}
+      <Copy id="workouts.phase.program" style={ws.sectionLabel} vars={{ n: phase.days_per_week }}>
+        {'Program · {n} days a week'}
+      </Copy>
+      {programWorkouts.length === 0 && (
+        <Copy id="workouts.phase.deleted" style={ws.muted}>
+          These workouts have been deleted.
+        </Copy>
+      )}
       {programWorkouts.map((w) => (
         <TouchableOpacity
           key={w.id}
@@ -149,14 +185,20 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
           accessibilityRole="button"
         >
           <Text style={[ws.title, { flex: 1 }]}>{w.name}</Text>
-          {live && next?.id === w.id && <Text style={styles.next}>Next</Text>}
+          {live && next?.id === w.id && (
+            <Copy id="workouts.phase.next" style={styles.next}>
+              Next
+            </Copy>
+          )}
           <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
         </TouchableOpacity>
       ))}
 
       {selected && (
         <>
-          <Text style={ws.sectionLabel}>Test history</Text>
+          <Copy id="workouts.phase.history" style={ws.sectionLabel}>
+            Test history
+          </Copy>
           <View style={[ws.card, { gap: Spacing.md }]}>
             <View style={styles.chips}>
               {phase.tests.map((t) => (
@@ -180,7 +222,9 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {others.length > 0 && (
         <>
-          <Text style={ws.sectionLabel}>Other phases</Text>
+          <Copy id="workouts.phase.others" style={ws.sectionLabel}>
+            Other phases
+          </Copy>
           {others.map((p) => (
             <TouchableOpacity
               key={p.id}
@@ -189,12 +233,16 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
               accessibilityRole="button"
             >
               <View style={{ flex: 1 }}>
-                <Text style={ws.title}>
-                  Phase {p.number} · {p.program_name}
-                </Text>
-                <Text style={ws.muted}>
-                  {STATUS_WORDS[p.status]} · from {formatPhaseDate(p.start_date)}
-                </Text>
+                <Copy id="workouts.phase.otherTitle" style={ws.title} vars={{ n: p.number, name: p.program_name }}>
+                  {'Phase {n} · {name}'}
+                </Copy>
+                <Copy
+                  id="workouts.phase.otherMeta"
+                  style={ws.muted}
+                  vars={{ status: statusWord(p.status), date: formatPhaseDate(p.start_date) }}
+                >
+                  {'{status} · from {date}'}
+                </Copy>
               </View>
               <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
             </TouchableOpacity>
@@ -204,7 +252,9 @@ export const PhaseScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {live && (
         <TouchableOpacity onPress={end} style={styles.end}>
-          <Text style={styles.endText}>End this phase</Text>
+          <Copy id="workouts.phase.end" style={styles.endText}>
+            End this phase
+          </Copy>
         </TouchableOpacity>
       )}
     </ScrollView>

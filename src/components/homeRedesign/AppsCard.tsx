@@ -3,6 +3,8 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 import { SwipeViews } from '../common/SwipeViews';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { actionOrder, APPS_VIEWS, TodayAppItem, upNext } from '../../services/appsLayout';
 
 // =============================================================================
@@ -24,9 +26,9 @@ export const AppsCard: React.FC<{
   onBrowse?: () => void;
 }> = ({ items, onOpen, onBrowse }) => (
   <View style={styles.section}>
-    <Text style={styles.heading} accessibilityRole="header">
-      Your apps
-    </Text>
+    <Copy id="today.apps.heading" style={styles.heading} accessibilityRole="header">
+      {'Your apps'}
+    </Copy>
     <SwipeViews
       name="Your apps"
       storageKey={STORE_KEY}
@@ -92,7 +94,7 @@ const IconGrid: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
             </View>
           ) : i.plan ? (
             <View style={styles.badgeSpot}>
-              <Text style={styles.planBadge}>PLAN</Text>
+              <Copy id="today.apps.planBadge" style={styles.planBadge}>{'PLAN'}</Copy>
             </View>
           ) : null}
         </View>
@@ -104,7 +106,7 @@ const IconGrid: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
     {onBrowse ? (
       <TouchableOpacity style={styles.iconCell} onPress={onBrowse} accessibilityRole="button" accessibilityLabel="Browse apps">
         <Tile color={BROWSE_COLOR} icon="apps" size={58} />
-        <Text style={styles.iconLabel}>Browse</Text>
+        <Copy id="today.apps.browseShort" style={styles.iconLabel}>{'Browse'}</Copy>
       </TouchableOpacity>
     ) : null}
   </View>
@@ -120,10 +122,10 @@ const CardGrid: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
           {i.done ? (
             <View style={styles.doneTag}>
               <Ionicons name="checkmark" size={13} color={Colors.primary} />
-              <Text style={styles.doneText}>Done</Text>
+              <Copy id="today.apps.doneTag" style={styles.doneText}>{'Done'}</Copy>
             </View>
           ) : i.plan ? (
-            <Text style={styles.planTag}>PLAN</Text>
+            <Copy id="today.apps.planTag" style={styles.planTag}>{'PLAN'}</Copy>
           ) : null}
         </View>
         <View style={styles.cardText}>
@@ -140,8 +142,8 @@ const CardGrid: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
       <TouchableOpacity style={[styles.card, styles.browseCard]} onPress={onBrowse} accessibilityRole="button" accessibilityLabel="Browse apps">
         <Tile color={BROWSE_COLOR} icon="apps" size={40} />
         <View style={styles.cardText}>
-          <Text style={styles.cardTitle}>Browse apps</Text>
-          <Text style={styles.note}>Add another</Text>
+          <Copy id="today.apps.browseCard" style={styles.cardTitle}>{'Browse apps'}</Copy>
+          <Copy id="today.apps.addAnother" style={styles.note}>{'Add another'}</Copy>
         </View>
       </TouchableOpacity>
     ) : null}
@@ -149,7 +151,9 @@ const CardGrid: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
 );
 
 /** 4 — roomy rows with an action button; the plan first, done ones last. */
-const RoomyRows: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
+const RoomyRows: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => {
+  const t = useCopy();
+  return (
   <View style={styles.rows}>
     {actionOrder(items).map((i) => (
       <View key={i.id} style={styles.row}>
@@ -160,14 +164,14 @@ const RoomyRows: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
               {i.title}
             </Text>
             <Text style={styles.note} numberOfLines={1}>
-              {i.done ? 'Done today' : i.note}
+              {i.done ? t('today.apps.doneToday', 'Done today') : i.note}
             </Text>
           </View>
         </TouchableOpacity>
         {i.done ? (
           <View style={styles.doneTag}>
             <Ionicons name="checkmark" size={15} color={Colors.primary} />
-            <Text style={styles.doneText}>Done</Text>
+            <Copy id="today.apps.doneRowTag" style={styles.doneText}>{'Done'}</Copy>
           </View>
         ) : (
           <TouchableOpacity
@@ -183,10 +187,12 @@ const RoomyRows: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => (
     ))}
     {onBrowse ? <BrowseLink onPress={onBrowse} /> : null}
   </View>
-);
+  );
+};
 
 /** 5 — a big card for what's next, the rest as bubbles. */
 const UpNext: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => {
+  const t = useCopy();
   const { next, rest } = upNext(items);
   return (
     <View style={styles.upNext}>
@@ -196,7 +202,7 @@ const UpNext: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => {
             <Ionicons name={next.icon as IconName} size={140} color={next.color + '2E'} style={styles.heroMark} />
             <Tile color={next.color} icon={next.icon} size={56} />
             <View style={styles.heroText}>
-              <Text style={styles.heroKicker}>{next.plan ? 'UP NEXT · TODAY’S PLAN' : 'UP NEXT'}</Text>
+              <Text style={styles.heroKicker}>{next.plan ? t('today.apps.upNextPlan', 'UP NEXT · TODAY’S PLAN') : t('today.apps.upNext', 'UP NEXT')}</Text>
               <Text style={styles.heroTitle} numberOfLines={1}>
                 {next.title}
               </Text>
@@ -214,7 +220,7 @@ const UpNext: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => {
       ) : (
         <View style={[styles.panel, styles.allDone]}>
           <Ionicons name="checkmark-circle" size={28} color={Colors.primary} />
-          <Text style={styles.cardTitle}>Everything’s done today. Noted.</Text>
+          <Copy id="today.apps.allDone" style={styles.cardTitle}>{'Everything’s done today. Noted.'}</Copy>
         </View>
       )}
       <View style={[styles.panel, styles.bubbles]}>
@@ -232,7 +238,7 @@ const UpNext: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => {
               {i.short}
             </Text>
             <Text style={styles.bubbleNote} numberOfLines={1}>
-              {i.done ? 'Done' : i.note}
+              {i.done ? t('today.apps.bubbleDone', 'Done') : i.note}
             </Text>
           </TouchableOpacity>
         ))}
@@ -245,7 +251,7 @@ const UpNext: React.FC<ViewProps> = ({ items, onOpen, onBrowse }) => {
 const BrowseLink: React.FC<{ onPress: () => void }> = ({ onPress }) => (
   <TouchableOpacity style={styles.browseLink} onPress={onPress} accessibilityRole="button">
     <Ionicons name="apps" size={16} color={Colors.primary} />
-    <Text style={styles.browseText}>Browse apps</Text>
+    <Copy id="today.apps.browseLink" style={styles.browseText}>{'Browse apps'}</Copy>
   </TouchableOpacity>
 );
 

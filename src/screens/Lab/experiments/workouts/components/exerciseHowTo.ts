@@ -1,4 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
+import { copyText } from '../../../../../services/appCopy';
 import { EXERCISE_DEMOS } from '../../../../../data/exerciseDemos';
 import { EXERCISE_DEMO_IMAGES } from '../../../../../data/exerciseDemoImages';
 import { LIBRARY_EXERCISES } from '../../../../../data/exerciseLibrary';
@@ -33,10 +34,10 @@ export const howToFor = (exerciseId: string): HowTo | null => {
     return {
       frames: demo.end
         ? [
-            { label: 'Start', text: demo.start, image: images?.start },
-            { label: 'End', text: demo.end, image: images?.end },
+            { label: copyText('workouts.howTo.start', 'Start'), text: demo.start, image: images?.start },
+            { label: copyText('workouts.howTo.end', 'End'), text: demo.end, image: images?.end },
           ]
-        : [{ label: 'Position', text: demo.start, image: images?.start }],
+        : [{ label: copyText('workouts.howTo.position', 'Position'), text: demo.start, image: images?.start }],
       cues: demo.cues ?? [],
       steps: [],
       stock: false,
@@ -47,8 +48,8 @@ export const howToFor = (exerciseId: string): HowTo | null => {
   const images = EXERCISE_LIBRARY_IMAGES[exerciseId];
   return {
     frames: [
-      { label: 'Start', text: lib.name, image: images?.start },
-      { label: 'End', text: lib.name, image: images?.end },
+      { label: copyText('workouts.howTo.start', 'Start'), text: lib.name, image: images?.start },
+      { label: copyText('workouts.howTo.end', 'End'), text: lib.name, image: images?.end },
     ],
     cues: [],
     steps: lib.steps,

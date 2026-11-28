@@ -10,6 +10,8 @@ import { chipReason, goalScores, groupScoresFor, overrideCount, setScoreOverride
 import { showConfirm } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
 import { MEALS_ACCENT, mls } from './components/mealsStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsScores'>;
 
@@ -20,6 +22,7 @@ type Props = NativeStackScreenProps<MealsStackParamList, 'MealsScores'>;
  * reaches the rest (types/meals.ts).
  */
 export const MealsScoresScreen: React.FC<Props> = () => {
+  const t = useCopy();
   const { prefs, model, updatePrefs } = useMeals();
   const goal = mealGoal(prefs.goal ?? DEFAULT_MEAL_GOAL);
   const overrides = prefs.score_overrides ?? {};
@@ -32,18 +35,17 @@ export const MealsScoresScreen: React.FC<Props> = () => {
 
   const reset = () =>
     showConfirm(
-      `Reset to ${goal.label}?`,
-      'Every score goes back to your goal’s default. Days already logged keep their scores.',
+      t('meals.scores.reset.title', 'Reset to {goal}?', { goal: goal.label }),
+      t('meals.scores.reset.message', 'Every score goes back to your goal’s default. Days already logged keep their scores.'),
       () => updatePrefs({ score_overrides: {} }),
-      'Reset'
+      t('meals.scores.reset.confirm', 'Reset')
     );
 
   return (
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll}>
-      <Text style={mls.muted}>
-        Starting from {goal.label}: each score comes from what the food brings and what your goal counts most. A
-        plate scores the average of its food groups. Changes apply from today; days already logged keep their scores.
-      </Text>
+      <Copy id="meals.scores.intro" style={mls.muted} vars={{ goal: goal.label }}>
+        {'Starting from {goal}: each score comes from what the food brings and what your goal counts most. A plate scores the average of its food groups. Changes apply from today; days already logged keep their scores.'}
+      </Copy>
 
       {FOOD_SECTIONS.map((section) => (
         <React.Fragment key={section.id}>
@@ -56,7 +58,7 @@ export const MealsScoresScreen: React.FC<Props> = () => {
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={mls.body}>{g.label}</Text>
                     <Text style={mls.muted}>
-                      {isChanged ? `${goal.label}: ${defaults[g.id]}. ` : ''}
+                      {isChanged ? t('meals.scores.was', '{goal}: {n}. ', { goal: goal.label, n: defaults[g.id] }) : ''}
                       {chipReason(g.id, model)}
                     </Text>
                   </View>
@@ -79,7 +81,9 @@ export const MealsScoresScreen: React.FC<Props> = () => {
       {changed > 0 && (
         <TouchableOpacity onPress={reset} style={styles.reset} accessibilityRole="button">
           <Ionicons name="refresh" size={16} color={MEALS_ACCENT} />
-          <Text style={mls.link}>Reset to {goal.label} defaults</Text>
+          <Copy id="meals.scores.resetLink" style={mls.link} vars={{ goal: goal.label }}>
+            {'Reset to {goal} defaults'}
+          </Copy>
         </TouchableOpacity>
       )}
     </ScrollView>

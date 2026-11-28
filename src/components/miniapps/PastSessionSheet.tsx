@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { formatRelativeDay, getEditableDates } from '../../utils/date';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 export interface PastSessionInput {
   date: string;
@@ -51,6 +53,7 @@ export const PastSessionSheet: React.FC<Props> = ({
   onSave,
   onCancel,
 }) => {
+  const t = useCopy();
   const insets = useSafeAreaInsets();
   const days = getEditableDates();
   const rangeFor = (value?: string): MinuteRange => modes?.find((m) => m.value === value)?.minutes ?? minutes;
@@ -83,11 +86,11 @@ export const PastSessionSheet: React.FC<Props> = ({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <View style={styles.backdrop}>
-        <Pressable style={styles.dismiss} onPress={onCancel} accessibilityLabel="Cancel" />
+        <Pressable style={styles.dismiss} onPress={onCancel} accessibilityLabel={t('pastSession.cancel', 'Cancel')} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.md }]}>
           <Text style={styles.title}>{title}</Text>
 
-          <Text style={styles.label}>When?</Text>
+          <Copy id="pastSession.when" style={styles.label}>{'When?'}</Copy>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {days.map((d) => {
               const on = d === date;
@@ -107,7 +110,7 @@ export const PastSessionSheet: React.FC<Props> = ({
 
           {!!modes?.length && (
             <>
-              <Text style={styles.label}>What?</Text>
+              <Copy id="pastSession.what" style={styles.label}>{'What?'}</Copy>
               <View style={styles.modes}>
                 {modes.map((m) => {
                   const on = m.value === mode;
@@ -127,12 +130,12 @@ export const PastSessionSheet: React.FC<Props> = ({
             </>
           )}
 
-          <Text style={styles.label}>How long?</Text>
+          <Copy id="pastSession.howLong" style={styles.label}>{'How long?'}</Copy>
           <View style={styles.stepper}>
             <TouchableOpacity style={styles.stepBtn} onPress={() => step(-1)} accessibilityLabel="Less time">
               <Text style={styles.stepGlyph}>−</Text>
             </TouchableOpacity>
-            <Text style={styles.value}>{mins} min</Text>
+            <Copy id="pastSession.minutes" style={styles.value} vars={{ n: mins }}>{'{n} min'}</Copy>
             <TouchableOpacity style={styles.stepBtn} onPress={() => step(1)} accessibilityLabel="More time">
               <Text style={styles.stepGlyph}>+</Text>
             </TouchableOpacity>
@@ -145,9 +148,11 @@ export const PastSessionSheet: React.FC<Props> = ({
             accessibilityRole="button"
             accessibilityState={{ busy: saving }}
           >
-            {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.saveText}>Save & rate it</Text>}
+            {saving ? <ActivityIndicator color={Colors.white} /> : <Copy id="pastSession.save" style={styles.saveText}>{'Save & rate it'}</Copy>}
           </TouchableOpacity>
-          <Text style={styles.hint}>Next, on Today: two quick ratings, the start and the session.</Text>
+          <Copy id="pastSession.hint" style={styles.hint}>
+            {'Next, on Today: two quick ratings, the start and the session.'}
+          </Copy>
         </View>
       </View>
     </Modal>

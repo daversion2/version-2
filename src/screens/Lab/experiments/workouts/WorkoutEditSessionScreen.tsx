@@ -23,6 +23,8 @@ import {
 } from '../../../../services/workoutEdit';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { showNotSavedYet, useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { SetEntrySheet } from './components/SetEntrySheet';
@@ -41,6 +43,7 @@ const SHEET_GAP_MS = 400;
 export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route }) => {
   const { sessionId, exerciseId } = route.params;
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { sessions, exercise, exercisesById, prefs, editSession } = useWorkouts();
   const saved = sessions.find((s) => s.id === sessionId);
   const [draft, setDraft] = useState<CompletedWorkoutSession | null>(saved ?? null);
@@ -56,7 +59,12 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
   );
 
   usePreventRemove(dirty && !leaving, ({ data }) =>
-    showConfirm('Discard changes?', 'Your edits to this workout will be lost.', () => navigation.dispatch(data.action), 'Discard')
+    showConfirm(
+      t('workouts.edit.discardTitle', 'Discard changes?'),
+      t('workouts.edit.discardMsg', 'Your edits to this workout will be lost.'),
+      () => navigation.dispatch(data.action),
+      t('workouts.edit.discard', 'Discard')
+    )
   );
 
   // Once the guard above is off, so the leaving isn't stopped by it.
@@ -67,7 +75,9 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
   if (!draft) {
     return (
       <View style={[ws.screen, styles.center]}>
-        <Text style={ws.muted}>This workout no longer exists.</Text>
+        <Copy id="workouts.edit.gone" style={ws.muted}>
+          This workout no longer exists.
+        </Copy>
       </View>
     );
   }
@@ -88,7 +98,7 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
         setTimeout(showNotSavedYet, SHEET_GAP_MS);
         return;
       }
-      showAlert(failTitle, 'Check your connection and try again.');
+      showAlert(failTitle, t('workouts.edit.failMsg', 'Check your connection and try again.'));
     } finally {
       setBusy(false);
     }
@@ -96,10 +106,14 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
 
   const confirmDelete = (message?: string) =>
     showConfirm(
-      'Delete this workout?',
-      message ?? 'It comes off your week, stats and records, along with its rating and XP. This can’t be undone.',
-      () => commit(null, 'Couldn’t delete that workout'),
-      'Delete'
+      t('workouts.edit.deleteTitle', 'Delete this workout?'),
+      message ??
+        t(
+          'workouts.edit.deleteMsg',
+          'It comes off your week, stats and records, along with its rating and XP. This can’t be undone.'
+        ),
+      () => commit(null, t('workouts.edit.deleteFail', 'Couldn’t delete that workout')),
+      t('workouts.edit.delete', 'Delete')
     );
 
   const removeEditingSet = async () => {
@@ -108,7 +122,13 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
     setEditing(null);
     if (next) return setDraft(next);
     setTimeout(
-      () => confirmDelete('That’s its only set. Deleting it removes the whole workout, with its rating and XP. This can’t be undone.'),
+      () =>
+        confirmDelete(
+          t(
+            'workouts.edit.onlySet',
+            'That’s its only set. Deleting it removes the whole workout, with its rating and XP. This can’t be undone.'
+          )
+        ),
       SHEET_GAP_MS
     );
   };
@@ -116,7 +136,12 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
   const removeLastRound = (blockIndex: number) => {
     const next = withoutLastRound(draft, blockIndex, exercisesById);
     if (next) return setDraft(next);
-    confirmDelete('That’s its only round. Deleting it removes the whole workout, with its rating and XP. This can’t be undone.');
+    confirmDelete(
+      t(
+        'workouts.edit.onlyRound',
+        'That’s its only round. Deleting it removes the whole workout, with its rating and XP. This can’t be undone.'
+      )
+    );
   };
 
   return (
@@ -130,7 +155,7 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
         {canEditLength(draft) && (
           <View style={[ws.panel, styles.lengthPanel]}>
             <NumberStepper
-              label="How long?"
+              label={t('workouts.edit.howLong', 'How long?')}
               value={minutes}
               suffix=" min"
               layout="row"
@@ -157,16 +182,24 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
             >
               <View style={[styles.row, styles.blockHead, ws.separator]}>
                 <Text style={[ws.title, { flex: 1 }]}>{blockTitle(block, exercisesById)}</Text>
-                {multi && <Text style={ws.muted}>Circuit</Text>}
+                {multi && (
+                  <Copy id="workouts.edit.circuit" style={ws.muted}>
+                    Circuit
+                  </Copy>
+                )}
               </View>
               {block.sets.map((set, si) => {
                 const ex = exercise(set.exerciseId);
                 const firstOfRound = si % block.items.length === 0;
-                const label = multi ? ex.name : `Set ${si + 1}`;
+                const label = multi ? ex.name : t('workouts.edit.setN', 'Set {n}', { n: si + 1 });
                 const round = Math.floor(si / block.items.length) + 1;
                 return (
                   <View key={si}>
-                    {multi && firstOfRound && <Text style={styles.roundLabel}>Round {round}</Text>}
+                    {multi && firstOfRound && (
+                      <Copy id="workouts.edit.roundN" style={styles.roundLabel} vars={{ n: round }}>
+                        {'Round {n}'}
+                      </Copy>
+                    )}
                     <TouchableOpacity
                       style={[styles.row, styles.setRow]}
                       onPress={() => setEditing({ blockIndex: bi, setIndex: si })}
@@ -187,7 +220,9 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
                   accessibilityRole="button"
                   accessibilityLabel={`Add a ${multi ? 'round' : 'set'} to ${blockTitle(block, exercisesById)}`}
                 >
-                  <Text style={ws.link}>+ Add {multi ? 'round' : 'set'}</Text>
+                  <Text style={ws.link}>
+                    {multi ? t('workouts.edit.addRound', '+ Add round') : t('workouts.edit.addSet', '+ Add set')}
+                  </Text>
                 </TouchableOpacity>
                 {multi && (
                   <TouchableOpacity
@@ -196,7 +231,9 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
                     accessibilityRole="button"
                     accessibilityLabel={`Remove the last round of ${blockTitle(block, exercisesById)}`}
                   >
-                    <Text style={styles.removeText}>Remove last round</Text>
+                    <Copy id="workouts.edit.removeRound" style={styles.removeText}>
+                      Remove last round
+                    </Copy>
                   </TouchableOpacity>
                 )}
               </View>
@@ -205,19 +242,23 @@ export const WorkoutEditSessionScreen: React.FC<Props> = ({ navigation, route })
         })}
 
         <TouchableOpacity style={ws.textBtn} onPress={() => confirmDelete()} disabled={busy} accessibilityRole="button">
-          <Text style={ws.destructiveText}>Delete workout</Text>
+          <Copy id="workouts.edit.deleteWorkout" style={ws.destructiveText}>
+            Delete workout
+          </Copy>
         </TouchableOpacity>
       </ScrollView>
 
       <View style={[ws.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
         <TouchableOpacity
           style={[ws.primaryBtn, (!dirty || busy) && ws.disabled]}
-          onPress={() => commit(draft, 'Couldn’t save your changes')}
+          onPress={() => commit(draft, t('workouts.edit.saveFail', 'Couldn’t save your changes'))}
           disabled={!dirty || busy}
           accessibilityRole="button"
           accessibilityState={{ disabled: !dirty || busy, busy }}
         >
-          {busy ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Save changes</Text>}
+          {busy ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.edit.save" style={ws.primaryBtnText}>
+              Save changes
+            </Copy>}
         </TouchableOpacity>
       </View>
 

@@ -20,7 +20,9 @@ import { BottomSheet } from '../../components/common/BottomSheet';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
 import { PodAvatar, PodSessionLine, ReactionSheet } from '../../components/pods/PodParts';
+import { Copy } from '../../components/common/Copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
 import { loadAppSetup } from '../../services/appSetup';
 import { cleanFirstName } from '../../services/podMath';
 import {
@@ -58,6 +60,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Pod'>;
 const dayLetter = (day: string) => DAY_NAMES[new Date(`${day}T12:00:00`).getDay()].charAt(0);
 
 export const PodScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const insets = useSafeAreaInsets();
   const { user, userProfile, refreshProfile } = useAuth();
   const podId = userProfile?.pod_id;
@@ -115,30 +118,32 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
       await after?.();
       if (reload) await load();
     } catch (e) {
-      showAlert('Couldn’t do that', podErrorMessage(e));
+      showAlert(t('pods.screen.failed', 'Couldn’t do that'), podErrorMessage(e));
     } finally {
       setBusy(null);
     }
   };
 
-  const back = { label: 'Back', onPress: () => navigation.goBack() };
+  const back = { label: t('pods.screen.back', 'Back'), onPress: () => navigation.goBack() };
 
   // Not in a pod (never joined, left, or removed).
   if (!podId || state === 'gone') {
     return (
       <View style={[styles.screen, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.content}>
-          <LargeTitle title="Your pod" back={back} />
+          <LargeTitle title={t('pods.screen.title', 'Your pod')} back={back} />
           <View style={styles.card}>
-            <Text style={styles.headline}>
-              {state === 'gone' ? 'You’re not in this pod any more.' : 'Train alongside someone.'}
-            </Text>
-            <Text style={styles.body}>
+            {state === 'gone' ? (
+              <Copy id="pods.screen.gone" style={styles.headline}>You’re not in this pod any more.</Copy>
+            ) : (
+              <Copy id="pods.screen.train" style={styles.headline}>Train alongside someone.</Copy>
+            )}
+            <Copy id="pods.screen.pitch" style={styles.body}>
               A partner, or up to 5 people. You see that each other showed up today, and how hard it was.
-            </Text>
+            </Copy>
           </View>
-          <Button title="Start a pod" onPress={() => navigation.replace('PodSetup', { mode: 'start' })} />
-          <Button title="Join with a code" variant="outline" onPress={() => navigation.replace('PodSetup', { mode: 'join' })} />
+          <Button title={t('pods.screen.start', 'Start a pod')} onPress={() => navigation.replace('PodSetup', { mode: 'start' })} />
+          <Button title={t('pods.screen.join', 'Join with a code')} variant="outline" onPress={() => navigation.replace('PodSetup', { mode: 'join' })} />
         </View>
       </View>
     );
@@ -148,12 +153,12 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
     return (
       <View style={[styles.screen, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.content}>
-          <LargeTitle title="Your pod" back={back} />
+          <LargeTitle title={t('pods.screen.title', 'Your pod')} back={back} />
           <View style={styles.loading}>
             {state === 'error' ? (
               <>
-                <Text style={styles.body}>Couldn’t load your pod. Check your connection.</Text>
-                <Button title="Try again" variant="outline" onPress={() => { setState('loading'); load(); }} />
+                <Copy id="pods.screen.loadFailed" style={styles.body}>Couldn’t load your pod. Check your connection.</Copy>
+                <Button title={t('pods.screen.retry', 'Try again')} variant="outline" onPress={() => { setState('loading'); load(); }} />
               </>
             ) : (
               <ActivityIndicator color={Colors.primary} />
@@ -187,10 +192,10 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
 
   const leave = () =>
     showConfirm(
-      'Leave the pod?',
+      t('pods.screen.leave.title', 'Leave the pod?'),
       view.members.length <= 1
-        ? 'You’re the last one in it, so the pod is deleted.'
-        : 'Your shared days leave with you. You can join again with a new code.',
+        ? t('pods.screen.leave.last', 'You’re the last one in it, so the pod is deleted.')
+        : t('pods.screen.leave.message', 'Your shared days leave with you. You can join again with a new code.'),
       () =>
         run(
           'leave',
@@ -201,12 +206,15 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
           },
           false
         ),
-      'Leave'
+      t('pods.screen.leave.confirm', 'Leave')
     );
 
   const remove = (m: PodMemberRow) =>
-    showConfirm(`Remove ${m.name}?`, 'Their shared days leave the pod with them.', () =>
-      run(`remove:${m.uid}`, () => removeFromMyPod(m.uid)), 'Remove'
+    showConfirm(
+      t('pods.screen.remove.title', 'Remove {name}?', { name: m.name }),
+      t('pods.screen.remove.message', 'Their shared days leave the pod with them.'),
+      () => run(`remove:${m.uid}`, () => removeFromMyPod(m.uid)),
+      t('pods.screen.remove.confirm', 'Remove')
     );
 
   const saveName = () => {
@@ -223,37 +231,55 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.xl }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
       >
-        <LargeTitle title="Your pod" eyebrow={`${view.members.length} of 5`} back={back} />
+        <LargeTitle
+          title={t('pods.screen.title', 'Your pod')}
+          eyebrow={t('pods.screen.eyebrow', '{n} of 5', { n: view.members.length })}
+          back={back}
+        />
 
         {/* The week, the streak, everyone days. */}
         <View style={styles.card}>
-          {view.everyoneToday ? <Text style={styles.everyone}>Everyone showed up today</Text> : null}
+          {view.everyoneToday ? (
+            <Copy id="pods.screen.everyoneToday" style={styles.everyone}>Everyone showed up today</Copy>
+          ) : null}
           <Text style={styles.headline}>{view.weekLine}</Text>
           <Text style={styles.body}>
             {view.streakLine}
             {view.everyone.total > 0
-              ? ` · ${view.everyone.total} everyone ${view.everyone.total === 1 ? 'day' : 'days'}` +
-                (view.everyone.best > 1 ? `, best run ${view.everyone.best}` : '')
+              ? t('pods.screen.everyoneTotal', ' · {n} everyone {days}', {
+                  n: view.everyone.total,
+                  days:
+                    view.everyone.total === 1
+                      ? t('pods.screen.everyoneDay', 'day')
+                      : t('pods.screen.everyoneDays', 'days'),
+                }) +
+                (view.everyone.best > 1
+                  ? t('pods.screen.bestRun', ', best run {n}', { n: view.everyone.best })
+                  : '')
               : ''}
           </Text>
         </View>
 
         {view.alone ? (
           <View style={styles.card}>
-            <Text style={styles.headline}>Invite someone</Text>
-            <Text style={styles.body}>A pod starts counting once a second person joins.</Text>
+            <Copy id="pods.screen.inviteHeadline" style={styles.headline}>Invite someone</Copy>
+            <Copy id="pods.screen.inviteBody" style={styles.body}>A pod starts counting once a second person joins.</Copy>
           </View>
         ) : null}
 
         {/* Today, one card per member. */}
-        <ListGroup title="TODAY">
+        <ListGroup title={t('pods.screen.today', 'TODAY')}>
           {view.members.map((m, i) => (
             <View key={m.uid} style={[styles.member, i < view.members.length - 1 && styles.memberSeparator]}>
               <View style={styles.memberTop}>
                 <PodAvatar initial={m.initial} showedUp={m.showedUpToday} />
                 <View style={styles.memberText}>
-                  <Text style={styles.memberName}>{m.isMe ? `${m.name} (you)` : m.name}</Text>
-                  <Text style={styles.memberStatus}>{m.showedUpToday ? 'Showed up' : 'Not yet today'}</Text>
+                  <Text style={styles.memberName}>
+                    {m.isMe ? t('pods.screen.nameYou', '{name} (you)', { name: m.name }) : m.name}
+                  </Text>
+                  <Text style={styles.memberStatus}>
+                    {m.showedUpToday ? t('pods.screen.showedUp', 'Showed up') : t('pods.screen.notYet', 'Not yet today')}
+                  </Text>
                 </View>
                 {m.canNudge ? (
                   <TouchableOpacity
@@ -263,10 +289,10 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
                     accessibilityRole="button"
                     accessibilityLabel={`Nudge ${m.name}`}
                   >
-                    <Text style={styles.nudgeText}>Nudge</Text>
+                    <Copy id="pods.screen.nudge" style={styles.nudgeText}>Nudge</Copy>
                   </TouchableOpacity>
                 ) : m.nudgedByMe ? (
-                  <Text style={styles.nudged}>Nudged</Text>
+                  <Copy id="pods.screen.nudged" style={styles.nudged}>Nudged</Copy>
                 ) : null}
               </View>
               {m.sessionsToday.map((s) => (
@@ -277,7 +303,7 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
         </ListGroup>
 
         {/* The week at a glance: a row per member, a dot per day. */}
-        <ListGroup title="LAST 7 DAYS">
+        <ListGroup title={t('pods.screen.last7', 'LAST 7 DAYS')}>
           <View style={styles.grid}>
             <View style={styles.gridRow}>
               <Text style={styles.gridName} />
@@ -290,7 +316,7 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
             {view.members.map((m) => (
               <View key={m.uid} style={styles.gridRow} accessible accessibilityLabel={`${m.name}: showed up ${m.week.filter(Boolean).length} of the last 7 days`}>
                 <Text style={styles.gridName} numberOfLines={1}>
-                  {m.isMe ? 'You' : m.name}
+                  {m.isMe ? t('pods.screen.you', 'You') : m.name}
                 </Text>
                 {m.week.map((on, i) => (
                   <View key={i} style={styles.gridCell}>
@@ -305,24 +331,26 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
         {/* Invite. */}
         {view.members.length < 5 ? (
           <ListGroup
-            title="INVITE"
+            title={t('pods.screen.invite', 'INVITE')}
             footer={
               view.invite?.live
-                ? `Works until ${new Date(view.invite.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}. Any member can make a new one.`
-                : 'Make a new code to invite someone.'
+                ? t('pods.screen.inviteLive', 'Works until {date}. Any member can make a new one.', {
+                    date: new Date(view.invite.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                  })
+                : t('pods.screen.inviteNone', 'Make a new code to invite someone.')
             }
           >
             {view.invite?.live ? (
               <ListRow
                 title={view.invite.code.split('').join(' ')}
-                subtitle="Pod code"
-                right={<Text style={styles.link}>Share</Text>}
+                subtitle={t('pods.screen.podCode', 'Pod code')}
+                right={<Copy id="pods.screen.share" style={styles.link}>Share</Copy>}
                 onPress={() => shareInvite(view.invite!.code)}
                 accessibilityLabel={`Pod code ${view.invite.code.split('').join(' ')}. Share it.`}
               />
             ) : null}
             <ListRow
-              title="New code"
+              title={t('pods.screen.newCode', 'New code')}
               tint="accent"
               separator={false}
               onPress={() =>
@@ -336,16 +364,16 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
 
         {/* Me. */}
-        <ListGroup title="YOU">
+        <ListGroup title={t('pods.screen.you.group', 'YOU')}>
           <ListRow
-            title="Your first name"
+            title={t('pods.screen.firstName', 'Your first name')}
             value={me?.first_name}
             chevron
             onPress={() => setEditingName(me?.first_name ?? '')}
           />
           <ListRow
-            title="Share how hard it was"
-            subtitle="Off: your pod sees that you did it, not how hard."
+            title={t('pods.screen.shareFriction', 'Share how hard it was')}
+            subtitle={t('pods.screen.shareFrictionSub', 'Off: your pod sees that you did it, not how hard.')}
             right={
               <Switch
                 value={me?.share_friction !== false}
@@ -357,7 +385,7 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
             }
           />
           <ListRow
-            title="Mute pod notifications"
+            title={t('pods.screen.mute', 'Mute pod notifications')}
             separator={false}
             right={
               <Switch
@@ -372,12 +400,15 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
         </ListGroup>
 
         {view.isStarter && others.length > 0 ? (
-          <ListGroup title="MEMBERS" footer="You started this pod, so you can remove someone.">
+          <ListGroup
+            title={t('pods.screen.members', 'MEMBERS')}
+            footer={t('pods.screen.membersFooter', 'You started this pod, so you can remove someone.')}
+          >
             {others.map((m, i) => (
               <ListRow
                 key={m.uid}
                 title={m.name}
-                right={<Text style={styles.remove}>Remove</Text>}
+                right={<Copy id="pods.screen.removeRow" style={styles.remove}>Remove</Copy>}
                 onPress={() => remove(m)}
                 separator={i < others.length - 1}
                 accessibilityLabel={`Remove ${m.name}`}
@@ -387,7 +418,7 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
         ) : null}
 
         <ListGroup>
-          <ListRow title="Leave the pod" tint="destructive" separator={false} onPress={leave} />
+          <ListRow title={t('pods.screen.leaveRow', 'Leave the pod')} tint="destructive" separator={false} onPress={leave} />
         </ListGroup>
       </ScrollView>
 
@@ -398,17 +429,21 @@ export const PodScreen: React.FC<Props> = ({ navigation }) => {
         onClose={() => setReactTo(null)}
       />
 
-      <BottomSheet visible={editingName !== null} onClose={() => setEditingName(null)} title="Your first name" avoidKeyboard>
+      <BottomSheet visible={editingName !== null} onClose={() => setEditingName(null)} title={t('pods.screen.firstName', 'Your first name')} avoidKeyboard>
         <InputField
-          label="What your pod calls you"
+          label={t('pods.screen.callsYou', 'What your pod calls you')}
           value={editingName ?? ''}
           onChangeText={setEditingName}
           autoCapitalize="words"
           autoCorrect={false}
           maxLength={20}
-          error={(editingName ?? '').trim() && !cleanFirstName(editingName) ? 'Letters only, up to 20.' : undefined}
+          error={
+            (editingName ?? '').trim() && !cleanFirstName(editingName)
+              ? t('pods.screen.lettersOnly', 'Letters only, up to 20.')
+              : undefined
+          }
         />
-        <Button title="Save" onPress={saveName} loading={busy === 'name'} disabled={!cleanFirstName(editingName) || !!busy} />
+        <Button title={t('pods.screen.save', 'Save')} onPress={saveName} loading={busy === 'name'} disabled={!cleanFirstName(editingName) || !!busy} />
       </BottomSheet>
     </View>
   );

@@ -9,6 +9,8 @@ import { DEFAULT_TARGET } from '../../../../services/workoutMath';
 import { blockTitle, describeBlock, makeId, newBlockShape } from '../../../../services/workoutSession';
 import { newWorkoutId } from '../../../../services/labWorkouts';
 import { showAlert, showConfirm } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { ExercisePickerModal } from './components/ExercisePickerModal';
 import { BlockEditorModal } from './components/BlockEditorModal';
@@ -25,6 +27,7 @@ const blockFrom = (picked: Exercise[]): WorkoutBlock => ({
 });
 
 export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => {
+  const t = useCopy();
   const { userId, workouts, exercisesById, prefs, upsertWorkout, removeWorkout } = useWorkouts();
   const existing = route.params.workoutId ? workouts.find((w) => w.id === route.params.workoutId) : undefined;
 
@@ -48,10 +51,10 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
   // button and the swipe are held natively too.
   usePreventRemove(dirty && !exit, ({ data }) =>
     showConfirm(
-      'Discard changes?',
-      'Your edits to this workout will be lost.',
+      t('workouts.builder.discardTitle', 'Discard changes?'),
+      t('workouts.builder.discardMsg', 'Your edits to this workout will be lost.'),
       () => navigation.dispatch(data.action),
-      'Discard'
+      t('workouts.builder.discard', 'Discard')
     )
   );
 
@@ -61,8 +64,14 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const save = async () => {
     const trimmed = name.trim();
-    if (!trimmed) return showAlert('Name this workout', 'e.g. "Push Day" or "Monday upper body".');
-    if (!blocks.length) return showAlert('Add an exercise', 'A workout needs at least one exercise or circuit.');
+    if (!trimmed) return showAlert(
+        t('workouts.builder.nameTitle', 'Name this workout'),
+        t('workouts.builder.nameMsg', 'e.g. "Push Day" or "Monday upper body".')
+      );
+    if (!blocks.length) return showAlert(
+        t('workouts.builder.addTitle', 'Add an exercise'),
+        t('workouts.builder.addMsg', 'A workout needs at least one exercise or circuit.')
+      );
     setSaving(true);
     const now = new Date().toISOString();
     const workout: Workout = existing
@@ -74,20 +83,25 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
         existing ? () => navigation.goBack() : () => navigation.replace('WorkoutPreview', { workoutId: workout.id })
       );
     } catch (e) {
-      showAlert("Couldn't save the workout", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.builder.failTitle', "Couldn't save the workout"),
+        t('workouts.builder.failMsg', 'Check your connection and try again.')
+      );
       setSaving(false);
     }
   };
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: existing ? 'Edit workout' : 'New workout',
+      title: existing ? t('workouts.builder.titleEdit', 'Edit workout') : t('workouts.builder.titleNew', 'New workout'),
       headerRight: () =>
         saving ? (
           <ActivityIndicator color={WORKOUTS_ACCENT} />
         ) : (
           <TouchableOpacity onPress={save} style={ws.headerIconBtn}>
-            <Text style={styles.save}>Save</Text>
+            <Copy id="workouts.builder.save" style={styles.save}>
+              Save
+            </Copy>
           </TouchableOpacity>
         ),
     });
@@ -102,20 +116,30 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
   };
 
   const deleteWorkout = () =>
-    showConfirm('Delete this workout?', 'Past sessions and records stay in your history.', async () => {
-      if (!existing) return;
-      try {
-        await removeWorkout(existing.id);
-        setExit(() => () => navigation.popToTop());
-      } catch {
-        showAlert("Couldn't delete it", 'Check your connection and try again.');
-      }
-    }, 'Delete');
+    showConfirm(
+      t('workouts.builder.deleteTitle', 'Delete this workout?'),
+      t('workouts.builder.deleteMsg', 'Past sessions and records stay in your history.'),
+      async () => {
+        if (!existing) return;
+        try {
+          await removeWorkout(existing.id);
+          setExit(() => () => navigation.popToTop());
+        } catch {
+          showAlert(
+            t('workouts.builder.deleteFailTitle', "Couldn't delete it"),
+            t('workouts.builder.failMsg', 'Check your connection and try again.')
+          );
+        }
+      },
+      t('workouts.builder.delete', 'Delete')
+    );
 
   return (
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={ws.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={ws.sectionLabel}>Name</Text>
+        <Copy id="workouts.builder.name" style={ws.sectionLabel}>
+          Name
+        </Copy>
         <TextInput
           style={styles.nameInput}
           value={name}
@@ -123,16 +147,18 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
             setDirty(true);
             setName(t);
           }}
-          placeholder="e.g. Push Day"
+          placeholder={t('workouts.builder.namePlaceholder', 'e.g. Push Day')}
           placeholderTextColor={Colors.gray}
           returnKeyType="done"
         />
 
-        <Text style={ws.sectionLabel}>Exercises & circuits</Text>
+        <Copy id="workouts.builder.blocks" style={ws.sectionLabel}>
+          Exercises & circuits
+        </Copy>
         {blocks.length === 0 && (
-          <Text style={ws.muted}>
+          <Copy id="workouts.builder.empty" style={ws.muted}>
             Add single exercises, or a circuit — several exercises back to back, where one pass through them is a set.
-          </Text>
+          </Copy>
         )}
 
         {blocks.map((block, i) => {
@@ -146,7 +172,11 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
               accessibilityHint="Edit sets, reps and rest"
             >
               <View style={{ flex: 1, gap: 2 }}>
-                {isCircuit && <Text style={styles.circuitTag}>Circuit</Text>}
+                {isCircuit && (
+                  <Copy id="workouts.builder.circuit" style={styles.circuitTag}>
+                    Circuit
+                  </Copy>
+                )}
                 <Text style={ws.title}>{blockTitle(block, exercisesById)}</Text>
                 <Text style={ws.muted}>{describeBlock(block, exercisesById, prefs.unit)}</Text>
               </View>
@@ -169,27 +199,37 @@ export const WorkoutBuilderScreen: React.FC<Props> = ({ navigation, route }) => 
 
         <View style={styles.addRow}>
           <TouchableOpacity style={[ws.secondaryBtn, styles.addBtn]} onPress={() => setPicker('exercise')}>
-            <Text style={ws.secondaryBtnText}>+ Exercise</Text>
+            <Copy id="workouts.builder.plusExercise" style={ws.secondaryBtnText}>
+              + Exercise
+            </Copy>
           </TouchableOpacity>
           <TouchableOpacity style={[ws.secondaryBtn, styles.addBtn]} onPress={() => setPicker('circuit')}>
-            <Text style={ws.secondaryBtnText}>+ Circuit</Text>
+            <Copy id="workouts.builder.plusCircuit" style={ws.secondaryBtnText}>
+              + Circuit
+            </Copy>
           </TouchableOpacity>
         </View>
 
         {existing && (
           <TouchableOpacity style={styles.delete} onPress={deleteWorkout}>
             <Ionicons name="trash-outline" size={16} color={Colors.danger} />
-            <Text style={styles.deleteText}>Delete workout</Text>
+            <Copy id="workouts.builder.deleteWorkout" style={styles.deleteText}>
+              Delete workout
+            </Copy>
           </TouchableOpacity>
         )}
       </ScrollView>
 
       <ExercisePickerModal
         visible={picker !== null}
-        title={picker === 'circuit' ? 'Build a circuit' : 'Add an exercise'}
+        title={
+          picker === 'circuit'
+            ? t('workouts.builder.buildCircuit', 'Build a circuit')
+            : t('workouts.builder.addExercise', 'Add an exercise')
+        }
         mode={picker === 'circuit' ? 'multi' : 'single'}
         minSelect={picker === 'circuit' ? 2 : 1}
-        confirmLabel={(n) => `Add circuit of ${n}`}
+        confirmLabel={(n) => t('workouts.builder.addCircuit', 'Add circuit of {n}', { n })}
         onCancel={() => setPicker(null)}
         onConfirm={(picked) => {
           setPicker(null);

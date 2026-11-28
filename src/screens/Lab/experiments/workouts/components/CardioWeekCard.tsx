@@ -5,6 +5,8 @@ import { CARDIO_ZONES, CARDIO_ZONE_ORDER } from '../../../../../data/cardioZones
 import { CardioWeek, describeCardioCredit, zoneInLine } from '../../../../../services/cardio';
 import { ProgressBar } from './PhaseParts';
 import { CardioZonesInfo } from './CardioZonesInfo';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 /** One accent, three strengths: easy is lightest, above VT2 is full. */
@@ -19,7 +21,9 @@ export const CardioWeekCard: React.FC<{ week: CardioWeek }> = ({ week }) => {
   return (
     <View style={[ws.card, styles.card]}>
       <View style={styles.head}>
-        <Text style={ws.title}>Cardio</Text>
+        <Copy id="workouts.cardioWeek.title" style={ws.title}>
+          Cardio
+        </Copy>
         <CardioZonesInfo size={18} />
         <View style={{ flex: 1 }} />
         <Text style={styles.credit}>{describeCardioCredit(week)}</Text>
@@ -51,11 +55,15 @@ export const CardioWeekCard: React.FC<{ week: CardioWeek }> = ({ week }) => {
             </View>
           ))}
         </View>
-        <Text style={ws.muted}>
-          {week.totalMin > 0
-            ? 'Minutes above VT1 count double toward 150.'
-            : 'Nothing yet this week. Add a run, ride or row with + Add exercise, or put one in a workout. Minutes above VT1 count double toward 150.'}
-        </Text>
+        {week.totalMin > 0 ? (
+          <Copy id="workouts.cardioWeek.note" style={ws.muted}>
+            Minutes above VT1 count double toward 150.
+          </Copy>
+        ) : (
+          <Copy id="workouts.cardioWeek.noteEmpty" style={ws.muted}>
+            Nothing yet this week. Add a run, ride or row with + Add exercise, or put one in a workout. Minutes above VT1 count double toward 150.
+          </Copy>
+        )}
       </View>
     </View>
   );

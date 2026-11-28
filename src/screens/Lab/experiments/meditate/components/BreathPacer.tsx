@@ -11,6 +11,7 @@ import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Colors, MeditateNight, Spacing, TextStyles } from '../../../../../constants/theme';
 import { BREATH_FULL, BreathPatternKey, getBreathPattern } from '../../../../../data/breathPatterns';
+import { Copy } from '../../../../../components/common/Copy';
 
 const BASE_SIZE = 150; // diameter of the contracted circle; fully inhaled is BREATH_FULL × this
 
@@ -106,13 +107,19 @@ export const BreathPacer: React.FC<Props> = ({ pattern: patternKey, plannedSec, 
     <View style={styles.wrap}>
       <View style={styles.header}>
         <Text style={styles.title}>{pattern.label}</Text>
-        <Text style={styles.meta}>About {Math.max(1, remainingMin)} min left</Text>
+        <Copy id="meditate.pacer.left" style={styles.meta} vars={{ n: Math.max(1, remainingMin) }}>
+          {'About {n} min left'}
+        </Copy>
       </View>
       <View style={styles.stage}>
         <View style={styles.ring} pointerEvents="none" />
         <Animated.View style={[styles.circle, circleStyle]} pointerEvents="none" />
         <View style={styles.readout} accessibilityLiveRegion="polite">
-          <Text style={styles.cue}>{paused ? 'Paused' : step.label}</Text>
+          {paused ? (
+            <Copy id="meditate.pacer.paused" style={styles.cue}>Paused</Copy>
+          ) : (
+            <Text style={styles.cue}>{step.label}</Text>
+          )}
           {!paused && <Text style={styles.count}>{count}</Text>}
         </View>
       </View>
@@ -121,7 +128,9 @@ export const BreathPacer: React.FC<Props> = ({ pattern: patternKey, plannedSec, 
         onPress={() => setPaused((p) => !p)}
         accessibilityRole="button"
       >
-        <Text style={styles.pauseText}>{paused ? 'Resume' : 'Pause'}</Text>
+        <Copy id={paused ? 'meditate.pacer.resume' : 'meditate.pacer.pause'} style={styles.pauseText}>
+          {paused ? 'Resume' : 'Pause'}
+        </Copy>
       </TouchableOpacity>
     </View>
   );

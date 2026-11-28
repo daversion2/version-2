@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { Exercise, SetValues } from '../../../../../types/workouts';
 import { showAlert, showConfirm } from '../../../../../utils/alert';
+import { copyText } from '../../../../../services/appCopy';
 import { isTimeoutError } from '../../../../../services/labWorkouts';
 import { showNotSavedYet, useWorkouts } from '../WorkoutsContext';
 
@@ -27,7 +28,10 @@ export const useLogSets = () => {
           setTimeout(showNotSavedYet, 400);
           return true;
         }
-        showAlert("Couldn't save those sets", 'Check your connection and try again.');
+        showAlert(
+          copyText('workouts.logSets.failTitle', "Couldn't save those sets"),
+          copyText('workouts.logSets.failMsg', 'Check your connection and try again.')
+        );
         return false;
       }
       closeSheet();
@@ -36,15 +40,21 @@ export const useLogSets = () => {
         setTimeout(
           () =>
             showConfirm(
-              'That’s today’s workout',
-              'Rate how hard it was to start and it counts toward your week. Or keep logging, and rate it from your week when you’re done.',
+              copyText('workouts.logSets.todayTitle', 'That’s today’s workout'),
+              copyText(
+                'workouts.logSets.todayMsg',
+                'Rate how hard it was to start and it counts toward your week. Or keep logging, and rate it from your week when you’re done.'
+              ),
               () => {
                 rateLoggedSets(session).catch(() =>
-                  showAlert("Couldn't hand it to Today", 'Check your connection and try again.')
+                  showAlert(
+                  copyText('workouts.logSets.handFailTitle', "Couldn't hand it to Today"),
+                  copyText('workouts.logSets.failMsg', 'Check your connection and try again.')
+                )
                 );
               },
-              'Rate it now',
-              'Keep logging'
+              copyText('workouts.logSets.rateNow', 'Rate it now'),
+              copyText('workouts.logSets.keepLogging', 'Keep logging')
             ),
           400
         );

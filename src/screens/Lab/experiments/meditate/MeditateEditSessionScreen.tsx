@@ -12,14 +12,20 @@ import { describeSession, MODES } from '../../../../services/meditateMath';
 import { formatMinutes } from '../../../../services/sessionTimer';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { formatDayHeader } from '../../../../utils/date';
+import { copyText } from '../../../../services/appCopy';
 import { useMeditate } from './MeditateContext';
 import { ms } from './components/meditateStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateEditSession'>;
 
 /** After a save that's queued offline: the same words Workouts uses. */
 const showNotSavedYet = () =>
-  showAlert('Not saved yet', 'No connection right now. It saves once you’re back online — keep the app open till then.');
+  showAlert(
+    copyText('meditate.edit.notSaved.title', 'Not saved yet'),
+    copyText('meditate.edit.notSaved.message', 'No connection right now. It saves once you’re back online — keep the app open till then.'),
+  );
 
 /**
  * One finished session, corrected: its length, or the whole session. Held on
@@ -29,6 +35,7 @@ const showNotSavedYet = () =>
 export const MeditateEditSessionScreen: React.FC<Props> = ({ navigation, route }) => {
   const { sessionId } = route.params;
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { sessions, editSession } = useMeditate();
   const saved = sessions.find((s) => s.id === sessionId);
   const [draft, setDraft] = useState<CompletedMeditateSession | null>(saved ?? null);
@@ -38,7 +45,12 @@ export const MeditateEditSessionScreen: React.FC<Props> = ({ navigation, route }
   const dirty = useMemo(() => !!draft && !!saved && JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved]);
 
   usePreventRemove(dirty && !leaving, ({ data }) =>
-    showConfirm('Discard changes?', 'Your edits to this session will be lost.', () => navigation.dispatch(data.action), 'Discard')
+    showConfirm(
+      t('meditate.edit.discard.title', 'Discard changes?'),
+      t('meditate.edit.discard.message', 'Your edits to this session will be lost.'),
+      () => navigation.dispatch(data.action),
+      t('meditate.edit.discard.confirm', 'Discard'),
+    )
   );
 
   // Once the guard above is off, so the leaving isn't stopped by it.
@@ -49,7 +61,7 @@ export const MeditateEditSessionScreen: React.FC<Props> = ({ navigation, route }
   if (!draft) {
     return (
       <View style={[ms.screen, styles.center]}>
-        <Text style={ms.muted}>This session no longer exists.</Text>
+        <Copy id="meditate.edit.gone" style={ms.muted}>This session no longer exists.</Copy>
       </View>
     );
   }
@@ -67,7 +79,7 @@ export const MeditateEditSessionScreen: React.FC<Props> = ({ navigation, route }
         setTimeout(showNotSavedYet, 400);
         return;
       }
-      showAlert(failTitle, 'Check your connection and try again.');
+      showAlert(failTitle, t('meditate.edit.failMessage', 'Check your connection and try again.'));
     } finally {
       setBusy(false);
     }
@@ -75,10 +87,10 @@ export const MeditateEditSessionScreen: React.FC<Props> = ({ navigation, route }
 
   const confirmDelete = () =>
     showConfirm(
-      'Delete this session?',
-      'It comes off your week, stats and records, along with its rating and XP. This can’t be undone.',
-      () => commit(null, 'Couldn’t delete that session'),
-      'Delete'
+      t('meditate.edit.delete.title', 'Delete this session?'),
+      t('meditate.edit.delete.message', 'It comes off your week, stats and records, along with its rating and XP. This can’t be undone.'),
+      () => commit(null, t('meditate.edit.delete.fail', 'Couldn’t delete that session')),
+      t('meditate.edit.delete.confirm', 'Delete'),
     );
 
   return (
@@ -91,7 +103,7 @@ export const MeditateEditSessionScreen: React.FC<Props> = ({ navigation, route }
 
         {canEditMeditateLength(draft) ? (
           <View style={[ms.card, styles.length]}>
-            <Text style={ms.body}>How long?</Text>
+            <Copy id="meditate.edit.howLong" style={ms.body}>How long?</Copy>
             <Stepper
               value={meditateMinutes(draft)}
               onChange={(m) => setDraft((d) => d && withMeditateMinutes(d, m))}
@@ -105,24 +117,24 @@ export const MeditateEditSessionScreen: React.FC<Props> = ({ navigation, route }
         ) : (
           <View style={[ms.card, styles.head]}>
             <Text style={ms.body}>{formatMinutes(draft.duration_sec)}</Text>
-            <Text style={ms.muted}>A guided session keeps its recording’s length.</Text>
+            <Copy id="meditate.edit.guidedNote" style={ms.muted}>A guided session keeps its recording’s length.</Copy>
           </View>
         )}
 
         <TouchableOpacity style={ms.textBtn} onPress={confirmDelete} disabled={busy} accessibilityRole="button">
-          <Text style={ms.destructiveText}>Delete session</Text>
+          <Copy id="meditate.edit.deleteSession" style={ms.destructiveText}>Delete session</Copy>
         </TouchableOpacity>
       </ScrollView>
 
       <View style={[ms.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
         <TouchableOpacity
           style={[ms.primaryBtn, (!dirty || busy) && ms.disabled]}
-          onPress={() => commit(draft, 'Couldn’t save your changes')}
+          onPress={() => commit(draft, t('meditate.edit.saveFail', 'Couldn’t save your changes'))}
           disabled={!dirty || busy}
           accessibilityRole="button"
           accessibilityState={{ disabled: !dirty || busy, busy }}
         >
-          {busy ? <ActivityIndicator color={Colors.white} /> : <Text style={ms.primaryBtnText}>Save changes</Text>}
+          {busy ? <ActivityIndicator color={Colors.white} /> : <Copy id="meditate.edit.save" style={ms.primaryBtnText}>Save changes</Copy>}
         </TouchableOpacity>
       </View>
     </View>

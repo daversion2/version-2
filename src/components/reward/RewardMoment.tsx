@@ -12,6 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { triggerRewardHaptic } from '../../utils/haptics';
 import { NeuroscienceTidbit } from '../../types';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 interface RewardMomentProps {
   visible: boolean;
@@ -145,6 +147,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   onLearnMore,
   onDismiss,
 }) => {
+  const t = useCopy();
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const colorWashOpacity = useRef(new Animated.Value(0)).current;
   const messageOpacity = useRef(new Animated.Value(0)).current;
@@ -307,7 +310,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
   if (!visible) return null;
 
   // Points text (used for failed challenges)
-  const pointsText = `+${pointsEarned} XP`;
+  const pointsText = t('reward.points', '+{points} XP', { points: pointsEarned });
 
   // Generate particles — varied sizes and distances for visual depth
   const particles = isCompleted
@@ -402,12 +405,12 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{totalChallengesCompleted ?? 0}</Text>
-                <Text style={styles.statLabel}>challenges{'\n'}completed</Text>
+                <Copy id="reward.stat.challenges" style={styles.statLabel}>{'challenges\ncompleted'}</Copy>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>+{pointsEarned}</Text>
-                <Text style={styles.statLabel}>XP{'\n'}earned</Text>
+                <Copy id="reward.stat.xp" style={styles.statLabel}>{'XP\nearned'}</Copy>
               </View>
             </View>
 
@@ -416,7 +419,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
               <>
                 <View style={styles.tidbitLabelRow}>
                   <Ionicons name="flash" size={16} color="rgba(255, 255, 255, 0.5)" />
-                  <Text style={styles.tidbitLabel}>Your brain right now</Text>
+                  <Copy id="reward.tidbitLabel" style={styles.tidbitLabel}>{'Your brain right now'}</Copy>
                 </View>
 
                 <Text style={styles.tidbitText}>{tidbit.text}</Text>
@@ -427,7 +430,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
                     onPress={() => onLearnMore(tidbit)}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.learnMoreText}>Learn more</Text>
+                    <Copy id="reward.learnMore" style={styles.learnMoreText}>{'Learn more'}</Copy>
                     <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
                   </TouchableOpacity>
                 )}
@@ -444,7 +447,7 @@ export const RewardMoment: React.FC<RewardMomentProps> = ({
             activeOpacity={0.8}
           >
             <Text style={styles.continueText}>
-              {phase === 'tidbit' ? 'Done' : 'Continue'}
+              {phase === 'tidbit' ? t('reward.done', 'Done') : t('reward.continue', 'Continue')}
             </Text>
           </TouchableOpacity>
         </Animated.View>

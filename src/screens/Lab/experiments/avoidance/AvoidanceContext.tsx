@@ -18,6 +18,7 @@ import { getAvoidanceTasks as getOldAvoidanceTasks } from '../../../../services/
 import { cleanTaskText, importable, importedIds, notYetImported } from '../../../../services/avoidanceMath';
 import { RESISTANCE_SCALE } from '../../../../constants/resistance';
 import { toLocalDateString } from '../../../../utils/date';
+import { copyText } from '../../../../services/appCopy';
 import { showAlert } from '../../../../utils/alert';
 
 interface AvoidanceContextValue {
@@ -58,7 +59,8 @@ export const useAvoidance = (): AvoidanceContextValue => {
 };
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const saveFailed = () => showAlert("Couldn't save that", 'Check your connection and try again.');
+const saveFailed = () =>
+  showAlert(copyText('avoidance.save.fail.title', "Couldn't save that"), copyText('avoidance.save.fail.message', 'Check your connection and try again.'));
 
 export const AvoidanceProvider: React.FC<{
   userId: string;
@@ -197,7 +199,7 @@ export const AvoidanceProvider: React.FC<{
       } catch (e) {
         console.warn('Avoidance: delete failed:', e);
         setTasks(before);
-        showAlert("Couldn't delete that", 'Check your connection and try again.');
+        showAlert(copyText('avoidance.delete.fail.title', "Couldn't delete that"), copyText('avoidance.delete.fail.message', 'Check your connection and try again.'));
       }
     },
     [userId]

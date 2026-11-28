@@ -8,6 +8,8 @@ import { KIND_LABELS } from '../../../../../data/workoutExercises';
 import { exerciseSubtitle } from '../../../../../services/exerciseLibrary';
 import { Exercise } from '../../../../../types/workouts';
 import { ExerciseDemoCard } from './ExerciseDemoCard';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 const THUMB = 52;
@@ -63,7 +65,9 @@ export const ExercisePreviewModal: React.FC<{
         <View style={styles.sheet}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
-              <Text style={styles.close}>Close</Text>
+              <Copy id="workouts.preview.close" style={styles.close}>
+                Close
+              </Copy>
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={[styles.body, { paddingBottom: Spacing.xxl + insets.bottom + 70 }]}>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 're
 import * as Haptics from 'expo-haptics';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { BREATHING_CADENCES } from '../../data/cravings';
+import { Copy } from '../common/Copy';
 
 /**
  * Guided breathing with a user-chosen cadence. The circle grows on inhale,
@@ -72,17 +73,19 @@ export const BreatheActivity: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.stage}>
-        <Text style={styles.phaseLabel}>
-          {phase.label} · {phaseSecondsLeft}
-        </Text>
+        <Copy id="craving.breathe.phase" style={styles.phaseLabel} vars={{ label: phase.label, n: phaseSecondsLeft }}>
+          {'{label} · {n}'}
+        </Copy>
         <View style={styles.ring}>
           <Animated.View style={[styles.ball, { transform: [{ scale }] }]} />
         </View>
-        <Text style={styles.cycleLabel}>Cycle {cycle} · follow the circle</Text>
+        <Copy id="craving.breathe.cycle" style={styles.cycleLabel} vars={{ n: cycle }}>
+          {'Cycle {n} · follow the circle'}
+        </Copy>
       </View>
 
       <View style={styles.cadenceBlock}>
-        <Text style={styles.cadenceLabel}>CADENCE</Text>
+        <Copy id="craving.breathe.cadence" style={styles.cadenceLabel}>CADENCE</Copy>
         <View style={styles.cadenceRow}>
           {BREATHING_CADENCES.map((c) => {
             const selected = c.id === cadenceId;

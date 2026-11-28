@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Copy } from '../common/Copy';
 import { Card } from '../common/Card';
 import { ReflectionGrade } from '../../types';
 import { GRADE_COLORS, GRADE_LABELS } from '../../data/comfortZone';
@@ -18,15 +19,21 @@ export const GradeDistributionChart: React.FC<GradeDistributionChartProps> = ({ 
   if (total === 0) {
     return (
       <Card>
-        <Text style={styles.title}>Grade Distribution</Text>
-        <Text style={styles.emptyText}>No data yet</Text>
+        <Copy id="progress.gradeDist.emptyTitle" style={styles.title}>
+          Grade Distribution
+        </Copy>
+        <Copy id="progress.gradeDist.empty" style={styles.emptyText}>
+          No data yet
+        </Copy>
       </Card>
     );
   }
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Alignment Distribution</Text>
+      <Copy id="progress.gradeDist.title" style={styles.title}>
+        Alignment Distribution
+      </Copy>
       {GRADE_ORDER.map((grade) => {
         const count = distribution[grade];
         const width = (count / maxCount) * 100;

@@ -14,6 +14,8 @@ import {
   lastSlotSetsFor,
 } from '../../../../services/workoutMath';
 import { showChoice } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { lastDoneLabel } from './WorkoutsHomeScreen';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
@@ -23,6 +25,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutPreview'>;
 
 export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { loading, workouts, exercise, exercisesById, prefs, sessions, session, beginSession, discardSession } = useWorkouts();
   const workout = workouts.find((w) => w.id === route.params.workoutId);
   // Start asks the override; its answer is what starts the workout.
@@ -37,7 +40,9 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
             onPress={() => navigation.navigate('WorkoutBuilder', { workoutId: workout.id })}
             style={ws.headerIconBtn}
           >
-            <Text style={styles.edit}>Edit</Text>
+            <Copy id="workouts.preview.edit" style={styles.edit}>
+              Edit
+            </Copy>
           </TouchableOpacity>
         ) : null,
     });
@@ -54,7 +59,9 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
     }
     return (
       <View style={[ws.screen, styles.center]}>
-        <Text style={ws.muted}>This workout no longer exists.</Text>
+        <Copy id="workouts.preview.gone" style={ws.muted}>
+          This workout no longer exists.
+        </Copy>
       </View>
     );
   }
@@ -68,16 +75,23 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
         navigation.navigate('WorkoutSession');
       });
     if (!session) return go();
-    showChoice(`${session.workoutName} is still in progress`, 'Resume it, or discard it and start this one?', [
-      { label: 'Resume it', onPress: () => navigation.navigate(session.phase === 'summary' ? 'WorkoutSummary' : 'WorkoutSession') },
-      {
-        label: 'Discard and start',
-        onPress: async () => {
-          await discardSession();
-          go();
+    showChoice(
+      t('workouts.preview.inProgressTitle', '{name} is still in progress', { name: session.workoutName }),
+      t('workouts.preview.inProgressMsg', 'Resume it, or discard it and start this one?'),
+      [
+        {
+          label: t('workouts.preview.resume', 'Resume it'),
+          onPress: () => navigation.navigate(session.phase === 'summary' ? 'WorkoutSummary' : 'WorkoutSession'),
         },
-      },
-    ]);
+        {
+          label: t('workouts.preview.discardStart', 'Discard and start'),
+          onPress: async () => {
+            await discardSession();
+            go();
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -85,7 +99,9 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView contentContainerStyle={[ws.scroll, { paddingBottom: 120 + insets.bottom }]}>
         <Text style={ws.muted}>{lastDoneLabel(workout.last_done_at)}</Text>
         {workout.blocks.length === 0 && (
-          <Text style={ws.muted}>Nothing in this workout yet. Tap Edit to add exercises.</Text>
+          <Copy id="workouts.preview.empty" style={ws.muted}>
+            Nothing in this workout yet. Tap Edit to add exercises.
+          </Copy>
         )}
         {workout.blocks.map((block, i) => {
           const isCircuit = block.items.length > 1;
@@ -97,13 +113,15 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
                   <Text style={ws.title}>{blockTitle(block, exercisesById)}</Text>
                   <Text style={ws.muted}>
                     {isCircuit
-                      ? `Circuit · ${block.rounds} rounds`
-                      : `${block.rounds} ${block.rounds === 1 ? 'set' : 'sets'}`}
+                      ? t('workouts.preview.circuitRounds', 'Circuit · {n} rounds', { n: block.rounds })
+                      : block.rounds === 1
+                        ? t('workouts.preview.oneSet', '{n} set', { n: block.rounds })
+                        : t('workouts.preview.nSets', '{n} sets', { n: block.rounds })}
                     {block.intervalSec
-                      ? ` · every ${formatClock(block.intervalSec)}`
+                      ? t('workouts.preview.every', ' · every {time}', { time: formatClock(block.intervalSec) })
                       : block.restSec > 0
-                        ? ` · rest ${formatSeconds(block.restSec)}`
-                        : ' · no rest'}
+                        ? t('workouts.preview.rest', ' · rest {time}', { time: formatSeconds(block.restSec) })
+                        : t('workouts.preview.noRest', ' · no rest')}
                   </Text>
                 </View>
               </View>
@@ -121,7 +139,13 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
                         {formatTarget(item.target, ex.kind, prefs.unit)}
                       </Text>
                       {last.length > 0 && (
-                        <Text style={ws.muted}>Last: {formatSetValues(last[0], ex.kind, prefs.unit)}</Text>
+                        <Copy
+                          id="workouts.preview.last"
+                          style={ws.muted}
+                          vars={{ values: formatSetValues(last[0], ex.kind, prefs.unit) }}
+                        >
+                          {'Last: {values}'}
+                        </Copy>
                       )}
                     </View>
                   );
@@ -139,7 +163,9 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
           disabled={empty}
           accessibilityHint="Start this workout now"
         >
-          <Text style={ws.primaryBtnText}>Do it</Text>
+          <Copy id="workouts.preview.doIt" style={ws.primaryBtnText}>
+            Do it
+          </Copy>
         </TouchableOpacity>
         <TouchableOpacity
           style={[ws.secondaryBtn, styles.footerBtn, styles.doneIt, empty && ws.disabled]}
@@ -147,7 +173,9 @@ export const WorkoutPreviewScreen: React.FC<Props> = ({ navigation, route }) => 
           disabled={empty}
           accessibilityHint="Log this workout as already done"
         >
-          <Text style={ws.secondaryBtnText}>Done it</Text>
+          <Copy id="workouts.preview.doneIt" style={ws.secondaryBtnText}>
+            Done it
+          </Copy>
         </TouchableOpacity>
       </View>
       {overrideStart.sheet}

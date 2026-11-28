@@ -19,6 +19,8 @@ import { ProgressRing } from '../../../../components/common/ProgressRing';
 import { useHotCold } from './HotColdContext';
 import { LogSheet, LogTarget } from './components/LogSheet';
 import { hcs, HOTCOLD_ACCENT, KIND_COLOR, KIND_ICON, ratingLabel } from './components/hotcoldStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdHome'>;
 
@@ -29,6 +31,7 @@ type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdHome'>;
 export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
   const { loading, loadError, reload, today, prefs, sessions, timer, pendingLog, takePendingLog, unlogged, closeApp } =
     useHotCold();
+  const t = useCopy();
   const [target, setTarget] = useState<LogTarget | null>(null);
   const [sheetKey, setSheetKey] = useState(0);
   const [note, setNote] = useState<string | null>(null);
@@ -114,7 +117,7 @@ export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView contentContainerStyle={hcs.scroll}>
         {loadError ? (
           <TouchableOpacity style={hcs.card} onPress={reload}>
-            <Text style={hcs.body}>Couldn’t load your sessions. Tap to try again.</Text>
+            <Copy id="hotcold.home.loadFail" style={hcs.body}>Couldn’t load your sessions. Tap to try again.</Copy>
           </TouchableOpacity>
         ) : null}
 
@@ -124,8 +127,10 @@ export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('HotColdTimer', { kind: timer.kind })}
           >
             <Ionicons name="timer-outline" size={22} color={KIND_COLOR[timer.kind]} />
-            <Text style={[hcs.body, styles.flex]}>{KIND_LABEL[timer.kind]} timer running</Text>
-            <Text style={hcs.link}>Open</Text>
+            <Copy id="hotcold.home.timerRunning" style={[hcs.body, styles.flex]} vars={{ kind: KIND_LABEL[timer.kind] }}>
+              {'{kind} timer running'}
+            </Copy>
+            <Copy id="hotcold.home.open" style={hcs.link}>Open</Copy>
           </TouchableOpacity>
         ) : null}
 
@@ -135,15 +140,21 @@ export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => open({ mode: 'new', kind: unlogged.kind, duration_sec: unlogged.duration_sec, timed: true })}
           >
             <Ionicons name="timer-outline" size={22} color={KIND_COLOR[unlogged.kind]} />
-            <Text style={[hcs.body, styles.flex]}>
-              Timed {KIND_LABEL[unlogged.kind].toLowerCase()} · {formatDuration(unlogged.duration_sec)} not logged yet
-            </Text>
-            <Text style={hcs.link}>Log it</Text>
+            <Copy
+              id="hotcold.home.unlogged"
+              style={[hcs.body, styles.flex]}
+              vars={{ kind: KIND_LABEL[unlogged.kind].toLowerCase(), time: formatDuration(unlogged.duration_sec) }}
+            >
+              {'Timed {kind} · {time} not logged yet'}
+            </Copy>
+            <Copy id="hotcold.home.logIt" style={hcs.link}>Log it</Copy>
           </TouchableOpacity>
         ) : null}
 
         <View style={styles.tiles}>{(['cold', 'heat'] as const).map(tile)}</View>
-        <Text style={[hcs.muted, styles.centerText]}>Tap one to log it. It starts from your last time.</Text>
+        <Copy id="hotcold.home.tapOne" style={[hcs.muted, styles.centerText]}>
+          Tap one to log it. It starts from your last time.
+        </Copy>
 
         {/* One timer draft at a time: log or discard the last timed session first. */}
         {!timer && !unlogged ? (
@@ -152,7 +163,7 @@ export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('HotColdTimer', { kind: 'cold' })}
           >
             <Ionicons name="timer-outline" size={18} color={HOTCOLD_ACCENT} />
-            <Text style={hcs.secondaryBtnText}>Time a plunge</Text>
+            <Copy id="hotcold.home.timePlunge" style={hcs.secondaryBtnText}>Time a plunge</Copy>
           </TouchableOpacity>
         ) : null}
 
@@ -171,22 +182,28 @@ export const HotColdHomeScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.flex}>
-            <Text style={hcs.title}>This week</Text>
-            <Text style={hcs.body}>
-              Cold {totalMinutes(week.coldSec)} min · Heat {totalMinutes(week.heatSec)} min
-            </Text>
+            <Copy id="hotcold.home.thisWeek" style={hcs.title}>This week</Copy>
+            <Copy
+              id="hotcold.home.weekMinutes"
+              style={hcs.body}
+              vars={{ cold: totalMinutes(week.coldSec), heat: totalMinutes(week.heatSec) }}
+            >
+              {'Cold {cold} min · Heat {heat} min'}
+            </Copy>
             <Text style={hcs.muted}>
               {week.met
-                ? 'Weekly goal met.'
-                : `${week.goal - week.sessions} more ${week.goal - week.sessions === 1 ? 'session' : 'sessions'} for your goal.`}
-              {streak > 1 ? ` ${streak} weeks in a row.` : ''}
+                ? t('hotcold.home.goalMet', 'Weekly goal met.')
+                : week.goal - week.sessions === 1
+                  ? t('hotcold.home.moreSessions.one', '{n} more session for your goal.', { n: week.goal - week.sessions })
+                  : t('hotcold.home.moreSessions.other', '{n} more sessions for your goal.', { n: week.goal - week.sessions })}
+              {streak > 1 ? t('hotcold.home.streak', ' {n} weeks in a row.', { n: streak }) : ''}
             </Text>
           </View>
         </View>
 
-        <ListGroup title="Today">
+        <ListGroup title={t('hotcold.home.today', 'Today')}>
           {todays.length === 0 ? (
-            <ListRow title="Nothing yet today" />
+            <ListRow title={t('hotcold.home.nothingToday', 'Nothing yet today')} />
           ) : (
             todays.map((s) => (
               <ListRow

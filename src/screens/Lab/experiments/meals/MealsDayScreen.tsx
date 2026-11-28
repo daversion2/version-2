@@ -26,6 +26,8 @@ import { useMeals } from './MealsContext';
 import { MealPickerModal, PickerTarget } from './components/MealPickerModal';
 import { DayStatusCard, PlateRow, plateTitle } from './components/MealsParts';
 import { MEALS_ACCENT, mls } from './components/mealsStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsDay'>;
 
@@ -41,6 +43,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const { loading, loadError, reload, today, prefs, rules, updatePrefs, dayFor, saveDay, newId, closeApp } =
     useMeals();
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const date = route.params?.date ?? today;
   const isToday = date === today;
   const isRoot = !route.params?.date;
@@ -100,7 +103,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
     const plate = plateId ? platesOf(day).find((p) => p.id === plateId) : undefined;
     setEditing({
       plateId: plate?.id,
-      title: plate ? plateTitle(plate.name) : 'Log a meal',
+      title: plate ? plateTitle(plate.name) : t('meals.day.logMeal', 'Log a meal'),
       groups: plate?.groups ?? [],
       name: plate?.name,
       loggedAt: plate?.logged_at,
@@ -124,12 +127,12 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const reopen = () =>
     showConfirm(
-      'Reopen today?',
+      t('meals.day.reopen.title', 'Reopen today?'),
       day.handed_off_at
-        ? 'You can change your meals, then close it out again. Today’s already rated, so it won’t be rated twice.'
-        : 'You can change your meals, then close it out again.',
+        ? t('meals.day.reopen.messageRated', 'You can change your meals, then close it out again. Today’s already rated, so it won’t be rated twice.')
+        : t('meals.day.reopen.message', 'You can change your meals, then close it out again.'),
       () => saveDay(reopenDay(day)),
-      'Reopen'
+      t('meals.day.reopen.confirm', 'Reopen')
     );
 
   const reason = MEAL_OFF_REASONS.find((r) => r.id === day.off_reason_id);
@@ -140,22 +143,23 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={mls.screen}>
       <ScrollView contentContainerStyle={[mls.scroll, showClose && { paddingBottom: 120 + insets.bottom }]}>
-        <LargeTitle title={weekday} eyebrow={isToday ? 'Today' : undefined} />
+        <LargeTitle title={weekday} eyebrow={isToday ? t('meals.day.today', 'Today') : undefined} />
 
         {!!loadError && (
           <TouchableOpacity style={mls.card} onPress={reload}>
-            <Text style={mls.body}>Couldn’t load your meals. Tap to try again.</Text>
+            <Copy id="meals.day.loadFail" style={mls.body}>Couldn’t load your meals. Tap to try again.</Copy>
           </TouchableOpacity>
         )}
 
         {isRoot && !prefs.intro_seen && (
           <View style={[mls.card, styles.intro]}>
-            <Text style={mls.title}>How Meals works</Text>
-            <Text style={styles.introText}>
-              Whenever you eat, log it and tap the food groups that were on the plate. Every food group has a
-              score, and a plate scores their average.
-            </Text>
-            <Text style={styles.introText}>What are you eating for? It sets the scores. You can change it later.</Text>
+            <Copy id="meals.day.intro.title" style={mls.title}>How Meals works</Copy>
+            <Copy id="meals.day.intro.log" style={styles.introText}>
+              Whenever you eat, log it and tap the food groups that were on the plate. Every food group has a score, and a plate scores their average.
+            </Copy>
+            <Copy id="meals.day.intro.goal" style={styles.introText}>
+              What are you eating for? It sets the scores. You can change it later.
+            </Copy>
             <View style={mls.chipRow}>
               {MEAL_GOALS.map((g) => {
                 const active = (prefs.goal ?? 'balanced') === g.id;
@@ -172,19 +176,18 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
                 );
               })}
             </View>
-            <Text style={styles.introText}>
-              Your day is on target if your plates average {prefs.scoring.on_target_threshold} or more. Close it
-              out at night, or it closes on its own at midnight.
-            </Text>
+            <Copy id="meals.day.intro.target" style={styles.introText} vars={{ target: prefs.scoring.on_target_threshold }}>
+              {'Your day is on target if your plates average {target} or more. Close it out at night, or it closes on its own at midnight.'}
+            </Copy>
             <View style={styles.introRow}>
               <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true })} style={styles.introBtn}>
-                <Text style={mls.link}>Got it</Text>
+                <Copy id="meals.day.intro.gotIt" style={mls.link}>Got it</Copy>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('MealsSettings')} style={styles.introBtn}>
-                <Text style={mls.link}>Settings</Text>
+                <Copy id="meals.day.intro.settings" style={mls.link}>Settings</Copy>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')} style={styles.introBtn}>
-                <Text style={mls.link}>What counts</Text>
+                <Copy id="meals.day.intro.whatCounts" style={mls.link}>What counts</Copy>
               </TouchableOpacity>
             </View>
           </View>
@@ -197,12 +200,14 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
             <Ionicons name="lock-closed-outline" size={18} color={Colors.gray} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.introText}>
-                {day.habit_id ? 'Closed and checked off.' : 'Closed.'}
-                {reason ? ` What got in the way: ${reason.label.toLowerCase()}.` : ''}
+                {day.habit_id ? t('meals.day.closedChecked', 'Closed and checked off.') : t('meals.day.closed', 'Closed.')}
+                {reason
+                  ? t('meals.day.closedReason', ' What got in the way: {reason}.', { reason: reason.label.toLowerCase() })
+                  : ''}
               </Text>
               {canReopen(day) && isToday && (
                 <TouchableOpacity onPress={reopen} style={styles.introBtn}>
-                  <Text style={mls.link}>Reopen today</Text>
+                  <Copy id="meals.day.reopen" style={mls.link}>Reopen today</Copy>
                 </TouchableOpacity>
               )}
             </View>
@@ -210,8 +215,8 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
         )}
 
         <ListGroup
-          title={isToday ? 'Today’s meals' : 'Meals'}
-          footer={locked ? undefined : 'Snacks and drinks too. Each one is saved with the time.'}
+          title={isToday ? t('meals.day.todaysMeals', 'Today’s meals') : t('meals.day.meals', 'Meals')}
+          footer={locked ? undefined : t('meals.day.footer', 'Snacks and drinks too. Each one is saved with the time.')}
         >
           {[
             ...score.items.map((item) => (
@@ -219,12 +224,12 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
             )),
             ...(locked
               ? score.items.length === 0
-                ? [<ListRow key="none" title="Nothing logged" />]
+                ? [<ListRow key="none" title={t('meals.day.nothingLogged', 'Nothing logged')} />]
                 : []
               : [
                   <ListRow
                     key="add"
-                    title="Log a meal"
+                    title={t('meals.day.logMeal', 'Log a meal')}
                     tint="accent"
                     chevron={false}
                     right={<Ionicons name="add" size={20} color={MEALS_ACCENT} />}
@@ -235,13 +240,13 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
         </ListGroup>
 
         <TouchableOpacity onPress={() => navigation.navigate('MealsGuide')} style={mls.linkBtn}>
-          <Text style={mls.link}>What counts as what?</Text>
+          <Copy id="meals.day.whatCounts" style={mls.link}>What counts as what?</Copy>
         </TouchableOpacity>
 
         {!isToday && !closed && (
-          <Text style={[mls.muted, styles.centerText]}>
+          <Copy id="meals.day.pastDay" style={[mls.muted, styles.centerText]}>
             This day closed at midnight. You can still add a meal you forgot; it counts toward your week.
-          </Text>
+          </Copy>
         )}
       </ScrollView>
 
@@ -252,7 +257,7 @@ export const MealsDayScreen: React.FC<Props> = ({ navigation, route }) => {
             onPress={() => navigation.navigate('MealsClose')}
             accessibilityRole="button"
           >
-            <Text style={mls.secondaryBtnText}>Close out the day</Text>
+            <Copy id="meals.day.closeOut" style={mls.secondaryBtnText}>Close out the day</Copy>
           </TouchableOpacity>
         </View>
       )}

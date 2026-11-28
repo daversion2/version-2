@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
 import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
@@ -20,6 +22,7 @@ import { AuthScreenProps } from '../../types/navigation';
 type Props = AuthScreenProps<'Login'>;
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,7 +31,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Please fill in all fields.');
+      setError(t('auth.login.fillAll', 'Please fill in all fields.'));
       return;
     }
     setLoading(true);
@@ -36,7 +39,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signIn(email.trim(), password);
     } catch (e: any) {
-      setError(authErrorMessage(e, 'Couldn’t sign in. Please try again.'));
+      setError(authErrorMessage(e, t('auth.login.failed', 'Couldn’t sign in. Please try again.')));
     } finally {
       setLoading(false);
     }
@@ -48,7 +51,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signInWithGoogle();
     } catch (e: any) {
-      setError(authErrorMessage(e, 'Couldn’t sign in with Google. Please try again.'));
+      setError(authErrorMessage(e, t('auth.login.googleFailed', 'Couldn’t sign in with Google. Please try again.')));
     } finally {
       setGoogleLoading(false);
     }
@@ -56,17 +59,23 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      showAlert('Email Required', 'Please enter your email address first.');
+      showAlert(
+        t('auth.login.emailRequired.title', 'Email Required'),
+        t('auth.login.emailRequired.message', 'Please enter your email address first.')
+      );
       return;
     }
     try {
       await resetPassword(email.trim());
       showAlert(
-        'Check Your Email',
-        'If an account exists with this email, you will receive a password reset link.'
+        t('auth.login.resetSent.title', 'Check Your Email'),
+        t('auth.login.resetSent.message', 'If an account exists with this email, you will receive a password reset link.')
       );
     } catch (e: any) {
-      showAlert('Couldn’t send the email', authErrorMessage(e, 'Please try again in a moment.'));
+      showAlert(
+        t('auth.login.resetFailed', 'Couldn’t send the email'),
+        authErrorMessage(e, t('auth.login.resetRetry', 'Please try again in a moment.'))
+      );
     }
   };
 
@@ -79,35 +88,35 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>NEURO-NUDGE</Text>
-        <Text style={styles.subtitle}>Keep Moving Forward</Text>
+        <Copy id="auth.login.title" style={styles.title}>NEURO-NUDGE</Copy>
+        <Copy id="auth.login.subtitle" style={styles.subtitle}>Keep Moving Forward</Copy>
 
         <View style={styles.form}>
           <InputField
-            label="Email"
+            label={t('auth.login.email', 'Email')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            placeholder="you@example.com"
+            placeholder={t('auth.login.emailPlaceholder', 'you@example.com')}
           />
           <InputField
-            label="Password"
+            label={t('auth.login.password', 'Password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            placeholder="Your password"
+            placeholder={t('auth.login.passwordPlaceholder', 'Your password')}
           />
           <TouchableOpacity onPress={handleForgotPassword}>
-            <Text style={styles.forgotPassword}>Forgot Password?</Text>
+            <Copy id="auth.login.forgot" style={styles.forgotPassword}>Forgot Password?</Copy>
           </TouchableOpacity>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Button title="Sign In" onPress={handleLogin} loading={loading} />
+          <Button title={t('auth.login.signIn', 'Sign In')} onPress={handleLogin} loading={loading} />
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
+            <Copy id="auth.login.or" style={styles.dividerText}>or</Copy>
             <View style={styles.dividerLine} />
           </View>
 
@@ -118,7 +127,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           <Button
-            title="Create Account"
+            title={t('auth.login.create', 'Create Account')}
             onPress={() => navigation.navigate('Signup')}
             variant="outline"
             style={{ marginTop: Spacing.sm }}

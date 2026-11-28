@@ -11,6 +11,8 @@ import { AvoidanceHomeScreen } from './AvoidanceHomeScreen';
 import { AvoidanceClearedScreen } from './AvoidanceClearedScreen';
 import { AvoidanceSettingsScreen } from './AvoidanceSettingsScreen';
 import { AVOIDANCE_ACCENT } from './components/avoidanceStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 const Stack = createNativeStackNavigator<AvoidanceStackParamList>();
 
@@ -22,14 +24,15 @@ const Stack = createNativeStackNavigator<AvoidanceStackParamList>();
  */
 export const AvoidanceApp: React.FC<NativeStackScreenProps<RootStackParamList, 'AvoidanceApp'>> = ({ navigation }) => {
   const { user, userProfile } = useAuth();
+  const t = useCopy();
 
   // The one gate (services/miniApps.ts) — Lab-only today.
   if (!user || !canOpenMiniApp('avoidance', userProfile)) {
     return (
       <View style={styles.blocked}>
-        <Text style={styles.blockedText}>Avoidance Training isn’t available on this account yet.</Text>
+        <Copy id="avoidance.app.blocked" style={styles.blockedText}>Avoidance Training isn’t available on this account yet.</Copy>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.blockedLink}>Close</Text>
+          <Copy id="avoidance.app.close" style={styles.blockedLink}>Close</Copy>
         </TouchableOpacity>
       </View>
     );
@@ -46,9 +49,9 @@ export const AvoidanceApp: React.FC<NativeStackScreenProps<RootStackParamList, '
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
-        <Stack.Screen name="AvoidanceHome" component={AvoidanceHomeScreen} options={{ title: 'Avoidance' }} />
-        <Stack.Screen name="AvoidanceCleared" component={AvoidanceClearedScreen} options={{ title: 'Cleared' }} />
-        <Stack.Screen name="AvoidanceSettings" component={AvoidanceSettingsScreen} options={{ title: 'Settings' }} />
+        <Stack.Screen name="AvoidanceHome" component={AvoidanceHomeScreen} options={{ title: t('avoidance.app.titleHome', 'Avoidance') }} />
+        <Stack.Screen name="AvoidanceCleared" component={AvoidanceClearedScreen} options={{ title: t('avoidance.app.titleCleared', 'Cleared') }} />
+        <Stack.Screen name="AvoidanceSettings" component={AvoidanceSettingsScreen} options={{ title: t('avoidance.app.titleSettings', 'Settings') }} />
       </Stack.Navigator>
     </AvoidanceProvider>
   );

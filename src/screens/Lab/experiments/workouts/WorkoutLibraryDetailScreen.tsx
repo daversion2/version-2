@@ -21,6 +21,8 @@ import { newWorkoutId } from '../../../../services/labWorkouts';
 import { blockTitle } from '../../../../services/workoutSession';
 import { formatClock, formatSeconds, formatTarget } from '../../../../services/workoutMath';
 import { showAlert, showChoice } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
 
@@ -30,6 +32,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutLibraryDetai
 export const WorkoutLibraryDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { userProfile } = useAuth();
+  const t = useCopy();
   const { userId, prefs, workouts, exercise, exercisesById, upsertWorkout, ensureLoaded } = useWorkouts();
   const [saving, setSaving] = useState(false);
   const template = findLibraryWorkout(route.params.libraryId);
@@ -44,7 +47,9 @@ export const WorkoutLibraryDetailScreen: React.FC<Props> = ({ navigation, route 
   if (!canSeeWorkoutLibrary(userProfile) || !template || !resolved) {
     return (
       <View style={[ws.screen, styles.center]}>
-        <Text style={ws.muted}>This workout isn’t available.</Text>
+        <Copy id="workouts.libDetail.unavailable" style={ws.muted}>
+          This workout isn’t available.
+        </Copy>
       </View>
     );
   }
@@ -60,7 +65,10 @@ export const WorkoutLibraryDetailScreen: React.FC<Props> = ({ navigation, route 
       await upsertWorkout(copy);
       navigation.replace('WorkoutPreview', { workoutId: copy.id });
     } catch {
-      showAlert('Couldn’t add it', 'Check your connection and try again.');
+      showAlert(
+        t('workouts.libDetail.failTitle', 'Couldn’t add it'),
+        t('workouts.libDetail.failMsg', 'Check your connection and try again.')
+      );
     } finally {
       setSaving(false);
     }
@@ -68,10 +76,17 @@ export const WorkoutLibraryDetailScreen: React.FC<Props> = ({ navigation, route 
 
   const onAdd = () => {
     if (!existing) return void add();
-    showChoice('Already in your workouts', 'Open the copy you have, or add another one fitted to what you have now?', [
-      { label: 'Open mine', onPress: () => navigation.replace('WorkoutPreview', { workoutId: existing.id }) },
-      { label: 'Add another copy', onPress: () => void add() },
-    ]);
+    showChoice(
+      t('workouts.libDetail.existsTitle', 'Already in your workouts'),
+      t('workouts.libDetail.existsMsg', 'Open the copy you have, or add another one fitted to what you have now?'),
+      [
+        {
+          label: t('workouts.libDetail.openMine', 'Open mine'),
+          onPress: () => navigation.replace('WorkoutPreview', { workoutId: existing.id }),
+        },
+        { label: t('workouts.libDetail.addAnother', 'Add another copy'), onPress: () => void add() },
+      ]
+    );
   };
 
   const level = LIBRARY_LEVELS.find((l) => l.value === template.level)?.label ?? '';
@@ -81,15 +96,25 @@ export const WorkoutLibraryDetailScreen: React.FC<Props> = ({ navigation, route 
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={[ws.scroll, { paddingBottom: 120 + insets.bottom }]}>
         <View style={styles.head}>
-          <Text style={ws.eyebrow}>
-            {level} · {LIBRARY_FOCUS_LABELS[template.focus]} · about {template.minutes} min
-          </Text>
+          <Copy
+            id="workouts.libDetail.eyebrow"
+            style={ws.eyebrow}
+            vars={{ level, focus: LIBRARY_FOCUS_LABELS[template.focus], minutes: template.minutes }}
+          >
+            {'{level} · {focus} · about {minutes} min'}
+          </Copy>
           <Text style={ws.body}>{template.summary}</Text>
-          <Text style={ws.muted}>{uses.length ? `Uses: ${uses.join(', ')}` : 'No equipment needed'}</Text>
+          <Text style={ws.muted}>
+            {uses.length
+              ? t('workouts.libDetail.uses', 'Uses: {list}', { list: uses.join(', ') })
+              : t('workouts.libDetail.noGear', 'No equipment needed')}
+          </Text>
         </View>
 
         <View style={ws.card}>
-          <Text style={ws.title}>How to run it</Text>
+          <Copy id="workouts.libDetail.howToRun" style={ws.title}>
+            How to run it
+          </Copy>
           <View style={styles.notes}>
             {template.notes.map((n) => (
               <View key={n} style={styles.noteRow}>
@@ -110,13 +135,17 @@ export const WorkoutLibraryDetailScreen: React.FC<Props> = ({ navigation, route 
                   <Text style={ws.title}>{blockTitle(block, exercisesById)}</Text>
                   <Text style={ws.muted}>
                     {isCircuit
-                      ? `${block.rounds} ${block.rounds === 1 ? 'round' : 'rounds'}`
-                      : `${block.rounds} ${block.rounds === 1 ? 'set' : 'sets'}`}
+                      ? block.rounds === 1
+                        ? t('workouts.libDetail.oneRound', '{n} round', { n: block.rounds })
+                        : t('workouts.libDetail.nRounds', '{n} rounds', { n: block.rounds })
+                      : block.rounds === 1
+                        ? t('workouts.libDetail.oneSet', '{n} set', { n: block.rounds })
+                        : t('workouts.libDetail.nSets', '{n} sets', { n: block.rounds })}
                     {block.intervalSec
-                      ? ` · every ${formatClock(block.intervalSec)}`
+                      ? t('workouts.libDetail.every', ' · every {time}', { time: formatClock(block.intervalSec) })
                       : block.restSec > 0
-                        ? ` · rest ${formatSeconds(block.restSec)}`
-                        : ' · no rest'}
+                        ? t('workouts.libDetail.rest', ' · rest {time}', { time: formatSeconds(block.restSec) })
+                        : t('workouts.libDetail.noRest', ' · no rest')}
                   </Text>
                 </View>
               </View>
@@ -143,7 +172,9 @@ export const WorkoutLibraryDetailScreen: React.FC<Props> = ({ navigation, route 
           disabled={saving}
           accessibilityHint="Copies this workout into your workouts, where you can start, edit or delete it"
         >
-          {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Add to my workouts</Text>}
+          {saving ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.libDetail.add" style={ws.primaryBtnText}>
+              Add to my workouts
+            </Copy>}
         </TouchableOpacity>
       </View>
     </View>

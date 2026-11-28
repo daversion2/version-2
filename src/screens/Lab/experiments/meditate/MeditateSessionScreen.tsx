@@ -21,6 +21,8 @@ import { showAlert, showConfirm } from '../../../../utils/alert';
 import { useMeditate } from './MeditateContext';
 import { BreathPacer } from './components/BreathPacer';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateSession'>;
 
@@ -45,6 +47,7 @@ const haptic = (fn: () => void) => {
  */
 export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { session, end, updateSession, prefs, discardSession } = useMeditate();
   const [fresh] = useState(() => !!session && elapsedSec(session, new Date()) < FRESH_SEC);
   const [view, setView] = useState<'settle' | 'peek'>(fresh ? 'settle' : 'peek');
@@ -90,13 +93,24 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
   // then only throws it away — and says so before it does.
   const endEarly = () =>
     isTooShortToLog(loggedIfEndedNow(session, new Date()))
-      ? showConfirm('Too short to count', 'Under a minute isn’t logged, so ending now discards this session.', discardSession, 'Discard', 'Keep going')
-      : showConfirm('End now?', 'It’s logged as the time you actually did — that still counts.', () => end(true), 'End');
+      ? showConfirm(
+          t('meditate.session.tooShort.title', 'Too short to count'),
+          t('meditate.session.tooShort.message', 'Under a minute isn’t logged, so ending now discards this session.'),
+          discardSession,
+          t('meditate.session.tooShort.confirm', 'Discard'),
+          t('meditate.session.tooShort.cancel', 'Keep going'),
+        )
+      : showConfirm(
+          t('meditate.session.endNow.title', 'End now?'),
+          t('meditate.session.endNow.message', 'It’s logged as the time you actually did — that still counts.'),
+          () => end(true),
+          t('meditate.session.endNow.confirm', 'End'),
+        );
 
   const link = prefs.nsdr_links.find((l) => l.id === session.nsdrLinkId);
   const openRecording = () =>
     link &&
-    Linking.openURL(link.url).catch(() => showAlert("Couldn't open that recording", 'Check the link in Meditate settings.'));
+    Linking.openURL(link.url).catch(() => showAlert(t('meditate.session.openFail.title', "Couldn't open that recording"), t('meditate.session.openFail.message', 'Check the link in Meditate settings.')));
 
   // --- Paced breathing --------------------------------------------------------
   if (session.style === 'pacer') {
@@ -113,7 +127,7 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
         <TouchableOpacity onPress={endEarly} style={ms.textBtn} accessibilityRole="button">
-          <Text style={[ms.textBtnText, styles.nightText]}>End</Text>
+          <Copy id="meditate.session.end" style={[ms.textBtnText, styles.nightText]}>End</Copy>
         </TouchableOpacity>
       </View>
     );
@@ -125,15 +139,15 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
       <View style={[styles.screen, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.middle}>
           <Ionicons name="eye-off-outline" size={36} color={MEDITATE_ACCENT} />
-          <Text style={styles.title}>{STILL[session.mode]}</Text>
-          <Text style={styles.lead}>Checking the time is the urge. Notice it — then lock your phone and return.</Text>
+          <Copy id={`meditate.session.still.${session.mode}`} style={styles.title}>{STILL[session.mode]}</Copy>
+          <Copy id="meditate.session.peek" style={styles.lead}>Checking the time is the urge. Notice it — then lock your phone and return.</Copy>
         </View>
         <View style={styles.actions}>
           <TouchableOpacity style={ms.primaryBtn} onPress={() => setView('settle')} accessibilityRole="button">
-            <Text style={ms.primaryBtnText}>Keep going</Text>
+            <Copy id="meditate.session.keepGoing" style={ms.primaryBtnText}>Keep going</Copy>
           </TouchableOpacity>
           <TouchableOpacity style={ms.secondaryBtn} onPress={endEarly} accessibilityRole="button">
-            <Text style={ms.secondaryBtnText}>End early</Text>
+            <Copy id="meditate.session.endEarly" style={ms.secondaryBtnText}>End early</Copy>
           </TouchableOpacity>
         </View>
       </View>
@@ -146,31 +160,35 @@ export const MeditateSessionScreen: React.FC<Props> = ({ navigation }) => {
       ? getSitTechnique(session.technique).cue
       : session.mode === 'breathe'
         ? `${getBreathPattern(session.pattern).label}: ${getBreathPattern(session.pattern).blurb}. ${breatheCue(session.pattern)}`
-        : 'Lie still and follow the recording. Deeply relaxed — not asleep.';
+        : t('meditate.session.nsdrAnchor', 'Lie still and follow the recording. Deeply relaxed — not asleep.');
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + Spacing.xl, paddingBottom: insets.bottom + Spacing.md }]}>
       <View style={styles.middle}>
         <Ionicons name={MODES[session.mode].icon as any} size={40} color={MEDITATE_ACCENT} />
-        <Text style={styles.title}>{fresh ? 'Lock your phone' : 'Back to it'}</Text>
+        <Copy id={fresh ? 'meditate.session.lockPhone' : 'meditate.session.backToIt'} style={styles.title}>
+          {fresh ? 'Lock your phone' : 'Back to it'}
+        </Copy>
         <Text style={styles.lead}>
           {!fresh
-            ? 'Lock your phone and return to it. The bell will tell you when.'
+            ? t('meditate.session.lead.back', 'Lock your phone and return to it. The bell will tell you when.')
             : session.bellId
-              ? `The bell rings in ${formatMinutes(session.plannedSec)}. Until then, nothing here needs you.`
-              : `No bell is set — notifications are off. Come back when ${formatMinutes(session.plannedSec)} feels done.`}
+              ? t('meditate.session.lead.bell', 'The bell rings in {time}. Until then, nothing here needs you.', { time: formatMinutes(session.plannedSec) })
+              : t('meditate.session.lead.noBell', 'No bell is set — notifications are off. Come back when {time} feels done.', { time: formatMinutes(session.plannedSec) })}
         </Text>
         <View style={styles.anchor}>
           <Text style={styles.anchorText}>{anchor}</Text>
         </View>
         {session.mode === 'nsdr' && link && (
           <TouchableOpacity style={[ms.secondaryBtn, styles.reopen]} onPress={openRecording} accessibilityRole="button">
-            <Text style={ms.secondaryBtnText}>Open “{link.title}” again</Text>
+            <Copy id="meditate.session.openAgain" style={ms.secondaryBtnText} vars={{ title: link.title }}>
+              {'Open “{title}” again'}
+            </Copy>
           </TouchableOpacity>
         )}
       </View>
       <TouchableOpacity onPress={endEarly} style={ms.textBtn} accessibilityRole="button">
-        <Text style={ms.textBtnText}>End early</Text>
+        <Copy id="meditate.session.endEarlyText" style={ms.textBtnText}>End early</Copy>
       </TouchableOpacity>
     </View>
   );

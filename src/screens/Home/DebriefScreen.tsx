@@ -15,6 +15,8 @@ import { Button } from '../../components/common/Button';
 import { FadeRise } from '../../components/common/FadeRise';
 import { useAuth } from '../../context/AuthContext';
 import { markDebriefSeen } from '../../services/users';
+import { useCopy } from '../../context/CopyContext';
+import { Copy } from '../../components/common/Copy';
 
 // ============================================================================
 // THE DEBRIEF — the intellectual half of onboarding, delivered once, right
@@ -49,9 +51,9 @@ const STEPS: StepDef[] = [
 
 const ThreadScreen: React.FC = () => (
   <View style={styles.stageContent}>
-    <Text style={styles.eyebrow}>YOUR FIRST OVERRIDE</Text>
+    <Copy id="debrief.thread.eyebrow" style={styles.eyebrow}>{'YOUR FIRST OVERRIDE'}</Copy>
     <FadeRise>
-      <Text style={styles.screenHeadline}>That pull to quit you just felt? That was the whole method.</Text>
+      <Copy id="debrief.thread.headline" style={styles.screenHeadline}>{'That pull to quit you just felt? That was the whole method.'}</Copy>
     </FadeRise>
 
     <View style={styles.threadContainer}>
@@ -63,13 +65,10 @@ const ThreadScreen: React.FC = () => (
             <Ionicons name="flash" size={16} color={Colors.white} />
           </View>
           <View style={styles.threadCard}>
-            <Text style={styles.threadCardLabel}>WHAT YOU JUST DID</Text>
-            <Text style={styles.threadCardBody}>
-              Feeling the pull to quit — and not quitting — is the entire method. The same dopamine driving
-              that scroll also powers your <Text style={styles.threadBold}>prefrontal cortex</Text>: the part
-              of your brain responsible for decisions, focus, and self-control.{' '}
-              <Text style={styles.threadBold}>Every time you do it anyway, like you just did, you train it.</Text>
-            </Text>
+            <Copy id="debrief.thread.card1.label" style={styles.threadCardLabel}>{'WHAT YOU JUST DID'}</Copy>
+            <Copy id="debrief.thread.card1.body" style={styles.threadCardBody} boldStyle={styles.threadBold}>
+              {'Feeling the pull to quit — and not quitting — is the entire method. The same dopamine driving that scroll also powers your **prefrontal cortex**: the part of your brain responsible for decisions, focus, and self-control. **Every time you do it anyway, like you just did, you train it.**'}
+            </Copy>
           </View>
         </View>
       </FadeRise>
@@ -80,14 +79,10 @@ const ThreadScreen: React.FC = () => (
             <Ionicons name="hourglass" size={16} color={Colors.white} />
           </View>
           <View style={styles.threadCard}>
-            <Text style={[styles.threadCardLabel, { color: Colors.secondary }]}>OVER 2,000 YEARS AGO</Text>
-            <Text style={styles.threadCardBody}>
-              It's not a new idea. The Stoics practiced{' '}
-              <Text style={styles.threadBold}>voluntary hardship</Text> on purpose — going without, sitting
-              with discomfort, choosing the hard thing — so they'd never be at the mercy of either. Same
-              principle. Distress tolerance builds.{' '}
-              <Text style={styles.threadBold}>Over time, your baseline shifts.</Text>
-            </Text>
+            <Copy id="debrief.thread.card2.label" style={[styles.threadCardLabel, { color: Colors.secondary }]}>{'OVER 2,000 YEARS AGO'}</Copy>
+            <Copy id="debrief.thread.card2.body" style={styles.threadCardBody} boldStyle={styles.threadBold}>
+              {"It's not a new idea. The Stoics practiced **voluntary hardship** on purpose — going without, sitting with discomfort, choosing the hard thing — so they'd never be at the mercy of either. Same principle. Distress tolerance builds. **Over time, your baseline shifts.**"}
+            </Copy>
           </View>
         </View>
       </FadeRise>
@@ -179,25 +174,25 @@ const TrapScreen: React.FC<{ onUnlock: () => void; unlocked: boolean }> = ({ onU
 
   return (
     <View style={styles.stageContent}>
-      <Text style={styles.eyebrow}>WHAT YOU'RE TRAINING AGAINST</Text>
-      <Text style={styles.screenHeadline}>Your reward system was built for a different world.</Text>
+      <Copy id="debrief.trap.eyebrow" style={styles.eyebrow}>{"WHAT YOU'RE TRAINING AGAINST"}</Copy>
+      <Copy id="debrief.trap.headline" style={styles.screenHeadline}>{'Your reward system was built for a different world.'}</Copy>
 
       <View style={styles.worldsBox}>
         <View style={[styles.world, styles.worldThen, { opacity: 1 - value }]}>
-          <Text style={[styles.worldEra, { color: Colors.primary }]}>≈ 50,000 YEARS AGO</Text>
-          {THEN_ROWS.map((r) => (
+          <Copy id="debrief.trap.thenEra" style={[styles.worldEra, { color: Colors.primary }]}>{'≈ 50,000 YEARS AGO'}</Copy>
+          {THEN_ROWS.map((r, i) => (
             <View key={r.text} style={styles.worldRow}>
               <Text style={styles.worldEmoji}>{r.emoji}</Text>
-              <Text style={[styles.worldText, { color: '#17525d' }]}>{r.text}</Text>
+              <Copy id={`debrief.trap.then.${i}`} style={[styles.worldText, { color: '#17525d' }]}>{r.text}</Copy>
             </View>
           ))}
         </View>
         <View style={[styles.world, styles.worldNow, { opacity: value }]} pointerEvents="none">
-          <Text style={[styles.worldEra, { color: '#FF8B4D' }]}>TODAY</Text>
-          {NOW_ROWS.map((r) => (
+          <Copy id="debrief.trap.nowEra" style={[styles.worldEra, { color: '#FF8B4D' }]}>{'TODAY'}</Copy>
+          {NOW_ROWS.map((r, i) => (
             <View key={r.text} style={styles.worldRow}>
               <Text style={styles.worldEmoji}>{r.emoji}</Text>
-              <Text style={[styles.worldText, { color: '#EEEEEE' }]}>{r.text}</Text>
+              <Copy id={`debrief.trap.now.${i}`} style={[styles.worldText, { color: '#EEEEEE' }]}>{r.text}</Copy>
             </View>
           ))}
         </View>
@@ -224,19 +219,17 @@ const TrapScreen: React.FC<{ onUnlock: () => void; unlocked: boolean }> = ({ onU
         />
       </View>
       <View style={styles.sliderLabels}>
-        <Text style={styles.sliderLabelText}>THEN</Text>
-        <Text style={styles.sliderLabelText}>NOW</Text>
+        <Copy id="debrief.trap.then" style={styles.sliderLabelText}>{'THEN'}</Copy>
+        <Copy id="debrief.trap.now" style={styles.sliderLabelText}>{'NOW'}</Copy>
       </View>
-      {!revealed && <Text style={styles.dragHint}>Drag the slider forward in time →</Text>}
+      {!revealed && <Copy id="debrief.trap.dragHint" style={styles.dragHint}>{'Drag the slider forward in time →'}</Copy>}
 
       {revealed && (
         <FadeRise>
-          <Text style={styles.trapName}>Researchers call this the pleasure trap.</Text>
-          <Text style={styles.trapBody}>
-            A world of abundant, effortless, engineered pleasure that your reward system was never built to
-            handle. This isn't laziness. It's not a character flaw. Your brain adapted perfectly to the
-            environment it evolved in — it's just not the one you're living in now.
-          </Text>
+          <Copy id="debrief.trap.name" style={styles.trapName}>{'Researchers call this the pleasure trap.'}</Copy>
+          <Copy id="debrief.trap.body" style={styles.trapBody}>
+            {"A world of abundant, effortless, engineered pleasure that your reward system was never built to handle. This isn't laziness. It's not a character flaw. Your brain adapted perfectly to the environment it evolved in — it's just not the one you're living in now."}
+          </Copy>
         </FadeRise>
       )}
     </View>
@@ -247,77 +240,73 @@ const TrapScreen: React.FC<{ onUnlock: () => void; unlocked: boolean }> = ({ onU
 // DEBRIEF 3 — THE RECEIPTS: research stats with a live count-up
 // ============================================================================
 
-const ResearchScreen: React.FC = () => (
+const ResearchScreen: React.FC = () => {
+  const t = useCopy();
+  return (
   <View style={styles.stageContent}>
-    <Text style={styles.eyebrow}>THE RESEARCH</Text>
-    <Text style={styles.screenHeadline}>Does practicing discomfort actually work?</Text>
+    <Copy id="debrief.research.eyebrow" style={styles.eyebrow}>{'THE RESEARCH'}</Copy>
+    <Copy id="debrief.research.headline" style={styles.screenHeadline}>{'Does practicing discomfort actually work?'}</Copy>
 
     <FadeRise delay={300}>
       <View style={styles.statCard}>
         <View style={styles.statBigWrap}>
-          <Text style={[styles.statBig, styles.statBigStacked]}>ACC</Text>
+          <Copy id="debrief.research.stat1" style={[styles.statBig, styles.statBigStacked]}>{'ACC'}</Copy>
         </View>
-        <Text style={styles.statDesc}>
-          <Text style={styles.statDescBold}>Overriding the impulse to give in to comfort fires your anterior
-          cingulate cortex</Text> — the brain's hub for willpower and pushing through resistance. Like a
-          muscle, it strengthens every time you use it.
-        </Text>
+        <Copy id="debrief.research.stat1.desc" style={styles.statDesc} boldStyle={styles.statDescBold}>
+          {"**Overriding the impulse to give in to comfort fires your anterior cingulate cortex** — the brain's hub for willpower and pushing through resistance. Like a muscle, it strengthens every time you use it."}
+        </Copy>
       </View>
     </FadeRise>
     <FadeRise delay={700}>
       <View style={styles.statCard}>
         <View style={styles.statBigWrap}>
           <Text style={styles.statBig}>
-            2<Text style={styles.statBigSmall}> paths</Text>
+            2<Text style={styles.statBigSmall}>{t('debrief.research.stat2.unit', ' paths')}</Text>
           </Text>
         </View>
-        <Text style={styles.statDesc}>
-          <Text style={styles.statDescBold}>Meditation and cold exposure work through different pathways</Text>{' '}
-          — but both are linked to better regulation between the brain's impulse-driven and decision-making
-          systems.
-        </Text>
+        <Copy id="debrief.research.stat2.desc" style={styles.statDesc} boldStyle={styles.statDescBold}>
+          {"**Meditation and cold exposure work through different pathways** — but both are linked to better regulation between the brain's impulse-driven and decision-making systems."}
+        </Copy>
       </View>
     </FadeRise>
     <FadeRise delay={1100}>
       <View style={styles.statCard}>
         <View style={styles.statBigWrap}>
-          <Text style={[styles.statBig, styles.statBigStacked]}>train-{'\n'}able</Text>
+          <Copy id="debrief.research.stat3" style={[styles.statBig, styles.statBigStacked]}>{'train-\nable'}</Copy>
         </View>
-        <Text style={styles.statDesc}>
-          <Text style={styles.statDescBold}>Regular meditators show differences in brain connectivity</Text>{' '}
-          between regions tied to emotional reactivity and executive control — patterns that appear
-          trainable, not fixed.
-        </Text>
+        <Copy id="debrief.research.stat3.desc" style={styles.statDesc} boldStyle={styles.statDescBold}>
+          {'**Regular meditators show differences in brain connectivity** between regions tied to emotional reactivity and executive control — patterns that appear trainable, not fixed.'}
+        </Copy>
       </View>
     </FadeRise>
     <FadeRise delay={1500}>
       <View style={styles.statCard}>
         <View style={styles.statBigWrap}>
-          <Text style={[styles.statBig, styles.statBigStacked, { color: Colors.secondary }]}>
-            weeks,{'\n'}not years
-          </Text>
+          <Copy id="debrief.research.stat4" style={[styles.statBig, styles.statBigStacked, { color: Colors.secondary }]}>
+            {'weeks,\nnot years'}
+          </Copy>
         </View>
-        <Text style={styles.statDesc}>
-          <Text style={styles.statDescBold}>Many people who stick with habits like these</Text> report
-          improvements in mood stability, focus, and motivation within a few weeks.
-        </Text>
+        <Copy id="debrief.research.stat4.desc" style={styles.statDesc} boldStyle={styles.statDescBold}>
+          {'**Many people who stick with habits like these** report improvements in mood stability, focus, and motivation within a few weeks.'}
+        </Copy>
       </View>
     </FadeRise>
 
     <FadeRise delay={1900}>
-      <Text style={styles.closingLine}>
-        One down. The research says the ones who keep going feel it in weeks.{' '}
-        <Text style={styles.closingBold}>Same time tomorrow.</Text>
-      </Text>
+      <Copy id="debrief.research.closing" style={styles.closingLine} boldStyle={styles.closingBold}>
+        {'One down. The research says the ones who keep going feel it in weeks. **Same time tomorrow.**'}
+      </Copy>
     </FadeRise>
   </View>
-);
+  );
+};
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
 export const DebriefScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const { user, refreshProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
@@ -388,18 +377,20 @@ export const DebriefScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       <View style={[styles.navWrap, { paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
-        {ctaLocked && !!step.hint && <Text style={styles.ctaHint}>{step.hint}</Text>}
+        {ctaLocked && !!step.hint && (
+          <Text style={styles.ctaHint}>{t(`debrief.hint.${step.key}`, step.hint)}</Text>
+        )}
         <View style={styles.navBar}>
           {stepIndex > 0 ? (
             <TouchableOpacity onPress={() => goToIndex(stepIndex - 1)} style={styles.backButton}>
               <Ionicons name="arrow-back" size={20} color={Colors.primary} />
-              <Text style={styles.backText}>Back</Text>
+              <Copy id="debrief.nav.back" style={styles.backText}>{'Back'}</Copy>
             </TouchableOpacity>
           ) : (
             <View />
           )}
           <Button
-            title={step.cta}
+            title={t(`debrief.cta.${step.key}`, step.cta)}
             onPress={isLast ? handleFinish : () => goToIndex(stepIndex + 1)}
             disabled={ctaLocked || finishing}
             loading={isLast && finishing}

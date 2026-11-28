@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput } from 'react-native';
 import DateTimePickerNative, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Copy } from './Copy';
+import { useCopy } from '../../context/CopyContext';
 
 interface Props {
   label: string;
@@ -18,6 +20,7 @@ export const DateTimePicker: React.FC<Props> = ({
   onDateChange,
   onTimeChange,
 }) => {
+  const t = useCopy();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
@@ -65,7 +68,7 @@ export const DateTimePicker: React.FC<Props> = ({
   };
 
   const formatDisplayDate = (dateStr: string): string => {
-    if (!dateStr) return 'Select date';
+    if (!dateStr) return t('common.datetime.selectDate', 'Select date');
     try {
       const d = new Date(`${dateStr}T12:00:00`);
       return d.toLocaleDateString(undefined, {
@@ -80,7 +83,7 @@ export const DateTimePicker: React.FC<Props> = ({
   };
 
   const formatDisplayTime = (timeStr: string): string => {
-    if (!timeStr) return 'Select time';
+    if (!timeStr) return t('common.datetime.selectTime', 'Select time');
     try {
       const [hours, minutes] = timeStr.split(':');
       const d = new Date();
@@ -103,7 +106,7 @@ export const DateTimePicker: React.FC<Props> = ({
         <Text style={styles.label}>{label}</Text>
         <View style={styles.row}>
           <View style={styles.inputWrap}>
-            <Text style={styles.subLabel}>Date</Text>
+            <Copy id="common.datetime.date" style={styles.subLabel}>{'Date'}</Copy>
             <input
               type="date"
               value={date}
@@ -112,7 +115,7 @@ export const DateTimePicker: React.FC<Props> = ({
             />
           </View>
           <View style={styles.inputWrap}>
-            <Text style={styles.subLabel}>Time</Text>
+            <Copy id="common.datetime.time" style={styles.subLabel}>{'Time'}</Copy>
             <input
               type="time"
               value={time}
@@ -131,7 +134,7 @@ export const DateTimePicker: React.FC<Props> = ({
       <Text style={styles.label}>{label}</Text>
       <View style={styles.row}>
         <View style={styles.inputWrap}>
-          <Text style={styles.subLabel}>Date</Text>
+          <Copy id="common.datetime.date" style={styles.subLabel}>{'Date'}</Copy>
           <TouchableOpacity
             style={styles.pickerButton}
             onPress={() => {
@@ -149,7 +152,7 @@ export const DateTimePicker: React.FC<Props> = ({
           </TouchableOpacity>
         </View>
         <View style={styles.inputWrap}>
-          <Text style={styles.subLabel}>Time</Text>
+          <Copy id="common.datetime.time" style={styles.subLabel}>{'Time'}</Copy>
           <TouchableOpacity
             style={styles.pickerButton}
             onPress={() => {
@@ -199,7 +202,7 @@ export const DateTimePicker: React.FC<Props> = ({
             setShowTimePicker(false);
           }}
         >
-          <Text style={styles.doneButtonText}>Done</Text>
+          <Copy id="common.datetime.done" style={styles.doneButtonText}>{'Done'}</Copy>
         </TouchableOpacity>
       )}
     </View>

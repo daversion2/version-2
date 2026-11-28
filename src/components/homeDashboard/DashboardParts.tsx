@@ -8,6 +8,8 @@ import type { TodayAppId } from '../../services/appCheckins';
 import { groupLabel, groupShortLabel } from '../../data/mealGroups';
 import { squarify } from '../../utils/treemap';
 import { scoreColor } from '../../utils/scoreColor';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 export const TINT = Colors.primary + '1A';
 
@@ -195,7 +197,7 @@ export const WeekGrid: React.FC<{ grid: WeekGridData; apps?: TodayAppId[] }> = (
           ))}
         </View>
       ))}
-      <Text style={styles.caption}>Filled = you showed up that day · ringed = today</Text>
+      <Copy id="today.dash.gridKey" style={styles.caption}>{'Filled = you showed up that day · ringed = today'}</Copy>
     </View>
   );
 };
@@ -215,7 +217,7 @@ export const ServingsTreemap: React.FC<{ servings: Serving[] }> = ({ servings })
   const [width, setWidth] = useState(0);
   const eaten = servings.filter((s) => s.count > 0);
   if (eaten.length === 0) {
-    return <Text style={styles.caption}>No plates logged in the last 7 days.</Text>;
+    return <Copy id="today.dash.noPlates" style={styles.caption}>{'No plates logged in the last 7 days.'}</Copy>;
   }
   const height = Math.round(width * 0.75);
   const tiles = width > 0 ? squarify(eaten.map((s) => ({ id: s.group, value: s.count })), width, height) : [];
@@ -252,17 +254,19 @@ export const ServingsTreemap: React.FC<{ servings: Serving[] }> = ({ servings })
       </View>
       <View style={styles.treeKey}>
         {[
-          { label: 'Low score', score: 10 },
-          { label: 'Middling', score: 50 },
-          { label: 'High score', score: 90 },
+          { id: 'low', label: 'Low score', score: 10 },
+          { id: 'mid', label: 'Middling', score: 50 },
+          { id: 'high', label: 'High score', score: 90 },
         ].map((k) => (
           <View key={k.label} style={styles.treeKeyItem}>
             <View style={[styles.treeSwatch, { backgroundColor: scoreColor(k.score) }]} />
-            <Text style={styles.treeKeyText}>{k.label}</Text>
+            <Copy id={`today.dash.treeKey.${k.id}`} style={styles.treeKeyText}>{k.label}</Copy>
           </View>
         ))}
       </View>
-      <Text style={styles.caption}>Last 7 days · bigger = more plates had it · colour = its score for your goal</Text>
+      <Copy id="today.dash.treeCaption" style={styles.caption}>
+        {'Last 7 days · bigger = more plates had it · colour = its score for your goal'}
+      </Copy>
     </View>
   );
 };
@@ -285,7 +289,15 @@ const DAY_WORD: Record<MealsDayState, string> = {
 export const DayDots: React.FC<{
   days: { date: string; state: MealsDayState; score: number | null }[];
   threshold: number;
-}> = ({ days, threshold }) => (
+}> = ({ days, threshold }) => {
+  const t = useCopy();
+  const legendWord: Record<MealsDayState, string> = {
+    on: t('today.dash.legend.on', 'On target'),
+    off: t('today.dash.legend.off', 'Missed'),
+    pending: t('today.dash.legend.pending', 'Still open'),
+    empty: t('today.dash.legend.empty', 'Nothing logged'),
+  };
+  return (
   <View>
     <View style={styles.dayRow}>
       {days.map((d) => (
@@ -306,14 +318,15 @@ export const DayDots: React.FC<{
         <View key={s} style={styles.legendItem}>
           <View style={[styles.legendDot, DAY_STYLE[s]]} />
           <Text style={styles.caption}>
-            {DAY_WORD[s][0].toUpperCase() + DAY_WORD[s].slice(1)}
+            {legendWord[s]}
             {s === 'on' ? ` (${threshold}+)` : ''}
           </Text>
         </View>
       ))}
     </View>
   </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   ringCenter: { alignItems: 'center', justifyContent: 'center' },

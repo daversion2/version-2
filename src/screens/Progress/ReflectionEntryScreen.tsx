@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
+import { Copy } from '../../components/common/Copy';
 import { DailySummaryCard } from '../../components/home/DailySummaryCard';
 import { DailyReflection } from '../../types';
 import { GRADE_COLORS, GRADE_LABELS } from '../../data/comfortZone';
@@ -18,7 +19,9 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
   if (!reflection) {
     return (
       <View style={styles.screen}>
-        <Text style={styles.emptyText}>Reflection not found</Text>
+        <Copy id="reflection.entry.notFound" style={styles.emptyText}>
+          Reflection not found
+        </Copy>
       </View>
     );
   }
@@ -57,7 +60,9 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
       {/* Daily inputs / factors */}
       {savedFactors.length > 0 && (
         <Card style={styles.promptCard}>
-          <Text style={styles.promptLabel}>Today's inputs</Text>
+          <Copy id="reflection.entry.inputs" style={styles.promptLabel}>
+            Today's inputs
+          </Copy>
           <View style={styles.factorGrid}>
             {savedFactors.map(({ def, optionLabel }) => (
               <View key={def.id} style={styles.factorChip}>
@@ -87,7 +92,9 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
 
       {(reflection.prompt_ifthen_cue || reflection.prompt_ifthen_response) && (
         <Card style={styles.promptCard}>
-          <Text style={styles.promptLabel}>Tomorrow's plan</Text>
+          <Copy id="reflection.entry.plan" style={styles.promptLabel}>
+            Tomorrow's plan
+          </Copy>
           <Text style={styles.promptText}>
             {formatPlan({
               cue: reflection.prompt_ifthen_cue,
@@ -114,7 +121,9 @@ export const ReflectionEntryScreen: React.FC<Props> = ({ route }) => {
 
       {!reflection.prompt_went_well && !reflection.prompt_hardest && !reflection.prompt_tomorrow && !reflection.prompt_ifthen_cue && !reflection.prompt_ifthen_response && !reflection.prompt_why_connection && (
         <Card>
-          <Text style={styles.noPromptsText}>No written reflections for this day.</Text>
+          <Copy id="reflection.entry.noPrompts" style={styles.noPromptsText}>
+            No written reflections for this day.
+          </Copy>
         </Card>
       )}
     </ScrollView>

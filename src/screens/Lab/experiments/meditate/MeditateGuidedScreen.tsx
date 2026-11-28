@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import { describeSession } from '../../../../services/meditateMath';
 import { showConfirm } from '../../../../utils/alert';
@@ -22,6 +24,7 @@ type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateGuided'>;
  */
 export const MeditateGuidedScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { session, guided, guidedStatus, reloadGuided, end, discardSession } = useMeditate();
   const recording = guided.find((r) => r.id === session?.guidedId);
 
@@ -38,14 +41,14 @@ export const MeditateGuidedScreen: React.FC<Props> = ({ navigation }) => {
 
   const leave = () =>
     showConfirm(
-      'Leave this session?',
-      'Guided sessions count when they play to the end, so this one won’t be saved.',
+      t('meditate.guided.leave.title', 'Leave this session?'),
+      t('meditate.guided.leave.message', 'Guided sessions count when they play to the end, so this one won’t be saved.'),
       async () => {
         await discardSession();
         navigation.popToTop();
       },
-      'Leave',
-      'Keep listening',
+      t('meditate.guided.leave.confirm', 'Leave'),
+      t('meditate.guided.leave.cancel', 'Keep listening'),
     );
 
   if (!session || session.style !== 'guided') {
@@ -56,7 +59,11 @@ export const MeditateGuidedScreen: React.FC<Props> = ({ navigation }) => {
     <View style={[ms.screen, styles.screen, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing.md }]}>
       <View style={styles.middle}>
         <Ionicons name="headset-outline" size={40} color={MEDITATE_ACCENT} />
-        <Text style={styles.title}>{session.guidedTitle ?? 'Guided session'}</Text>
+        {session.guidedTitle ? (
+          <Text style={styles.title}>{session.guidedTitle}</Text>
+        ) : (
+          <Copy id="meditate.guided.defaultTitle" style={styles.title}>Guided session</Copy>
+        )}
         <Text style={[ms.muted, styles.center]}>
           {describeSession({ mode: session.mode, technique: session.technique, pattern: session.pattern, style: session.style })}
           {recording ? ` · ${recording.voice}` : ''}
@@ -75,33 +82,33 @@ export const MeditateGuidedScreen: React.FC<Props> = ({ navigation }) => {
         ) : guidedStatus === 'loading' ? (
           <View style={[ms.card, styles.waiting]}>
             <ActivityIndicator color={MEDITATE_ACCENT} />
-            <Text style={ms.muted}>Loading the recording…</Text>
+            <Copy id="meditate.guided.loading" style={ms.muted}>Loading the recording…</Copy>
           </View>
         ) : guidedStatus === 'error' ? (
           <View style={[ms.card, styles.waiting]}>
-            <Text style={[ms.body, styles.center]}>Couldn’t load the recording. Check your connection, then try again.</Text>
+            <Copy id="meditate.guided.loadFail" style={[ms.body, styles.center]}>Couldn’t load the recording. Check your connection, then try again.</Copy>
             <TouchableOpacity onPress={reloadGuided} style={styles.retry} accessibilityRole="button">
-              <Text style={ms.link}>Try again</Text>
+              <Copy id="meditate.guided.retry" style={ms.link}>Try again</Copy>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={ms.card}>
-            <Text style={ms.body}>This recording isn’t available any more. Leave, and pick another one or the timer.</Text>
+            <Copy id="meditate.guided.gone" style={ms.body}>This recording isn’t available any more. Leave, and pick another one or the timer.</Copy>
           </View>
         )}
 
-        <Text style={[ms.muted, styles.center]}>
+        <Copy id="meditate.guided.hint" style={[ms.muted, styles.center]}>
           Find a comfortable seat, press play, and close your eyes. It counts when it plays to the end.
-        </Text>
+        </Copy>
         {KEEP_SCREEN_ON_WHILE_PLAYING && (
-          <Text style={[ms.muted, styles.center]}>
+          <Copy id="meditate.guided.screenOn" style={[ms.muted, styles.center]}>
             Leave the screen on — it stays lit while the recording plays. Locking your phone pauses it.
-          </Text>
+          </Copy>
         )}
       </View>
 
       <TouchableOpacity onPress={leave} style={ms.textBtn} accessibilityRole="button">
-        <Text style={ms.textBtnText}>Leave</Text>
+        <Copy id="meditate.guided.leave" style={ms.textBtnText}>Leave</Copy>
       </TouchableOpacity>
     </View>
   );

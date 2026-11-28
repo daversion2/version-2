@@ -6,6 +6,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../../
 import { Exercise, MuscleGroup } from '../../../../../types/workouts';
 import { KIND_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '../../../../../data/workoutExercises';
 import { exerciseSubtitle, exercisesInGroup, searchExercises } from '../../../../../services/exerciseLibrary';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { useWorkouts } from '../WorkoutsContext';
 import { BodyPartTiles } from './BodyPartTiles';
 import { ExerciseEditorModal } from './ExerciseEditorModal';
@@ -32,11 +34,18 @@ export const ExercisePickerModal: React.FC<Props> = ({
   title,
   mode,
   minSelect = 1,
-  confirmLabel = (n) => (n > 1 ? `Add ${n} as a circuit` : 'Add exercise'),
+  confirmLabel: confirmLabelProp,
   onCancel,
   onConfirm,
 }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
+  const confirmLabel =
+    confirmLabelProp ??
+    ((n: number) =>
+      n > 1
+        ? t('workouts.picker.addCircuit', 'Add {n} as a circuit', { n })
+        : t('workouts.picker.addExercise', 'Add exercise'));
   const { exercises, hiddenExercises, setExerciseHidden, notes } = useWorkouts();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Exercise[]>([]);
@@ -87,15 +96,15 @@ export const ExercisePickerModal: React.FC<Props> = ({
     // Yours first — the ones you made are the ones you're most likely after.
     const mine = matching.filter((e) => e.custom);
     return [
-      { title: 'Yours', data: mine },
+      { title: t('workouts.picker.yours', 'Yours'), data: mine },
       ...MUSCLE_GROUP_ORDER.map((muscle) => ({
         title: MUSCLE_GROUP_LABELS[muscle],
         data: matching.filter((e) => !e.custom && e.muscle === muscle),
       })),
       // A search still finds what you hid, last, so it's never "missing".
-      { title: 'Hidden', data: searchExercises(hiddenExercises, term) },
+      { title: t('workouts.picker.hidden', 'Hidden'), data: searchExercises(hiddenExercises, term) },
     ].filter((s) => s.data.length > 0);
-  }, [exercises, hiddenExercises, term, group]);
+  }, [exercises, hiddenExercises, term, group, t]);
   const hiddenIds = useMemo(() => new Set(hiddenExercises.map((e) => e.id)), [hiddenExercises]);
   const exactMatch = [...exercises, ...hiddenExercises].some((e) => e.name.toLowerCase() === term);
 
@@ -126,11 +135,15 @@ export const ExercisePickerModal: React.FC<Props> = ({
             >
               <Ionicons name="chevron-back" size={20} color={WORKOUTS_ACCENT} />
               {/* Not "Back": beside the Back body part's title it read as a typo. */}
-              <Text style={styles.backText}>All</Text>
+              <Copy id="workouts.picker.all" style={styles.backText}>
+                All
+              </Copy>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={onCancel} hitSlop={8}>
-              <Text style={styles.cancel}>Cancel</Text>
+              <Copy id="workouts.picker.cancel" style={styles.cancel}>
+                Cancel
+              </Copy>
             </TouchableOpacity>
           )}
           <Text style={styles.title}>{group ? MUSCLE_GROUP_LABELS[group] : title}</Text>
@@ -143,7 +156,7 @@ export const ExercisePickerModal: React.FC<Props> = ({
             style={styles.search}
             value={search}
             onChangeText={setSearch}
-            placeholder="Search exercises"
+            placeholder={t('workouts.picker.search', 'Search exercises')}
             placeholderTextColor={Colors.gray}
             autoCorrect={false}
             clearButtonMode="while-editing"
@@ -154,17 +167,21 @@ export const ExercisePickerModal: React.FC<Props> = ({
         <TouchableOpacity style={styles.newRow} onPress={() => setCreating(true)} accessibilityRole="button">
           <Ionicons name="add-circle" size={22} color={WORKOUTS_ACCENT} />
           <Text style={styles.newText}>
-            {term && !exactMatch ? `New exercise “${search.trim()}”` : 'New exercise'}
+            {term && !exactMatch
+              ? t('workouts.picker.newNamed', 'New exercise “{name}”', { name: search.trim() })
+              : t('workouts.picker.new', 'New exercise')}
           </Text>
         </TouchableOpacity>
 
         {justHidden && (
           <View style={styles.undoBar}>
-            <Text style={styles.undoText} numberOfLines={1}>
-              {justHidden.name} hidden
-            </Text>
+            <Copy id="workouts.picker.hiddenBar" style={styles.undoText} numberOfLines={1} vars={{ name: justHidden.name }}>
+              {'{name} hidden'}
+            </Copy>
             <TouchableOpacity onPress={undoHide} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Undo hiding ${justHidden.name}`}>
-              <Text style={styles.undoAction}>Undo</Text>
+              <Copy id="workouts.picker.undo" style={styles.undoAction}>
+                Undo
+              </Copy>
             </TouchableOpacity>
           </View>
         )}
@@ -235,9 +252,9 @@ export const ExercisePickerModal: React.FC<Props> = ({
               );
             }}
             ListEmptyComponent={
-              <Text style={[ws.muted, { textAlign: 'center', marginTop: Spacing.xl }]}>
+              <Copy id="workouts.picker.noMatch" style={[ws.muted, { textAlign: 'center', marginTop: Spacing.xl }]}>
                 Nothing matches. Tap “New exercise” to make it.
-              </Text>
+              </Copy>
             }
           />
         )}
@@ -265,8 +282,8 @@ export const ExercisePickerModal: React.FC<Props> = ({
             {selected.length > 0 && (
               <Text style={[ws.muted, { textAlign: 'center' }]}>
                 {selected.length > 1
-                  ? 'Done back to back in this order, then rest — one round. Tap one again to repeat it.'
-                  : 'Tap an exercise again to have it twice in a round.'}
+                  ? t('workouts.picker.hintMany', 'Done back to back in this order, then rest — one round. Tap one again to repeat it.')
+                  : t('workouts.picker.hintOne', 'Tap an exercise again to have it twice in a round.')}
               </Text>
             )}
             <TouchableOpacity
@@ -277,8 +294,8 @@ export const ExercisePickerModal: React.FC<Props> = ({
               <Text style={ws.primaryBtnText}>
                 {selected.length < minSelect
                   ? minSelect > 1
-                    ? `Pick at least ${minSelect}`
-                    : 'Pick an exercise'
+                    ? t('workouts.picker.pickAtLeast', 'Pick at least {n}', { n: minSelect })
+                    : t('workouts.picker.pickOne', 'Pick an exercise')
                   : confirmLabel(selected.length)}
               </Text>
             </TouchableOpacity>
@@ -288,7 +305,11 @@ export const ExercisePickerModal: React.FC<Props> = ({
 
       <ExercisePreviewModal
         exercise={preview}
-        addLabel={mode === 'single' ? 'Choose this exercise' : 'Add this exercise'}
+        addLabel={
+          mode === 'single'
+            ? t('workouts.picker.choose', 'Choose this exercise')
+            : t('workouts.picker.addThis', 'Add this exercise')
+        }
         onClose={() => setPreview(null)}
         onAdd={(exercise) => {
           setPreview(null);

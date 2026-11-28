@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { NeuroscienceTidbit } from '../../types';
+import { Copy } from '../common/Copy';
 
 interface HabitTidbitModalProps {
   visible: boolean;
@@ -32,20 +33,20 @@ export const HabitTidbitModal: React.FC<HabitTidbitModalProps> = ({
         <Pressable style={styles.card} onPress={() => {}}>
           <View style={styles.header}>
             <Ionicons name="flash" size={18} color={Colors.primary} />
-            <Text style={styles.headerLabel}>Your brain right now</Text>
+            <Copy id="celebration.tidbitModal.header" style={styles.headerLabel}>{'Your brain right now'}</Copy>
           </View>
 
           <Text style={styles.tidbitText}>{tidbit.text}</Text>
 
           {tidbit.extended_text ? (
             <TouchableOpacity style={styles.learnMoreRow} onPress={onLearnMore} activeOpacity={0.7}>
-              <Text style={styles.learnMoreText}>Learn more</Text>
+              <Copy id="celebration.tidbitModal.learnMore" style={styles.learnMoreText}>{'Learn more'}</Copy>
               <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
             </TouchableOpacity>
           ) : null}
 
           <TouchableOpacity style={styles.gotItButton} onPress={onDismiss} activeOpacity={0.8}>
-            <Text style={styles.gotItText}>Got it</Text>
+            <Copy id="celebration.tidbitModal.gotIt" style={styles.gotItText}>{'Got it'}</Copy>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

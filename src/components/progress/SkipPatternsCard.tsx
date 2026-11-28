@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { SkipPatterns } from '../../services/skipLogic';
 import { getSkipReason } from '../../data/skipReasons';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 interface Props {
   patterns: SkipPatterns;
@@ -21,15 +23,25 @@ interface Props {
  */
 export const SkipPatternsCard: React.FC<Props> = ({ patterns, habitName }) => {
   const { totalMissed, reasons, internalPct, externalPct } = patterns;
+  const t = useCopy();
 
   if (totalMissed === 0) {
     return (
       <View style={styles.card}>
-        <Text style={styles.label}>Why you skip</Text>
+        <Copy id="progress.skip.label" style={styles.label}>
+          Why you skip
+        </Copy>
         <Text style={styles.empty}>
           {habitName
-            ? `Nothing logged yet for ${habitName}. When a week falls short, you’ll be asked what got in the way.`
-            : 'When a week falls short, you’ll be asked what got in the way. Your patterns will show up here.'}
+            ? t(
+                'progress.skip.emptyHabit',
+                'Nothing logged yet for {habit}. When a week falls short, you’ll be asked what got in the way.',
+                { habit: habitName }
+              )
+            : t(
+                'progress.skip.empty',
+                'When a week falls short, you’ll be asked what got in the way. Your patterns will show up here.'
+              )}
         </Text>
       </View>
     );
@@ -41,15 +53,27 @@ export const SkipPatternsCard: React.FC<Props> = ({ patterns, habitName }) => {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>Why you skip</Text>
+      <Copy id="progress.skip.label" style={styles.label}>
+        Why you skip
+      </Copy>
 
       <Text style={styles.headline}>
-        {topReason ? `Most often: ${topReason.label.toLowerCase()}` : 'Your reasons'}
+        {topReason
+          ? t('progress.skip.mostOften', 'Most often: {reason}', { reason: topReason.label.toLowerCase() })
+          : t('progress.skip.yourReasons', 'Your reasons')}
       </Text>
-      <Text style={styles.sub}>
-        {totalMissed} missed {totalMissed === 1 ? 'check-in' : 'check-ins'}
-        {habitName ? ` on ${habitName}` : ' across your habits'}.
-      </Text>
+      <Copy
+        id={totalMissed === 1 ? 'progress.skip.sub.one' : 'progress.skip.sub.other'}
+        style={styles.sub}
+        vars={{
+          n: totalMissed,
+          where: habitName
+            ? t('progress.skip.onHabit', ' on {habit}', { habit: habitName })
+            : t('progress.skip.acrossHabits', ' across your habits'),
+        }}
+      >
+        {totalMissed === 1 ? '{n} missed check-in{where}.' : '{n} missed check-ins{where}.'}
+      </Copy>
 
       {/* Internal vs external — the distinction the whole taxonomy exists for. */}
       {hasSplit && (
@@ -59,12 +83,22 @@ export const SkipPatternsCard: React.FC<Props> = ({ patterns, habitName }) => {
             <View style={[styles.splitRest, { flex: Math.max(externalPct!, 1) }]} />
           </View>
           <View style={styles.splitLegend}>
-            <Text style={styles.splitText}>
-              <Text style={styles.splitStrong}>{internalPct}%</Text> was you
-            </Text>
-            <Text style={styles.splitText}>
-              <Text style={styles.splitStrong}>{externalPct}%</Text> was the day
-            </Text>
+            <Copy
+              id="progress.skip.split.internal"
+              style={styles.splitText}
+              boldStyle={styles.splitStrong}
+              vars={{ pct: internalPct! }}
+            >
+              {'**{pct}%** was you'}
+            </Copy>
+            <Copy
+              id="progress.skip.split.external"
+              style={styles.splitText}
+              boldStyle={styles.splitStrong}
+              vars={{ pct: externalPct! }}
+            >
+              {'**{pct}%** was the day'}
+            </Copy>
           </View>
         </View>
       )}

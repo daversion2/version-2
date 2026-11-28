@@ -32,6 +32,8 @@ import { BarTrend, DayDots, DotTrend, ServingsTreemap } from '../../components/h
 import { APP_TITLES } from '../../components/homeRedesign/TodayView';
 import { LoadError } from '../../components/homeRedesign/LoadError';
 import { getTodayString } from '../../utils/date';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 // =============================================================================
 // AN APP'S PAGE (redesign only; canvas "Meditate" / "Workouts" / "Meals").
@@ -56,6 +58,7 @@ const START_LABEL = { meditate: 'Start a session', workouts: 'Start a workout', 
 
 export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
   const { appId } = route.params;
+  const t = useCopy();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<{ app: HomeAppData; logs: CompletionLog[] } | null>(null);
@@ -137,9 +140,13 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const today = data?.app.today ?? '';
-  const friction = d ? describeFriction(d.friction[appId]) ?? 'Not rated yet' : '';
-  const keepGoing = d && appId !== 'meals' ? describeFriction(d.keepGoing[appId]) ?? 'Not rated yet' : '';
-  const mealsDay = d ? describeFriction(d.mealsDay) ?? 'Not rated yet' : '';
+  const notRated = t('appPage.notRated', 'Not rated yet');
+  const friction = d ? describeFriction(d.friction[appId]) ?? notRated : '';
+  const keepGoing = d && appId !== 'meals' ? describeFriction(d.keepGoing[appId]) ?? notRated : '';
+  const mealsDay = d ? describeFriction(d.mealsDay) ?? notRated : '';
+  /** `.one` / `.other` wording for a count, chosen here as the old ternaries did. */
+  const plural = (key: string, one: string, other: string, n: number) =>
+    t(`${key}.${n === 1 ? 'one' : 'other'}`, n === 1 ? one : other, { n });
 
   const body = () => {
     if (!d || !data) return null;
@@ -148,33 +155,50 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
       return (
         <>
           <Hero
-            label="Last 7 days"
+            label={t('appPage.last7', 'Last 7 days')}
             value={`${m.minutes}`}
-            unit=" min"
-            line={describeVsPrior(m.minutes, m.priorMinutes, 'min') ?? 'Nothing in the last 7 days'}
-            note={m.lastSessionMinutes !== null ? `Last session: ${m.lastSessionMinutes} min` : undefined}
+            unit={t('appPage.minUnit', ' min')}
+            line={
+              describeVsPrior(m.minutes, m.priorMinutes, 'min') ??
+              t('appPage.meditate.nothing', 'Nothing in the last 7 days')
+            }
+            note={
+              m.lastSessionMinutes !== null
+                ? t('appPage.meditate.last', 'Last session: {n} min', { n: m.lastSessionMinutes })
+                : undefined
+            }
           />
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Minutes per session</Text>
-            <DotTrend values={m.series} label="Your last 8 sessions" empty="No sessions yet." />
+            <Copy id="appPage.meditate.perSession" style={styles.cardLabel}>{'Minutes per session'}</Copy>
+            <DotTrend
+              values={m.series}
+              label={t('appPage.last8', 'Your last 8 sessions')}
+              empty={t('appPage.noSessions', 'No sessions yet.')}
+            />
           </View>
-          <ListGroup title="This week">
-            <ListRow title="Goal" value={`${m.sessions} of ${m.goal} sessions`} />
+          <ListGroup title={t('appPage.thisWeek', 'This week')}>
+            <ListRow
+              title={t('appPage.goal', 'Goal')}
+              value={t('appPage.sessionsOfGoal', '{sessions} of {goal} sessions', { sessions: m.sessions, goal: m.goal })}
+            />
           </ListGroup>
-          <ListGroup title="Last 7 days">
-            <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
+          <ListGroup title={t('appPage.last7', 'Last 7 days')}>
+            <ListRow
+              title={t('appPage.streak', 'Streak')}
+              value={plural('appPage.days', '{n} day', '{n} days', m.streakDays)}
+            />
           </ListGroup>
-          <ListGroup title="Your override · last 7 days">
-            <ListRow title="Getting started" subtitle={friction} />
-            <ListRow title="Staying with it" subtitle={keepGoing} />
+          <ListGroup title={t('appPage.override', 'Your override · last 7 days')}>
+            <ListRow title={t('appPage.gettingStarted', 'Getting started')} subtitle={friction} />
+            <ListRow title={t('appPage.stayingWithIt', 'Staying with it')} subtitle={keepGoing} />
           </ListGroup>
           {m.recent.length > 0 && (
-            <ListGroup title="Recent">
+            <ListGroup title={t('appPage.recent', 'Recent')}>
               {m.recent.map((s, i) => (
                 <ListRow
                   key={i}
                   title={MODES[s.mode].label}
-                  value={`${recentDayLabel(s.date, today)} · ${s.minutes} min`}
+                  value={t('appPage.dayMinutes', '{day} · {n} min', { day: recentDayLabel(s.date, today), n: s.minutes })}
                 />
               ))}
             </ListGroup>
@@ -187,44 +211,66 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
       return (
         <>
           <Hero
-            label="Volume, last 7 days"
+            label={t('appPage.workouts.volumeLabel', 'Volume, last 7 days')}
             value={formatVolume(w.volumeKg, data.app.unit)}
             line={
               w.volumeChangePct === null
-                ? 'Total volume lifted'
-                : `${w.volumeChangePct >= 0 ? 'Up' : 'Down'} ${Math.abs(w.volumeChangePct)}% on the 7 days before`
+                ? t('appPage.workouts.volume', 'Total volume lifted')
+                : t('appPage.workouts.volumeChange', '{dir} {pct}% on the 7 days before', {
+                    dir: w.volumeChangePct >= 0 ? t('appPage.dirUp', 'Up') : t('appPage.dirDown', 'Down'),
+                    pct: Math.abs(w.volumeChangePct),
+                  })
             }
             note={w.standout ? `${w.standout.name}: ${w.standout.line}` : undefined}
           />
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Volume per session</Text>
+            <Copy id="appPage.workouts.perSession" style={styles.cardLabel}>{'Volume per session'}</Copy>
             <BarTrend
               values={w.series}
-              label="Your last 8 sessions"
-              empty="No sessions yet."
+              label={t('appPage.last8', 'Your last 8 sessions')}
+              empty={t('appPage.noSessions', 'No sessions yet.')}
               formatValue={(kg) => formatVolume(kg, data.app.unit)}
             />
           </View>
-          <ListGroup title="This week">
-            <ListRow title="Goal" value={`${w.sessions} of ${w.goal} sessions`} />
-            <ListRow title="Last week" value={`${w.priorSessions} ${w.priorSessions === 1 ? 'session' : 'sessions'}`} />
-            <ListRow title="Streak" value={`${w.streakWeeks} ${w.streakWeeks === 1 ? 'week' : 'weeks'}`} />
+          <ListGroup title={t('appPage.thisWeek', 'This week')}>
+            <ListRow
+              title={t('appPage.goal', 'Goal')}
+              value={t('appPage.sessionsOfGoal', '{sessions} of {goal} sessions', { sessions: w.sessions, goal: w.goal })}
+            />
+            <ListRow
+              title={t('appPage.lastWeek', 'Last week')}
+              value={plural('appPage.sessions', '{n} session', '{n} sessions', w.priorSessions)}
+            />
+            <ListRow
+              title={t('appPage.streak', 'Streak')}
+              value={plural('appPage.weeks', '{n} week', '{n} weeks', w.streakWeeks)}
+            />
           </ListGroup>
-          <ListGroup title="Your override · last 7 days">
-            <ListRow title="Getting started" subtitle={friction} />
-            <ListRow title="Staying with it" subtitle={keepGoing} />
+          <ListGroup title={t('appPage.override', 'Your override · last 7 days')}>
+            <ListRow title={t('appPage.gettingStarted', 'Getting started')} subtitle={friction} />
+            <ListRow title={t('appPage.stayingWithIt', 'Staying with it')} subtitle={keepGoing} />
           </ListGroup>
           {(w.week.length > 0 || w.phaseLine) && (
-            <ListGroup title={w.phaseLine ? `Sessions · ${w.phaseLine}` : 'Sessions'}>
+            <ListGroup
+              title={
+                w.phaseLine
+                  ? t('appPage.sessionsPhase', 'Sessions · {phase}', { phase: w.phaseLine })
+                  : t('appPage.sessionsTitle', 'Sessions')
+              }
+            >
               {w.week.map((s, i) => (
-                <ListRow key={i} title={s.name} value={`${recentDayLabel(s.date, today)} · ${s.sets} sets`} />
+                <ListRow
+                  key={i}
+                  title={s.name}
+                  value={t('appPage.daySets', '{day} · {n} sets', { day: recentDayLabel(s.date, today), n: s.sets })}
+                />
               ))}
             </ListGroup>
           )}
           <ListGroup>
             <ListRow
-              title="Your week"
-              subtitle="Day by day, every set, in Workouts"
+              title={t('appPage.workouts.week', 'Your week')}
+              subtitle={t('appPage.workouts.weekSub', 'Day by day, every set, in Workouts')}
               icon={{ name: 'calendar-outline', color: AppColors.workouts }}
               onPress={() => start({ kind: 'week' })}
             />
@@ -236,29 +282,36 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <>
         <Hero
-          label="Average plate score, last 7 days"
+          label={t('appPage.meals.avgLabel', 'Average plate score, last 7 days')}
           value={m.averageScore === null ? '–' : `${m.averageScore}`}
-          unit={m.averageScore === null ? undefined : ' / 100'}
+          unit={m.averageScore === null ? undefined : t('appPage.meals.outOf', ' / 100')}
           line={
             m.averageScore === null
-              ? 'No plates logged yet'
+              ? t('appPage.meals.none', 'No plates logged yet')
               : m.priorAverageScore === null
-              ? 'Every plate in the last 7 days'
+              ? t('appPage.meals.every', 'Every plate in the last 7 days')
               : describeVsPrior(m.averageScore, m.priorAverageScore, 'pts') ?? ''
           }
-          note={`${m.loggedThisWeek} of ${m.goal} days logged this week · ${m.onTarget} of the last 7 on target (${m.threshold}+)`}
+          note={t(
+            'appPage.meals.note',
+            '{logged} of {goal} days logged this week · {onTarget} of the last 7 on target ({threshold}+)',
+            { logged: m.loggedThisWeek, goal: m.goal, onTarget: m.onTarget, threshold: m.threshold }
+          )}
         />
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>What you ate</Text>
+          <Copy id="appPage.meals.ate" style={styles.cardLabel}>{'What you ate'}</Copy>
           <ServingsTreemap servings={m.servings} />
         </View>
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Day by day</Text>
+          <Copy id="appPage.meals.dayByDay" style={styles.cardLabel}>{'Day by day'}</Copy>
           <DayDots days={m.days} threshold={m.threshold} />
         </View>
-        <ListGroup title="Last 7 days">
-          <ListRow title="Streak" value={`${m.streakDays} ${m.streakDays === 1 ? 'day' : 'days'}`} />
-          <ListRow title="Your override" subtitle={mealsDay} />
+        <ListGroup title={t('appPage.last7', 'Last 7 days')}>
+          <ListRow
+            title={t('appPage.streak', 'Streak')}
+            value={plural('appPage.days', '{n} day', '{n} days', m.streakDays)}
+          />
+          <ListRow title={t('appPage.meals.override', 'Your override')} subtitle={mealsDay} />
         </ListGroup>
       </>
     );
@@ -279,7 +332,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
           accessibilityLabel="Back to Today"
         >
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
-          <Text style={styles.backText}>Today</Text>
+          <Copy id="appPage.back" style={styles.backText}>{'Today'}</Copy>
         </TouchableOpacity>
         <Text style={styles.title} accessibilityRole="header">
           {APP_TITLES[appId]}
@@ -298,7 +351,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.startRow}>
           <TouchableOpacity style={[styles.start, styles.startGrow]} onPress={() => start(workoutStart?.launch)} accessibilityRole="button">
             <Text style={styles.startText} numberOfLines={1}>
-              {workoutStart?.label ?? START_LABEL[appId]}
+              {workoutStart?.label ?? t(`appPage.start.${appId}`, START_LABEL[appId])}
             </Text>
           </TouchableOpacity>
           {appId === 'workouts' && data && (
@@ -309,7 +362,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
               accessibilityLabel="Log"
               accessibilityHint="Add something you’ve already done to this week"
             >
-              <Text style={styles.logText}>Log</Text>
+              <Copy id="appPage.log" style={styles.logText}>{'Log'}</Copy>
             </TouchableOpacity>
           )}
         </View>
@@ -321,7 +374,7 @@ export const AppPageScreen: React.FC<Props> = ({ navigation, route }) => {
             </Text>
             {workoutStart.canChoose && (
               <TouchableOpacity onPress={() => start({ kind: 'home' })} accessibilityRole="button" hitSlop={8}>
-                <Text style={styles.startMetaLink}>Something else</Text>
+                <Copy id="appPage.somethingElse" style={styles.startMetaLink}>{'Something else'}</Copy>
               </TouchableOpacity>
             )}
           </View>

@@ -10,6 +10,7 @@ import { appCheckinId } from '../../../../../services/appCheckins';
 import { formatSeconds, formatVolume } from '../../../../../services/workoutMath';
 import { DayKind, WeekDay, WorkoutWeek } from '../../../../../services/workoutWeek';
 import { toLocalDateString } from '../../../../../utils/date';
+import { copyText } from '../../../../../services/appCopy';
 import { WORKOUTS_ACCENT } from './workoutsStyle';
 
 // =============================================================================
@@ -142,9 +143,15 @@ export const WeekStrip: React.FC<{
 export const weekTotalsLine = (week: WorkoutWeek, unit: WeightUnit): string =>
   [
     week.durationSec > 0 ? formatSeconds(week.durationSec) : null,
-    week.sets > 0 ? `${week.sets} ${week.sets === 1 ? 'set' : 'sets'}` : null,
+    week.sets > 0
+      ? week.sets === 1
+        ? copyText('workouts.weekParts.oneSet', '{n} set', { n: week.sets })
+        : copyText('workouts.weekParts.nSets', '{n} sets', { n: week.sets })
+      : null,
     week.volumeKg > 0 ? formatVolume(week.volumeKg, unit) : null,
-    week.cardio.totalMin >= 1 ? `${Math.round(week.cardio.totalMin)} min cardio` : null,
+    week.cardio.totalMin >= 1
+      ? copyText('workouts.weekParts.cardioMin', '{n} min cardio', { n: Math.round(week.cardio.totalMin) })
+      : null,
   ]
     .filter(Boolean)
     .join(' · ');

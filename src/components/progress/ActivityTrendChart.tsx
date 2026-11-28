@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../common/Card';
+import { Copy } from '../common/Copy';
 import { WeeklyTrendPoint } from '../../services/progress';
 
 interface ActivityTrendChartProps {
@@ -14,8 +15,12 @@ export const ActivityTrendChart: React.FC<ActivityTrendChartProps> = ({ data }) 
   if (data.length === 0) {
     return (
       <Card style={styles.card}>
-        <Text style={styles.title}>Week by week</Text>
-        <Text style={styles.emptyText}>Complete some habits to see your trend</Text>
+        <Copy id="progress.trend.title" style={styles.title}>
+          Week by week
+        </Copy>
+        <Copy id="progress.trend.empty" style={styles.emptyText}>
+          Complete some habits to see your trend
+        </Copy>
       </Card>
     );
   }
@@ -25,8 +30,12 @@ export const ActivityTrendChart: React.FC<ActivityTrendChartProps> = ({ data }) 
 
   return (
     <Card style={styles.card}>
-      <Text style={styles.title}>Week by week</Text>
-      <Text style={styles.subtitle}>Habits per week</Text>
+      <Copy id="progress.trend.title" style={styles.title}>
+        Week by week
+      </Copy>
+      <Copy id="progress.trend.subtitle" style={styles.subtitle}>
+        Habits per week
+      </Copy>
       <View style={styles.chartContainer}>
         {/* Y-axis labels */}
         <View style={styles.yAxis}>

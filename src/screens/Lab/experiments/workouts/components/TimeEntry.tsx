@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Spacing } from '../../../../../constants/theme';
+import { useCopy } from '../../../../../context/CopyContext';
 import { NumberStepper } from './NumberStepper';
 
 interface Props {
@@ -20,6 +21,7 @@ const clamp = (n: number) => Math.min(MAX_SEC, Math.max(1, Math.round(n)));
  * minutes either way.
  */
 export const TimeEntry: React.FC<Props> = ({ seconds, onChange, size = 'large', labelPrefix }) => {
+  const t = useCopy();
   const s = Math.max(0, Math.round(seconds));
   const min = Math.floor(s / 60);
   const sec = s % 60;
@@ -28,7 +30,7 @@ export const TimeEntry: React.FC<Props> = ({ seconds, onChange, size = 'large', 
     <View style={styles.row}>
       <NumberStepper
         size={size}
-        label={label('Min')}
+        label={label(t('workouts.time.min', 'Min'))}
         value={min}
         onDecrement={() => onChange(clamp(s - 60))}
         onIncrement={() => onChange(clamp(s + 60))}
@@ -36,7 +38,7 @@ export const TimeEntry: React.FC<Props> = ({ seconds, onChange, size = 'large', 
       />
       <NumberStepper
         size={size}
-        label={label('Sec')}
+        label={label(t('workouts.time.sec', 'Sec'))}
         value={sec}
         onDecrement={() => onChange(clamp(s - 5))}
         onIncrement={() => onChange(clamp(s + 5))}

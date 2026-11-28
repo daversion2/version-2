@@ -6,6 +6,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../../../con
 import { Exercise } from '../../../../types/workouts';
 import { KIND_LABELS, MUSCLE_GROUP_LABELS, MUSCLE_GROUP_ORDER } from '../../../../data/workoutExercises';
 import { exerciseSubtitle, searchExercises } from '../../../../services/exerciseLibrary';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { ExerciseEditorModal } from './components/ExerciseEditorModal';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
@@ -17,6 +19,7 @@ import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './components/workoutsStyle';
 export const WorkoutExercisesScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { exercises, notes } = useWorkouts();
+  const t = useCopy();
   const [search, setSearch] = useState('');
   // undefined = closed; null = a new exercise; an Exercise = editing that one.
   const [editing, setEditing] = useState<Exercise | null | undefined>(undefined);
@@ -25,14 +28,14 @@ export const WorkoutExercisesScreen: React.FC = () => {
   const sections = useMemo(() => {
     const matching = searchExercises(exercises, search);
     return [
-      { key: 'mine', title: 'Yours', data: matching.filter((e) => e.custom) },
+      { key: 'mine', title: t('workouts.exercises.yours', 'Yours'), data: matching.filter((e) => e.custom) },
       ...MUSCLE_GROUP_ORDER.map((m) => ({
         key: m,
-        title: `Built-in · ${MUSCLE_GROUP_LABELS[m]}`,
+        title: t('workouts.exercises.builtIn', 'Built-in · {group}', { group: MUSCLE_GROUP_LABELS[m] }),
         data: matching.filter((e) => !e.custom && e.muscle === m),
       })),
     ].filter((s) => s.data.length > 0 || (s.key === 'mine' && !search.trim()));
-  }, [exercises, search]);
+  }, [exercises, search, t]);
 
   return (
     <View style={ws.screen}>
@@ -43,14 +46,16 @@ export const WorkoutExercisesScreen: React.FC = () => {
             style={styles.search}
             value={search}
             onChangeText={setSearch}
-            placeholder="Search by name, equipment or body part"
+            placeholder={t('workouts.exercises.search', 'Search by name, equipment or body part')}
             placeholderTextColor={Colors.gray}
             autoCorrect={false}
             clearButtonMode="while-editing"
           />
         </View>
         <TouchableOpacity style={ws.primaryBtn} onPress={() => setEditing(null)} accessibilityRole="button">
-          <Text style={ws.primaryBtnText}>+ New exercise</Text>
+          <Copy id="workouts.exercises.new" style={ws.primaryBtnText}>
+            + New exercise
+          </Copy>
         </TouchableOpacity>
       </View>
 
@@ -64,9 +69,9 @@ export const WorkoutExercisesScreen: React.FC = () => {
           <View>
             <Text style={styles.sectionHeader}>{section.title}</Text>
             {section.key === 'mine' && mine.length === 0 && (
-              <Text style={[ws.muted, styles.emptyMine]}>
+              <Copy id="workouts.exercises.nothingYet" style={[ws.muted, styles.emptyMine]}>
                 Nothing yet. Add the moves the built-in list doesn’t have — a machine at your gym, a carry, a drill.
-              </Text>
+              </Copy>
             )}
           </View>
         )}
@@ -90,7 +95,9 @@ export const WorkoutExercisesScreen: React.FC = () => {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <Text style={[ws.muted, styles.emptyMine]}>Nothing matches. Add it with “New exercise”.</Text>
+          <Copy id="workouts.exercises.noMatch" style={[ws.muted, styles.emptyMine]}>
+            Nothing matches. Add it with “New exercise”.
+          </Copy>
         }
       />
 

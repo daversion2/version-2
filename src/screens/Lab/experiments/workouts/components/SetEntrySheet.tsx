@@ -7,6 +7,8 @@ import { fromDisplayWeight, stepWeight, toDisplayWeight } from '../../../../../s
 import { isLoggableSet } from '../../../../../services/weeklyVolume';
 import { NumberStepper } from './NumberStepper';
 import { CardioEntry } from './CardioEntry';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { ws } from './workoutsStyle';
 
 interface Props {
@@ -31,6 +33,7 @@ const SECONDS_STEP = 5;
 /** Weight × reps (or reps, or seconds) for This week — adding sets, or fixing one — and Done it's sets. */
 export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, vt2, mode, initial, note, onSave, onDelete, onCancel }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const [values, setValues] = useState<SetValues>(initial);
   const [count, setCount] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -74,7 +77,7 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, v
           <View style={styles.row}>
             {kind === 'weight' && (
               <NumberStepper
-                label={`Weight (${unit})`}
+                label={t('workouts.setEntry.weight', 'Weight ({unit})', { unit })}
                 value={toDisplayWeight(weightKg, unit)}
                 onDecrement={() => setValues((v) => ({ ...v, weightKg: stepWeight(v.weightKg ?? 0, unit, -1) }))}
                 onIncrement={() => setValues((v) => ({ ...v, weightKg: stepWeight(v.weightKg ?? 0, unit, 1) }))}
@@ -84,7 +87,7 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, v
             )}
             {(kind === 'weight' || kind === 'reps') && (
               <NumberStepper
-                label="Reps"
+                label={t('workouts.setEntry.reps', 'Reps')}
                 value={reps}
                 onDecrement={() => setValues((v) => ({ ...v, reps: Math.max(0, (v.reps ?? 0) - 1) }))}
                 onIncrement={() => setValues((v) => ({ ...v, reps: (v.reps ?? 0) + 1 }))}
@@ -93,7 +96,11 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, v
             )}
             {(kind === 'time' || kind === 'distance') && (
               <NumberStepper
-                label={kind === 'distance' ? 'Time (seconds)' : 'Seconds'}
+                label={
+                  kind === 'distance'
+                    ? t('workouts.setEntry.timeSeconds', 'Time (seconds)')
+                    : t('workouts.setEntry.seconds', 'Seconds')
+                }
                 value={seconds}
                 onDecrement={() => setValues((v) => ({ ...v, seconds: Math.max(0, (v.seconds ?? 0) - SECONDS_STEP) }))}
                 onIncrement={() => setValues((v) => ({ ...v, seconds: (v.seconds ?? 0) + SECONDS_STEP }))}
@@ -105,7 +112,7 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, v
           {mode === 'add' && kind !== 'cardio' && (
             <View style={styles.row}>
               <NumberStepper
-                label="Sets"
+                label={t('workouts.setEntry.sets', 'Sets')}
                 value={count}
                 onDecrement={() => setCount((c) => Math.max(1, c - 1))}
                 onIncrement={() => setCount((c) => Math.min(20, c + 1))}
@@ -124,7 +131,13 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, v
               <ActivityIndicator color={Colors.white} />
             ) : (
               <Text style={ws.primaryBtnText}>
-                {mode === 'edit' ? 'Save' : kind === 'cardio' ? 'Add' : count > 1 ? `Add ${count} sets` : 'Add set'}
+                {mode === 'edit'
+                  ? t('workouts.setEntry.save', 'Save')
+                  : kind === 'cardio'
+                    ? t('workouts.setEntry.add', 'Add')
+                    : count > 1
+                      ? t('workouts.setEntry.addN', 'Add {n} sets', { n: count })
+                      : t('workouts.setEntry.addOne', 'Add set')}
               </Text>
             )}
           </TouchableOpacity>
@@ -136,7 +149,9 @@ export const SetEntrySheet: React.FC<Props> = ({ visible, exercise, unit, vt1, v
               onPress={() => run(onDelete)}
               accessibilityRole="button"
             >
-              <Text style={styles.deleteText}>Delete this set</Text>
+              <Copy id="workouts.setEntry.delete" style={styles.deleteText}>
+                Delete this set
+              </Copy>
             </TouchableOpacity>
           )}
         </View>

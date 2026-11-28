@@ -54,6 +54,7 @@ import {
   withExerciseHidden,
 } from '../../../../services/exerciseLibrary';
 import { showAlert } from '../../../../utils/alert';
+import { copyText } from '../../../../services/appCopy';
 import { currentPhase as findCurrentPhase, isLighterWeek, lightenSession } from '../../../../services/trainingPhases';
 import { toLocalDateString } from '../../../../utils/date';
 import { addLoggedSets, logSessionId, replaceSession, shouldAskCheckin } from '../../../../services/weeklyVolume';
@@ -80,7 +81,13 @@ export interface LoadedWorkouts {
  * back online — so it stays on screen, and this says it isn't there yet.
  */
 export const showNotSavedYet = () =>
-  showAlert('Not saved yet', 'No connection right now. It saves once you’re back online — keep the app open till then.');
+  showAlert(
+    copyText('workouts.context.notSavedTitle', 'Not saved yet'),
+    copyText(
+      'workouts.context.notSavedMsg',
+      'No connection right now. It saves once you’re back online — keep the app open till then.'
+    )
+  );
 
 interface WorkoutsContextValue {
   userId: string;
@@ -344,7 +351,10 @@ export const WorkoutsProvider: React.FC<{
       try {
         await ensureLoaded();
       } catch {
-        showAlert("Couldn't save that", 'Check your connection and try again.');
+        showAlert(
+        copyText('workouts.context.saveFailTitle', "Couldn't save that"),
+        copyText('workouts.context.saveFailMsg', 'Check your connection and try again.')
+      );
         return;
       }
       const before = prefsRef.current.hidden_exercise_ids ?? [];
@@ -359,7 +369,10 @@ export const WorkoutsProvider: React.FC<{
         const undone = withExerciseHidden(prefsRef.current.hidden_exercise_ids, exerciseId, !hidden);
         prefsRef.current = { ...prefsRef.current, hidden_exercise_ids: undone };
         setPrefs((p) => ({ ...p, hidden_exercise_ids: undone }));
-        showAlert("Couldn't save that", 'Check your connection and try again.');
+        showAlert(
+        copyText('workouts.context.saveFailTitle', "Couldn't save that"),
+        copyText('workouts.context.saveFailMsg', 'Check your connection and try again.')
+      );
       }
     },
     [userId, ensureLoaded]

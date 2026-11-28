@@ -14,6 +14,8 @@ import { showAlert } from '../../../../utils/alert';
 import { useMeals } from './MealsContext';
 import { plateTitle } from './components/MealsParts';
 import { FAIL_COLOR, MEALS_ACCENT, PASS_COLOR, scoreColor, mls } from './components/mealsStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsClose'>;
 
@@ -34,6 +36,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
  */
 export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { userId, today, rules, dayFor, saveDay, closeAndCheckOff } = useMeals();
   const day = dayFor(today);
   // Scored as it will close: settled.
@@ -61,7 +64,7 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.warn('Meals: close failed:', e);
       setSaving(false);
-      showAlert("Couldn't close the day", 'Check your connection and try again.');
+      showAlert(t('meals.close.fail.title', "Couldn't close the day"), t('meals.close.fail.message', 'Check your connection and try again.'));
       return;
     }
     saveDay(closed);
@@ -76,19 +79,27 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           <View style={[styles.badge, { backgroundColor: on ? MEALS_ACCENT : none ? Colors.gray : FAIL_COLOR }]}>
             <Ionicons name={on ? 'checkmark' : none ? 'remove' : 'close'} size={30} color={Colors.white} />
           </View>
-          <Text style={styles.heroTitle} accessibilityRole="header">
+          <Copy
+            id={on ? 'meals.close.onTarget' : none ? 'meals.close.nothing' : 'meals.close.offTarget'}
+            style={styles.heroTitle}
+            accessibilityRole="header"
+          >
             {on ? 'On target' : none ? 'Nothing to score' : 'Off target'}
-          </Text>
-          <Text style={styles.heroSub}>
+          </Copy>
+          <Copy
+            id={on ? 'meals.close.subOn' : none ? 'meals.close.subNone' : 'meals.close.subOff'}
+            style={styles.heroSub}
+            vars={{ avg: score.average ?? '', target: rules.scoring.on_target_threshold }}
+          >
             {on
-              ? `Your day scored ${score.average}, at or above your target of ${rules.scoring.on_target_threshold}.`
+              ? 'Your day scored {avg}, at or above your target of {target}.'
               : none
                 ? 'Nothing’s logged today, so it counts neither way.'
                 : 'Not this time. Every meal you logged still counts toward your week.'}
-          </Text>
+          </Copy>
         </View>
 
-        <ListGroup title="Plates">
+        <ListGroup title={t('meals.close.plates', 'Plates')}>
           {[
             ...score.items.map((item) => (
               <ListRow
@@ -99,27 +110,34 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
             )),
             <ListRow
               key="day"
-              title="Day score"
+              title={t('meals.close.dayScore', 'Day score')}
               right={
-                <Text style={styles.total}>
-                  {score.average ?? '–'} · target {rules.scoring.on_target_threshold}+
-                </Text>
+                <Copy
+                  id="meals.close.total"
+                  style={styles.total}
+                  vars={{ avg: score.average ?? '–', target: rules.scoring.on_target_threshold }}
+                >
+                  {'{avg} · target {target}+'}
+                </Copy>
               }
             />,
           ]}
         </ListGroup>
 
         {score.groupGoals.length > 0 && (
-          <ListGroup title="Goals">
+          <ListGroup title={t('meals.close.goals', 'Goals')}>
             {score.groupGoals.map((g) => (
               <ListRow
                 key={g.goal.id}
                 title={groupLabel(g.goal.group)}
                 right={
-                  <Text style={[styles.value, { color: g.met ? PASS_COLOR : Colors.gray }]}>
-                    {g.have} of {g.goal.count}
-                    {g.met ? ' ✓' : ''}
-                  </Text>
+                  <Copy
+                    id="meals.close.goalProgress"
+                    style={[styles.value, { color: g.met ? PASS_COLOR : Colors.gray }]}
+                    vars={{ have: g.have, count: g.goal.count, check: g.met ? ' ✓' : '' }}
+                  >
+                    {'{have} of {count}{check}'}
+                  </Copy>
                 }
               />
             ))}
@@ -127,18 +145,20 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {!none && (
-          <Text style={mls.lead}>
+          <Copy id={handsOff ? 'meals.close.leadRate' : 'meals.close.leadRated'} style={mls.lead}>
             {handsOff
               ? 'Close the day, then rate it on Today: how hard was it to eat this way?'
               : 'You’ve already rated today. Closing it again just saves your changes.'}
-          </Text>
+          </Copy>
         )}
         {on || none ? null : (
           <>
-            <Text style={mls.sectionLabel}>What got in the way? (optional)</Text>
+            <Copy id="meals.close.inTheWay" style={mls.sectionLabel}>What got in the way? (optional)</Copy>
             {(['internal', 'external'] as const).map((kind) => (
               <View key={kind} style={{ gap: Spacing.sm }}>
-                <Text style={styles.reasonGroup}>{kind === 'internal' ? 'It was me' : 'It was the day'}</Text>
+                <Copy id={kind === 'internal' ? 'meals.close.itWasMe' : 'meals.close.itWasTheDay'} style={styles.reasonGroup}>
+                  {kind === 'internal' ? 'It was me' : 'It was the day'}
+                </Copy>
                 <View style={mls.chipRow}>
                   {MEAL_OFF_REASONS.filter((r) => r.kind === kind).map((r) => {
                     const active = reasonId === r.id;
@@ -171,7 +191,9 @@ export const MealsCloseScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={mls.primaryBtnText}>{handsOff ? 'Close & rate it' : 'Close the day'}</Text>
+            <Copy id={handsOff ? 'meals.close.closeRate' : 'meals.close.closeDay'} style={mls.primaryBtnText}>
+              {handsOff ? 'Close & rate it' : 'Close the day'}
+            </Copy>
           )}
         </TouchableOpacity>
       </View>

@@ -5,7 +5,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, TextStyles } from '../../constants/theme';
 import { LargeTitle } from '../../components/common/LargeTitle';
+import { Copy } from '../../components/common/Copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
 import type { CatalogApp } from '../../data/appCatalog';
 import { addAppToToday, catalogSections, catalogStatus, goalLine, hiddenRowsOf, setRowOnToday } from '../../services/appCatalog';
 import { AppSetup, loadAppSetup } from '../../services/appSetup';
@@ -28,6 +30,7 @@ import { AppRow, FeaturedCard, Panel, PillButton } from './AppStoreParts';
 type Props = NativeStackScreenProps<RootStackParamList, 'AppStore'>;
 
 export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { user, userProfile, refreshProfile } = useAuth();
@@ -61,11 +64,11 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
       triggerTapHaptic();
       await refreshProfile();
       load();
-      setNotice(`${app.name} is on Today.`);
+      setNotice(t('apps.store.notice', '{name} is on Today.', { name: app.name }));
       if (noticeTimer.current) clearTimeout(noticeTimer.current);
       noticeTimer.current = setTimeout(() => setNotice(null), 2600);
     } catch (e: any) {
-      showAlert('Couldn’t add it', e?.message ?? 'Please try again.');
+      showAlert(t('apps.store.addFailed', 'Couldn’t add it'), e?.message ?? t('apps.store.retry', 'Please try again.'));
     } finally {
       setAdding(null);
     }
@@ -78,20 +81,20 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
   const actionFor = (app: CatalogApp) => {
     const status = catalogStatus(app, setup?.hidden ?? [], hiddenRows);
     if (status === 'onToday') {
-      return <PillButton kind="done" label="On Today" accessibilityLabel={`${app.name} is on Today`} />;
+      return <PillButton kind="done" label={t('apps.store.onToday', 'On Today')} accessibilityLabel={`${app.name} is on Today`} />;
     }
     if (status === 'addable') {
       return (
         <PillButton
           kind="filled"
-          label="Add"
+          label={t('apps.store.add', 'Add')}
           busy={adding === app.id}
           onPress={() => quickAdd(app)}
           accessibilityLabel={`Add ${app.name} to Today`}
         />
       );
     }
-    return <PillButton kind="outline" label="Open" onPress={() => launch(app)} accessibilityLabel={`Open ${app.name}`} />;
+    return <PillButton kind="outline" label={t('apps.store.open', 'Open')} onPress={() => launch(app)} accessibilityLabel={`Open ${app.name}`} />;
   };
 
   const sections = setup ? catalogSections(setup.hidden, hiddenRows) : null;
@@ -102,10 +105,14 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom + Spacing.xl }]}
       >
-        <LargeTitle title="Apps" eyebrow="Train the override" back={{ label: 'Back', onPress: () => navigation.goBack() }} />
-        <Text style={styles.intro}>
+        <LargeTitle
+          title={t('apps.store.title', 'Apps')}
+          eyebrow={t('apps.store.eyebrow', 'Train the override')}
+          back={{ label: t('apps.store.back', 'Back'), onPress: () => navigation.goBack() }}
+        />
+        <Copy id="apps.store.intro" style={styles.intro}>
           Each app trains the same override somewhere new. Start with one, add another when you want more.
-        </Text>
+        </Copy>
 
         {!sections ? (
           <ActivityIndicator color={Colors.primary} style={styles.loading} />
@@ -125,7 +132,7 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
                       key={app.id}
                       app={app}
                       width={cardWidth}
-                      badge={app.isNew ? 'New' : 'Not on Today yet'}
+                      badge={app.isNew ? t('apps.store.badgeNew', 'New') : t('apps.store.badgeNotYet', 'Not on Today yet')}
                       action={actionFor(app)}
                       onPress={() => open(app)}
                     />
@@ -135,7 +142,7 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             {sections.onToday.length > 0 && (
-              <Panel title="On your Today">
+              <Panel title={t('apps.store.onYourToday', 'On your Today')}>
                 {sections.onToday.map((app, i) => (
                   <AppRow
                     key={app.id}
@@ -156,7 +163,10 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
             )}
 
             {sections.addable.length > 0 && (
-              <Panel title="Add to Today" footer="Adds its ring and a weekly goal to Today.">
+              <Panel
+                title={t('apps.store.addToToday', 'Add to Today')}
+                footer={t('apps.store.addFooter', 'Adds its ring and a weekly goal to Today.')}
+              >
                 {sections.addable.map((app, i) => (
                   <AppRow
                     key={app.id}
@@ -171,8 +181,8 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
 
             {sections.standalone.length > 0 && (
               <Panel
-                title="New, on their own for now"
-                footer="These open on their own. Joining Today’s rings and ratings is coming next."
+                title={t('apps.store.standalone', 'New, on their own for now')}
+                footer={t('apps.store.standaloneFooter', 'These open on their own. Joining Today’s rings and ratings is coming next.')}
               >
                 {sections.standalone.map((app, i) => (
                   <AppRow
@@ -186,7 +196,7 @@ export const AppStoreScreen: React.FC<Props> = ({ navigation }) => {
               </Panel>
             )}
 
-            <Text style={styles.footnote}>Remove an app from its own page. Its history always stays.</Text>
+            <Copy id="apps.store.footnote" style={styles.footnote}>Remove an app from its own page. Its history always stays.</Copy>
           </>
         )}
       </ScrollView>

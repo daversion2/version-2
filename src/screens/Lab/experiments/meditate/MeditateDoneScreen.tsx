@@ -17,6 +17,8 @@ import { showAlert, showConfirm } from '../../../../utils/alert';
 import { withTimeout } from '../../../../utils/withTimeout';
 import { useMeditate } from './MeditateContext';
 import { MEDITATE_ACCENT, MEDITATE_TINT, ms } from './components/meditateStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateDone'>;
 
@@ -29,6 +31,7 @@ const DONE_TITLE: Record<string, string> = { sit: 'Sit done', breathe: 'Breathin
  */
 export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { userId, session, sessions, recordFinished, closeAndCheckOff, discardSession } = useMeditate();
   const [saving, setSaving] = useState(false);
 
@@ -48,7 +51,7 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
     } catch (e) {
       console.warn('Meditate: save failed:', e);
       setSaving(false);
-      showAlert("Couldn't save your session", 'It’s kept on this phone. Check your connection and tap Finish again.');
+      showAlert(t('meditate.done.saveFail.title', "Couldn't save your session"), t('meditate.done.saveFail.message', 'It’s kept on this phone. Check your connection and tap Finish again.'));
       return;
     }
     recordFinished(completed);
@@ -61,7 +64,12 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const discard = () =>
-    showConfirm('Discard this session?', 'It won’t be saved or counted.', throwAway, 'Discard');
+    showConfirm(
+      t('meditate.done.discard.title', 'Discard this session?'),
+      t('meditate.done.discard.message', 'It won’t be saved or counted.'),
+      throwAway,
+      t('meditate.done.discard.confirm', 'Discard'),
+    );
 
   // "5 min" → a big 5 and a small "min"; "40 sec" the same way.
   const [amount, unit] = formatMinutes(preview.duration_sec).split(' ');
@@ -75,21 +83,21 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
             <View style={[styles.badge, styles.badgeMuted]}>
               <Ionicons name="hourglass-outline" size={28} color={MEDITATE_ACCENT} />
             </View>
-            <Text style={styles.heroTitle} accessibilityRole="header">
+            <Copy id="meditate.done.tooShort.title" style={styles.heroTitle} accessibilityRole="header">
               Too short to count
-            </Text>
+            </Copy>
             <Text style={styles.amount}>
               {amount}
               <Text style={styles.unit}> {unit}</Text>
             </Text>
-            <Text style={[styles.described, styles.center]}>
+            <Copy id="meditate.done.tooShort.body" style={[styles.described, styles.center]}>
               Sessions under a minute aren’t logged. Start again whenever you’re ready.
-            </Text>
+            </Copy>
           </View>
         </ScrollView>
         <View style={[ms.footer, { paddingBottom: Spacing.sm + insets.bottom }]}>
           <TouchableOpacity style={ms.primaryBtn} onPress={throwAway} accessibilityRole="button">
-            <Text style={ms.primaryBtnText}>Discard</Text>
+            <Copy id="meditate.done.tooShort.discard" style={ms.primaryBtnText}>Discard</Copy>
           </TouchableOpacity>
         </View>
       </View>
@@ -103,18 +111,22 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.badge}>
             <Ionicons name="checkmark" size={30} color={Colors.white} />
           </View>
-          <Text style={styles.heroTitle} accessibilityRole="header">
+          <Copy
+            id={preview.ended_early ? 'meditate.done.endedEarly' : `meditate.done.title.${preview.mode}`}
+            style={styles.heroTitle}
+            accessibilityRole="header"
+          >
             {preview.ended_early ? 'Ended early' : DONE_TITLE[preview.mode]}
-          </Text>
+          </Copy>
           <Text style={styles.amount}>
             {amount}
             <Text style={styles.unit}> {unit}</Text>
           </Text>
           <Text style={styles.described}>{describeSession(preview)}</Text>
           {preview.ended_early && (
-            <Text style={[styles.described, styles.center]}>
+            <Copy id="meditate.done.betterThanNothing" style={[styles.described, styles.center]}>
               Better than nothing!
-            </Text>
+            </Copy>
           )}
         </View>
 
@@ -129,7 +141,9 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={ms.title}>
                     {r.label}: {formatMinutes(r.sec)}
                   </Text>
-                  <Text style={ms.muted}>New record, up from {formatMinutes(r.previousSec)}</Text>
+                  <Copy id="meditate.done.newRecord" style={ms.muted} vars={{ prev: formatMinutes(r.previousSec) }}>
+                    {'New record, up from {prev}'}
+                  </Copy>
                 </View>
               </View>
             ))}
@@ -148,11 +162,11 @@ export const MeditateDoneScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={ms.primaryBtnText}>Finish & rate it</Text>
+            <Copy id="meditate.done.finish" style={ms.primaryBtnText}>Finish & rate it</Copy>
           )}
         </TouchableOpacity>
         <TouchableOpacity onPress={discard} disabled={saving} style={ms.textBtn} accessibilityRole="button">
-          <Text style={ms.destructiveText}>Discard</Text>
+          <Copy id="meditate.done.discard" style={ms.destructiveText}>Discard</Copy>
         </TouchableOpacity>
       </View>
     </View>

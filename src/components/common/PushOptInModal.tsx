@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from './Button';
+import { Copy } from './Copy';
+import { useCopy } from '../../context/CopyContext';
 
 interface Props {
   visible: boolean;
@@ -45,6 +47,7 @@ export const PushOptInModal: React.FC<Props> = ({
   onEnable,
   onDismiss,
 }) => {
+  const t = useCopy();
   const [working, setWorking] = useState(false);
   const [denied, setDenied] = useState(false);
 
@@ -78,23 +81,28 @@ export const PushOptInModal: React.FC<Props> = ({
 
           {denied ? (
             <>
-              <Text style={styles.denied}>
-                Your phone is blocking notifications for Neuro-Nudge. You can turn them on in
-                your device Settings, under Notifications.
-              </Text>
-              <Button title="Close" onPress={onDismiss} style={styles.button} />
+              <Copy id="common.push.denied" style={styles.denied}>
+                {'Your phone is blocking notifications for Neuro-Nudge. You can turn them on in your device Settings, under Notifications.'}
+              </Copy>
+              <Button title={t('common.push.close', 'Close')} onPress={onDismiss} style={styles.button} />
             </>
           ) : (
             <>
               <Button
-                title={working ? 'Just a moment…' : ctaLabel?.trim() || 'Turn them on'}
+                title={
+                  working
+                    ? t('common.push.working', 'Just a moment…')
+                    : ctaLabel?.trim() || t('common.push.cta', 'Turn them on')
+                }
                 onPress={handleEnable}
                 disabled={working}
                 style={styles.button}
               />
-              <Text style={styles.ceiling}>At most three a week. Never more than one a day.</Text>
+              <Copy id="common.push.ceiling" style={styles.ceiling}>
+                {'At most three a week. Never more than one a day.'}
+              </Copy>
               <Pressable onPress={onDismiss} disabled={working} hitSlop={8}>
-                <Text style={styles.decline}>Not now</Text>
+                <Copy id="common.push.notNow" style={styles.decline}>{'Not now'}</Copy>
               </Pressable>
             </>
           )}

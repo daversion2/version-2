@@ -7,7 +7,9 @@ import { LargeTitle } from '../../components/common/LargeTitle';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
+import { Copy } from '../../components/common/Copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
 import { loadAppSetup } from '../../services/appSetup';
 import { cleanFirstName, normalizeInviteCode, suggestedFirstName } from '../../services/podMath';
 import { inviteMessage, joinPodWithCode, podErrorMessage, podGoalsFrom, startPod } from '../../services/pods';
@@ -25,6 +27,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PodSetup'>;
 type Mode = 'start' | 'join';
 
 export const PodSetupScreen: React.FC<Props> = ({ navigation, route }) => {
+  const t = useCopy();
   const insets = useSafeAreaInsets();
   const { user, userProfile, refreshProfile } = useAuth();
   const [mode, setMode] = useState<Mode>(route.params?.mode ?? 'start');
@@ -82,17 +85,20 @@ export const PodSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.lg }]}
         keyboardShouldPersistTaps="handled"
       >
-        <LargeTitle title="Your pod" back={{ label: 'Back', onPress: () => navigation.goBack() }} />
+        <LargeTitle
+          title={t('pods.setup.title', 'Your pod')}
+          back={{ label: t('pods.setup.back', 'Back'), onPress: () => navigation.goBack() }}
+        />
 
-        <Text style={styles.lead}>
+        <Copy id="pods.setup.lead" style={styles.lead}>
           A partner, or up to 5 people. You see that each other showed up today, and how hard it was. Nothing else:
           not your meals, weights or notes.
-        </Text>
+        </Copy>
 
         <SegmentedControl
           options={[
-            { value: 'start', label: 'Start a pod' },
-            { value: 'join', label: 'Join with a code' },
+            { value: 'start', label: t('pods.setup.modeStart', 'Start a pod') },
+            { value: 'join', label: t('pods.setup.modeJoin', 'Join with a code') },
           ]}
           value={mode}
           onChange={(m) => {
@@ -105,33 +111,33 @@ export const PodSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.card}>
           {mode === 'join' ? (
             <InputField
-              label="Invite code"
+              label={t('pods.setup.codeLabel', 'Invite code')}
               value={code}
-              onChangeText={(t) => setCode(t.toUpperCase())}
-              placeholder="6 letters and numbers"
+              onChangeText={(v) => setCode(v.toUpperCase())}
+              placeholder={t('pods.setup.codePlaceholder', '6 letters and numbers')}
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={8}
-              error={code.length >= 6 && !cleanCode ? 'That isn’t a pod code.' : undefined}
+              error={code.length >= 6 && !cleanCode ? t('pods.setup.codeError', 'That isn’t a pod code.') : undefined}
             />
           ) : null}
           <InputField
-            label="Your first name"
+            label={t('pods.setup.nameLabel', 'Your first name')}
             value={name}
             onChangeText={setName}
-            placeholder="What your pod calls you"
+            placeholder={t('pods.setup.namePlaceholder', 'What your pod calls you')}
             autoCapitalize="words"
             autoCorrect={false}
             maxLength={20}
             textContentType="givenName"
-            error={name.trim().length > 0 && !cleanName ? 'Letters only, up to 20.' : undefined}
+            error={name.trim().length > 0 && !cleanName ? t('pods.setup.nameError', 'Letters only, up to 20.') : undefined}
           />
           <View style={styles.switchRow}>
             <View style={styles.switchText}>
-              <Text style={styles.switchTitle}>Share how hard it was</Text>
-              <Text style={styles.switchSub}>
+              <Copy id="pods.setup.shareTitle" style={styles.switchTitle}>Share how hard it was</Copy>
+              <Copy id="pods.setup.shareSub" style={styles.switchSub}>
                 Your pod sees “Almost didn’t · Took everything”, not just that you did it. Change it any time.
-              </Text>
+              </Copy>
             </View>
             <Switch
               value={shareFriction}
@@ -149,13 +155,13 @@ export const PodSetupScreen: React.FC<Props> = ({ navigation, route }) => {
         ) : null}
 
         <Button
-          title={mode === 'start' ? 'Start and invite' : 'Join the pod'}
+          title={mode === 'start' ? t('pods.setup.startAndInvite', 'Start and invite') : t('pods.setup.joinPod', 'Join the pod')}
           onPress={submit}
           loading={busy}
           disabled={!ready || busy}
         />
         {mode === 'start' ? (
-          <Text style={styles.note}>You get a code to send. It works for 7 days, or until the pod has 5.</Text>
+          <Copy id="pods.setup.note" style={styles.note}>You get a code to send. It works for 7 days, or until the pod has 5.</Copy>
         ) : null}
       </ScrollView>
     </KeyboardAvoidingView>

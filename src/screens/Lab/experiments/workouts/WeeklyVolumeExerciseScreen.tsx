@@ -21,6 +21,8 @@ import { withEditedSet } from '../../../../services/workoutEdit';
 import { formatRelativeDay } from '../../../../utils/date';
 import { showAlert, showConfirm } from '../../../../utils/alert';
 import { isTimeoutError } from '../../../../services/labWorkouts';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { showNotSavedYet, useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { ProgressBar } from './components/PhaseParts';
@@ -36,6 +38,7 @@ const DEFAULT_TARGET = { reps: 100, sec: 300 } as const;
 /** One exercise this week: its sets by day (each one editable), its weekly target, and "+ Add sets". */
 export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route }) => {
   const { exerciseId } = route.params;
+  const t = useCopy();
   const { sessions, exercise: exerciseOf, exercisesById, prefs, updatePrefs, editSession } = useWorkouts();
   const exercise = exerciseOf(exerciseId);
   const unitOfTarget = targetUnit(exercise.kind);
@@ -63,7 +66,10 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
     try {
       await updatePrefs({ weekly_targets: { ...(prefs.weekly_targets ?? {}), [exerciseId]: n } });
     } catch {
-      showAlert("Couldn't save the target", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.weekly.targetFailTitle', "Couldn't save the target"),
+        t('workouts.weekly.failMsg', 'Check your connection and try again.')
+      );
     }
   };
 
@@ -82,7 +88,10 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
         setTimeout(showNotSavedYet, 400);
         return;
       }
-      showAlert("Couldn't save that set", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.weekly.setFailTitle', "Couldn't save that set"),
+        t('workouts.weekly.failMsg', 'Check your connection and try again.')
+      );
     }
   };
 
@@ -100,14 +109,23 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
           setTimeout(showNotSavedYet, 400);
           return;
         }
-        showAlert("Couldn't delete that set", 'Check your connection and try again.');
+        showAlert(
+          t('workouts.weekly.deleteFailTitle', "Couldn't delete that set"),
+          t('workouts.weekly.failMsg', 'Check your connection and try again.')
+        );
       }
     };
     if (entry.fromLog) return remove();
     // A set from a workout: say where it's being taken from.
     setEditing(null);
     setTimeout(
-      () => showConfirm('Delete this set?', `It comes out of ${entry.sessionName} too.`, remove, 'Delete'),
+      () =>
+        showConfirm(
+          t('workouts.weekly.deleteTitle', 'Delete this set?'),
+          t('workouts.weekly.deleteMsg', 'It comes out of {name} too.', { name: entry.sessionName }),
+          remove,
+          t('workouts.weekly.delete', 'Delete')
+        ),
       400
     );
   };
@@ -121,17 +139,24 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
   const lastWeek =
     row && (row.lastWeekProgress > 0 || row.lastWeekVolumeKg > 0)
       ? exercise.kind === 'weight'
-        ? `Last week: ${formatCount(row.lastWeekProgress)} reps · ${formatVolume(row.lastWeekVolumeKg, prefs.unit)}`
+        ? t('workouts.weekly.lastWeekVolume', 'Last week: {reps} reps · {volume}', {
+            reps: formatCount(row.lastWeekProgress),
+            volume: formatVolume(row.lastWeekVolumeKg, prefs.unit),
+          })
         : unitOfTarget === 'sec'
-          ? `Last week: ${formatSeconds(row.lastWeekProgress)}`
-          : `Last week: ${formatCount(row.lastWeekProgress)} reps`
+          ? t('workouts.weekly.lastWeekSec', 'Last week: {time}', { time: formatSeconds(row.lastWeekProgress) })
+          : t('workouts.weekly.lastWeekReps', 'Last week: {reps} reps', { reps: formatCount(row.lastWeekProgress) })
       : null;
 
   return (
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
       <View style={[ws.card, { gap: 4 }]}>
-        <Text style={styles.eyebrow}>This week</Text>
-        <Text style={ws.body}>{row ? describeWeekRow(row, prefs.unit) : 'Not done yet this week'}</Text>
+        <Copy id="workouts.weekly.thisWeek" style={styles.eyebrow}>
+          This week
+        </Copy>
+        <Text style={ws.body}>
+          {row ? describeWeekRow(row, prefs.unit) : t('workouts.weekly.notDone', 'Not done yet this week')}
+        </Text>
         {!!lastWeek && <Text style={ws.muted}>{lastWeek}</Text>}
         {row && targetText && (
           <View style={styles.target}>
@@ -143,21 +168,37 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
 
       {canLogKind(exercise.kind) && !exercise.archived_at && (
         <TouchableOpacity style={ws.primaryBtn} onPress={() => setAdding(true)} accessibilityRole="button">
-          <Text style={ws.primaryBtnText}>+ Add sets</Text>
+          <Copy id="workouts.weekly.addSets" style={ws.primaryBtnText}>
+            + Add sets
+          </Copy>
         </TouchableOpacity>
       )}
 
       {unitOfTarget && (
         <>
-          <Text style={ws.sectionLabel}>Weekly target</Text>
+          <Copy id="workouts.weekly.target" style={ws.sectionLabel}>
+            Weekly target
+          </Copy>
           <View style={[ws.card, { gap: Spacing.sm }]}>
-            <Text style={ws.muted}>
-              {unitOfTarget === 'sec' ? 'Seconds held' : 'Reps'} to reach by Sunday. It keeps this exercise on your week
-              even before you’ve done it.
-            </Text>
+            <Copy
+              id="workouts.weekly.targetNote"
+              style={ws.muted}
+              vars={{
+                what:
+                  unitOfTarget === 'sec'
+                    ? t('workouts.weekly.secondsHeld', 'Seconds held')
+                    : t('workouts.weekly.repsWord', 'Reps'),
+              }}
+            >
+              {'{what} to reach by Sunday. It keeps this exercise on your week even before you’ve done it.'}
+            </Copy>
             <View style={styles.targetRow}>
               <NumberStepper
-                label={unitOfTarget === 'sec' ? 'Seconds a week' : 'Reps a week'}
+                label={
+                  unitOfTarget === 'sec'
+                    ? t('workouts.weekly.secondsWeek', 'Seconds a week')
+                    : t('workouts.weekly.repsWeek', 'Reps a week')
+                }
                 value={target}
                 onDecrement={() => setTarget((t) => Math.max(TARGET_STEP[unitOfTarget], t - TARGET_STEP[unitOfTarget]))}
                 onIncrement={() => setTarget((t) => t + TARGET_STEP[unitOfTarget])}
@@ -170,11 +211,15 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
               onPress={() => saveTarget(target)}
               accessibilityRole="button"
             >
-              <Text style={ws.secondaryBtnText}>{savedTarget ? 'Update target' : 'Set target'}</Text>
+              <Text style={ws.secondaryBtnText}>
+                {savedTarget ? t('workouts.weekly.update', 'Update target') : t('workouts.weekly.set', 'Set target')}
+              </Text>
             </TouchableOpacity>
             {savedTarget > 0 && (
               <TouchableOpacity style={styles.link} onPress={() => saveTarget(0)} accessibilityRole="button">
-                <Text style={styles.linkText}>Remove target</Text>
+                <Copy id="workouts.weekly.remove" style={styles.linkText}>
+                  Remove target
+                </Copy>
               </TouchableOpacity>
             )}
           </View>
@@ -225,7 +270,11 @@ export const WeeklyVolumeExerciseScreen: React.FC<Props> = ({ navigation, route 
         initial={editing?.set ?? {}}
         note={
           editing
-            ? `${editing.sessionName}, ${formatRelativeDay(editing.date)}${canDelete ? '' : ' · part of a circuit, so it can be changed but not deleted'}`
+            ? `${editing.sessionName}, ${formatRelativeDay(editing.date)}${
+                canDelete
+                  ? ''
+                  : t('workouts.weekly.circuitNote', ' · part of a circuit, so it can be changed but not deleted')
+              }`
             : undefined
         }
         onCancel={() => setEditing(null)}

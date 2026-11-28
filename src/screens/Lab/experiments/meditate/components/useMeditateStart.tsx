@@ -18,6 +18,7 @@ import { showAlert, showChoice } from '../../../../../utils/alert';
 import { withTimeout } from '../../../../../utils/withTimeout';
 import { useMeditate } from '../MeditateContext';
 import { MEDITATE_ACCENT } from './meditateStyle';
+import { useCopy } from '../../../../../context/CopyContext';
 
 /** What Do it starts, from the home's top card or the Create screen. */
 export interface StartPlan {
@@ -36,6 +37,7 @@ export interface StartPlan {
  */
 export const useMeditateStart = (navigation: Pick<NativeStackNavigationProp<MeditateStackParamList>, 'navigate'>) => {
   const { begin, session, discardSession, recordFinished, closeAndCheckOff, userId } = useMeditate();
+  const t = useCopy();
   // Do it asks the override first; its answer is what starts the session.
   const overrideStart = useOverrideStart('Meditate', MEDITATE_ACCENT);
   const [starting, setStarting] = useState(false);
@@ -58,12 +60,15 @@ export const useMeditateStart = (navigation: Pick<NativeStackNavigationProp<Medi
       navigation.navigate('MeditateSession');
       if (plan.mode === 'nsdr' && plan.nsdrLink) {
         Linking.openURL(plan.nsdrLink.url).catch(() =>
-          showAlert("Couldn't open that recording", 'The timer is running — open it yourself, or fix the link in settings.')
+          showAlert(
+            t('meditate.start.openFail.title', "Couldn't open that recording"),
+            t('meditate.start.openFail.message', 'The timer is running — open it yourself, or fix the link in settings.'),
+          )
         );
       }
     } catch (e) {
       console.warn('Meditate: could not start:', e);
-      showAlert("Couldn't start", 'Something went wrong. Try again.');
+      showAlert(t('meditate.start.fail.title', "Couldn't start"), t('meditate.start.fail.message', 'Something went wrong. Try again.'));
     } finally {
       setStarting(false);
     }
@@ -73,10 +78,13 @@ export const useMeditateStart = (navigation: Pick<NativeStackNavigationProp<Medi
   const doIt = (plan: StartPlan) => {
     const go = () => overrideStart.ask((override) => start(plan, override));
     if (!session) return go();
-    showChoice('A session is still open', 'Pick it back up, or throw it away and start this one?', [
-      { label: 'Resume it', onPress: resume },
+    showChoice(
+      t('meditate.start.open.title', 'A session is still open'),
+      t('meditate.start.open.message', 'Pick it back up, or throw it away and start this one?'),
+      [
+      { label: t('meditate.start.open.resume', 'Resume it'), onPress: resume },
       {
-        label: 'Discard and start',
+        label: t('meditate.start.open.discard', 'Discard and start'),
         onPress: async () => {
           await discardSession();
           go();
@@ -105,7 +113,7 @@ export const useMeditateStart = (navigation: Pick<NativeStackNavigationProp<Medi
     } catch (e) {
       console.warn('Meditate: past session not saved:', e);
       setSavingPast(false);
-      showAlert("Couldn't save that session", 'Check your connection and try again.');
+      showAlert(t('meditate.start.saveFail.title', "Couldn't save that session"), t('meditate.start.saveFail.message', 'Check your connection and try again.'));
       return;
     }
     setSavingPast(false);
@@ -119,7 +127,7 @@ export const useMeditateStart = (navigation: Pick<NativeStackNavigationProp<Medi
       <PastSessionSheet
         visible={!!past}
         accent={MEDITATE_ACCENT}
-        title="Done it"
+        title={t('meditate.start.doneIt', 'Done it')}
         initialMode={past?.mode}
         initialMinutes={past?.minutes}
         minutes={{ min: MODES.sit.minMin, max: MODES.sit.maxMin, step: MODES.sit.stepMin, initial: MODES.sit.defaultMin }}

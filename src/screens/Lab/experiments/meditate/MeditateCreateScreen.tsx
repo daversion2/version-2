@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import { SegmentedControl } from '../../../../components/common/SegmentedControl';
 import { Stepper } from '../../../../components/common/Stepper';
@@ -37,6 +39,7 @@ type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateCreate'>;
  */
 export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { loading, loadError, reload, prefs, updatePrefs, sessions, guided, guidedStatus, reloadGuided, launchHabit, bellPermission } =
     useMeditate();
   const { starting, doIt, doneIt, sheets } = useMeditateStart(navigation);
@@ -103,7 +106,7 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const addLink = (link: NsdrLink) => {
     updatePrefs({ nsdr_links: [...prefs.nsdr_links, link] }).catch(() =>
-      showAlert("Couldn't save that recording", 'Check your connection and try again.')
+      showAlert(t('meditate.create.saveFail.title', "Couldn't save that recording"), t('meditate.create.saveFail.message', 'Check your connection and try again.'))
     );
     set({ nsdrLinkId: link.id });
     setAddingLink(false);
@@ -140,8 +143,8 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView contentContainerStyle={[ms.scroll, { paddingBottom: 120 + insets.bottom }]}>
         {!!loadError && (
           <TouchableOpacity style={ms.card} onPress={reload}>
-            <Text style={ms.title}>Couldn't load everything</Text>
-            <Text style={ms.muted}>You can still start a session. Tap to try loading again.</Text>
+            <Copy id="meditate.create.loadFail.title" style={ms.title}>Couldn't load everything</Copy>
+            <Copy id="meditate.create.loadFail.body" style={ms.muted}>You can still start a session. Tap to try loading again.</Copy>
           </TouchableOpacity>
         )}
 
@@ -160,17 +163,21 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
         {/* What you'll do */}
         {mode === 'sit' && (
           <>
-            <ListGroup title="Technique">
-              {SIT_TECHNIQUES.map((t) =>
-                choiceRow(t.key, t.label, t.cue, t.key === choices.technique, () => set({ technique: t.key }))
+            <ListGroup title={t('meditate.create.technique', 'Technique')}>
+              {SIT_TECHNIQUES.map((tq) =>
+                choiceRow(tq.key, tq.label, tq.cue, tq.key === choices.technique, () => set({ technique: tq.key }))
               )}
             </ListGroup>
             {techniqueSteps(technique.key).length > 0 && (
               <>
                 <TouchableOpacity onPress={() => setShowSteps((s) => !s)} style={styles.stepsToggle}>
-                  <Text style={ms.link}>
-                    {showSteps ? 'Hide the steps' : `See the steps for ${technique.label.toLowerCase()}`}
-                  </Text>
+                  {showSteps ? (
+                    <Copy id="meditate.create.hideSteps" style={ms.link}>Hide the steps</Copy>
+                  ) : (
+                    <Copy id="meditate.create.seeSteps" style={ms.link} vars={{ technique: technique.label.toLowerCase() }}>
+                      {'See the steps for {technique}'}
+                    </Copy>
+                  )}
                   <Ionicons name={showSteps ? 'chevron-up' : 'chevron-down'} size={14} color={MEDITATE_ACCENT} />
                 </TouchableOpacity>
                 {showSteps && (
@@ -189,17 +196,17 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
 
         {mode === 'breathe' && (
           <>
-            <ListGroup title="Pattern">
+            <ListGroup title={t('meditate.create.pattern', 'Pattern')}>
               {BREATH_PATTERNS.map((p) =>
                 choiceRow(p.key, p.label, p.blurb, p.key === choices.pattern, () => set({ pattern: p.key }))
               )}
             </ListGroup>
             {!useGuided && (
-              <ListGroup title="How">
-                {choiceRow('pacer', 'Follow the pacer', 'A circle on screen sets the rhythm', choices.breatheStyle === 'pacer', () =>
+              <ListGroup title={t('meditate.create.how', 'How')}>
+                {choiceRow('pacer', t('meditate.create.pacer.title', 'Follow the pacer'), t('meditate.create.pacer.sub', 'A circle on screen sets the rhythm'), choices.breatheStyle === 'pacer', () =>
                   set({ breatheStyle: 'pacer' })
                 )}
-                {choiceRow('timer', 'Just time it', 'Lock your phone, bell at the end', choices.breatheStyle === 'timer', () =>
+                {choiceRow('timer', t('meditate.create.timer.title', 'Just time it'), t('meditate.create.timer.sub', 'Lock your phone, bell at the end'), choices.breatheStyle === 'timer', () =>
                   set({ breatheStyle: 'timer' })
                 )}
               </ListGroup>
@@ -210,17 +217,16 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
         {mode === 'nsdr' && !useGuided && (
           <>
             {prefs.nsdr_links.length > 0 && (
-              <ListGroup title="Recording">
+              <ListGroup title={t('meditate.create.recording', 'Recording')}>
                 {prefs.nsdr_links.map((l) =>
                   choiceRow(l.id, l.title, l.url, l.id === nsdrLink?.id, () => set({ nsdrLinkId: l.id }))
                 )}
               </ListGroup>
             )}
             {prefs.nsdr_links.length === 0 && !addingLink && (
-              <Text style={ms.lead}>
-                NSDR follows a recording — a yoga nidra or NSDR track you like. Save one and Do it opens it, with the
-                bell set for the end.
-              </Text>
+              <Copy id="meditate.create.nsdrLead" style={ms.lead}>
+                {'NSDR follows a recording — a yoga nidra or NSDR track you like. Save one and Do it opens it, with the bell set for the end.'}
+              </Copy>
             )}
             {addingLink || prefs.nsdr_links.length === 0 ? (
               <NsdrLinkForm
@@ -230,7 +236,7 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
             ) : (
               <TouchableOpacity onPress={() => setAddingLink(true)} style={styles.addLink}>
                 <Ionicons name="add" size={18} color={MEDITATE_ACCENT} />
-                <Text style={ms.link}>Add a recording</Text>
+                <Copy id="meditate.create.addRecording" style={ms.link}>Add a recording</Copy>
               </TouchableOpacity>
             )}
           </>
@@ -240,8 +246,8 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
         {options.length > 0 && (
           <SegmentedControl
             options={[
-              { value: 'own', label: 'On my own' },
-              { value: 'guided', label: 'Guided' },
+              { value: 'own', label: t('meditate.create.own', 'On my own') },
+              { value: 'guided', label: t('meditate.create.guided', 'Guided') },
             ]}
             value={useGuided ? 'guided' : 'own'}
             onChange={(v) => setGuidedOn((g) => ({ ...g, [mode]: v === 'guided' }))}
@@ -251,14 +257,14 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
 
         {/* How long */}
         {recording ? (
-          <ListGroup title="Recording">
+          <ListGroup title={t('meditate.create.recording', 'Recording')}>
             {options.map((r) =>
-              choiceRow(r.id, `${r.length_min} min`, `Read by ${r.voice}`, r.id === recording.id, () => setGuidedPick(r.id))
+              choiceRow(r.id, `${r.length_min} min`, t('meditate.create.readBy', 'Read by {voice}', { voice: r.voice }), r.id === recording.id, () => setGuidedPick(r.id))
             )}
           </ListGroup>
         ) : (
           <View style={[ms.card, styles.length]}>
-            <Text style={ms.body}>How long</Text>
+            <Copy id="meditate.create.howLong" style={ms.body}>How long</Copy>
             <Stepper
               value={minutes}
               onChange={setMinutes}
@@ -275,13 +281,12 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
           <View style={[ms.card, styles.warn]}>
             <Ionicons name="notifications-off-outline" size={20} color={Colors.danger} />
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={ms.title}>No bell will ring</Text>
-              <Text style={ms.muted}>
-                Notifications are off for Neuro-Nudge, so nothing tells you when time’s up. Turn them on, or check
-                back yourself.
-              </Text>
+              <Copy id="meditate.create.noBell.title" style={ms.title}>No bell will ring</Copy>
+              <Copy id="meditate.create.noBell.body" style={ms.muted}>
+                {'Notifications are off for Neuro-Nudge, so nothing tells you when time’s up. Turn them on, or check back yourself.'}
+              </Copy>
               <TouchableOpacity onPress={() => Linking.openSettings()} style={styles.warnLink}>
-                <Text style={ms.link}>Open Settings</Text>
+                <Copy id="meditate.create.openSettings" style={ms.link}>Open Settings</Copy>
               </TouchableOpacity>
             </View>
           </View>
@@ -301,9 +306,9 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
           {starting ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={ms.primaryBtnText} numberOfLines={1}>
-              {recording ? `Do it · ${recording.length_min} min` : mode === 'nsdr' ? 'Do it · open' : `Do it · ${minutes} min`}
-            </Text>
+            <Copy id={recording ? 'meditate.create.doItRecording' : mode === 'nsdr' ? 'meditate.create.doItOpen' : 'meditate.create.doItMin'} style={ms.primaryBtnText} numberOfLines={1} vars={{ n: recording ? recording.length_min : minutes }}>
+              {recording ? 'Do it · {n} min' : mode === 'nsdr' ? 'Do it · open' : 'Do it · {n} min'}
+            </Copy>
           )}
         </TouchableOpacity>
         <TouchableOpacity
@@ -313,7 +318,7 @@ export const MeditateCreateScreen: React.FC<Props> = ({ navigation, route }) => 
           accessibilityRole="button"
           accessibilityHint="Log a session you've already done"
         >
-          <Text style={ms.secondaryBtnText}>Done it</Text>
+          <Copy id="meditate.create.doneIt" style={ms.secondaryBtnText}>Done it</Copy>
         </TouchableOpacity>
       </View>
     </View>

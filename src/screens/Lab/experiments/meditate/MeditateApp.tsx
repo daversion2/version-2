@@ -5,6 +5,8 @@ import { Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { RootStackParamList } from '../../../../types/navigation';
 import { MeditateStackParamList } from '../../../../types/meditate';
 import { useAuth } from '../../../../context/AuthContext';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { canOpenMiniApp } from '../../../../services/miniApps';
 import { MeditateProvider } from './MeditateContext';
 import { MeditateHomeScreen } from './MeditateHomeScreen';
@@ -32,14 +34,15 @@ export const MeditateApp: React.FC<NativeStackScreenProps<RootStackParamList, 'M
   route,
 }) => {
   const { user, userProfile } = useAuth();
+  const t = useCopy();
 
   // The one gate (services/miniApps.ts) — Lab-only today.
   if (!user || !canOpenMiniApp('meditate', userProfile)) {
     return (
       <View style={styles.blocked}>
-        <Text style={styles.blockedText}>Meditate isn’t available on this account yet.</Text>
+        <Copy id="meditate.app.blocked" style={styles.blockedText}>Meditate isn’t available on this account yet.</Copy>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.blockedLink}>Close</Text>
+          <Copy id="meditate.app.close" style={styles.blockedLink}>Close</Copy>
         </TouchableOpacity>
       </View>
     );
@@ -58,7 +61,7 @@ export const MeditateApp: React.FC<NativeStackScreenProps<RootStackParamList, 'M
       >
         {/* Home draws its own large title ("Meditate"). */}
         <Stack.Screen name="MeditateHome" component={MeditateHomeScreen} options={{ title: '' }} />
-        <Stack.Screen name="MeditateCreate" component={MeditateCreateScreen} options={{ title: 'Create' }} />
+        <Stack.Screen name="MeditateCreate" component={MeditateCreateScreen} options={{ title: t('meditate.app.titleCreate', 'Create') }} />
         {/* No header, no swipe-back: a stray gesture mid-sit would leave the session. */}
         <Stack.Screen
           name="MeditateSession"
@@ -77,16 +80,16 @@ export const MeditateApp: React.FC<NativeStackScreenProps<RootStackParamList, 'M
           component={MeditateDoneScreen}
           options={{ headerShown: false, gestureEnabled: false }}
         />
-        <Stack.Screen name="MeditateHistory" component={MeditateHistoryScreen} options={{ title: 'Progress' }} />
-        <Stack.Screen name="MeditateWeek" component={MeditateWeekScreen} options={{ title: 'Your week' }} />
+        <Stack.Screen name="MeditateHistory" component={MeditateHistoryScreen} options={{ title: t('meditate.app.titleProgress', 'Progress') }} />
+        <Stack.Screen name="MeditateWeek" component={MeditateWeekScreen} options={{ title: t('meditate.app.titleWeek', 'Your week') }} />
         <Stack.Screen name="MeditateDay" component={MeditateDayScreen} options={{ title: '' }} />
         {/* No long-press back menu: it can jump past the unsaved-changes prompt. */}
         <Stack.Screen
           name="MeditateEditSession"
           component={MeditateEditSessionScreen}
-          options={{ title: 'Edit session', headerBackButtonMenuEnabled: false }}
+          options={{ title: t('meditate.app.titleEdit', 'Edit session'), headerBackButtonMenuEnabled: false }}
         />
-        <Stack.Screen name="MeditateSettings" component={MeditateSettingsScreen} options={{ title: 'Settings' }} />
+        <Stack.Screen name="MeditateSettings" component={MeditateSettingsScreen} options={{ title: t('meditate.app.titleSettings', 'Settings') }} />
       </Stack.Navigator>
     </MeditateProvider>
   );

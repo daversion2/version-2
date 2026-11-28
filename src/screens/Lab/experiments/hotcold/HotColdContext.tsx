@@ -17,6 +17,7 @@ import { clearSessionDraft, loadSessionDraft, saveSessionDraft } from '../../../
 import { cancelBell, getBellPermission, requestBellPermission, scheduleBell } from '../../../../services/sessionBell';
 import { elapsedSec } from '../../../../services/sessionTimer';
 import { clampDuration, formatDuration } from '../../../../services/hotcoldMath';
+import { copyText } from '../../../../services/appCopy';
 import { toLocalDateString } from '../../../../utils/date';
 import { showAlert } from '../../../../utils/alert';
 
@@ -159,7 +160,7 @@ export const HotColdProvider: React.FC<{
       } catch (e) {
         console.warn('Hot & Cold: prefs save failed:', e);
         setPrefs(before);
-        showAlert("Couldn't save that", 'Check your connection and try again.');
+        showAlert(copyText('hotcold.save.fail.title', "Couldn't save that"), copyText('hotcold.save.fail.message', 'Check your connection and try again.'));
       }
     },
     [userId, prefs]
@@ -176,7 +177,7 @@ export const HotColdProvider: React.FC<{
       } catch (e) {
         console.warn('Hot & Cold: session save failed:', e);
         setSessions(before);
-        showAlert("Couldn't save that", 'Check your connection and try again.');
+        showAlert(copyText('hotcold.save.fail.title', "Couldn't save that"), copyText('hotcold.save.fail.message', 'Check your connection and try again.'));
         return null;
       }
     },
@@ -192,7 +193,7 @@ export const HotColdProvider: React.FC<{
       } catch (e) {
         console.warn('Hot & Cold: delete failed:', e);
         setSessions(before);
-        showAlert("Couldn't delete that", 'Check your connection and try again.');
+        showAlert(copyText('hotcold.delete.fail.title', "Couldn't delete that"), copyText('hotcold.delete.fail.message', 'Check your connection and try again.'));
       }
     },
     [userId]
@@ -218,8 +219,10 @@ export const HotColdProvider: React.FC<{
       const startedAt = new Date().toISOString();
       const bellId = targetSec
         ? await scheduleBell(targetSec, {
-            title: 'Time’s up',
-            body: `${formatDuration(targetSec)} in the cold. Time to get out. Warm up, then log it.`,
+            title: copyText('hotcold.bell.title', 'Time’s up'),
+            body: copyText('hotcold.bell.body', '{time} in the cold. Time to get out. Warm up, then log it.', {
+              time: formatDuration(targetSec),
+            }),
           })
         : undefined;
       setTimerState({ kind, startedAt, targetSec, bellId });

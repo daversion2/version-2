@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppColors, BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 import { BottomSheet } from '../common/BottomSheet';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { POD_REACTIONS } from '../../services/podMath';
 import type { PodSessionView } from '../../services/pods';
 
@@ -56,7 +58,7 @@ export const PodSessionLine: React.FC<{ session: PodSessionView; onPress?: () =>
         {session.friction ? <Text style={styles.sessionFriction}>{session.friction}</Text> : null}
         {reactions ? <Text style={styles.sessionReactions}>{reactions}</Text> : null}
       </View>
-      {session.canReact ? <Text style={styles.reactHint}>React</Text> : null}
+      {session.canReact ? <Copy id="pods.parts.react" style={styles.reactHint}>React</Copy> : null}
     </View>
   );
   return onPress && session.canReact ? (
@@ -76,23 +78,31 @@ export const ReactionSheet: React.FC<{
   sending: boolean;
   onPick: (preset: string) => void;
   onClose: () => void;
-}> = ({ target, sending, onPick, onClose }) => (
-  <BottomSheet visible={!!target} onClose={onClose} dismissable={!sending} title={target ? `${target.name}’s ${target.appLabel}` : undefined}>
-    <View style={styles.reactions}>
-      {Object.entries(POD_REACTIONS).map(([preset, label]) => (
-        <TouchableOpacity
-          key={preset}
-          style={[styles.reactionButton, sending && styles.disabled]}
-          disabled={sending}
-          onPress={() => onPick(preset)}
-          accessibilityRole="button"
-        >
-          <Text style={styles.reactionText}>{label}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  </BottomSheet>
-);
+}> = ({ target, sending, onPick, onClose }) => {
+  const t = useCopy();
+  return (
+    <BottomSheet
+      visible={!!target}
+      onClose={onClose}
+      dismissable={!sending}
+      title={target ? t('pods.parts.reactTitle', '{name}’s {app}', { name: target.name, app: target.appLabel }) : undefined}
+    >
+      <View style={styles.reactions}>
+        {Object.entries(POD_REACTIONS).map(([preset, label]) => (
+          <TouchableOpacity
+            key={preset}
+            style={[styles.reactionButton, sending && styles.disabled]}
+            disabled={sending}
+            onPress={() => onPick(preset)}
+            accessibilityRole="button"
+          >
+            <Copy id={`pods.reaction.${preset}`} style={styles.reactionText}>{label}</Copy>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </BottomSheet>
+  );
+};
 
 const styles = StyleSheet.create({
   avatar: { alignItems: 'center', justifyContent: 'center' },

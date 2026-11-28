@@ -21,6 +21,8 @@ import {
   windowSpan,
   windowTitle,
 } from '../../../../services/workoutWeek';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { WORKOUTS_ACCENT, ws } from './components/workoutsStyle';
 import { CardioWeekCard } from './components/CardioWeekCard';
@@ -43,6 +45,7 @@ const VIEWS: { value: WeekView; label: string }[] = [
  * services/workoutWeek.ts.
  */
 export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const { sessions, exercisesById, exercise, prefs, updatePrefs, userId } = useWorkouts();
   const logs = useWorkoutLogs(userId);
   const view: WeekView = prefs.week_view ?? DEFAULT_WEEK_VIEW;
@@ -108,26 +111,38 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
       {offset === 0 && <WeekRateCard />}
 
       <View style={styles.tiles}>
-        <Tile label="Time" value={week.durationSec > 0 ? formatSeconds(week.durationSec) : '–'} />
-        <Tile label="Sets" value={String(week.sets)} />
+        <Tile label={t('workouts.week.time', 'Time')} value={week.durationSec > 0 ? formatSeconds(week.durationSec) : '–'} />
+        <Tile label={t('workouts.week.sets', 'Sets')} value={String(week.sets)} />
         <Tile
-          label="Volume"
+          label={t('workouts.week.volume', 'Volume')}
           value={week.volumeKg > 0 ? formatVolume(week.volumeKg, unit) : '–'}
-          note={change ? `${change} on ${view === 'calendar' ? 'the week before' : 'the 7 days before'}` : undefined}
+          note={
+            change
+              ? view === 'calendar'
+                ? t('workouts.week.changeWeek', '{change} on the week before', { change })
+                : t('workouts.week.changeDays', '{change} on the 7 days before', { change })
+              : undefined
+          }
         />
-        <Tile label="PRs" value={String(week.prs)} />
+        <Tile label={t('workouts.week.prs', 'PRs')} value={String(week.prs)} />
       </View>
 
       {week.cardio.totalMin >= 1 && (
         <>
-          <Text style={ws.sectionLabel}>Cardio · {describeCardioCredit(week.cardio)}</Text>
+          <Copy id="workouts.week.cardio" style={ws.sectionLabel} vars={{ credit: describeCardioCredit(week.cardio) }}>
+            {'Cardio · {credit}'}
+          </Copy>
           <CardioWeekCard week={week.cardio} />
         </>
       )}
 
       <View style={ws.card}>
-        <Text style={ws.title}>Muscles</Text>
-        <Text style={ws.muted}>Sets per muscle group. Tap one for its exercises.</Text>
+        <Copy id="workouts.week.muscles" style={ws.title}>
+          Muscles
+        </Copy>
+        <Copy id="workouts.week.musclesSub" style={ws.muted}>
+          Sets per muscle group. Tap one for its exercises.
+        </Copy>
         <View style={styles.muscles}>
           {week.muscles.map((m) => {
             const open = openMuscle === m.muscle;
@@ -162,7 +177,9 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
                     >
                       <Text style={ws.body}>{exercise(e.exerciseId).name}</Text>
                       <Text style={ws.muted}>
-                        {e.sets} {e.sets === 1 ? 'set' : 'sets'} ›
+                        {e.sets === 1
+                          ? t('workouts.week.exOneSet', '{n} set ›', { n: e.sets })
+                          : t('workouts.week.exNSets', '{n} sets ›', { n: e.sets })}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -178,7 +195,7 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       {daySessions.length > 0 ? (
-        <ListGroup title="Sessions">
+        <ListGroup title={t('workouts.week.sessions', 'Sessions')}>
           {daySessions.map(({ day, s }, i) => (
             <ListRow
               key={s.session?.id ?? `${day.date}-${i}`}
@@ -186,7 +203,9 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
               subtitle={[
                 weekdayName(day.date),
                 s.session && !s.session.logged_sets && s.session.duration_sec > 0 ? formatSeconds(s.session.duration_sec) : null,
-                s.session ? `${s.session.total_sets} sets` : 'logged without details',
+                s.session
+                  ? t('workouts.week.nSets', '{n} sets', { n: s.session.total_sets })
+                  : t('workouts.week.noDetails', 'logged without details'),
                 s.session && s.session.total_volume_kg > 0 ? formatVolume(s.session.total_volume_kg, unit) : null,
               ]
                 .filter(Boolean)
@@ -196,12 +215,22 @@ export const WorkoutWeekScreen: React.FC<Props> = ({ navigation }) => {
           ))}
         </ListGroup>
       ) : (
-        <Text style={ws.lead}>Nothing logged {week.window.offset === 0 && view === 'rolling' ? 'in the last 7 days' : 'in these 7 days'}.</Text>
+        <Text style={ws.lead}>
+          {week.window.offset === 0 && view === 'rolling'
+            ? t('workouts.week.nothingLast7', 'Nothing logged in the last 7 days.')
+            : t('workouts.week.nothingThese7', 'Nothing logged in these 7 days.')}
+        </Text>
       )}
 
-      <ListGroup title="Your override">
-        <ListRow title="Getting started" value={describeRating(week.ratings.start) ?? 'Not rated'} />
-        <ListRow title="Staying with it" value={describeRating(week.ratings.stay) ?? 'Not rated'} />
+      <ListGroup title={t('workouts.week.override', 'Your override')}>
+        <ListRow
+          title={t('workouts.week.gettingStarted', 'Getting started')}
+          value={describeRating(week.ratings.start) ?? t('workouts.week.notRated', 'Not rated')}
+        />
+        <ListRow
+          title={t('workouts.week.stayingWith', 'Staying with it')}
+          value={describeRating(week.ratings.stay) ?? t('workouts.week.notRated', 'Not rated')}
+        />
       </ListGroup>
 
     </ScrollView>

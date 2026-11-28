@@ -8,6 +8,9 @@ import { AppColors, BorderRadius, Colors, Spacing, TextStyles } from '../../cons
 import { KEEP_GOING_LEVELS, START_LEVELS } from '../../constants/resistance';
 import { REACH_STOPS } from '../../data/comfortZone';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
+import { Copy } from '../../components/common/Copy';
+import { copyText } from '../../services/appCopy';
 import { CloseOutReminderSheet } from '../../components/appSetup/CloseOutReminderSheet';
 import { ScreenIntro } from '../../components/common/ScreenIntro';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
@@ -64,41 +67,55 @@ const keepWord = (app: TodayAppId, n?: number) =>
   n && app !== 'meals' ? KEEP_GOING_LEVELS[app][n - 1]?.anchor : undefined;
 
 const sessionLine = (s: SessionToday): string =>
-  [startWord(s.start) && `Start: ${startWord(s.start)}`, keepWord(s.appId, s.keepGoing) && `Keep going: ${keepWord(s.appId, s.keepGoing)}`]
+  [
+    startWord(s.start) && copyText('nightly.session.start', 'Start: {word}', { word: startWord(s.start) as string }),
+    keepWord(s.appId, s.keepGoing) &&
+      copyText('nightly.session.keep', 'Keep going: {word}', { word: keepWord(s.appId, s.keepGoing) as string }),
+  ]
     .filter(Boolean)
-    .join(' · ') || 'Not rated';
+    .join(' · ') || copyText('nightly.session.notRated', 'Not rated');
 
 const winCopy = (win: NightlyWin): { headline: string; body: string } => {
   if (!win) {
     return {
-      headline: 'Nothing logged today.',
-      body: 'That happens. Tonight’s plan goes small, so tomorrow is an easy yes.',
+      headline: copyText('nightly.win.none.headline', 'Nothing logged today.'),
+      body: copyText('nightly.win.none.body', 'That happens. Tonight’s plan goes small, so tomorrow is an easy yes.'),
     };
   }
   if (win.kind === 'hardStart') {
     return {
-      headline: `You did ${APP_TITLES(win.appId)} when getting started took everything.`,
-      body: 'You rated the start a 3 and went anyway. That’s the training.',
+      headline: copyText('nightly.win.hardStart.headline', 'You did {app} when getting started took everything.', {
+        app: APP_TITLES(win.appId),
+      }),
+      body: copyText('nightly.win.hardStart.body', 'You rated the start a 3 and went anyway. That’s the training.'),
     };
   }
   if (win.kind === 'hardStay') {
     return {
-      headline: `You kept going in ${APP_TITLES(win.appId)} when you wanted to stop.`,
-      body: 'Staying with it took everything, and you stayed. That’s the override’s second job.',
+      headline: copyText('nightly.win.hardStay.headline', 'You kept going in {app} when you wanted to stop.', {
+        app: APP_TITLES(win.appId),
+      }),
+      body: copyText(
+        'nightly.win.hardStay.body',
+        'Staying with it took everything, and you stayed. That’s the override’s second job.'
+      ),
     };
   }
   return {
     headline: (() => {
       const names = [...win.appIds.map(APP_TITLES), ...win.rowIds.map((r) => ROW_TITLES[r])];
-      return names.length === 1 ? `You showed up for ${names[0]}.` : `You showed up in ${names.length} apps today.`;
+      return names.length === 1
+        ? copyText('nightly.win.showedUp.one', 'You showed up for {name}.', { name: names[0] })
+        : copyText('nightly.win.showedUp.many', 'You showed up in {n} apps today.', { n: names.length });
     })(),
-    body: 'Every session is a start you made. That’s the training.',
+    body: copyText('nightly.win.showedUp.body', 'Every session is a start you made. That’s the training.'),
   };
 };
 
 const weekday = (date: string) => new Date(`${date}T12:00:00`).getDay();
 
 export const NightlyApp: React.FC = () => {
+  const t = useCopy();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { user, userProfile } = useAuth();
@@ -171,7 +188,7 @@ export const NightlyApp: React.FC = () => {
       load();
     } catch (e: any) {
       console.warn('Saving the close-out failed:', e);
-      showAlert('Couldn’t save', e?.message ?? 'Please try again.');
+      showAlert(t('nightly.save.failed', 'Couldn’t save'), e?.message ?? t('nightly.save.retry', 'Please try again.'));
     } finally {
       setSaving(false);
     }
@@ -190,14 +207,22 @@ export const NightlyApp: React.FC = () => {
         accessibilityLabel={step === 'home' ? 'Back to Today' : step === 'win' ? 'Cancel' : 'Back'}
       >
         {step === 'win' ? null : <Ionicons name="chevron-back" size={24} color={Colors.primary} />}
-        <Text style={styles.backText}>{step === 'home' ? 'Today' : step === 'win' ? 'Cancel' : 'Back'}</Text>
+        <Text style={styles.backText}>
+          {step === 'home'
+            ? t('nightly.header.today', 'Today')
+            : step === 'win'
+              ? t('nightly.header.cancel', 'Cancel')
+              : t('nightly.header.back', 'Back')}
+        </Text>
       </TouchableOpacity>
       {step === 'home' ? (
         <TouchableOpacity style={styles.iconButton} onPress={intro.reopen} accessibilityRole="button" accessibilityLabel="How this works">
           <Ionicons name="information-circle-outline" size={24} color={Colors.primary} />
         </TouchableOpacity>
       ) : (
-        <Text style={styles.stepCount}>{step === 'win' ? '1' : step === 'grade' ? '2' : '3'} of 3</Text>
+        <Copy id="nightly.header.step" style={styles.stepCount} vars={{ n: step === 'win' ? 1 : step === 'grade' ? 2 : 3 }}>
+          {'{n} of 3'}
+        </Copy>
       )}
     </View>
   );
@@ -237,9 +262,9 @@ export const NightlyApp: React.FC = () => {
       <>
         <View style={styles.titleBlock}>
           <Text style={styles.eyebrow}>{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
-          <Text style={styles.largeTitle} accessibilityRole="header">
+          <Copy id="nightly.home.title" style={styles.largeTitle} accessibilityRole="header">
             Close out the day
-          </Text>
+          </Copy>
         </View>
 
         <View style={styles.card}>
@@ -248,9 +273,15 @@ export const NightlyApp: React.FC = () => {
               <Ionicons name="moon-outline" size={28} color={Colors.white} />
             </View>
             <View style={styles.flex}>
-              <Text style={styles.cardTitle}>{closed ? `Tonight: ${data.tonight!.grade}` : 'Tonight'}</Text>
+              <Text style={styles.cardTitle}>
+                {closed
+                  ? t('nightly.home.tonightGrade', 'Tonight: {grade}', { grade: data.tonight!.grade })
+                  : t('nightly.home.tonight', 'Tonight')}
+              </Text>
               <Text style={styles.cardBody}>
-                {closed ? 'Closed out. Open it again to change anything.' : 'Your win, a grade, tomorrow’s plan. About a minute.'}
+                {closed
+                  ? t('nightly.home.closed', 'Closed out. Open it again to change anything.')
+                  : t('nightly.home.open', 'Your win, a grade, tomorrow’s plan. About a minute.')}
               </Text>
             </View>
           </View>
@@ -269,22 +300,27 @@ export const NightlyApp: React.FC = () => {
                 ))}
               </View>
             ) : (
-              <Text style={styles.muted}>Nothing logged yet today.</Text>
+              <Copy id="nightly.home.nothingYet" style={styles.muted}>Nothing logged yet today.</Copy>
             )}
-            {primary(closed ? 'Close out again' : 'Close out today', begin)}
+            {primary(
+              closed ? t('nightly.home.again', 'Close out again') : t('nightly.home.closeOut', 'Close out today'),
+              begin
+            )}
           </View>
         </View>
 
         <View style={styles.group}>
-          <Text style={styles.groupTitle}>TOMORROW’S PLAN</Text>
+          <Copy id="nightly.home.planTitle" style={styles.groupTitle}>TOMORROW’S PLAN</Copy>
           <View style={[styles.panel, styles.planRow]}>
             {tonightPlan?.appId ? appTile(tonightPlan.appId) : <Ionicons name="calendar-outline" size={24} color={Colors.gray} />}
-            <Text style={[styles.body, styles.flex]}>{tonightPlan ? formatPlan(tonightPlan) : 'Set tonight, when you close out.'}</Text>
+            <Text style={[styles.body, styles.flex]}>
+              {tonightPlan ? formatPlan(tonightPlan) : t('nightly.home.planEmpty', 'Set tonight, when you close out.')}
+            </Text>
           </View>
         </View>
 
         <View style={styles.group}>
-          <Text style={styles.groupTitle}>LAST 7 NIGHTS</Text>
+          <Copy id="nightly.home.nights" style={styles.groupTitle}>LAST 7 NIGHTS</Copy>
           <View style={[styles.panel, styles.nights]} accessible accessibilityLabel={nightsLabel(data.nights)}>
             {data.nights.map((n) => (
               <View key={n.date} style={styles.night}>
@@ -303,9 +339,9 @@ export const NightlyApp: React.FC = () => {
 
         <View style={styles.panel}>
           <TouchableOpacity style={styles.listRow} onPress={() => setReminderOpen(true)} accessibilityRole="button">
-            <Text style={[styles.body, styles.flex]}>Evening reminder</Text>
+            <Copy id="nightly.home.reminder" style={[styles.body, styles.flex]}>Evening reminder</Copy>
             <Text style={styles.value}>
-              {userProfile?.closeout_reminder_time ? formatReminderTime(userProfile.closeout_reminder_time) : 'Off'}
+              {userProfile?.closeout_reminder_time ? formatReminderTime(userProfile.closeout_reminder_time) : t('nightly.home.reminderOff', 'Off')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -320,7 +356,7 @@ export const NightlyApp: React.FC = () => {
       <>
         {progress(1)}
         <View style={styles.beat}>
-          <Text style={styles.kicker}>TONIGHT’S WIN</Text>
+          <Copy id="nightly.win.kicker" style={styles.kicker}>TONIGHT’S WIN</Copy>
           <Text style={styles.beatTitle} accessibilityRole="header">
             {copy.headline}
           </Text>
@@ -328,7 +364,7 @@ export const NightlyApp: React.FC = () => {
         </View>
         {data.sessions.length > 0 && (
           <View style={styles.group}>
-            <Text style={styles.groupTitle}>TODAY</Text>
+            <Copy id="nightly.win.today" style={styles.groupTitle}>TODAY</Copy>
             <View style={styles.panel}>
               {data.sessions.map((s, i) => (
                 <View key={`${s.appId}-${i}`} style={[styles.sessionRow, i < data.sessions.length - 1 && styles.separator]}>
@@ -343,7 +379,7 @@ export const NightlyApp: React.FC = () => {
           </View>
         )}
         <View style={styles.flex} />
-        {primary('Next', () => setStep('grade'))}
+        {primary(t('nightly.win.next', 'Next'), () => setStep('grade'))}
       </>
     );
   };
@@ -352,11 +388,11 @@ export const NightlyApp: React.FC = () => {
     <>
       {progress(2)}
       <View style={styles.beat}>
-        <Text style={styles.kicker}>GRADE THE EFFORT</Text>
-        <Text style={styles.beatTitle} accessibilityRole="header">
+        <Copy id="nightly.grade.kicker" style={styles.kicker}>GRADE THE EFFORT</Copy>
+        <Copy id="nightly.grade.title" style={styles.beatTitle} accessibilityRole="header">
           How hard did you push yourself today?
-        </Text>
-        <Text style={styles.beatBody}>The effort, not the results.</Text>
+        </Copy>
+        <Copy id="nightly.grade.sub" style={styles.beatBody}>The effort, not the results.</Copy>
       </View>
       <View style={styles.grades} accessibilityRole="radiogroup">
         {GRADE_ORDER.map((g) => {
@@ -374,14 +410,14 @@ export const NightlyApp: React.FC = () => {
               <View style={[styles.gradeTile, { backgroundColor: on ? ACCENT : TINT }]}>
                 <Text style={[styles.gradeLetter, on && styles.gradeLetterOn]}>{g}</Text>
               </View>
-              <Text style={[styles.headline, styles.flex]}>{stop.label}</Text>
+              <Copy id={`nightly.grade.${g}`} style={[styles.headline, styles.flex]}>{stop.label}</Copy>
               {on && <Ionicons name="checkmark" size={22} color={ACCENT} />}
             </TouchableOpacity>
           );
         })}
       </View>
       <View style={styles.flex} />
-      {primary('Next', () => setStep('plan'), !grade)}
+      {primary(t('nightly.grade.next', 'Next'), () => setStep('plan'), !grade)}
     </>
   );
 
@@ -389,15 +425,19 @@ export const NightlyApp: React.FC = () => {
     <>
       {progress(3)}
       <View style={styles.beat}>
-        <Text style={styles.kicker}>TOMORROW</Text>
+        <Copy id="nightly.plan.kicker" style={styles.kicker}>TOMORROW</Copy>
         <Text style={styles.beatTitle} accessibilityRole="header">
-          {badDay ? 'Keep tomorrow small.' : 'One session. When?'}
+          {badDay ? t('nightly.plan.titleBad', 'Keep tomorrow small.') : t('nightly.plan.title', 'One session. When?')}
         </Text>
-        {badDay && <Text style={styles.beatBody}>Getting back on track beats making up for it. A small one counts.</Text>}
+        {badDay && (
+          <Copy id="nightly.plan.badBody" style={styles.beatBody}>
+            Getting back on track beats making up for it. A small one counts.
+          </Copy>
+        )}
       </View>
 
       <View style={styles.group}>
-        <Text style={styles.groupTitle}>WHICH APP</Text>
+        <Copy id="nightly.plan.whichApp" style={styles.groupTitle}>WHICH APP</Copy>
         <View style={styles.appChoices}>
           {apps.map((id) => {
             const on = chosenApp === id;
@@ -413,9 +453,9 @@ export const NightlyApp: React.FC = () => {
               >
                 {appTile(id, 28)}
                 <Text style={styles.headline}>{APP_TITLES(id)}</Text>
-                <Text style={styles.muted}>
-                  {data?.weekCounts[id] ?? 0} of {goal}
-                </Text>
+                <Copy id="nightly.plan.weekCount" style={styles.muted} vars={{ n: data?.weekCounts[id] ?? 0, goal }}>
+                  {'{n} of {goal}'}
+                </Copy>
               </TouchableOpacity>
             );
           })}
@@ -423,7 +463,7 @@ export const NightlyApp: React.FC = () => {
       </View>
 
       <View style={styles.group}>
-        <Text style={styles.groupTitle}>WHEN</Text>
+        <Copy id="nightly.plan.when" style={styles.groupTitle}>WHEN</Copy>
         <View style={styles.whens}>
           {PLAN_WHENS.map((w) => {
             const on = when === w;
@@ -444,14 +484,14 @@ export const NightlyApp: React.FC = () => {
 
       {plan && (
         <View style={[styles.panel, styles.planPreview]}>
-          <Text style={styles.previewLabel}>YOUR PLAN</Text>
+          <Copy id="nightly.plan.yourPlan" style={styles.previewLabel}>YOUR PLAN</Copy>
           <Text style={styles.previewText}>{formatPlan(plan)}</Text>
-          <Text style={styles.muted}>It waits on Today until you’ve done it.</Text>
+          <Copy id="nightly.plan.waits" style={styles.muted}>It waits on Today until you’ve done it.</Copy>
         </View>
       )}
 
       <View style={styles.flex} />
-      {primary('Save and close out', save, !grade || saving)}
+      {primary(t('nightly.plan.save', 'Save and close out'), save, !grade || saving)}
     </>
   );
 
@@ -463,9 +503,9 @@ export const NightlyApp: React.FC = () => {
         {header}
         {failed ? (
           <View style={styles.failed}>
-            <Text style={styles.body}>Couldn’t load today.</Text>
+            <Copy id="nightly.failed" style={styles.body}>Couldn’t load today.</Copy>
             <TouchableOpacity onPress={load} accessibilityRole="button">
-              <Text style={styles.link}>Try again</Text>
+              <Copy id="nightly.retry" style={styles.link}>Try again</Copy>
             </TouchableOpacity>
           </View>
         ) : !data || !setup ? (

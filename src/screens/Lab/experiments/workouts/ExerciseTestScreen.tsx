@@ -16,6 +16,8 @@ import {
 } from '../../../../services/exerciseTests';
 import { newExerciseTestId } from '../../../../services/labWorkouts';
 import { showAlert } from '../../../../utils/alert';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { HoldTimer } from './components/HoldTimer';
@@ -32,6 +34,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'ExerciseTest'>;
  */
 export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { userId, exercise, records, sessions, tests, phases, prefs, addTest } = useWorkouts();
   const unit = prefs.unit;
   const [exerciseId, setExerciseId] = useState<string | undefined>(route.params?.exerciseId);
@@ -58,12 +61,15 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
     setWeightKg(start.weightKg ?? 0);
   }, [exerciseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useLayoutEffect(() => navigation.setOptions({ title: 'Test' }), [navigation]);
+  useLayoutEffect(() => navigation.setOptions({ title: t('workouts.test.title', 'Test') }), [navigation, t]);
 
   const save = async () => {
     if (!ex || !type) return;
     if (type === 'reps_at_weight' && !(weightKg > 0)) {
-      showAlert('Pick a weight', 'Choose the weight you’re testing at. Use the same one next time to compare.');
+      showAlert(
+        t('workouts.test.pickWeight', 'Pick a weight'),
+        t('workouts.test.pickWeightMsg', 'Choose the weight you’re testing at. Use the same one next time to compare.')
+      );
       return;
     }
     setSaving(true);
@@ -73,7 +79,10 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
       // Its own entry, compared against everything before it.
       setSaved(testHistory(ex, [test, ...tests], phases).find((e) => e.key === `test:${test.id}`) ?? null);
     } catch (e) {
-      showAlert("Couldn't save the test", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.test.failTitle', "Couldn't save the test"),
+        t('workouts.test.failMsg', 'Check your connection and try again.')
+      );
     } finally {
       setSaving(false);
     }
@@ -84,7 +93,7 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={ws.screen}>
         <ExercisePickerModal
           visible
-          title="Test an exercise"
+          title={t('workouts.test.testExercise', 'Test an exercise')}
           mode="single"
           onCancel={() => navigation.goBack()}
           onConfirm={([picked]) => picked && setExerciseId(picked.id)}
@@ -105,16 +114,21 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.result}>{formatTestResult(type, saved.value, unit, saved.weightKg)}</Text>
             <Text style={[ws.body, styles.centerText]}>
               {saved.comparison
-                ? `${describeComparison(type, saved.comparison)} since your last test (${formatTestResult(type, saved.comparison.before, unit, saved.weightKg)}).`
+                ? t('workouts.test.since', '{change} since your last test ({before}).', {
+                    change: describeComparison(type, saved.comparison),
+                    before: formatTestResult(type, saved.comparison.before, unit, saved.weightKg),
+                  })
                 : type === 'reps_at_weight' && history.length > 0
-                  ? 'First test at this weight — this is the one to beat next time.'
-                  : 'Your first test — this is the one to beat next time.'}
+                  ? t('workouts.test.firstAtWeight', 'First test at this weight — this is the one to beat next time.')
+                  : t('workouts.test.first', 'Your first test — this is the one to beat next time.')}
             </Text>
           </View>
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]}>
           <TouchableOpacity style={ws.primaryBtn} onPress={() => navigation.goBack()} accessibilityRole="button">
-            <Text style={ws.primaryBtnText}>Done</Text>
+            <Copy id="workouts.test.done" style={ws.primaryBtnText}>
+              Done
+            </Copy>
           </TouchableOpacity>
         </View>
       </View>
@@ -124,20 +138,28 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={ws.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.eyebrow}>Test</Text>
+        <Copy id="workouts.test.eyebrow" style={styles.eyebrow}>
+          Test
+        </Copy>
         <Text style={styles.heading}>{ex.name}</Text>
         {!route.params?.exerciseId && (
           <TouchableOpacity onPress={() => setExerciseId(undefined)} style={styles.change}>
-            <Text style={styles.changeText}>Change exercise</Text>
+            <Copy id="workouts.test.change" style={styles.changeText}>
+              Change exercise
+            </Copy>
           </TouchableOpacity>
         )}
 
         <View style={[ws.card, styles.checklist]}>
-          <Text style={ws.title}>Before you start</Text>
+          <Copy id="workouts.test.before" style={ws.title}>
+            Before you start
+          </Copy>
           {[
-            'Warm up for 5–10 minutes.',
-            'Test while you’re fresh — first thing in a session, or on its own.',
-            last ? 'Test the same way as last time, so the numbers compare.' : 'Note how you did it — next time, do it the same way.',
+            t('workouts.test.warmUp', 'Warm up for 5–10 minutes.'),
+            t('workouts.test.fresh', 'Test while you’re fresh — first thing in a session, or on its own.'),
+            last
+              ? t('workouts.test.sameWay', 'Test the same way as last time, so the numbers compare.')
+              : t('workouts.test.noteHow', 'Note how you did it — next time, do it the same way.'),
           ].map((line) => (
             <View key={line} style={styles.checkLine}>
               <Ionicons name="checkmark-circle-outline" size={18} color={WORKOUTS_ACCENT} />
@@ -150,9 +172,13 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
           <View>
             <Text style={styles.testType}>{testLabel(ex, { exerciseId: ex.id, weightKg: weightKg || undefined }, unit)}</Text>
             {last && (
-              <Text style={ws.muted}>
-                Last test: {formatTestResult(type, last.value, unit, last.weightKg)}
-              </Text>
+              <Copy
+                id="workouts.test.last"
+                style={ws.muted}
+                vars={{ result: formatTestResult(type, last.value, unit, last.weightKg) }}
+              >
+                {'Last test: {result}'}
+              </Copy>
             )}
           </View>
           <Text style={ws.muted}>{TEST_STANDARDS[type]}</Text>
@@ -160,7 +186,7 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
           {type === 'reps_at_weight' && (
             <NumberStepper
               size="small"
-              label={`Test weight (${unit})`}
+              label={t('workouts.test.weight', 'Test weight ({unit})', { unit })}
               value={toDisplayWeight(weightKg, unit)}
               allowDecimal
               onDecrement={() => setWeightKg((w) => stepWeight(w, unit, -1))}
@@ -170,7 +196,7 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
           )}
           {(type === 'max_reps' || type === 'reps_at_weight') && (
             <NumberStepper
-              label="Reps"
+              label={t('workouts.test.reps', 'Reps')}
               value={value}
               onDecrement={() => setValue((v) => Math.max(0, v - 1))}
               onIncrement={() => setValue((v) => v + 1)}
@@ -196,7 +222,9 @@ export const ExerciseTestScreen: React.FC<Props> = ({ navigation, route }) => {
           disabled={saving || running || value <= 0}
           accessibilityRole="button"
         >
-          {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Save test</Text>}
+          {saving ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.test.save" style={ws.primaryBtnText}>
+              Save test
+            </Copy>}
         </TouchableOpacity>
       </View>
     </View>

@@ -4,6 +4,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 import { buildPodView, loadPod, type PodView } from '../../services/pods';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { PodAvatar } from './PodParts';
 
 // =============================================================================
@@ -14,6 +16,7 @@ import { PodAvatar } from './PodParts';
 // =============================================================================
 
 export const PodCard: React.FC<{ userId: string; podId?: string; onOpen: () => void }> = ({ userId, podId, onOpen }) => {
+  const t = useCopy();
   const [view, setView] = useState<PodView | null>(null);
 
   useFocusEffect(
@@ -39,9 +42,9 @@ export const PodCard: React.FC<{ userId: string; podId?: string; onOpen: () => v
       <TouchableOpacity style={styles.card} onPress={onOpen} accessibilityRole="button">
         <View style={styles.row}>
           <View style={styles.text}>
-            <Text style={styles.label}>Your pod</Text>
-            <Text style={styles.headline}>Train alongside someone</Text>
-            <Text style={styles.sub}>See each other show up, and how hard it was.</Text>
+            <Copy id="pods.card.label" style={styles.label}>Your pod</Copy>
+            <Copy id="pods.card.invite" style={styles.headline}>Train alongside someone</Copy>
+            <Copy id="pods.card.inviteSub" style={styles.sub}>See each other show up, and how hard it was.</Copy>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
@@ -51,10 +54,10 @@ export const PodCard: React.FC<{ userId: string; podId?: string; onOpen: () => v
 
   const showedUp = view.members.filter((m) => m.showedUpToday).length;
   const status = view.alone
-    ? 'Invite someone to start counting'
+    ? t('pods.card.alone', 'Invite someone to start counting')
     : view.everyoneToday
-    ? 'Everyone showed up today'
-    : `${showedUp} of ${view.members.length} showed up today`;
+    ? t('pods.card.everyone', 'Everyone showed up today')
+    : t('pods.card.some', '{n} of {total} showed up today', { n: showedUp, total: view.members.length });
 
   return (
     <TouchableOpacity
@@ -65,7 +68,7 @@ export const PodCard: React.FC<{ userId: string; podId?: string; onOpen: () => v
     >
       <View style={styles.row}>
         <View style={styles.text}>
-          <Text style={styles.label}>Your pod</Text>
+          <Copy id="pods.card.label" style={styles.label}>Your pod</Copy>
           <Text style={[styles.headline, view.everyoneToday && styles.everyone]}>{status}</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
@@ -75,7 +78,7 @@ export const PodCard: React.FC<{ userId: string; podId?: string; onOpen: () => v
           <View key={m.uid} style={styles.person}>
             <PodAvatar initial={m.initial} showedUp={m.showedUpToday} />
             <Text style={styles.name} numberOfLines={1}>
-              {m.isMe ? 'You' : m.name}
+              {m.isMe ? t('pods.card.you', 'You') : m.name}
             </Text>
           </View>
         ))}

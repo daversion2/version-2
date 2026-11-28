@@ -27,6 +27,8 @@ import { DEFAULT_TARGET, formatSetValues } from '../../../../services/workoutMat
 import { formatRelativeDay, getEditableDates } from '../../../../utils/date';
 import { showConfirm } from '../../../../utils/alert';
 import { Stepper } from '../../../../components/common/Stepper';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { useFinishWorkout } from './components/useFinishWorkout';
 import { SetEntrySheet } from './components/SetEntrySheet';
@@ -53,6 +55,7 @@ const MAX_ROUNDS = 20;
  */
 export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { workouts, exercise, exercisesById, sessions, prefs, buildSession } = useWorkouts();
   const { saving, finish } = useFinishWorkout();
   const workoutId = route.params?.workoutId;
@@ -80,7 +83,12 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
     if (nextId === workoutId) return;
     const go = () => navigation.replace('WorkoutDoneIt', nextId ? { workoutId: nextId } : {});
     if (session === untouched.current) return go();
-    showConfirm('Switch workout?', 'Your changes to this one won’t be saved.', go, 'Switch');
+    showConfirm(
+      t('workouts.doneIt.switchTitle', 'Switch workout?'),
+      t('workouts.doneIt.switchMsg', 'Your changes to this one won’t be saved.'),
+      go,
+      t('workouts.doneIt.switch', 'Switch')
+    );
   };
   const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<{ blockIndex: number; setIndex: number } | null>(null);
@@ -89,13 +97,15 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
   const swapItemNow = swapping && session ? session.blocks[swapping.blockIndex]?.items[swapping.itemIndex] : undefined;
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: adHoc ? 'Log a past workout' : workout?.name ?? '' });
-  }, [navigation, adHoc, workout?.name]);
+    navigation.setOptions({ title: adHoc ? t('workouts.doneIt.title', 'Log a past workout') : workout?.name ?? '' });
+  }, [navigation, adHoc, workout?.name, t]);
 
   if (!session) {
     return (
       <View style={[ws.screen, styles.center]}>
-        <Text style={ws.muted}>This workout no longer exists.</Text>
+        <Copy id="workouts.doneIt.gone" style={ws.muted}>
+          This workout no longer exists.
+        </Copy>
       </View>
     );
   }
@@ -118,15 +128,21 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={ws.screen}>
       <ScrollView contentContainerStyle={[ws.scroll, { paddingBottom: 150 + insets.bottom }]}>
-        <Text style={ws.lead}>
-          {adHoc
-            ? 'Add each exercise you did. Sets fill in from last time; change anything that went differently, then save.'
-            : 'Filled in as planned. Change anything that went differently, then save.'}
-        </Text>
+        {adHoc ? (
+          <Copy id="workouts.doneIt.leadAdHoc" style={ws.lead}>
+            Add each exercise you did. Sets fill in from last time; change anything that went differently, then save.
+          </Copy>
+        ) : (
+          <Copy id="workouts.doneIt.lead" style={ws.lead}>
+            Filled in as planned. Change anything that went differently, then save.
+          </Copy>
+        )}
 
         {switchable.length > (adHoc ? 0 : 1) && (
           <View style={ws.card}>
-            <Text style={ws.title}>Which workout?</Text>
+            <Copy id="workouts.doneIt.which" style={ws.title}>
+              Which workout?
+            </Copy>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
               {switchable.map((w) => {
                 const on = w.id === workout?.id;
@@ -148,14 +164,18 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
                 accessibilityRole="radio"
                 accessibilityState={{ checked: adHoc }}
               >
-                <Text style={[ws.chipText, adHoc && ws.chipTextActive]}>Something else</Text>
+                <Copy id="workouts.doneIt.somethingElse" style={[ws.chipText, adHoc && ws.chipTextActive]}>
+                  Something else
+                </Copy>
               </TouchableOpacity>
             </ScrollView>
           </View>
         )}
 
         <View style={ws.card}>
-          <Text style={ws.title}>When?</Text>
+          <Copy id="workouts.doneIt.when" style={ws.title}>
+            When?
+          </Copy>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {days.map((d) => {
               const on = d === date;
@@ -173,7 +193,9 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
             })}
           </ScrollView>
           <View style={[styles.row, styles.howLong]}>
-            <Text style={[ws.title, { flex: 1 }]}>How long?</Text>
+            <Copy id="workouts.doneIt.howLong" style={[ws.title, { flex: 1 }]}>
+              How long?
+            </Copy>
             <Stepper
               value={minutes}
               onChange={(m) => retime(date, m)}
@@ -195,14 +217,28 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
               <View style={[styles.row, styles.blockHead, done > 0 && ws.separator]}>
                 <View style={{ flex: 1 }}>
                   <Text style={[ws.title, done === 0 && styles.muted]}>{blockTitle(block, exercisesById)}</Text>
-                  <Text style={ws.muted}>{done === 0 ? 'Not done' : multi ? 'Circuit' : `Planned ${block.plannedRounds}`}</Text>
+                  <Text style={ws.muted}>
+                    {done === 0
+                      ? t('workouts.doneIt.notDone', 'Not done')
+                      : multi
+                        ? t('workouts.doneIt.circuit', 'Circuit')
+                        : t('workouts.doneIt.planned', 'Planned {n}', { n: block.plannedRounds })}
+                  </Text>
                 </View>
                 <Stepper
                   value={done}
                   onChange={(n) => setSession((s) => s && setRoundsDone(s, bi, n, { exercisesById, sessions }))}
                   min={0}
                   max={MAX_ROUNDS}
-                  format={(n) => `${n} ${multi ? (n === 1 ? 'round' : 'rounds') : n === 1 ? 'set' : 'sets'}`}
+                  format={(n) =>
+                    multi
+                      ? n === 1
+                        ? t('workouts.doneIt.oneRound', '{n} round', { n })
+                        : t('workouts.doneIt.nRounds', '{n} rounds', { n })
+                      : n === 1
+                        ? t('workouts.doneIt.oneSet', '{n} set', { n })
+                        : t('workouts.doneIt.nSets', '{n} sets', { n })
+                  }
                   accessibilityLabel={`${multi ? 'Rounds' : 'Sets'} of ${blockTitle(block, exercisesById)}`}
                   tint={WORKOUTS_ACCENT}
                 />
@@ -219,17 +255,21 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Text style={[ws.link, { flex: 1 }]} numberOfLines={1}>
                     {item.swappedFrom
                       ? `${exercise(item.exerciseId).name} · ${insteadOfLine(exercise(item.swappedFrom.exerciseId).name, item.swappedFrom.reason)}`
-                      : `Swap ${exercise(item.exerciseId).name}`}
+                      : t('workouts.doneIt.swap', 'Swap {name}', { name: exercise(item.exerciseId).name })}
                   </Text>
                 </TouchableOpacity>
               ))}
               {block.sets.map((set, si) => {
                 const ex = exercise(set.exerciseId);
                 const firstOfRound = si % block.items.length === 0;
-                const label = multi ? ex.name : `Set ${set.round + 1}`;
+                const label = multi ? ex.name : t('workouts.doneIt.setN', 'Set {n}', { n: set.round + 1 });
                 return (
                   <View key={si}>
-                    {multi && firstOfRound && <Text style={styles.roundLabel}>Round {set.round + 1}</Text>}
+                    {multi && firstOfRound && (
+                      <Copy id="workouts.doneIt.roundN" style={styles.roundLabel} vars={{ n: set.round + 1 }}>
+                        {'Round {n}'}
+                      </Copy>
+                    )}
                     <TouchableOpacity
                       style={[styles.row, styles.setRow]}
                       onPress={() => setEditing({ blockIndex: bi, setIndex: si })}
@@ -252,7 +292,9 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress={() => setPicking(true)}
           accessibilityHint="Pick one exercise, or several to log as a circuit"
         >
-          <Text style={ws.secondaryBtnText}>+ Add exercise</Text>
+          <Copy id="workouts.doneIt.addExercise" style={ws.secondaryBtnText}>
+            + Add exercise
+          </Copy>
         </TouchableOpacity>
       </ScrollView>
 
@@ -262,11 +304,13 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress={save}
           disabled={saving || !anyDone}
         >
-          {saving ? <ActivityIndicator color={Colors.white} /> : <Text style={ws.primaryBtnText}>Save & rate it</Text>}
+          {saving ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.doneIt.save" style={ws.primaryBtnText}>
+              Save & rate it
+            </Copy>}
         </TouchableOpacity>
-        <Text style={[ws.muted, styles.footerNote]}>
+        <Copy id="workouts.doneIt.footerNote" style={[ws.muted, styles.footerNote]}>
           Next, on Today: how hard it was to start, then how hard it was to keep going. It counts toward your week.
-        </Text>
+        </Copy>
       </View>
 
       <SwapExerciseSheet
@@ -285,7 +329,7 @@ export const WorkoutDoneItScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <ExercisePickerModal
         visible={picking}
-        title="Add what you did"
+        title={t('workouts.doneIt.addWhat', 'Add what you did')}
         mode="multi"
         onCancel={() => setPicking(false)}
         onConfirm={(picked) => {

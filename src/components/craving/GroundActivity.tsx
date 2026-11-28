@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { GROUND_STEPS } from '../../data/cravings';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 /**
  * 5-4-3-2-1 sensory grounding. Tap-to-check only — no typing, because fine
  * motor + composition is exactly what's unavailable at peak urge.
  */
 export const GroundActivity: React.FC = () => {
+  const t = useCopy();
   const [stepIndex, setStepIndex] = useState(0);
   const [checked, setChecked] = useState(0);
   const [done, setDone] = useState(false);
@@ -32,11 +35,11 @@ export const GroundActivity: React.FC = () => {
     return (
       <View style={styles.doneWrap}>
         <Text style={styles.doneEmoji}>🖐</Text>
-        <Text style={styles.doneTitle}>Grounded.</Text>
-        <Text style={styles.doneText}>
+        <Copy id="craving.ground.doneTitle" style={styles.doneTitle}>Grounded.</Copy>
+        <Copy id="craving.ground.doneText" style={styles.doneText}>
           All five senses checked in. Notice where the craving is now compared
           to when you started — quieter waves are how this works.
-        </Text>
+        </Copy>
         <TouchableOpacity
           style={styles.againButton}
           onPress={() => {
@@ -45,7 +48,7 @@ export const GroundActivity: React.FC = () => {
             setDone(false);
           }}
         >
-          <Text style={styles.againText}>Go around again</Text>
+          <Copy id="craving.ground.again" style={styles.againText}>Go around again</Copy>
         </TouchableOpacity>
       </View>
     );
@@ -78,9 +81,9 @@ export const GroundActivity: React.FC = () => {
               </View>
               <Text style={isChecked ? styles.slotTextDone : styles.slotText}>
                 {isChecked
-                  ? 'Found one'
+                  ? t('craving.ground.found', 'Found one')
                   : isNext
-                    ? 'Tap when you’ve found one…'
+                    ? t('craving.ground.tap', 'Tap when you’ve found one…')
                     : ''}
               </Text>
             </TouchableOpacity>
@@ -89,7 +92,9 @@ export const GroundActivity: React.FC = () => {
       </View>
 
       {remainingPath.length > 0 && (
-        <Text style={styles.pathline}>Next: {remainingPath}</Text>
+        <Copy id="craving.ground.next" style={styles.pathline} vars={{ path: remainingPath }}>
+          {'Next: {path}'}
+        </Copy>
       )}
     </View>
   );

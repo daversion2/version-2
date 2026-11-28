@@ -14,6 +14,8 @@ import {
 } from '../../../../../services/workoutMath';
 import { NumberStepper } from './NumberStepper';
 import { CardioZonesInfo } from './CardioZonesInfo';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, ws } from './workoutsStyle';
 
 const MAX_MIN = 24 * 60;
@@ -101,6 +103,7 @@ export const CardioEntry: React.FC<{
   /** 'row' inside a white panel (the set screen); 'tile' on a sheet. */
   layout?: 'row' | 'tile';
 }> = ({ values, onChange, unit, vt1, vt2, layout = 'tile' }) => {
+  const t = useCopy();
   const minutes = Math.round((values.seconds ?? 0) / 60);
   const metres = values.distanceM ?? 0;
   const du = cardioDistanceUnit(unit);
@@ -119,7 +122,7 @@ export const CardioEntry: React.FC<{
         <NumberStepper
           layout={layout}
           separator={row}
-          label="Minutes"
+          label={t('workouts.cardio.minutes', 'Minutes')}
           value={minutes}
           onDecrement={() => onChange({ ...values, seconds: clampMin(minutes - 1) * 60 })}
           onIncrement={() => onChange({ ...values, seconds: clampMin(minutes + 1) * 60 })}
@@ -127,7 +130,7 @@ export const CardioEntry: React.FC<{
         />
         <NumberStepper
           layout={layout}
-          label={`Distance (${du})`}
+          label={t('workouts.cardio.distance', 'Distance ({unit})', { unit: du })}
           value={toDisplayDistance(metres, unit)}
           allowDecimal
           onDecrement={() => setMetres(stepDistance(metres, unit, -1))}
@@ -136,10 +139,14 @@ export const CardioEntry: React.FC<{
         />
       </View>
       <Text style={[ws.muted, styles.hint]}>
-        {pace ? `Pace ${pace}` : 'Distance is optional — leave it at 0 if you didn’t measure it.'}
+        {pace
+          ? t('workouts.cardio.pace', 'Pace {pace}', { pace })
+          : t('workouts.cardio.distanceHint', 'Distance is optional — leave it at 0 if you didn’t measure it.')}
       </Text>
       <View style={styles.zoneHead}>
-        <Text style={[ws.sectionLabel, styles.zoneLabel]}>How hard?</Text>
+        <Copy id="workouts.cardio.howHard" style={[ws.sectionLabel, styles.zoneLabel]}>
+          How hard?
+        </Copy>
         <CardioZonesInfo size={18} />
       </View>
       <View style={ws.panel}>

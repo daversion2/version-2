@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BorderRadius, Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { Copy } from '../common/Copy';
 
 // =============================================================================
 // THE OVERRIDE, DRAWN — one small picture per science screen in onboarding
@@ -26,7 +27,7 @@ export const PredictionMeter: React.FC = () => (
   <View style={styles.frame} {...hidden}>
     <View style={styles.meterHead}>
       <Ionicons name="pulse-outline" size={18} color={Colors.gray} />
-      <Text style={styles.caption}>Predicted cost</Text>
+      <Copy id="onboarding.illus.predictedCost" style={styles.caption}>{'Predicted cost'}</Copy>
     </View>
     <View style={styles.meterTrack}>
       <View style={styles.meterFill} />
@@ -35,12 +36,12 @@ export const PredictionMeter: React.FC = () => (
       </View>
     </View>
     <View style={styles.meterScale}>
-      <Text style={styles.tick}>Easy</Text>
-      <Text style={styles.tick}>“I don’t want to”</Text>
+      <Copy id="onboarding.illus.easy" style={styles.tick}>{'Easy'}</Copy>
+      <Copy id="onboarding.illus.dontWantTo" style={styles.tick}>{'“I don’t want to”'}</Copy>
     </View>
     <View style={styles.overrideRow}>
       <Ionicons name="arrow-forward-circle" size={20} color={Colors.secondary} />
-      <Text style={[styles.caption, styles.overrideText]}>You do it anyway: the override</Text>
+      <Copy id="onboarding.illus.override" style={[styles.caption, styles.overrideText]}>{'You do it anyway: the override'}</Copy>
     </View>
   </View>
 );
@@ -62,12 +63,12 @@ export const TwoMoments: React.FC = () => (
     </View>
     <View style={styles.momentLabels}>
       <View style={styles.momentLabel}>
-        <Text style={[styles.momentName, { color: Colors.primary }]}>Getting started</Text>
-        <Text style={styles.tick}>“Not now”</Text>
+        <Copy id="onboarding.illus.gettingStarted" style={[styles.momentName, { color: Colors.primary }]}>{'Getting started'}</Copy>
+        <Copy id="onboarding.illus.notNow" style={styles.tick}>{'“Not now”'}</Copy>
       </View>
       <View style={[styles.momentLabel, styles.momentLabelMiddle]}>
-        <Text style={[styles.momentName, { color: Colors.secondary }]}>Staying with it</Text>
-        <Text style={styles.tick}>“That’s enough”</Text>
+        <Copy id="onboarding.illus.stayingWithIt" style={[styles.momentName, { color: Colors.secondary }]}>{'Staying with it'}</Copy>
+        <Copy id="onboarding.illus.thatsEnough" style={styles.tick}>{'“That’s enough”'}</Copy>
       </View>
     </View>
   </View>
@@ -88,13 +89,13 @@ export const EffortAdds: React.FC = () => (
           <View key={i} style={[styles.bar, { height: (v / 3) * BAR_MAX, backgroundColor: Colors.primary }]} />
         ))}
       </View>
-      <Text style={[styles.momentName, { color: Colors.primary }]}>Each session</Text>
-      <Text style={styles.tick}>Some easy, some hard</Text>
+      <Copy id="onboarding.illus.eachSession" style={[styles.momentName, { color: Colors.primary }]}>{'Each session'}</Copy>
+      <Copy id="onboarding.illus.someEasy" style={styles.tick}>{'Some easy, some hard'}</Copy>
     </View>
     <View style={styles.total}>
       <Text style={styles.totalNumber}>{TOTAL}</Text>
-      <Text style={[styles.momentName, { color: Colors.secondary }]}>Friction overcome</Text>
-      <Text style={styles.tick}>Only goes up</Text>
+      <Copy id="onboarding.illus.friction" style={[styles.momentName, { color: Colors.secondary }]}>{'Friction overcome'}</Copy>
+      <Copy id="onboarding.illus.onlyUp" style={styles.tick}>{'Only goes up'}</Copy>
     </View>
   </View>
 );

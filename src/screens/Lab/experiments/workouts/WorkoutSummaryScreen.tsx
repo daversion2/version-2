@@ -23,6 +23,8 @@ import {
   formatVolume,
   sessionVolumeKg,
 } from '../../../../services/workoutMath';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { useFinishWorkout } from './components/useFinishWorkout';
 import { SetEntrySheet } from './components/SetEntrySheet';
@@ -35,8 +37,10 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutSummary'>;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+
 export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const { session, updateSession, exercise, exercisesById, prefs, records, workouts, sessions, upsertWorkout } = useWorkouts();
   const [keeping, setKeeping] = useState(false);
   const { saving, finish: finishWorkout } = useFinishWorkout();
@@ -68,11 +72,18 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
   // Swaps today (2026-11-20), and whether one has repeated enough to offer keeping it.
   const swaps = sessionSwaps({ blocks: doneBlocks });
   const offer = workout ? permanentSwapOffer({ id: session.id, workout_id: session.workoutId, blocks: doneBlocks }, sessions) : null;
+  const count = (n: number, oneKey: string, one: string, manyKey: string, many: string) =>
+    n === 1 ? t(oneKey, one, { n }) : t(manyKey, many, { n });
   const keepSwap = async () => {
     if (!offer || !workout || keeping) return;
     const plan = keepSwapPlan(workout, session, offer, new Date());
     if (!plan) {
-      showAlert('Couldn’t change the workout', `${workout.name} has changed since you started. Edit it in the builder instead.`);
+      showAlert(
+        t('workouts.summary.swapFailTitle', 'Couldn’t change the workout'),
+        t('workouts.summary.swapChanged', '{name} has changed since you started. Edit it in the builder instead.', {
+          name: workout.name,
+        })
+      );
       return;
     }
     setKeeping(true);
@@ -82,8 +93,10 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
       updateSession(plan.session);
     } catch (e: any) {
       showAlert(
-        'Couldn’t change the workout',
-        e?.message === 'timeout' ? 'No connection right now. Try again when you’re back online.' : e?.message ?? 'Please try again.'
+        t('workouts.summary.swapFailTitle', 'Couldn’t change the workout'),
+        e?.message === 'timeout'
+          ? t('workouts.summary.offline', 'No connection right now. Try again when you’re back online.')
+          : e?.message ?? t('workouts.summary.tryAgain', 'Please try again.')
       );
     } finally {
       setKeeping(false);
@@ -109,24 +122,30 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.badge}>
             <Ionicons name="checkmark" size={30} color={Colors.white} />
           </View>
-          <Text style={styles.heroTitle} accessibilityRole="header">
+          <Copy id="workouts.summary.done" style={styles.heroTitle} accessibilityRole="header">
             Workout done
-          </Text>
+          </Copy>
           <Text style={styles.heroSub}>{session.workoutName}</Text>
         </View>
 
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{formatSeconds(finishedDurationSec(session, new Date()))}</Text>
-            <Text style={styles.statLabel}>Time</Text>
+            <Copy id="workouts.summary.time" style={styles.statLabel}>
+              Time
+            </Copy>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{sets}</Text>
-            <Text style={styles.statLabel}>{sets === 1 ? 'Set' : 'Sets'}</Text>
+            <Text style={styles.statLabel}>
+              {sets === 1 ? t('workouts.summary.set', 'Set') : t('workouts.summary.sets', 'Sets')}
+            </Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statNum}>{volume > 0 ? formatVolume(volume, unit) : '—'}</Text>
-            <Text style={styles.statLabel}>Moved</Text>
+            <Copy id="workouts.summary.moved" style={styles.statLabel}>
+              Moved
+            </Copy>
           </View>
         </View>
 
@@ -138,11 +157,24 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                 <View key={`${w.blockId}-${w.itemIndex}`} style={[styles.swapRow, i < swaps.length - 1 && ws.separator]}>
                   <Ionicons name="swap-horizontal" size={18} color={WORKOUTS_ACCENT} />
                   <View style={{ flex: 1 }}>
-                    <Text style={ws.title}>
-                      {exercise(w.toId).name} instead of {exercise(w.fromId).name}
-                    </Text>
+                    <Copy
+                      id="workouts.summary.swapTitle"
+                      style={ws.title}
+                      vars={{ to: exercise(w.toId).name, from: exercise(w.fromId).name }}
+                    >
+                      {'{to} instead of {from}'}
+                    </Copy>
                     <Text style={ws.muted}>
-                      {[swapReasonLabel(w.reason), kept ? `Now part of ${workout?.name ?? 'the workout'}` : 'Just today'].filter(Boolean).join(' · ')}
+                      {[
+                        swapReasonLabel(w.reason),
+                        kept
+                          ? t('workouts.summary.nowPart', 'Now part of {name}', {
+                              name: workout?.name ?? t('workouts.summary.theWorkout', 'the workout'),
+                            })
+                          : t('workouts.summary.justToday', 'Just today'),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </Text>
                   </View>
                 </View>
@@ -153,19 +185,33 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
 
         {offer && workout && (
           <View style={[ws.card, styles.offer]}>
-            <Text style={ws.title}>
-              {exercise(offer.toId).name} instead of {exercise(offer.fromId).name}, again
-            </Text>
-            <Text style={ws.body}>
-              That’s {exercise(offer.fromId).name} swapped out the last two times you did {workout.name}. Make the swap permanent?
-            </Text>
+            <Copy
+              id="workouts.summary.offerTitle"
+              style={ws.title}
+              vars={{ to: exercise(offer.toId).name, from: exercise(offer.fromId).name }}
+            >
+              {'{to} instead of {from}, again'}
+            </Copy>
+            <Copy
+              id="workouts.summary.offerBody"
+              style={ws.body}
+              vars={{ from: exercise(offer.fromId).name, workout: workout.name }}
+            >
+              {'That’s {from} swapped out the last two times you did {workout}. Make the swap permanent?'}
+            </Copy>
             <TouchableOpacity
               style={[ws.secondaryBtn, keeping && ws.disabled]}
               onPress={keepSwap}
               disabled={keeping}
               accessibilityRole="button"
             >
-              <Text style={ws.secondaryBtnText}>Put {exercise(offer.toId).name} in {workout.name}</Text>
+              <Copy
+                id="workouts.summary.offerPut"
+                style={ws.secondaryBtnText}
+                vars={{ to: exercise(offer.toId).name, workout: workout.name }}
+              >
+                {'Put {to} in {workout}'}
+              </Copy>
             </TouchableOpacity>
           </View>
         )}
@@ -189,16 +235,24 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
         {baselines > 0 && (
-          <Text style={ws.lead}>
-            First time logging {plural(baselines, 'exercise', 'exercises')} — that’s your baseline to beat next time.
-          </Text>
+          <Copy
+            id="workouts.summary.baselines"
+            style={ws.lead}
+            vars={{
+              what: count(baselines, 'workouts.summary.oneExercise', '{n} exercise', 'workouts.summary.nExercises', '{n} exercises'),
+            }}
+          >
+            {'First time logging {what} — that’s your baseline to beat next time.'}
+          </Copy>
         )}
 
-        <Text style={ws.sectionLabel}>What you did</Text>
+        <Copy id="workouts.summary.whatYouDid" style={ws.sectionLabel}>
+          What you did
+        </Copy>
         <View style={ws.panel}>
         {session.blocks.map((block, bi) => {
           const multi = block.items.length > 1;
-          const title = multi ? block.name || 'Circuit' : exercise(block.items[0].exerciseId).name;
+          const title = multi ? block.name || t('workouts.summary.circuit', 'Circuit') : exercise(block.items[0].exerciseId).name;
           const done = roundsDone(block);
           const clock = intervalReport(block);
           return (
@@ -209,9 +263,11 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.recapCount}>
                   {block.sets.length === 0
                     ? block.skipped
-                      ? 'skipped'
-                      : 'not done'
-                    : `${done} of ${block.rounds} ${multi ? 'rounds' : 'sets'}`}
+                      ? t('workouts.summary.skipped', 'skipped')
+                      : t('workouts.summary.notDone', 'not done')
+                    : multi
+                      ? t('workouts.summary.ofRounds', '{n} of {total} rounds', { n: done, total: block.rounds })
+                      : t('workouts.summary.ofSets', '{n} of {total} sets', { n: done, total: block.rounds })}
                 </Text>
               </View>
               {block.sets.length > 0 && (
@@ -233,13 +289,17 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityState={{ expanded: fixingBlock === bi }}
                   accessibilityLabel={`Edit the sets of ${title}`}
                 >
-                  <Text style={ws.link}>{fixingBlock === bi ? 'Done editing' : 'Edit sets'}</Text>
+                  <Text style={ws.link}>
+                    {fixingBlock === bi ? t('workouts.summary.doneEditing', 'Done editing') : t('workouts.summary.editSets', 'Edit sets')}
+                  </Text>
                 </TouchableOpacity>
               )}
               {fixingBlock === bi &&
                 block.sets.map((s, si) => {
                   const ex = exercise(s.exerciseId);
-                  const label = multi ? `Round ${s.round + 1}, ${ex.name}` : `Set ${si + 1}`;
+                  const label = multi
+                    ? t('workouts.summary.roundLabel', 'Round {n}, {name}', { n: s.round + 1, name: ex.name })
+                    : t('workouts.summary.setLabel', 'Set {n}', { n: si + 1 });
                   const value = formatSetValues(s, ex.kind, unit);
                   return (
                     <TouchableOpacity
@@ -258,11 +318,14 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
               {clock && (
                 <View style={styles.clock}>
                   <Text style={styles.clockLine}>
-                    Every {formatClock(clock.sec)}
+                    {t('workouts.summary.every', 'Every {time}', { time: formatClock(clock.sec) })}
                     {clock.rounds > 0
-                      ? ` · work took ${formatClock(clock.avgWorkSec)} on average (${Math.round(clock.share * 100)}%)`
+                      ? t('workouts.summary.workTook', ' · work took {time} on average ({pct}%)', {
+                          time: formatClock(clock.avgWorkSec),
+                          pct: Math.round(clock.share * 100),
+                        })
                       : ''}
-                    {clock.missed > 0 ? ` · ${clock.missed} missed` : ''}
+                    {clock.missed > 0 ? t('workouts.summary.missed', ' · {n} missed', { n: clock.missed }) : ''}
                   </Text>
                   <View style={styles.clockTrack}>
                     <View
@@ -274,9 +337,9 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                     />
                   </View>
                   {clock.tight && (
-                    <Text style={styles.clockTight}>
+                    <Copy id="workouts.summary.tight" style={styles.clockTight}>
                       That left almost no rest. Next time, try a longer interval or a rep or two fewer.
-                    </Text>
+                    </Copy>
                   )}
                 </View>
               )}
@@ -289,15 +352,34 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
         {workout && changes.any && (
           <View style={[ws.card, styles.toggleRow]}>
             <View style={{ flex: 1 }}>
-              <Text style={ws.title}>Save changes to {workout.name}</Text>
+              <Copy id="workouts.summary.saveChanges" style={ws.title} vars={{ name: workout.name }}>
+                {'Save changes to {name}'}
+              </Copy>
               <Text style={ws.muted}>
-                {[
-                  changes.addedBlocks ? plural(changes.addedBlocks, 'added exercise', 'added exercises') : null,
-                  changes.extraRounds ? plural(changes.extraRounds, 'extra set', 'extra sets') : null,
-                ]
-                  .filter(Boolean)
-                  .join(' and ')}{' '}
-                become part of the plan.
+                {t('workouts.summary.planChange', '{list} become part of the plan.', {
+                  list: [
+                    changes.addedBlocks
+                      ? count(
+                          changes.addedBlocks,
+                          'workouts.summary.oneAdded',
+                          '{n} added exercise',
+                          'workouts.summary.nAdded',
+                          '{n} added exercises'
+                        )
+                      : null,
+                    changes.extraRounds
+                      ? count(
+                          changes.extraRounds,
+                          'workouts.summary.oneExtra',
+                          '{n} extra set',
+                          'workouts.summary.nExtra',
+                          '{n} extra sets'
+                        )
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(t('workouts.summary.and', ' and ')),
+                })}
               </Text>
             </View>
             <Switch value={saveChanges} onValueChange={setSaveChanges} trackColor={{ true: WORKOUTS_ACCENT }} />
@@ -308,8 +390,12 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           <View style={ws.card}>
             <View style={styles.toggleRow}>
               <View style={{ flex: 1 }}>
-                <Text style={ws.title}>Save as a workout</Text>
-                <Text style={ws.muted}>Run exactly this again next time.</Text>
+                <Copy id="workouts.summary.saveAs" style={ws.title}>
+                  Save as a workout
+                </Copy>
+                <Copy id="workouts.summary.saveAsSub" style={ws.muted}>
+                  Run exactly this again next time.
+                </Copy>
               </View>
               <Switch value={saveAsNew} onValueChange={setSaveAsNew} trackColor={{ true: WORKOUTS_ACCENT }} />
             </View>
@@ -318,7 +404,7 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.nameInput}
                 value={newName}
                 onChangeText={setNewName}
-                placeholder="Name it, e.g. Upper body"
+                placeholder={t('workouts.summary.namePlaceholder', 'Name it, e.g. Upper body')}
                 placeholderTextColor={Colors.gray}
               />
             )}
@@ -332,14 +418,18 @@ export const WorkoutSummaryScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={ws.primaryBtnText}>Finish & rate it</Text>
+            <Copy id="workouts.summary.finish" style={ws.primaryBtnText}>
+              Finish & rate it
+            </Copy>
           )}
         </TouchableOpacity>
-        <Text style={[ws.muted, styles.footerNote]}>
+        <Copy id="workouts.summary.footerNote" style={[ws.muted, styles.footerNote]}>
           Next, on Today: how hard it was to keep going. It counts toward your week.
-        </Text>
+        </Copy>
         <TouchableOpacity onPress={backToSession} disabled={saving} style={styles.back}>
-          <Text style={styles.backText}>Back to workout</Text>
+          <Copy id="workouts.summary.back" style={styles.backText}>
+            Back to workout
+          </Copy>
         </TouchableOpacity>
       </View>
 

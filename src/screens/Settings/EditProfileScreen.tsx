@@ -8,6 +8,8 @@ import {
 import { SettingsScreenProps } from '../../types/navigation';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { Button } from '../../components/common/Button';
 import { InputField } from '../../components/common/InputField';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +25,7 @@ type Props = SettingsScreenProps<'EditProfile'>;
 
 export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, refreshProfile } = useAuth();
+  const t = useCopy();
   const [username, setUsername] = useState('');
   const [originalUsername, setOriginalUsername] = useState('');
   const [loading, setLoading] = useState(true);
@@ -69,7 +72,7 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     // Validate format
     const validation = validateUsername(trimmed);
     if (!validation.valid) {
-      setError(validation.error || 'Invalid username');
+      setError(validation.error || t('settings.editProfile.invalid', 'Invalid username'));
       return;
     }
 
@@ -78,12 +81,12 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const available = await checkUsernameAvailable(trimmed);
       if (!available && trimmed.toLowerCase() !== originalUsername.toLowerCase()) {
-        setError('This username is already taken');
+        setError(t('settings.editProfile.taken', 'This username is already taken'));
         setCheckingAvailability(false);
         return;
       }
     } catch (err) {
-      setError('Error checking username availability');
+      setError(t('settings.editProfile.checkError', 'Error checking username availability'));
       setCheckingAvailability(false);
       return;
     }
@@ -94,10 +97,13 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await updateUsername(user.uid, trimmed);
       await refreshProfile();
-      showAlert('Success', 'Username updated successfully');
+      showAlert(
+        t('settings.editProfile.successTitle', 'Success'),
+        t('settings.editProfile.successBody', 'Username updated successfully')
+      );
       navigation.goBack();
     } catch (err: any) {
-      setError(err.message || 'Failed to update username');
+      setError(err.message || t('settings.editProfile.failed', 'Failed to update username'));
     } finally {
       setSaving(false);
     }
@@ -117,11 +123,13 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Card style={styles.card}>
-        <Text style={styles.label}>Username</Text>
+        <Copy id="settings.editProfile.username" style={styles.label}>
+          Username
+        </Copy>
         <InputField
           value={username}
           onChangeText={handleUsernameChange}
-          placeholder="Enter username"
+          placeholder={t('settings.editProfile.placeholder', 'Enter username')}
           autoCapitalize="none"
           autoCorrect={false}
           maxLength={20}
@@ -129,15 +137,15 @@ export const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
         {error ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : (
-          <Text style={styles.hintText}>
+          <Copy id="settings.editProfile.hint" style={styles.hintText}>
             3-20 characters, letters, numbers, and underscores only
-          </Text>
+          </Copy>
         )}
       </Card>
 
       <View style={styles.buttonContainer}>
         <Button
-          title="Save Changes"
+          title={t('settings.editProfile.save', 'Save Changes')}
           onPress={handleSave}
           disabled={!hasChanges || !isValid || saving || checkingAvailability}
           loading={saving || checkingAvailability}

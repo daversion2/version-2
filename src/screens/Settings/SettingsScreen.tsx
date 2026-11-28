@@ -6,6 +6,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { Button } from '../../components/common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { logOut } from '../../services/auth';
@@ -27,6 +29,7 @@ import { formatReminderTime } from '../../services/closeOutTimes';
 export const SettingsScreen: React.FC = () => {
   const { user, userProfile, refreshProfile } = useAuth();
   const navigation = useNavigation<SettingsNavigation>();
+  const t = useCopy();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [username, setUsername] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
@@ -35,7 +38,9 @@ export const SettingsScreen: React.FC = () => {
   const [goalsOpen, setGoalsOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const reminderTime = userProfile?.closeout_reminder_time;
-  const reminderLabel = reminderTime ? `Every day at ${formatReminderTime(reminderTime)}` : 'Off';
+  const reminderLabel = reminderTime
+    ? t('settings.reminder.every', 'Every day at {time}', { time: formatReminderTime(reminderTime) })
+    : t('settings.reminder.statusOff', 'Off');
 
   // Both sheets, rendered by either layout.
   const sheets = (
@@ -78,7 +83,10 @@ export const SettingsScreen: React.FC = () => {
       await refreshProfile();
     } catch (error) {
       console.error('Error resetting onboarding:', error);
-      showAlert('Couldn’t replay the intro', 'Please try again in a moment.');
+      showAlert(
+        t('settings.replay.errorTitle', 'Couldn’t replay the intro'),
+        t('settings.replay.errorBody', 'Please try again in a moment.')
+      );
     }
   };
 
@@ -106,15 +114,21 @@ export const SettingsScreen: React.FC = () => {
         // issue one at all). Either way the switch must stay off — showing it on
         // would promise notifications that can never arrive.
         showAlert(
-          'Notifications are blocked',
-          'Your phone is blocking notifications for Neuro-Nudge. You can turn them on in your device Settings, under Notifications.'
+          t('settings.push.blockedTitle', 'Notifications are blocked'),
+          t(
+            'settings.push.blockedBody',
+            'Your phone is blocking notifications for Neuro-Nudge. You can turn them on in your device Settings, under Notifications.'
+          )
         );
         return;
       }
       await refreshProfile();
     } catch (error) {
       console.error('Error toggling notifications:', error);
-      showAlert('Something went wrong', 'Could not change your notification setting. Please try again.');
+      showAlert(
+        t('settings.push.errorTitle', 'Something went wrong'),
+        t('settings.push.errorBody', 'Could not change your notification setting. Please try again.')
+      );
     } finally {
       setPushBusy(false);
     }
@@ -122,8 +136,11 @@ export const SettingsScreen: React.FC = () => {
 
   const handleClearAccount = () => {
     showConfirm(
-      'Clear Account',
-      'This deletes everything in your account — sessions, ratings, streaks, XP, reflections and settings — and starts you again from the intro. Your login stays the same. This cannot be undone.',
+      t('settings.clear.title', 'Clear Account'),
+      t(
+        'settings.clear.message',
+        'This deletes everything in your account — sessions, ratings, streaks, XP, reflections and settings — and starts you again from the intro. Your login stays the same. This cannot be undone.'
+      ),
       async () => {
         if (!user) return;
         setClearing(true);
@@ -132,15 +149,23 @@ export const SettingsScreen: React.FC = () => {
           // The evening reminder's time went with the profile; take it off the phone too.
           await cancelAllHabitReminders();
           await refreshProfile();
-          showAlert('Account cleared', `Deleted ${result.deletedDocs} documents. You’re back at the start.`);
+          showAlert(
+            t('settings.clear.doneTitle', 'Account cleared'),
+            t('settings.clear.doneBody', 'Deleted {n} documents. You’re back at the start.', {
+              n: result.deletedDocs,
+            })
+          );
         } catch (error) {
           console.error('Error clearing account:', error);
-          showAlert('Couldn’t clear the account', 'Please try again.');
+          showAlert(
+            t('settings.clear.errorTitle', 'Couldn’t clear the account'),
+            t('settings.clear.errorBody', 'Please try again.')
+          );
         } finally {
           setClearing(false);
         }
       },
-      'Clear Everything'
+      t('settings.clear.button', 'Clear Everything')
     );
   };
 
@@ -148,12 +173,15 @@ export const SettingsScreen: React.FC = () => {
   // takes the login with it.
   const handleDeleteAccount = () => {
     showConfirm(
-      'Delete Account',
-      'This permanently deletes your account and everything in it — sessions, ratings, streaks, XP, reflections and settings. You will not be able to sign back in, and none of it can be recovered.',
+      t('settings.delete.title', 'Delete Account'),
+      t(
+        'settings.delete.message',
+        'This permanently deletes your account and everything in it — sessions, ratings, streaks, XP, reflections and settings. You will not be able to sign back in, and none of it can be recovered.'
+      ),
       () => {
         showConfirm(
-          'Are you sure?',
-          'This cannot be undone.',
+          t('settings.delete.confirmTitle', 'Are you sure?'),
+          t('settings.delete.confirmBody', 'This cannot be undone.'),
           async () => {
             setDeleting(true);
             try {
@@ -166,21 +194,24 @@ export const SettingsScreen: React.FC = () => {
               // so there is no post-delete UI to return to.
             } catch (error) {
               console.error('Error deleting account:', error);
-              showAlert('Couldn’t delete your account', 'Please try again in a moment.');
+              showAlert(
+                t('settings.delete.errorTitle', 'Couldn’t delete your account'),
+                t('settings.delete.errorBody', 'Please try again in a moment.')
+              );
               setDeleting(false);
             }
           },
-          'Delete Forever'
+          t('settings.delete.forever', 'Delete Forever')
         );
       },
-      'Continue'
+      t('settings.delete.continue', 'Continue')
     );
   };
 
   const handleLogout = () => {
     showConfirm(
-      'Sign Out',
-      'Are you sure?',
+      t('settings.signOut.title', 'Sign Out'),
+      t('settings.signOut.message', 'Are you sure?'),
       async () => {
         // Local notifications are scheduled against the device, not the account,
         // so they outlive the session. Cancel before dropping it.
@@ -190,7 +221,7 @@ export const SettingsScreen: React.FC = () => {
         if (user) await clearPushToken(user.uid).catch(() => {});
         await logOut();
       },
-      'Sign Out'
+      t('settings.signOut.button', 'Sign Out')
     );
   };
 
@@ -205,12 +236,12 @@ export const SettingsScreen: React.FC = () => {
             { paddingTop: insets.top + Spacing.sm, paddingBottom: tabBarHeight + Spacing.lg },
           ]}
         >
-          <LargeTitle title="Settings" />
+          <LargeTitle title={t('settings.screen.title', 'Settings')} />
 
           <ListGroup>
             <ListRow
-              title={username ? `@${username}` : 'Profile'}
-              subtitle={user?.email || 'Not signed in'}
+              title={username ? `@${username}` : t('settings.row.profile', 'Profile')}
+              subtitle={user?.email || t('settings.row.notSignedIn', 'Not signed in')}
               icon={{ name: 'person', color: Colors.gray }}
               onPress={() => navigation.navigate('EditProfile')}
             />
@@ -218,27 +249,30 @@ export const SettingsScreen: React.FC = () => {
 
           <ListGroup>
             <ListRow
-              title="Browse apps"
-              subtitle="Every app, what it does, add to Today"
+              title={t('settings.row.browseApps', 'Browse apps')}
+              subtitle={t('settings.row.browseAppsSub', 'Every app, what it does, add to Today')}
               icon={{ name: 'apps', color: Colors.primary }}
               onPress={() => rootNav.navigate('AppStore')}
             />
             <ListRow
-              title="Apps and weekly goals"
+              title={t('settings.row.appsGoals', 'Apps and weekly goals')}
               icon={{ name: 'flag', color: Colors.primary }}
               onPress={() => setGoalsOpen(true)}
             />
             <ListRow
-              title="Evening reminder"
+              title={t('settings.row.eveningReminder', 'Evening reminder')}
               subtitle={reminderLabel}
               icon={{ name: 'moon', color: Colors.gray }}
               onPress={() => setReminderOpen(true)}
             />
           </ListGroup>
 
-          <ListGroup footer="Occasional nudges when you've been away, and a recap when you've put a week together. At most three a week, never more than one a day.">
+          <ListGroup footer={t(
+              'settings.notifications.desc',
+              "Occasional nudges when you've been away, and a recap when you've put a week together. At most three a week, never more than one a day."
+            )}>
             <ListRow
-              title="Notifications"
+              title={t('settings.row.notifications', 'Notifications')}
               right={
                 <Switch
                   value={pushEnabled}
@@ -251,21 +285,21 @@ export const SettingsScreen: React.FC = () => {
           </ListGroup>
 
           <ListGroup>
-            <ListRow title="Replay intro" onPress={handleReplayOnboarding} />
-            <ListRow title="Send feedback" onPress={() => Linking.openURL('https://forms.gle/TNQCzas3JyHs3fNU9')} />
-            <ListRow title="Privacy policy" onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} />
+            <ListRow title={t('settings.row.replayIntro', 'Replay intro')} onPress={handleReplayOnboarding} />
+            <ListRow title={t('settings.row.feedback', 'Send feedback')} onPress={() => Linking.openURL('https://forms.gle/TNQCzas3JyHs3fNU9')} />
+            <ListRow title={t('settings.row.privacy', 'Privacy policy')} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} />
           </ListGroup>
 
           {/* Admin only, as below: a maintenance destination, and Clear Account is a build tool. */}
           {userProfile?.is_admin === true && (
-            <ListGroup title="Admin">
+            <ListGroup title={t('settings.row.adminGroup', 'Admin')}>
               <ListRow
-                title="Admin"
-                subtitle="Catalog, tidbits, rules and seeding"
+                title={t('settings.row.admin', 'Admin')}
+                subtitle={t('settings.row.adminSub', 'Catalog, tidbits, rules and seeding')}
                 onPress={() => navigation.navigate('Admin')}
               />
               <ListRow
-                title={clearing ? 'Clearing…' : 'Clear account'}
+                title={clearing ? t('settings.row.clearing', 'Clearing…') : t('settings.row.clear', 'Clear account')}
                 tint="destructive"
                 chevron={false}
                 onPress={clearing ? undefined : handleClearAccount}
@@ -273,10 +307,15 @@ export const SettingsScreen: React.FC = () => {
             </ListGroup>
           )}
 
-          <ListGroup footer="Delete account permanently erases your account and all of your data. This cannot be undone.">
-            <ListRow title="Sign out" tint="accent" chevron={false} onPress={handleLogout} />
+          <ListGroup footer={t(
+            'settings.row.deleteFooter',
+            'Delete account permanently erases your account and all of your data. This cannot be undone.'
+          )}>
+            <ListRow title={t('settings.row.signOut', 'Sign out')} tint="accent" chevron={false} onPress={handleLogout} />
             <ListRow
-              title={deleting ? 'Deleting account…' : 'Delete account'}
+              title={
+                deleting ? t('settings.row.deleting', 'Deleting account…') : t('settings.row.delete', 'Delete account')
+              }
               tint="destructive"
               chevron={false}
               onPress={deleting ? undefined : handleDeleteAccount}
@@ -295,9 +334,11 @@ export const SettingsScreen: React.FC = () => {
       <Card style={styles.card} onPress={() => navigation.navigate('EditProfile')}>
         <View style={styles.navRow}>
           <View style={styles.profileInfo}>
-            <Text style={styles.label}>Profile</Text>
+            <Copy id="settings.classic.profile" style={styles.label}>
+              Profile
+            </Copy>
             {username && <Text style={styles.username}>@{username}</Text>}
-            <Text style={styles.email}>{user?.email || 'Not signed in'}</Text>
+            <Text style={styles.email}>{user?.email || t('settings.row.notSignedIn', 'Not signed in')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
@@ -307,8 +348,12 @@ export const SettingsScreen: React.FC = () => {
       <Card style={styles.card} onPress={() => setGoalsOpen(true)}>
         <View style={styles.navRow}>
           <View style={styles.profileInfo}>
-            <Text style={styles.label}>Apps and Weekly Goals</Text>
-            <Text style={styles.desc}>Which apps are on Today, and how often each one asks for</Text>
+            <Copy id="settings.classic.appsGoals" style={styles.label}>
+              Apps and Weekly Goals
+            </Copy>
+            <Copy id="settings.classic.appsGoalsDesc" style={styles.desc}>
+              Which apps are on Today, and how often each one asks for
+            </Copy>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
         </View>
@@ -318,7 +363,9 @@ export const SettingsScreen: React.FC = () => {
       <Card style={styles.card} onPress={() => setReminderOpen(true)}>
         <View style={styles.navRow}>
           <View style={styles.profileInfo}>
-            <Text style={styles.label}>Evening Reminder</Text>
+            <Copy id="settings.classic.eveningReminder" style={styles.label}>
+              Evening Reminder
+            </Copy>
             <Text style={styles.desc}>{reminderLabel}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
@@ -338,8 +385,12 @@ export const SettingsScreen: React.FC = () => {
         <Card style={styles.card} onPress={() => navigation.navigate('Admin')}>
           <View style={styles.navRow}>
             <View>
-              <Text style={styles.label}>Admin</Text>
-              <Text style={styles.desc}>Catalog, tidbits, rules and seeding</Text>
+              <Copy id="settings.classic.admin" style={styles.label}>
+                Admin
+              </Copy>
+              <Copy id="settings.classic.adminDesc" style={styles.desc}>
+                Catalog, tidbits, rules and seeding
+              </Copy>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
           </View>
@@ -350,8 +401,12 @@ export const SettingsScreen: React.FC = () => {
       <Card style={styles.card} onPress={() => Linking.openURL('https://forms.gle/TNQCzas3JyHs3fNU9')}>
         <View style={styles.navRow}>
           <View>
-            <Text style={styles.label}>Send Feedback</Text>
-            <Text style={styles.desc}>Share your thoughts and suggestions</Text>
+            <Copy id="settings.classic.feedback" style={styles.label}>
+              Send Feedback
+            </Copy>
+            <Copy id="settings.classic.feedbackDesc" style={styles.desc}>
+              Share your thoughts and suggestions
+            </Copy>
           </View>
           <Ionicons name="open-outline" size={20} color={Colors.gray} />
         </View>
@@ -361,8 +416,12 @@ export const SettingsScreen: React.FC = () => {
       <Card style={styles.card} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
         <View style={styles.navRow}>
           <View>
-            <Text style={styles.label}>Privacy Policy</Text>
-            <Text style={styles.desc}>What we collect and how to delete it</Text>
+            <Copy id="settings.classic.privacy" style={styles.label}>
+              Privacy Policy
+            </Copy>
+            <Copy id="settings.classic.privacyDesc" style={styles.desc}>
+              What we collect and how to delete it
+            </Copy>
           </View>
           <Ionicons name="open-outline" size={20} color={Colors.gray} />
         </View>
@@ -370,11 +429,15 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Tutorial */}
       <Card style={styles.card}>
-        <Text style={styles.label}>Tutorial</Text>
-        <Text style={styles.desc}>Revisit the intro of the app.</Text>
+        <Copy id="settings.classic.tutorial" style={styles.label}>
+          Tutorial
+        </Copy>
+        <Copy id="settings.classic.tutorialDesc" style={styles.desc}>
+          Revisit the intro of the app.
+        </Copy>
         <View style={styles.buttonRow}>
           <Button
-            title="Replay Intro"
+            title={t('settings.classic.replay', 'Replay Intro')}
             onPress={handleReplayOnboarding}
             variant="outline"
             style={styles.halfButton}
@@ -386,11 +449,12 @@ export const SettingsScreen: React.FC = () => {
       <Card style={styles.card}>
         <View style={styles.toggleRow}>
           <View style={styles.toggleText}>
-            <Text style={styles.label}>Notifications</Text>
-            <Text style={styles.desc}>
-              Occasional nudges when you've been away, and a recap when you've put a week
-              together. At most three a week, never more than one a day.
-            </Text>
+            <Copy id="settings.classic.notifications" style={styles.label}>
+              Notifications
+            </Copy>
+            <Copy id="settings.notifications.desc.classic" style={styles.desc}>
+              {"Occasional nudges when you've been away, and a recap when you've put a week together. At most three a week, never more than one a day."}
+            </Copy>
           </View>
           <Switch
             value={pushEnabled}
@@ -406,7 +470,7 @@ export const SettingsScreen: React.FC = () => {
           wipe its own data with it. It's a build tool, not a feature. */}
       {userProfile?.is_admin === true && (
         <Button
-          title={clearing ? 'Clearing...' : 'Clear Account'}
+          title={clearing ? t('settings.classic.clearing', 'Clearing...') : t('settings.classic.clear', 'Clear Account')}
           onPress={handleClearAccount}
           variant="outline"
           disabled={clearing}
@@ -417,7 +481,7 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Sign Out */}
       <Button
-        title="Sign Out"
+        title={t('settings.classic.signOut', 'Sign Out')}
         onPress={handleLogout}
         variant="outline"
         style={styles.logout}
@@ -430,11 +494,13 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.navRow}>
           <View style={styles.profileInfo}>
             <Text style={[styles.label, styles.dangerLabel]}>
-              {deleting ? 'Deleting Account...' : 'Delete Account'}
+              {deleting
+                ? t('settings.classic.deleting', 'Deleting Account...')
+                : t('settings.classic.delete', 'Delete Account')}
             </Text>
-            <Text style={styles.desc}>
+            <Copy id="settings.classic.deleteDesc" style={styles.desc}>
               Permanently erase your account and all of your data. This cannot be undone.
-            </Text>
+            </Copy>
           </View>
           <Ionicons name="trash-outline" size={20} color={Colors.danger} />
         </View>

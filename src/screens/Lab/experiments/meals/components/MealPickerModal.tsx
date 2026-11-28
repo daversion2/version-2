@@ -21,6 +21,8 @@ import {
 } from '../../../../../services/mealsMath';
 import { MEALS_ACCENT, scoreColor, mls } from './mealsStyle';
 import { NutrientTags, plateTime } from './MealsParts';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 
 export interface PickerTarget {
   /** "Log a meal", or the plate's name. */
@@ -64,6 +66,7 @@ export const MealPickerModal: React.FC<Props> = ({
   onRemove,
 }) => {
   const insets = useSafeAreaInsets();
+  const t = useCopy();
   const [groups, setGroups] = useState<FoodGroupId[]>([]);
   const [name, setName] = useState('');
   const [time, setTime] = useState('12:00');
@@ -177,7 +180,7 @@ export const MealPickerModal: React.FC<Props> = ({
       <View style={styles.sheet}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel} style={styles.headerBtn} accessibilityRole="button">
-            <Text style={styles.headerAction}>Cancel</Text>
+            <Copy id="meals.picker.cancel" style={styles.headerAction}>Cancel</Copy>
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1} accessibilityRole="header">
             {target?.title}
@@ -189,22 +192,24 @@ export const MealPickerModal: React.FC<Props> = ({
             accessibilityRole="button"
             accessibilityState={{ disabled: !canSave }}
           >
-            <Text style={[styles.headerAction, styles.headerSave, !canSave && styles.headerActionOff]}>Save</Text>
+            <Copy id="meals.picker.save" style={[styles.headerAction, styles.headerSave, !canSave && styles.headerActionOff]}>
+              Save
+            </Copy>
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <Text style={mls.lead}>
+          <Copy id={servings ? 'meals.picker.leadServings' : 'meals.picker.lead'} style={mls.lead}>
             {servings
-                ? 'What was on the plate? Tap all that apply, and tap again for another serving.'
-                : 'What was on the plate? Tap all that apply.'}
-          </Text>
+              ? 'What was on the plate? Tap all that apply, and tap again for another serving.'
+              : 'What was on the plate? Tap all that apply.'}
+          </Copy>
 
           <TextInput
             style={mls.input}
             value={name}
             onChangeText={setName}
-            placeholder="Name it (optional), like Breakfast"
+            placeholder={t('meals.picker.namePlaceholder', 'Name it (optional), like Breakfast')}
             placeholderTextColor={Colors.gray}
             maxLength={40}
             returnKeyType="done"
@@ -212,7 +217,7 @@ export const MealPickerModal: React.FC<Props> = ({
           />
 
           <View style={styles.timeRow}>
-            <Text style={styles.timeLabel}>Time</Text>
+            <Copy id="meals.picker.time" style={styles.timeLabel}>Time</Copy>
             {Platform.OS === 'ios' ? (
               <DateTimePickerNative
                 testID="meal-time"
@@ -246,13 +251,15 @@ export const MealPickerModal: React.FC<Props> = ({
 
           {myFoods.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>My foods</Text>
+              <Copy id="meals.picker.myFoods" style={styles.sectionTitle}>My foods</Copy>
               <View style={mls.chipRow}>{myFoods.map((g) => renderChip(g))}</View>
             </View>
           )}
 
           <TouchableOpacity onPress={() => setShowRules((v) => !v)} style={styles.rulesToggle}>
-            <Text style={mls.link}>{showRules ? 'Hide the rules' : 'What counts as what?'}</Text>
+            <Copy id={showRules ? 'meals.picker.hideRules' : 'meals.picker.showRules'} style={mls.link}>
+              {showRules ? 'Hide the rules' : 'What counts as what?'}
+            </Copy>
             <Ionicons name={showRules ? 'chevron-up' : 'chevron-down'} size={14} color={MEALS_ACCENT} />
           </TouchableOpacity>
           {showRules && (
@@ -268,16 +275,20 @@ export const MealPickerModal: React.FC<Props> = ({
           {/* Out of the way at the bottom: the header holds Save. */}
           {existing && onRemove && (
             <TouchableOpacity onPress={onRemove} style={mls.textBtn} accessibilityRole="button">
-              <Text style={mls.destructiveText}>Delete this meal</Text>
+              <Copy id="meals.picker.delete" style={mls.destructiveText}>Delete this meal</Copy>
             </TouchableOpacity>
           )}
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Spacing.md + insets.bottom }]} accessibilityLiveRegion="polite">
           <View style={{ gap: 1 }}>
-            <Text style={[styles.verdictTitle, verdict.score !== null && { color: scoreColor(verdict.score) }]}>
-              {verdict.score !== null ? `Scores ${verdict.score}` : 'Nothing picked yet'}
-            </Text>
+            <Copy
+              id={verdict.score !== null ? 'meals.picker.scores' : 'meals.picker.nothingPicked'}
+              style={[styles.verdictTitle, verdict.score !== null && { color: scoreColor(verdict.score) }]}
+              vars={{ n: verdict.score ?? '' }}
+            >
+              {verdict.score !== null ? 'Scores {n}' : 'Nothing picked yet'}
+            </Copy>
             <Text style={styles.verdictWhy}>{verdict.why}</Text>
           </View>
           {groups.length > 0 && <NutrientTags have={plateNutrients(groups, custom)} showMissing />}

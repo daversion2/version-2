@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { Card } from '../common/Card';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { useAuth } from '../../context/AuthContext';
 import { canOpenMiniApp } from '../../services/miniApps';
 import { listCustomExercises, listPhases, mergeExerciseLibrary } from '../../services/labWorkouts';
@@ -19,6 +21,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
  */
 export const PhaseHighlightCard: React.FC<{ refreshKey?: unknown }> = ({ refreshKey }) => {
   const { user, userProfile } = useAuth();
+  const t = useCopy();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [highlight, setHighlight] = useState<PhaseHighlight | null>(null);
   const allowed = !!user && canOpenMiniApp('workouts', userProfile);
@@ -44,19 +47,41 @@ export const PhaseHighlightCard: React.FC<{ refreshKey?: unknown }> = ({ refresh
   return (
     <TouchableOpacity onPress={() => navigation.navigate('WorkoutsApp')} accessibilityRole="button">
       <Card style={styles.card}>
-        <Text style={styles.eyebrow}>
-          Workouts · {highlight.phases} {highlight.phases === 1 ? 'phase' : 'phases'}
-        </Text>
-        <Text style={styles.title}>
-          {highlight.name}: {formatTestValue(highlight.type, highlight.before)} →{' '}
-          {formatTestValue(highlight.type, highlight.after)} since {month}
-        </Text>
-        <Text style={styles.body}>
-          {highlight.type === 'fastest' ? `${highlight.pct}% faster` : `+${highlight.pct}%`} on your retest.
-          {highlight.others.length ? ` ${highlight.others.join(', ')}.` : ''}
-        </Text>
+        <Copy
+          id={highlight.phases === 1 ? 'progress.phase.eyebrow.one' : 'progress.phase.eyebrow.other'}
+          style={styles.eyebrow}
+          vars={{ n: highlight.phases }}
+        >
+          {highlight.phases === 1 ? 'Workouts · {n} phase' : 'Workouts · {n} phases'}
+        </Copy>
+        <Copy
+          id="progress.phase.title"
+          style={styles.title}
+          vars={{
+            name: highlight.name,
+            before: formatTestValue(highlight.type, highlight.before),
+            after: formatTestValue(highlight.type, highlight.after),
+            month,
+          }}
+        >
+          {'{name}: {before} → {after} since {month}'}
+        </Copy>
+        <Copy
+          id={highlight.type === 'fastest' ? 'progress.phase.body.faster' : 'progress.phase.body.gain'}
+          style={styles.body}
+          vars={{
+            pct: highlight.pct,
+            others: highlight.others.length ? ` ${highlight.others.join(', ')}.` : '',
+          }}
+        >
+          {highlight.type === 'fastest'
+            ? '{pct}% faster on your retest.{others}'
+            : '+{pct}% on your retest.{others}'}
+        </Copy>
         <View style={styles.linkRow}>
-          <Text style={styles.link}>See your phases →</Text>
+          <Copy id="progress.phase.link" style={styles.link}>
+            See your phases →
+          </Copy>
         </View>
       </Card>
     </TouchableOpacity>

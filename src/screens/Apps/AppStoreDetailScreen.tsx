@@ -6,7 +6,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 import { Stepper } from '../../components/common/Stepper';
+import { Copy } from '../../components/common/Copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
 import {
   addAppToToday,
   canRemoveFromToday,
@@ -37,6 +39,7 @@ type IconName = keyof typeof Ionicons.glyphMap;
 const capitalize = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => {
+  const t = useCopy();
   const insets = useSafeAreaInsets();
   const { user, userProfile, refreshProfile } = useAuth();
   const app = findCatalogApp(route.params.appId);
@@ -82,7 +85,7 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       await refreshProfile();
       load();
     } catch (e: any) {
-      showAlert(failTitle, e?.message ?? 'Please try again.');
+      showAlert(failTitle, e?.message ?? t('apps.detail.retry', 'Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -94,10 +97,10 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       return save(async () => {
         await setRowOnToday(user.uid, userProfile, row, true);
         if (goal !== null) await saveRowGoal(user.uid, row, goal);
-      }, 'Couldn’t add it');
+      }, t('apps.detail.addFailed', 'Couldn’t add it'));
     }
     if (!todayId || goal === null) return;
-    save(() => addAppToToday(user.uid, userProfile, todayId, goal), 'Couldn’t add it');
+    save(() => addAppToToday(user.uid, userProfile, todayId, goal), t('apps.detail.addFailed', 'Couldn’t add it'));
   };
 
   const changeGoal = (next: number) => {
@@ -109,7 +112,12 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       const saving = row ? saveRowGoal(user.uid, row, next) : todayId ? addAppToToday(user.uid, userProfile, todayId, next) : null;
       saving
         ?.then(() => refreshProfile())
-        .catch((e) => showAlert('Couldn’t save the goal', e?.message ?? 'Please try again.'));
+        .catch((e) =>
+          showAlert(
+            t('apps.detail.goalFailed', 'Couldn’t save the goal'),
+            e?.message ?? t('apps.detail.retry', 'Please try again.')
+          )
+        );
     };
     if (goalTimer.current) clearTimeout(goalTimer.current);
     goalTimer.current = setTimeout(() => pendingGoalSave.current?.(), 600);
@@ -120,23 +128,27 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
     if (!user) return;
     if (row === 'nightly') {
       // Its reminder is the evening nudge to close out; it goes with it.
-      Alert.alert('Remove Close out the day?', 'This also turns off the evening reminder. Past nights stay.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(
+        t('apps.detail.removeNightly.title', 'Remove Close out the day?'),
+        t('apps.detail.removeNightly.message', 'This also turns off the evening reminder. Past nights stay.'),
+        [
+        { text: t('apps.detail.removeNightly.cancel', 'Cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('apps.detail.removeNightly.confirm', 'Remove'),
           style: 'destructive',
           onPress: () =>
             save(async () => {
               await setRowOnToday(user.uid, userProfile, 'nightly', false);
               await setCloseOutReminder(user.uid, null);
-            }, 'Couldn’t remove it'),
+            }, t('apps.detail.removeFailed', 'Couldn’t remove it')),
         },
-      ]);
+      ]
+      );
       return;
     }
-    if (row) return save(() => setRowOnToday(user.uid, userProfile, row, false), 'Couldn’t remove it');
+    if (row) return save(() => setRowOnToday(user.uid, userProfile, row, false), t('apps.detail.removeFailed', 'Couldn’t remove it'));
     if (!todayId) return;
-    save(() => removeAppFromToday(user.uid, userProfile, todayId), 'Couldn’t remove it');
+    save(() => removeAppFromToday(user.uid, userProfile, todayId), t('apps.detail.removeFailed', 'Couldn’t remove it'));
   };
 
   const launch = () => {
@@ -147,8 +159,11 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const primary =
     status === 'addable'
-      ? { label: 'Add to Today', onPress: add }
-      : { label: status === 'onToday' ? `Open ${app.name}` : 'Open', onPress: launch };
+      ? { label: t('apps.detail.add', 'Add to Today'), onPress: add }
+      : {
+          label: status === 'onToday' ? t('apps.detail.openApp', 'Open {name}', { name: app.name }) : t('apps.detail.open', 'Open'),
+          onPress: launch,
+        };
 
   return (
     <View style={styles.screen}>
@@ -162,19 +177,19 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
           accessibilityLabel="Back to Apps"
         >
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
-          <Text style={styles.backText}>Apps</Text>
+          <Copy id="apps.detail.back" style={styles.backText}>Apps</Copy>
         </TouchableOpacity>
 
         <View style={styles.hero}>
           <AppIcon app={app} size={96} />
           <View style={styles.heroText}>
-            <Text style={styles.name} accessibilityRole="header">
+            <Copy id={`apps.catalog.${app.id}.name`} style={styles.name} accessibilityRole="header">
               {app.name}
-            </Text>
-            <Text style={styles.tagline}>{app.tagline}</Text>
+            </Copy>
+            <Copy id={`apps.catalog.${app.id}.tagline`} style={styles.tagline}>{app.tagline}</Copy>
             <View style={styles.badges}>
-              {status === 'onToday' && <Badge color={Colors.primary} label="On your Today" />}
-              {app.isNew && <Badge color={app.color} label="New" />}
+              {status === 'onToday' && <Badge color={Colors.primary} label={t('apps.detail.badgeOnToday', 'On your Today')} />}
+              {app.isNew && <Badge color={app.color} label={t('apps.detail.badgeNew', 'New')} />}
             </View>
           </View>
         </View>
@@ -193,40 +208,54 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         )}
 
         <View style={styles.aboutCard}>
-          <Text style={styles.about}>{app.description}</Text>
-          <Text style={styles.goodFor}>{app.goodFor}</Text>
+          <Copy id={`apps.catalog.${app.id}.description`} style={styles.about}>{app.description}</Copy>
+          <Copy id={`apps.catalog.${app.id}.goodFor`} style={styles.goodFor}>{app.goodFor}</Copy>
         </View>
 
-        <Panel title="What you do in it">
+        <Panel title={t('apps.detail.whatYouDo', 'What you do in it')}>
           {app.features.map((f, i) => (
             <View key={f.text} style={[styles.featureRow, i < app.features.length - 1 && styles.separator]}>
               <View style={[styles.featureIcon, { backgroundColor: app.color + '1F' }]}>
                 <Ionicons name={f.icon as IconName} size={18} color={Colors.dark} />
               </View>
-              <Text style={styles.featureText}>{f.text}</Text>
+              <Copy id={`apps.catalog.${app.id}.feature.${i}`} style={styles.featureText}>{f.text}</Copy>
             </View>
           ))}
         </Panel>
 
         <Panel
-          title="Where the override shows up"
-          footer={app.rated === false ? undefined : '1 to 3 each time. A 3 is never a bad mark: it’s the most training a session can give.'}
+          title={t('apps.detail.override', 'Where the override shows up')}
+          footer={
+            app.rated === false
+              ? undefined
+              : t('apps.detail.overrideFooter', '1 to 3 each time. A 3 is never a bad mark: it’s the most training a session can give.')
+          }
         >
           {app.override.map((o, i) => (
             <View key={o.label} style={[styles.overrideRow, i < app.override.length - 1 && styles.separator]}>
-              <Text style={styles.overrideLabel}>{o.label}</Text>
-              <Text style={styles.overrideText}>{o.text}</Text>
+              <Copy id={`apps.catalog.${app.id}.override.${i}.label`} style={styles.overrideLabel}>{o.label}</Copy>
+              <Copy id={`apps.catalog.${app.id}.override.${i}.text`} style={styles.overrideText}>{o.text}</Copy>
             </View>
           ))}
         </Panel>
 
         {(todayId || row) && goal !== null && status !== null && (
           <Panel
-            title="Weekly goal"
-            footer={status === 'onToday' ? 'Saved as you change it.' : 'Pick a number you’d hit on a bad week.'}
+            title={t('apps.detail.goal', 'Weekly goal')}
+            footer={
+              status === 'onToday'
+                ? t('apps.detail.goalSaved', 'Saved as you change it.')
+                : t('apps.detail.goalPick', 'Pick a number you’d hit on a bad week.')
+            }
           >
             <View style={styles.goalRow}>
-              <Text style={styles.goalLabel}>{capitalize(row ? ROW_GOAL_NOUNS[row] : GOAL_NOUNS[todayId!])} a week</Text>
+              <Copy
+                id="apps.detail.goalLabel"
+                style={styles.goalLabel}
+                vars={{ noun: capitalize(row ? ROW_GOAL_NOUNS[row] : GOAL_NOUNS[todayId!]) }}
+              >
+                {'{noun} a week'}
+              </Copy>
               <Stepper
                 value={goal}
                 onChange={changeGoal}
@@ -239,16 +268,20 @@ export const AppStoreDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         )}
 
         {status === 'standalone' && (
-          <Text style={styles.note}>Opens on its own for now. Joining Today’s rings and ratings is coming next.</Text>
+          <Copy id="apps.detail.standalone" style={styles.note}>
+            Opens on its own for now. Joining Today’s rings and ratings is coming next.
+          </Copy>
         )}
 
         {status === 'onToday' && setup && (row || (todayId && canRemoveFromToday(setup.hidden, todayId))) && (
           <View style={styles.removeWrap}>
             <TouchableOpacity onPress={remove} disabled={busy} accessibilityRole="button" style={styles.remove}>
-              <Text style={styles.removeText}>Remove from Today</Text>
+              <Copy id="apps.detail.remove" style={styles.removeText}>Remove from Today</Copy>
             </TouchableOpacity>
             <Text style={styles.note}>
-              {row === 'nightly' ? 'Also turns off the evening reminder. Past nights stay.' : 'Its history stays. Add it back any time.'}
+              {row === 'nightly'
+                ? t('apps.detail.removeNoteNightly', 'Also turns off the evening reminder. Past nights stay.')
+                : t('apps.detail.removeNote', 'Its history stays. Add it back any time.')}
             </Text>
           </View>
         )}

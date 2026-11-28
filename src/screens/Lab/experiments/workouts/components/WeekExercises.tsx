@@ -18,11 +18,14 @@ import { ExercisePickerModal } from './ExercisePickerModal';
 import { ProgressBar } from './PhaseParts';
 import { SetEntrySheet } from './SetEntrySheet';
 import { useLogSets } from './useLogSets';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './workoutsStyle';
 
 /** Sets added without a workout wait here to be rated, so they count toward the week. */
 export const WeekRateCard: React.FC = () => {
   const { sessions, rateLoggedSets } = useWorkouts();
+  const t = useCopy();
   const pending = checkinPending(sessions, new Date());
   // One tap, one hand-off: a second tap while the first saves would send it twice.
   const [rating, setRating] = useState(false);
@@ -37,7 +40,10 @@ export const WeekRateCard: React.FC = () => {
     try {
       await rateLoggedSets(pending);
     } catch {
-      showAlert("Couldn't hand it to Today", 'Check your connection and try again.');
+      showAlert(
+        t('workouts.weekEx.handFailTitle', "Couldn't hand it to Today"),
+        t('workouts.weekEx.failMsg', 'Check your connection and try again.')
+      );
     } finally {
       ratingRef.current = false;
       setRating(false);
@@ -47,8 +53,12 @@ export const WeekRateCard: React.FC = () => {
   return (
     <View style={[ws.card, styles.rate]}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={ws.title}>Done for today?</Text>
-        <Text style={ws.muted}>Rate today’s sets to count them toward your week.</Text>
+        <Copy id="workouts.weekEx.doneToday" style={ws.title}>
+          Done for today?
+        </Copy>
+        <Copy id="workouts.weekEx.rateSub" style={ws.muted}>
+          Rate today’s sets to count them toward your week.
+        </Copy>
       </View>
       <TouchableOpacity
         style={[styles.rateBtn, rating && ws.disabled]}
@@ -57,7 +67,9 @@ export const WeekRateCard: React.FC = () => {
         accessibilityRole="button"
         accessibilityState={{ busy: rating, disabled: rating }}
       >
-        {rating ? <ActivityIndicator color={Colors.white} /> : <Text style={styles.rateBtnText}>Rate it</Text>}
+        {rating ? <ActivityIndicator color={Colors.white} /> : <Copy id="workouts.weekEx.rateIt" style={styles.rateBtnText}>
+            Rate it
+          </Copy>}
       </TouchableOpacity>
     </View>
   );
@@ -69,6 +81,7 @@ export const WeekRateCard: React.FC = () => {
  */
 export const WeekExercises: React.FC<{ onOpenExercise: (exerciseId: string) => void }> = ({ onOpenExercise }) => {
   const { sessions, exercisesById, prefs } = useWorkouts();
+  const t = useCopy();
   const week = useMemo(
     () => weekSummary({ sessions, exercisesById, targets: prefs.weekly_targets, now: new Date() }),
     [sessions, exercisesById, prefs.weekly_targets]
@@ -81,9 +94,13 @@ export const WeekExercises: React.FC<{ onOpenExercise: (exerciseId: string) => v
 
   return (
     <>
-      <Text style={ws.sectionLabel}>Exercises since Monday</Text>
+      <Copy id="workouts.weekEx.since" style={ws.sectionLabel}>
+        Exercises since Monday
+      </Copy>
       {week.rows.length === 0 && (
-        <Text style={ws.lead}>Nothing yet since Monday. Sets from any workout show up here, and you can add sets here too.</Text>
+        <Copy id="workouts.weekEx.nothing" style={ws.lead}>
+          Nothing yet since Monday. Sets from any workout show up here, and you can add sets here too.
+        </Copy>
       )}
 
       {week.rows.map((row) => {
@@ -122,20 +139,27 @@ export const WeekExercises: React.FC<{ onOpenExercise: (exerciseId: string) => v
       })}
 
       <TouchableOpacity style={ws.secondaryBtn} onPress={() => setPicking(true)} accessibilityRole="button">
-        <Text style={ws.secondaryBtnText}>+ Add exercise</Text>
+        <Copy id="workouts.weekEx.add" style={ws.secondaryBtnText}>
+          + Add exercise
+        </Copy>
       </TouchableOpacity>
-      <Text style={[ws.muted, styles.footnote]}>Sets added here count like a workout: in stats, records and your week.</Text>
+      <Copy id="workouts.weekEx.footnote" style={[ws.muted, styles.footnote]}>
+        Sets added here count like a workout: in stats, records and your week.
+      </Copy>
 
       <ExercisePickerModal
         visible={picking}
-        title="Add an exercise"
+        title={t('workouts.weekEx.addTitle', 'Add an exercise')}
         mode="single"
         onCancel={() => setPicking(false)}
         onConfirm={([exercise]) => {
           setPicking(false);
           if (!exercise) return;
           if (!canLogKind(exercise.kind)) {
-            showAlert('Run it as a workout', 'Timed distances like a mile are logged from a workout, not here.');
+            showAlert(
+              t('workouts.weekEx.runTitle', 'Run it as a workout'),
+              t('workouts.weekEx.runMsg', 'Timed distances like a mile are logged from a workout, not here.')
+            );
             return;
           }
           // Let the picker finish closing first: iOS drops a modal opened mid-dismissal.

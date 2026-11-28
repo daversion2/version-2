@@ -31,6 +31,7 @@ import {
   scheduleBell,
 } from '../../../../services/sessionBell';
 import { formatMinutes } from '../../../../services/sessionTimer';
+import { copyText } from '../../../../services/appCopy';
 
 const APP = 'meditate' as const;
 
@@ -249,8 +250,10 @@ export const MeditateProvider: React.FC<{
       let next = startSession({ ...input, id: newMeditateId(userId), now: new Date(), habitId: launchHabitId });
       if (next.style === 'timer') {
         const bellId = await scheduleBell(next.plannedSec, {
-          title: BELL_TITLE[next.mode],
-          body: `${formatMinutes(next.plannedSec)} done. Open Meditate when you’re ready to log it.`,
+          title: copyText(`meditate.bell.title.${next.mode}`, BELL_TITLE[next.mode]),
+          body: copyText('meditate.bell.body', '{time} done. Open Meditate when you’re ready to log it.', {
+            time: formatMinutes(next.plannedSec),
+          }),
           // A tap opens Meditate (RootNavigator), where it's ready to log.
           data: { open: 'MeditateApp' },
         });

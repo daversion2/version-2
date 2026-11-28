@@ -9,6 +9,8 @@ import { clampWeeklyGoal } from '../../../../services/appCheckins';
 import { WeeklyGoalPicker } from '../../../../components/miniapps/WeeklyGoalPicker';
 import { showAlert } from '../../../../utils/alert';
 import { validThresholds } from '../../../../services/cardio';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import { NumberStepper } from './components/NumberStepper';
 import { CardioZonesInfo } from './components/CardioZonesInfo';
@@ -27,19 +29,23 @@ const stepBpm = (bpm: number, dir: 1 | -1, start: number): number => {
 };
 const typedBpm = (n: number): number => (n < MIN_BPM ? 0 : Math.min(MAX_BPM, Math.round(n)));
 
-const UNITS: { value: WeightUnit; label: string }[] = [
-  { value: 'lb', label: 'Pounds (lb)' },
-  { value: 'kg', label: 'Kilograms (kg)' },
+const UNITS: { value: WeightUnit; label: string; key: string }[] = [
+  { value: 'lb', label: 'Pounds (lb)', key: 'workouts.settings.pounds' },
+  { value: 'kg', label: 'Kilograms (kg)', key: 'workouts.settings.kilograms' },
 ];
 
 export const WorkoutSettingsScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<WorkoutsStackParamList>>();
+  const t = useCopy();
   const { prefs, updatePrefs, exercises, hiddenExercises, notes } = useWorkouts();
   const mineCount = exercises.filter((e) => e.custom).length;
   const notesCount = Object.keys(notes).length;
 
   const save = (changes: Parameters<typeof updatePrefs>[0]) =>
-    updatePrefs(changes).catch(() => showAlert("Couldn't save that", 'Check your connection and try again.'));
+    updatePrefs(changes).catch(() => showAlert(
+        t('workouts.settings.saveFailTitle', "Couldn't save that"),
+        t('workouts.settings.saveFailMsg', 'Check your connection and try again.')
+      ));
 
   return (
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
@@ -50,10 +56,14 @@ export const WorkoutSettingsScreen: React.FC = () => {
       >
         <Ionicons name="barbell-outline" size={20} color={WORKOUTS_ACCENT} />
         <View style={{ flex: 1 }}>
-          <Text style={ws.title}>My exercises</Text>
+          <Copy id="workouts.settings.myExercises" style={ws.title}>
+            My exercises
+          </Copy>
           <Text style={ws.muted}>
-            {mineCount === 0 ? 'Add your own' : `${mineCount} of your own`}
-            {notesCount > 0 ? ` · cues on ${notesCount}` : ''}
+            {mineCount === 0
+              ? t('workouts.settings.addOwn', 'Add your own')
+              : t('workouts.settings.ownCount', '{n} of your own', { n: mineCount })}
+            {notesCount > 0 ? t('workouts.settings.cuesOn', ' · cues on {n}', { n: notesCount }) : ''}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
@@ -66,17 +76,21 @@ export const WorkoutSettingsScreen: React.FC = () => {
       >
         <Ionicons name="eye-off-outline" size={20} color={WORKOUTS_ACCENT} />
         <View style={{ flex: 1 }}>
-          <Text style={ws.title}>Hidden exercises</Text>
+          <Copy id="workouts.settings.hidden" style={ws.title}>
+            Hidden exercises
+          </Copy>
           <Text style={ws.muted}>
             {hiddenExercises.length === 0
-              ? 'None — hide one from the picker with its eye icon'
-              : `${hiddenExercises.length} hidden from the picker`}
+              ? t('workouts.settings.hiddenNone', 'None — hide one from the picker with its eye icon')
+              : t('workouts.settings.hiddenCount', '{n} hidden from the picker', { n: hiddenExercises.length })}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={Colors.gray} />
       </TouchableOpacity>
 
-      <Text style={ws.sectionLabel}>Weight unit</Text>
+      <Copy id="workouts.settings.weightUnit" style={ws.sectionLabel}>
+        Weight unit
+      </Copy>
       <View style={styles.units}>
         {UNITS.map((u) => (
           <TouchableOpacity
@@ -86,25 +100,33 @@ export const WorkoutSettingsScreen: React.FC = () => {
             accessibilityRole="radio"
             accessibilityState={{ checked: prefs.unit === u.value }}
           >
-            <Text style={[styles.unitText, prefs.unit === u.value && styles.unitTextOn]}>{u.label}</Text>
+            <Text style={[styles.unitText, prefs.unit === u.value && styles.unitTextOn]}>
+              {t(u.key, u.label)}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={ws.muted}>History is stored once and shown in whichever unit you pick.</Text>
+      <Copy id="workouts.settings.unitNote" style={ws.muted}>
+        History is stored once and shown in whichever unit you pick.
+      </Copy>
 
-      <Text style={ws.sectionLabel}>Weekly goal</Text>
+      <Copy id="workouts.settings.weeklyGoal" style={ws.sectionLabel}>
+        Weekly goal
+      </Copy>
       <WeeklyGoalPicker
         noun="workouts"
         value={clampWeeklyGoal(prefs.weekly_goal, 'workouts')}
         accent={WORKOUTS_ACCENT}
         onChange={(n) => save({ weekly_goal: n })}
       />
-      <Text style={ws.muted}>
+      <Copy id="workouts.settings.goalNote" style={ws.muted}>
         Shown on Today as “1 of 3 this week”. A week that falls short gets the usual one-tap “what got in the way?”.
-      </Text>
+      </Copy>
 
       <View style={styles.sectionHead}>
-        <Text style={[ws.sectionLabel, styles.sectionHeadLabel]}>Cardio thresholds (optional)</Text>
+        <Copy id="workouts.settings.cardio" style={[ws.sectionLabel, styles.sectionHeadLabel]}>
+          Cardio thresholds (optional)
+        </Copy>
         <CardioZonesInfo size={18} />
       </View>
       <View style={styles.bpmRow}>
@@ -113,7 +135,11 @@ export const WorkoutSettingsScreen: React.FC = () => {
           return (
             <NumberStepper
               key={key}
-              label={`${key === 'vt1_bpm' ? 'VT1' : 'VT2'} heart rate`}
+              label={
+                key === 'vt1_bpm'
+                  ? t('workouts.settings.vt1Hr', 'VT1 heart rate')
+                  : t('workouts.settings.vt2Hr', 'VT2 heart rate')
+              }
               value={bpm}
               suffix={bpm ? 'bpm' : undefined}
               onDecrement={() => save({ [key]: stepBpm(bpm, -1, VT_START[key]) })}
@@ -124,13 +150,15 @@ export const WorkoutSettingsScreen: React.FC = () => {
         })}
       </View>
       {!validThresholds(prefs.vt1_bpm, prefs.vt2_bpm) && (
-        <Text style={styles.warn}>VT2 should be higher than VT1.</Text>
+        <Copy id="workouts.settings.vtWarn" style={styles.warn}>
+          VT2 should be higher than VT1.
+        </Copy>
       )}
-      <Text style={ws.muted}>
+      <Copy id="workouts.settings.vtNote" style={ws.muted}>
         VT1 is where your breathing first picks up — the top of easy. VT2 is where it turns hard and ragged. Cardio is
         logged by the talk test either way; if you know your heart rate at each (from a lab or field test), each zone
         shows its range too. Leave at 0 if you don’t.
-      </Text>
+      </Copy>
     </ScrollView>
   );
 };

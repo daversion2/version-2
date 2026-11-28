@@ -9,6 +9,8 @@ import {
   Linking,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { InputField } from '../../components/common/InputField';
 import { Button } from '../../components/common/Button';
 import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
@@ -20,6 +22,7 @@ import { authErrorMessage } from '../../utils/authErrors';
 type Props = AuthScreenProps<'Signup'>;
 
 export const SignupScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,15 +32,15 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSignup = async () => {
     if (!email || !password || !confirmPassword) {
-      setError('Please fill in all fields.');
+      setError(t('auth.signup.fillAll', 'Please fill in all fields.'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('auth.signup.mismatch', 'Passwords do not match.'));
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('auth.signup.tooShort', 'Password must be at least 6 characters.'));
       return;
     }
     setLoading(true);
@@ -45,7 +48,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signUp(email.trim(), password);
     } catch (e: any) {
-      setError(authErrorMessage(e, 'Couldn’t create your account. Please try again.'));
+      setError(authErrorMessage(e, t('auth.signup.failed', 'Couldn’t create your account. Please try again.')));
     } finally {
       setLoading(false);
     }
@@ -57,7 +60,7 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await signInWithGoogle();
     } catch (e: any) {
-      setError(authErrorMessage(e, 'Couldn’t sign up with Google. Please try again.'));
+      setError(authErrorMessage(e, t('auth.signup.googleFailed', 'Couldn’t sign up with Google. Please try again.')));
     } finally {
       setGoogleLoading(false);
     }
@@ -72,39 +75,39 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Start your journey</Text>
+        <Copy id="auth.signup.title" style={styles.title}>Create Account</Copy>
+        <Copy id="auth.signup.subtitle" style={styles.subtitle}>Start your journey</Copy>
 
         <View style={styles.form}>
           <InputField
-            label="Email"
+            label={t('auth.signup.email', 'Email')}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            placeholder="you@example.com"
+            placeholder={t('auth.signup.emailPlaceholder', 'you@example.com')}
           />
           <InputField
-            label="Password"
+            label={t('auth.signup.password', 'Password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            placeholder="At least 6 characters"
+            placeholder={t('auth.signup.passwordPlaceholder', 'At least 6 characters')}
           />
           <InputField
-            label="Confirm Password"
+            label={t('auth.signup.confirm', 'Confirm Password')}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
-            placeholder="Re-enter password"
+            placeholder={t('auth.signup.confirmPlaceholder', 'Re-enter password')}
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Button title="Create Account" onPress={handleSignup} loading={loading} />
+          <Button title={t('auth.signup.create', 'Create Account')} onPress={handleSignup} loading={loading} />
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
+            <Copy id="auth.signup.or" style={styles.dividerText}>or</Copy>
             <View style={styles.dividerLine} />
           </View>
 
@@ -115,20 +118,20 @@ export const SignupScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           <Button
-            title="Back to Login"
+            title={t('auth.signup.back', 'Back to Login')}
             onPress={() => navigation.goBack()}
             variant="outline"
             style={{ marginTop: Spacing.sm }}
           />
 
           <Text style={styles.legal}>
-            By creating an account, you agree to our{' '}
+            {t('auth.signup.legal', 'By creating an account, you agree to our')}{' '}
             <Text
               style={styles.legalLink}
               onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
               accessibilityRole="link"
             >
-              Privacy Policy
+              {t('auth.signup.privacy', 'Privacy Policy')}
             </Text>
             .
           </Text>

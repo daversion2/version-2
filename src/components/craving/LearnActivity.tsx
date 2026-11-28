@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, ViewToken } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { CRAVING_FACTS } from '../../data/cravings';
+import { Copy } from '../common/Copy';
 
 function shuffled<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -44,11 +45,13 @@ export const LearnActivity: React.FC = () => {
             <View style={[styles.card, { width: containerWidth }]}>
               <View style={styles.cardHeader}>
                 <Text style={styles.kicker}>{item.kicker.toUpperCase()}</Text>
-                <Text style={styles.counter}>{index + 1} / {facts.length}</Text>
+                <Copy id="craving.learn.counter" style={styles.counter} vars={{ n: index + 1, total: facts.length }}>
+                  {'{n} / {total}'}
+                </Copy>
               </View>
               <Text style={styles.fact}>{item.fact}</Text>
               {index === 0 && (
-                <Text style={styles.swipeHint}>swipe for more →</Text>
+                <Copy id="craving.learn.swipe" style={styles.swipeHint}>swipe for more →</Copy>
               )}
             </View>
           )}

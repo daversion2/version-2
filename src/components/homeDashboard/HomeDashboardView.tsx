@@ -29,6 +29,8 @@ import { HomeAppData, loadHomeAppData } from '../../services/homeDashboardLoad';
 import { MODES } from '../../services/meditateMath';
 import { formatVolume } from '../../services/workoutMath';
 import { LoadError } from '../homeRedesign/LoadError';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import {
   APP_ICONS,
   Chip,
@@ -101,6 +103,7 @@ export const HomeDashboardView: React.FC<Props> = ({
   onLoadFailed,
   hiddenApps = NO_APPS,
 }) => {
+  const t = useCopy();
   const pages = useMemo(() => PAGES.filter((p) => p.id === 'overview' || !hiddenApps.includes(p.id)), [hiddenApps]);
   const shows = (id: TodayAppId) => !hiddenApps.includes(id);
   const { width } = useWindowDimensions();
@@ -187,11 +190,26 @@ export const HomeDashboardView: React.FC<Props> = ({
   };
 
   const unit = appData?.unit ?? 'lb';
+  const pageTitle = (id: PageId) => t(`today.dash.page.${id}`, PAGES.find((p) => p.id === id)?.title ?? '');
+  const streakText = (n: number) =>
+    n > 0 ? t('today.dash.streak', '{n}-day streak', { n }) : t('today.dash.noStreak', 'No streak yet');
+  const platesScore = (score: number | null) =>
+    score === null ? t('today.dash.noPlatesYet', 'no plates yet') : t('today.dash.score', 'score {score}', { score });
+  const notRated = t('today.dash.notRated', 'not rated yet');
   const collapsedLine: Record<PageId, string> = {
-    overview: 'Overview',
-    meditate: d ? `Meditate · ${d.meditate.minutes} min` : 'Meditate',
-    workouts: d ? `Workouts · ${d.workouts.sessions} of ${d.workouts.goal}` : 'Workouts',
-    meals: d ? `Meals · ${d.meals.averageScore === null ? 'no plates yet' : `score ${d.meals.averageScore}`}` : 'Meals',
+    overview: t('today.dash.page.overview', 'Overview'),
+    meditate: d
+      ? t('today.dash.collapsed.meditate', 'Meditate · {minutes} min', { minutes: d.meditate.minutes })
+      : t('today.dash.page.meditate', 'Meditate'),
+    workouts: d
+      ? t('today.dash.collapsed.workouts', 'Workouts · {sessions} of {goal}', {
+          sessions: d.workouts.sessions,
+          goal: d.workouts.goal,
+        })
+      : t('today.dash.page.workouts', 'Workouts'),
+    meals: d
+      ? t('today.dash.collapsed.meals', 'Meals · {plates}', { plates: platesScore(d.meals.averageScore) })
+      : t('today.dash.page.meals', 'Meals'),
   };
 
   const pageProps = (id: PageId) => ({
@@ -217,7 +235,7 @@ export const HomeDashboardView: React.FC<Props> = ({
                 accessibilityState={{ selected: on }}
               >
                 <Ionicons name={p.icon as never} size={16} color={on ? Colors.primary : Colors.gray} />
-                <Text style={[styles.tabText, on && styles.tabTextOn]}>{p.title}</Text>
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>{pageTitle(p.id)}</Text>
                 <View style={[styles.tabBar, on && styles.tabBarOn]} />
               </TouchableOpacity>
             );
@@ -229,18 +247,16 @@ export const HomeDashboardView: React.FC<Props> = ({
             <View style={styles.slim}>
               <View style={styles.slimDot} />
               <Text style={styles.slimText}>
-                <Text style={styles.strong}>
-                  {d.combinedStreak > 0 ? `${d.combinedStreak}-day streak` : 'No streak yet'}
-                </Text>{' '}
+                <Text style={styles.strong}>{streakText(d.combinedStreak)}</Text>{' '}
                 · {collapsedLine[page]}
               </Text>
             </View>
           ) : (
             <View style={styles.rings}>
-              <Text style={styles.window}>This week</Text>
+              <Copy id="today.dash.window" style={styles.window}>{'This week'}</Copy>
               <View style={styles.ringRow}>
                 {d.rings.map((r) => {
-                  const title = PAGES.find((p) => p.id === r.appId)?.title;
+                  const title = pageTitle(r.appId);
                   return (
                     <TouchableOpacity key={r.appId} style={styles.ringItem} onPress={() => goTo(r.appId)}>
                       <Ring pct={r.pct} label={`${title}: ${r.done} of ${r.goal}`} />
@@ -250,9 +266,7 @@ export const HomeDashboardView: React.FC<Props> = ({
                 })}
               </View>
               <Text style={styles.insight}>
-                <Text style={styles.strong}>
-                  {d.combinedStreak > 0 ? `${d.combinedStreak}-day streak` : 'No streak yet'}
-                </Text>
+                <Text style={styles.strong}>{streakText(d.combinedStreak)}</Text>
                 {d.insight ? ` · ${d.insight}` : ''}
               </Text>
             </View>
@@ -282,22 +296,37 @@ export const HomeDashboardView: React.FC<Props> = ({
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.primary} />}
           >
             {overviewTop}
-            <SectionLabel>Your week at a glance</SectionLabel>
+            <SectionLabel>{t('today.dash.weekGlance', 'Your week at a glance')}</SectionLabel>
             <WeekGrid grid={d.grid} apps={pages.flatMap((p) => (p.id === 'overview' ? [] : [p.id]))} />
 
-            <SectionLabel>Open an app</SectionLabel>
+            <SectionLabel>{t('today.dash.openApp', 'Open an app')}</SectionLabel>
             {(
               [
-                ['meditate', 'Meditate', `${d.meditate.minutes} min · ${d.meditate.streakDays}-day streak`],
+                [
+                  'meditate',
+                  pageTitle('meditate'),
+                  t('today.dash.row.meditate', '{minutes} min · {streak}-day streak', {
+                    minutes: d.meditate.minutes,
+                    streak: d.meditate.streakDays,
+                  }),
+                ],
                 [
                   'workouts',
-                  'Workouts',
-                  `${d.workouts.sessions} of ${d.workouts.goal} sessions · ${d.workouts.streakWeeks}-week streak`,
+                  pageTitle('workouts'),
+                  t('today.dash.row.workouts', '{sessions} of {goal} sessions · {streak}-week streak', {
+                    sessions: d.workouts.sessions,
+                    goal: d.workouts.goal,
+                    streak: d.workouts.streakWeeks,
+                  }),
                 ],
                 [
                   'meals',
-                  'Meals',
-                  `${d.meals.loggedThisWeek} of ${d.meals.goal} days logged · ${d.meals.averageScore === null ? 'no plates yet' : `score ${d.meals.averageScore}`}`,
+                  pageTitle('meals'),
+                  t('today.dash.row.meals', '{logged} of {goal} days logged · {plates}', {
+                    logged: d.meals.loggedThisWeek,
+                    goal: d.meals.goal,
+                    plates: platesScore(d.meals.averageScore),
+                  }),
                 ],
               ] as [TodayAppId, string, string][]
             )
@@ -321,27 +350,49 @@ export const HomeDashboardView: React.FC<Props> = ({
           {shows('meditate') && (
             <ScrollView {...pageProps('meditate')}>
               <Text style={styles.hero}>
-                {d.meditate.minutes} <Text style={styles.heroUnit}>min</Text>
+                {d.meditate.minutes} <Text style={styles.heroUnit}>{t('today.dash.unit.min', 'min')}</Text>
               </Text>
               <Text style={styles.body}>
-                {describeVsPrior(d.meditate.minutes, d.meditate.priorMinutes, 'min') ?? 'Nothing yet this week'}
+                {describeVsPrior(d.meditate.minutes, d.meditate.priorMinutes, 'min') ??
+                  t('today.dash.meditate.nothing', 'Nothing yet this week')}
               </Text>
               {d.meditate.lastSessionMinutes !== null && (
-                <Text style={styles.muted}>Last session: {d.meditate.lastSessionMinutes} min</Text>
+                <Copy id="today.dash.meditate.last" style={styles.muted} vars={{ minutes: d.meditate.lastSessionMinutes }}>
+                  {'Last session: {minutes} min'}
+                </Copy>
               )}
-              <SectionLabel>Minutes per session</SectionLabel>
-              <DotTrend values={d.meditate.series} label="Your last 8 sessions" empty="No sessions yet." />
+              <SectionLabel>{t('today.dash.meditate.perSession', 'Minutes per session')}</SectionLabel>
+              <DotTrend
+                values={d.meditate.series}
+                label={t('today.dash.last8', 'Your last 8 sessions')}
+                empty={t('today.dash.noSessions', 'No sessions yet.')}
+              />
               <View style={styles.chips}>
-                <Chip text={`${d.meditate.streakDays}-day streak`} />
-                <Chip text={`${d.meditate.sessions} of ${d.meditate.goal} sessions`} />
-                <Chip text={`Getting started: ${describeFriction(d.friction.meditate) ?? 'not rated yet'}`} />
-                <Chip text={`Staying with it: ${describeFriction(d.keepGoing.meditate) ?? 'not rated yet'}`} />
+                <Chip text={t('today.dash.streak', '{n}-day streak', { n: d.meditate.streakDays })} />
+                <Chip
+                  text={t('today.dash.chip.sessions', '{sessions} of {goal} sessions', {
+                    sessions: d.meditate.sessions,
+                    goal: d.meditate.goal,
+                  })}
+                />
+                <Chip
+                  text={t('today.dash.chip.start', 'Getting started: {value}', {
+                    value: describeFriction(d.friction.meditate) ?? notRated,
+                  })}
+                />
+                <Chip
+                  text={t('today.dash.chip.stay', 'Staying with it: {value}', {
+                    value: describeFriction(d.keepGoing.meditate) ?? notRated,
+                  })}
+                />
               </View>
-              {d.meditate.recent.length > 0 && <SectionLabel>Recent sessions</SectionLabel>}
+              {d.meditate.recent.length > 0 && (
+                <SectionLabel>{t('today.dash.meditate.recent', 'Recent sessions')}</SectionLabel>
+              )}
               {d.meditate.recent.map((s, i) => (
-                <ListRow key={i} cells={[recentDayLabel(s.date, appData!.today), MODES[s.mode].label, `${s.minutes} min`]} />
+                <ListRow key={i} cells={[recentDayLabel(s.date, appData!.today), MODES[s.mode].label, t('today.dash.row.minutes', '{n} min', { n: s.minutes })]} />
               ))}
-              <StartButton label="Start a session" onPress={() => onOpenApp('meditate')} />
+              <StartButton label={t('today.dash.meditate.start', 'Start a session')} onPress={() => onOpenApp('meditate')} />
             </ScrollView>
           )}
 
@@ -351,37 +402,57 @@ export const HomeDashboardView: React.FC<Props> = ({
               <Text style={styles.hero}>{formatVolume(d.workouts.volumeKg, unit)}</Text>
               <Text style={styles.body}>
                 {d.workouts.volumeChangePct === null
-                  ? 'Total volume lifted'
-                  : `Total volume ${d.workouts.volumeChangePct >= 0 ? 'up' : 'down'} ${Math.abs(
-                      d.workouts.volumeChangePct
-                    )}% on the 7 days before`}
+                  ? t('today.dash.workouts.volume', 'Total volume lifted')
+                  : t('today.dash.workouts.volumeChange', 'Total volume {dir} {pct}% on the 7 days before', {
+                      dir:
+                        d.workouts.volumeChangePct >= 0
+                          ? t('today.dash.dirUp', 'up')
+                          : t('today.dash.dirDown', 'down'),
+                      pct: Math.abs(d.workouts.volumeChangePct),
+                    })}
               </Text>
               {d.workouts.standout && (
                 <Text style={styles.muted}>
                   {d.workouts.standout.name}: {d.workouts.standout.line}
                 </Text>
               )}
-              <SectionLabel>Volume per session</SectionLabel>
+              <SectionLabel>{t('today.dash.workouts.perSession', 'Volume per session')}</SectionLabel>
               <BarTrend
                 values={d.workouts.series}
-                label="Your last 8 sessions"
-                empty="No sessions yet."
+                label={t('today.dash.last8', 'Your last 8 sessions')}
+                empty={t('today.dash.noSessions', 'No sessions yet.')}
                 formatValue={(kg) => formatVolume(kg, unit)}
               />
               <View style={styles.chips}>
-                <Chip text={`${d.workouts.streakWeeks}-week streak`} />
-                <Chip text={`${d.workouts.sessions} of ${d.workouts.goal} sessions`} />
-                <Chip text={`${d.workouts.priorSessions} last week`} />
-                <Chip text={`Getting started: ${describeFriction(d.friction.workouts) ?? 'not rated yet'}`} />
-                <Chip text={`Staying with it: ${describeFriction(d.keepGoing.workouts) ?? 'not rated yet'}`} />
+                <Chip text={t('today.dash.chip.weekStreak', '{n}-week streak', { n: d.workouts.streakWeeks })} />
+                <Chip
+                  text={t('today.dash.chip.sessions', '{sessions} of {goal} sessions', {
+                    sessions: d.workouts.sessions,
+                    goal: d.workouts.goal,
+                  })}
+                />
+                <Chip text={t('today.dash.chip.lastWeek', '{n} last week', { n: d.workouts.priorSessions })} />
+                <Chip
+                  text={t('today.dash.chip.start', 'Getting started: {value}', {
+                    value: describeFriction(d.friction.workouts) ?? notRated,
+                  })}
+                />
+                <Chip
+                  text={t('today.dash.chip.stay', 'Staying with it: {value}', {
+                    value: describeFriction(d.keepGoing.workouts) ?? notRated,
+                  })}
+                />
               </View>
               {(d.workouts.week.length > 0 || d.workouts.phaseLine) && (
-                <SectionLabel>This week{d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}</SectionLabel>
+                <SectionLabel>
+                  {t('today.dash.thisWeek', 'This week')}
+                  {d.workouts.phaseLine ? ` · ${d.workouts.phaseLine}` : ''}
+                </SectionLabel>
               )}
               {d.workouts.week.map((w, i) => (
-                <ListRow key={i} cells={[recentDayLabel(w.date, appData!.today), w.name, `${w.sets} sets`]} />
+                <ListRow key={i} cells={[recentDayLabel(w.date, appData!.today), w.name, t('today.dash.row.sets', '{n} sets', { n: w.sets })]} />
               ))}
-              <StartButton label="Start a workout" onPress={() => onOpenApp('workouts')} />
+              <StartButton label={t('today.dash.workouts.start', 'Start a workout')} onPress={() => onOpenApp('workouts')} />
             </ScrollView>
           )}
 
@@ -390,35 +461,48 @@ export const HomeDashboardView: React.FC<Props> = ({
             <ScrollView {...pageProps('meals')}>
               {d.meals.averageScore === null ? (
                 <Text style={styles.hero}>
-                  – <Text style={styles.heroUnit}>no plates logged yet</Text>
+                  – <Text style={styles.heroUnit}>{t('today.dash.meals.none', 'no plates logged yet')}</Text>
                 </Text>
               ) : (
                 <>
                   <Text style={styles.hero}>
-                    {d.meals.averageScore} <Text style={styles.heroUnit}>average score</Text>
+                    {d.meals.averageScore}{' '}
+                    <Text style={styles.heroUnit}>{t('today.dash.meals.average', 'average score')}</Text>
                   </Text>
                   <Text style={styles.body}>
                     {d.meals.priorAverageScore === null
-                      ? 'Every plate in the last 7 days, out of 100'
+                      ? t('today.dash.meals.every', 'Every plate in the last 7 days, out of 100')
                       : describeVsPrior(d.meals.averageScore, d.meals.priorAverageScore, 'pts')}
                   </Text>
                 </>
               )}
               <Text style={styles.muted}>
-                {d.meals.onTarget} of 7 days on target ({d.meals.threshold}+) ·{' '}
+                {t('today.dash.meals.onTarget', '{n} of 7 days on target ({threshold}+) ·', {
+                  n: d.meals.onTarget,
+                  threshold: d.meals.threshold,
+                })}{' '}
                 {describeVsPrior(d.meals.onTarget, d.meals.priorOnTarget, 'days')?.toLowerCase() ??
-                  'none the week before'}
+                  t('today.dash.meals.noneBefore', 'none the week before')}
               </Text>
-              <SectionLabel>What you ate</SectionLabel>
+              <SectionLabel>{t('today.dash.meals.ate', 'What you ate')}</SectionLabel>
               <ServingsTreemap servings={d.meals.servings} />
-              <SectionLabel>Day by day</SectionLabel>
+              <SectionLabel>{t('today.dash.meals.dayByDay', 'Day by day')}</SectionLabel>
               <DayDots days={d.meals.days} threshold={d.meals.threshold} />
               <View style={styles.chips}>
-                <Chip text={`${d.meals.loggedThisWeek} of ${d.meals.goal} days logged`} />
-                <Chip text={`${d.meals.streakDays}-day streak`} />
-                <Chip text={`Eating well: ${describeFriction(d.mealsDay) ?? 'not rated yet'}`} />
+                <Chip
+                  text={t('today.dash.chip.daysLogged', '{logged} of {goal} days logged', {
+                    logged: d.meals.loggedThisWeek,
+                    goal: d.meals.goal,
+                  })}
+                />
+                <Chip text={t('today.dash.streak', '{n}-day streak', { n: d.meals.streakDays })} />
+                <Chip
+                  text={t('today.dash.chip.eatingWell', 'Eating well: {value}', {
+                    value: describeFriction(d.mealsDay) ?? notRated,
+                  })}
+                />
               </View>
-              <StartButton label="Log a meal" onPress={() => onOpenApp('meals')} />
+              <StartButton label={t('today.dash.meals.start', 'Log a meal')} onPress={() => onOpenApp('meals')} />
             </ScrollView>
           )}
         </ScrollView>

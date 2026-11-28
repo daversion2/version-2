@@ -4,6 +4,7 @@ import { SwipeViews } from '../common/SwipeViews';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../constants/theme';
 import { ProgressRing } from '../common/ProgressRing';
 import { WEEK_VIEWS, WeekApp, weekTotal } from '../../services/weekViews';
+import { Copy } from '../common/Copy';
 
 // =============================================================================
 // THE WEEK CARD at the top of Today (2026-11-22): three ways to show the week
@@ -27,12 +28,12 @@ export const WeekCard: React.FC<{
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.title} accessibilityRole="header">
-          This week
-        </Text>
-        <Text style={styles.total}>
-          {total.done} of {total.goal}
-        </Text>
+        <Copy id="today.week.title" style={styles.title} accessibilityRole="header">
+          {'This week'}
+        </Copy>
+        <Copy id="today.week.total" style={styles.total} vars={{ done: total.done, goal: total.goal }}>
+          {'{done} of {goal}'}
+        </Copy>
       </View>
       <SwipeViews
         name="This week"

@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 
 interface WeekOverWeekCardProps {
@@ -9,19 +11,22 @@ interface WeekOverWeekCardProps {
 }
 
 export const WeekOverWeekCard: React.FC<WeekOverWeekCardProps> = ({ thisWeek, lastWeek }) => {
+  const t = useCopy();
   // Only render if this week is equal to or better than last week
   if (thisWeek < lastWeek) return null;
 
   const delta = thisWeek - lastWeek;
   const message = delta === 0
-    ? 'Matching last week\'s pace'
-    : `+${delta} more than last week`;
+    ? t('progress.weekOverWeek.matching', 'Matching last week\'s pace')
+    : t('progress.weekOverWeek.more', '+{delta} more than last week', { delta });
 
   return (
     <View style={styles.container}>
       <Ionicons name="trending-up" size={18} color="#34C759" />
       <Text style={styles.text}>{message}</Text>
-      <Text style={styles.count}>{thisWeek} this week</Text>
+      <Copy id="progress.weekOverWeek.count" style={styles.count} vars={{ n: thisWeek }}>
+        {'{n} this week'}
+      </Copy>
     </View>
   );
 };

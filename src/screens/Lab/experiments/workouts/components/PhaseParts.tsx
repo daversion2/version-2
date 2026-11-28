@@ -16,6 +16,9 @@ import {
   testLabel,
   testTypeFor,
 } from '../../../../../services/trainingPhases';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
+import { copyText } from '../../../../../services/appCopy';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './workoutsStyle';
 
 /** "Mon, Nov 30" from YYYY-MM-DD. */
@@ -26,9 +29,12 @@ export const formatPhaseDate = (day: string): string => {
 
 export const retestLine = (phase: TrainingPhase, today: string): string => {
   const days = daysUntilRetest(phase, today);
-  if (days <= 0) return 'Retest today';
-  if (days === 1) return 'Retest tomorrow';
-  return `Retest ${formatPhaseDate(phase.retest_date)} · ${days} days`;
+  if (days <= 0) return copyText('workouts.parts.retestToday', 'Retest today');
+  if (days === 1) return copyText('workouts.parts.retestTomorrow', 'Retest tomorrow');
+  return copyText('workouts.parts.retestOn', 'Retest {date} · {n} days', {
+    date: formatPhaseDate(phase.retest_date),
+    n: days,
+  });
 };
 
 export const ProgressBar: React.FC<{ value: number; max: number }> = ({ value, max }) => (
@@ -54,11 +60,17 @@ export const PhaseStatusCard: React.FC<{
   if (phase.status === 'baseline') {
     return (
       <Wrapper style={[ws.card, styles.card]} {...(onOpen ? { onPress: onOpen, accessibilityRole: 'button' } : {})}>
-        <Text style={styles.eyebrow}>Phase {phase.number} · test day</Text>
+        <Copy id="workouts.parts.testDay" style={styles.eyebrow} vars={{ n: phase.number }}>
+          {'Phase {n} · test day'}
+        </Copy>
         <Text style={styles.title}>{phase.program_name}</Text>
-        <Text style={ws.body}>Do your baseline test to start. The {phase.weeks}-week clock starts once it’s saved.</Text>
+        <Copy id="workouts.parts.baselineBody" style={ws.body} vars={{ weeks: phase.weeks }}>
+          {'Do your baseline test to start. The {weeks}-week clock starts once it’s saved.'}
+        </Copy>
         <TouchableOpacity style={ws.primaryBtn} onPress={onTest} accessibilityRole="button">
-          <Text style={ws.primaryBtnText}>Start the test</Text>
+          <Copy id="workouts.parts.startTest" style={ws.primaryBtnText}>
+            Start the test
+          </Copy>
         </TouchableOpacity>
       </Wrapper>
     );
@@ -67,33 +79,51 @@ export const PhaseStatusCard: React.FC<{
   return (
     <Wrapper style={[ws.card, styles.card]} {...(onOpen ? { onPress: onOpen, accessibilityRole: 'button' } : {})}>
       <View style={styles.headRow}>
-        <Text style={styles.eyebrow}>
-          Phase {phase.number} · week {phaseWeek(phase, today)} of {phase.weeks}
-        </Text>
+        <Copy
+          id="workouts.parts.weekOf"
+          style={styles.eyebrow}
+          vars={{ n: phase.number, week: phaseWeek(phase, today), total: phase.weeks }}
+        >
+          {'Phase {n} · week {week} of {total}'}
+        </Copy>
         {onOpen && <Ionicons name="chevron-forward" size={18} color={Colors.gray} />}
       </View>
       <Text style={styles.title}>{phase.program_name}</Text>
-      {!!phase.change && <Text style={ws.muted}>This phase: {phase.change.label}</Text>}
+      {!!phase.change && (
+        <Copy id="workouts.parts.thisPhase" style={ws.muted} vars={{ label: phase.change.label }}>
+          {'This phase: {label}'}
+        </Copy>
+      )}
       <View style={styles.statRow}>
-        <Text style={ws.muted}>Sessions</Text>
-        <Text style={styles.stat}>
-          {sessionsDone} of {planned}
-        </Text>
+        <Copy id="workouts.parts.sessions" style={ws.muted}>
+          Sessions
+        </Copy>
+        <Copy id="workouts.parts.sessionsOf" style={styles.stat} vars={{ n: sessionsDone, total: planned }}>
+          {'{n} of {total}'}
+        </Copy>
       </View>
       <ProgressBar value={sessionsDone} max={planned} />
       <View style={styles.statRow}>
         <Text style={ws.muted}>{retestLine(phase, today)}</Text>
-        {isLighterWeek(phase, today) && <Text style={styles.light}>Light week</Text>}
+        {isLighterWeek(phase, today) && (
+          <Copy id="workouts.parts.lightWeek" style={styles.light}>
+            Light week
+          </Copy>
+        )}
       </View>
       {due ? (
         <TouchableOpacity style={[ws.primaryBtn, styles.retestBtn]} onPress={onTest} accessibilityRole="button">
-          <Text style={ws.primaryBtnText}>Retest now</Text>
+          <Copy id="workouts.parts.retestNow" style={ws.primaryBtnText}>
+            Retest now
+          </Copy>
         </TouchableOpacity>
       ) : (
         !!onStartNext &&
         !!nextWorkoutName && (
           <TouchableOpacity style={ws.primaryBtn} onPress={onStartNext} accessibilityRole="button">
-            <Text style={ws.primaryBtnText}>Next: {nextWorkoutName}</Text>
+            <Copy id="workouts.parts.next" style={ws.primaryBtnText} vars={{ name: nextWorkoutName }}>
+              {'Next: {name}'}
+            </Copy>
           </TouchableOpacity>
         )
       )}
@@ -116,7 +146,9 @@ export const TestResultRow: React.FC<{
     return (
       <View style={styles.resultRow}>
         <Text style={ws.title}>{exercise.name}</Text>
-        <Text style={ws.muted}>{label} · not tested yet</Text>
+        <Copy id="workouts.parts.notTested" style={ws.muted} vars={{ label }}>
+          {'{label} · not tested yet'}
+        </Copy>
       </View>
     );
   }
@@ -130,7 +162,11 @@ export const TestResultRow: React.FC<{
           </View>
           <Text style={styles.value}>{formatTestValue(type, before)}</Text>
         </View>
-        {untrained && <Text style={styles.note}>Not in your program — fine to track, but don’t expect much change.</Text>}
+        {untrained && (
+          <Copy id="workouts.parts.untrainedNoResult" style={styles.note}>
+            Not in your program — fine to track, but don’t expect much change.
+          </Copy>
+        )}
       </View>
     );
   }
@@ -141,10 +177,13 @@ export const TestResultRow: React.FC<{
       <View style={styles.statRow}>
         <View style={{ flex: 1 }}>
           <Text style={ws.title}>{exercise.name}</Text>
-          <Text style={ws.muted}>
-            {label}
-            {type === 'fastest' ? ' · lower is better' : ''}
-          </Text>
+          {type === 'fastest' ? (
+            <Copy id="workouts.parts.lowerLabel" style={ws.muted} vars={{ label }}>
+              {'{label} · lower is better'}
+            </Copy>
+          ) : (
+            <Text style={ws.muted}>{label}</Text>
+          )}
         </View>
         <View
           style={[
@@ -162,18 +201,26 @@ export const TestResultRow: React.FC<{
         {formatTestValue(type, before)} <Text style={styles.arrow}>→</Text> {formatTestValue(type, after)}
       </Text>
       <View style={styles.cmp}>
-        <Text style={styles.cmpLabel}>Before</Text>
+        <Copy id="workouts.parts.before" style={styles.cmpLabel}>
+          Before
+        </Copy>
         <View style={styles.cmpTrack}>
           <View style={[styles.cmpBar, { width: `${(before / max) * 100}%` }]} />
         </View>
       </View>
       <View style={styles.cmp}>
-        <Text style={styles.cmpLabel}>Now</Text>
+        <Copy id="workouts.parts.now" style={styles.cmpLabel}>
+          Now
+        </Copy>
         <View style={styles.cmpTrack}>
           <View style={[styles.cmpBar, styles.cmpBarNow, { width: `${(after / max) * 100}%` }]} />
         </View>
       </View>
-      {untrained && <Text style={styles.note}>Not in your program, so a small change is expected.</Text>}
+      {untrained && (
+        <Copy id="workouts.parts.untrained" style={styles.note}>
+          Not in your program, so a small change is expected.
+        </Copy>
+      )}
     </View>
   );
 };
@@ -185,7 +232,11 @@ export const TestHistoryBars: React.FC<{ points: TestPoint[]; format: (v: number
   lowerIsBetter,
 }) => {
   if (points.length < 2) {
-    return <Text style={ws.muted}>The chart fills in after your first retest.</Text>;
+    return (
+      <Copy id="workouts.parts.chartEmpty" style={ws.muted}>
+        The chart fills in after your first retest.
+      </Copy>
+    );
   }
   const max = Math.max(...points.map((p) => p.value)) || 1;
   const min = Math.min(...points.map((p) => p.value));
@@ -205,7 +256,11 @@ export const TestHistoryBars: React.FC<{ points: TestPoint[]; format: (v: number
           );
         })}
       </View>
-      {lowerIsBetter && <Text style={ws.muted}>Lower is better.</Text>}
+      {lowerIsBetter && (
+        <Copy id="workouts.parts.lowerBetter" style={ws.muted}>
+          Lower is better.
+        </Copy>
+      )}
       {points.slice(1).map((p, i) => (
         <Text key={`c_${i}`} style={ws.muted}>
           {p.label}: {p.change}

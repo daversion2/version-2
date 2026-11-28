@@ -17,6 +17,8 @@ import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import { useHotCold } from './HotColdContext';
 import { LogSheet, LogTarget } from './components/LogSheet';
 import { hcs, KIND_COLOR, KIND_ICON, ratingLabel } from './components/hotcoldStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdHistory'>;
 
@@ -24,6 +26,7 @@ const RECORD_ORDER: RecordId[] = ['longestCold', 'coldest', 'longestHeat'];
 
 /** Records from every session, then the last 12 weeks by day. Tap one to edit or delete it. */
 export const HotColdHistoryScreen: React.FC<Props> = () => {
+  const t = useCopy();
   const { sessions, today, prefs } = useHotCold();
   const [target, setTarget] = useState<LogTarget | null>(null);
   const [sheetKey, setSheetKey] = useState(0);
@@ -45,7 +48,7 @@ export const HotColdHistoryScreen: React.FC<Props> = () => {
   return (
     <View style={hcs.screen}>
       <ScrollView contentContainerStyle={hcs.scroll}>
-        <ListGroup title="Records">
+        <ListGroup title={t('hotcold.history.records', 'Records')}>
           {RECORD_ORDER.map((id) => (
             <ListRow
               key={id}
@@ -60,7 +63,9 @@ export const HotColdHistoryScreen: React.FC<Props> = () => {
         </ListGroup>
 
         {days.length === 0 ? (
-          <Text style={[hcs.muted, styles.centerText]}>Nothing logged yet. Your sessions show up here.</Text>
+          <Copy id="hotcold.history.empty" style={[hcs.muted, styles.centerText]}>
+            Nothing logged yet. Your sessions show up here.
+          </Copy>
         ) : (
           days.map((day) => (
             <ListGroup key={day.date} title={dayLabel(day.date, today)}>
@@ -77,7 +82,9 @@ export const HotColdHistoryScreen: React.FC<Props> = () => {
             </ListGroup>
           ))
         )}
-        {days.length > 0 ? <Text style={[hcs.muted, styles.centerText]}>Showing the last 12 weeks.</Text> : null}
+        {days.length > 0 ? <Copy id="hotcold.history.last12" style={[hcs.muted, styles.centerText]}>
+            Showing the last 12 weeks.
+          </Copy> : null}
       </ScrollView>
 
       <LogSheet key={sheetKey} target={target} onClose={() => setTarget(null)} />

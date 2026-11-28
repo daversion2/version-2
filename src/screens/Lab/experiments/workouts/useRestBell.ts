@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import type { RestState } from '../../../../types/workouts';
+import { copyText } from '../../../../services/appCopy';
 import { cancelBell, getBellPermission, requestBellPermission, scheduleBell } from '../../../../services/sessionBell';
 
 /**
@@ -43,7 +44,10 @@ export const useRestBell = (rest: RestState | undefined, nextLabel: string): voi
       }
       if (state !== 'background' || !restRef.current) return;
       const seconds = (new Date(restRef.current.endsAt).getTime() - Date.now()) / 1000;
-      scheduleBell(seconds, { title: 'Rest’s up', body: `Up next: ${labelRef.current}` }).then((id) => {
+      scheduleBell(seconds, {
+        title: copyText('workouts.restBell.title', 'Rest’s up'),
+        body: copyText('workouts.restBell.body', 'Up next: {next}', { next: labelRef.current }),
+      }).then((id) => {
         // Back in front before it was scheduled — the sheet has it covered.
         if (AppState.currentState === 'active') cancelBell(id);
         else bellId.current = id;

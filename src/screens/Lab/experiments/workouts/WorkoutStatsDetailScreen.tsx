@@ -18,10 +18,12 @@ import {
 import { formatSetValues } from '../../../../services/workoutMath';
 import { recordSources } from '../../../../services/workoutEdit';
 import { formatDayHeader, toLocalDateString } from '../../../../utils/date';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import { useWorkouts } from './WorkoutsContext';
 import {
   BreakdownRow,
-  RANGE_PHRASE,
+  rangePhrase,
   RangePicker,
   StatTiles,
   TrendChart,
@@ -43,12 +45,13 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutStatsDetail'
  */
 export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { kind, id } = route.params;
+  const t = useCopy();
   const { sessions, exercisesById, exercise, prefs, records, tests, phases } = useWorkouts();
   const [range, setRange] = useState<StatsRange>(route.params.range);
   const unit = prefs.unit;
   const isExercise = kind === 'exercise';
   const ex = isExercise ? exercise(id) : null;
-  const title = ex ? ex.name : MUSCLE_GROUP_LABELS[id as MuscleGroup] ?? 'Body part';
+  const title = ex ? ex.name : MUSCLE_GROUP_LABELS[id as MuscleGroup] ?? t('workouts.stats.bodyPart', 'Body part');
 
   useLayoutEffect(() => navigation.setOptions({ title }), [navigation, title]);
 
@@ -99,7 +102,9 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
       {isExercise && hasHowTo(id) && (
         <>
-          <Text style={ws.sectionLabel}>How to do it</Text>
+          <Copy id="workouts.stats.howTo" style={ws.sectionLabel}>
+            How to do it
+          </Copy>
           <ExerciseDemoCard exerciseId={id} />
         </>
       )}
@@ -113,7 +118,9 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
 
           {records_.length > 0 && (
             <>
-              <Text style={ws.sectionLabel}>Records</Text>
+              <Copy id="workouts.stats.records" style={ws.sectionLabel}>
+                Records
+              </Copy>
               <View style={[ws.card, styles.records]}>
                 {records_.map(({ line, sessionId }) =>
                   sessionId ? (
@@ -138,24 +145,34 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
           )}
 
           <View style={styles.testsHead}>
-            <Text style={ws.sectionLabel}>Tests</Text>
+            <Copy id="workouts.stats.tests" style={ws.sectionLabel}>
+              Tests
+            </Copy>
             <TouchableOpacity
               onPress={() => navigation.navigate('ExerciseTest', { exerciseId: id })}
               accessibilityRole="button"
               hitSlop={8}
             >
-              <Text style={styles.testLink}>Test this</Text>
+              <Copy id="workouts.stats.testThis" style={styles.testLink}>
+                Test this
+              </Copy>
             </TouchableOpacity>
           </View>
           {ex && testsOf.length > 0 ? (
             <TestHistoryRows entries={testsOf} type={testTypeFor(ex.kind)} unit={unit} />
           ) : (
-            <Text style={ws.muted}>Not tested yet. A test shows whether you’re getting better, even without a program.</Text>
+            <Copy id="workouts.stats.notTested" style={ws.muted}>
+              Not tested yet. A test shows whether you’re getting better, even without a program.
+            </Copy>
           )}
 
-          <Text style={ws.sectionLabel}>Recent sessions</Text>
+          <Copy id="workouts.stats.recent" style={ws.sectionLabel}>
+            Recent sessions
+          </Copy>
           {recentRows.length === 0 ? (
-            <Text style={ws.muted}>Not logged yet.</Text>
+            <Copy id="workouts.stats.notLogged" style={ws.muted}>
+              Not logged yet.
+            </Copy>
           ) : (
             recentRows.map((row) =>
               row.kind === 'away' ? (
@@ -179,7 +196,9 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
                       {formatDayHeader(toLocalDateString(new Date(row.line.finishedAt)))}
                       <Text style={ws.muted}>  {row.line.workoutName}</Text>
                     </Text>
-                    <Text style={styles.testLink}>Edit</Text>
+                    <Copy id="workouts.stats.edit" style={styles.testLink}>
+                      Edit
+                    </Copy>
                   </View>
                   <Text style={styles.sets}>
                     {row.line.sets.map((s) => formatSetValues(s, ex!.kind, unit)).join('  ·  ')}
@@ -195,10 +214,14 @@ export const WorkoutStatsDetailScreen: React.FC<Props> = ({ navigation, route })
           )}
         </>
       ) : view.exercises.length === 0 ? (
-        <Text style={ws.muted}>Nothing logged {RANGE_PHRASE[range]}.</Text>
+        <Copy id="workouts.stats.nothing" style={ws.muted} vars={{ when: rangePhrase(range) }}>
+          {'Nothing logged {when}.'}
+        </Copy>
       ) : (
         <>
-          <Text style={ws.sectionLabel}>Exercises {RANGE_PHRASE[range]}</Text>
+          <Copy id="workouts.stats.exercises" style={ws.sectionLabel} vars={{ when: rangePhrase(range) }}>
+            {'Exercises {when}'}
+          </Copy>
           {view.exercises.map((e) => (
             <BreakdownRow
               key={e.exerciseId}

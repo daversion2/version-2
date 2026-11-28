@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Copy } from '../../components/common/Copy';
 import { useAuth } from '../../context/AuthContext';
+import { useCopy } from '../../context/CopyContext';
 import { CravingLog, CravingOutcome } from '../../types';
 import {
   CRAVING_TYPES,
@@ -44,6 +46,7 @@ import { NameItActivity } from '../../components/craving/NameItActivity';
 import { MissionBrief } from '../../components/craving/MissionBrief';
 import { WaveTrendChart } from '../../components/craving/WaveTrendChart';
 import { showAlert, showConfirm } from '../../utils/alert';
+import { copyText } from '../../services/appCopy';
 import { triggerRewardHaptic } from '../../utils/haptics';
 
 // Opened from Craving Crusher's home (root route CravingRide) and, for the
@@ -67,10 +70,10 @@ const WAVE_SHAPE = Array.from({ length: 24 }, (_, i) => {
 
 const hourWindowLabel = (d: Date): string => {
   const h = d.getHours();
-  if (h >= 5 && h < 12) return 'in the morning';
-  if (h >= 12 && h < 17) return 'in the afternoon';
-  if (h >= 17 && h < 22) return 'in the evening';
-  return 'late at night';
+  if (h >= 5 && h < 12) return copyText('craving.ride.hour.morning', 'in the morning');
+  if (h >= 12 && h < 17) return copyText('craving.ride.hour.afternoon', 'in the afternoon');
+  if (h >= 17 && h < 22) return copyText('craving.ride.hour.evening', 'in the evening');
+  return copyText('craving.ride.hour.night', 'late at night');
 };
 
 /**
@@ -101,20 +104,19 @@ const SavorPause: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
   return (
     <SafeAreaView style={savorStyles.container}>
       <View style={savorStyles.stage}>
-        <Text style={savorStyles.kicker}>BEFORE THE NUMBERS</Text>
-        <Text style={savorStyles.title}>Stop for a moment.</Text>
-        <Text style={savorStyles.instruction}>Take two deep breaths.</Text>
+        <Copy id="craving.ride.savor.kicker" style={savorStyles.kicker}>BEFORE THE NUMBERS</Copy>
+        <Copy id="craving.ride.savor.title" style={savorStyles.title}>Stop for a moment.</Copy>
+        <Copy id="craving.ride.savor.instruction" style={savorStyles.instruction}>Take two deep breaths.</Copy>
         <Animated.View style={[savorStyles.circle, { transform: [{ scale: pulse }] }]} />
-        <Text style={savorStyles.body}>
-          Notice how it feels to be on the other side of the wave.{'\n'}
-          That feeling is the reward — let it register.
-        </Text>
-        <Text style={savorStyles.science}>
+        <Copy id="craving.ride.savor.body" style={savorStyles.body}>
+          {'Notice how it feels to be on the other side of the wave.\nThat feeling is the reward — let it register.'}
+        </Copy>
+        <Copy id="craving.ride.savor.science" style={savorStyles.science}>
           Slow breaths activate your parasympathetic nervous system, helping your brain consolidate this win into long-term memory.
-        </Text>
+        </Copy>
         {ready ? (
           <TouchableOpacity style={savorStyles.continueButton} onPress={onContinue}>
-            <Text style={savorStyles.continueText}>Continue →</Text>
+            <Copy id="craving.ride.savor.continue" style={savorStyles.continueText}>Continue →</Copy>
           </TouchableOpacity>
         ) : (
           <View style={savorStyles.continuePlaceholder} />
@@ -125,6 +127,7 @@ const SavorPause: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
 };
 
 export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const { user } = useAuth();
 
   const [phase, setPhase] = useState<Phase>('setup');
@@ -236,14 +239,14 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleAbandon = () => {
     showConfirm(
-      'Leave without logging?',
-      'This session won’t be saved. Even a gave-in log helps you spot patterns.',
+      t('craving.ride.abandon.title', 'Leave without logging?'),
+      t('craving.ride.abandon.message', 'This session won’t be saved. Even a gave-in log helps you spot patterns.'),
       () => {
         cancelPings();
         navigation.goBack();
       },
-      'Leave',
-      'Keep riding'
+      t('craving.ride.abandon.leave', 'Leave'),
+      t('craving.ride.abandon.keep', 'Keep riding')
     );
   };
 
@@ -300,7 +303,10 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
       setPhase('complete');
     } catch (err) {
       console.warn('Failed to save craving session:', err);
-      showAlert("Couldn't save that", 'Check your connection and try again.');
+      showAlert(
+        t('craving.ride.saveFailed.title', "Couldn't save that"),
+        t('craving.ride.saveFailed.message', 'Check your connection and try again.')
+      );
       setSaving(false);
     }
   };
@@ -331,25 +337,25 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={styles.setupContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.setupKicker}>You noticed something. Good.</Text>
-          <Text style={styles.setupTitle}>What’s pulling at you right now?</Text>
-          <Text style={styles.setupSub}>
+          <Copy id="craving.ride.setup.kicker" style={styles.setupKicker}>You noticed something. Good.</Copy>
+          <Copy id="craving.ride.setup.title" style={styles.setupTitle}>What’s pulling at you right now?</Copy>
+          <Copy id="craving.ride.setup.sub" style={styles.setupSub}>
             Naming it is already the first step. The urge will peak, then pass.
-          </Text>
+          </Copy>
 
           <View style={styles.typeGrid}>
-            {CRAVING_TYPES.map((t) => {
-              const selected = t.id === cravingType;
+            {CRAVING_TYPES.map((ct) => {
+              const selected = ct.id === cravingType;
               return (
                 <TouchableOpacity
-                  key={t.id}
+                  key={ct.id}
                   style={[styles.typeTile, selected && styles.typeTileSelected]}
-                  onPress={() => setCravingType(t.id)}
+                  onPress={() => setCravingType(ct.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.typeEmoji}>{t.emoji}</Text>
-                  <Text style={styles.typeLabel}>{t.label}</Text>
-                  <Text style={styles.typeDesc}>{t.description}</Text>
+                  <Text style={styles.typeEmoji}>{ct.emoji}</Text>
+                  <Copy id={`craving.type.${ct.id}.label`} style={styles.typeLabel}>{ct.label}</Copy>
+                  <Copy id={`craving.type.${ct.id}.desc`} style={styles.typeDesc}>{ct.description}</Copy>
                 </TouchableOpacity>
               );
             })}
@@ -357,10 +363,10 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
 
           {cravingType === 'other' && (
             <View style={styles.customLabelCard}>
-              <Text style={styles.intensityTitle}>What would you call it?</Text>
+              <Copy id="craving.ride.setup.callIt" style={styles.intensityTitle}>What would you call it?</Copy>
               <TextInput
                 style={styles.customLabelInput}
-                placeholder="e.g. chocolate, checking email, nail biting…"
+                placeholder={t('craving.ride.setup.callItPlaceholder', 'e.g. chocolate, checking email, nail biting…')}
                 placeholderTextColor={Colors.gray}
                 value={customLabel}
                 onChangeText={setCustomLabel}
@@ -371,8 +377,8 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
           )}
 
           <View style={styles.intensityCard}>
-            <Text style={styles.intensityTitle}>How strong is it right now?</Text>
-            <Text style={styles.intensitySub}>Stronger waves get a longer timer</Text>
+            <Copy id="craving.ride.setup.strength" style={styles.intensityTitle}>How strong is it right now?</Copy>
+            <Copy id="craving.ride.setup.strengthSub" style={styles.intensitySub}>Stronger waves get a longer timer</Copy>
             <View style={styles.dotsRow}>
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <TouchableOpacity
@@ -391,27 +397,38 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </View>
             <View style={styles.dotLabels}>
-              <Text style={styles.dotLabelText}>Mild</Text>
-              <Text style={styles.dotLabelText}>Overwhelming</Text>
+              <Copy id="craving.ride.setup.mild" style={styles.dotLabelText}>Mild</Copy>
+              <Copy id="craving.ride.setup.overwhelming" style={styles.dotLabelText}>Overwhelming</Copy>
             </View>
           </View>
 
           {patterns && (
             <View style={styles.patternsCard}>
-              <Text style={styles.patternsTitle}>Your patterns so far</Text>
-              <Text style={styles.patternsText}>
-                {patterns.total} logged · {patterns.passed} ridden out (
-                {Math.round(patterns.crushRate * 100)}%)
-                {patterns.peakWindow ? ` · most often ${patterns.peakWindow}` : ''}
-              </Text>
+              <Copy id="craving.ride.setup.patternsTitle" style={styles.patternsTitle}>Your patterns so far</Copy>
+              <Copy
+                id="craving.ride.setup.patternsText"
+                style={styles.patternsText}
+                vars={{
+                  total: patterns.total,
+                  passed: patterns.passed,
+                  pct: Math.round(patterns.crushRate * 100),
+                  peak: patterns.peakWindow
+                    ? t('craving.ride.setup.patternsPeak', ' · most often {when}', { when: patterns.peakWindow })
+                    : '',
+                }}
+              >
+                {'{total} logged · {passed} ridden out ({pct}%){peak}'}
+              </Copy>
             </View>
           )}
 
           <TouchableOpacity style={styles.startButton} onPress={handleStart} activeOpacity={0.85}>
-            <Text style={styles.startButtonText}>Start the {minutes}-min ride</Text>
+            <Copy id="craving.ride.setup.start" style={styles.startButtonText} vars={{ minutes }}>
+              {'Start the {minutes}-min ride'}
+            </Copy>
             <Ionicons name="arrow-forward" size={18} color={Colors.white} />
           </TouchableOpacity>
-          <Text style={styles.startHint}>You don’t have to fight it — just outlast it</Text>
+          <Copy id="craving.ride.setup.hint" style={styles.startHint}>You don’t have to fight it — just outlast it</Copy>
         </ScrollView>
       </SafeAreaView>
     );
@@ -426,13 +443,13 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
         <SafeAreaView style={styles.ridingContainer}>
           <View style={styles.awayWrap}>
             <Text style={styles.awayEmoji}>{missionCategory?.emoji ?? '🌊'}</Text>
-            <Text style={styles.awayTitle}>Phone down — we’ve got the timer</Text>
+            <Copy id="craving.ride.away.title" style={styles.awayTitle}>Phone down — we’ve got the timer</Copy>
             <Text style={styles.awayDigits}>{formatClock(secondsLeft)}</Text>
-            <Text style={styles.awaySub}>
-              A ping will land when the wave should have passed.{'\n'}Go do the mission.
-            </Text>
+            <Copy id="craving.ride.away.sub" style={styles.awaySub}>
+              {'A ping will land when the wave should have passed.\nGo do the mission.'}
+            </Copy>
             <TouchableOpacity style={styles.imBackButton} onPress={handleImBack}>
-              <Text style={styles.imBackText}>I’m back</Text>
+              <Copy id="craving.ride.away.back" style={styles.imBackText}>I’m back</Copy>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -445,31 +462,43 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
         <SafeAreaView style={styles.ridingContainer}>
           <View style={styles.wbWrap}>
             <Text style={styles.awayEmoji}>👋</Text>
-            <Text style={styles.wbTitle}>Welcome back.</Text>
-            <Text style={styles.wbSub}>
-              You took the ride out into the world — that’s the strongest version
-              of this.{missionCategory ? ` The mission asked what you noticed…` : ''}
-            </Text>
+            <Copy
+              id="craving.ride.wb.title"
+              style={styles.wbTitle}
+            >
+              Welcome back.
+            </Copy>
+            <Copy
+              id="craving.ride.wb.sub"
+              style={styles.wbSub}
+              vars={{
+                mission: missionCategory
+                  ? t('craving.ride.wb.subMission', ' The mission asked what you noticed…')
+                  : '',
+              }}
+            >
+              {'You took the ride out into the world — that’s the strongest version of this.{mission}'}
+            </Copy>
 
             <View style={styles.wbStatsCard}>
               <View style={styles.wbStat}>
                 <Text style={styles.wbStatValue}>{formatClock(awaySeconds)}</Text>
-                <Text style={styles.wbStatLabel}>Time away</Text>
+                <Copy id="craving.ride.wb.timeAway" style={styles.wbStatLabel}>Time away</Copy>
               </View>
               <View style={styles.wbStat}>
                 <Text style={styles.wbStatValue}>
                   {missionCategory ? `${missionCategory.emoji} ${missionCategory.label}` : '—'}
                 </Text>
-                <Text style={styles.wbStatLabel}>Mission</Text>
+                <Copy id="craving.ride.wb.mission" style={styles.wbStatLabel}>Mission</Copy>
               </View>
               <View style={styles.wbStat}>
                 <Text style={styles.wbStatValue}>{intensity}/10</Text>
-                <Text style={styles.wbStatLabel}>Started at</Text>
+                <Copy id="craving.ride.wb.startedAt" style={styles.wbStatLabel}>Started at</Copy>
               </View>
             </View>
 
-            <Text style={styles.wbQuestion}>Where did the craving land?</Text>
-            <Text style={styles.wbQuestionSub}>Honest answer — both feed your patterns.</Text>
+            <Copy id="craving.ride.wb.question" style={styles.wbQuestion}>Where did the craving land?</Copy>
+            <Copy id="craving.ride.wb.questionSub" style={styles.wbQuestionSub}>Honest answer — both feed your patterns.</Copy>
 
             <View style={styles.wbFooter}>
               <TouchableOpacity
@@ -477,16 +506,16 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
                 onPress={() => handleOutcome('passed')}
                 activeOpacity={0.85}
               >
-                <Text style={styles.passedButtonText}>It passed — log the ride</Text>
+                <Copy id="craving.ride.wb.passed" style={styles.passedButtonText}>It passed — log the ride</Copy>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.stillRidingButton}
                 onPress={() => setActivity('menu')}
               >
-                <Text style={styles.stillRidingText}>Still riding — keep the timer going</Text>
+                <Copy id="craving.ride.wb.still" style={styles.stillRidingText}>Still riding — keep the timer going</Copy>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleOutcome('gave_in')}>
-                <Text style={styles.wbGaveInText}>I gave in while I was away — log it anyway</Text>
+                <Copy id="craving.ride.wb.gaveIn" style={styles.wbGaveInText}>I gave in while I was away — log it anyway</Copy>
               </TouchableOpacity>
             </View>
           </View>
@@ -521,7 +550,9 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
         {/* Compact persistent timer strip */}
         <View style={styles.stripRow}>
           <Text style={styles.stripDigits}>{formatClock(secondsLeft)}</Text>
-          <Text style={styles.stripLabel}>{timerDone ? 'time’s up' : 'left'}</Text>
+          <Text style={styles.stripLabel}>
+            {timerDone ? t('craving.ride.strip.done', 'time’s up') : t('craving.ride.strip.left', 'left')}
+          </Text>
         </View>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${elapsedFraction * 100}%` }]} />
@@ -560,10 +591,10 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
               </View>
               <Text style={styles.waveCaption}>
                 {timerDone
-                  ? 'The wave has run its course'
+                  ? t('craving.ride.wave.done', 'The wave has run its course')
                   : elapsedFraction > 0.3
-                    ? 'Past the peak — it only fades from here'
-                    : 'Building toward the peak — hold on'}
+                    ? t('craving.ride.wave.past', 'Past the peak — it only fades from here')
+                    : t('craving.ride.wave.building', 'Building toward the peak — hold on')}
               </Text>
 
               <View style={styles.contentCard}>
@@ -602,16 +633,18 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
               activeOpacity={0.85}
             >
               <Text style={styles.passedButtonText}>
-                {timerDone ? 'It passed — log it' : 'It already passed'}
+                {timerDone
+                  ? t('craving.ride.footer.passedDone', 'It passed — log it')
+                  : t('craving.ride.footer.passedEarly', 'It already passed')}
               </Text>
             </TouchableOpacity>
             {timerDone && (
               <TouchableOpacity style={styles.extendButton} onPress={handleExtend}>
-                <Text style={styles.extendButtonText}>Still going — add 5 minutes</Text>
+                <Copy id="craving.ride.footer.extend" style={styles.extendButtonText}>Still going — add 5 minutes</Copy>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.gaveInButton} onPress={() => handleOutcome('gave_in')}>
-              <Text style={styles.gaveInButtonText}>I gave in — log it anyway</Text>
+              <Copy id="craving.ride.footer.gaveIn" style={styles.gaveInButtonText}>I gave in — log it anyway</Copy>
             </TouchableOpacity>
           </View>
         ) : (
@@ -622,9 +655,9 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
               onPress={() => setActivity('menu')}
               activeOpacity={0.85}
             >
-              <Text style={styles.timesUpText}>
+              <Copy id="craving.ride.footer.timesUp" style={styles.timesUpText}>
                 Time’s up — head back when you’re ready →
-              </Text>
+              </Copy>
             </TouchableOpacity>
           )
         )}
@@ -656,11 +689,17 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
         <SafeAreaView style={styles.setupContainer}>
           <ScrollView contentContainerStyle={styles.completeContent} showsVerticalScrollIndicator={false}>
             <Text style={styles.outcomeEmoji}>⚡</Text>
-            <Text style={styles.completePoints}>+{saveResult.points} XP</Text>
+            <Copy id="craving.ride.complete.points" style={styles.completePoints} vars={{ n: saveResult.points }}>
+              {'+{n} XP'}
+            </Copy>
             <Text style={styles.completeSub}>
               {exitIntensity !== null
-                ? `Wave: ${intensity}/10 → ${exitIntensity}/10 · ${held} ridden`
-                : `${held} ridden, banked, and on the record.`}
+                ? t('craving.ride.complete.waveDrop', 'Wave: {from}/10 → {to}/10 · {held} ridden', {
+                    from: intensity,
+                    to: exitIntensity,
+                    held,
+                  })
+                : t('craving.ride.complete.banked', '{held} ridden, banked, and on the record.', { held })}
             </Text>
 
             {typeIntensities.length >= 4 && (
@@ -677,7 +716,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
               onPress={() => navigation.goBack()}
               activeOpacity={0.85}
             >
-              <Text style={styles.startButtonText}>Done</Text>
+              <Copy id="craving.ride.complete.done" style={styles.startButtonText}>Done</Copy>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -701,35 +740,48 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
 
     const planLabel =
       cravingType === 'other' && !customLabel.trim() ? 'urge' : badgeLabel.toLowerCase();
-    const window = startedAtRef.current ? hourWindowLabel(startedAtRef.current) : 'next time';
+    const window = startedAtRef.current
+      ? hourWindowLabel(startedAtRef.current)
+      : t('craving.ride.plan.nextTime', 'next time');
     const planOptions = [
-      `When the ${planLabel} pull hits ${window}, I'll start a ride before acting on it`,
-      `At the first sign of the wave, I'll do one slow breath cycle before deciding anything`,
-      `I'll make the first step harder — put distance between me and the ${planLabel} before it hits`,
+      t('craving.ride.plan.a', "When the {label} pull hits {when}, I'll start a ride before acting on it", {
+        label: planLabel,
+        when: window,
+      }),
+      t('craving.ride.plan.b', "At the first sign of the wave, I'll do one slow breath cycle before deciding anything"),
+      t('craving.ride.plan.c', "I'll make the first step harder — put distance between me and the {label} before it hits", {
+        label: planLabel,
+      }),
     ];
 
     return (
       <SafeAreaView style={styles.setupContainer}>
         <ScrollView contentContainerStyle={styles.completeContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.outcomeEmoji}>🌊</Text>
-          <Text style={styles.outcomeTitle}>The wave won this one.</Text>
-          <Text style={styles.outcomeBody}>
+          <Copy id="craving.ride.gaveIn.title" style={styles.outcomeTitle}>The wave won this one.</Copy>
+          <Copy id="craving.ride.gaveIn.body" style={styles.outcomeBody}>
             Waves win sometimes — that’s what makes them waves.
-          </Text>
+          </Copy>
 
           <View style={styles.heldCard}>
             <Text style={styles.heldValue}>{held}</Text>
-            <Text style={styles.heldLabel}>
-              held before it broke through
-              {avgLabel ? ` — your average before this was ${avgLabel}` : ''}.
-              Every second of holding is extinction training.
-            </Text>
+            <Copy
+              id="craving.ride.gaveIn.held"
+              style={styles.heldLabel}
+              vars={{
+                avg: avgLabel
+                  ? t('craving.ride.gaveIn.heldAvg', ' — your average before this was {avg}', { avg: avgLabel })
+                  : '',
+              }}
+            >
+              {'held before it broke through{avg}. Every second of holding is extinction training.'}
+            </Copy>
           </View>
 
-          <Text style={styles.planTitle}>Load a plan for the next one</Text>
-          <Text style={styles.planSub}>
+          <Copy id="craving.ride.gaveIn.planTitle" style={styles.planTitle}>Load a plan for the next one</Copy>
+          <Copy id="craving.ride.gaveIn.planSub" style={styles.planSub}>
             One tap — a concrete if-then now roughly doubles follow-through next time.
-          </Text>
+          </Copy>
           {planOptions.map((plan) => {
             const selected = chosenPlan === plan;
             return (
@@ -751,19 +803,23 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={[styles.planChipText, selected && styles.planChipTextSelected]}>
                   {plan}
                 </Text>
-                {selected && <Text style={styles.planSaved}>Saved for next time ✓</Text>}
+                {selected && (
+                  <Copy id="craving.ride.gaveIn.planSaved" style={styles.planSaved}>Saved for next time ✓</Copy>
+                )}
               </TouchableOpacity>
             );
           })}
 
-          <Text style={styles.honestyXp}>+{saveResult.points} XP added</Text>
+          <Copy id="craving.ride.gaveIn.xp" style={styles.honestyXp} vars={{ n: saveResult.points }}>
+            {'+{n} XP added'}
+          </Copy>
 
           <TouchableOpacity
             style={[styles.startButton, styles.completeDone]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.85}
           >
-            <Text style={styles.startButtonText}>Done</Text>
+            <Copy id="craving.ride.gaveIn.done" style={styles.startButtonText}>Done</Copy>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -785,22 +841,24 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.outcomeEmoji}>{copy.emoji}</Text>
-        <Text style={styles.outcomeTitle}>{copy.headline}</Text>
-        <Text style={styles.outcomeBody}>{copy.body}</Text>
+        <Copy id={`craving.outcome.${outcome}.headline`} style={styles.outcomeTitle}>{copy.headline}</Copy>
+        <Copy id={`craving.outcome.${outcome}.body`} style={styles.outcomeBody}>{copy.body}</Copy>
 
         <View style={styles.heldCard}>
           <Text style={styles.heldValue}>{heldLabel}</Text>
           <Text style={styles.heldLabel}>
-            {outcome === 'passed' ? 'riding the wave' : 'held before it broke through — that time counts'}
+            {outcome === 'passed'
+              ? t('craving.ride.reflect.heldPassed', 'riding the wave')
+              : t('craving.ride.reflect.heldGaveIn', 'held before it broke through — that time counts')}
           </Text>
         </View>
 
         {outcome === 'passed' && (
           <View style={styles.intensityCard}>
-            <Text style={styles.intensityTitle}>Where’s the wave now?</Text>
-            <Text style={styles.intensitySub}>
-              You started at {intensity}/10 — tap where it landed
-            </Text>
+            <Copy id="craving.ride.reflect.where" style={styles.intensityTitle}>Where’s the wave now?</Copy>
+            <Copy id="craving.ride.reflect.whereSub" style={styles.intensitySub} vars={{ n: intensity }}>
+              {'You started at {n}/10 — tap where it landed'}
+            </Copy>
             <View style={styles.dotsRow}>
               {Array.from({ length: 11 }, (_, i) => i).map((n) => (
                 <TouchableOpacity
@@ -822,8 +880,8 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </View>
             <View style={styles.dotLabels}>
-              <Text style={styles.dotLabelText}>Gone</Text>
-              <Text style={styles.dotLabelText}>Still strong</Text>
+              <Copy id="craving.ride.reflect.gone" style={styles.dotLabelText}>Gone</Copy>
+              <Copy id="craving.ride.reflect.stillStrong" style={styles.dotLabelText}>Still strong</Copy>
             </View>
           </View>
         )}
@@ -832,8 +890,8 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.noteInput}
           placeholder={
             usedMissionRef.current
-              ? 'What did you notice out there? (optional)'
-              : 'What was happening when it hit? (optional)'
+              ? t('craving.ride.reflect.noteMission', 'What did you notice out there? (optional)')
+              : t('craving.ride.reflect.note', 'What was happening when it hit? (optional)')
           }
           placeholderTextColor={Colors.gray}
           value={note}
@@ -850,7 +908,7 @@ export const CravingCrusherScreen: React.FC<Props> = ({ navigation }) => {
           {saving ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.startButtonText}>Log it</Text>
+            <Copy id="craving.ride.reflect.log" style={styles.startButtonText}>Log it</Copy>
           )}
         </TouchableOpacity>
       </ScrollView>

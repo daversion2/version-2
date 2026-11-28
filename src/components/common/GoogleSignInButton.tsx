@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Copy } from './Copy';
 
 interface GoogleSignInButtonProps {
   onPress: () => void;
@@ -35,7 +36,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       ) : (
         <View style={styles.content}>
           <Ionicons name="logo-google" size={20} color={Colors.dark} />
-          <Text style={styles.text}>Continue with Google</Text>
+          <Copy id="common.google.continue" style={styles.text}>{'Continue with Google'}</Copy>
         </View>
       )}
     </TouchableOpacity>

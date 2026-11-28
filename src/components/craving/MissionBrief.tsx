@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MissionCategory } from '../../data/cravings';
+import { Copy } from '../common/Copy';
 
 interface Props {
   category: MissionCategory;
@@ -23,7 +24,7 @@ export const MissionBrief: React.FC<Props> = ({ category, timeLeftLabel, onGo })
     <View style={styles.container}>
       <View style={styles.stage}>
         <Text style={styles.emoji}>{category.emoji}</Text>
-        <Text style={styles.kicker}>YOUR MISSION</Text>
+        <Copy id="craving.mission.kicker" style={styles.kicker}>YOUR MISSION</Copy>
         <Text style={styles.title}>{mission.title}</Text>
         <Text style={styles.sub}>{mission.sub}</Text>
         {mission.ideas && (
@@ -38,25 +39,27 @@ export const MissionBrief: React.FC<Props> = ({ category, timeLeftLabel, onGo })
         )}
         {category.missions.length > 1 && (
           <TouchableOpacity onPress={() => setVariant(variant + 1)}>
-            <Text style={styles.shuffle}>↻ Different mission</Text>
+            <Copy id="craving.mission.shuffle" style={styles.shuffle}>↻ Different mission</Copy>
           </TouchableOpacity>
         )}
 
         <View style={styles.pocketCard}>
           <Text style={styles.pocketIcon}>🔔</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.pocketTitle}>We’ve got the timer — {timeLeftLabel} left</Text>
-            <Text style={styles.pocketText}>
+            <Copy id="craving.mission.pocketTitle" style={styles.pocketTitle} vars={{ time: timeLeftLabel }}>
+              {'We’ve got the timer — {time} left'}
+            </Copy>
+            <Copy id="craving.mission.pocketText" style={styles.pocketText}>
               Put the phone in your pocket. A notification will land when the
               wave should have passed, and you’ll log how it went. Coming back
               early is fine too.
-            </Text>
+            </Copy>
           </View>
         </View>
       </View>
 
       <TouchableOpacity style={styles.goButton} onPress={onGo} activeOpacity={0.85}>
-        <Text style={styles.goText}>Go — phone down 📵</Text>
+        <Copy id="craving.mission.go" style={styles.goText}>Go — phone down 📵</Copy>
       </TouchableOpacity>
     </View>
   );

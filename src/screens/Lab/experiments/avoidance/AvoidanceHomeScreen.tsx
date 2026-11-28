@@ -20,6 +20,8 @@ import { ProgressRing } from '../../../../components/common/ProgressRing';
 import { useAvoidance } from './AvoidanceContext';
 import { ForecastChips, RateSheet, TaskSheet } from './components/AvoidanceSheets';
 import { avs, AVOIDANCE_ACCENT, AVOIDANCE_TINT, levelLabel } from './components/avoidanceStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<AvoidanceStackParamList, 'AvoidanceHome'>;
 
@@ -31,6 +33,7 @@ type Props = NativeStackScreenProps<AvoidanceStackParamList, 'AvoidanceHome'>;
 export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
   const { loading, loadError, reload, today, prefs, tasks, addTask, clearTask, oldToImport, importOld, importing, closeApp } =
     useAvoidance();
+  const t = useCopy();
   const [text, setText] = useState('');
   const [example] = useState(() => ADD_EXAMPLES[Math.floor(Math.random() * ADD_EXAMPLES.length)]);
   const [passed, setPassed] = useState<string[]>([]);
@@ -95,14 +98,22 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
     const o = outcome(cleared.forecast, cleared.resistance);
     setNote(
       o
-        ? `${OUTCOME_LABEL[o]}. You expected “${levelLabel(cleared.forecast)}”; it was “${levelLabel(cleared.resistance)}”.`
-        : 'Cleared. Noted.'
+        ? t('avoidance.home.rated', '{outcome}. You expected “{expected}”; it was “{actual}”.', {
+            outcome: OUTCOME_LABEL[o],
+            expected: levelLabel(cleared.forecast) ?? '',
+            actual: levelLabel(cleared.resistance) ?? '',
+          })
+        : t('avoidance.home.cleared', 'Cleared. Noted.')
     );
   };
 
   const brought = async () => {
     const n = await importOld();
-    if (n) setNote(`Brought over ${n} from the old Avoidance Training, with the days you’d already avoided them.`);
+    if (n) {
+      setNote(
+        t('avoidance.home.broughtOver', 'Brought over {n} from the old Avoidance Training, with the days you’d already avoided them.', { n }),
+      );
+    }
   };
 
   return (
@@ -110,17 +121,17 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
       <ScrollView contentContainerStyle={avs.scroll} keyboardShouldPersistTaps="handled">
         {loadError ? (
           <TouchableOpacity style={avs.card} onPress={reload}>
-            <Text style={avs.body}>Couldn’t load your list. Tap to try again.</Text>
+            <Copy id="avoidance.home.loadFail" style={avs.body}>Couldn’t load your list. Tap to try again.</Copy>
           </TouchableOpacity>
         ) : null}
 
         <View style={avs.card}>
-          <Text style={avs.title}>What have you been putting off?</Text>
+          <Copy id="avoidance.home.question" style={avs.title}>What have you been putting off?</Copy>
           <TextInput
             style={avs.input}
             value={text}
             onChangeText={setText}
-            placeholder={`e.g. ${example}`}
+            placeholder={t('avoidance.home.placeholder', 'e.g. {example}', { example })}
             placeholderTextColor={Colors.gray}
             maxLength={MAX_TASK_LENGTH}
             returnKeyType="done"
@@ -129,11 +140,11 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
           />
           {text.trim() ? (
             <>
-              <Text style={styles.label}>How hard will it be to start? Tap to add it.</Text>
+              <Copy id="avoidance.home.forecastPrompt" style={styles.label}>How hard will it be to start? Tap to add it.</Copy>
               <ForecastChips onPick={(l) => add(l)} />
             </>
           ) : (
-            <Text style={avs.muted}>Big job? Write the first step, not the whole thing.</Text>
+            <Copy id="avoidance.home.bigJob" style={avs.muted}>Big job? Write the first step, not the whole thing.</Copy>
           )}
         </View>
 
@@ -146,39 +157,42 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
 
         {rep ? (
           <View style={[avs.card, styles.rep]}>
-            <Text style={avs.eyebrow}>Up today</Text>
+            <Copy id="avoidance.home.upToday" style={avs.eyebrow}>Up today</Copy>
             <Text style={avs.big}>{rep.text}</Text>
             <Text style={avs.muted}>
               {describeAvoided(daysAvoided(rep, today))}
-              {rep.forecast ? ` · You expect: ${levelLabel(rep.forecast)}` : ''}
+              {rep.forecast ? t('avoidance.home.youExpect', ' · You expect: {level}', { level: levelLabel(rep.forecast) ?? '' }) : ''}
             </Text>
             <TouchableOpacity style={[avs.primaryBtn, styles.repBtn]} onPress={() => setRating(rep)}>
-              <Text style={avs.primaryBtnText}>Did it</Text>
+              <Copy id="avoidance.home.didIt" style={avs.primaryBtnText}>Did it</Copy>
             </TouchableOpacity>
             {open.length > 1 ? (
               <TouchableOpacity style={avs.textBtn} onPress={() => setPassed((p) => [...p, rep.id])}>
-                <Text style={avs.textBtnText}>Not this one</Text>
+                <Copy id="avoidance.home.notThisOne" style={avs.textBtnText}>Not this one</Copy>
               </TouchableOpacity>
             ) : null}
           </View>
         ) : open.length > 0 ? (
           <View style={avs.card}>
-            <Text style={avs.body}>That’s every one passed over. Pick from the list below, or come back tomorrow.</Text>
+            <Copy id="avoidance.home.allPassed" style={avs.body}>
+              That’s every one passed over. Pick from the list below, or come back tomorrow.
+            </Copy>
             <TouchableOpacity onPress={() => setPassed([])}>
-              <Text style={avs.link}>Start again from the oldest</Text>
+              <Copy id="avoidance.home.startAgain" style={avs.link}>Start again from the oldest</Copy>
             </TouchableOpacity>
           </View>
         ) : tasks.length === 0 ? (
           <View style={avs.card}>
-            <Text style={avs.title}>Train the start</Text>
-            <Text style={avs.body}>
-              Add the things you keep putting off, and how hard you think starting will be. Each day, face one, then
-              check your prediction against how it actually went.
-            </Text>
+            <Copy id="avoidance.home.train.title" style={avs.title}>Train the start</Copy>
+            <Copy id="avoidance.home.train.body" style={avs.body}>
+              Add the things you keep putting off, and how hard you think starting will be. Each day, face one, then check your prediction against how it actually went.
+            </Copy>
           </View>
         ) : (
           <View style={avs.card}>
-            <Text style={avs.body}>Nothing left to avoid. Add the next thing when it shows up.</Text>
+            <Copy id="avoidance.home.nothingLeft" style={avs.body}>
+              Nothing left to avoid. Add the next thing when it shows up.
+            </Copy>
           </View>
         )}
 
@@ -190,10 +204,10 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
             accessibilityState={{ disabled: importing }}
           >
             <Ionicons name="download-outline" size={20} color={AVOIDANCE_ACCENT} />
-            <Text style={[avs.body, styles.flex]}>
-              Bring over {oldToImport.length} from the old Avoidance Training
-            </Text>
-            <Text style={avs.link}>Bring</Text>
+            <Copy id="avoidance.home.bringOver" style={[avs.body, styles.flex]} vars={{ n: oldToImport.length }}>
+              {'Bring over {n} from the old Avoidance Training'}
+            </Copy>
+            <Copy id="avoidance.home.bring" style={avs.link}>Bring</Copy>
           </TouchableOpacity>
         ) : null}
 
@@ -205,26 +219,26 @@ export const AvoidanceHomeScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.flex}>
-            <Text style={avs.title}>This week</Text>
+            <Copy id="avoidance.home.thisWeek" style={avs.title}>This week</Copy>
             <Text style={avs.muted}>
               {week.met
-                ? 'Weekly goal met.'
-                : `${week.goal - week.cleared} more to clear for your goal.`}
-              {streak > 1 ? ` ${streak} weeks in a row.` : ''}
-              {clearedToday ? ` ${clearedToday} cleared today.` : ''}
+                ? t('avoidance.home.goalMet', 'Weekly goal met.')
+                : t('avoidance.home.moreToClear', '{n} more to clear for your goal.', { n: week.goal - week.cleared })}
+              {streak > 1 ? t('avoidance.home.streak', ' {n} weeks in a row.', { n: streak }) : ''}
+              {clearedToday ? t('avoidance.home.clearedToday', ' {n} cleared today.', { n: clearedToday }) : ''}
             </Text>
           </View>
         </View>
 
         {open.length > 0 ? (
-          <ListGroup title="Still avoiding">
-            {open.map((t) => (
+          <ListGroup title={t('avoidance.home.stillAvoiding', 'Still avoiding')}>
+            {open.map((task) => (
               <ListRow
-                key={t.id}
-                title={t.text}
-                subtitle={describeAvoided(daysAvoided(t, today))}
-                value={t.forecast ? FORECAST_SHORT[t.forecast] : undefined}
-                onPress={() => setEditing(t)}
+                key={task.id}
+                title={task.text}
+                subtitle={describeAvoided(daysAvoided(task, today))}
+                value={task.forecast ? t(`avoidance.home.forecast.${task.forecast}`, FORECAST_SHORT[task.forecast]) : undefined}
+                onPress={() => setEditing(task)}
               />
             ))}
           </ListGroup>

@@ -18,13 +18,16 @@ import {
   formatVolume,
   formatWeight,
 } from '../../../../../services/workoutMath';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
+import { copyText } from '../../../../../services/appCopy';
 import { WORKOUTS_ACCENT, WORKOUTS_TINT, ws } from './workoutsStyle';
 
-const RANGES: { value: StatsRange; label: string }[] = [
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-  { value: 'year', label: 'Year' },
-  { value: 'all', label: 'All' },
+const RANGES: { value: StatsRange; label: string; key: string }[] = [
+  { value: 'week', label: 'Week', key: 'workouts.statsParts.week' },
+  { value: 'month', label: 'Month', key: 'workouts.statsParts.month' },
+  { value: 'year', label: 'Year', key: 'workouts.statsParts.year' },
+  { value: 'all', label: 'All', key: 'workouts.statsParts.all' },
 ];
 
 export const RANGE_PHRASE: Record<StatsRange, string> = {
@@ -34,10 +37,22 @@ export const RANGE_PHRASE: Record<StatsRange, string> = {
   all: 'all time',
 };
 
+const RANGE_PHRASE_KEYS: Record<StatsRange, string> = {
+  week: 'workouts.statsParts.phraseWeek',
+  month: 'workouts.statsParts.phraseMonth',
+  year: 'workouts.statsParts.phraseYear',
+  all: 'workouts.statsParts.phraseAll',
+};
+
+/** RANGE_PHRASE, with the admin's wording if there is any. Call at render time. */
+export const rangePhrase = (r: StatsRange): string => copyText(RANGE_PHRASE_KEYS[r], RANGE_PHRASE[r]);
+
 export const RangePicker: React.FC<{ value: StatsRange; onChange: (r: StatsRange) => void }> = ({
   value,
   onChange,
-}) => (
+}) => {
+  const t = useCopy();
+  return (
   <View style={styles.segment}>
     {RANGES.map((r) => (
       <TouchableOpacity
@@ -47,36 +62,47 @@ export const RangePicker: React.FC<{ value: StatsRange; onChange: (r: StatsRange
         accessibilityRole="tab"
         accessibilityState={{ selected: value === r.value }}
       >
-        <Text style={[styles.segmentText, value === r.value && styles.segmentTextOn]}>{r.label}</Text>
+        <Text style={[styles.segmentText, value === r.value && styles.segmentTextOn]}>
+          {t(r.key, r.label)}
+        </Text>
       </TouchableOpacity>
     ))}
   </View>
-);
+  );
+};
 
 /** Volume, sets, reps, heaviest — and time held when there were holds. */
 export const StatTiles: React.FC<{ totals: StatTotals; unit: WeightUnit }> = ({ totals, unit }) => {
+  const t = useCopy();
   const tiles = [
-    { label: 'Volume', value: totals.volumeKg > 0 ? formatVolume(totals.volumeKg, unit) : '—' },
-    { label: 'Sets', value: formatCount(totals.sets) },
-    { label: 'Reps', value: formatCount(totals.reps) },
-    { label: 'Heaviest', value: totals.heaviestKg > 0 ? formatWeight(totals.heaviestKg, unit) : '—' },
+    { label: t('workouts.statsParts.volume', 'Volume'), value: totals.volumeKg > 0 ? formatVolume(totals.volumeKg, unit) : '—' },
+    { label: t('workouts.statsParts.sets', 'Sets'), value: formatCount(totals.sets) },
+    { label: t('workouts.statsParts.reps', 'Reps'), value: formatCount(totals.reps) },
+    {
+      label: t('workouts.statsParts.heaviest', 'Heaviest'),
+      value: totals.heaviestKg > 0 ? formatWeight(totals.heaviestKg, unit) : '—',
+    },
   ];
   return (
     <View style={{ gap: Spacing.sm }}>
       <View style={styles.tiles}>
-        {tiles.map((t) => (
-          <View key={t.label} style={styles.tile}>
+        {tiles.map((tile) => (
+          <View key={tile.label} style={styles.tile}>
             <Text style={styles.tileValue} numberOfLines={1} adjustsFontSizeToFit>
-              {t.value}
+              {tile.value}
             </Text>
-            <Text style={styles.tileLabel}>{t.label}</Text>
+            <Text style={styles.tileLabel}>{tile.label}</Text>
           </View>
         ))}
       </View>
       {(totals.secondsHeld > 0 || totals.sessions > 0) && (
         <Text style={ws.muted}>
-          {totals.sessions} {totals.sessions === 1 ? 'workout' : 'workouts'}
-          {totals.secondsHeld > 0 ? ` · ${formatSeconds(totals.secondsHeld)} held` : ''}
+          {totals.sessions === 1
+            ? t('workouts.statsParts.oneWorkout', '{n} workout', { n: totals.sessions })
+            : t('workouts.statsParts.nWorkouts', '{n} workouts', { n: totals.sessions })}
+          {totals.secondsHeld > 0
+            ? t('workouts.statsParts.held', ' · {time} held', { time: formatSeconds(totals.secondsHeld) })
+            : ''}
         </Text>
       )}
     </View>
@@ -96,8 +122,10 @@ export const VolumeChart: React.FC<{
   /** Volume normally; sets for exercises with no weight to add up. */
   metric: 'volume' | 'sets';
 }> = ({ bars, unit, metric }) => {
+  const t = useCopy();
   const valueOf = (b: VolumeBar) => (metric === 'volume' ? b.volumeKg : b.sets);
-  const fmt = (n: number) => (metric === 'volume' ? formatVolume(n, unit) : `${formatCount(n)} sets`);
+  const fmt = (n: number) =>
+    metric === 'volume' ? formatVolume(n, unit) : t('workouts.statsParts.nSets', '{n} sets', { n: formatCount(n) });
   const currentIndex = Math.max(0, bars.findIndex((b) => b.current));
   const [selected, setSelected] = useState(currentIndex);
   useEffect(() => setSelected(currentIndex), [currentIndex, bars.length]);
@@ -109,18 +137,24 @@ export const VolumeChart: React.FC<{
   return (
     <View style={[ws.card, styles.chartCard]}>
       <View style={styles.chartHead}>
-        <Text style={ws.title}>{metric === 'volume' ? 'Volume' : 'Sets'}</Text>
+        <Text style={ws.title}>
+          {metric === 'volume' ? t('workouts.statsParts.volume', 'Volume') : t('workouts.statsParts.sets', 'Sets')}
+        </Text>
         {sel && (
           <Text style={styles.readout}>
             {sel.label} · {fmt(valueOf(sel))}
-            {metric === 'volume' && sel.sets > 0 ? ` · ${sel.sets} sets` : ''}
+            {metric === 'volume' && sel.sets > 0
+              ? t('workouts.statsParts.andSets', ' · {n} sets', { n: sel.sets })
+              : ''}
           </Text>
         )}
       </View>
 
       {max === 0 ? (
         <View style={[styles.plot, styles.emptyPlot]}>
-          <Text style={ws.muted}>Nothing logged in this stretch yet.</Text>
+          <Copy id="workouts.statsParts.nothing" style={ws.muted}>
+            Nothing logged in this stretch yet.
+          </Copy>
         </View>
       ) : (
         <View style={styles.plot}>
@@ -181,6 +215,7 @@ export const TrendChart: React.FC<{
   /** Sessions where this exercise was done as a swap for another (2026-11-20): drawn hollow. */
   swappedIds?: ReadonlySet<string>;
 }> = ({ points, kind, unit, swappedIds }) => {
+  const t = useCopy();
   const last = points.length - 1;
   const [selected, setSelected] = useState(last);
   useEffect(() => setSelected(last), [last]);
@@ -193,8 +228,8 @@ export const TrendChart: React.FC<{
   const worst = flip ? hi : lo;
   const plotH = CHART_HEIGHT - 18;
   const heightOf = (v: number) => {
-    const t = hi === lo ? 0.5 : (v - lo) / (hi - lo);
-    return (flip ? 1 - t : t) * (plotH - DOT);
+    const frac = hi === lo ? 0.5 : (v - lo) / (hi - lo);
+    return (flip ? 1 - frac : frac) * (plotH - DOT);
   };
   const fmt = (v: number) => formatTrendPoint({ sessionId: '', finishedAt: '', value: v }, kind, unit);
   const dateOf = (p: TrendPoint) =>
@@ -206,11 +241,13 @@ export const TrendChart: React.FC<{
   return (
     <View style={[ws.card, styles.chartCard]}>
       <View style={styles.chartHead}>
-        <Text style={ws.title}>Best set</Text>
+        <Copy id="workouts.statsParts.bestSet" style={ws.title}>
+          Best set
+        </Copy>
         {sel && (
           <Text style={styles.readout}>
             {dateOf(sel)} · {formatTrendPoint(sel, kind, unit)}
-            {swappedIds?.has(sel.sessionId) ? ' · as a swap' : ''}
+            {swappedIds?.has(sel.sessionId) ? t('workouts.statsParts.asSwap', ' · as a swap') : ''}
           </Text>
         )}
       </View>
@@ -253,7 +290,9 @@ export const TrendChart: React.FC<{
       {points.some((p) => swappedIds?.has(p.sessionId)) && (
         <View style={styles.swapLegend}>
           <View style={[styles.dot, styles.dotSwapped, styles.legendDot]} />
-          <Text style={ws.muted}>Done as a swap for another exercise</Text>
+          <Copy id="workouts.statsParts.swapLegend" style={ws.muted}>
+            Done as a swap for another exercise
+          </Copy>
         </View>
       )}
     </View>
@@ -268,12 +307,17 @@ export const BreakdownRow: React.FC<{
   maxVolumeKg: number;
   onPress: () => void;
 }> = ({ title, totals, unit, maxVolumeKg, onPress }) => {
+  const t = useCopy();
   const share = maxVolumeKg > 0 ? totals.volumeKg / maxVolumeKg : 0;
   const parts = [
     totals.volumeKg > 0 ? formatVolume(totals.volumeKg, unit) : null,
-    `${formatCount(totals.sets)} ${totals.sets === 1 ? 'set' : 'sets'}`,
-    totals.reps > 0 ? `${formatCount(totals.reps)} reps` : null,
-    totals.secondsHeld > 0 ? `${formatSeconds(totals.secondsHeld)} held` : null,
+    totals.sets === 1
+      ? t('workouts.statsParts.oneSet', '{n} set', { n: formatCount(totals.sets) })
+      : t('workouts.statsParts.nSets', '{n} sets', { n: formatCount(totals.sets) }),
+    totals.reps > 0 ? t('workouts.statsParts.nReps', '{n} reps', { n: formatCount(totals.reps) }) : null,
+    totals.secondsHeld > 0
+      ? t('workouts.statsParts.timeHeld', '{time} held', { time: formatSeconds(totals.secondsHeld) })
+      : null,
   ].filter(Boolean);
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} accessibilityRole="button">

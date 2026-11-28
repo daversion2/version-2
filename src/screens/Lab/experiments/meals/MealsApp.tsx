@@ -14,6 +14,8 @@ import { MealsSettingsScreen } from './MealsSettingsScreen';
 import { MealsScoresScreen } from './MealsScoresScreen';
 import { MealsGuideScreen } from './MealsGuideScreen';
 import { MEALS_ACCENT } from './components/mealsStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 const Stack = createNativeStackNavigator<MealsStackParamList>();
 
@@ -26,14 +28,15 @@ const Stack = createNativeStackNavigator<MealsStackParamList>();
  */
 export const MealsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'MealsApp'>> = ({ navigation, route }) => {
   const { user, userProfile } = useAuth();
+  const t = useCopy();
 
   // The one gate (services/miniApps.ts) — Lab-only today.
   if (!user || !canOpenMiniApp('meals', userProfile)) {
     return (
       <View style={styles.blocked}>
-        <Text style={styles.blockedText}>Meals isn’t available on this account yet.</Text>
+        <Copy id="meals.app.blocked" style={styles.blockedText}>Meals isn’t available on this account yet.</Copy>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.blockedLink}>Close</Text>
+          <Copy id="meals.app.close" style={styles.blockedLink}>Close</Copy>
         </TouchableOpacity>
       </View>
     );
@@ -50,12 +53,12 @@ export const MealsApp: React.FC<NativeStackScreenProps<RootStackParamList, 'Meal
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
-        <Stack.Screen name="MealsDay" component={MealsDayScreen} options={{ title: 'Meals' }} />
-        <Stack.Screen name="MealsWeek" component={MealsWeekScreen} options={{ title: 'This week' }} />
-        <Stack.Screen name="MealsClose" component={MealsCloseScreen} options={{ title: 'Close out the day' }} />
-        <Stack.Screen name="MealsSettings" component={MealsSettingsScreen} options={{ title: 'Settings' }} />
-        <Stack.Screen name="MealsScores" component={MealsScoresScreen} options={{ title: 'Scores' }} />
-        <Stack.Screen name="MealsGuide" component={MealsGuideScreen} options={{ title: 'What counts' }} />
+        <Stack.Screen name="MealsDay" component={MealsDayScreen} options={{ title: t('meals.app.titleDay', 'Meals') }} />
+        <Stack.Screen name="MealsWeek" component={MealsWeekScreen} options={{ title: t('meals.app.titleWeek', 'This week') }} />
+        <Stack.Screen name="MealsClose" component={MealsCloseScreen} options={{ title: t('meals.app.titleClose', 'Close out the day') }} />
+        <Stack.Screen name="MealsSettings" component={MealsSettingsScreen} options={{ title: t('meals.app.titleSettings', 'Settings') }} />
+        <Stack.Screen name="MealsScores" component={MealsScoresScreen} options={{ title: t('meals.app.titleScores', 'Scores') }} />
+        <Stack.Screen name="MealsGuide" component={MealsGuideScreen} options={{ title: t('meals.app.titleGuide', 'What counts') }} />
       </Stack.Navigator>
     </MealsProvider>
   );

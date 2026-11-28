@@ -1,5 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { CommonActions, useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +26,8 @@ import { getTodayString } from '../../utils/date';
 import { useScreenIntro } from '../../hooks/useScreenIntro';
 import { ScreenIntro } from '../../components/common/ScreenIntro';
 import { Button } from '../../components/common/Button';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { LargeTitle } from '../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../components/common/ListGroup';
 import { TopScrim } from '../../components/common/TopScrim';
@@ -53,6 +55,7 @@ const RANGES: { value: HistoryRange; label: string }[] = [
 export const ProgressRedesignScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<ProgressNavigation>();
+  const t = useCopy();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const intro = useScreenIntro('progress');
@@ -139,14 +142,16 @@ export const ProgressRedesignScreen: React.FC = () => {
           },
         ]}
       >
-        <LargeTitle title="Progress" onInfo={intro.reopen} />
+        <LargeTitle title={t('progress.screen.title', 'Progress')} onInfo={intro.reopen} />
 
         {!apps || !friction ? (
           <View style={styles.loading}>
             {error ? (
               <View style={styles.errorBox}>
-                <Text style={styles.muted}>Couldn’t load your progress. Check your connection and try again.</Text>
-                <Button title="Try again" variant="outline" onPress={retry} />
+                <Copy id="progress.screen.error" style={styles.muted}>
+                  Couldn’t load your progress. Check your connection and try again.
+                </Copy>
+                <Button title={t('progress.screen.tryAgain', 'Try again')} variant="outline" onPress={retry} />
               </View>
             ) : (
               <ActivityIndicator color={Colors.primary} />
@@ -158,9 +163,9 @@ export const ProgressRedesignScreen: React.FC = () => {
 
             <View style={styles.section}>
               <View style={styles.sectionHead}>
-                <Text style={styles.sectionTitle} accessibilityRole="header">
+                <Copy id="progress.screen.history" style={styles.sectionTitle} accessibilityRole="header">
                   History
-                </Text>
+                </Copy>
                 <SegmentedControl
                   options={RANGES}
                   value={range}
@@ -198,9 +203,9 @@ export const ProgressRedesignScreen: React.FC = () => {
             <PhaseHighlightCard refreshKey={logs.length} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle} accessibilityRole="header">
+              <Copy id="progress.screen.daysShowedUp" style={styles.sectionTitle} accessibilityRole="header">
                 Days you showed up
-              </Text>
+              </Copy>
               <View style={styles.card}>
                 <Calendar
                   markedDates={marked}

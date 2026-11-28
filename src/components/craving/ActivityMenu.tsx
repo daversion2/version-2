@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { MISSION_CATEGORIES } from '../../data/cravings';
+import { Copy } from '../common/Copy';
 
 export type InAppActivityId = 'breathe' | 'learn' | 'ground' | 'name' | 'ride';
 
@@ -24,14 +25,14 @@ interface Props {
  */
 export const ActivityMenu: React.FC<Props> = ({ onSelectActivity, onSelectMission }) => (
   <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-    <Text style={styles.prompt}>While it passes — pick something to do</Text>
-    <Text style={styles.promptSub}>
+    <Copy id="craving.menu.prompt" style={styles.prompt}>While it passes — pick something to do</Copy>
+    <Copy id="craving.menu.promptSub" style={styles.promptSub}>
       Anything here beats staring at the clock. You can switch any time.
-    </Text>
+    </Copy>
 
     <View style={styles.groupLabelRow}>
-      <Text style={styles.groupLabel}>OUT IN THE WORLD</Text>
-      <Text style={styles.groupHint}> — leave the app, we’ll hold the timer</Text>
+      <Copy id="craving.menu.outLabel" style={styles.groupLabel}>OUT IN THE WORLD</Copy>
+      <Copy id="craving.menu.outHint" style={styles.groupHint}> — leave the app, we’ll hold the timer</Copy>
     </View>
     <View style={styles.worldGrid}>
       {MISSION_CATEGORIES.map((c) => (
@@ -51,27 +52,27 @@ export const ActivityMenu: React.FC<Props> = ({ onSelectActivity, onSelectMissio
     </View>
 
     <View style={styles.groupLabelRow}>
-      <Text style={styles.groupLabel}>ON YOUR PHONE</Text>
+      <Copy id="craving.menu.phoneLabel" style={styles.groupLabel}>ON YOUR PHONE</Copy>
     </View>
     <View style={styles.appGrid}>
-      {IN_APP_TILES.map((t) => (
+      {IN_APP_TILES.map((tile) => (
         <TouchableOpacity
-          key={t.id}
+          key={tile.id}
           style={styles.appTile}
-          onPress={() => onSelectActivity(t.id)}
+          onPress={() => onSelectActivity(tile.id)}
           activeOpacity={0.7}
         >
-          <Text style={styles.appIcon}>{t.icon}</Text>
-          <Text style={styles.appName}>{t.name}</Text>
-          <Text style={styles.appDesc}>{t.desc}</Text>
+          <Text style={styles.appIcon}>{tile.icon}</Text>
+          <Copy id={`craving.menu.tile.${tile.id}.name`} style={styles.appName}>{tile.name}</Copy>
+          <Copy id={`craving.menu.tile.${tile.id}.desc`} style={styles.appDesc}>{tile.desc}</Copy>
         </TouchableOpacity>
       ))}
     </View>
 
     <TouchableOpacity style={styles.justRide} onPress={() => onSelectActivity('ride')}>
-      <Text style={styles.justRideText}>
-        Or <Text style={styles.justRideBold}>just ride</Text> — watch the wave, no activity
-      </Text>
+      <Copy id="craving.menu.justRide" style={styles.justRideText} boldStyle={styles.justRideBold}>
+        Or **just ride** — watch the wave, no activity
+      </Copy>
     </TouchableOpacity>
   </ScrollView>
 );

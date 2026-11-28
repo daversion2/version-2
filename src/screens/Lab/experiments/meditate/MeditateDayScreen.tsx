@@ -9,6 +9,8 @@ import { describeRating } from '../../../../services/workoutWeek';
 import { useMeditate } from './MeditateContext';
 import { ms } from './components/meditateStyle';
 import { meditateWeekdayName, useMeditateLogs } from './components/MeditateWeekParts';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateDay'>;
 
@@ -17,6 +19,7 @@ const clock = (iso: string): string => new Date(iso).toLocaleTimeString(undefine
 /** One day from the Week screen: each session with its length and both ratings. */
 export const MeditateDayScreen: React.FC<Props> = ({ navigation, route }) => {
   const { date } = route.params;
+  const t = useCopy();
   const { sessions, userId } = useMeditate();
   const logs = useMeditateLogs(userId);
 
@@ -30,8 +33,10 @@ export const MeditateDayScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <ScrollView style={ms.screen} contentContainerStyle={ms.scroll}>
         <View style={ms.card}>
-          <Text style={ms.title}>{day.ahead ? 'Still to come' : 'Rest day'}</Text>
-          <Text style={ms.muted}>No session logged on this day.</Text>
+          <Copy id={day.ahead ? 'meditate.day.stillToCome' : 'meditate.day.restDay'} style={ms.title}>
+            {day.ahead ? 'Still to come' : 'Rest day'}
+          </Copy>
+          <Copy id="meditate.day.noSession" style={ms.muted}>No session logged on this day.</Copy>
         </View>
       </ScrollView>
     );
@@ -42,8 +47,8 @@ export const MeditateDayScreen: React.FC<Props> = ({ navigation, route }) => {
       {day.sessions.map((d, i) => {
         const s = d.session;
         const ratings = [
-          describeRating(d.ratings.start) ? `Getting started ${d.ratings.start}` : null,
-          describeRating(d.ratings.stay) ? `Staying with it ${d.ratings.stay}` : null,
+          describeRating(d.ratings.start) ? t('meditate.day.ratingStart', 'Getting started {n}', { n: d.ratings.start ?? '' }) : null,
+          describeRating(d.ratings.stay) ? t('meditate.day.ratingStay', 'Staying with it {n}', { n: d.ratings.stay ?? '' }) : null,
         ].filter(Boolean);
         return (
           <View key={s?.id ?? `logged-${i}`} style={[ms.card, styles.session]}>
@@ -53,13 +58,13 @@ export const MeditateDayScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Text style={ms.muted}>
                   {s
                     ? [
-                        wasLoggedAfter(s) ? 'Logged after' : clock(s.started_at),
+                        wasLoggedAfter(s) ? t('meditate.day.loggedAfter', 'Logged after') : clock(s.started_at),
                         formatMinutes(s.duration_sec),
-                        s.ended_early ? `ended early of ${formatMinutes(s.planned_sec)}` : null,
+                        s.ended_early ? t('meditate.day.endedEarlyOf', 'ended early of {planned}', { planned: formatMinutes(s.planned_sec) }) : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')
-                    : 'Logged without details'}
+                    : t('meditate.day.noDetails', 'Logged without details')}
                 </Text>
               </View>
               {!!s && (
@@ -69,7 +74,7 @@ export const MeditateDayScreen: React.FC<Props> = ({ navigation, route }) => {
                   accessibilityRole="button"
                   accessibilityLabel={`Edit ${d.name}`}
                 >
-                  <Text style={ms.link}>Edit</Text>
+                  <Copy id="meditate.day.edit" style={ms.link}>Edit</Copy>
                 </TouchableOpacity>
               )}
             </View>

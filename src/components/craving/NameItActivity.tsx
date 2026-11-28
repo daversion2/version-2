@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { NAME_IT_PROMPTS } from '../../data/cravings';
+import { Copy } from '../common/Copy';
+import { useCopy } from '../../context/CopyContext';
 
 interface Props {
   /** Existing draft (so re-entering the activity doesn't lose text). */
@@ -16,27 +18,28 @@ interface Props {
  * work isn't asked for twice.
  */
 export const NameItActivity: React.FC<Props> = ({ initialText, onSave }) => {
+  const t = useCopy();
   const [text, setText] = useState(initialText);
   const [promptIndex, setPromptIndex] = useState(0);
   const [saved, setSaved] = useState(false);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.kicker}>NAME IT TO TAME IT</Text>
+      <Copy id="craving.nameIt.kicker" style={styles.kicker}>NAME IT TO TAME IT</Copy>
       <Text style={styles.prompt}>{NAME_IT_PROMPTS[promptIndex]}</Text>
       <TouchableOpacity
         onPress={() => setPromptIndex((promptIndex + 1) % NAME_IT_PROMPTS.length)}
       >
-        <Text style={styles.shuffle}>↻ Different question</Text>
+        <Copy id="craving.nameIt.shuffle" style={styles.shuffle}>↻ Different question</Copy>
       </TouchableOpacity>
 
       <TextInput
         style={styles.input}
-        placeholder="Write it out — nobody sees this but you…"
+        placeholder={t('craving.nameIt.placeholder', 'Write it out — nobody sees this but you…')}
         placeholderTextColor="rgba(255,255,255,0.35)"
         value={text}
-        onChangeText={(t) => {
-          setText(t);
+        onChangeText={(value) => {
+          setText(value);
           setSaved(false);
         }}
         multiline
@@ -51,11 +54,15 @@ export const NameItActivity: React.FC<Props> = ({ initialText, onSave }) => {
         }}
         disabled={!text.trim() || saved}
       >
-        <Text style={styles.saveText}>{saved ? 'Saved to your log ✓' : 'Save to your log'}</Text>
+        <Text style={styles.saveText}>
+          {saved
+            ? t('craving.nameIt.saved', 'Saved to your log ✓')
+            : t('craving.nameIt.save', 'Save to your log')}
+        </Text>
       </TouchableOpacity>
-      <Text style={styles.hint}>
+      <Copy id="craving.nameIt.hint" style={styles.hint}>
         This carries into your end-of-ride reflection — it won’t ask you twice.
-      </Text>
+      </Copy>
     </View>
   );
 };

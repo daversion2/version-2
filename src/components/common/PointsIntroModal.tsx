@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Button } from './Button';
+import { Copy } from './Copy';
+import { useCopy } from '../../context/CopyContext';
 
 interface Props {
   visible: boolean;
@@ -10,25 +12,28 @@ interface Props {
 }
 
 export const PointsIntroModal: React.FC<Props> = ({ visible, onDismiss }) => {
+  const t = useCopy();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <Pressable style={styles.overlay} onPress={onDismiss}>
         <Pressable style={styles.card} onPress={() => {}}>
           <Ionicons name="flash" size={36} color={Colors.primary} style={styles.icon} />
-          <Text style={styles.title}>XP</Text>
-          <Text style={styles.body}>
-            XP is the total friction you’ve pushed through. Every session you rate adds to it.
-          </Text>
+          <Copy id="common.points.title" style={styles.title}>{'XP'}</Copy>
+          <Copy id="common.points.body" style={styles.body}>
+            {'XP is the total friction you’ve pushed through. Every session you rate adds to it.'}
+          </Copy>
           <View style={styles.bulletList}>
-            <Text style={styles.bullet}>
-              <Text style={styles.bulletBold}>Harder days earn more</Text> — if it felt tough but you did it anyway, it counts for more.
-            </Text>
-            <Text style={styles.bullet}>
-              <Text style={styles.bulletBold}>It only goes up</Text> — a missed day never takes XP away. It’s a record of what you’ve already overcome.
-            </Text>
+            <Copy id="common.points.harder" style={styles.bullet} boldStyle={styles.bulletBold}>
+              {'**Harder days earn more** — if it felt tough but you did it anyway, it counts for more.'}
+            </Copy>
+            <Copy id="common.points.onlyUp" style={styles.bullet} boldStyle={styles.bulletBold}>
+              {'**It only goes up** — a missed day never takes XP away. It’s a record of what you’ve already overcome.'}
+            </Copy>
           </View>
-          <Text style={styles.footer}>Streaks show consistency. XP shows how much you’ve taken on.</Text>
-          <Button title="Got it" onPress={onDismiss} style={styles.button} />
+          <Copy id="common.points.footer" style={styles.footer}>
+            {'Streaks show consistency. XP shows how much you’ve taken on.'}
+          </Copy>
+          <Button title={t('common.points.gotIt', 'Got it')} onPress={onDismiss} style={styles.button} />
         </Pressable>
       </Pressable>
     </Modal>

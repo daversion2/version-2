@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { NeuroscienceTidbit } from '../../types';
+import { Copy } from '../common/Copy';
 
 interface TidbitLearnMoreProps {
   visible: boolean;
@@ -34,7 +35,7 @@ export const TidbitLearnMore: React.FC<TidbitLearnMoreProps> = ({
           <View style={styles.header}>
             <View style={styles.labelRow}>
               <Ionicons name="flash" size={18} color={Colors.primary} />
-              <Text style={styles.headerTitle}>The science behind this moment</Text>
+              <Copy id="reward.learnMore.title" style={styles.headerTitle}>{'The science behind this moment'}</Copy>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close" size={24} color={Colors.gray} />
@@ -65,7 +66,7 @@ export const TidbitLearnMore: React.FC<TidbitLearnMoreProps> = ({
 
           {/* Close button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.closeButtonText}>Got it</Text>
+            <Copy id="reward.learnMore.gotIt" style={styles.closeButtonText}>{'Got it'}</Copy>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>

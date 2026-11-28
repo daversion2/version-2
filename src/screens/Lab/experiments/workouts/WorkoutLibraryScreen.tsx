@@ -5,6 +5,8 @@ import { Spacing } from '../../../../constants/theme';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
 import { SegmentedControl } from '../../../../components/common/SegmentedControl';
 import { useAuth } from '../../../../context/AuthContext';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 import type { LibraryGear, LibraryLevel, WorkoutsStackParamList } from '../../../../types/workouts';
 import {
   LIBRARY_FOCUS_LABELS,
@@ -24,6 +26,7 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutLibrary'>;
  */
 export const WorkoutLibraryScreen: React.FC<Props> = ({ navigation }) => {
   const { userProfile } = useAuth();
+  const t = useCopy();
   const { prefs, updatePrefs, workouts } = useWorkouts();
   const [level, setLevel] = useState<LibraryLevel>(prefs.library_level ?? 'beginner');
   const [gear, setGear] = useState<LibraryGear[]>(prefs.library_gear ?? []);
@@ -31,7 +34,9 @@ export const WorkoutLibraryScreen: React.FC<Props> = ({ navigation }) => {
   if (!canSeeWorkoutLibrary(userProfile)) {
     return (
       <View style={[ws.screen, styles.center]}>
-        <Text style={ws.muted}>The Workout library isn’t available on this account yet.</Text>
+        <Copy id="workouts.library.unavailable" style={ws.muted}>
+          The Workout library isn’t available on this account yet.
+        </Copy>
       </View>
     );
   }
@@ -59,10 +64,10 @@ export const WorkoutLibraryScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView style={ws.screen} contentContainerStyle={ws.scroll}>
-      <Text style={ws.lead}>
+      <Copy id="workouts.library.lead" style={ws.lead}>
         Premade workouts that start with movement prep, then power, strength and core. Tick what you have and each one
         fits itself to it.
-      </Text>
+      </Copy>
 
       <SegmentedControl
         options={LIBRARY_LEVELS.map((l) => ({ value: l.value, label: l.label }))}
@@ -72,19 +77,31 @@ export const WorkoutLibraryScreen: React.FC<Props> = ({ navigation }) => {
       />
       {levelHint ? <Text style={[ws.muted, styles.hint]}>{levelHint}</Text> : null}
 
-      <Text style={ws.sectionLabel}>WHAT YOU HAVE</Text>
+      <Copy id="workouts.library.whatYouHave" style={ws.sectionLabel}>
+        WHAT YOU HAVE
+      </Copy>
       <View style={[ws.card, styles.chips]}>
-        <Chip label="Bodyweight only" on={gear.length === 0} onPress={bodyweightOnly} />
+        <Chip label={t('workouts.library.bodyweight', 'Bodyweight only')} on={gear.length === 0} onPress={bodyweightOnly} />
         {LIBRARY_GEAR_ORDER.map((g) => (
           <Chip key={g} label={LIBRARY_GEAR_LABELS[g]} on={gear.includes(g)} onPress={() => toggleGear(g)} />
         ))}
       </View>
 
       <ListGroup
-        title={`${fits.length} ${fits.length === 1 ? 'workout' : 'workouts'}`}
+        title={
+          fits.length === 1
+            ? t('workouts.library.countOne', '{n} workout', { n: fits.length })
+            : t('workouts.library.countOther', '{n} workouts', { n: fits.length })
+        }
         footer={
           needMoreGear > 0
-            ? `${needMoreGear} more at this level ${needMoreGear === 1 ? 'needs' : 'need'} equipment you haven’t ticked.`
+            ? needMoreGear === 1
+              ? t('workouts.library.needMoreOne', '{n} more at this level needs equipment you haven’t ticked.', {
+                  n: needMoreGear,
+                })
+              : t('workouts.library.needMoreOther', '{n} more at this level need equipment you haven’t ticked.', {
+                  n: needMoreGear,
+                })
             : undefined
         }
       >
@@ -92,8 +109,11 @@ export const WorkoutLibraryScreen: React.FC<Props> = ({ navigation }) => {
           <ListRow
             key={template.id}
             title={template.name}
-            subtitle={`${template.minutes} min · ${LIBRARY_FOCUS_LABELS[template.focus]}${
-              findLibraryCopy(workouts, template.id) ? ' · In your workouts' : ''
+            subtitle={`${t('workouts.library.rowMeta', '{minutes} min · {focus}', {
+              minutes: template.minutes,
+              focus: LIBRARY_FOCUS_LABELS[template.focus],
+            })}${
+              findLibraryCopy(workouts, template.id) ? t('workouts.library.inYours', ' · In your workouts') : ''
             }\n${template.summary}`}
             onPress={() => navigation.navigate('WorkoutLibraryDetail', { libraryId: template.id })}
           />

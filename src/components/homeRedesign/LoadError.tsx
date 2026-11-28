@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors, Spacing, TextStyles } from '../../constants/theme';
+import { useCopy } from '../../context/CopyContext';
 
 // Today's and the app pages' "couldn't load" state: a plain line and a way to
 // try again, in place of the raw error message. The error itself goes to the
@@ -13,8 +14,9 @@ interface Props {
 
 export const LoadError: React.FC<Props> = ({
   onRetry,
-  message = 'Couldn’t load your numbers. Check your connection and try again.',
+  message,
 }) => {
+  const t = useCopy();
   const [busy, setBusy] = useState(false);
   const retry = async () => {
     if (busy) return;
@@ -27,7 +29,9 @@ export const LoadError: React.FC<Props> = ({
   };
   return (
     <View style={styles.wrap}>
-      <Text style={styles.text}>{message}</Text>
+      <Text style={styles.text}>
+        {message ?? t('today.loadError.message', 'Couldn’t load your numbers. Check your connection and try again.')}
+      </Text>
       <TouchableOpacity
         style={[styles.button, busy && styles.busy]}
         onPress={retry}
@@ -35,7 +39,9 @@ export const LoadError: React.FC<Props> = ({
         accessibilityRole="button"
         accessibilityState={{ busy }}
       >
-        <Text style={styles.buttonText}>{busy ? 'Trying…' : 'Try again'}</Text>
+        <Text style={styles.buttonText}>
+          {busy ? t('today.loadError.trying', 'Trying…') : t('today.loadError.retry', 'Try again')}
+        </Text>
       </TouchableOpacity>
     </View>
   );

@@ -6,6 +6,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BorderRadius, Colors, Spacing, TextStyles } from '../../../../constants/theme';
 import { LargeTitle } from '../../../../components/common/LargeTitle';
 import { ListGroup, ListRow } from '../../../../components/common/ListGroup';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
+import { copyText } from '../../../../services/appCopy';
 import { Workout, WorkoutsStackParamList } from '../../../../types/workouts';
 import { PastSessionSheet } from '../../../../components/miniapps/PastSessionSheet';
 import { durationSec, totalSetsLogged } from '../../../../services/workoutSession';
@@ -24,9 +27,11 @@ type Props = NativeStackScreenProps<WorkoutsStackParamList, 'WorkoutsHome'>;
 
 /** "Last done today", "Last done Sat", "Last done Mon, May 5". */
 export const lastDoneLabel = (iso?: string): string => {
-  if (!iso) return 'Not done yet';
+  if (!iso) return copyText('workouts.home.notDone', 'Not done yet');
   const day = formatRelativeDay(toLocalDateString(new Date(iso)));
-  return `Last done ${day === 'Today' || day === 'Yesterday' ? day.toLowerCase() : day}`;
+  return copyText('workouts.home.lastDone', 'Last done {day}', {
+    day: day === 'Today' || day === 'Yesterday' ? day.toLowerCase() : day,
+  });
 };
 
 /**
@@ -53,6 +58,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
     currentPhase,
     sessions,
   } = useWorkouts();
+  const t = useCopy();
   const today = toLocalDateString(new Date());
   // Every Start asks the override first; its answer is what starts the workout.
   const overrideStart = useOverrideStart('Workouts', WORKOUTS_ACCENT);
@@ -98,14 +104,17 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
   const guardStart = (start: () => void) => {
     if (!session) return start();
     showChoice(
-      `${session.workoutName} is still in progress`,
+      t('workouts.home.inProgressTitle', '{name} is still in progress', { name: session.workoutName }),
       session.saveTimedOutAt
-        ? 'Its last Finish didn’t get through, but may still save once you’re back online. Pick up where you left off, or start this one?'
-        : 'Pick up where you left off, or throw it away and start this one?',
+        ? t(
+            'workouts.home.inProgressTimedOut',
+            'Its last Finish didn’t get through, but may still save once you’re back online. Pick up where you left off, or start this one?'
+          )
+        : t('workouts.home.inProgressMsg', 'Pick up where you left off, or throw it away and start this one?'),
       [
-        { label: 'Resume it', onPress: resume },
+        { label: t('workouts.home.resumeIt', 'Resume it'), onPress: resume },
         {
-          label: 'Discard and start',
+          label: t('workouts.home.discardStart', 'Discard and start'),
           onPress: async () => {
             await discardSession();
             start();
@@ -164,18 +173,26 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
       contentContainerStyle={ws.scroll}
       refreshControl={<RefreshControl refreshing={false} onRefresh={reload} tintColor={WORKOUTS_ACCENT} />}
     >
-      <LargeTitle title="Workouts" />
+      <LargeTitle title={t('workouts.home.title', 'Workouts')} />
 
       {!prefs.intro_seen && !loading && (
         <View style={[ws.card, styles.intro]}>
-          <Text style={ws.title}>How Workouts works</Text>
-          <Text style={ws.body}>• Pick a workout — or build one from exercises and circuits.</Text>
-          <Text style={ws.body}>• Log each set as you go; the rest timer starts on its own.</Text>
-          <Text style={ws.body}>
+          <Copy id="workouts.home.introTitle" style={ws.title}>
+            How Workouts works
+          </Copy>
+          <Copy id="workouts.home.intro1" style={ws.body}>
+            • Pick a workout — or build one from exercises and circuits.
+          </Copy>
+          <Copy id="workouts.home.intro2" style={ws.body}>
+            • Log each set as you go; the rest timer starts on its own.
+          </Copy>
+          <Copy id="workouts.home.intro3" style={ws.body}>
             • Start asks how hard it is to start. Finish asks how hard it was to keep going. It counts toward your week.
-          </Text>
+          </Copy>
           <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
-            <Text style={ws.link}>Got it</Text>
+            <Copy id="workouts.home.gotIt" style={ws.link}>
+              Got it
+            </Copy>
           </TouchableOpacity>
         </View>
       )}
@@ -183,21 +200,36 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
       {session && (
         <TouchableOpacity style={styles.resume} onPress={resume} accessibilityRole="button">
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.resumeEyebrow}>In progress</Text>
+            <Copy id="workouts.home.inProgress" style={styles.resumeEyebrow}>
+              In progress
+            </Copy>
             <Text style={styles.resumeTitle}>{session.workoutName}</Text>
-            <Text style={styles.resumeMeta}>
-              {totalSetsLogged(session)} sets logged · started {formatSeconds(durationSec(session, new Date()))} ago
-            </Text>
+            <Copy
+              id="workouts.home.resumeMeta"
+              style={styles.resumeMeta}
+              vars={{ n: totalSetsLogged(session), time: formatSeconds(durationSec(session, new Date())) }}
+            >
+              {'{n} sets logged · started {time} ago'}
+            </Copy>
           </View>
           <View style={styles.resumeActions}>
-            <Text style={styles.resumeCta}>Resume</Text>
+            <Copy id="workouts.home.resume" style={styles.resumeCta}>
+              Resume
+            </Copy>
             <TouchableOpacity
               hitSlop={8}
               onPress={() =>
-                showConfirm('Discard this workout?', 'Nothing from it will be saved.', discardSession, 'Discard')
+                showConfirm(
+                  t('workouts.home.discardTitle', 'Discard this workout?'),
+                  t('workouts.home.discardMsg', 'Nothing from it will be saved.'),
+                  discardSession,
+                  t('workouts.home.discard', 'Discard')
+                )
               }
             >
-              <Text style={styles.resumeDiscard}>Discard</Text>
+              <Copy id="workouts.home.discard" style={styles.resumeDiscard}>
+                Discard
+              </Copy>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -223,8 +255,12 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {!!loadError && (
         <TouchableOpacity style={ws.card} onPress={reload}>
-          <Text style={ws.title}>Couldn't load your workouts</Text>
-          <Text style={ws.muted}>Check your connection, then tap to try again. A workout in progress is safe on this phone.</Text>
+          <Copy id="workouts.home.loadErrTitle" style={ws.title}>
+            Couldn't load your workouts
+          </Copy>
+          <Copy id="workouts.home.loadErrMsg" style={ws.muted}>
+            Check your connection, then tap to try again. A workout in progress is safe on this phone.
+          </Copy>
         </TouchableOpacity>
       )}
 
@@ -234,15 +270,21 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.tiles}>
           <HomeTile
             icon="trending-up"
-            title="Progress"
-            subtitle={prs > 0 ? `${prs} ${prs === 1 ? 'PR' : 'PRs'} this month` : 'Stats and records'}
+            title={t('workouts.home.progress', 'Progress')}
+            subtitle={
+              prs > 0
+                ? prs === 1
+                  ? t('workouts.home.prsOne', '{n} PR this month', { n: prs })
+                  : t('workouts.home.prsOther', '{n} PRs this month', { n: prs })
+                : t('workouts.home.statsRecords', 'Stats and records')
+            }
             label="Progress, stats and records"
             onPress={() => navigation.navigate('WorkoutHistory')}
           />
           <HomeTile
             icon="add"
-            title="Create"
-            subtitle="Workout or phase"
+            title={t('workouts.home.create', 'Create')}
+            subtitle={t('workouts.home.createSub', 'Workout or phase')}
             label="Create, workout or phase"
             onPress={() => navigation.navigate('WorkoutCreate')}
           />
@@ -250,12 +292,17 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
       )}
 
       {listed.length > 0 && (
-        <ListGroup title={focusWorkout ? 'Other workouts' : 'Your workouts'}>
+        <ListGroup title={
+            focusWorkout ? t('workouts.home.otherWorkouts', 'Other workouts') : t('workouts.home.yourWorkouts', 'Your workouts')
+          }>
           {listed.map((w) => {
             const parts = w.blocks.slice(0, 2).map((b) =>
-              b.items.length > 1 ? b.name || 'Circuit' : exercisesById[b.items[0]?.exerciseId]?.name ?? 'Exercise'
+              b.items.length > 1
+                ? b.name || t('workouts.home.circuit', 'Circuit')
+                : exercisesById[b.items[0]?.exerciseId]?.name ?? t('workouts.home.exercise', 'Exercise')
             );
-            const more = w.blocks.length > 2 ? ` and ${w.blocks.length - 2} more` : '';
+            const more =
+              w.blocks.length > 2 ? t('workouts.home.andMore', ' and {n} more', { n: w.blocks.length - 2 }) : '';
             return (
               <ListRow
                 key={w.id}
@@ -270,26 +317,26 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <ListGroup>
         <ListRow
-          title="Empty workout"
-          subtitle="Add exercises as you go"
+          title={t('workouts.home.empty', 'Empty workout')}
+          subtitle={t('workouts.home.emptySub', 'Add exercises as you go')}
           icon={{ name: 'add', color: WORKOUTS_ACCENT }}
           onPress={startEmpty}
         />
         <ListRow
-          title="Log a past workout"
-          subtitle="Didn't track it live? Add what you did"
+          title={t('workouts.home.logPast', 'Log a past workout')}
+          subtitle={t('workouts.home.logPastSub', "Didn't track it live? Add what you did")}
           icon={{ name: 'checkmark-done', color: WORKOUTS_ACCENT }}
           onPress={() => navigation.navigate('WorkoutDoneIt', {})}
         />
         <ListRow
-          title="Log an exercise"
-          subtitle="Add sets of something you did"
+          title={t('workouts.home.logExercise', 'Log an exercise')}
+          subtitle={t('workouts.home.logExerciseSub', 'Add sets of something you did')}
           icon={{ name: 'barbell', color: WORKOUTS_ACCENT }}
           onPress={() => setLoggingExercise(true)}
         />
         <ListRow
-          title="Done something else"
-          subtitle="Log it with just a day and time"
+          title={t('workouts.home.doneElse', 'Done something else')}
+          subtitle={t('workouts.home.doneElseSub', 'Log it with just a day and time')}
           icon={{ name: 'calendar', color: WORKOUTS_ACCENT }}
           onPress={() => setLoggingPast(true)}
         />
@@ -314,7 +361,7 @@ export const WorkoutsHomeScreen: React.FC<Props> = ({ navigation, route }) => {
       <PastSessionSheet
         visible={loggingPast}
         accent={WORKOUTS_ACCENT}
-        title="Done something else"
+        title={t('workouts.home.doneElse', 'Done something else')}
         minutes={{ min: 5, max: 180, step: 5, initial: 45 }}
         onCancel={() => setLoggingPast(false)}
         onSave={({ date, minutes }) => {

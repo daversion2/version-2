@@ -21,6 +21,7 @@ import { MINI_APPS } from './miniApps';
 import { ratingDates, sessionsByDay } from './homeDashboard';
 import type { HomeAppData } from './homeDashboardLoad';
 import { platesOf } from './mealsMath';
+import { copyText } from './appCopy';
 
 export interface EnrichedCompletionLog extends CompletionLog {
   name: string;
@@ -78,11 +79,11 @@ export const getCompletionLogsWithNames = async (
 
 /** The small grey label under a check-in on the day's page. */
 export const logKindLabel = (log: Pick<CompletionLog, 'type' | 'reference_id'>): string => {
-  if (log.type === 'challenge') return 'Challenge';
-  if (log.type === 'craving') return 'Craving';
+  if (log.type === 'challenge') return copyText('progress.logKind.challenge', 'Challenge');
+  if (log.type === 'craving') return copyText('progress.logKind.craving', 'Craving');
   // App sessions are named after their app already; "Habit" would be wrong.
-  if (appIdFromCheckinId(log.reference_id)) return 'Session';
-  return 'Habit';
+  if (appIdFromCheckinId(log.reference_id)) return copyText('progress.logKind.session', 'Session');
+  return copyText('progress.logKind.habit', 'Habit');
 };
 
 /**

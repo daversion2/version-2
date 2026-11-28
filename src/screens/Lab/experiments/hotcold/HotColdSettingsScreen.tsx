@@ -10,16 +10,21 @@ import { SegmentedControl } from '../../../../components/common/SegmentedControl
 import { Stepper } from '../../../../components/common/Stepper';
 import { useHotCold } from './HotColdContext';
 import { hcs } from './components/hotcoldStyle';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<HotColdStackParamList, 'HotColdSettings'>;
 
 /** Everything here is optional: the app works on its defaults. */
 export const HotColdSettingsScreen: React.FC<Props> = () => {
+  const t = useCopy();
   const { prefs, updatePrefs } = useHotCold();
 
   return (
     <ScrollView style={hcs.screen} contentContainerStyle={hcs.scroll}>
-      <ListGroup title="Temperature" footer="Changing it never changes what you logged.">
+      <ListGroup
+        title={t('hotcold.settings.temp.title', 'Temperature')}
+        footer={t('hotcold.settings.temp.footer', 'Changing it never changes what you logged.')}
+      >
         <View style={styles.pad}>
           <SegmentedControl<TempUnit>
             options={[
@@ -33,9 +38,12 @@ export const HotColdSettingsScreen: React.FC<Props> = () => {
         </View>
       </ListGroup>
 
-      <ListGroup title="Weekly goal" footer="Cold and heat sessions together, Monday to Sunday.">
+      <ListGroup
+        title={t('hotcold.settings.goal.title', 'Weekly goal')}
+        footer={t('hotcold.settings.goal.footer', 'Cold and heat sessions together, Monday to Sunday.')}
+      >
         <ListRow
-          title="Sessions a week"
+          title={t('hotcold.settings.goal.row', 'Sessions a week')}
           right={
             <Stepper
               value={prefs.weekly_goal}
@@ -48,9 +56,9 @@ export const HotColdSettingsScreen: React.FC<Props> = () => {
         />
       </ListGroup>
 
-      <ListGroup title="Plunge timer" footer={SAFETY_LINE}>
+      <ListGroup title={t('hotcold.settings.plunge.title', 'Plunge timer')} footer={SAFETY_LINE}>
         <ListRow
-          title="Bell at"
+          title={t('hotcold.settings.plunge.row', 'Bell at')}
           right={
             <Stepper
               value={prefs.cold_target_sec}

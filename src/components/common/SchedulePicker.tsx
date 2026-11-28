@@ -11,6 +11,8 @@ import {
   switchScheduleKind,
   toggleDay,
 } from '../../services/habitSchedule';
+import { Copy } from './Copy';
+import { useCopy } from '../../context/CopyContext';
 
 // ============================================================================
 // SCHEDULE PICKER — the one place a habit's schedule is chosen.
@@ -29,16 +31,16 @@ import {
 const MIN_COUNT = 1;
 const MAX_COUNT = 7;
 
-const DAY_PRESETS: { label: string; days: Weekday[] }[] = [
-  { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
-  { label: 'Weekends', days: [0, 6] },
-  { label: 'Every day', days: [0, 1, 2, 3, 4, 5, 6] },
+const DAY_PRESETS: { key: string; label: string; days: Weekday[] }[] = [
+  { key: 'weekdays', label: 'Weekdays', days: [1, 2, 3, 4, 5] },
+  { key: 'weekends', label: 'Weekends', days: [0, 6] },
+  { key: 'everyDay', label: 'Every day', days: [0, 1, 2, 3, 4, 5, 6] },
 ];
 
-const COUNT_PRESETS: { label: string; value: number }[] = [
-  { label: '3×', value: 3 },
-  { label: '5×', value: 5 },
-  { label: 'Daily', value: 7 },
+const COUNT_PRESETS: { key: string; label: string; value: number }[] = [
+  { key: 'three', label: '3×', value: 3 },
+  { key: 'five', label: '5×', value: 5 },
+  { key: 'daily', label: 'Daily', value: 7 },
 ];
 
 interface Props {
@@ -73,6 +75,7 @@ export const SchedulePicker: React.FC<Props> = ({
   modeStyle,
   modeStyleOn,
 }) => {
+  const t = useCopy();
   const segmented = modeStyle === undefined;
 
   const setCount = (target: number) =>
@@ -87,8 +90,8 @@ export const SchedulePicker: React.FC<Props> = ({
       <View style={[styles.modes, segmented && styles.modesSegmented]}>
         {(
           [
-            { kind: 'days', label: 'Specific days' },
-            { kind: 'count', label: 'Times a week' },
+            { kind: 'days', label: t('common.schedule.specificDays', 'Specific days') },
+            { kind: 'count', label: t('common.schedule.timesAWeek', 'Times a week') },
           ] as const
         ).map((option) => {
           const on = schedule.kind === option.kind;
@@ -149,9 +152,9 @@ export const SchedulePicker: React.FC<Props> = ({
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                   >
-                    <Text style={[styles.presetText, on && styles.presetTextOn]}>
+                    <Copy id={`common.schedule.preset.${preset.key}`} style={[styles.presetText, on && styles.presetTextOn]}>
                       {preset.label}
-                    </Text>
+                    </Copy>
                   </TouchableOpacity>
                 );
               })}
@@ -171,7 +174,7 @@ export const SchedulePicker: React.FC<Props> = ({
               <Text style={styles.stepButtonText}>−</Text>
             </TouchableOpacity>
             <Text style={styles.stepValue}>{schedule.target}</Text>
-            <Text style={styles.stepUnit}>× a week</Text>
+            <Copy id="common.schedule.stepUnit" style={styles.stepUnit}>{'× a week'}</Copy>
             <TouchableOpacity
               style={[
                 styles.stepButton,
@@ -200,9 +203,9 @@ export const SchedulePicker: React.FC<Props> = ({
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                   >
-                    <Text style={[styles.presetText, on && styles.presetTextOn]}>
+                    <Copy id={`common.schedule.preset.${preset.key}`} style={[styles.presetText, on && styles.presetTextOn]}>
                       {preset.label}
-                    </Text>
+                    </Copy>
                   </TouchableOpacity>
                 );
               })}

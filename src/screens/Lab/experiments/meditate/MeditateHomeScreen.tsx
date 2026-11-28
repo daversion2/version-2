@@ -15,6 +15,8 @@ import { useMeditate } from './MeditateContext';
 import { MEDITATE_ACCENT, ms } from './components/meditateStyle';
 import { MeditateWeekCard } from './components/MeditateWeekParts';
 import { useMeditateStart } from './components/useMeditateStart';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MeditateStackParamList, 'MeditateHome'>;
 
@@ -42,6 +44,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     closeApp,
   } = useMeditate();
   const { starting, resume, doIt, doneIt, sheets } = useMeditateStart(navigation);
+  const t = useCopy();
 
   // The guided catalog didn't load: try again each time this screen shows.
   useFocusEffect(
@@ -59,7 +62,7 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
     if (!runningTimer) return undefined;
     const left = remainingSec(runningTimer, new Date());
     if (left === 0) return undefined;
-    const timer = setTimeout(() => setTick((t) => t + 1), left * 1000 + 500);
+    const timer = setTimeout(() => setTick((n) => n + 1), left * 1000 + 500);
     return () => clearTimeout(timer);
   }, [runningTimer]);
 
@@ -104,26 +107,27 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={ms.scroll}
         refreshControl={<RefreshControl refreshing={false} onRefresh={reload} tintColor={MEDITATE_ACCENT} />}
       >
-        <LargeTitle title="Meditate" />
+        <LargeTitle title={t('meditate.home.title', 'Meditate')} />
 
         {!prefs.intro_seen && !loading && (
           <View style={[ms.card, styles.intro]}>
-            <Text style={ms.title}>How Meditate works</Text>
-            <Text style={styles.introLine}>• Do it repeats your last session. Change picks Sit, Breathe or NSDR, and how long.</Text>
-            <Text style={styles.introLine}>
+            <Copy id="meditate.home.intro.title" style={ms.title}>How Meditate works</Copy>
+            <Copy id="meditate.home.intro.doIt" style={styles.introLine}>
+              • Do it repeats your last session. Change picks Sit, Breathe or NSDR, and how long.
+            </Copy>
+            <Copy id="meditate.home.intro.bell" style={styles.introLine}>
               • Lock your phone and a bell rings at the end — no screen glowing at you while you sit. Already sat? Done it logs it.
-            </Text>
+            </Copy>
             {guided.length > 0 && (
-              <Text style={styles.introLine}>
+              <Copy id="meditate.home.intro.guided" style={styles.introLine}>
                 • Guided is the exception: the recording plays with the screen on, so leave it lit to the end.
-              </Text>
+              </Copy>
             )}
-            <Text style={styles.introLine}>
-              • Do it asks how hard it is to start. Finish asks how hard it was to stay with it. It counts toward your
-              week.
-            </Text>
+            <Copy id="meditate.home.intro.rating" style={styles.introLine}>
+              • Do it asks how hard it is to start. Finish asks how hard it was to stay with it. It counts toward your week.
+            </Copy>
             <TouchableOpacity onPress={() => updatePrefs({ intro_seen: true }).catch(() => {})} style={styles.introBtn}>
-              <Text style={ms.link}>Got it</Text>
+              <Copy id="meditate.home.intro.gotIt" style={ms.link}>Got it</Copy>
             </TouchableOpacity>
           </View>
         )}
@@ -131,7 +135,9 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         {session && (
           <TouchableOpacity style={styles.resume} onPress={resume} accessibilityRole="button">
             <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.resumeEyebrow}>{readyToLog ? 'Ready to log' : 'In progress'}</Text>
+              <Copy id={readyToLog ? 'meditate.home.readyToLog' : 'meditate.home.inProgress'} style={styles.resumeEyebrow}>
+                {readyToLog ? 'Ready to log' : 'In progress'}
+              </Copy>
               <Text style={styles.resumeTitle}>
                 {describeSession({
                   mode: session.mode,
@@ -143,12 +149,21 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </View>
             <View style={styles.resumeActions}>
-              <Text style={styles.resumeCta}>{readyToLog ? 'Log it' : 'Resume'}</Text>
+              <Copy id={readyToLog ? 'meditate.home.logIt' : 'meditate.home.resume'} style={styles.resumeCta}>
+                {readyToLog ? 'Log it' : 'Resume'}
+              </Copy>
               <TouchableOpacity
                 hitSlop={8}
-                onPress={() => showConfirm('Discard this session?', 'Nothing from it will be saved.', discardSession, 'Discard')}
+                onPress={() =>
+                  showConfirm(
+                    t('meditate.home.discard.title', 'Discard this session?'),
+                    t('meditate.home.discard.message', 'Nothing from it will be saved.'),
+                    discardSession,
+                    t('meditate.home.discard.confirm', 'Discard'),
+                  )
+                }
               >
-                <Text style={styles.resumeDiscard}>Discard</Text>
+                <Copy id="meditate.home.discard" style={styles.resumeDiscard}>Discard</Copy>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -158,8 +173,8 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
 
         {!!loadError && (
           <TouchableOpacity style={ms.card} onPress={reload}>
-            <Text style={ms.title}>Couldn't load everything</Text>
-            <Text style={ms.muted}>You can still start a session. Tap to try loading again.</Text>
+            <Copy id="meditate.home.loadFail.title" style={ms.title}>Couldn't load everything</Copy>
+            <Copy id="meditate.home.loadFail.body" style={ms.muted}>You can still start a session. Tap to try loading again.</Copy>
           </TouchableOpacity>
         )}
 
@@ -181,15 +196,19 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.tiles}>
             <HomeTile
               icon="trending-up"
-              title="Progress"
-              subtitle={weekSec > 0 ? `${formatMinutes(weekSec)} this week` : 'Stats and records'}
+              title={t('meditate.home.progress.title', 'Progress')}
+              subtitle={
+                weekSec > 0
+                  ? t('meditate.home.progress.week', '{time} this week', { time: formatMinutes(weekSec) })
+                  : t('meditate.home.progress.empty', 'Stats and records')
+              }
               label="Progress, stats and records"
               onPress={() => navigation.navigate('MeditateHistory')}
             />
             <HomeTile
               icon="add"
-              title="Create"
-              subtitle="Custom session"
+              title={t('meditate.home.create.title', 'Create')}
+              subtitle={t('meditate.home.create.subtitle', 'Custom session')}
               label="Create, custom session"
               onPress={() => navigation.navigate('MeditateCreate', topPlan ? { mode: topPlan.mode } : undefined)}
             />
@@ -197,12 +216,12 @@ export const MeditateHomeScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         {!loading && (
-          <ListGroup title={topPlan ? 'Other sessions' : 'Sessions'}>
+          <ListGroup title={topPlan ? t('meditate.home.otherSessions', 'Other sessions') : t('meditate.home.sessions', 'Sessions')}>
             {others.map((p) => (
               <ListRow
                 key={p.mode}
                 title={MODES[p.mode].label}
-                subtitle={p.needsLink ? 'Save a recording to start' : `${p.title} · ${p.minutes} min`}
+                subtitle={p.needsLink ? t('meditate.home.saveRecording', 'Save a recording to start') : `${p.title} · ${p.minutes} min`}
                 onPress={() => navigation.navigate('MeditateCreate', { mode: p.mode })}
               />
             ))}
@@ -228,7 +247,7 @@ const SessionCard: React.FC<{
     <View style={styles.sessionHead}>
       <Text style={styles.eyebrow}>{why}</Text>
       <TouchableOpacity onPress={onChange} hitSlop={8} accessibilityRole="button" accessibilityLabel="Change this session">
-        <Text style={ms.link}>Change</Text>
+        <Copy id="meditate.home.change" style={ms.link}>Change</Copy>
       </TouchableOpacity>
     </View>
     <Text style={styles.sessionTitle}>{plan.title}</Text>
@@ -236,7 +255,7 @@ const SessionCard: React.FC<{
 
     {plan.needsLink ? (
       <TouchableOpacity style={[ms.primaryBtn, styles.action]} onPress={onChange} accessibilityRole="button">
-        <Text style={ms.primaryBtnText}>Add a recording</Text>
+        <Copy id="meditate.home.addRecording" style={ms.primaryBtnText}>Add a recording</Copy>
       </TouchableOpacity>
     ) : (
       <View style={[styles.buttons, styles.action]}>
@@ -247,7 +266,7 @@ const SessionCard: React.FC<{
           accessibilityRole="button"
           accessibilityHint="Start this session now"
         >
-          {starting ? <ActivityIndicator color={Colors.white} /> : <Text style={ms.primaryBtnText}>Do it</Text>}
+          {starting ? <ActivityIndicator color={Colors.white} /> : <Copy id="meditate.home.doIt" style={ms.primaryBtnText}>Do it</Copy>}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.doneIt, starting && ms.disabled]}
@@ -256,7 +275,7 @@ const SessionCard: React.FC<{
           accessibilityRole="button"
           accessibilityHint="Log a session you've already done"
         >
-          <Text style={ms.secondaryBtnText}>Done it</Text>
+          <Copy id="meditate.home.doneIt" style={ms.secondaryBtnText}>Done it</Copy>
         </TouchableOpacity>
       </View>
     )}
@@ -265,10 +284,10 @@ const SessionCard: React.FC<{
       <View style={styles.warn}>
         <Ionicons name="notifications-off-outline" size={20} color={Colors.danger} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={ms.title}>No bell will ring</Text>
-          <Text style={ms.muted}>Notifications are off, so nothing tells you when time’s up.</Text>
+          <Copy id="meditate.home.noBell.title" style={ms.title}>No bell will ring</Copy>
+          <Copy id="meditate.home.noBell.body" style={ms.muted}>Notifications are off, so nothing tells you when time’s up.</Copy>
           <TouchableOpacity onPress={() => Linking.openSettings()} style={styles.warnLink}>
-            <Text style={ms.link}>Open Settings</Text>
+            <Copy id="meditate.home.openSettings" style={ms.link}>Open Settings</Copy>
           </TouchableOpacity>
         </View>
       </View>

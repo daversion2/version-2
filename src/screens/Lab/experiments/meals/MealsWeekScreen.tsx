@@ -22,6 +22,8 @@ import {
   scoreColor,
   mls,
 } from './components/mealsStyle';
+import { Copy } from '../../../../components/common/Copy';
+import { useCopy } from '../../../../context/CopyContext';
 
 type Props = NativeStackScreenProps<MealsStackParamList, 'MealsWeek'>;
 
@@ -39,6 +41,7 @@ const weekRange = (w: WeekSummary): string => {
  * the plates gave you, and the food-group goals. Tap a day to open it.
  */
 export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
+  const t = useCopy();
   const { today, days, pastDays, rules } = useMeals();
   const week = useMemo(() => summarizeWeek(today, days, rules), [today, days, rules]);
   const past = useMemo(() => pastWeeks(today, pastDays, rules), [today, pastDays, rules]);
@@ -67,9 +70,15 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
     <ScrollView style={mls.screen} contentContainerStyle={mls.scroll}>
       <View style={styles.head}>
         <Text style={styles.big}>{week.averageScore ?? '–'}</Text>
-        <Text style={mls.muted}>
-          average plate score this week · {week.platesLogged} {week.platesLogged === 1 ? 'plate' : 'plates'} logged
-        </Text>
+        <Copy
+          id={week.platesLogged === 1 ? 'meals.week.headSub.one' : 'meals.week.headSub.other'}
+          style={mls.muted}
+          vars={{ n: week.platesLogged }}
+        >
+          {week.platesLogged === 1
+            ? 'average plate score this week · {n} plate logged'
+            : 'average plate score this week · {n} plates logged'}
+        </Copy>
       </View>
 
       <View style={mls.card}>
@@ -89,7 +98,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.gridRow}>
-          <Text style={styles.rowLabel}>Day</Text>
+          <Copy id="meals.week.rowDay" style={styles.rowLabel}>Day</Copy>
           {week.days.map((d) => {
             const status = d.score?.status;
             const shown = status === 'on' || status === 'off';
@@ -106,7 +115,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.gridRow}>
-          <Text style={styles.rowLabel}>Score</Text>
+          <Copy id="meals.week.rowScore" style={styles.rowLabel}>Score</Copy>
           {week.days.map((d) => (
             <TouchableOpacity key={d.date} style={styles.cellWrap} onPress={() => openDay(d)} disabled={d.future}>
               {cell(d, d.score?.average ?? null, scoreColor(d.score?.average ?? null))}
@@ -115,7 +124,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.gridRow}>
-          <Text style={styles.rowLabel}>Meals</Text>
+          <Copy id="meals.week.rowMeals" style={styles.rowLabel}>Meals</Copy>
           {week.days.map((d) => (
             <TouchableOpacity key={d.date} style={styles.cellWrap} onPress={() => openDay(d)} disabled={d.future}>
               {cell(d, d.score?.scoredCount || null, MEALS_ACCENT)}
@@ -126,7 +135,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
 
       {week.nutrients[0]?.of > 0 && (
         <>
-          <Text style={mls.sectionLabel}>What your plates gave you</Text>
+          <Copy id="meals.week.gave" style={mls.sectionLabel}>What your plates gave you</Copy>
           <View style={[mls.card, styles.nutrientCard]}>
             <View style={styles.gridRow}>
               <View style={styles.rowLabel} />
@@ -168,16 +177,16 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
                 })}
               </View>
             ))}
-            <Text style={mls.muted}>Number = plates that day with it. Darker = more of that day’s plates.</Text>
+            <Copy id="meals.week.legend" style={mls.muted}>Number = plates that day with it. Darker = more of that day’s plates.</Copy>
             {week.nutrients.map((c) => {
               const label = NUTRIENTS.find((x) => x.id === c.nutrient)?.label;
               return (
                 <View key={c.nutrient} style={styles.nutrientTotal}>
                   <View style={styles.weeklyTop}>
                     <Text style={mls.body}>{label}</Text>
-                    <Text style={styles.weeklyCount}>
-                      {c.have} of {c.of} plates
-                    </Text>
+                    <Copy id="meals.week.platesOf" style={styles.weeklyCount} vars={{ have: c.have, of: c.of }}>
+                      {'{have} of {of} plates'}
+                    </Copy>
                   </View>
                   <View style={styles.track}>
                     <View
@@ -194,7 +203,7 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
         </>
       )}
 
-      {(daily.length > 0 || week.weeklyGoals.length > 0) && <Text style={mls.sectionLabel}>Food-group goals</Text>}
+      {(daily.length > 0 || week.weeklyGoals.length > 0) && <Copy id="meals.week.groupGoals" style={mls.sectionLabel}>Food-group goals</Copy>}
 
       {daily.map((goal) => (
         <View key={goal.id} style={mls.card}>
@@ -223,9 +232,9 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
         <View key={goal.id} style={mls.card}>
           <View style={styles.weeklyTop}>
             <Text style={mls.title}>{describeGroupGoal(goal)}</Text>
-            <Text style={styles.weeklyCount}>
-              {have} of {goal.count}
-            </Text>
+            <Copy id="meals.week.goalProgress" style={styles.weeklyCount} vars={{ have, count: goal.count }}>
+              {'{have} of {count}'}
+            </Copy>
           </View>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${Math.min(100, (have / goal.count) * 100)}%` }]} />
@@ -235,16 +244,20 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
 
       {past.length > 0 && (
         <>
-          <Text style={mls.sectionLabel}>Past weeks</Text>
+          <Copy id="meals.week.past" style={mls.sectionLabel}>Past weeks</Copy>
           {past.map((w) => {
             const on = daysOnTarget(w);
             return (
               <View key={w.days[0].date} style={[mls.card, styles.pastWeek]}>
                 <View style={styles.weeklyTop}>
                   <Text style={mls.title}>{weekRange(w)}</Text>
-                  <Text style={styles.weeklyCount}>
-                    {on} {on === 1 ? 'day' : 'days'} on target
-                  </Text>
+                  <Copy
+                    id={on === 1 ? 'meals.week.daysOnTarget.one' : 'meals.week.daysOnTarget.other'}
+                    style={styles.weeklyCount}
+                    vars={{ n: on }}
+                  >
+                    {on === 1 ? '{n} day on target' : '{n} days on target'}
+                  </Copy>
                 </View>
                 <View style={styles.pastDots}>
                   {w.days.map((d, i) => {
@@ -268,7 +281,9 @@ export const MealsWeekScreen: React.FC<Props> = ({ navigation }) => {
                   })}
                 </View>
                 <Text style={mls.muted}>
-                  {w.averageScore ?? '–'} average · {w.platesLogged} {w.platesLogged === 1 ? 'plate' : 'plates'} logged
+                  {w.platesLogged === 1
+                    ? t('meals.week.pastSummary.one', '{avg} average · {n} plate logged', { avg: w.averageScore ?? '–', n: w.platesLogged })
+                    : t('meals.week.pastSummary.other', '{avg} average · {n} plates logged', { avg: w.averageScore ?? '–', n: w.platesLogged })}
                   {w.platesLogged > 0
                     ? '\n' +
                       w.nutrients

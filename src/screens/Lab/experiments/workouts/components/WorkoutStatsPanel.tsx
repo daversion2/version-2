@@ -15,7 +15,9 @@ import {
   volumeBars,
 } from '../../../../../services/workoutStats';
 import { useWorkouts } from '../WorkoutsContext';
-import { BreakdownRow, RANGE_PHRASE, RangePicker, StatTiles, VolumeChart } from './StatsParts';
+import { BreakdownRow, rangePhrase, RangePicker, StatTiles, VolumeChart } from './StatsParts';
+import { Copy } from '../../../../../components/common/Copy';
+import { useCopy } from '../../../../../context/CopyContext';
 import { ws } from './workoutsStyle';
 
 /** History → Stats: totals for a span, the trend, then body parts and exercises to drill into. */
@@ -38,7 +40,11 @@ export const WorkoutStatsPanel: React.FC = () => {
   }, [all, range]);
 
   if (all.length === 0) {
-    return <Text style={ws.muted}>Finish a workout and your totals start here — volume, sets and reps, by exercise and body part.</Text>;
+    return (
+      <Copy id="workouts.statsPanel.empty" style={ws.muted}>
+        Finish a workout and your totals start here — volume, sets and reps, by exercise and body part.
+      </Copy>
+    );
   }
 
   const open = (kind: 'exercise' | 'muscle', id: string) =>
@@ -51,10 +57,14 @@ export const WorkoutStatsPanel: React.FC = () => {
       <VolumeChart bars={view.bars} unit={unit} metric="volume" />
 
       {view.totals.sets === 0 ? (
-        <Text style={ws.muted}>Nothing logged {RANGE_PHRASE[range]} yet.</Text>
+        <Copy id="workouts.statsPanel.nothing" style={ws.muted} vars={{ when: rangePhrase(range) }}>
+          {'Nothing logged {when} yet.'}
+        </Copy>
       ) : (
         <>
-          <Text style={ws.sectionLabel}>By body part</Text>
+          <Copy id="workouts.statsPanel.byBody" style={ws.sectionLabel}>
+            By body part
+          </Copy>
           {view.muscles.map((m) => (
             <BreakdownRow
               key={m.muscle}
@@ -66,7 +76,9 @@ export const WorkoutStatsPanel: React.FC = () => {
             />
           ))}
 
-          <Text style={ws.sectionLabel}>By exercise</Text>
+          <Copy id="workouts.statsPanel.byExercise" style={ws.sectionLabel}>
+            By exercise
+          </Copy>
           {view.exercises.map((e) => (
             <BreakdownRow
               key={e.exerciseId}

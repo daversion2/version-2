@@ -13,6 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { Card } from '../../components/common/Card';
+import { Copy } from '../../components/common/Copy';
+import { useCopy } from '../../context/CopyContext';
 import { useAuth } from '../../context/AuthContext';
 import { DailyReflection, ReflectionStats, JournalSearchResult } from '../../types';
 import { getReflections, getReflectionStats, searchJournalEntries } from '../../services/reflections';
@@ -24,9 +26,22 @@ import { ProgressNavigation } from '../../types/navigation';
 const TIME_FILTERS = ['7 Days', '30 Days', '90 Days', 'All Time'] as const;
 const SOURCE_FILTERS = ['All', 'Reflections', 'Challenges'] as const;
 type SourceFilter = (typeof SOURCE_FILTERS)[number];
+// Display wording keys for the filter chips (the values above drive logic).
+const TIME_FILTER_KEYS: Record<(typeof TIME_FILTERS)[number], string> = {
+  '7 Days': 'reflection.filter.days7',
+  '30 Days': 'reflection.filter.days30',
+  '90 Days': 'reflection.filter.days90',
+  'All Time': 'reflection.filter.allTime',
+};
+const SOURCE_FILTER_KEYS: Record<SourceFilter, string> = {
+  All: 'reflection.source.all',
+  Reflections: 'reflection.source.reflections',
+  Challenges: 'reflection.source.challenges',
+};
 
 export const ReflectionDetailScreen: React.FC = () => {
   const { user } = useAuth();
+  const t = useCopy();
   const navigation = useNavigation<ProgressNavigation>();
 
   const [filter, setFilter] = useState<(typeof TIME_FILTERS)[number]>('30 Days');
@@ -167,7 +182,7 @@ export const ReflectionDetailScreen: React.FC = () => {
         <Ionicons name="search" size={20} color={Colors.gray} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search your journal..."
+          placeholder={t('reflection.search.placeholder', 'Search your journal...')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor={Colors.gray}
@@ -193,7 +208,7 @@ export const ReflectionDetailScreen: React.FC = () => {
                 style={[styles.sourceChip, sourceFilter === sf && styles.sourceChipActive]}
               >
                 <Text style={[styles.sourceChipText, sourceFilter === sf && styles.sourceChipTextActive]}>
-                  {sf}
+                  {t(SOURCE_FILTER_KEYS[sf], sf)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -207,16 +222,22 @@ export const ReflectionDetailScreen: React.FC = () => {
           ) : filteredResults.length === 0 ? (
             <View style={styles.emptySearchContainer}>
               <Ionicons name="search-outline" size={48} color={Colors.gray} />
-              <Text style={styles.emptySearchTitle}>No matches found</Text>
-              <Text style={styles.emptySearchDesc}>
+              <Copy id="reflection.search.noMatches" style={styles.emptySearchTitle}>
+                No matches found
+              </Copy>
+              <Copy id="reflection.search.noMatchesHint" style={styles.emptySearchDesc}>
                 Try different keywords or check your spelling
-              </Text>
+              </Copy>
             </View>
           ) : (
             <>
-              <Text style={styles.resultCount}>
-                {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''} for "{searchQuery.trim()}"
-              </Text>
+              <Copy
+                id={filteredResults.length === 1 ? 'reflection.search.resultCount.one' : 'reflection.search.resultCount.other'}
+                style={styles.resultCount}
+                vars={{ n: filteredResults.length, query: searchQuery.trim() }}
+              >
+                {filteredResults.length === 1 ? '{n} result for "{query}"' : '{n} results for "{query}"'}
+              </Copy>
               {filteredResults.map((result) => (
                 <Card
                   key={`${result.source}-${result.id}`}
@@ -230,7 +251,9 @@ export const ReflectionDetailScreen: React.FC = () => {
                         { backgroundColor: result.source === 'reflection' ? Colors.primary : Colors.secondary },
                       ]}>
                         <Text style={styles.sourceBadgeText}>
-                          {result.source === 'reflection' ? 'Reflection' : 'Challenge'}
+                          {result.source === 'reflection'
+                            ? t('reflection.badge.reflection', 'Reflection')
+                            : t('reflection.badge.challenge', 'Challenge')}
                         </Text>
                       </View>
                       <Text style={styles.entryDate}>{formatDate(result.date)}</Text>
@@ -269,7 +292,7 @@ export const ReflectionDetailScreen: React.FC = () => {
                 style={[styles.filterChip, filter === f && styles.filterActive]}
               >
                 <Text style={[styles.filterText, filter === f && styles.filterActiveText]}>
-                  {f}
+                  {t(TIME_FILTER_KEYS[f], f)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -280,7 +303,9 @@ export const ReflectionDetailScreen: React.FC = () => {
             <View style={styles.statsRow}>
               <Card style={styles.statCard}>
                 <Text style={styles.statValue}>{stats.totalReflections}</Text>
-                <Text style={styles.statLabel}>Reflections</Text>
+                <Copy id="reflection.stats.reflections" style={styles.statLabel}>
+                  Reflections
+                </Copy>
               </Card>
               <Card style={styles.statCard}>
                 {stats.totalReflections > 0 ? (
@@ -290,15 +315,21 @@ export const ReflectionDetailScreen: React.FC = () => {
                 ) : (
                   <Text style={styles.statValue}>-</Text>
                 )}
-                <Text style={styles.statLabel}>Avg Alignment</Text>
+                <Copy id="reflection.stats.avgAlignment" style={styles.statLabel}>
+                  Avg Alignment
+                </Copy>
               </Card>
               <Card style={styles.statCard}>
                 <Text style={styles.statValue}>{stats.currentStreak}</Text>
-                <Text style={styles.statLabel}>Streak</Text>
+                <Copy id="reflection.stats.streak" style={styles.statLabel}>
+                  Streak
+                </Copy>
               </Card>
               <Card style={styles.statCard}>
                 <Text style={styles.statValue}>{stats.longestStreak}</Text>
-                <Text style={styles.statLabel}>Best</Text>
+                <Copy id="reflection.stats.best" style={styles.statLabel}>
+                  Best
+                </Copy>
               </Card>
             </View>
           )}
@@ -310,7 +341,9 @@ export const ReflectionDetailScreen: React.FC = () => {
           <GradeLineChart reflections={reflections} />
 
           {/* Calendar */}
-          <Text style={styles.sectionTitle}>Reflection Calendar</Text>
+          <Copy id="reflection.calendar.title" style={styles.sectionTitle}>
+            Reflection Calendar
+          </Copy>
           <Calendar
             markedDates={markedDates}
             onDayPress={onDayPress}
@@ -325,10 +358,14 @@ export const ReflectionDetailScreen: React.FC = () => {
           />
 
           {/* Recent Entries */}
-          <Text style={styles.sectionTitle}>Recent Entries</Text>
+          <Copy id="reflection.recent.title" style={styles.sectionTitle}>
+            Recent Entries
+          </Copy>
           {reflections.length === 0 ? (
             <Card>
-              <Text style={styles.emptyText}>No reflections for this period</Text>
+              <Copy id="reflection.recent.empty" style={styles.emptyText}>
+                No reflections for this period
+              </Copy>
             </Card>
           ) : (
             reflections.slice(0, 20).map((r) => (
