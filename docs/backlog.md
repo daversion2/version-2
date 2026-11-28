@@ -870,7 +870,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**Meals and Craving Crusher hidden from everyone** *(2026-11-28, OTA_PLACEHOLDER)*
+**Meals and Craving Crusher hidden from everyone** *(2026-11-28, d4b21a9, live OTA iOS 01a22364-14c4-70b4, Android 01a22364-14c4-73d3; not checked on screen)*
 Founder's call: not deleted, hidden for all accounts, admins too. One list in
 `services/hiddenApps.ts` drives it: off Today (ring, icon, row, dashboard
 page), out of Apps, onboarding and the goals sheet, off Progress History,
