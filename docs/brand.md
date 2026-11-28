@@ -4,7 +4,7 @@
 on the market research in `reports/Neuro Nudge go to market messaging.md`.
 **The founder edits the live version in the "Neuro-Nudge brand" doc**
 (https://claude.ai/artifact/Hs9u8ixNd3tjcfU6vBFfp7); this file is a synced
-copy for sessions to write copy against. Last synced 2026-11-28. If the two
+copy for sessions to write copy against. Last synced 2026-11-28 (second sync). If the two
 differ, the doc wins: ask the founder to sync it rather than editing here.*
 
 Neuro-Nudge is an app **and** a brand: something people identify with and
@@ -106,8 +106,8 @@ very nice"), never as a sneer at other people.
 | Swearing | Mild, anywhere it sounds natural (shit, damn, hell). Sparingly; nothing stronger, and no slurs or gendered insults. | "Hard to start. Did it anyway. Damn." |
 | Speaker | "We", the brand. (Merch lines can speak as the wearer: "I…") | "We built this because we kept skipping workouts too." |
 | Science | Depends where. Ads and social: one plain idea. In-app "Why this works" and the website: go deeper, name studies. | "Your brain predicts the cost. You feel it as resistance." |
-| Bad days | A self-aware joke, then move on. No guilt, no pep talk. | "The pull got you. It gets us too. Back at it?" |
-| Wins | Understated. A nod, not a parade. | "That was a 3. Noted." |
+| Bad days | A self-aware joke, then move on. No guilt, no pep talk. | "The pull of comfort gets everyone now and then. Back at it?" |
+| Wins | No applause. The rating already says it was hard, so we don't repeat it. Say nothing, state the plain fact, or undercut it with a joke. Never "you did the hard thing!" | "Nice work! Now refrain from posting about it on Instagram." |
 | Rhythm | Mix. Short lines for headlines, buttons and moments; conversational sentences for explanations, emails and the origin story. | "Hard to start. Did it anyway." |
 
 ### Do and don't
@@ -115,8 +115,8 @@ very nice"), never as a sneer at other people.
 | We sound like | We never sound like |
 |---|---|
 | A friend who lifts and still orders pizza | A drill sergeant |
-| "The pull got you. It gets us too." | "No excuses." |
-| "That was a 3. Noted." | "LEGENDARY! You're UNSTOPPABLE!" |
+| "The pull gets everyone now and then." | "No excuses." |
+| "Woah… look at you making it look easy." | "LEGENDARY! You're UNSTOPPABLE!" |
 | "Yes, we see the irony." | Holier-than-thou about screens or food |
 | "Your brain predicts the cost." | "Boost your dopamine" or "grow your aMCC" |
 | "Most of the time." | "Every single day." or "Never miss." |
@@ -125,7 +125,7 @@ very nice"), never as a sneer at other people.
 ### Words
 
 - **Ours:** the pull, override, hard start, "a 3", most of the time, capable,
-  noted.
+  "noted" (sparingly, or it becomes a tic).
 - **Avoid:** alpha, beast, crush, grind, savage, warrior, "no excuses", "never
   miss", dopamine, "unlock your potential", "1% better", and "practice" or
   "rep" (an existing app rule, see `docs/app-overview-user-facing.md`).
@@ -158,6 +158,9 @@ humble and funny, leading by example. A natural format for shirts and social.
 - Yep. Still here. Still trying.
 - Trying is cool
 - I keep my shirt on and phone in my pocket at the gym.
+- Not today couch!
+- Netflix and stretch
+- Netflix and workout
 
 ## Where the app doesn't match yet
 
