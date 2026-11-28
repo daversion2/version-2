@@ -23,6 +23,14 @@ How to use it:
 
 ## Now
 
+**Founder: switch off four notifications in Admin → Rules** *(added 2026-11-28)*
+Decided in the copy review (Claude doc "Neuro-Nudge copy review"). Turn these
+rules off; don't delete them, because `seedDefaultRules` re-adds any rule whose
+name is missing: "Journey day 0: first check-in tonight", "Journey day 7: week
+one recap", "Journey day 28: the science said 2–4 weeks" and "Challenge failed
+encouragement". Their seeds in `src/services/rules.ts` come out with the copy
+changes, so a fresh environment doesn't get them either.
+
 **⏰ Founder, at your laptop: pull, then deploy pods and ship the OTA** *(added 2026-11-27, redone the same day)*
 The first attempt ran from an out-of-date checkout: checked 2026-11-27 03:35
 UTC, production has `deleteAccount` but no `createPod`/`joinPod` (404), and the
