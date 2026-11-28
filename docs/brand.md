@@ -127,8 +127,9 @@ very nice"), never as a sneer at other people.
 - **Ours:** the pull, override, hard start, "a 3", most of the time, capable,
   "noted" (sparingly, or it becomes a tic).
 - **Avoid:** alpha, beast, crush, grind, savage, warrior, "no excuses", "never
-  miss", dopamine, "unlock your potential", "1% better", and "practice" or
-  "rep" (an existing app rule, see `docs/app-overview-user-facing.md`).
+  miss", dopamine, "unlock your potential", "1% better", and "rep" (an existing app
+  rule, see `docs/app-overview-user-facing.md`). "Practice" is fine (founder,
+  2026-11-28).
 
 ### Science guardrails
 
