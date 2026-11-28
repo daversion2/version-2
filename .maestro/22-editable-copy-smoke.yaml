@@ -1,0 +1,73 @@
+# Editable-wording smoke test (2026-11-28). READ-ONLY: opens screens, scrolls,
+# screenshots. Never taps Start, Log, Save or anything that writes.
+# After every screen's wording moved into <Copy>/useCopy(), this checks Today,
+# Workouts home, Progress and Settings still render their wording.
+appId: com.neuronudge.neuronudge
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "This week"
+- assertVisible: "Your apps"
+- takeScreenshot: 22-01-today
+- scroll
+- takeScreenshot: 22-02-today-lower
+
+# Workouts home, from its app icon on Today.
+- scrollUntilVisible:
+    element:
+      text: "Workouts, \\d+ of \\d+ this week"
+    direction: UP
+    timeout: 10000
+- repeat:
+    times: 4
+    while:
+      visible: "Your apps"
+    commands:
+      - tapOn: "Workouts, \\d+ of \\d+ this week"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- takeScreenshot: 22-03-workouts-home
+- scroll
+- takeScreenshot: 22-04-workouts-home-lower
+
+# Progress tab (three tabs: Today 1/6, Progress 1/2, Settings 5/6).
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      text: "Today, tab.*"
+    timeout: 40000
+- repeat:
+    times: 6
+    while:
+      notVisible: "Progress"
+    commands:
+      - tapOn:
+          point: "50%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "Progress"
+- takeScreenshot: 22-05-progress
+- scroll
+- takeScreenshot: 22-06-progress-lower
+
+# Settings tab.
+- repeat:
+    times: 6
+    while:
+      notVisible: "Settings"
+    commands:
+      - tapOn:
+          point: "83%,94%"
+      - waitForAnimationToEnd:
+          timeout: 4000
+- assertVisible: "Settings"
+- takeScreenshot: 22-07-settings
+- scroll
+- takeScreenshot: 22-08-settings-lower
