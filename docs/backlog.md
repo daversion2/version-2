@@ -542,9 +542,9 @@ Before non-admins get Compose:
 
 **Bring app and site copy in line with the brand** *(added 2026-11-27)*
 `docs/brand.md` sets the voice: understated wins, self-aware jokes on bad days,
-Comfort Mode as the enemy. Known gaps are listed in its "Where the app doesn't
-match yet" section (hype streak tiers in `src/constants/willpower.ts`, no
-Comfort Mode anywhere, landing-page science lines). Founder's call on what
+"the pull" (of comfort) as the enemy. Known gaps are listed in its "Where the app doesn't
+match yet" section (hype streak tiers in `src/constants/willpower.ts`, the
+pull not named anywhere, landing-page science lines). Founder's call on what
 changes and when; still to decide there: the clean App Store tagline,
 Comfort Inc., visuals.
 
