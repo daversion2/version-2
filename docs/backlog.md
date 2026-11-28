@@ -385,6 +385,12 @@ and uncomment them to fix it.
 
 ## Next (pre-launch)
 
+**Deploy the website's brand copy** *(added 2026-11-28)*
+Committed in 8871d66, not deployed (founder: not yet). When ready:
+`firebase deploy --only hosting`. Still open on the site: the hero headline
+(waiting for the clean tagline) and a "Get help" row on `support.html` (needs
+a support email).
+
 **Full-codebase review: 36 verified findings, in three batches** *(added 2026-11-21)*
 Ten agents reviewed the codebase in five areas; a skeptic per area tried to
 refute each finding, and 5 were thrown out. Security came out clean: no way
