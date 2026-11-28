@@ -28,8 +28,11 @@ Decided in the copy review (Claude doc "Neuro-Nudge copy review"). Turn these
 rules off; don't delete them, because `seedDefaultRules` re-adds any rule whose
 name is missing: "Journey day 0: first check-in tonight", "Journey day 7: week
 one recap", "Journey day 28: the science said 2–4 weeks" and "Challenge failed
-encouragement". Their seeds in `src/services/rules.ts` come out with the copy
-changes, so a fresh environment doesn't get them either.
+encouragement". Their seeds in `src/services/rules.ts` came out in 126d47f, so
+a fresh environment doesn't get them either. While in Admin → Rules, also
+update the live text of "Comeback check-in", "Push opt-in ask" and "Comeback
+nudge" to the new seeds (`docs/handoff-brand-copy.md`), and check Admin → All
+wording for overrides of the changed `<Copy>` lines.
 
 **⏰ Founder, at your laptop: pull, then deploy pods and ship the OTA** *(added 2026-11-27, redone the same day)*
 The first attempt ran from an out-of-date checkout: checked 2026-11-27 03:35
@@ -548,14 +551,6 @@ Before non-admins get Compose:
 
 ## Later
 
-**Bring app and site copy in line with the brand** *(added 2026-11-27)*
-`docs/brand.md` sets the voice: understated wins, self-aware jokes on bad days,
-"the pull" (of comfort) as the enemy. Known gaps are listed in its "Where the app doesn't
-match yet" section (hype streak tiers in `src/constants/willpower.ts`, the
-pull not named anywhere, landing-page science lines). Founder's call on what
-changes and when; still to decide there: the clean App Store tagline,
-Comfort Inc., visuals.
-
 **Apps-first Today: untested on screen** *(added 2026-10-18)*
 See `docs/apps-first-today.md`. Maestro checked the cards, the apps opening and
 both "Log a past session" sheets, without saving anything. These steps haven't
@@ -856,6 +851,18 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 ---
 
 ## Done (recent)
+
+**App copy in line with the brand** *(2026-11-28, 126d47f, live OTA iOS 01a2232b-0e41-7699, Android 01a2232b-0e41-75ea; not checked on screen)*
+Every app change in `docs/handoff-brand-copy.md` ("Changes to make in code"),
+from the founder's "Neuro-Nudge copy review" doc: science lines trimmed to
+`docs/brand.md`'s guardrails, the pull named in onboarding, streak tiers
+Starting / Rolling / Steady / Stubborn / Capable, no-applause toasts, comeback
+and push-opt-in rule seeds, Close out the day's ⓘ intro removed, four parked
+rule seeds removed. Comeback title stays "Welcome back". Not done here: the
+website (`hosting/`, deploy needs the founder's yes), hiding Meals and Craving
+Crusher (founder: not now), the landing-page headline (waiting for the clean
+tagline), the support-page contact row (no address yet). Still open from
+`docs/brand.md`: the clean App Store tagline, Comfort Inc., visuals.
 
 **Pods, steps 1–3: built** *(2026-11-27; NOT live yet: the first deploy and OTA ran from a stale checkout, see the ⏰ item in Now)*
 A partner or a group of up to 5 (`docs/pods.md`). Admins turn on Lab → Pods
