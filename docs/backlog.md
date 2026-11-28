@@ -869,7 +869,7 @@ Design and status live in `docs/mini-app-backlog.md`. Open actions:
 
 ## Done (recent)
 
-**All live screens' wording admin-editable** *(2026-11-28, OTA_PLACEHOLDER; not checked on screen)*
+**All live screens' wording admin-editable** *(2026-11-28, f6b8147, live OTA iOS 01a22348-d997-7224, Android 01a22348-d997-72b2; not checked on screen)*
 About 1,900 more strings now go through `<Copy>` (long-press in Admin → Edit
 wording on screen) or `useCopy()` / `copyText()` (Admin → All wording):
 Today, onboarding, Progress, Settings, Apps, Nightly, Auth, Craving, Pods and
